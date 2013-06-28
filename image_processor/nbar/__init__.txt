@@ -1,0 +1,9 @@
+# Default process list for nbar module
+[
+check_nbar_output, # N.B: May call sys.exit() here if repackaging or skipping unchanged output
+get_ancillary_data,
+calc_grids,
+radiative_transfer_prep,
+radiative_transfer_nbar,
+radiative_transfer_post
+]

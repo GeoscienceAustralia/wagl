@@ -1,0 +1,15 @@
+# Default process list for nbar processing
+[
+get_input_datasets,
+nbar.check_nbar_output, # N.B: May call sys.exit() here if repackaging or skipping nbar.unchanged output
+nbar.get_ancillary_data,
+nbar.calc_grids,
+nbar.radiative_transfer_prep,
+[[
+	nbar.radiative_transfer_prep.run_bilinear_ortho.dif,
+	nbar.radiative_transfer_prep.run_bilinear_ortho.dir,
+	nbar.radiative_transfer_prep.run_bilinear_ortho.ts
+]],
+nbar.radiative_transfer_tc,
+nbar.radiative_transfer_post
+]

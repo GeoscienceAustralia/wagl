@@ -1,0 +1,6 @@
+[
+get_input_datasets,
+nbar.get_ancillary_data.get_solar_distance_ancillary_data,
+nbar.calc_grids,
+nbar.radiative_transfer.run_shadows
+]

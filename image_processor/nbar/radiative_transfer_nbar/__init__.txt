@@ -1,0 +1,21 @@
+# Default process list for radiative_transfer_nbar module
+[
+[[
+    run_brdf_sim_bin.1,
+    run_brdf_sim_bin.2,
+    run_brdf_sim_bin.3,
+    run_brdf_sim_bin.4,
+    run_brdf_sim_bin.5,
+    run_brdf_sim_bin.7,
+    run_brdf_sim_bin.8
+]],
+[[
+    write_tif_files.1,
+    write_tif_files.2,
+    write_tif_files.3,
+    write_tif_files.4,
+    write_tif_files.5,
+    write_tif_files.7,
+    write_tif_files.8
+]]
+]

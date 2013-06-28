@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type="text/xsl" href="pixel_quality_metadata.xsl"?>
+<EODS_DATASET xmlns:fn="http://www.w3.org/2005/xpath-functions" xmlns:xdt="http://www.w3.org/2005/xpath-datatypes" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+   <MDRESOURCE>
+      <MDFILEID></MDFILEID>
+      <FILESIZE></FILESIZE>
+      <RESOLUTIONINMETRES></RESOLUTIONINMETRES>
+      <CONSTRAINTID>1</CONSTRAINTID>
+      <RESOURCESTATUS>completed</RESOURCESTATUS>
+      <KEYWORDS/>
+      <TOPICCATEGORIES>environment</TOPICCATEGORIES>
+      <CITATION>
+         <TITLE></TITLE>
+         <ALTERNATETITLE/>
+         <DATE></DATE>
+         <DATETYPE>creation</DATETYPE>
+         <EDITION/>
+         <EDITIONDATE/>
+         <ENTEREDBYRESPONSIBLEPARTY>
+            <INDIVIDUALNAME>NEO Group</INDIVIDUALNAME>
+            <ORGANISATIONNAME>Geoscience Australia</ORGANISATIONNAME>
+            <POSITIONNAME>NEO Operation</POSITIONNAME>
+            <ROLE>pointOfContact</ROLE>
+         </ENTEREDBYRESPONSIBLEPARTY>
+         <UPDATEDBYRESPONSIBLEPARTY>
+            <INDIVIDUALNAME/>
+            <ORGANISATIONNAME/>
+            <POSITIONNAME/>
+            <ROLE/>
+         </UPDATEDBYRESPONSIBLEPARTY>
+         <OTHERCITATIONDETAILS/>
+      </CITATION>
+      <MDSTANDARDNAME>ANZLIC Metadata Profile: An Australian/New Zealand Profile of AS/NZS ISO 19115:2005, Geographic information - Metadata</MDSTANDARDNAME>
+      <MDSTANDARDVERSION>1.0</MDSTANDARDVERSION>
+      <PARENTID/>
+      <DATALANGUAGE>eng</DATALANGUAGE>
+      <MDCONTACT>
+         <INDIVIDUALNAME>NEO Group</INDIVIDUALNAME>
+         <ORGANISATIONNAME>Geoscience Australia</ORGANISATIONNAME>
+         <POSITIONNAME>NEO Operation</POSITIONNAME>
+         <ROLE>pointOfContact</ROLE>
+      </MDCONTACT>
+      <RESOURCETYPE>Processed Image</RESOURCETYPE>
+      <CHARACTERSETCODE>utf8</CHARACTERSETCODE>
+      <ABSTRACT/>
+      <PURPOSE>Pixel Quality</PURPOSE>
+      <CREDIT/>
+      <HIERARCHYLEVEL>dataset</HIERARCHYLEVEL>
+      <HIERARCHYLEVELNAME>Satellite Imagery</HIERARCHYLEVELNAME>
+      <ENVIRONMENTDESCRIPTION/>
+      <SPATIALREPRESENTATIONTYPE>grid</SPATIALREPRESENTATIONTYPE>
+      <SUPPLEMENTARYINFORMATION>The pixel quality algorithm uses data from both the L1T (Systematic Terrain Correction) and ARG25 (Australian Reflectance Grid 25m) products.
+
+           ACCA cloud cover is reported as a percentage of the entire data grid, while Fmask is reported as a percentage of the valid image data only.
+           CLOUD COVER PERCENTAGE ACCA {ACCA_PERCENT}
+           CLOUD COVER PERCENTAGE Fmask {Fmask_PERCENT}
+
+           Cloud shadow is reported as a percentage of the entire data grid for both analyses.
+           CLOUD SHADOW PERCENTAGE ACCA {ACCA_CLOUD_SHADOW_PERCENT}
+           CLOUD SHADOW PERCENTAGE Fmask {Fmask_CLOUD_SHADOW_PERCENT}</SUPPLEMENTARYINFORMATION>
+      <FORMAT>
+         <FORMATNAME>GeoTIFF</FORMATNAME>
+         <FORMATVERSION>1</FORMATVERSION>
+      </FORMAT>
+   </MDRESOURCE>
+   <EXEXTENT>
+      <COORDINATEREFERENCESYSTEM></COORDINATEREFERENCESYSTEM>
+      <EXTENTTYPE/>
+      <EXTENTDESCRIPTION/>
+      <UL_LAT></UL_LAT>
+      <UL_LONG></UL_LONG>
+      <UR_LAT></UR_LAT>
+      <UR_LONG></UR_LONG>
+      <LR_LAT></LR_LAT>
+      <LR_LONG></LR_LONG>
+      <LL_LAT></LL_LAT>
+      <LL_LONG></LL_LONG>
+      <WEST_BLONG></WEST_BLONG>
+      <EAST_BLONG></EAST_BLONG>
+      <NORTH_BLAT></NORTH_BLAT>
+      <SOUTH_BLAT></SOUTH_BLAT>
+      <TEMPORALEXTENTFROM></TEMPORALEXTENTFROM>
+      <TEMPORALEXTENTTO></TEMPORALEXTENTTO>
+      <VERTICALEXTENTMAX/>
+      <VERTICALEXTENTMIN/>
+      <VERTICALEXTENTUOM/>
+      <VERTICALEXTENTCRS/>
+      <VERTICALEXTENTDATUM/>
+      <SCENECENTRELAT></SCENECENTRELAT>
+      <SCENECENTRELONG></SCENECENTRELONG>
+      <TIMESERIESCOMPOSITINGINTERVAL/>
+   </EXEXTENT>
+   <MAINTAININFO>
+	   <MAINTAINFREQUENCY>notPlanned</MAINTAINFREQUENCY>
+      <MAINTAINDATENEXT/>
+      <USERDEFINEDFREQUENCYQSTARTTIME/>
+      <USERDEFINEDFREQUENCYQENDTIME/>
+      <MAINTAINSCOPE/>
+      <UPDATESCOPEDESCRIPTION/>
+      <MAINTAINNOTE/>
+      <MAINTAINCONTACT>
+         <INDIVIDUALNAME/>
+         <ORGANISATIONNAME/>
+         <POSITIONNAME/>
+         <ROLE/>
+      </MAINTAINCONTACT>
+   </MAINTAININFO>
+   <DATAQUALITY>
+      <SCOPELEVEL>dataset</SCOPELEVEL>
+      <SCOPELEVELDESCRIPTION/>
+      <LINEAGE>
+         <STATEMENT>Pixel Quality SVN Version 1228
+         The pixel quality algorithm assesses quality aspects such as saturation, band/spectral contiguity, land/sea, cloud and cloud shadow.
+                              Tests Run:
+                              Saturation Band1: {Run}
+                              Saturation Band2: {Run}
+                              Saturation Band3: {Run}
+                              Saturation Band4: {Run}
+                              Saturation Band5: {Run}
+                              Saturation Band61: {Run}
+                              Saturation Band62: {Duplicated Band61}
+                              Saturation Band7: {Run}
+                              Band Contiguity: {Run}
+                              Land/Sea: {Run}
+                              ACCA: {Run}
+                              Fmask (Cloud): {Run}
+                              Cloud Shadow (ACCA): {Run}
+                              Cloud Shadow (Fmask): {Run}
+                              Empty Test: {Not Run}
+                              Empty Test: {Not Run}
+
+                              Bits Set:
+                              Saturation Band1: 0
+                              Saturation Band2: 1
+                              Saturation Band3: 2
+                              Saturation Band4: 3
+                              Saturation Band5: 4
+                              Saturation Band61: 5
+                              Saturation Band62: 6
+                              Saturation Band7: 7
+                              Band Contiguity: 8
+                              Land/Sea: 9
+                              ACCA: 10
+                              Fmask (Cloud): 11
+                              Cloud Shadow (ACCA): 12
+                              Cloud Shadow (Fmask): 13
+                              Empty Test: Not Set
+                              Empty Test: Not Set
+         </STATEMENT>
+         <PROCESSINGSTEP>
+            <ALGORITHMCITATION>
+               <TITLE>Pixel Quality</TITLE>
+               <EDITION>Unknown</EDITION>
+            </ALGORITHMCITATION>
+         </PROCESSINGSTEP>
+         <LINEAGESOURCE>
+            <MDFILEID/>
+            <SOURCERESOURCEID/>
+            <SOURCECITATION>
+               <TITLE/>
+               <DATE/>
+               <DATETYPE/>
+               <ENTEREDBYRESPONSIBLEPARTY>
+                  <INDIVIDUALNAME/>
+                  <ORGANISATIONNAME/>
+                  <POSITIONNAME/>
+                  <ROLE/>
+               </ENTEREDBYRESPONSIBLEPARTY>
+            </SOURCECITATION>
+	    <DESCRIPTION>The pixel quality algorithm uses data from both the L1T (Systematic Terrain Correction) and ARG25 (Australian Reflectance Grid 25m) products.
+	    </DESCRIPTION>
+            <SOURCEREFERENCESYSTEM/>
+            <SOURCESCALE/>
+            <SOURCESTEP/>
+            <PROCESSINGLEVEL/>
+         </LINEAGESOURCE>
+      </LINEAGE>
+      <DQELEMENT>
+         <MEASURENAME/>
+         <QUANTATIVEVALUE/>
+         <QUANTATIVEVALUEUNIT/>
+      </DQELEMENT>
+   </DATAQUALITY>
+   <IMAGEDESCRIPTION>
+      <ILLUMINATIONELEVATIONANGLE></ILLUMINATIONELEVATIONANGLE>
+      <ILLUMINATIONELEVATIONAZIMUTH></ILLUMINATIONELEVATIONAZIMUTH>
+      <VIEWINGINCIDENCEANGLEXTRACK></VIEWINGINCIDENCEANGLEXTRACK>
+      <VIEWINGINCIDENCEANGLELONGTRACK></VIEWINGINCIDENCEANGLELONGTRACK>
+      <CLOUDCOVERPERCENTAGE></CLOUDCOVERPERCENTAGE>
+      <SENSOROPERATIONMODE/>
+      <BANDGAIN/>
+      <BANDSAVAILABLE>PQ</BANDSAVAILABLE>
+      <SATELLITEREFERENCESYSTEM_X></SATELLITEREFERENCESYSTEM_X>
+      <SATELLITEREFERENCESYSTEM_Y></SATELLITEREFERENCESYSTEM_Y>
+      <IMAGECONDITION/>
+      <PROCESSINGTYPECD>Pixel Quality</PROCESSINGTYPECD>
+      <BEARING/>
+   </IMAGEDESCRIPTION>
+   <BROWSEGRAPHIC>
+      <FILENAME/>
+      <FILEDESCRIPTION/>
+      <FILETYPE/>
+      <SAMPLEPIXELRESOLUTION/>
+      <BLUEBAND/>
+      <GREENORGREYBAND/>
+      <REDBAND/>
+   </BROWSEGRAPHIC>
+   <ACQUISITIONINFORMATION>
+      <PLATFORMNAME></PLATFORMNAME>
+      <INSTRUMENTNAME></INSTRUMENTNAME>
+      <INSTRUMENTYPE></INSTRUMENTYPE>
+      <MISSIONNAME/>
+      <EVENT>
+         <TIME/>
+         <AOS/>
+         <LOS/>
+         <ORBITNUMBER/>
+         <CYCLENUMBER/>
+         <PASSSTATUS/>
+         <NUMBERSCENESINPASS/>
+         <COLLECTIONSITE/>
+         <ANTENNA/>
+         <HEADING/>
+         <SEQUENCE/>
+         <TRIGGER/>
+         <CONTEXT/>
+      </EVENT>
+   </ACQUISITIONINFORMATION>
+   <GRIDSPATIALREPRESENTATION>
+      <NUMBEROFDIMENSIONS>2</NUMBEROFDIMENSIONS>
+      <TRANSFORMATIONPARAMETERAVAILABILITY>1</TRANSFORMATIONPARAMETERAVAILABILITY>
+      <CELLGEOMETRY>area</CELLGEOMETRY>
+      <DIMENSION_X>
+         <NAME>sample</NAME>
+         <SIZE></SIZE>
+         <RESOLUTION></RESOLUTION>
+      </DIMENSION_X>
+      <DIMENSION_Y>
+         <NAME>line</NAME>
+         <SIZE></SIZE>
+         <RESOLUTION></RESOLUTION>
+      </DIMENSION_Y>
+      <GEORECTIFIED>
+         <CHECKPOINTAVAILABILITY>0</CHECKPOINTAVAILABILITY>
+         <CHECKPOINTDESCRIPTION/>
+         <POINTINPIXEL></POINTINPIXEL>
+         <GEOREFULPOINT_X></GEOREFULPOINT_X>
+         <GEOREFULPOINT_Y></GEOREFULPOINT_Y>
+         <GEOREFULPOINT_Z/>
+         <GEOREFURPOINT_X></GEOREFURPOINT_X>
+         <GEOREFURPOINT_Y></GEOREFURPOINT_Y>
+         <GEOREFURPOINT_Z/>
+         <GEOREFLLPOINT_X></GEOREFLLPOINT_X>
+         <GEOREFLLPOINT_Y></GEOREFLLPOINT_Y>
+         <GEOREFLLPOINT_Z/>
+         <GEOREFLRPOINT_X></GEOREFLRPOINT_X>
+         <GEOREFLRPOINT_Y></GEOREFLRPOINT_Y>
+         <GEOREFLRPOINT_Z/>
+         <CENTREPOINT_X/>
+         <CENTREPOINT_Y/>
+         <ELLIPSOID></ELLIPSOID>
+         <DATUM></DATUM>
+         <PROJECTION></PROJECTION>
+         <ZONE></ZONE>
+         <COORDINATEREFERENCESYSTEM></COORDINATEREFERENCESYSTEM>
+      </GEORECTIFIED>
+   </GRIDSPATIALREPRESENTATION>
+</EODS_DATASET>

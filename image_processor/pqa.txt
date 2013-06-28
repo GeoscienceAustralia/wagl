@@ -1,0 +1,5 @@
+# Default process list for pqa processing
+[
+get_input_datasets,
+pqa
+]

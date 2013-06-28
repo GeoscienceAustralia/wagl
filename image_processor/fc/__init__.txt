@@ -1,0 +1,6 @@
+# Default process list for fc module
+[
+  check_fc_output,
+  calc_fc,
+  package_fc_output
+]
