@@ -9,7 +9,6 @@
 *.git*
 *.pyc
 *.pydev*
-.gitignore
 *_prog.f90
 bin/
 docs/build/
