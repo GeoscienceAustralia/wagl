@@ -4,7 +4,7 @@
 #PBS -l walltime=00:30:00,ncpus=1,vmem=6GB
 #PBS -wd
 #PBS -me
-#PBS -M Simon.Knapp@ga.gov.au
+#PBS -M Alex.Ip@ga.gov.au
 #####PBS -joe -o runfrac_landsat_v3.olog
 
 module load geotiff/1.3.0
