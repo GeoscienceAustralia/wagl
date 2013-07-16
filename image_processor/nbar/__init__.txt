@@ -5,5 +5,6 @@ get_ancillary_data,
 calc_grids,
 radiative_transfer_prep,
 radiative_transfer_nbar,
-radiative_transfer_post
+radiative_transfer_post,
+package_nbar_output
 ]
