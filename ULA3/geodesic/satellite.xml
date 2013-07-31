@@ -106,30 +106,30 @@
         CLASSIFICATION='U'
         INTL_DESIGNATOR='13008A'
 	>
-		<SENSOR NAME="LDCM"
+		<SENSOR NAME="OLI_TIRS"
 			DESCRIPTION="Landsat Data Continuity Mission" ROOT_BAND="20" RGB_BANDS="70,50,20"
 				ACQUISITION_SECONDS="24" K1="0" K2="0">
-			<BAND NUMBER="10" NAME="Coastal Aerosol"
+			<BAND NUMBER="1" NAME="Coastal Aerosol"
 				WAVELENGTH="0.433-0.453" TYPE="Reflective" RESOLUTION="25.0" />
-			<BAND NUMBER="20" NAME="Visible Blue"
+			<BAND NUMBER="2" NAME="Visible Blue"
 				WAVELENGTH="0.45-0.515" TYPE="Reflective" RESOLUTION="25.0" />
-			<BAND NUMBER="30" NAME="Visible Green"
+			<BAND NUMBER="3" NAME="Visible Green"
 				WAVELENGTH="0.525-0.60" TYPE="Reflective" RESOLUTION="25.0" />
-			<BAND NUMBER="40" NAME="Visible Red" WAVELENGTH="0.63-0.68"
+			<BAND NUMBER="4" NAME="Visible Red" WAVELENGTH="0.63-0.68"
 				TYPE="Reflective" RESOLUTION="25.0" />
-			<BAND NUMBER="50" NAME="Near Infrared"
+			<BAND NUMBER="5" NAME="Near Infrared"
 				WAVELENGTH="0.845-0.885" TYPE="Reflective" RESOLUTION="25.0" />
-			<BAND NUMBER="60" NAME="Short-wave Infrared 1"
+			<BAND NUMBER="6" NAME="Short-wave Infrared 1"
 				WAVELENGTH="1.56-1.66" TYPE="Reflective" RESOLUTION="25.0" />
-			<BAND NUMBER="70" NAME="Short-wave Infrared 2"
+			<BAND NUMBER="7" NAME="Short-wave Infrared 2"
 				WAVELENGTH="2.1-2.3" TYPE="Reflective" RESOLUTION="25.0" />
-			<BAND NUMBER="80" NAME="Panchromatic" WAVELENGTH="0.5-0.68"
+			<BAND NUMBER="8" NAME="Panchromatic" WAVELENGTH="0.5-0.68"
 				TYPE="Panchromatic" RESOLUTION="12.5" />
-			<BAND NUMBER="90" NAME="Cirrus" WAVELENGTH="1.360-1.390"
+			<BAND NUMBER="9" NAME="Cirrus" WAVELENGTH="1.360-1.390"
 				TYPE="Reflective" RESOLUTION="25.0" />
-			<BAND NUMBER="100" NAME="Thermal Infrared 1"
+			<BAND NUMBER="10" NAME="Thermal Infrared 1"
 				WAVELENGTH="10.3-11.3" TYPE="Thermal" RESOLUTION="25.0" />
-			<BAND NUMBER="110" NAME="Thermal Infrared 2"
+			<BAND NUMBER="11" NAME="Thermal Infrared 2"
 				WAVELENGTH="11.5-12.5" TYPE="Thermal" RESOLUTION="25.0" />
 		</SENSOR>
 	</SATELLITE>
