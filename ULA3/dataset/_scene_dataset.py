@@ -332,6 +332,44 @@ class SceneDataset(Dataset):
                 self.bias = bdict
                 self.gain = gdict
 
+            def get_mtl_bias_gain_landsat8_lookup():
+
+                bdict = {}
+                gdict = {}
+
+                rad_rescale_params = self._metadata.get_metadata('MTL,L1_METADATA_FILE,RADIOMETRIC_RESCALING')
+
+                print
+                print rad_rescale_params
+                pprint(rad_rescale_params)
+
+                for key, value in rad_rescale_params.iteritems():
+
+                    # Bias: RADIANCE_ADD_BAND_X = <value>
+
+                    match_add = re.match('RADIANCE_ADD_BAND_(\d+)', key)
+                    if match_add:
+                        bdict[ int(match_add.group(1)) ] = float(value)
+
+                    # Gain: RADIANCE_MULT_BAND_X = <value>
+
+                    match_mult = re.match('RADIANCE_MULT_BAND_(\d+)', key)
+                    if match_mult:
+                        gdict[ int(match_mult.group(1)) ] = float(value)
+
+                print
+                print 'bdict'
+                pprint(bdict)
+                print
+                print 'gdict'
+                pprint(gdict)
+                print
+
+                self.bias = bdict
+                self.gain = gdict
+
+
+
             if self.scene_centre_date and self.scene_centre_time:
                 self.scene_centre_datetime = datetime(
                     self.scene_centre_date.year,
