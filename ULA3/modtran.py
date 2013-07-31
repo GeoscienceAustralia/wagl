@@ -336,6 +336,8 @@ def run_brdf_sim_bin(l1t_input_dataset, band_number, sublogger, work_path, bin_d
         l1t_input_dataset.sensor.startswith('ETM') and
         l1t_input_dataset.scene_centre_date > L7_SLC_DATE):
         brdf_sim_bin_exe = os.path.join(bin_dir, 'brdf_sim_bin_slc')
+    elif (l1t_input_dataset.satellite.NAME == 'Landsat-8'):
+        brdf_sim_bin_exe = os.path.join(bin_dir, 'brdf_sim_bin_LS8')
     else:
         brdf_sim_bin_exe = os.path.join(bin_dir, 'brdf_sim_bin')
 
