@@ -126,7 +126,7 @@
 			<BAND NUMBER="8" NAME="Panchromatic" WAVELENGTH="0.5-0.68"
 				TYPE="Panchromatic" RESOLUTION="12.5" />
 			<BAND NUMBER="9" NAME="Cirrus" WAVELENGTH="1.360-1.390"
-				TYPE="Reflective" RESOLUTION="25.0" />
+				TYPE="Atmosphere" RESOLUTION="25.0" />
 			<BAND NUMBER="10" NAME="Thermal Infrared 1"
 				WAVELENGTH="10.3-11.3" TYPE="Thermal" RESOLUTION="25.0" />
 			<BAND NUMBER="11" NAME="Thermal Infrared 2"
