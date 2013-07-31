@@ -26,14 +26,14 @@ c                    <output_ref_top> <ref_nobrdf> <ref_wbrdf>
         REAL solar_angle(NCDIM), v_angle(NCDIM), rela_angle(NCDIM)
         REAL fv(NCDIM), fs(NCDIM)
         REAL a_mod(NCDIM), b_mod(NCDIM), s_mod(NCDIM)
-        REAL ref_top(NCDIM),ref_lm(NCDIM),ref_brdf(NCDIM)
+        REAL ref_lm(NCDIM),ref_brdf(NCDIM)
         REAL brdf0, brdf1, brdf2, bias, slope, esun, dd, lt
         REAL ann, aa_view, aa_solar, aa_white, solar, view, ra
         REAL norm_1, norm_2
         REAL hb, br, pib, fnn
 
         INTEGER*2 dn(NCDIM), iref_brdf(NCDIM)
-        INTEGER*2 iref_lm(NCDIM), iref_top(NCDIM)
+        INTEGER*2 iref_lm(NCDIM)
         INTEGER*1 dn_1(NCDIM)
 
         DOUBLE PRECISION a_eq, b_eq, c_eq, ref_bar, aa_final
@@ -130,17 +130,10 @@ c             convert angle to radians
               ra=rela_angle(j)*pib
 c             calculate radiance at top atmosphere
               lt=bias+dn(j)*slope
-c             calculate reflectance at top atmosphere
-              ref_top(j)=pi*lt*dd*dd/(esun*cos(solar))
-              iref_top(j)=10000*ref_top(j)+0.5
 c             calculate lambertian reflectance with bilinear average
               ref_lm(j)=(lt-b_mod(j))/(a_mod(j)+s_mod(j)*(lt-b_mod(j)))
               iref_lm(j)=ref_lm(j)*10000+0.5
 c             set as zero if atmospheric corrected reflectance is zero
-              if (ref_top(j).lt. 0) then
-                ref_top(j)=0.001
-                iref_top(j)=10
-              endif
 
               if (ref_lm(j).lt. 0.001) then
                 ref_lm(j)=0.001
@@ -171,13 +164,8 @@ c               calculate black sky albedo for view angle
 
                 ref_brdfreal=ann*ref_bar/aa_white
 
-                if (abs(ref_brdfreal-ref_top(j)) .lt. 0.5) then
-                  ref_brdf(j)=ref_bar*fnn/aa_white
-                  iref_brdf(j)=ref_brdf(j)*10000+0.5
-                else
-                  ref_brdf(j)=-9.9
-                  iref_brdf(j)=-999
-                endif
+                ref_brdf(j)=ref_bar*fnn/aa_white
+                iref_brdf(j)=ref_brdf(j)*10000+0.5
               endif
 
               if (ref_brdf(j) .ge.1) then
@@ -186,12 +174,10 @@ c               calculate black sky albedo for view angle
               endif
 
             else
-              ref_top(j)=-999.0
               ref_lm(j)=-999.0
               ref_brdf(j)=-999.0
               iref_brdf(j)=-999
               iref_lm(j)=-999
-              iref_top(j)=-999
             endif
 
           enddo
