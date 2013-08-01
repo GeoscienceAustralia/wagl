@@ -523,7 +523,14 @@ class SceneDataset(Dataset):
             if self.scene_centre_date and self.scene_centre_time:
                 self.decimal_day = self.DOY + self.decimal_hour / 24.0
 
-            get_mtl_bias_gain()
+            MTL_bias_gain_dict = {
+                          'Landsat5' : get_mtl_bias_gain,
+                          'Landsat7' : get_mtl_bias_gain,
+                          'Landsat-8' : get_mtl_bias_gain_landsat8_lookup,
+                                 }
+            MTL_bias_gain_dict[self.satellite_name]()
+            #get_mtl_bias_gain()
+            #get_mtl_bias_gain_landsat8_lookup()
 
             # Deal with special case where datum/ellipsoid requires +ve UTM zone
             if self.zone and self.zone < 0 and self.datum == 'GDA94' and self.earth_ellipsoid == 'GRS80':
