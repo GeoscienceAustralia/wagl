@@ -16,10 +16,11 @@ c     <output_*fv_b7> <fs_b7> <b_b7> <s_b7> <a_b7> <dir_b1> <dif_b1> <ts_b1>
       real x,fv(20,9),fs(20,9),b(20,9),s(20,9)
       real a(20,9),dir(20,9),dif(20,9),ts(20,9)
 
-      if (IARGC() .ne. 58) then
-      write(*,*) 'Error: Required parameters not specified properly!'
-      stop 9
-      endif
+c      if (IARGC() .ne. 58) then
+c      write(*,*) 'Error: Required parameters not specified properly!'
+c      stop 9
+c      endif
+
 c
 c    open sensor filter file
       call GETARG(1, fname1)
