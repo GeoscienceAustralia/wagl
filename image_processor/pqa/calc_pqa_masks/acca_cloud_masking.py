@@ -9,6 +9,7 @@ from ULA3.utils import dump_array
 from ULA3.common.pqa_result import PQAResult
 from ULA3.image_processor import ProcessorConfig
 from ULA3 import DataManager, DataGrid
+from ULA3.utils import log_multiline
 
 logger = logging.getLogger('root.' + __name__)
 
@@ -672,7 +673,7 @@ def process(subprocess_list=[], resume=False):
         # is set. Otherwise the percent of the entire array is returned.
 
         cld_pct = (float(cloud.sum())/contiguity_mask.sum()) * 100
-        cloud_mask = ~cloud
+        cloud_mask = ~cloud.astype(numpy.bool)
 
         # Upper cloud prob is 22.5
         # Also if low cloud % or desert region, set to original fmask probability
@@ -690,6 +691,8 @@ def process(subprocess_list=[], resume=False):
 
 
     mask = CloudMask(nbar_stack, kelvin_array, contiguity_mask)
+    
+    log_multiline(logger.debug, mask, 'mask', '\t')
 
     bit_index = CONFIG.pqa_test_index['ACCA']
     result.set_mask(mask, bit_index)

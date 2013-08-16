@@ -63,10 +63,10 @@ def decimal_day_of_month(dt):
     return float(dt.day) + day_fraction(dt)
 
 
-def tu(dt):
+def decimal_hour(dt):
     """
     Convert the hours, minutes, seconds and microseconds of a :py:class:`datetime.datetime` object to a
-    decimal hour month.
+    decimal hour.
 
     This is done by adding the day of the month to the fractional part of the day calculated from the
     hours, minutes, seconds and microseconds from ``dt``.

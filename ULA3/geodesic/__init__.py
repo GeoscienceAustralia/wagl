@@ -469,12 +469,16 @@ OUT_OF_BOUNDS_DISPLACEMENT_PASSES = 3
 def eval_centre_data(scene_dataset, sat_ephem):
     """Sets up data structure for scene centre description"""
     doy = scene_dataset.scene_centre_datetime.timetuple().tm_yday
+    
+    start_datetime = scene_dataset.scene_centre_datetime - timedelta(0, 12)
+    end_datetime = scene_dataset.scene_centre_datetime + timedelta(0, 12)
 
     centre_data = {
         'datetime': scene_dataset.scene_centre_datetime,
         'day_of_year': doy,
-        'decimal_hour': dec_datetime.hour_fraction(scene_dataset.scene_centre_datetime) + scene_dataset.scene_centre_datetime.hour,
+        'decimal_hour': dec_datetime.decimal_hour(scene_dataset.scene_centre_datetime),
         'decimal_day': dec_datetime.day_fraction(scene_dataset.scene_centre_datetime) + doy,
+        'day_change': start_datetime.day != end_datetime.day,
         'lon': float(scene_dataset.lonlats['CENTRE'][0]),
         'lat': float(scene_dataset.lonlats['CENTRE'][1])
     }
@@ -521,7 +525,7 @@ def eval_centre_data(scene_dataset, sat_ephem):
         'lon_deg': math.degrees(sublon),
         'lat_deg': math.degrees(sublat),
         'lon_offset': math.degrees(sublon) - centre_data['lon'],
-        'lat_offset': math.degrees(sublat) - centre_data['lat'],
+        'lat_offset': math.degrees(sublat) - centre_data['lat']
     }
 
     return centre_data
@@ -698,7 +702,11 @@ def compute_time_samples(
 
     for i in xrange(-nc/2, nc/2):
         t = centre_time + tdelta * i
-        timeu = dec_datetime.tu(t)
+        timeu = dec_datetime.decimal_hour(t)
+        
+        # Offset AM times by 24h to avoid discontinuity
+        if centre_data['day_change'] and timeu < 12.0:
+            timeu += 24.0
 
         # WARNING
         # ephem can't seem to resolve subsecond timedeltas unless a
@@ -936,7 +944,11 @@ def compute_time_samples(
 
                 # Time
 
-                timeu = dec_datetime.tu(t)
+                timeu = dec_datetime.decimal_hour(t)
+        
+                # Offset AM times by 24h to avoid discontinuity
+                if centre_data['day_change'] and timeu < 12.0:
+                    timeu += 24.0 
 
                 # Satellite heading
                 # (beta, from www.eoc.csiro.au/hswww/oz_pi/util/heading.pdf)
@@ -1051,7 +1063,7 @@ def compute_time_samples(
         lon, lat = centre_pts[t]['geodetic']
         x, y = centre_pts[t]['projected']
         flag = in_bounds(x, y, x_coord_range, y_coord_range)
-        timeu = dec_datetime.tu(t)
+        timeu = dec_datetime.decimal_hour(t)
         alpha = 0.0
 
         x_samples[sample_pt_index] = x
@@ -1472,6 +1484,10 @@ def eval_sat_grids(
     #t.astype(numpy.float32).tofile('TIME_GC.bin')
 
     t = interpolate_sample_points(xy, _t, mg, 'linear')
+    
+    # Restore sharp discontinuity by removing 24h offset for AM times - probably not necessary
+    if centre_data['day_change']:
+        t[t > 24.0] -= 24.0 
 
     # View angle (unsigned)
 

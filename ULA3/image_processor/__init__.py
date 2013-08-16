@@ -578,6 +578,21 @@ class ProcessorConfig(object):
             else:
                 return None
 
+        def get_git_version():
+            """
+            Returns a string representing the current Git version or None if unknown
+            """
+            result = None
+            s = execute(cwd=os.path.dirname(os.path.dirname(os.path.dirname(__file__))), # __file__ should be <repository>/ULA3/image_processor/__init.py
+                        command_string='git show --pretty=oneline ')['stdout']
+
+            if s and len(s) > 40:
+                m = re.match('^(\w{40})\s+.*', s)
+                if m:
+                    result = m.group(1)
+
+            return result
+
         logger.debug('ProcessorConfig.open_config(%s)', repr(config_file))
 
         assert os.path.exists(config_file), config_file + " does not exist"
@@ -711,6 +726,7 @@ class ProcessorConfig(object):
             root_logger.addHandler(file_handler)
 
         self.svn_revision = get_svn_revision() or 'Unknown'
+        self.git_version = get_git_version() or 'Unknown'
 
         read_ground_stations()
 

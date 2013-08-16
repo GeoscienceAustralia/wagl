@@ -11,5 +11,6 @@ nbar.radiative_transfer_prep,
 	nbar.radiative_transfer_prep.run_bilinear_ortho.ts
 ]],
 nbar.radiative_transfer_tc,
-nbar.radiative_transfer_post
+nbar.radiative_transfer_post,
+package_nbar_output
 ]
