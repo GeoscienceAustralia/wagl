@@ -301,7 +301,7 @@ def write_tif_file(l1t_input_dataset, band_number, dataset_id, temp_output, dtyp
 
     bin_filename = os.path.join(work_path, 'ref_wbrdf_b%d.bin' % band_number)
     band_file_number = l1t_input_dataset.sensor_band_info(band_number)['NUMBER']
-    tif_filename = os.path.join(temp_output, 'scene01', '%s_B%2d%s' % (dataset_id, band_file_number, '.tif'))
+    tif_filename = os.path.join(temp_output, 'scene01', '%s_B%d%s' % (dataset_id, band_file_number, '.tif'))
 
     band_data = numpy.fromfile(bin_filename, dtype=dtype, count=l1t_input_dataset.RasterYSize * l1t_input_dataset.RasterXSize)
     band_data.resize(l1t_input_dataset.shape)
