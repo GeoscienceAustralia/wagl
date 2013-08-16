@@ -8,6 +8,7 @@ import numpy
 from glob import glob
 from datetime import datetime, date, time
 import xml.dom.minidom
+from pprint import pprint
 from osgeo import gdal, gdalconst, osr
 
 import ULA3.geodesic as geocentric
@@ -484,31 +485,77 @@ class SceneDataset(Dataset):
             self.cxform_to_geo = osr.CoordinateTransformation(self.spatial_ref, self.spatial_ref_geo)
             self.cxform_from_geo = osr.CoordinateTransformation(self.spatial_ref_geo, self.spatial_ref)
 
-            self.lonlats = {
-                'CENTRE': (self.scene_centre_long, self.scene_centre_lat),
-                'UL': (self.ul_lon, self.ul_lat),
-                'UR': (self.ur_lon, self.ur_lat),
-                'LL': (self.ll_lon, self.ll_lat),
-                'LR': (self.lr_lon, self.lr_lat)}
+            extents        = self.GetExtent()
+            array_extents  = numpy.array(extents)
+            centre_x       = float(numpy.mean(array_extents[:,0]))
+            centre_y       = float(numpy.mean(array_extents[:,1]))
+            extents.append([centre_x,centre_y])
 
-            self.scene_centre_x, self.scene_centre_y = self.coord_from_geo(self.lonlats['CENTRE'])
+            #self.lonlats = {
+            #    'CENTRE': (self.scene_centre_long, self.scene_centre_lat),
+            #    'UL': (self.ul_lon, self.ul_lat),
+            #    'UR': (self.ur_lon, self.ur_lat),
+            #    'LL': (self.ll_lon, self.ll_lat),
+            #    'LR': (self.lr_lon, self.lr_lat)}
+
+            if self.IsGeographic():
+                self.lonlats = {
+                    'CENTRE' : (extents[4][0], extents[4][1]),
+                    'UL'     : (extents[0][0], extents[0][1]),
+                    'UR'     : (extents[2][0], extents[2][1]),
+                    'LL'     : (extents[1][0], extents[1][1]),
+                    'LR'     : (extents[3][0], extents[3][1])
+                               }
+                # If the scene is natively in geographics, we shouldn't need to 
+                # project the co-ordinates to UTM.
+            else:
+                self.coords = {
+                    'CENTRE' : (extents[4][0], extents[4][1]),
+                    'UL'     : (extents[0][0], extents[0][1]),
+                    'UR'     : (extents[2][0], extents[2][1]),
+                    'LL'     : (extents[1][0], extents[1][1]),
+                    'LR'     : (extents[3][0], extents[3][1])
+                              }
+
+                re_prj_extents=[]
+                for x,y in extents:
+                    new_x, new_y, new_z = self.cxform_to_geo.TransformPoint(x,y)
+                    re_prj_extents.append([new_x,new_y])
+                    print new_x, new_y,
+
+                self.lonlats = {
+                    'CENTRE' : (re_prj_extents[4][0], re_prj_extents[4][1]),
+                    'UL'     : (re_prj_extents[0][0], re_prj_extents[0][1]),
+                    'UR'     : (re_prj_extents[2][0], re_prj_extents[2][1]),
+                    'LL'     : (re_prj_extents[1][0], re_prj_extents[1][1]),
+                    'LR'     : (re_prj_extents[3][0], re_prj_extents[3][1])
+                               }
+
+
+
+            #self.scene_centre_x, self.scene_centre_y = self.coord_from_geo(self.lonlats['CENTRE'])
+            self.scene_centre_x, self.scene_centre_y = self.coords['CENTRE']
 
             # Set the georeferenced coordinates of the corner points if we don't already have them
             if not (self.ul_x and self.ul_y):
-                self.ul_x, self.ul_y = self.coord_from_geo(self.lonlats['UL'])
+                #self.ul_x, self.ul_y = self.coord_from_geo(self.lonlats['UL'])
+                self.ul_x, self.ul_y = self.coords['UL']
             if not (self.ur_x and self.ur_y):
-                self.ur_x, self.ur_y = self.coord_from_geo(self.lonlats['UR'])
+                #self.ur_x, self.ur_y = self.coord_from_geo(self.lonlats['UR'])
+                self.ur_x, self.ur_y = self.coords['UR']
             if not (self.ll_x and self.ll_y):
-                self.ll_x, self.ll_y = self.coord_from_geo(self.lonlats['LL'])
+                #self.ll_x, self.ll_y = self.coord_from_geo(self.lonlats['LL'])
+                self.ll_x, self.ll_y = self.coords['LL']
             if not (self.lr_x and self.lr_y):
-                self.lr_x, self.lr_y = self.coord_from_geo(self.lonlats['LR'])
+                #self.lr_x, self.lr_y = self.coord_from_geo(self.lonlats['LR'])
+                self.lr_x, self.lr_y = self.coords['LR']
 
-            self.coords = {
-                'CENTRE': (self.scene_centre_x, self.scene_centre_y),
-                'UL': (self.ul_x, self.ul_y),
-                'UR': (self.ur_x, self.ur_y),
-                'LL': (self.ll_x, self.ll_y),
-                'LR': (self.lr_x, self.lr_y)}
+            #self.coords = {
+            #    'CENTRE': (self.scene_centre_x, self.scene_centre_y),
+            #    'UL': (self.ul_x, self.ul_y),
+            #    'UR': (self.ur_x, self.ur_y),
+            #    'LL': (self.ll_x, self.ll_y),
+            #    'LR': (self.lr_x, self.lr_y)}
 
             # Pre-compute some useful derived time quantities
             if self.scene_centre_date:
@@ -524,11 +571,11 @@ class SceneDataset(Dataset):
                 self.decimal_day = self.DOY + self.decimal_hour / 24.0
 
             MTL_bias_gain_dict = {
-                          'Landsat5' : get_mtl_bias_gain,
-                          'Landsat7' : get_mtl_bias_gain,
+                          'Landsat-5' : get_mtl_bias_gain,
+                          'Landsat-7' : get_mtl_bias_gain,
                           'Landsat-8' : get_mtl_bias_gain_landsat8_lookup,
                                  }
-            MTL_bias_gain_dict[self.satellite_name]()
+            MTL_bias_gain_dict[self.satellite.NAME]()
             #get_mtl_bias_gain()
             #get_mtl_bias_gain_landsat8_lookup()
 
@@ -561,6 +608,13 @@ class SceneDataset(Dataset):
                         if m:
                             suffix = m.group(2).upper()
                             extension = m.group(3).upper()
+
+                            print 'suffix         ', suffix
+                            print 'extension      ', extension
+                            print '_FILE_TYPE_INFO', self._FILE_TYPE_INFO
+                            print 'extension in _FILE_TYPE_INFO', (extension in self._FILE_TYPE_INFO)
+                            print 'satellite.root_band', self.satellite.root_band
+
                             # Determine the root suffix for the found file type
                             if extension in self._FILE_TYPE_INFO:
                                 try:
@@ -568,10 +622,14 @@ class SceneDataset(Dataset):
                                 except (TypeError):
                                     root_suffix = self._FILE_TYPE_INFO[extension]['ROOTSUFFIX']
 
+                                print 'root_suffix', root_suffix, (suffix == root_suffix)
+
                                 if suffix == root_suffix:
                                     self._root_dataset_pathname = os.path.abspath(os.path.join(datadir, f))
                                     self._sub_dataset_type = extension
                                     self._data_dir = datadir
+
+                                    print '_root_dataset_pathname', self._root_dataset_pathname
 
                                     try: # ToDo: Need to deal with open failure here
                                         self._root_dataset = gdal.Open(self._root_dataset_pathname, eAccess)
@@ -589,6 +647,10 @@ class SceneDataset(Dataset):
 
                 if self._data_dir and self._root_dataset_pathname: # Data directory has been determined
                     break # Stop searching
+
+            print
+            print '_data_dir             ', self._data_dir
+            print '_root_dataset_pathname', self._root_dataset_pathname
 
             assert self._data_dir and self._root_dataset_pathname, 'Unable to find root dataset under ' + self._pathname
 
@@ -1451,18 +1513,31 @@ class SceneDataset(Dataset):
         :return:
             Coordinate tuple containing x and y coordinate ranges:
             ((<LLx>, <LRx>), (<LLy>, <ULy>))
+
+        :notes:
+            Function re-written so it returns the values given by GDAl, rather
+            than rely on the MTL or XML files, which are unsuited for our
+            purposes. 2013/08/16.
         """
         logger.debug('get_bounds() called', )
         if self.spatial_ref.IsProjected():
             return (
-                (min(self.ll_x, self.ul_x), max(self.lr_x, self.ur_x)),
-                (min(self.ll_y, self.lr_y), max(self.ul_y, self.ur_y)),
-            )
+                     (self.coords['LL'][0], self.coords['LR'][0]),
+                     (self.coords['LL'][1], self.coords['UL'][1])
+                   )
+            #return (
+            #    (min(self.ll_x, self.ul_x), max(self.lr_x, self.ur_x)),
+            #    (min(self.ll_y, self.lr_y), max(self.ul_y, self.ur_y)),
+            #)
         else:
             return (
-                (min(self.ll_lon, self.ul_lon), max(self.lr_lon, self.ur_lon)),
-                (min(self.ll_lat, self.lr_lat), max(self.ul_lat, self.ur_lat)),
-            )
+                     (self.lonlats['LL'][0], self.lonlats['LR'][0]),
+                     (self.lonlats['LL'][1], self.lonlats['UL'][1])
+                   )
+            #return (
+            #    (min(self.ll_lon, self.ul_lon), max(self.lr_lon, self.ur_lon)),
+            #    (min(self.ll_lat, self.lr_lat), max(self.ul_lat, self.ur_lat)),
+            #)
 
 
     def set_metadata_object(self, metadata_object):
@@ -1472,3 +1547,22 @@ class SceneDataset(Dataset):
         assert type(metadata_object) == Metadata
         logger.info('Metadata object changed')
         self._metadata = metadata_object
+
+    def GetExtent(self):
+        """
+        Return list of corner coordinates from a geotransform
+        List order [UL,LL,UR,LR]
+        """
+        gt = self.geotransform
+        extents = []
+        x_array = [0,self.RasterXSize]
+        y_array = [0,self.RasterYSize]
+    
+        for px in x_array:
+            for py in y_array:
+                x = gt[0]+(px*gt[1])+(py*gt[2])
+                y = gt[3]+(px*gt[4])+(py*gt[5])
+                extents.append([x,y])
+                print x,y
+        return extents
+    
