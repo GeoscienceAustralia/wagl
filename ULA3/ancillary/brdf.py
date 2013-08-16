@@ -65,6 +65,7 @@ class BRDFLoader(object):
             filename: data file name
             UL: (lon, lat) of ROI upper left corner [2-tuple, floats]
             LR: (lon, lat) of ROI lower right corner [2-tuple, floats]
+
         """
 
         self.filename = filename
@@ -114,6 +115,7 @@ class BRDFLoader(object):
         Latitude and longitude values are centre-of-pixel.
 
         Fill value, scale factor and offset are obtained from the HDF metadata.
+
         """
 
         # Load sub-datasets.
@@ -162,6 +164,7 @@ class BRDFLoader(object):
 
         :return:
             Longitude grid increment (decimal degrees).
+
         """
 
         return (self.data[2][0,1] - self.data[2][0,0])
@@ -173,6 +176,7 @@ class BRDFLoader(object):
 
         :return:
             Latitude grid increment (decimal degrees).
+
         """
 
         return (self.data[1][0,1] - self.data[1][0,0])
@@ -184,6 +188,7 @@ class BRDFLoader(object):
 
         :return:
             Upper-left coordinate tuple: ``(lon, lat)`` (decimal degrees).
+
         """
 
         return (self.data[2][0,0] - self.delta_lon/2,
@@ -196,6 +201,7 @@ class BRDFLoader(object):
 
         :return:
             Lower-right coordinate tuple: ``(lon, lat)`` (decimal degrees).
+
         """
 
         return (self.data[2][0,-1] + self.delta_lon/2,
@@ -207,6 +213,7 @@ class BRDFLoader(object):
 
         :return:
             Mean data value (float) with scale and offset applied.
+
         """
 
         # Index calculation matches what happens in hdf_extractor.c.
@@ -280,6 +287,7 @@ def get_brdf_dirs_modis(brdf_root, scene_date, n_dirs=2):
 
     :return:
        List of BRDF directories, [<primary>, <secondary>, ...]
+
     """
 
     # MCD43A1.005 db interval half-width (days).
@@ -325,6 +333,7 @@ def get_brdf_dirs_pre_modis(brdf_root, scene_date, n_dirs=3):
 
     :return:
        List of BRDF directories, [<primary>, <secondary>, ...]
+
     """
     # Pre-MODIS db interval half-width (days).
     offset = 8
@@ -423,6 +432,7 @@ def average_brdf_value(
 
     :todo:
         ``wavelength_range`` should be documented by someone who knows what it is.
+
     """
     ul_lat = ur_lat
     ul_lon = ll_lon
@@ -454,7 +464,21 @@ def average_brdf_value(
                               max(data_wavelength_range[0], wavelength_range[0]))
                              / (data_wavelength_range[1] - data_wavelength_range[0]) )
 
-                if coverage > 0:
+                print
+                print 'band_number          ', band_number
+                print 'fname                ', fname
+                print 'wavelength_range     ', wavelength_range
+                print 'data_wavelength_range', data_wavelength_range
+                print 'coverage             ', coverage
+
+
+                ### LANDSAT8 ###
+                # In some cases we have no direct wavelength overlap.
+                # Register every case and use the one with the maximum coverage.
+                # Smallest abs(coverage) is the nearest case when coverage < 0.
+
+                #if coverage > 0:
+                if True:
 
                     # We have a hit...
 
@@ -463,6 +487,12 @@ def average_brdf_value(
                         'midpoint_offset': data_avg_wavelength - avg_wavelength,
                         'width': data_wavelength_range[1] - data_wavelength_range[0],
                     }
+
+
+            print
+            print 'interval_map'
+            import pprint
+            pprint.pprint(interval_map[fname])
 
             if interval_map:
 
@@ -476,6 +506,7 @@ def average_brdf_value(
                         if interval_map[f]['coverage'] == max_coverage]
                 __, fname = sorted(tups).pop(0)
                 return fname
+
             return None
 
         found_file = find_wavelength_file(band_number,
