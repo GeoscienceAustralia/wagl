@@ -107,7 +107,7 @@
         INTL_DESIGNATOR='13008A'
 	>
 		<SENSOR NAME="OLI_TIRS"
-			DESCRIPTION="Landsat Data Continuity Mission" ROOT_BAND="20" RGB_BANDS="70,50,20"
+			DESCRIPTION="Landsat Data Continuity Mission" ROOT_BAND="2" RGB_BANDS="7,5,2"
 				ACQUISITION_SECONDS="24" K1="0" K2="0">
 			<BAND NUMBER="1" NAME="Coastal Aerosol"
 				WAVELENGTH="0.433-0.453" TYPE="Reflective" RESOLUTION="25.0" />
