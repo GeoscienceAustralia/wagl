@@ -1,9 +1,7 @@
 """
 Utilities for the extraction of aerosol data. These assume very specific file formats which are read by the
 external program ``aot_loader`` (which must be located in the directory specified by the argument ``bin_dir``
-of the functions contained herein). Once upon a time in a version from long long ago,
-`AERONET <http://gcmd.nasa.gov/records/GCMD_AERONET_NASA.html>`_ aerosol data was also available. GA
-now only maintains `AATSR <http://www.leos.le.ac.uk/aatsr/howto/index.html>`_ data for internal use).
+of the functions contained herein).
 
 More information can be found in TRIM document D2012-86155, which has been copied to
 :download:`here <auxiliary/NBAR ANCILLARY DATA DOWNLOAD SCRIPTS Release Notes For 15 May.docx>` (which was
@@ -75,8 +73,13 @@ def get_aerosol_value_for_region(
         :py:class:`str`
 
     :param enable_aeronet:
-        Should an attempt be made to look for a result in the AERONET data if no value is found in
-        AATSR data. This data is no longer available within GA.
+        Once upon a time in a version from long long ago,
+        `AERONET <http://gcmd.nasa.gov/records/GCMD_AERONET_NASA.html>`_ aerosol data was also available (GA
+        now only maintains `AATSR <http://www.leos.le.ac.uk/aatsr/howto/index.html>`_ data for internal use).
+        If this parameter is set to ``True``, then if a suitable (i.e. non-zero) value is not obtained from
+        the `AATSR <http://www.leos.le.ac.uk/aatsr/howto/index.html>`_ data, then the function will look for
+        a value from AERONET data (you would have to ensure such data is available, which is not currently
+        the case within GA).
     :type enable_aeronet:
         :py:class:`bool`
 
@@ -183,7 +186,7 @@ def get_aerosol_aatsr(
         The full path to the `AATSR <http://www.leos.le.ac.uk/aatsr/howto/index.html>`_ file to load the data
         from.
     :type atsr_file:
-        str
+        :py:class:`str`
 
     :param dt:
         The date and time to extract the value for.
@@ -193,27 +196,28 @@ def get_aerosol_aatsr(
     :param ll_lat:
         The latitude of the lower left corner of the region ('ll' for 'Lower Left').
     :type ll_lat:
-        float
+        :py:class:`float`
 
     :param ll_lon:
         The longitude of the lower left corner of the region ('ll' for 'Lower Left').
     :type ll_lon:
-        float
+        :py:class:`float`
 
     :param ur_lat:
         The latitude of the upper right corner of the region ('ur' for 'Upper Right').
     :type ur_lat:
-        float
+        :py:class:`float`
 
     :param ur_lon:
         The longitude of the upper right corner of the region ('ur' for 'Upper Right').
     :type ur_lon:
-        float
+        :py:class:`float`
 
     :param bin_dir:
         The directory where the executable ``aot_loader`` can be found.
     :type bin_dir:
-        str
+        :py:class:`str`
+
     """
     ul_lon = ll_lon
     lr_lat = ll_lat
@@ -239,11 +243,16 @@ def get_aerosol_aatsr(
 
     result = execute(command)
 
+    import pprint
+    pprint.pprint(result) 
+
     def parse_aatsr_result_str(text, result_regex=r'AOT AATSR value:(\s+)(.+)$'):
         m = re.search(result_regex, text, re.MULTILINE)
         if m and m.group(2):
             return float(m.group(2).rstrip())
         return 0.0
+
+    # TODO ...print something helpful when we get a non-zero return code...
 
     assert result['returncode'] == 0, 'get_aerosol_aatsr return code is non-zero'
     return parse_aatsr_result_str(result['stdout'])
@@ -259,12 +268,13 @@ def get_aerosol_from_aeronet_station(aeronet_file, dt):
     :param aeronet_file:
         The file to extract the value from.
     :type aeronet_file:
-        str
+        :py:class:`str`
 
     :param dt:
         The date and time to extract the value for.
     :type dt:
         :py:class:`datetime.datetime`
+
     """
     fpIn = open(aeronet_file)
     line = fpIn.readline()
@@ -317,20 +327,16 @@ def get_closest_aeronet_station(stationFile, sc_lat, sc_lon):
     Determine closest `AERONET <http://gcmd.nasa.gov/records/GCMD_AERONET_NASA.html>`_ ground station
     to a given location.
 
-    :param stationFile:
-        ???
-    :type stationFile:
-        str
-
     :param sc_lat:
         The latitude of the center of the region ('sc' for 'Scene Center').
     :type sc_lat:
-        float
+        :py:class:`float`
 
     :param sc_lon:
         The longitude of the center of the region ('sc' for 'Scene Center').
     :type sc_lon:
-        float
+        :py:class:`float`
+
     """
 
     logger.debug("Reading Aerosol Stations file %s", stationFile)
@@ -380,17 +386,18 @@ def get_aerosol_aeronet(aerosol_dir, dt, sc_lat, sc_lon):
     :param aerosol_dir:
         The directory containing the aerosol data files.
     :type aerosol_dir:
-        str
+        :py:class:`str`
 
     :param sc_lat:
         The latitude of the center of the region ('sc' for 'Scene Center').
     :type sc_lat:
-        float
+        :py:class:`float`
 
     :param sc_lon:
         The longitude of the center of the region ('sc' for 'Scene Center').
     :type sc_lon:
-        float
+        :py:class:`float`
+
     """
     aeronet_stns_file = os.path.join(aerosol_dir, "stations.txt")
     aeronet_stn_name = get_closest_aeronet_station(aeronet_stns_file, sc_lat, sc_lon)
