@@ -407,6 +407,10 @@ class SceneDataset(Dataset):
 
             self.spatial_ref = osr.SpatialReference()
             self.spatial_ref.ImportFromWkt(self.GetProjection())
+
+            # Initialise geotransform to None (otherwise it calls the SceneDataset Class function
+            # GetGeoTransform() which is supposed to override the Dataset Class function of the same name.
+            self.geotransform = None
             self.geotransform = self.GetGeoTransform()
 
             # SPATIAL REFERENCE SPECIAL CASE
@@ -421,16 +425,25 @@ class SceneDataset(Dataset):
             if self.product_format.startswith('FAST') and self.map_projection.startswith('EQR'):
                 self.spatial_ref = osr.SpatialReference()
                 self.spatial_ref.SetWellKnownGeogCS('WGS84')
-                self.geotransform = [
-                    self.ul_lon - self.pixel_x_size / 2.,
-#                    (self.ur_lon - self.ul_lon) / self.image_pixels,
-                    self.pixel_x_size,
-                    0.0,
-                    self.ul_lat + self.pixel_y_size / 2.,
-                    0.0,
-#                    (self.ll_lat - self.ul_lat) / self.image_lines,
-                    -self.pixel_y_size
-                ]
+
+                #self.geotransform = [
+                #    self.ul_lon - self.pixel_x_size / 2.,
+#               #     (self.ur_lon - self.ul_lon) / self.image_pixels,
+                #    self.pixel_x_size,
+                #    0.0,
+                #    self.ul_lat + self.pixel_y_size / 2.,
+                #    0.0,
+#               #     (self.ll_lat - self.ul_lat) / self.image_lines,
+                #    -self.pixel_y_size
+                #]
+
+                gt = self.GetGeoTransform()
+                self.geotransform = (numpy.array(gt)/100000.).tolist()
+                # Need to reset the rotation params. These are probably zero anyway as our imagery 
+                # is created North-Up (for L1T), but it is better to be safe. But then again rotation
+                # values might be scaled incorrectly???
+                self.geotransform[2] = gt[2]
+                self.geotransform[4] = gt[4]
                 self.coordinate_reference_system = 'WGS84'
 
                 # Force calculation of the corner points - metadata values may be scaled incorrectly
@@ -499,6 +512,7 @@ class SceneDataset(Dataset):
             #    'LR': (self.lr_lon, self.lr_lat)}
 
             if self.IsGeographic():
+                print 'IsGeographic'
                 self.lonlats = {
                     'CENTRE' : (extents[4][0], extents[4][1]),
                     'UL'     : (extents[0][0], extents[0][1]),
@@ -506,8 +520,23 @@ class SceneDataset(Dataset):
                     'LL'     : (extents[1][0], extents[1][1]),
                     'LR'     : (extents[3][0], extents[3][1])
                                }
+                print self.lonlats
                 # If the scene is natively in geographics, we shouldn't need to 
                 # project the co-ordinates to UTM.
+
+                # Set the georeferenced coordinates of the corner points if we don't already have them.
+                # These generally only get set when the product is FAST-EQR when they're forced to None
+                if not (self.ul_x and self.ul_y):
+                    self.ul_x, self.ul_y = self.lonlats['UL']
+                if not (self.ur_x and self.ur_y):
+                    self.ur_x, self.ur_y = self.lonlats['UR']
+                if not (self.ll_x and self.ll_y):
+                    self.ll_x, self.ll_y = self.lonlats['LL']
+                if not (self.lr_x and self.lr_y):
+                    self.lr_x, self.lr_y = self.lonlats['LR']
+
+
+                self.scene_centre_x, self.scene_centre_y = self.lonlats['CENTRE']
             else:
                 self.coords = {
                     'CENTRE' : (extents[4][0], extents[4][1]),
@@ -521,7 +550,7 @@ class SceneDataset(Dataset):
                 for x,y in extents:
                     new_x, new_y, new_z = self.cxform_to_geo.TransformPoint(x,y)
                     re_prj_extents.append([new_x,new_y])
-                    print new_x, new_y,
+                    print new_x, new_y
 
                 self.lonlats = {
                     'CENTRE' : (re_prj_extents[4][0], re_prj_extents[4][1]),
@@ -531,24 +560,37 @@ class SceneDataset(Dataset):
                     'LR'     : (re_prj_extents[3][0], re_prj_extents[3][1])
                                }
 
+                # Set the georeferenced coordinates of the corner points if we don't already have them.
+                # These generally only get set when the product is FAST-EQR when they're forced to None
+                if not (self.ul_x and self.ul_y):
+                    self.ul_x, self.ul_y = self.coords['UL']
+                if not (self.ur_x and self.ur_y):
+                    self.ur_x, self.ur_y = self.coords['UR']
+                if not (self.ll_x and self.ll_y):
+                    self.ll_x, self.ll_y = self.coords['LL']
+                if not (self.lr_x and self.lr_y):
+                    self.lr_x, self.lr_y = self.coords['LR']
+
+
+                self.scene_centre_x, self.scene_centre_y = self.coords['CENTRE']
 
 
             #self.scene_centre_x, self.scene_centre_y = self.coord_from_geo(self.lonlats['CENTRE'])
-            self.scene_centre_x, self.scene_centre_y = self.coords['CENTRE']
+            #self.scene_centre_x, self.scene_centre_y = self.coords['CENTRE']
 
             # Set the georeferenced coordinates of the corner points if we don't already have them
-            if not (self.ul_x and self.ul_y):
-                #self.ul_x, self.ul_y = self.coord_from_geo(self.lonlats['UL'])
-                self.ul_x, self.ul_y = self.coords['UL']
-            if not (self.ur_x and self.ur_y):
-                #self.ur_x, self.ur_y = self.coord_from_geo(self.lonlats['UR'])
-                self.ur_x, self.ur_y = self.coords['UR']
-            if not (self.ll_x and self.ll_y):
-                #self.ll_x, self.ll_y = self.coord_from_geo(self.lonlats['LL'])
-                self.ll_x, self.ll_y = self.coords['LL']
-            if not (self.lr_x and self.lr_y):
-                #self.lr_x, self.lr_y = self.coord_from_geo(self.lonlats['LR'])
-                self.lr_x, self.lr_y = self.coords['LR']
+            #if not (self.ul_x and self.ul_y):
+            #    #self.ul_x, self.ul_y = self.coord_from_geo(self.lonlats['UL'])
+            #    self.ul_x, self.ul_y = self.coords['UL']
+            #if not (self.ur_x and self.ur_y):
+            #    #self.ur_x, self.ur_y = self.coord_from_geo(self.lonlats['UR'])
+            #    self.ur_x, self.ur_y = self.coords['UR']
+            #if not (self.ll_x and self.ll_y):
+            #    #self.ll_x, self.ll_y = self.coord_from_geo(self.lonlats['LL'])
+            #    self.ll_x, self.ll_y = self.coords['LL']
+            #if not (self.lr_x and self.lr_y):
+            #    #self.lr_x, self.lr_y = self.coord_from_geo(self.lonlats['LR'])
+            #    self.lr_x, self.lr_y = self.coords['LR']
 
             #self.coords = {
             #    'CENTRE': (self.scene_centre_x, self.scene_centre_y),
@@ -1550,19 +1592,38 @@ class SceneDataset(Dataset):
 
     def GetExtent(self):
         """
-        Return list of corner coordinates from a geotransform
+        Returns a list of corner coordinates from a GDAL geotransform object.
         List order [UL,LL,UR,LR]
         """
         gt = self.geotransform
         extents = []
         x_array = [0,self.RasterXSize]
         y_array = [0,self.RasterYSize]
-    
+
         for px in x_array:
             for py in y_array:
                 x = gt[0]+(px*gt[1])+(py*gt[2])
                 y = gt[3]+(px*gt[4])+(py*gt[5])
                 extents.append([x,y])
-                print x,y
         return extents
+
+    def GetProjectionRef(self):
+        """
+        Overrides the Dataset Class method only if the spatial_ref instance
+        has been set.
+        """
+        if self.spatial_ref:
+            return self.spatial_ref.ExportToWkt()
+        else:
+            return self._root_dataset.GetProjectionRef()
+
+    def GetGeoTransform(self, *args, **kwargs):
+        """
+        Overrides the Dataset Class method only if the geotransform instance
+        has been set.
+        """
+        if self.geotransform:
+            return self.geotransform
+        else:
+            return self._root_dataset.GetGeoTransform(*args, **kwargs)
     
