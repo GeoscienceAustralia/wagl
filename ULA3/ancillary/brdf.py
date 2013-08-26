@@ -444,7 +444,7 @@ def average_brdf_value(
         Find the BRDF file corresponding to the wavelength of the band
         N.B: band_index argument is the 0-based band index. It is NOT the 1-based band number
         '''
-        def find_wavelength_file(band_number, file_list):
+        def find_wavelength_file(band_number, file_list, max_bandwidth_ratio = 5.0):
             '''Determine wavelength range for specified band index
             and find the first file in the list whose average wavelength
             falls into this range.
@@ -452,7 +452,7 @@ def average_brdf_value(
             '''
             # Calculate fractional overlaps of sensor wavelength range with
             # each data wavelength range.
-
+            
             interval_map = {}
             avg_wavelength = (wavelength_range[0] + wavelength_range[1]) / 2
 
@@ -460,6 +460,16 @@ def average_brdf_value(
                 s = re.search('.+_(\d+)_(\d+)nm(\w+)f.+\.hdf.*', fname)
                 data_avg_wavelength = (int(s.group(1)) + int(s.group(2))) / 2000.0 # Convert from nm to um
                 data_wavelength_range = [x/1000.0 for x in (int(s.group(1)), int(s.group(2)))]
+                
+                bandwidth_ratio = (data_wavelength_range[1] - data_wavelength_range[0]) / (wavelength_range[1] - wavelength_range[0])
+                
+                if not (1.0 / max_bandwidth_ratio) < bandwidth_ratio < max_bandwidth_ratio:
+                    logger.debug('Ignoring %s: Bandwidth too wide or narrow (ratio = %f)', fname, bandwidth_ratio)
+                    print('Ignoring %s: Bandwidth too wide or narrow (ratio = %f)' % (fname, bandwidth_ratio))
+                    continue
+                
+                # coverage is the ratio between the band overlap and the bandwidth of the MODIS dataset.
+                # +ve values indicate overlapping bands while -ve values indicate no overlap
                 coverage = ( (min(data_wavelength_range[1], wavelength_range[1]) -
                               max(data_wavelength_range[0], wavelength_range[0]))
                              / (data_wavelength_range[1] - data_wavelength_range[0]) )
@@ -492,7 +502,7 @@ def average_brdf_value(
             print
             print 'interval_map'
             import pprint
-            pprint.pprint(interval_map[fname])
+            pprint.pprint(interval_map)
 
             if interval_map:
 
@@ -502,9 +512,11 @@ def average_brdf_value(
                 # closest to the sensor band midpoint.
 
                 max_coverage = max([interval_map[k]['coverage'] for k in interval_map])
+                print 'max_coverage = %f' % max_coverage
                 tups = [(abs(interval_map[f]['midpoint_offset']), f) for f in interval_map
                         if interval_map[f]['coverage'] == max_coverage]
-                __, fname = sorted(tups).pop(0)
+                midpoint_offset, fname = sorted(tups).pop(0)
+                print 'midpoint_offset = %f, fname = %s' % (midpoint_offset, fname)
                 return fname
 
             return None
