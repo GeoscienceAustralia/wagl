@@ -479,7 +479,8 @@ def prepare_modtran_input(
         max_view_angle = max_view_angle or CONFIG.VIEW_ANGLE_MAX
 
         # Centre of UL pixel (degrees)
-        UL = [math.degrees(q) for q in l1t_input_dataset.geo_coord(0, 0, 0.0, 0.0)]
+        #UL = [math.degrees(q) for q in l1t_input_dataset.geo_coord(0, 0, 0.0, 0.0)]
+        UL = l1t_input_dataset.lonlats['UL']
 
         # Resolution -- hardwired per original NBAR code
         # TODO calculate based on spatial res metadata
@@ -490,7 +491,8 @@ def prepare_modtran_input(
             '%d %d' % l1t_input_dataset.shape,
             '%f' % resolution_deg,
             '%10.6f %10.6f' % (UL[1], UL[0]),
-            '%f %f' % (l1t_input_dataset.scene_centre_lat, l1t_input_dataset.scene_centre_long),
+        #    '%f %f' % (l1t_input_dataset.scene_centre_lat, l1t_input_dataset.scene_centre_long),
+            '%f %f' % (l1t_input_dataset.lonlats['CENTRE'][1],l1t_input_dataset.lonlats['CENTRE'][0]),
             '%f %f %f' % (satellite.SEMI_MAJOR_AXIS,
                           math.degrees(satellite.INCLINATION), # Convert to degrees
                           satellite.OMEGA),# Leave in radians
@@ -506,7 +508,8 @@ def prepare_modtran_input(
         logger.info('create_header_angle_file: %s', ha_file)
         logger.debug('create_header_angle_file: resolution (deg)     = %f' % resolution_deg)
         logger.debug('create_header_angle_file: UL                   = (%f, %f)' % (UL[1], UL[0]))
-        logger.debug('create_header_angle_file: centre               = (%f, %f)' % (l1t_input_dataset.scene_centre_lat, l1t_input_dataset.scene_centre_long))
+        #logger.debug('create_header_angle_file: centre               = (%f, %f)' % (l1t_input_dataset.scene_centre_lat, l1t_input_dataset.scene_centre_long))
+        logger.debug('create_header_angle_file: centre               = (%f, %f)' % (l1t_input_dataset.lonlats['CENTRE'][1], l1t_input_dataset.lonlats['CENTRE'][0]))
         logger.debug('create_header_angle_file: max_view_angle (deg) = %f' % max_view_angle)
 
     def write_modtran_input():
@@ -515,7 +518,8 @@ def prepare_modtran_input(
 
         out_file = open(modtran_input_file, 'w')
 
-        out_file.write("%f %f\n" % (l1t_input_dataset.ul_lat, l1t_input_dataset.ul_lon))
+        #out_file.write("%f %f\n" % (l1t_input_dataset.ul_lat, l1t_input_dataset.ul_lon))
+        out_file.write("%f %f\n" % (l1t_input_dataset.lonlats['UL'][1],l1t_input_dataset.lonlats['UL'][0]))
         out_file.write("%f\n" % satellite.NOMINAL_PIXEL_DEGREES)
         out_file.write("%s\n" % ozone_data['value'])
 
@@ -596,10 +600,14 @@ def prepare_modtran_input(
         """
         # Set MODTRAN default profile
         modtranProfile = "tropical"
-        if l1t_input_dataset.scene_centre_lat < -23.0:
-            modtranProfile = "midlat_summer"
+        #if l1t_input_dataset.scene_centre_lat < -23.0:
+        #    modtranProfile = "midlat_summer"
+        if l1t_input_dataset.lonlats['CENTRE'][1] < -23.0:
+             modtranProfile = "midlat_summer"
+        #logger.info('MODTRAN default profile for lat %f: %s'
+        #            % (l1t_input_dataset.scene_centre_lat, modtranProfile))
         logger.info('MODTRAN default profile for lat %f: %s'
-                    % (l1t_input_dataset.scene_centre_lat, modtranProfile))
+                     % (l1t_input_dataset.lonlats['CENTRE'][1], modtranProfile))
 
         for coordinator in modtran_config.FULL_COORD_LIST:
             for albedo in [albedo.lower() for albedo in modtran_config.FULL_ALBEDO_LIST]:

@@ -45,8 +45,12 @@ def get_average_brdf_value(
         assert wavelength_range, 'No info for band index %d found in configuration' % band_number
 
         return average_brdf_value(
-            l1t_input_dataset.ll_lat, l1t_input_dataset.ll_lon,
-            l1t_input_dataset.ur_lat, l1t_input_dataset.ur_lon,
+            #l1t_input_dataset.ll_lat, l1t_input_dataset.ll_lon,
+            #l1t_input_dataset.ur_lat, l1t_input_dataset.ur_lon,
+            l1t_input_dataset.lonlats['LL'][1], 
+            l1t_input_dataset.lonlats['LL'][0],
+            l1t_input_dataset.lonlats['UR'][1],
+            l1t_input_dataset.lonlats['UR'][0],
             band_string,
             wavelength_range,
             factor,
