@@ -14,8 +14,6 @@ from ULA3 import DataManager
 from ULA3.utils import dump_array
 import fmask_cloud_masking as _fmask
 
-CONFIG = ProcessorConfig()
-DATA = DataManager()
 logger = logging.getLogger('root.' + __name__)
 
 def process(subprocess_list=[], resume=False):
@@ -24,6 +22,9 @@ def process(subprocess_list=[], resume=False):
     This module wraps the fmask_cloud_masking.py module to allow it to be used in the NBAR/PQA execution
     framework.
     '''
+
+    CONFIG = ProcessorConfig()
+    DATA = DataManager()
 
     l1t_input_dataset = DATA.get_item(CONFIG.input['l1t']['path'], SceneDataset)
     assert l1t_input_dataset, 'Unable to retrieve SceneDataset object for L1T input scene dataset'

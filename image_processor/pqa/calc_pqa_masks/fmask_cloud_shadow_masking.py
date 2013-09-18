@@ -11,12 +11,13 @@ from ULA3.utils import dump_array
 
 from cloud_shadow_masking import Cloud_Shadow
 
-CONFIG = ProcessorConfig()
-DATA = DataManager()
 logger = logging.getLogger('root.' + __name__)
 
 def process(subprocess_list=[], resume=False):
     logger.info('%s.process(%s, %s) called', __name__, subprocess_list, resume)
+
+    CONFIG = ProcessorConfig()
+    DATA = DataManager()
 
     nbar_stack = DATA.get_item('nbar_stack', numpy.ndarray)
     assert nbar_stack is not None, 'Unable to retrieve ndarray object for nbar_stack'

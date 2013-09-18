@@ -185,7 +185,7 @@ def process(module_name, submodule_dict, subprocess_list=[], resume=False):
         supplied subprocess_list
 
         Parameters:
-            subprocess_list: list of subpprocesses to be run in parallel
+            subprocess_list: list of subprocesses to be run in parallel
 
             resume: Boolean flag to indicate whether execution should continue from the specified
             sub-process. N.B: Only valid when ONE subprocess is specified.
@@ -625,94 +625,90 @@ class ProcessorConfig(object):
 
         _set_logging() # Apply desired logging level to all specified modules
 
-        ## Exit point:  behviour of the "class" is altered (implicity) based upon the its invocation
-        ## context. This type of behviour needs to be documented and the rationale communicated.
-        ## (or removed)
-        ## Michael O
 
-        # Return now if called from command line - don't bother parsing other arguments
+        print '__name__ == %s' % __name__
         if __name__ == '__main__':
-            return
-
-        self.process_level = self._args._process_level.lower() or 'nbar'
-        if self.process_level == 'nbar' or self.process_level == 'tc':
-            self.input_levels=['l1t']
-        elif self.process_level == 'pqa':
-            self.input_levels=['l1t','nbar']
-        elif self.process_level == 'fc':
-            self.input_levels=['nbar']
-        else:
-            assert False, 'Invalid process ' + self.process + ' specified. Must be nbar, pqa, fc or tc.'
-
-        self.modtran_root = self._args._modtran_root or self.__getattr__('modtran_root')
-
-        # Set ProcessorConfig.BIN_DIR from conf file or next to 'common' dir
-        # Simon K: Why is this in upper case (seems to imply constant)?
-        try:
-            self.__getattr__('BIN_DIR')
-        except(NameError):
-            self.BIN_DIR = os.path.join(self.code_root, 'bin')
-
-        # Set up inputs
-        for _level in self.input_levels:
-            _input_path = vars(self._args).get(_level + '_path')
-            assert _input_path, 'No ' + _level + ' input path provided'
-
-            _input_root = vars(self._args).get(_level + '_root') or self.__getattr__(_level + '_data_root')
-            assert _input_root, 'No ' + _level + ' data root provided'
-
-            _input_name = os.path.basename(_input_path)
-
-            if not os.path.exists(_input_path) and _input_path[0] != os.pathsep: # Try relative path
-                _input_path = os.path.join(_input_root, _input_path)
-            _input_path = os.path.abspath(_input_path)
-
-            assert os.path.exists(_input_path), _input_path + ' does not exist'
-            assert os.path.isdir(_input_path), _input_path + ' is not a directory'
-
-            if not self.work_path:
-                # Determine work directory path
-                if not self._args.work_path:
-                    _work_path = os.path.join(self.__getattr__('work_root'), _input_name)
-                else:
-                    _work_path = self._args.work_path
-                    if not os.path.exists(os.path.dirname(_work_path)) and self._args.work_path[0] != os.pathsep:
-                        _work_path = os.path.join(self.__getattr__('work_root'), _work_path)
-
-                _work_path = os.path.abspath(_work_path)
-                assert os.path.exists(os.path.dirname(_work_path)), 'Work path ' + _work_path + ' does not exist'
-
-                if not os.path.exists(_work_path):
-                    os.mkdir(_work_path)
-                    logger.info('created work directory %s', _work_path)
-
-                self.work_path = _work_path
-                logger.debug('work_path = %s', self.work_path)
-
-            self.input[_level] = {}
-            logger.debug('data root for %s = %s', _level, _input_root)
-            self.input[_level]['root'] = _input_root
-            logger.debug('input path for %s = %s', _level, _input_path)
-            self.input[_level]['path'] = _input_path
-            logger.debug('input name for %s = %s', _level, _input_name)
-            self.input[_level]['name'] = _input_name
-
-            # NBAR & TC both use NBAR paths for output
-            if self.process_level == 'tc':
-                self.output_level = 'nbar'
+            # Define which datasets are required as input for each processing level. It might be good to refactor this
+            # into level-specific modules rather than having input requirements hard-coded here. (AI)
+            self.process_level = self._args._process_level.lower() or 'nbar'
+            if self.process_level == 'nbar' or self.process_level == 'tc':
+                self.input_levels=['l1t']
+            elif self.process_level == 'pqa':
+                self.input_levels=['l1t','nbar']
+            elif self.process_level == 'fc':
+                self.input_levels=['nbar']
             else:
-                self.output_level = self.process_level
-
-        # Output path values will be used in downstream modules after metadata has been read
-        # N.B: output_path may be left as None to be filled in downstream
-        self.output_path = vars(self._args).get(self.output_level + '_path')
-        #TODO: Fix this so that we don't need to define tc_root in the conf file
-        self.output_root = vars(self._args).get(self.output_level + '_root') or self.__getattr__(self.output_level + '_data_root')
-
-        # Pre-pend root if nonexistent relative directory specified for output
-        if self.output_path:
-            if not os.path.exists(os.path.dirname(self.output_path)) and self.output_path[0] != os.pathsep:
-                self.output_path = os.path.join(self.output_root, self.output_path)
+                assert False, 'Invalid process ' + self.process + ' specified. Must be nbar, pqa, fc or tc.'
+    
+            self.modtran_root = self._args._modtran_root or self.__getattr__('modtran_root')
+    
+            # Set ProcessorConfig.BIN_DIR from conf file or next to 'common' dir
+            # Simon K: Why is this in upper case (seems to imply constant)?
+            try:
+                self.__getattr__('BIN_DIR')
+            except(NameError):
+                self.BIN_DIR = os.path.join(self.code_root, 'bin')
+    
+            # Set up inputs
+            for _level in self.input_levels:
+                _input_path = vars(self._args).get(_level + '_path')
+                assert _input_path, 'No ' + _level + ' input path provided'
+    
+                _input_root = vars(self._args).get(_level + '_root') or self.__getattr__(_level + '_data_root')
+                assert _input_root, 'No ' + _level + ' data root provided'
+    
+                _input_name = os.path.basename(_input_path)
+    
+                if not os.path.exists(_input_path) and _input_path[0] != os.pathsep: # Try relative path
+                    _input_path = os.path.join(_input_root, _input_path)
+                _input_path = os.path.abspath(_input_path)
+    
+                assert os.path.exists(_input_path), _input_path + ' does not exist'
+                assert os.path.isdir(_input_path), _input_path + ' is not a directory'
+    
+                if not self.work_path:
+                    # Determine work directory path
+                    if not self._args.work_path:
+                        _work_path = os.path.join(self.__getattr__('work_root'), _input_name)
+                    else:
+                        _work_path = self._args.work_path
+                        if not os.path.exists(os.path.dirname(_work_path)) and self._args.work_path[0] != os.pathsep:
+                            _work_path = os.path.join(self.__getattr__('work_root'), _work_path)
+    
+                    _work_path = os.path.abspath(_work_path)
+                    assert os.path.exists(os.path.dirname(_work_path)), 'Work path ' + _work_path + ' does not exist'
+    
+                    if not os.path.exists(_work_path):
+                        os.mkdir(_work_path)
+                        logger.info('created work directory %s', _work_path)
+    
+                    self.work_path = _work_path
+                    logger.debug('work_path = %s', self.work_path)
+    
+                self.input[_level] = {}
+                logger.debug('data root for %s = %s', _level, _input_root)
+                self.input[_level]['root'] = _input_root
+                logger.debug('input path for %s = %s', _level, _input_path)
+                self.input[_level]['path'] = _input_path
+                logger.debug('input name for %s = %s', _level, _input_name)
+                self.input[_level]['name'] = _input_name
+    
+                # NBAR & TC both use NBAR paths for output - this could be removed if TC replaces NBAR
+                if self.process_level == 'tc':
+                    self.output_level = 'nbar'
+                else:
+                    self.output_level = self.process_level
+    
+            # Output path values will be used in downstream modules after metadata has been read
+            # N.B: output_path may be left as None to be filled in downstream
+            self.output_path = vars(self._args).get(self.output_level + '_path')
+            #TODO: Fix this so that we don't need to define tc_root in the conf file
+            self.output_root = vars(self._args).get(self.output_level + '_root') or self.__getattr__(self.output_level + '_data_root')
+    
+            # Pre-pend root if nonexistent relative directory specified for output
+            if self.output_path:
+                if not os.path.exists(os.path.dirname(self.output_path)) and self.output_path[0] != os.pathsep:
+                    self.output_path = os.path.join(self.output_root, self.output_path)
 
         if self.work_path:
             # Set up log file - defaults to process.log in work directory

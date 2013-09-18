@@ -12,13 +12,14 @@ from ULA3 import DataManager
 from ULA3.image_processor import ProcessorConfig
 from ULA3.utils import log_multiline, execute
 
-CONFIG = ProcessorConfig()
-DATA = DataManager()
 logger = logging.getLogger('root.' + __name__)
 
 def process(subprocess_list=[], resume=False):
     logger.info('%s.process(%s, %s) called', __name__, subprocess_list, resume)
 
+    CONFIG = ProcessorConfig()
+    DATA = DataManager()
+    
     fc_temp_output = DATA.get_item('fc_temp_output.dat', str)
     assert fc_temp_output, 'Unable to retrieve fc_temp_output string'
     logger.debug('string for fc_temp_output retrieved')
