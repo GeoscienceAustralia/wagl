@@ -4,11 +4,11 @@ from ULA3.image_processor import ProcessorConfig
 from ULA3 import DataManager
 from ULA3.dataset import SceneDataset
 
-DATA = DataManager()
 logger = logging.getLogger('root.' + __name__)
 
 def process(*args, **kwargs):
     CONFIG = ProcessorConfig()
+    DATA = DataManager()
 
     #TODO This would need to change if output format changed.
     asfloat32 = False
