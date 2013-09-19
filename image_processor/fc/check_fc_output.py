@@ -22,11 +22,12 @@ from ULA3.utils import log_multiline, execute
 # This import is a special case required to allow repackaging
 import package_fc_output
 
-CONFIG = ProcessorConfig()
-DATA = DataManager()
 logger = logging.getLogger('root.' + __name__)
 
 def process(subprocess_list=[], resume=False):
+    CONFIG = ProcessorConfig()
+    DATA = DataManager()
+    
     logger.info('%s.process(%s, %s) called', __name__, subprocess_list, resume)
 
     nbar_input_dataset = DATA.get_item(CONFIG.input['nbar']['path'], SceneDataset)

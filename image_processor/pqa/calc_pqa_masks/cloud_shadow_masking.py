@@ -12,8 +12,6 @@ from ULA3.image_processor import ProcessorConfig
 from ULA3 import DataManager
 from ULA3.IDL_functions import IDL_Histogram
 
-CONFIG = ProcessorConfig()
-DATA = DataManager()
 logger = logging.getLogger('root.' + __name__)
 
 def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
@@ -56,6 +54,9 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
        Josh Sixsmith, joshua.sixsmith@ga.gov.au
     """
 
+    CONFIG = ProcessorConfig()
+    DATA = DataManager()
+    
     # Distinguish between potentially concurrent executions for different cloud masks
     global logger
     logger = logging.getLogger('root.' + __name__ + '.' + cloud_algorithm.lower())

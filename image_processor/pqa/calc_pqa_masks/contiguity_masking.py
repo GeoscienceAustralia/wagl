@@ -11,12 +11,13 @@ from ULA3.image_processor import ProcessorConfig
 from ULA3 import DataManager
 import ULA3.IDL_functions as IDL_functions
 
-CONFIG = ProcessorConfig()
-DATA = DataManager()
 logger = logging.getLogger('root.' + __name__)
 
 def process(subprocess_list=[], resume=False):
     logger.info('%s.process(%s, %s) called', __name__, subprocess_list, resume)
+
+    CONFIG = ProcessorConfig()
+    DATA = DataManager()
 
     l1t_input_dataset = DATA.get_item(CONFIG.input['l1t']['path'], SceneDataset)
     assert l1t_input_dataset, 'Unable to retrieve SceneDataset object for L1T input scene dataset'

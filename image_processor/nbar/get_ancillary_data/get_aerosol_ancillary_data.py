@@ -43,8 +43,10 @@ def get_aerosol_data(aerosol_dir, enable_aeronet, default_aerosol_value, l1t_inp
 
 def process(subprocess_list=[], resume=False):
     logger.info('%s.process(%s, %s) called', __name__, subprocess_list, resume)
+    
     CONFIG = ProcessorConfig()
     DATA = DataManager()
+    
     aod_result = get_aerosol_data(CONFIG.DIR_Aerosol, CONFIG.ENABLE_AERONET, CONFIG.DEFAULT_AEROSOL_VALUE, DATA.get_item(CONFIG.input['l1t']['path'], SceneDataset), CONFIG.BIN_DIR)
     log_multiline(logger.info, aod_result, 'Aerosol result', '\t')
     DATA.set_item('aerosol.dat', aod_result)
