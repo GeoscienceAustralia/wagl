@@ -59,11 +59,11 @@ def process(subprocess_list=[], resume=False):
         Irish, R et al, October 2006, Photogrammetric Engineering & Remote
         Sensing, Vol. 72, No. 10, October 2006, pp. 1179-1188.
 
-        :param image:
+        :param image_stack:
             An ordered array of all bands in reflectance units scaled from 0
             to 10,000.
 
-        :param thermal:
+        :param kelvin_array:
             A 2D Nump array containing temperature in degrees Kelvin.
 
         :param contiguity_mask:
@@ -81,10 +81,7 @@ def process(subprocess_list=[], resume=False):
             """
             The WATER_TEST function is used to identify water pixels.
 
-            :param ndvi:
-                Normalised Differenced Vegetation Index.
-
-            :param array:
+            :param reflectance_stack:
                 An nD Numpy array of all bands (ordered).
 
             :return:
@@ -103,7 +100,7 @@ def process(subprocess_list=[], resume=False):
             """
             The NDVI function calculates the Normalised Differenced Vegetation Index.
 
-            :param array:
+            :param reflectance_stack:
                 An nD Numpy array of all bands (ordered).
 
             :return:
@@ -117,7 +114,7 @@ def process(subprocess_list=[], resume=False):
             """
             Calculates the Normalised Snow Difference Index.
 
-            :param array:
+            :param reflectance_stack:
                 An nD Numpy array of all bands (ordered).
 
             :return:
@@ -134,7 +131,7 @@ def process(subprocess_list=[], resume=False):
 
             Clouds are generally cold and highly reflective in band 5.
 
-            :param array:
+            :param reflectance_stack:
                 An nD Numpy array of all bands (ordered).
 
             :returns:
@@ -150,7 +147,7 @@ def process(subprocess_list=[], resume=False):
 
             Eliminates highly reflective vegetation.
 
-            :param array:
+            :param reflectance_stack:
                 An nD Numpy array of all bands (ordered).
 
             :return:
@@ -198,7 +195,7 @@ def process(subprocess_list=[], resume=False):
             """
             Calculates the third moment about the mean (aka, skewness).
 
-            :param array:
+            :param cloud_thermal_array:
                 The thermal band in kelvin masked for cloud.
 
             :param mean_temp:
@@ -410,6 +407,9 @@ def process(subprocess_list=[], resume=False):
 
             :param thermal_array:
                 A 2D Numpy array containing the thermal band.
+
+            :param potential_cloud_array:
+                A 2D Numpy array containing values of 1 for valid areas and NaN for invalid areas.
 
             :return:
                 An 2D Numpy array cloud mask, with True for non-cloud and False
