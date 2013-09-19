@@ -111,8 +111,8 @@ def lndhdrread(filename):
     """
     Load Landsat scene MTL file metadata.
 
-    @type filename: string
-    @param filename: The full path the scene's MTL file.
+    :param filename:
+        A string containing the full path the scene's MTL file.
     """
     # Read in Landsat TM/ETM+ MTL header for Fmask
     # [Lmax,Lmin,Qcalmax,Qcalmin,ijdim_ref,ijdim_thm,reso_ref,reso_thm,ul,zen,azi,zc,Lnum,doy]=lndhdrread(filename)
@@ -245,10 +245,11 @@ def nd2toar(filename, images=None):
     """
     Load metadata from MTL file & calculate reflectance values for scene bands.
 
-    @type filename: string
-    @param filename: The file path of the MTL file for the landsat scene.
-    @type images: numpy.ndarray
-    @param images: An array of pre-calculated reflectance values for each landsat band, to be used instead of calculating our own.
+    :param filename:
+        A string containing the file path of the MTL file for the landsat scene.
+
+    :param images:
+        A numpy.ndarray of pre-calculated reflectance values for each landsat band, to be used instead of calculating our own.
     """
     Lmax,Lmin,Qcalmax,Qcalmin,ijdim_ref,ijdim_thm,reso_ref,reso_thm,ul,zen,azi,zc,Lnum,doy=lndhdrread(filename)
 
@@ -426,21 +427,26 @@ def plcloud_1_6sav(filename, cldprob=22.5, images=None, log_filename="FMASK_LOGF
     """
     Calculates a cloud mask for a landsat 5/7 scene.
 
-    @type filename: string
-    @param filename: The file path of the landsat scene MTL file
-    @type cldprob: number
-    @param cldprob: The cloud probability for the scene (defaults to 22.5%)
-    @type images: numpy.ndarray
-    @param images: A set of pre-loaded, scaled, and corrected bands.
-    @type log_filename: string
-    @param log_filename: The file path of the output log produced by FMask.
-    @type shadow_prob: bool
-    @param shadow_prob: A flag indicating if the shadow probability should be calculated or not (required by FMask cloud shadow)
-    @type wclr_max: number
-    @param wclr_max: Fixed threshold (water) - NOTE: Default value of 50 seems to miss some clouds over water (which end up having about 35-40% probability, not >50%)
+    :param filename:
+        A string containing the file path of the landsat scene MTL file.
 
+    :param cldprob:
+        The cloud probability for the scene (defaults to 22.5%).
 
-    @return: tuple (zen,azi,ptm, temperature band (celcius*100),t_templ,t_temph, water mask, snow mask, cloud mask , shadow probability,dim,ul,resolu,zc)
+    :param images:
+        A numpy.ndarray of pre-loaded, scaled, and corrected bands.
+
+    :param log_filename:
+        A string containing the file path of the output log produced by FMask.
+
+    :param shadow_prob:
+        A flag indicating if the shadow probability should be calculated or not (required by FMask cloud shadow). Type Bool.
+
+    :param wclr_max:
+        Fixed threshold (water) - NOTE: Default value of 50 seems to miss some clouds over water (which end up having about 35-40% probability, not >50%).
+
+    :return:
+        Tuple (zen,azi,ptm, temperature band (celcius*100),t_templ,t_temph, water mask, snow mask, cloud mask , shadow probability,dim,ul,resolu,zc).
     """
     logfile = open(log_filename, 'w', buffering=0)
     logfile.write("Processing FMASK cloud cover... \n")
@@ -723,34 +729,46 @@ def fcssm_1_6sav(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim
     """
     Calculates the cloud shadow mask for a scene, given solar geometry information, the thermal band for the scene & a cloud mask.
 
-    @type Sun_zen: number
-    @param Sun_zen: Solar Elevation angle (degrees)
-    @type Sun_azi: number
-    @param Sun_azi: Solar Azimuth angle (degrees)
-    @type ptm: number
-    @param ptm: Percentage of deleted pixels
-    @type Temp: numpy.ndarray
-    @param Temp: The temperature band for the landsat scene (Celcius*100)
-    @type t_templ: number
-    @param t_templ: 0.175 percentile background temperature (low)
-    @type t_temph: number
-    @param t_temph: 0.825 percentile background temperature (high)
-    @type Water: numpy.ndarray(dtype='bool')
-    @param Water: The water mask calculated by FMask
-    @type Snow: numpy.ndarray(dtype='bool')
-    @param Snow: The snow mask calculated by FMask
-    @type plcim: numpy.ndarray(dtype='bool')
-    @param plcim: The cloud mask calculated by FMask
-    @type ijDim: (number, number)
-    @param ijDim: The resolution of the scene bands (height, width)
-    @type resolu: (number, number)
-    @param resolu:
-    @type ZC: number
-    @param ZC: The UTM Zone Number of the scene
-    @type cldpix: number
-    @param cldpix: Cloud mask dilation (in pixels)
-    @type sdpix: number
-    @param sdpix: Cloud shadow mask dilation (in pixels)
+    :param Sun_zen:
+        Solar Elevation angle (degrees).
+
+    :param Sun_azi:
+        Solar Azimuth angle (degrees).
+
+    :param ptm:
+        Percentage of deleted pixels.
+
+    :param Temp:
+        A numpy.ndarray containing the temperature band for the landsat scene (Celcius*100).
+    :param t_templ:
+        0.175 percentile background temperature (low).
+
+    :param t_temph:
+        0.825 percentile background temperature (high).
+
+    :param Water:
+        A numpy.ndarray of type Bool containing the water mask calculated by FMask.
+
+    :param Snow:
+        A numpy.ndarray of type Bool containing the snow mask calculated by FMask.
+
+    :param plcim:
+        A numpy.ndarray of type Bool containing the cloud mask calculated by FMask.
+
+    :param ijDim:
+        A tuple containing the resolution of the scene bands (height, width).
+
+    :param resolu:
+        A tuple (number, numpber).
+
+    :param ZC:
+        The UTM Zone Number of the scene.
+
+    :param cldpix:
+        A number for the cloud mask dilation (in pixels).
+
+    :param sdpix:
+        A number for the cloud shadow mask dilation (in pixels)
     """
     # Function for Cloud, cloud Shadow, and Snow Masking 1.6.3sav
     # History of revisions:
