@@ -2,13 +2,10 @@ SHELL := /bin/bash
 
 F90_OPTS = --f90flags="-assume byterecl"
 
-all: .fc histogram filter shade slope terrain
+all: .fc filter shade slope terrain
 
 .fc:
 	$(MAKE) --directory=fc --makefile=Makefile all
-
-histogram:
-	f2py -m _idl_histogram $(F90_OPTS) -c IDL_Histogram.f90
 
 filter:
 	f2py -m filter $(F90_OPTS) -c filter.f90
