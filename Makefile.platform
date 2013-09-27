@@ -27,6 +27,15 @@ ifeq '$(_HOST)' 'va'
     PLATFORM     := VAYU
 endif
 
+ifeq '$(_HOST)' 'ra'
+    # --- NCI (raijinXX) ---
+    MODTRAN_ROOT := /projects/v10/modtran-5.2.1.0
+    MODTRAN_DATA := $(MODTRAN_ROOT)/DATA
+    MODTRAN_EXE  := $(MODTRAN_ROOT)/Mod90_5.2.1.0_ifort.exe
+    FMAKEFILE    := Makefile.ifort
+    PLATFORM     := RAIJIN
+endif
+
 ifeq '$(_HOST)' 'rh'
     # --- NEO/VCLOUD (rhe-ula-opt.dev.lan) ---
     MODTRAN_ROOT := /ula/opt/modtran/5.2.1.0
