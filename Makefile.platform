@@ -29,9 +29,9 @@ endif
 
 ifeq '$(_HOST)' 'ra'
     # --- NCI (raijinXX) ---
-    MODTRAN_ROOT := /projects/v10/modtran-5.2.1.0
+    MODTRAN_ROOT := /projects/u46/opt/modules/MODTRAN/5.2.1
     MODTRAN_DATA := $(MODTRAN_ROOT)/DATA
-    MODTRAN_EXE  := $(MODTRAN_ROOT)/Mod90_5.2.1.0_ifort.exe
+    MODTRAN_EXE  := $(MODTRAN_ROOT)/Mod90_5.2.1_ifort.exe
     FMAKEFILE    := Makefile.ifort
     PLATFORM     := RAIJIN
 endif
