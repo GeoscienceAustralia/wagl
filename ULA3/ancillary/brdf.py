@@ -450,76 +450,48 @@ def average_brdf_value(
             falls into this range.
             N.B: band_index argument is the 0-based band index. It is NOT the 1-based band number
             '''
-            # Calculate fractional overlaps of sensor wavelength range with
-            # each data wavelength range.
-            
-            interval_map = {}
-            avg_wavelength = (wavelength_range[0] + wavelength_range[1]) / 2
+
+            fnames     = []
+            brdf_upper = []
+            brdf_lower = []
 
             for fname in sorted(file_list):
                 s = re.search('.+_(\d+)_(\d+)nm(\w+)f.+\.hdf.*', fname)
-                data_avg_wavelength = (int(s.group(1)) + int(s.group(2))) / 2000.0 # Convert from nm to um
                 data_wavelength_range = [x/1000.0 for x in (int(s.group(1)), int(s.group(2)))]
-                
-                bandwidth_ratio = (data_wavelength_range[1] - data_wavelength_range[0]) / (wavelength_range[1] - wavelength_range[0])
-                
-                if not (1.0 / max_bandwidth_ratio) < bandwidth_ratio < max_bandwidth_ratio:
-                    logger.debug('Ignoring %s: Bandwidth too wide or narrow (ratio = %f)', fname, bandwidth_ratio)
-                    print('Ignoring %s: Bandwidth too wide or narrow (ratio = %f)' % (fname, bandwidth_ratio))
-                    continue
-                
-                # coverage is the ratio between the band overlap and the bandwidth of the MODIS dataset.
-                # +ve values indicate overlapping bands while -ve values indicate no overlap
-                coverage = ( (min(data_wavelength_range[1], wavelength_range[1]) -
-                              max(data_wavelength_range[0], wavelength_range[0]))
-                             / (data_wavelength_range[1] - data_wavelength_range[0]) )
 
-                print
-                print 'band_number          ', band_number
-                print 'fname                ', fname
-                print 'wavelength_range     ', wavelength_range
-                print 'data_wavelength_range', data_wavelength_range
-                print 'coverage             ', coverage
+                fnames.append(fname)
+                brdf_upper.append(data_wavelength_range[1])
+                brdf_lower.append(data_wavelength_range[0])
 
+            # The following method is similar to residual analysis and is only a
+            # temporary fix. The previous automated method didn't work for Landsat 5,7,8.
+            # Temporary until Alex I. gets more time or another developer comes on board to
+            # define hardcoded lookup tables within the satellite.xml configuration file.
+            spectral_resids = []
+            for i in range(len(brdf_upper)):
+                r1 = abs(wavelength_range[0] - brdf_lower[i])
+                r2 = abs(wavelength_range[1] - brdf_upper[i])
+                spectral_resids.append(abs(r1 + r2))
 
-                ### LANDSAT8 ###
-                # In some cases we have no direct wavelength overlap.
-                # Register every case and use the one with the maximum coverage.
-                # Smallest abs(coverage) is the nearest case when coverage < 0.
+            spectral_resids  = numpy.array(spectral_resids)
+            brdf_match_loc   = numpy.argmin(spectral_resids)
 
-                #if coverage > 0:
-                if True:
-
-                    # We have a hit...
-
-                    interval_map[fname] = {
-                        'coverage': coverage,
-                        'midpoint_offset': data_avg_wavelength - avg_wavelength,
-                        'width': data_wavelength_range[1] - data_wavelength_range[0],
-                    }
-
+            brdf_fname = fnames[brdf_match_loc]
 
             print
-            print 'interval_map'
-            import pprint
-            pprint.pprint(interval_map)
+            print 'New BRDF Lookup!!!'
+            print
+            print 'band_number          ', band_number
+            print 'wavelength_range     ', wavelength_range
+            print 'brdf_lower           ', brdf_lower
+            print 'brdf_upper           ', brdf_upper
+            print 'fnames               ', fnames
+            print 'spectral_resids      ', spectral_resids
+            print 'brdf_match_loc       ', brdf_match_loc
+            print 'brdf_fname           ', brdf_fname
+            print
 
-            if interval_map:
-
-                # Select the data band that has the largest overlap with
-                # the sensor. To resolve cases with identical degrees of
-                # coverage, select the file whose wavelength midpoint is
-                # closest to the sensor band midpoint.
-
-                max_coverage = max([interval_map[k]['coverage'] for k in interval_map])
-                print 'max_coverage = %f' % max_coverage
-                tups = [(abs(interval_map[f]['midpoint_offset']), f) for f in interval_map
-                        if interval_map[f]['coverage'] == max_coverage]
-                midpoint_offset, fname = sorted(tups).pop(0)
-                print 'midpoint_offset = %f, fname = %s' % (midpoint_offset, fname)
-                return fname
-
-            return None
+            return brdf_fname
 
         found_file = find_wavelength_file(band_number,
                          glob(os.path.join(brdf_root, brdf_dir, '*_*_*nm*f' + factor + '.hdf*')))
