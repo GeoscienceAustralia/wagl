@@ -627,7 +627,10 @@ class ProcessorConfig(object):
 
 
         print '__name__ == %s' % __name__
-        if __name__ == '__main__':
+        # I'm not sure what this is in for, but this isn't a main-level program.
+        # The scope that this Class is called is ULA3.image_processor. Josh S.
+        #if __name__ == '__main__':
+        if __name__ == 'ULA3.image_processor':
             # Define which datasets are required as input for each processing level. It might be good to refactor this
             # into level-specific modules rather than having input requirements hard-coded here. (AI)
             self.process_level = self._args._process_level.lower() or 'nbar'
