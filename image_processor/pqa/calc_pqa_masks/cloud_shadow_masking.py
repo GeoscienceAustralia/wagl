@@ -10,7 +10,7 @@ import osr
 
 from ULA3.image_processor import ProcessorConfig
 from ULA3 import DataManager
-from ULA3.IDL_functions import IDL_Histogram
+from IDL_functions import IDL_Histogram
 
 logger = logging.getLogger('root.' + __name__)
 
