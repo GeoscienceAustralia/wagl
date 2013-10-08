@@ -16,6 +16,9 @@ module load proj
 module use /short/v10/mitch-sys/opt/modules --append
 module load py-dev-tools
 
+module use /g/data/v10/opt/modules/modulefiles --append
+module load IDL_functions
+
 export IMAGEPROCESSOR_ROOT=$(readlink -f ${0%/*}/..)
 export OUTPUT_ROOT=/short/v10/${USER}/tc/integration_tests/nbar
 
