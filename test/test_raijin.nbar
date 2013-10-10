@@ -1,0 +1,30 @@
+#!/bin/bash
+#PBS -P v10
+#PBS -q normal
+#PBS -l walltime=01:00:00,ncpus=1,mem=12940MB
+#PBS -l wd
+#PBS -me
+#PBS -M joshua.sixsmith@ga.gov.au
+
+module load python/2.7.3
+module load hdf4/4.2.6
+module load gdal
+module load proj
+
+module use /projects/u46/opt/modules/modulefiles --append
+module load IDL_functions
+module load pyephem
+module load numexpr
+
+export IMAGEPROCESSOR_ROOT=$(readlink -f ${0%/*}/..)
+export OUTPUT_ROOT=/short/v10/${USER}/nbar
+
+PYTHONPATH=$PYTHONPATH:$IMAGEPROCESSOR_ROOT
+
+mkdir -p ${OUTPUT_ROOT}/work
+mkdir -p ${OUTPUT_ROOT}/output
+
+../process.py --sequential --debug --work ${OUTPUT_ROOT}/work --process_level nbar --nbar-root ${OUTPUT_ROOT}/output --l1t /short/v10/jps547/nbar_test/L1T/LS8_OLITIRS_OTH_P51_GALPGS01-002_107_070_20130512_2
+
+# --resume --subprocess nbar.radiative_transfer.run_tc
+
