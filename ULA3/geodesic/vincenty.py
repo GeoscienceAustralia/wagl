@@ -161,7 +161,15 @@ def vinc_dist(  f,  a,  phi1,  lembda1,  phi2,  lembda2 ) :
     Returns the distance between two geographic points on the ellipsoid
     and the forward and reverse azimuths between these points.
     lats, longs and azimuths are in radians, distance in metres
-
+    
+    Arguments:
+        f: flattening
+        a: equatorial radius (metres)
+        phi1: latitude of first point
+        lembda1: longitude of first point
+        phi2: latitude of second point
+        lembda2: longitude of second point
+        
     Returns ( s, alpha12,  alpha21 ) as a tuple
     """
 
