@@ -154,7 +154,7 @@ SUBROUTINE terrain_correction( &
 !       now loop over the columns of the images
         do j=1,ncol
 !           if valid masks and valid digital number then do the calcs
-            if (j .ge. istart(i) .and. j .le. iend(i) .and. a_mod(i, j) .ge. 0) then
+            if (j .ge. istart(i) .and. j .le. iend(i) .and. a_mod(i, j) .ge. 0 .and. dn(j) .gt. 0) then
                 if (rela_angle(i, j) .gt. 180) rela_angle(i, j) = rela_angle(i, j)-360
                 if (rela_slope(i, j) .gt. 180) rela_slope(i, j) = rela_slope(i, j)-360
 
@@ -235,6 +235,14 @@ SUBROUTINE terrain_correction( &
                     ref_brdfrealf = ann_f*ref_barf/aa_white
                     ref_brdf(j) = ref_barf*fnn/aa_white
                     iref_brdf(i, j) = ref_brdf(j)*10000+0.5
+
+!               this is to ensure that the brdf correction
+!               is the same as (or as close as possible to) the original NBAR version
+                if (ref_brdf(j) .ge.1) then
+                  ref_brdf(j)=1.0
+                  iref_brdf(i, j)=ref_brdf(j)*10000
+                endif
+
             endif
 !-------------------------------------------------------------------
 !           conduct terrain correction
@@ -307,8 +315,8 @@ SUBROUTINE terrain_correction( &
                 ref_terrain(j) = ref_bars*fnn/aa_white
                 iref_terrain(i, j) = int(ref_terrain(j)*10000.0+0.5)
 
-                if (ref_terrain(j) .ge.1.2) then
-                    ref_terrain(j) = 1.2
+                if (ref_terrain(j) .ge. 1) then
+                    ref_terrain(j) = 1.0
                     iref_terrain(i, j) = int(ref_terrain(j)*10000.0+0.5)
                 endif
 
@@ -349,7 +357,6 @@ END SUBROUTINE terrain_correction
 
 real function RL_brdf (solar,view,ra,hb,br,brdf0,brdf1,brdf2)
     real pi
-    parameter (pi=3.14159263)
     real solar, view, ra, hb, br
     real brdf0,brdf1,brdf2
     real rs_thick,li_sparse,secsolar,secvia
@@ -358,7 +365,7 @@ real function RL_brdf (solar,view,ra,hb,br,brdf0,brdf1,brdf2)
     real d_li2,x_li,cosl,l_li,o_li
 
     RL_brdf=0.0
-
+    pi = 4 * atan(1.0)
 !   calculate Ross-thick kernel
     cossolar = cos(solar)
     cosvia = cos(view)
