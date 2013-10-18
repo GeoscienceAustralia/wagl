@@ -223,8 +223,8 @@ SUBROUTINE terrain_correction( &
                     (fv(i, j)     *(fs(i, j)*ann_f     + (1.0-fs(i, j))*aa_viewf) + &
                     (1.0-fv(i, j))*(fs(i, j)*aa_solarf + (1.0-fs(i, j))*aa_white)) / aa_white
 
-                a_eqf = (1-aa_flat)*s_mod(i, j)
-                b_eqf = aa_flat
+                a_eqf = (1-aa_flat)*s_mod(i, j)*(1-s_mod(i, j)*ref_lm(j))
+                b_eqf = aa_flat+ref_lm(j)*(1-aa_final)*s_mod(i, j)
                 c_eqf = -ref_lm(j)
 
                 if (abs(a_eqf) .lt. 0.0000001) then
@@ -238,7 +238,7 @@ SUBROUTINE terrain_correction( &
 
 !               this is to ensure that the brdf correction
 !               is the same as (or as close as possible to) the original NBAR version
-                if (ref_brdf(j) .ge.1) then
+                if (ref_brdf(j) .ge. 1) then
                   ref_brdf(j)=1.0
                   iref_brdf(i, j)=ref_brdf(j)*10000
                 endif
