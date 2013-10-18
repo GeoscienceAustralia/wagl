@@ -13,6 +13,7 @@ from ULA3.utils import warp, get_bounds, DTYPE_MAP, as_array, dump_array
 from _shade_main_landsat_pixel import shade_main_landsat_pixel
 from _slope_pixelsize_newpole import slope_pixelsize_newpole
 from _brdf_terrain_newdiff_all import terrain_correction
+from _brdf_terrain_newdiff_all_LS8 import terrain_correction_ls8
 
 logger = logging.getLogger('root.' + __name__)
 
@@ -781,3 +782,259 @@ def run_brdfterrain(
         as_array(ts, dtype=numpy.float32),
         as_array(edir_h, dtype=numpy.float32),
         as_array(edif_h, dtype=numpy.float32))
+
+@print_call(logger.info)
+def run_brdfterrain_LS8(
+    rori, # threshold for terrain correction
+    brdf0, brdf1, brdf2, # BRDF parameters
+    bias, slope_ca, esun, dd, # satellite calibration coefficients
+    ref_adj, # average reflectance for terrain correction
+    #line,
+    istart,
+    #imid,
+    iend,
+    #ii,
+    dn_1, # raw image
+    mask_self, # mask
+    mask_castsun, # self shadow mask
+    mask_castview, # cast shadow mask
+    solar_angle, # solar zenith angle
+    sazi_angle, # solar azimuth angle
+    view_angle, # view angle (for flat surface)
+    rela_angle, # relative azimuth angle (for flat surface)
+    slope_angle, # slop angle
+    aspect_angle, # aspect angle
+    it_angle, # incident angle (for inclined surface)
+    et_angle, # exiting angle (for inclined surface)
+    rela_slope, # relative angle (for inclined surface)
+    a_mod, # MODTRAN output (a)
+    b_mod, # MODTRAN output (b)
+    s_mod, # MODTRAN output (s)
+    fs, # MODTRAN output (fs)
+    fv, # MODTRAN output (fv)
+    ts, # MODTRAN output (ts)
+    edir_h, # MODTRAN output (direct irradiance)
+    edif_h # MODTRAN output (diffuse irradiance)
+    ):
+    """
+    BRDF correction including terrain correction. This code is an interface to the fortran code brdf_terrain_newdiff_LS8.f90
+    (which is compiled to a Python module using F2py). The parameters have the same names as those used in that code...
+    so please see Fuqin for information on what they mean!
+
+    :param rori:
+        (type: float) Threshold for terrain correction.
+    :type rori:
+        float
+
+    :param brdf0:
+        (type: float) BRDF parameter.
+    :type brdf0:
+        float
+
+    :param brdf1:
+        (type: float) BRDF parameter.
+    :type brdf1:
+        float
+
+    :param brdf2:
+        (type: float) BRDF parameter.
+    :type brdf2:
+        float
+
+    :param bias:
+        (type: float) Satellite calibration coefficient.
+    :type bias:
+        float
+
+    :param slope_ca:
+        (type: float) Satellite calibration coefficient.
+    :type slope_cs:
+        float
+
+    :param esun:
+        (type: float) Satellite calibration coefficient.
+    :param esun:
+        float
+
+    :param dd:
+        (type: float) Satellite calibration coefficients.
+    :type dd:
+        float
+
+    :param ref_adj:
+        (type: float) Average reflectance for terrain correction.
+    :type ref_adj:
+        float
+
+    :param istart:
+        ???
+    :type istart:
+        One dimensional :py:class:`numpy.ndarray` which can be cast to type :py:const:`numpy.int4` with length equal to the
+        number of rows in ``dn_1``.
+
+    :param iend:
+        ???
+    :type iend:
+        One dimensional :py:class:`numpy.ndarray` which can be cast to type :py:const:`numpy.int4` with length equal to the
+        number of rows in ``dn_1``.
+
+    :param dn_1:
+        Raw image data.
+    :type dn_1:
+        Two dimensional :py:class:`numpy.ndarray` which can be cast to type :py:const:`numpy.int8`. The dimensions are
+        unspecified and are used to determine the dimensions of ``istart``, ``iend`` the remaining (all following)
+        array arguments.
+
+    :param mask_self:
+        Mask of pixels where the incident angle is greater than 90 degrees. These pixels are excluded as there is no
+        illumination of the scene at these locations.
+    :type mask_self:
+        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.int16`.
+
+    :param mask_castsun:
+        Mask of pixels which are shaded by other objects. These pixels are excluded as there is no illumination of the
+        scene at these locations.
+    :type mask_castsun:
+        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.int16`.
+
+    :param mask_castview:
+        Mask of pixels which are not visible to the satelite.
+    :type mask_castview:
+        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.int16`.
+
+    :param solar_angle:
+        The solar zenith angle.
+    :type solar_angle:
+        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
+
+    :param sazi_angle:
+        solar azimuth angle.
+    :type sazi_angle:
+        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
+
+    :param view_angle:
+        view angle (for flat surface).
+    :type view_angle:
+        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
+
+    :param rela_angle:
+        relative azimuth angle (for flat surface).
+    :type rela_angle:
+        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
+
+    :param slope_angle:
+        slope angle.
+    :type slope_angle:
+        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
+
+    :param aspect_angle:
+        aspect angle.
+    :type aspect_angle:
+        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
+
+    :param it_angle:
+        incident angle (for inclined surface).
+    :type it_angle:
+        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
+
+    :param et_angle:
+        exiting angle (for inclined surface).
+    :type et_angle:
+        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
+
+    :param rela_slope:
+        relative angle (for inclined surface).
+    :type rela_slope:
+        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
+
+    :param a_mod:
+        MODTRAN output (a).
+    :type a_mod:
+        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
+
+    :param b_mod:
+        MODTRAN output (b).
+    :type b_mod:
+        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
+
+    :param s_mod:
+        MODTRAN output (s).
+    :type s_mod:
+        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
+
+    :param fs:
+        MODTRAN output (fs).
+    :type fs:
+        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
+
+    :param fv:
+        MODTRAN output (fv).
+    :type fv:
+        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
+
+    :param ts:
+        MODTRAN output (ts).
+    :type ts:
+        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
+
+    :param edir_h:
+        MODTRAN output (direct irradiance).
+    :type edir_h:
+        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
+
+    :param edif_h:
+        MODTRAN output (diffuse irradiance).
+    :type edif_h:
+        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
+
+    Parameters: ``mask_self``, ``mask_castsun``, ``mask_castview`` can be generated using :py:func:`run_castshadow`.
+
+    Parameters ``mask_self``, ``slope_angle``, ``aspect_angle``, ``it_angle``, ``et_angle``, and ``rela_slope``
+    can be generated using the function :py:func:`run_slope`.
+
+    All parameters after ``ref_adj`` are passed through :py:func:`ULA3.utils.as_array` with the appropriate argument
+    type and hence, can have types that will work as arguments to that function; inparticular, they can be
+    :py:class:`gdal.Dataset`s or paths to files that can be opened using :py:func:`gdal.Open`.
+
+    :return: A tuple of three :py:class:`numpy.ndarray`s:
+
+        - (index 0) Atmospheric corrected lambertial reflectance,
+
+        - (index 1) Atmospheric and brdf corrected reflectance, and
+
+        - (index 2) Atmospheric and brdf and terrain corrected reflectance
+
+    :todo:
+        This documentation should be reviewed by someone whom understands the process more thoroughly, and better
+        descriptions of the arguments provided.
+
+    """
+    return terrain_correction_ls8(
+        rori,
+        brdf0, brdf1, brdf2,
+        bias, slope_ca, esun, dd,
+        ref_adj,
+        as_array(istart, dtype=numpy.int32),
+        as_array(iend, dtype=numpy.int32),
+        as_array(dn_1, dtype=numpy.int16),
+        as_array(mask_self, dtype=numpy.int16),
+        as_array(mask_castsun, dtype=numpy.int16),
+        as_array(mask_castview, dtype=numpy.int16),
+        as_array(solar_angle, dtype=numpy.float32),
+        as_array(sazi_angle, dtype=numpy.float32),
+        as_array(view_angle, dtype=numpy.float32),
+        as_array(rela_angle, dtype=numpy.float32),
+        as_array(slope_angle, dtype=numpy.float32),
+        as_array(aspect_angle, dtype=numpy.float32),
+        as_array(it_angle, dtype=numpy.float32),
+        as_array(et_angle, dtype=numpy.float32),
+        as_array(rela_slope, dtype=numpy.float32),
+        as_array(a_mod, dtype=numpy.float32),
+        as_array(b_mod, dtype=numpy.float32),
+        as_array(s_mod, dtype=numpy.float32),
+        as_array(fs, dtype=numpy.float32),
+        as_array(fv, dtype=numpy.float32),
+        as_array(ts, dtype=numpy.float32),
+        as_array(edir_h, dtype=numpy.float32),
+        as_array(edif_h, dtype=numpy.float32))
+
