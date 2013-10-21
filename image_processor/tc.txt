@@ -12,5 +12,5 @@ nbar.radiative_transfer_prep,
 ]],
 nbar.radiative_transfer_tc,
 nbar.radiative_transfer_post,
-package_nbar_output
+nbar.package_nbar_output
 ]
