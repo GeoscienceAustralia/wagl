@@ -71,6 +71,7 @@ def process(subprocess_list=[], resume=False):
     is_utm =  not l1t_input_dataset.IsGeographic()
     output_path = DATA.get_item('nbar_temp_output.dat', str)
     work_path = CONFIG.work_path
+    nbar_dataset_id = DATA.get_item('nbar_dataset_id.dat', str)
 
     #dsm data
     national_dsm_path = os.path.join(CONFIG.DIR_DEM_TC, 'dsm1sv1_0_Clean.img')
@@ -203,13 +204,6 @@ def process(subprocess_list=[], resume=False):
                 load_bin_file(boo[(band_number, 'ts')], region_nrow, region_ncol, dtype=numpy.float32),
                 load_bin_file(boo[(band_number, 'dir')], region_nrow, region_ncol, dtype=numpy.float32),
                 load_bin_file(boo[(band_number, 'dif')], region_nrow, region_ncol, dtype=numpy.float32))
-
-            write_tif_file(l1t_input_dataset, ref_lm, os.path.join(output_path, pref + 'ref_lm_' + str(band_number) + output_extension), file_type = output_format)
-            write_tif_file(l1t_input_dataset, ref_brdf, os.path.join(output_path, pref + 'ref_brdf_' + str(band_number) + output_extension), file_type = output_format)
-            write_tif_file(l1t_input_dataset, ref_terrain, os.path.join(output_path, pref + 'ref_terrain_' + str(band_number) + output_extension), file_type = output_format)
-
-            ref_lm = ref_brdf = ref_terrain = None
-            gc.collect()
         else:
             ref_lm, ref_brdf, ref_terrain = run_brdfterrain(
                 rori,
@@ -239,10 +233,14 @@ def process(subprocess_list=[], resume=False):
                 load_bin_file(boo[(band_number, 'dir')], region_nrow, region_ncol, dtype=numpy.float32),
                 load_bin_file(boo[(band_number, 'dif')], region_nrow, region_ncol, dtype=numpy.float32))
 
-            write_tif_file(l1t_input_dataset, ref_lm, os.path.join(output_path, pref + 'ref_lm_' + str(band_number) + output_extension), file_type = output_format)
-            write_tif_file(l1t_input_dataset, ref_brdf, os.path.join(output_path, pref + 'ref_brdf_' + str(band_number) + output_extension), file_type = output_format)
-            write_tif_file(l1t_input_dataset, ref_terrain, os.path.join(output_path, pref + 'ref_terrain_' + str(band_number) + output_extension), file_type = output_format)
 
-            ref_lm = ref_brdf = ref_terrain = None
-            gc.collect()
+        write_tif_file(l1t_input_dataset, ref_lm, os.path.join(work_path, pref + 'ref_lm_' + str(band_number) + output_extension), file_type = output_format)
+        write_tif_file(l1t_input_dataset, ref_brdf, os.path.join(work_path, pref + 'ref_brdf_' + str(band_number) + output_extension), file_type = output_format)
+        write_tif_file(l1t_input_dataset, ref_terrain, os.path.join(work_path, pref + 'ref_terrain_' + str(band_number) + output_extension), file_type = output_format)
+
+        outfname = os.path.join(output_path, 'scene01', '%s_B%d%s' % (nbar_dataset_id, band_number, '.tif'))
+        write_tif_file(l1t_input_dataset, ref_terrain, outfname, file_type="GTiff")
+
+        ref_lm = ref_brdf = ref_terrain = None
+        gc.collect()
 
