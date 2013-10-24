@@ -5,8 +5,6 @@ SUBROUTINE terrain_correction( &
     brdf0, brdf1, brdf2, &
     bias, slope_ca, esun, dd, &
     ref_adj, &
-    istart, &
-    iend, &
     dn_1, &
     mask_self, &
     mask_castsun, &
@@ -42,11 +40,6 @@ SUBROUTINE terrain_correction( &
     real*4 brdf0, brdf1, brdf2 ! BRDF parameters
     real*4 bias, slope_ca, esun, dd ! satellite calibration coefficients
     real*4 ref_adj ! average reflectance for terrain correction
-!    integer*4 line(nrow) ! does not appear to be used
-    integer*4 istart(nrow) ! ???
-!    integer*4 imid(nrow) ! does not appear to be used
-    integer*4 iend(nrow) ! ???
-!    integer*4 ii(nrow) ! does not appear to be used
     integer*1 dn_1(nrow, ncol) ! raw image
     integer*2 mask_self(nrow, ncol) ! mask
     integer*2 mask_castsun(nrow, ncol) ! self shadow mask
@@ -73,12 +66,12 @@ SUBROUTINE terrain_correction( &
     integer*2 iref_terrain(nrow, ncol) ! atmospheric and brdf and terrain corrected reflectance
 
 !internal parameters passed as arrays.
-    integer*2 dn(ncol)
-    real*4 ref_lm(ncol)
-    real*4 ref_brdf(ncol)
-    real*4 ref_terrain(ncol)
+    integer*2 dn(nrow)
+    real*4 ref_lm(nrow)
+    real*4 ref_brdf(nrow)
+    real*4 ref_terrain(nrow)
 !f2py integer intent(hide),depend(dn_1) :: nrow=shape(dn_1,0), ncol=shape(dn_1,1)
-!f2py intent(in) rori, brdf0, brdf1, brdf2, bias, slop_ca, esun, dd, ref_adj, istart, iend
+!f2py intent(in) rori, brdf0, brdf1, brdf2, bias, slop_ca, esun, dd, ref_adj
 !f2py intent(in) dn_1, mask_self, mask_castsun, mask_castview, solar_angle,
 !f2py intent(in) sazi_angle, view_angle, rela_angle, slope_angle, aspect_angle
 !f2py intent(in) it_angle, et_angle, rela_slope, a_mod, b_mod, s_mod, fv, fs, ts, edir_h, edif_h
@@ -139,22 +132,22 @@ SUBROUTINE terrain_correction( &
     fnn=RL_brdf(45*pib,0.0,0.0,hb,br,1.0,norm_1,norm_2)
 !    print*,fnn
 
-!   Now loop over the rows of the images
-    do i=1,nrow
+!   Now loop over the colss of the images
+    do j=1,ncol
 !----------------------------------------------------------------------
 !   convert byte to integer for the raw image
-        do j=1,ncol
+        do i=1,nrow
             if (dn_1(i, j) .lt. 0) then
-                dn(j) = dn_1(i, j)+256
+                dn(i) = dn_1(i, j)+256
             else
-                dn(j) = dn_1(i, j)
+                dn(i) = dn_1(i, j)
             endif
         enddo
 
 !       now loop over the columns of the images
-        do j=1,ncol
+        do i=1,nrow
 !           if valid masks and valid digital number then do the calcs
-            if (j .ge. istart(i) .and. j .le. iend(i) .and. a_mod(i, j) .ge. 0 .and. dn(j) .gt. 0) then
+            if (a_mod(i, j) .ge. 0 .and. dn(i) .gt. 0) then
                 if (rela_angle(i, j) .gt. 180) rela_angle(i, j) = rela_angle(i, j)-360
                 if (rela_slope(i, j) .gt. 180) rela_slope(i, j) = rela_slope(i, j)-360
 
@@ -196,19 +189,19 @@ SUBROUTINE terrain_correction( &
 !           for flat surface
 
 !           calculate radiance at top atmosphere
-            lt = bias+dn(j)*slope_ca
+            lt = bias+dn(i)*slope_ca
 
 !           calcualte lambetian reflectance with bilinear average
 
-            ref_lm(j) = (lt-b_mod(i, j))/(a_mod(i, j)+s_mod(i, j)*(lt-b_mod(i, j)))
-            iref_lm(i, j) = ref_lm(j)*10000+0.5
+            ref_lm(i) = (lt-b_mod(i, j))/(a_mod(i, j)+s_mod(i, j)*(lt-b_mod(i, j)))
+            iref_lm(i, j) = ref_lm(i)*10000+0.5
 
 !           set as small number if atmospheric corrected reflectance
 !           below 0.001
 
-            if (ref_lm(j).lt. 0.001) then
-                ref_lm(j) = 0.001
-                ref_brdf(j) = 0.001
+            if (ref_lm(i).lt. 0.001) then
+                ref_lm(i) = 0.001
+                ref_brdf(i) = 0.001
                 iref_lm(i, j) = 10
                 iref_brdf(i, j) = 10
             else
@@ -223,9 +216,9 @@ SUBROUTINE terrain_correction( &
                     (fv(i, j)     *(fs(i, j)*ann_f     + (1.0-fs(i, j))*aa_viewf) + &
                     (1.0-fv(i, j))*(fs(i, j)*aa_solarf + (1.0-fs(i, j))*aa_white)) / aa_white
 
-                a_eqf = (1-aa_flat)*s_mod(i, j)*(1-s_mod(i, j)*ref_lm(j))
-                b_eqf = aa_flat+ref_lm(j)*(1-aa_final)*s_mod(i, j)
-                c_eqf = -ref_lm(j)
+                a_eqf = (1-aa_flat)*s_mod(i, j)*(1-s_mod(i, j)*ref_lm(i))
+                b_eqf = aa_flat+ref_lm(i)*(1-aa_final)*s_mod(i, j)
+                c_eqf = -ref_lm(i)
 
                 if (abs(a_eqf) .lt. 0.0000001) then
                     ref_barf=-c_eqf/b_eqf
@@ -233,14 +226,14 @@ SUBROUTINE terrain_correction( &
                     ref_barf = (-b_eqf+sqrt(b_eqf**2-4*a_eqf*c_eqf))/(2*a_eqf)
                 endif
                     ref_brdfrealf = ann_f*ref_barf/aa_white
-                    ref_brdf(j) = ref_barf*fnn/aa_white
-                    iref_brdf(i, j) = ref_brdf(j)*10000+0.5
+                    ref_brdf(i) = ref_barf*fnn/aa_white
+                    iref_brdf(i, j) = ref_brdf(i)*10000+0.5
 
 !               this is to ensure that the brdf correction
 !               is the same as (or as close as possible to) the original NBAR version
-                if (ref_brdf(j) .ge. 1) then
-                  ref_brdf(j)=1.0
-                  iref_brdf(i, j)=ref_brdf(j)*10000
+                if (ref_brdf(i) .ge. 1) then
+                  ref_brdf(i)=1.0
+                  iref_brdf(i, j)=ref_brdf(i)*10000
                 endif
 
             endif
@@ -273,7 +266,7 @@ SUBROUTINE terrain_correction( &
                 rdif = edif_t/(edir_h(i, j)+edif_h(i, j))
                 rtotal = (edir_t+edif_t)/(edir_h(i, j)+edif_h(i, j))
 
-                rth = (rori-s_mod(i, j)*ref_lm(j)) / (1-s_mod(i, j)*ref_lm(j))
+                rth = (rori-s_mod(i, j)*ref_lm(i)) / (1-s_mod(i, j)*ref_lm(i))
 
                 if (rtotal .le. rth) then
                     bb_angle = fs(i, j)/cos(solar)+(1-fs(i, j))*ts(i, j)/cos(solar)
@@ -302,9 +295,9 @@ SUBROUTINE terrain_correction( &
                     (rdir*(fv(i, j)*ann_s    + (1.0-fv(i, j))*aa_solars) + &
                      rdif*(fv(i, j)*aa_views + (1.0-fv(i, j))*aa_white)) / aa_white
 
-                a_eqs = (rtotal-aa_slope)*s_mod(i, j)*(1-s_mod(i, j)*ref_lm(j))
-                b_eqs = aa_slope+ref_lm(j)*(1-aa_slope)*s_mod(i, j)
-                c_eqs = -ref_lm(j)
+                a_eqs = (rtotal-aa_slope)*s_mod(i, j)*(1-s_mod(i, j)*ref_lm(i))
+                b_eqs = aa_slope+ref_lm(i)*(1-aa_slope)*s_mod(i, j)
+                c_eqs = -ref_lm(i)
 
                 if (abs(a_eqs) .lt. 0.00001) then
                     ref_bars = -c_eqs/b_eqs
@@ -312,12 +305,12 @@ SUBROUTINE terrain_correction( &
                     ref_bars = (-b_eqs+sqrt(b_eqs**2-4*a_eqs*c_eqs))/(2*a_eqs)
                 endif
                 ref_brdfreals = ann_s*ref_bars/aa_white
-                ref_terrain(j) = ref_bars*fnn/aa_white
-                iref_terrain(i, j) = int(ref_terrain(j)*10000.0+0.5)
+                ref_terrain(i) = ref_bars*fnn/aa_white
+                iref_terrain(i, j) = int(ref_terrain(i)*10000.0+0.5)
 
-                if (ref_terrain(j) .ge. 1) then
-                    ref_terrain(j) = 1.0
-                    iref_terrain(i, j) = int(ref_terrain(j)*10000.0+0.5)
+                if (ref_terrain(i) .ge. 1) then
+                    ref_terrain(i) = 1.0
+                    iref_terrain(i, j) = int(ref_terrain(i)*10000.0+0.5)
                 endif
 
 !               Should test for these cases in initial tests! (ie must be lt these)
@@ -337,9 +330,9 @@ SUBROUTINE terrain_correction( &
                     iref_terrain(i, j)=-999
                 endif
             else
-                ref_lm(j)=-999.0
-                ref_brdf(j)=-999.0
-                ref_terrain(j)=-999.0
+                ref_lm(i)=-999.0
+                ref_brdf(i)=-999.0
+                ref_terrain(i)=-999.0
                 iref_lm(i, j)=-999
                 iref_brdf(i, j)=-999
                 iref_terrain(i, j)=-999
