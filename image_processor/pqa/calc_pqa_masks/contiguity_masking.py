@@ -9,7 +9,7 @@ from ULA3.utils import dump_array
 from ULA3.common.pqa_result import PQAResult
 from ULA3.image_processor import ProcessorConfig
 from ULA3 import DataManager
-from IDL_functions import IDL_Histogram
+from IDL_functions import histogram
 
 logger = logging.getLogger('root.' + __name__)
 
@@ -166,7 +166,7 @@ def process(subprocess_list=[], resume=False):
 
             # Histogram method, a lot faster
             mx = numpy.max(ulabels)
-            h = IDL_Histogram(flat_label, min=0, max=mx, reverse_indices='ri')
+            h = histogram(flat_label, min=0, max=mx, reverse_indices='ri')
             hist = h['histogram']
             ri = h['ri']
 
