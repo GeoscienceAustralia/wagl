@@ -10,7 +10,7 @@ import osr
 
 from ULA3.image_processor import ProcessorConfig
 from ULA3 import DataManager
-from IDL_functions import IDL_Histogram
+from IDL_functions import histogram
 
 logger = logging.getLogger('root.' + __name__)
 
@@ -764,7 +764,7 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
         flatwsum = weight_sum.flatten()
 
 
-        h = IDL_Histogram(flatwsum, min=0, max=1.0, binsize=0.1, reverse_indices='ri', locations='loc') # may not need loc
+        h = histogram(flatwsum, min=0, max=1.0, binsize=0.1, reverse_indices='ri', locations='loc') # may not need loc
 
         # This might be the only need for the bin locations i.e. loc
         binmean = numpy.zeros(h['loc'].shape[0])
@@ -806,7 +806,7 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
 
         if (ulabels.size > 0): # only apply if labels are identified
             max = numpy.max(ulabels) # this will fail if there are no labels
-            h = IDL_Histogram(flat_label, min=0, max=max, reverse_indices='ri')
+            h = histogram(flat_label, min=0, max=max, reverse_indices='ri')
 
             # assign other variable names, makes it more readable when indexing
             hist = h['histogram']
