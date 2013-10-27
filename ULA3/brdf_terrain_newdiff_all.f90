@@ -342,7 +342,7 @@ SUBROUTINE terrain_correction( &
         !write(56,rec=i)(iref_brdf(i, j),j=1,ncol)
         !write(57,rec=i)(iref_terrain(i, j),j=1,ncol)
     enddo
-END SUBROUTINE terrain_correction_LS8
+END SUBROUTINE terrain_correction
 
 
 
