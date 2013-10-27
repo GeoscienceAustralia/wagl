@@ -5,7 +5,7 @@ Runs the terrain correction. This code runs the terrain correction algorithm.
 import logging, os, numpy, gc
 from osgeo import gdal
 from ULA3 import DataManager, DataGrid
-from ULA3.tc import clip_dsm, filter_dsm, run_slope, run_castshadow, run_brdfterrain, run_brdfterrain_LS8
+from ULA3.tc import clip_dsm, filter_dsm, run_slope, run_castshadow, run_brdfterrain # , run_brdfterrain_LS8
 from ULA3.utils import Buffers, dump_array, load_bin_file, as_array
 from ULA3.dataset import SceneDataset
 from ULA3.image_processor import ProcessorConfig
@@ -134,6 +134,7 @@ def process(subprocess_list=[], resume=False):
 
     # load the line starts and ends.
     region_nrow, region_ncol = l1t_input_dataset.shape
+    # the istart and iend params are no longer passed to brdf_terrain as the function doesn't use them
     istart = numpy.zeros(region_nrow, dtype=numpy.int32)
     iend = numpy.zeros(region_nrow, dtype=numpy.int32)
     start_end_file = os.path.join(CONFIG.work_path, 'STARTEND')
@@ -173,6 +174,7 @@ def process(subprocess_list=[], resume=False):
         # need to check that these are OK.
         band_data = l1t_input_dataset.band_read_as_array(band_number)
 
+        '''
         # At this point in time we have different instances of brdfterrain
         # One for LS5/7 and one for LS8. They're different datatypes and we're
         # preserving the science code which is FORTRAN. THIS NEEDS TO CHANGE!!!
@@ -205,33 +207,33 @@ def process(subprocess_list=[], resume=False):
                 load_bin_file(boo[(band_number, 'dir')], region_nrow, region_ncol, dtype=numpy.float32),
                 load_bin_file(boo[(band_number, 'dif')], region_nrow, region_ncol, dtype=numpy.float32))
         else:
-            ref_lm, ref_brdf, ref_terrain = run_brdfterrain(
-                rori,
-                brdf0, brdf1, brdf2,
-                bias, slope_ca, esun, dd,
-                ave_reflectance_values[band_number],
-                istart, iend,
-                band_data,
-                slope_results.mask_self,
-                shadow_s,
-                shadow_v,
-                solar_angle,
-                sazi_angle,
-                view_angle,
-                rela_angle,
-                slope_results.slope,
-                slope_results.aspect,
-                slope_results.incident,
-                slope_results.exiting,
-                slope_results.rela_slope,
-                load_bin_file(boo[(band_number, 'a')], region_nrow, region_ncol, dtype=numpy.float32),
-                load_bin_file(boo[(band_number, 'b')], region_nrow, region_ncol, dtype=numpy.float32),
-                load_bin_file(boo[(band_number, 's')], region_nrow, region_ncol, dtype=numpy.float32),
-                load_bin_file(boo[(band_number, 'fs')], region_nrow, region_ncol, dtype=numpy.float32),
-                load_bin_file(boo[(band_number, 'fv')], region_nrow, region_ncol, dtype=numpy.float32),
-                load_bin_file(boo[(band_number, 'ts')], region_nrow, region_ncol, dtype=numpy.float32),
-                load_bin_file(boo[(band_number, 'dir')], region_nrow, region_ncol, dtype=numpy.float32),
-                load_bin_file(boo[(band_number, 'dif')], region_nrow, region_ncol, dtype=numpy.float32))
+        '''
+	ref_lm, ref_brdf, ref_terrain = run_brdfterrain(
+	    rori,
+	    brdf0, brdf1, brdf2,
+	    bias, slope_ca, esun, dd,
+	    ave_reflectance_values[band_number],
+	    band_data,
+	    slope_results.mask_self,
+	    shadow_s,
+	    shadow_v,
+	    solar_angle,
+	    sazi_angle,
+	    view_angle,
+	    rela_angle,
+	    slope_results.slope,
+	    slope_results.aspect,
+	    slope_results.incident,
+	    slope_results.exiting,
+	    slope_results.rela_slope,
+	    load_bin_file(boo[(band_number, 'a')], region_nrow, region_ncol, dtype=numpy.float32),
+	    load_bin_file(boo[(band_number, 'b')], region_nrow, region_ncol, dtype=numpy.float32),
+	    load_bin_file(boo[(band_number, 's')], region_nrow, region_ncol, dtype=numpy.float32),
+	    load_bin_file(boo[(band_number, 'fs')], region_nrow, region_ncol, dtype=numpy.float32),
+	    load_bin_file(boo[(band_number, 'fv')], region_nrow, region_ncol, dtype=numpy.float32),
+	    load_bin_file(boo[(band_number, 'ts')], region_nrow, region_ncol, dtype=numpy.float32),
+	    load_bin_file(boo[(band_number, 'dir')], region_nrow, region_ncol, dtype=numpy.float32),
+	    load_bin_file(boo[(band_number, 'dif')], region_nrow, region_ncol, dtype=numpy.float32))
 
 
         write_tif_file(l1t_input_dataset, ref_lm, os.path.join(work_path, pref + 'ref_lm_' + str(band_number) + output_extension), file_type = output_format)
