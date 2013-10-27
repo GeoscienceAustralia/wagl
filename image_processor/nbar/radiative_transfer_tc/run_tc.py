@@ -174,7 +174,7 @@ def process(subprocess_list=[], resume=False):
         # need to check that these are OK.
         band_data = l1t_input_dataset.band_read_as_array(band_number)
 
-        '''
+        """
         # At this point in time we have different instances of brdfterrain
         # One for LS5/7 and one for LS8. They're different datatypes and we're
         # preserving the science code which is FORTRAN. THIS NEEDS TO CHANGE!!!
@@ -207,7 +207,7 @@ def process(subprocess_list=[], resume=False):
                 load_bin_file(boo[(band_number, 'dir')], region_nrow, region_ncol, dtype=numpy.float32),
                 load_bin_file(boo[(band_number, 'dif')], region_nrow, region_ncol, dtype=numpy.float32))
         else:
-        '''
+        """
 	ref_lm, ref_brdf, ref_terrain = run_brdfterrain(
 	    rori,
 	    brdf0, brdf1, brdf2,
