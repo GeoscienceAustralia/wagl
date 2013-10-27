@@ -40,7 +40,7 @@ SUBROUTINE terrain_correction( &
     real*4 brdf0, brdf1, brdf2 ! BRDF parameters
     real*4 bias, slope_ca, esun, dd ! satellite calibration coefficients
     real*4 ref_adj ! average reflectance for terrain correction
-    integer*1 dn_1(nrow, ncol) ! raw image
+    integer*2 dn_1(nrow, ncol) ! raw image
     integer*2 mask_self(nrow, ncol) ! mask
     integer*2 mask_castsun(nrow, ncol) ! self shadow mask
     integer*2 mask_castview(nrow, ncol) ! cast shadow mask
@@ -66,7 +66,7 @@ SUBROUTINE terrain_correction( &
     integer*2 iref_terrain(nrow, ncol) ! atmospheric and brdf and terrain corrected reflectance
 
 !internal parameters passed as arrays.
-    integer*2 dn(nrow)
+    integer*4 dn(nrow)
     real*4 ref_lm(nrow)
     real*4 ref_brdf(nrow)
     real*4 ref_terrain(nrow)
@@ -138,13 +138,13 @@ SUBROUTINE terrain_correction( &
 !   convert byte to integer for the raw image
         do i=1,nrow
             if (dn_1(i, j) .lt. 0) then
-                dn(i) = dn_1(i, j)+256
+                dn(i) = dn_1(i, j)+65536
             else
                 dn(i) = dn_1(i, j)
             endif
         enddo
 
-!       now loop over the columns of the images
+!       now loop over the rows of the images
         do i=1,nrow
 !           if valid masks and valid digital number then do the calcs
             if (a_mod(i, j) .ge. 0 .and. dn(i) .gt. 0) then
@@ -242,7 +242,7 @@ SUBROUTINE terrain_correction( &
             if ((mask_self(i, j) .gt. 0) .and. &
                 (mask_castsun(i, j).gt. 0) .and. &
                 (mask_castview(i, j) .gt. 0) .and. (it_angle(i, j) .lt. 90.0) .and. &
-                (et_angle(i, j) .lt. 90.0) ) then
+                (et_angle(i, j) .lt. 90.0)) then
 !----------------------------------------------------------
                 cosslope = cos(slope)
 !               calculate vd and vt
@@ -342,7 +342,7 @@ SUBROUTINE terrain_correction( &
         !write(56,rec=i)(iref_brdf(i, j),j=1,ncol)
         !write(57,rec=i)(iref_terrain(i, j),j=1,ncol)
     enddo
-END SUBROUTINE terrain_correction
+END SUBROUTINE terrain_correction_LS8
 
 
 
@@ -358,6 +358,7 @@ real function RL_brdf (solar,view,ra,hb,br,brdf0,brdf1,brdf2)
     real d_li2,x_li,cosl,l_li,o_li
 
     RL_brdf=0.0
+
     pi = 4 * atan(1.0)
 !   calculate Ross-thick kernel
     cossolar = cos(solar)
