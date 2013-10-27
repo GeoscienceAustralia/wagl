@@ -29,8 +29,7 @@ terrain:
 	module unload intel-fc; \
 	module unload intel-cc; \
 	module load gcc/4.4.4; \
-	f2py -m _brdf_terrain_newdiff_all --fcompiler=gnu95 --opt="-O0" -c brdf_terrain_newdiff_all.f90; \
-	f2py -m _brdf_terrain_newdiff_all_LS8 --fcompiler=gnu95 --opt="-O0" -c brdf_terrain_newdiff_all_LS8.f90
+	f2py -m _brdf_terrain_newdiff_all --fcompiler=gnu95 --opt="-O0" -c brdf_terrain_newdiff_all.f90
 
 
 
