@@ -13,7 +13,7 @@ from ULA3.utils import warp, get_bounds, DTYPE_MAP, as_array, dump_array
 from _shade_main_landsat_pixel import shade_main_landsat_pixel
 from _slope_pixelsize_newpole import slope_pixelsize_newpole
 from _brdf_terrain_newdiff_all import terrain_correction
-from _brdf_terrain_newdiff_all_LS8 import terrain_correction_ls8
+# from _brdf_terrain_newdiff_all_LS8 import terrain_correction_ls8
 
 logger = logging.getLogger('root.' + __name__)
 
@@ -528,6 +528,7 @@ def run_castshadow(
 
 
 
+'''
 @print_call(logger.info)
 def run_brdfterrain(
     rori, # threshold for terrain correction
@@ -782,18 +783,14 @@ def run_brdfterrain(
         as_array(ts, dtype=numpy.float32),
         as_array(edir_h, dtype=numpy.float32),
         as_array(edif_h, dtype=numpy.float32))
+'''
 
 @print_call(logger.info)
-def run_brdfterrain_LS8(
+def run_brdfterrain(
     rori, # threshold for terrain correction
     brdf0, brdf1, brdf2, # BRDF parameters
     bias, slope_ca, esun, dd, # satellite calibration coefficients
     ref_adj, # average reflectance for terrain correction
-    #line,
-    istart,
-    #imid,
-    iend,
-    #ii,
     dn_1, # raw image
     mask_self, # mask
     mask_castsun, # self shadow mask
@@ -1009,14 +1006,16 @@ def run_brdfterrain_LS8(
         descriptions of the arguments provided.
 
     """
-    return terrain_correction_ls8(
+    if dn_1.itemsize == 1:
+       dn_tmp = numpy.array(dn_1, dtype=numpy.dtype('u2'))
+    else: dn_tmp = dn_1
+    return terrain_correction(
         rori,
         brdf0, brdf1, brdf2,
         bias, slope_ca, esun, dd,
         ref_adj,
-        as_array(istart, dtype=numpy.int32),
-        as_array(iend, dtype=numpy.int32),
-        as_array(dn_1, dtype=numpy.int16),
+        dn_tmp,
+        # as_array(dn_1, dtype=numpy.int16),
         as_array(mask_self, dtype=numpy.int16),
         as_array(mask_castsun, dtype=numpy.int16),
         as_array(mask_castview, dtype=numpy.int16),
