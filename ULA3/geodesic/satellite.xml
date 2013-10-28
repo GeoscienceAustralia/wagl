@@ -132,6 +132,30 @@
 			<BAND NUMBER="11" NAME="Thermal Infrared 2"
 				WAVELENGTH="11.5-12.5" TYPE="Thermal" RESOLUTION="25.0" />
 		</SENSOR>
+
+		<SENSOR NAME="OLI"
+			DESCRIPTION="Landsat Data Continuity Mission" ROOT_BAND="2" RGB_BANDS="7,5,2"
+				ACQUISITION_SECONDS="24" K1="0" K2="0">
+			<BAND NUMBER="1" NAME="Coastal Aerosol"
+				WAVELENGTH="0.433-0.453" TYPE="Reflective" RESOLUTION="25.0" />
+			<BAND NUMBER="2" NAME="Visible Blue"
+				WAVELENGTH="0.45-0.515" TYPE="Reflective" RESOLUTION="25.0" />
+			<BAND NUMBER="3" NAME="Visible Green"
+				WAVELENGTH="0.525-0.60" TYPE="Reflective" RESOLUTION="25.0" />
+			<BAND NUMBER="4" NAME="Visible Red" WAVELENGTH="0.63-0.68"
+				TYPE="Reflective" RESOLUTION="25.0" />
+			<BAND NUMBER="5" NAME="Near Infrared"
+				WAVELENGTH="0.845-0.885" TYPE="Reflective" RESOLUTION="25.0" />
+			<BAND NUMBER="6" NAME="Short-wave Infrared 1"
+				WAVELENGTH="1.56-1.66" TYPE="Reflective" RESOLUTION="25.0" />
+			<BAND NUMBER="7" NAME="Short-wave Infrared 2"
+				WAVELENGTH="2.1-2.3" TYPE="Reflective" RESOLUTION="25.0" />
+			<BAND NUMBER="8" NAME="Panchromatic" WAVELENGTH="0.5-0.68"
+				TYPE="Panchromatic" RESOLUTION="12.5" />
+			<BAND NUMBER="9" NAME="Cirrus" WAVELENGTH="1.360-1.390"
+				TYPE="Atmosphere" RESOLUTION="25.0" />
+		</SENSOR>
 	</SATELLITE>
+
 </SATELLITES>
 
