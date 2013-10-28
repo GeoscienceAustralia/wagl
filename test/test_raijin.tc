@@ -11,7 +11,7 @@ module load hdf4/4.2.6
 module load gdal
 module load proj
 
-module use /projects/u46/opt/modules/modulefiles --append
+module use /projects/u46/opt/modules/modulefiles
 module load IDL_functions
 module load pyephem
 module load numexpr
