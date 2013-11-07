@@ -1557,7 +1557,7 @@ class SceneDataset(Dataset):
             ((<LLx>, <LRx>), (<LLy>, <ULy>))
 
         :notes:
-            Function re-written so it returns the values given by GDAl, rather
+            Function re-written so it returns the values given by GDAL, rather
             than rely on the MTL or XML files, which are unsuited for our
             purposes. 2013/08/16.
         """
