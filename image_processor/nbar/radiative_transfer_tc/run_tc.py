@@ -51,7 +51,7 @@ shadow_sub_matrix_width = 500
 rori = 0.52
 # these were copied from the files files in /g/data/v10/ULA3-TESTDATA/brdf_modis_band%i.txt,
 # they were contained in the last line of those files.
-ave_reflectance_values_LS5_7 = {1:0.0365, 2:0.0667, 3:0.0880, 4:0.2231, 5:0.2512, 7:0.1648}
+ave_reflectance_values_LS5_7 = {10:0.0365, 20:0.0667, 30:0.0880, 40:0.2231, 50:0.2512, 70:0.1648}
 ave_reflectance_values_LS8   = {1:0.0365, 2:0.0365, 3:0.0667, 4:0.0880, 5:0.2231, 6:0.2512, 7:0.1648}
 
 
@@ -159,8 +159,20 @@ def process(subprocess_list=[], resume=False):
     else:
         ave_reflectance_values = ave_reflectance_values_LS5_7
 
+    # We need a reverse lookup for the band file names, ie for LS_5/7: 10, 20, 30 etc
+    # to correspond with the 1 based index order retrieved from scene_dataset_class.bands('REFLECTIVE')
+    # Was unsure if there was already a lookup defined so this will suffice.
+    # This will be used for output filenames as well as average reflectance lookups.
+    band_fname_lookup = {}
+    for key in l1t_input_dataset._band_number_map.keys():
+        val = l1t_input_dataset._band_number_map[key]
+        band_fname_lookup[val] = key # Basically turn keys into values and vice versa. Only works for 1 to 1 mapping dicts.
+
     #for band_number in (2, 3, 4): #(1, 2, 3, 4, 5, 7):
     for band_number in l1t_input_dataset.bands('REFLECTIVE'):
+        # Get the band file name, eg 10, 20, 30 etc, used in L1T. LS8 uses 1, 2, 3 etc
+        out_bn_name = band_fname_lookup[band_number]
+
         # not sure where these get created.
         param_file = open(os.path.join(CONFIG.work_path, 'brdf_modis_band%i.txt' % band_number), 'r')
         brdf0, brdf1, brdf2, bias, slope_ca, esun, dd = map(float, ' '.join(param_file.readlines()).split())
@@ -169,7 +181,7 @@ def process(subprocess_list=[], resume=False):
         if dump_path:
             write_new_brdf_file(
                 os.path.join(dump_path, 'new_brdf_modis_band%i.txt' % band_number),
-                rori, brdf0, brdf1, brdf2, bias, slope_ca, esun, dd, ave_reflectance_values[band_number])
+                rori, brdf0, brdf1, brdf2, bias, slope_ca, esun, dd, ave_reflectance_values[out_bn_name])
 
         # need to check that these are OK.
         band_data = l1t_input_dataset.band_read_as_array(band_number)
@@ -212,7 +224,7 @@ def process(subprocess_list=[], resume=False):
 	    rori,
 	    brdf0, brdf1, brdf2,
 	    bias, slope_ca, esun, dd,
-	    ave_reflectance_values[band_number],
+	    ave_reflectance_values[out_bn_name],
 	    band_data,
 	    slope_results.mask_self,
 	    shadow_s,
@@ -236,11 +248,20 @@ def process(subprocess_list=[], resume=False):
 	    load_bin_file(boo[(band_number, 'dif')], region_nrow, region_ncol, dtype=numpy.float32))
 
 
-        write_tif_file(l1t_input_dataset, ref_lm, os.path.join(work_path, pref + 'ref_lm_' + str(band_number) + output_extension), file_type = output_format)
-        write_tif_file(l1t_input_dataset, ref_brdf, os.path.join(work_path, pref + 'ref_brdf_' + str(band_number) + output_extension), file_type = output_format)
-        write_tif_file(l1t_input_dataset, ref_terrain, os.path.join(work_path, pref + 'ref_terrain_' + str(band_number) + output_extension), file_type = output_format)
+        print
+        print 'band_number: ', band_number
+        print 'out_bn_name: ', out_bn_name
+        print
 
-        outfname = os.path.join(output_path, 'scene01', '%s_B%d%s' % (nbar_dataset_id, band_number, '.tif'))
+        #write_tif_file(l1t_input_dataset, ref_lm, os.path.join(work_path, pref + 'ref_lm_' + str(band_number) + output_extension), file_type = output_format)
+        write_tif_file(l1t_input_dataset, ref_lm, os.path.join(work_path, pref + 'ref_lm_' + str(out_bn_name) + output_extension), file_type = output_format)
+        #write_tif_file(l1t_input_dataset, ref_brdf, os.path.join(work_path, pref + 'ref_brdf_' + str(band_number) + output_extension), file_type = output_format)
+        write_tif_file(l1t_input_dataset, ref_brdf, os.path.join(work_path, pref + 'ref_brdf_' + str(out_bn_name) + output_extension), file_type = output_format)
+        #write_tif_file(l1t_input_dataset, ref_terrain, os.path.join(work_path, pref + 'ref_terrain_' + str(band_number) + output_extension), file_type = output_format)
+        write_tif_file(l1t_input_dataset, ref_terrain, os.path.join(work_path, pref + 'ref_terrain_' + str(out_bn_name) + output_extension), file_type = output_format)
+
+        #outfname = os.path.join(output_path, 'scene01', '%s_B%d%s' % (nbar_dataset_id, band_number, '.tif'))
+        outfname = os.path.join(output_path, 'scene01', '%s_B%d%s' % (nbar_dataset_id, out_bn_name, '.tif'))
         write_tif_file(l1t_input_dataset, ref_terrain, outfname, file_type="GTiff")
 
         ref_lm = ref_brdf = ref_terrain = None
