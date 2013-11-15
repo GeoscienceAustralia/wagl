@@ -128,7 +128,7 @@ c            write(11,*)i,j,res(j,i)
           esun_band_top(j)=(res(2600,j)*esun(2600,inu)+res(350,j)
      &      *esun(350,inu))/2
           res_sum(j)=(res(2600,j)+res(350,j))/2
-          do i=2499,351,-1
+          do i=2599,351,-1
             edo_band(j)=edo_band(j)+edo(i,1)*res(i,j)
             esun_band(j)=esun_band(j)+esun(i,1)*res(i,j)
             esun_band_top(j)=esun_band_top(j)+esun(i,inu)*res(i,j)
