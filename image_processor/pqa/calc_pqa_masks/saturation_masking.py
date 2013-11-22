@@ -63,8 +63,8 @@ def process(subprocess_list=[], resume=False):
 
         # Work-around for non-thread-safe numexpr expression
         if use_numexpr:
-            sublogger.debug('numexpr used: numexpr.evaluate("band_array == 1 or band_array == 255")')
-            mask = numexpr.evaluate("band_array > 1 and band_array < 255")
+            sublogger.debug('numexpr used: numexpr.evaluate("(band_array > 1) & (band_array < 255)")')
+            mask = numexpr.evaluate("(band_array > 1) & (band_array < 255)")
         else:
             sublogger.debug('numpy used: (band_array > 1) & (band_array < 255)')
             mask = (band_array > 1) & (band_array < 255)
