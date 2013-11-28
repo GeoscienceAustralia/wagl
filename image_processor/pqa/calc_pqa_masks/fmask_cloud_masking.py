@@ -688,26 +688,42 @@ def nd2toarbt(filename, images=None):
         im_B9  = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B1 - Qmi) + Rmi", { 'Rma': Refmax[6], 'Rmi': Refmin[6], 'Qma': Qcalmax[6], 'Qmi': Qcalmin[0] }, locals())
         im_B10 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B1 - Qmi) + Lmi", { 'Lma': Lmax[7], 'Lmi': Lmin[7], 'Qma': Qcalmax[7], 'Qmi': Qcalmin[7] }, locals())
 
-    s_zen = numpy.deg2rad(zen)
-    im_B2 = numexpr.evaluate("10000 * im_B2 / cos(s_zen)")
-    im_B3 = numexpr.evaluate("10000 * im_B3 / cos(s_zen)")
-    im_B4 = numexpr.evaluate("10000 * im_B4 / cos(s_zen)")
-    im_B5 = numexpr.evaluate("10000 * im_B5 / cos(s_zen)")
-    im_B6 = numexpr.evaluate("10000 * im_B6 / cos(s_zen)")
-    im_B7 = numexpr.evaluate("10000 * im_B7 / cos(s_zen)")
-    im_B9 = numexpr.evaluate("10000 * im_B9 / cos(s_zen)")
+        s_zen = numpy.deg2rad(zen)
+        im_B2 = numexpr.evaluate("10000 * im_B2 / cos(s_zen)")
+        im_B3 = numexpr.evaluate("10000 * im_B3 / cos(s_zen)")
+        im_B4 = numexpr.evaluate("10000 * im_B4 / cos(s_zen)")
+        im_B5 = numexpr.evaluate("10000 * im_B5 / cos(s_zen)")
+        im_B6 = numexpr.evaluate("10000 * im_B6 / cos(s_zen)")
+        im_B7 = numexpr.evaluate("10000 * im_B7 / cos(s_zen)")
+        im_B9 = numexpr.evaluate("10000 * im_B9 / cos(s_zen)")
 
-    # convert Band6 from radiance to BT
-    # fprintf('From Band 6 Radiance to Brightness Temperature\n');
-    K1_B10 = numpy.float32(774.89)
-    K2_B10 = numpy.float32(1321.08)
-    one    = numpy.float32(1)
+        # convert Band6 from radiance to BT
+        # fprintf('From Band 6 Radiance to Brightness Temperature\n');
+        K1_B10 = numpy.float32(774.89)
+        K2_B10 = numpy.float32(1321.08)
+        one    = numpy.float32(1)
 
-    im_B10 = numpexpr.evaluate("K2_B10 / log((K1_B10 / im_B10) + one)")
+        im_B10 = numpexpr.evaluate("K2_B10 / log((K1_B10 / im_B10) + one)")
 
-    # convert from Kelvin to Celcius with 0.01 scale_factor
-    K      = numpy.float32(273.15)
-    im_B10 = numexpr.evaluate("100 * (im_B10 - K)")
+        # convert from Kelvin to Celcius with 0.01 scale_factor
+        K      = numpy.float32(273.15)
+        im_B10 = numexpr.evaluate("100 * (im_B10 - K)")
+
+        # get data ready for Fmask
+        im_B2[id_missing]  = -9999
+        im_B3[id_missing]  = -9999
+        im_B4[id_missing]  = -9999
+        im_B5[id_missing]  = -9999
+        im_B6[id_missing]  = -9999
+        im_B7[id_missing]  = -9999
+        im_B9[id_missing]  = -9999
+        im_B10[id_missing] = -9999
+        del id_missing
+
+        images = numpy.array([im_B2, im_B3, im_B4, im_B5, im_B6, im_B7, im_B9], 'float32')
+        del im_B2, im_B3, im_B4, im_B5, im_B6, im_B7, im_B9
+
+        return [im_B10,images,ijdim_ref,ul,zen,azi,zc,B1Satu,B2Satu,B3Satu,resolu]
 
     else:
         raise Exception('This sensor is not Landsat 4, 5, 7, or 8!')
