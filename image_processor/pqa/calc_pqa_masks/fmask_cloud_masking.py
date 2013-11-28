@@ -37,10 +37,18 @@ def match_file(dir_path, pattern):
 
 
 
-def imread(filename):
+def imread(filename, resample=False, samples=None, lines=None):
     img=gdal.Open(filename)
     band=img.GetRasterBand(1)
-    return band.ReadAsArray()
+    if resample:
+        driver = gdal.GetDriverByName('MEM')
+        outds  = driver.Create("", samples, lines, 1, band.DataType)
+        outds.SetGeoTransform(img.GetGeoTransform())
+        outds.SetProjection(img.GetProjection())
+        proj = gdal.ReprojectImage(img, outds)
+        return outds.ReadAsArray()
+    else:
+        return band.ReadAsArray()
 
 def imfill_pybuffer(img, ts):
     import itk
@@ -437,7 +445,7 @@ def lndhdrread(filename):
     #return (Lmax,Lmin,Qcalmax,Qcalmin,ijdim_ref,ijdim_thm,reso_ref,reso_thm,ul,zen,azi,zc,Lnum,doy)
     return (Lmax,Lmin,Qcalmax,Qcalmin,Refmax,Refmin,ijdim_ref,ijdim_thm,reso_ref,reso_thm,ul,zen,azi,zc,Lnum,doy)
 
-def nd2toar(filename, images=None):
+def nd2toarbt(filename, images=None):
     """
     Load metadata from MTL file & calculate reflectance values for scene bands.
 
@@ -447,176 +455,188 @@ def nd2toar(filename, images=None):
     :param images:
         A numpy.ndarray of pre-calculated reflectance values for each landsat band, to be used instead of calculating our own.
     """
-    Lmax,Lmin,Qcalmax,Qcalmin,ijdim_ref,ijdim_thm,reso_ref,reso_thm,ul,zen,azi,zc,Lnum,doy=lndhdrread(filename)
+    Lmax,Lmin,Qcalmax,Qcalmin,Refmax,Refmin,ijdim_ref,ijdim_thm,reso_ref,reso_thm,ul,zen,azi,zc,Lnum,doy=lndhdrread(filename)
 
     base = os.path.dirname(filename)
 
     # LPGS Upper left corner alignment (see Landsat handbook for detail)
-    ul=(ul[0]-15,ul[1]+15)
+    ul=(ul[0]-15,ul[1]+15) # This is in error if GA products are used (25m). JS 2013/11/28
     resolu=(reso_ref,reso_ref)
 
-    # Band6
-    if Lnum == 7:
-        n_B6=match_file(base, '.*B61.*')
-    else:
-        n_B6=match_file(base, '.*B6.*')
+    if (Lnum >= 4 & Lnum <= 7):
 
-    im_B6=imread(n_B6).astype(numpy.float32)
-    # check to see whether need to resample thermal band
-    #if reso_ref != reso_thm:
-        # resmaple thermal band
-	# TODO: Can be done using GDAL
+        # Band6
+        if Lnum == 7:
+            n_B6=match_file(base, '.*B61.*')
+        else:
+            n_B6=match_file(base, '.*B6.*')
 
-    # convert Band6 from radiance to BT
-    # fprintf('From Band 6 Radiance to Brightness Temperature\n')
-    # see G. Chander et al. RSE 113 (2009) 893-903
-    K1_L4=  671.62
-    K2_L4= 1284.30
-    K1_L5=  607.76
-    K2_L5= 1260.56
-    K1_L7=  666.09
-    K2_L7= 1282.71
+        # Check that the thermal band resolution matches the reflectance bands.
+        ref_lines, ref_samples = ijdim_ref
+        thm_lines, thm_samples = ijdim_thm
+        if ((thm_lines != ref_lines) | (thm_samples != ref_samples)):
+            im_B6=imread(n_B6, resample=True, samples=ref_samples, lines=ref_lines).astype(numpy.float32)
+        else:
+            im_B6=imread(n_B6).astype(numpy.float32)
 
-    if Lnum == 7:
-        K1=K1_L7
-        K2=K2_L7
-    elif Lnum==5:
-        K1=K1_L5
-        K2=K2_L5
-    elif Lnum==4:
-        K1=K1_L4
-        K2=K2_L4
+        # check to see whether need to resample thermal band
+        #if reso_ref != reso_thm:
+            # resmaple thermal band
+            # TODO: Can be done using GDAL. DONE JS 2013/11/28
 
-    # convert from Kelvin to Celcius with 0.01 scale_facor
-    #im_B6=numexpr.evaluate("a * ((K2/log((K1/im_B6)+one)) - b)", { 'a': numpy.float32(100), 'b': numpy.float32(273.15), 'one': numpy.float32(1.0) }, locals())
-
-
-    if images != None:
-        im_B1=images[0,:,:].astype(numpy.float32)
-        im_B2=images[1,:,:].astype(numpy.float32)
-        im_B3=images[2,:,:].astype(numpy.float32)
-        im_B4=images[3,:,:].astype(numpy.float32)
-        im_B5=images[4,:,:].astype(numpy.float32)
-        im_B7=images[6,:,:].astype(numpy.float32)
-        del images
-
-        # find pixels that are saturated in the visible bands
-        B1Satu=im_B1==255.0
-        B2Satu=im_B2==255.0
-        B3Satu=im_B3==255.0
-
-        # only processing pixesl where all bands have values (id_mssing)
-        id_missing=numexpr.evaluate("(im_B1==0.0)|(im_B2==0.0)|(im_B3==0.0)|(im_B4==0.0)|(im_B5==0.0)|(im_B6==0.0)|(im_B7==0.0)")
-
-    else:
-        # Band1
-        n_B1=match_file(base, '.*B1.*')
-        im_B1=imread(n_B1).astype(numpy.float32)
-        # Band2
-        n_B2=match_file(base, '.*B2.*')
-        im_B2=imread(n_B2).astype(numpy.float32)
-        # Band3
-        n_B3=match_file(base, '.*B3.*')
-        im_B3=imread(n_B3).astype(numpy.float32)
-        # Band4
-        n_B4=match_file(base, '.*B4.*')
-        im_B4=imread(n_B4).astype(numpy.float32)
-        # Band5
-        n_B5=match_file(base, '.*B5.*')
-        im_B5=imread(n_B5).astype(numpy.float32)
-        # Band7
-        n_B7=match_file(base, '.*B7.*')
-        im_B7=imread(n_B7).astype(numpy.float32)
-
-        # find pixels that are saturated in the visible bands
-        B1Satu=im_B1==255.0
-        B2Satu=im_B2==255.0
-        B3Satu=im_B3==255.0
-
-        # only processing pixesl where all bands have values (id_mssing)
-        id_missing=numexpr.evaluate("(im_B1==0.0)|(im_B2==0.0)|(im_B3==0.0)|(im_B4==0.0)|(im_B5==0.0)|(im_B6==0.0)|(im_B7==0.0)")
-
-        # ND to radiance first
-        im_B1=numexpr.evaluate("((Lma-Lmi)/(Qma-Qmi))*(im_B1-Qmi)+Lmi", { 'Lma': Lmax[0], 'Lmi': Lmin[0], 'Qma': Qcalmax[0], 'Qmi': Qcalmin[0] }, locals())
-        im_B2=numexpr.evaluate("((Lma-Lmi)/(Qma-Qmi))*(im_B2-Qmi)+Lmi", { 'Lma': Lmax[1], 'Lmi': Lmin[1], 'Qma': Qcalmax[1], 'Qmi': Qcalmin[1] }, locals())
-        im_B3=numexpr.evaluate("((Lma-Lmi)/(Qma-Qmi))*(im_B3-Qmi)+Lmi", { 'Lma': Lmax[2], 'Lmi': Lmin[2], 'Qma': Qcalmax[2], 'Qmi': Qcalmin[2] }, locals())
-        im_B4=numexpr.evaluate("((Lma-Lmi)/(Qma-Qmi))*(im_B4-Qmi)+Lmi", { 'Lma': Lmax[3], 'Lmi': Lmin[3], 'Qma': Qcalmax[3], 'Qmi': Qcalmin[3] }, locals())
-        im_B5=numexpr.evaluate("((Lma-Lmi)/(Qma-Qmi))*(im_B5-Qmi)+Lmi", { 'Lma': Lmax[4], 'Lmi': Lmin[4], 'Qma': Qcalmax[4], 'Qmi': Qcalmin[4] }, locals())
-        im_B6=numexpr.evaluate("((Lma-Lmi)/(Qma-Qmi))*(im_B6-Qmi)+Lmi", { 'Lma': Lmax[5], 'Lmi': Lmin[5], 'Qma': Qcalmax[5], 'Qmi': Qcalmin[5] }, locals())
-        im_B7=numexpr.evaluate("((Lma-Lmi)/(Qma-Qmi))*(im_B7-Qmi)+Lmi", { 'Lma': Lmax[6], 'Lmi': Lmin[6], 'Qma': Qcalmax[6], 'Qmi': Qcalmin[6] }, locals())
-
-
-        # radiance to TOA reflectances
-        # fprintf('From Radiances to TOA ref\n')
-        #  # Solar Spectral Irradiances from LEDAPS
-        #  esun_L7=[1969.000, 1840.000, 1551.000, 1044.000, 225.700, -1.0, 82.07]
-        #  esun_L5=[1957.0, 1826.0, 1554.0, 1036.0, 215.0, -1.0, 80.67]
-        #  esun_L4=[1957.0, 1825.0, 1557.0, 1033.0, 214.9, -1.0, 80.72]
-
+        # convert Band6 from radiance to BT
+        # fprintf('From Band 6 Radiance to Brightness Temperature\n')
         # see G. Chander et al. RSE 113 (2009) 893-903
-        esun_L7=[1997.000, 1812.000, 1533.000, 1039.000, 230.800, -1.0, 84.90]
-        esun_L5=[1983.0, 1796.0, 1536.0, 1031.0, 220.0, -1.0, 83.44]
-        esun_L4=[1983.0, 1795.0, 1539.0, 1028.0, 219.8, -1.0, 83.49]
+        K1_L4=  671.62
+        K2_L4= 1284.30
+        K1_L5=  607.76
+        K2_L5= 1260.56
+        K1_L7=  666.09
+        K2_L7= 1282.71
 
         if Lnum == 7:
-            ESUN=esun_L7
-        elif Lnum == 5:
-            ESUN=esun_L5
-        elif Lnum == 4:
-            ESUN=esun_L4
+            K1=K1_L7
+            K2=K2_L7
+        elif Lnum==5:
+            K1=K1_L5
+            K2=K2_L5
+        elif Lnum==4:
+            K1=K1_L4
+            K2=K2_L4
 
-        #  # Interpolate earth-sun distance with day of year from LEDAPS
-        #  dsun_table_doy = [1,15,32,46,60,74,91,106,121,135,152,166,182,196,213,227,242,258,274,288,305,319,335,349,366]
-        #  dsun_table_dis=  [0.9832,0.9836,0.9853,0.9878,0.9909,0.9945,0.9993,1.0033,1.0076,1.0109,1.0140,1.0158,1.0167,
-        #  1.0165,1.0149,1.0128,1.0092,1.0057,1.0011,0.9972,0.9925,0.9892,0.9860,0.9843,0.9833]
-        #
-        #  for i=1:length(dsun_table_doy)-1
-        #   if doy >=dsun_table_doy(i) and doy <=dsun_table_doy(i+1)
-        #      break
-        #  end
-        #  end
-        #
-        #  dsun_doy=dsun_table_dis(i)+
-        #  (dsun_table_dis(i+1)-dsun_table_dis(i))*(doy-dsun_table_doy(i))/(dsun_table_doy(i+1)-dsun_table_doy(i))
-
-        # earth-sun distance see G. Chander et al. RSE 113 (2009) 893-903
-        dsun_doy = sun_earth_distance[doy]
-
-        # compute TOA reflectances
-        # converted from degrees to radiance
-        s_zen=math.radians(zen)
-        stack = {
-            'a': numpy.float32(10000.0*math.pi),
-            'b': numpy.float32(dsun_doy*dsun_doy),
-            'c': numpy.float32(math.cos(s_zen))
-        }
-
-        im_B1=numexpr.evaluate("a*im_B1*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[0]) }.items()), locals())
-        im_B2=numexpr.evaluate("a*im_B2*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[1]) }.items()), locals())
-        im_B3=numexpr.evaluate("a*im_B3*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[2]) }.items()), locals())
-        im_B4=numexpr.evaluate("a*im_B4*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[3]) }.items()), locals())
-        im_B5=numexpr.evaluate("a*im_B5*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[4]) }.items()), locals())
-        im_B7=numexpr.evaluate("a*im_B7*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[6]) }.items()), locals())
+        # convert from Kelvin to Celcius with 0.01 scale_facor
+        #im_B6=numexpr.evaluate("a * ((K2/log((K1/im_B6)+one)) - b)", { 'a': numpy.float32(100), 'b': numpy.float32(273.15), 'one': numpy.float32(1.0) }, locals())
 
 
-    # convert from Kelvin to Celcius with 0.01 scale_facor
-    im_B6=numexpr.evaluate("a * ((K2/log((K1/im_B6)+one)) - b)", { 'a': numpy.float32(100), 'b': numpy.float32(273.15), 'one': numpy.float32(1.0) }, locals())
+        if images != None:
+            im_B1=images[0,:,:].astype(numpy.float32)
+            im_B2=images[1,:,:].astype(numpy.float32)
+            im_B3=images[2,:,:].astype(numpy.float32)
+            im_B4=images[3,:,:].astype(numpy.float32)
+            im_B5=images[4,:,:].astype(numpy.float32)
+            im_B7=images[6,:,:].astype(numpy.float32)
+            del images
 
-    # get data ready for Fmask
-    im_B1[id_missing]=-9999
-    im_B2[id_missing]=-9999
-    im_B3[id_missing]=-9999
-    im_B4[id_missing]=-9999
-    im_B5[id_missing]=-9999
-    im_B6[id_missing]=-9999
-    im_B7[id_missing]=-9999
-    del id_missing
+            # find pixels that are saturated in the visible bands
+            B1Satu=im_B1==255.0
+            B2Satu=im_B2==255.0
+            B3Satu=im_B3==255.0
+
+            # only processing pixesl where all bands have values (id_mssing)
+            id_missing=numexpr.evaluate("(im_B1==0.0)|(im_B2==0.0)|(im_B3==0.0)|(im_B4==0.0)|(im_B5==0.0)|(im_B6==0.0)|(im_B7==0.0)")
+
+        else:
+            # Band1
+            n_B1=match_file(base, '.*B1.*')
+            im_B1=imread(n_B1).astype(numpy.float32)
+            # Band2
+            n_B2=match_file(base, '.*B2.*')
+            im_B2=imread(n_B2).astype(numpy.float32)
+            # Band3
+            n_B3=match_file(base, '.*B3.*')
+            im_B3=imread(n_B3).astype(numpy.float32)
+            # Band4
+            n_B4=match_file(base, '.*B4.*')
+            im_B4=imread(n_B4).astype(numpy.float32)
+            # Band5
+            n_B5=match_file(base, '.*B5.*')
+            im_B5=imread(n_B5).astype(numpy.float32)
+            # Band7
+            n_B7=match_file(base, '.*B7.*')
+            im_B7=imread(n_B7).astype(numpy.float32)
+
+            # find pixels that are saturated in the visible bands
+            B1Satu=im_B1==255.0
+            B2Satu=im_B2==255.0
+            B3Satu=im_B3==255.0
+
+            # only processing pixesl where all bands have values (id_mssing)
+            id_missing=numexpr.evaluate("(im_B1==0.0)|(im_B2==0.0)|(im_B3==0.0)|(im_B4==0.0)|(im_B5==0.0)|(im_B6==0.0)|(im_B7==0.0)")
+
+            # ND to radiance first
+            im_B1=numexpr.evaluate("((Lma-Lmi)/(Qma-Qmi))*(im_B1-Qmi)+Lmi", { 'Lma': Lmax[0], 'Lmi': Lmin[0], 'Qma': Qcalmax[0], 'Qmi': Qcalmin[0] }, locals())
+            im_B2=numexpr.evaluate("((Lma-Lmi)/(Qma-Qmi))*(im_B2-Qmi)+Lmi", { 'Lma': Lmax[1], 'Lmi': Lmin[1], 'Qma': Qcalmax[1], 'Qmi': Qcalmin[1] }, locals())
+            im_B3=numexpr.evaluate("((Lma-Lmi)/(Qma-Qmi))*(im_B3-Qmi)+Lmi", { 'Lma': Lmax[2], 'Lmi': Lmin[2], 'Qma': Qcalmax[2], 'Qmi': Qcalmin[2] }, locals())
+            im_B4=numexpr.evaluate("((Lma-Lmi)/(Qma-Qmi))*(im_B4-Qmi)+Lmi", { 'Lma': Lmax[3], 'Lmi': Lmin[3], 'Qma': Qcalmax[3], 'Qmi': Qcalmin[3] }, locals())
+            im_B5=numexpr.evaluate("((Lma-Lmi)/(Qma-Qmi))*(im_B5-Qmi)+Lmi", { 'Lma': Lmax[4], 'Lmi': Lmin[4], 'Qma': Qcalmax[4], 'Qmi': Qcalmin[4] }, locals())
+            im_B6=numexpr.evaluate("((Lma-Lmi)/(Qma-Qmi))*(im_B6-Qmi)+Lmi", { 'Lma': Lmax[5], 'Lmi': Lmin[5], 'Qma': Qcalmax[5], 'Qmi': Qcalmin[5] }, locals())
+            im_B7=numexpr.evaluate("((Lma-Lmi)/(Qma-Qmi))*(im_B7-Qmi)+Lmi", { 'Lma': Lmax[6], 'Lmi': Lmin[6], 'Qma': Qcalmax[6], 'Qmi': Qcalmin[6] }, locals())
 
 
-    images = numpy.array([im_B1, im_B2, im_B3, im_B4, im_B5, im_B7], 'float32')
-    del im_B1, im_B2, im_B3, im_B4, im_B5, im_B7
+            # radiance to TOA reflectances
+            # fprintf('From Radiances to TOA ref\n')
+            #  # Solar Spectral Irradiances from LEDAPS
+            #  esun_L7=[1969.000, 1840.000, 1551.000, 1044.000, 225.700, -1.0, 82.07]
+            #  esun_L5=[1957.0, 1826.0, 1554.0, 1036.0, 215.0, -1.0, 80.67]
+            #  esun_L4=[1957.0, 1825.0, 1557.0, 1033.0, 214.9, -1.0, 80.72]
 
-    return [im_B6,images,ijdim_ref,ul,zen,azi,zc,B1Satu,B2Satu,B3Satu,resolu]
+            # see G. Chander et al. RSE 113 (2009) 893-903
+            esun_L7=[1997.000, 1812.000, 1533.000, 1039.000, 230.800, -1.0, 84.90]
+            esun_L5=[1983.0, 1796.0, 1536.0, 1031.0, 220.0, -1.0, 83.44]
+            esun_L4=[1983.0, 1795.0, 1539.0, 1028.0, 219.8, -1.0, 83.49]
+
+            if Lnum == 7:
+                ESUN=esun_L7
+            elif Lnum == 5:
+                ESUN=esun_L5
+            elif Lnum == 4:
+                ESUN=esun_L4
+
+            #  # Interpolate earth-sun distance with day of year from LEDAPS
+            #  dsun_table_doy = [1,15,32,46,60,74,91,106,121,135,152,166,182,196,213,227,242,258,274,288,305,319,335,349,366]
+            #  dsun_table_dis=  [0.9832,0.9836,0.9853,0.9878,0.9909,0.9945,0.9993,1.0033,1.0076,1.0109,1.0140,1.0158,1.0167,
+            #  1.0165,1.0149,1.0128,1.0092,1.0057,1.0011,0.9972,0.9925,0.9892,0.9860,0.9843,0.9833]
+            #
+            #  for i=1:length(dsun_table_doy)-1
+            #   if doy >=dsun_table_doy(i) and doy <=dsun_table_doy(i+1)
+            #      break
+            #  end
+            #  end
+            #
+            #  dsun_doy=dsun_table_dis(i)+
+            #  (dsun_table_dis(i+1)-dsun_table_dis(i))*(doy-dsun_table_doy(i))/(dsun_table_doy(i+1)-dsun_table_doy(i))
+
+            # earth-sun distance see G. Chander et al. RSE 113 (2009) 893-903
+            dsun_doy = sun_earth_distance[doy]
+
+            # compute TOA reflectances
+            # converted from degrees to radiance
+            s_zen=math.radians(zen)
+            stack = {
+                'a': numpy.float32(10000.0*math.pi),
+                'b': numpy.float32(dsun_doy*dsun_doy),
+                'c': numpy.float32(math.cos(s_zen))
+            }
+
+            im_B1=numexpr.evaluate("a*im_B1*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[0]) }.items()), locals())
+            im_B2=numexpr.evaluate("a*im_B2*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[1]) }.items()), locals())
+            im_B3=numexpr.evaluate("a*im_B3*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[2]) }.items()), locals())
+            im_B4=numexpr.evaluate("a*im_B4*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[3]) }.items()), locals())
+            im_B5=numexpr.evaluate("a*im_B5*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[4]) }.items()), locals())
+            im_B7=numexpr.evaluate("a*im_B7*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[6]) }.items()), locals())
+
+
+        # convert from Kelvin to Celcius with 0.01 scale_facor
+        im_B6=numexpr.evaluate("a * ((K2/log((K1/im_B6)+one)) - b)", { 'a': numpy.float32(100), 'b': numpy.float32(273.15), 'one': numpy.float32(1.0) }, locals())
+
+        # get data ready for Fmask
+        im_B1[id_missing]=-9999
+        im_B2[id_missing]=-9999
+        im_B3[id_missing]=-9999
+        im_B4[id_missing]=-9999
+        im_B5[id_missing]=-9999
+        im_B6[id_missing]=-9999
+        im_B7[id_missing]=-9999
+        del id_missing
+
+
+        images = numpy.array([im_B1, im_B2, im_B3, im_B4, im_B5, im_B7], 'float32')
+        del im_B1, im_B2, im_B3, im_B4, im_B5, im_B7
+
+        return [im_B6,images,ijdim_ref,ul,zen,azi,zc,B1Satu,B2Satu,B3Satu,resolu]
+    elif (Lnum == 8):
+    else:
+        raise Exception('This sensor is not Landsat 4, 5, 7, or 8!')
 
 def plcloud_1_6sav(filename, cldprob=22.5, images=None, log_filename="FMASK_LOGFILE.txt",
                    shadow_prob=False, mask=None, wclr_max=50):
