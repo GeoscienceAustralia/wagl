@@ -153,184 +153,289 @@ def lndhdrread(filename):
     LID=data['SPACECRAFT_ID']
     Lnum=int(LID[len(LID)-1])
 
-    # Test for New/Old MTL file
-    if ('LANDSAT_SCENE_ID' in data.keys()):
-        # Process Old version of MTL file
+    if (Lnum >= 4 & Lnum <= 7):
+        Refmax,Refmin = None # LS8 variables only. The original MATLAB function returns all variables.
+        # Test for New/Old MTL file
+        if ('LANDSAT_SCENE_ID' in data.keys()):
+            # Process Old version of MTL file
 
-        # read in LMAX
-        Lmax_B1 = numpy.float32(data['LMAX_BAND1'])
-        Lmax_B2 = numpy.float32(data['LMAX_BAND2'])
-        Lmax_B3 = numpy.float32(data['LMAX_BAND3'])
-        Lmax_B4 = numpy.float32(data['LMAX_BAND4'])
-        Lmax_B5 = numpy.float32(data['LMAX_BAND5'])
-        if Lnum == 7:
-            Lmax_B6 = numpy.float32(data['LMAX_BAND61'])
+            # read in LMAX
+            Lmax_B1 = numpy.float32(data['LMAX_BAND1'])
+            Lmax_B2 = numpy.float32(data['LMAX_BAND2'])
+            Lmax_B3 = numpy.float32(data['LMAX_BAND3'])
+            Lmax_B4 = numpy.float32(data['LMAX_BAND4'])
+            Lmax_B5 = numpy.float32(data['LMAX_BAND5'])
+            if Lnum == 7:
+                Lmax_B6 = numpy.float32(data['LMAX_BAND61'])
+            else:
+                Lmax_B6 = numpy.float32(data['LMAX_BAND6'])
+
+            Lmax_B7 = numpy.float32(data['LMAX_BAND7'])
+            Lmax=(Lmax_B1,Lmax_B2,Lmax_B3,Lmax_B4,Lmax_B5,Lmax_B6,Lmax_B7)
+
+            # Read in LMIN
+            Lmin_B1 = numpy.float32(data['LMIN_BAND1'])
+            Lmin_B2 = numpy.float32(data['LMIN_BAND2'])
+            Lmin_B3 = numpy.float32(data['LMIN_BAND3'])
+            Lmin_B4 = numpy.float32(data['LMIN_BAND4'])
+            Lmin_B5 = numpy.float32(data['LMIN_BAND5'])
+            if Lnum == 7:
+                Lmin_B6 = numpy.float32(data['LMIN_BAND61'])
+            else:
+                Lmin_B6 = numpy.float32(data['LMIN_BAND6'])
+
+            Lmin_B7 = numpy.float32(data['LMIN_BAND7'])
+            Lmin=(Lmin_B1,Lmin_B2,Lmin_B3,Lmin_B4,Lmin_B5,Lmin_B6,Lmin_B7)
+
+            # Read in QCALMAX
+            Qcalmax_B1 = numpy.float32(data['QCALMAX_BAND1'])
+            Qcalmax_B2 = numpy.float32(data['QCALMAX_BAND2'])
+            Qcalmax_B3 = numpy.float32(data['QCALMAX_BAND3'])
+            Qcalmax_B4 = numpy.float32(data['QCALMAX_BAND4'])
+            Qcalmax_B5 = numpy.float32(data['QCALMAX_BAND5'])
+            if Lnum == 7:
+                Qcalmax_B6 = numpy.float32(data['QCALMAX_BAND61'])
+            else:
+                Qcalmax_B6 = numpy.float32(data['QCALMAX_BAND6'])
+
+            Qcalmax_B7 = numpy.float32(data['QCALMAX_BAND7'])
+            Qcalmax=(Qcalmax_B1,Qcalmax_B2,Qcalmax_B3,Qcalmax_B4,Qcalmax_B5,Qcalmax_B6,Qcalmax_B7)
+
+            # Read in QCALMIN
+            Qcalmin_B1 = numpy.float32(data['QCALMIN_BAND1'])
+            Qcalmin_B2 = numpy.float32(data['QCALMIN_BAND2'])
+            Qcalmin_B3 = numpy.float32(data['QCALMIN_BAND3'])
+            Qcalmin_B4 = numpy.float32(data['QCALMIN_BAND4'])
+            Qcalmin_B5 = numpy.float32(data['QCALMIN_BAND5'])
+            if Lnum == 7:
+                Qcalmin_B6 = numpy.float32(data['QCALMIN_BAND61'])
+            else:
+                Qcalmin_B6 = numpy.float32(data['QCALMIN_BAND6'])
+
+            Qcalmin_B7 = numpy.float32(data['QCALMIN_BAND7'])
+            Qcalmin=(Qcalmin_B1,Qcalmin_B2,Qcalmin_B3,Qcalmin_B4,Qcalmin_B5,Qcalmin_B6,Qcalmin_B7)
+
+            # Read in nrows & ncols of optical bands
+            Sample_ref = int(data['PRODUCT_SAMPLES_REF'])
+            Line_ref = int(data['PRODUCT_LINES_REF'])
+            # record ijdimension of optical bands
+            ijdim_ref=(Line_ref,Sample_ref)
+
+            Sample_thm = int(data['PRODUCT_SAMPLES_THM'])
+            Line_thm = int(data['PRODUCT_LINES_THM'])
+            # record thermal band dimensions (i,j)
+            ijdim_thm=(Line_thm,Sample_thm)
+
+            # Read in resolution of optical and thermal bands
+            reso_ref = numpy.float32(data['GRID_CELL_SIZE_REF'])
+            reso_thm = numpy.float32(data['GRID_CELL_SIZE_THM'])
+
+            # Read in UTM Zone Number
+            zc = numpy.float32(data['ZONE_NUMBER'])
+            # Read in Solar Azimuth & Elevation angle (degrees)
+            azi = numpy.float32(data['SUN_AZIMUTH'])
+            zen=90-numpy.float32(data['SUN_ELEVATION'])
+            # Read in upperleft mapx,y
+            ulx=numpy.float32(data['PRODUCT_UL_CORNER_MAPX'])
+            uly=numpy.float32(data['PRODUCT_UL_CORNER_MAPY'])
+            ul=(ulx,uly)
+            # Read in date of year
+            char_doy=data['DATEHOUR_CONTACT_PERIOD']
+            doy=int(char_doy[2:5])
         else:
-            Lmax_B6 = numpy.float32(data['LMAX_BAND6'])
+            # Process New version of MTL file
 
-        Lmax_B7 = numpy.float32(data['LMAX_BAND7'])
-        Lmax=(Lmax_B1,Lmax_B2,Lmax_B3,Lmax_B4,Lmax_B5,Lmax_B6,Lmax_B7)
+            # read in LMAX
+            Lmax_B1 = numpy.float32(data['RADIANCE_MAXIMUM_BAND_1'])
+            Lmax_B2 = numpy.float32(data['RADIANCE_MAXIMUM_BAND_2'])
+            Lmax_B3 = numpy.float32(data['RADIANCE_MAXIMUM_BAND_3'])
+            Lmax_B4 = numpy.float32(data['RADIANCE_MAXIMUM_BAND_4'])
+            Lmax_B5 = numpy.float32(data['RADIANCE_MAXIMUM_BAND_5'])
+            if Lnum == 7:
+                Lmax_B6 = numpy.float32(data['RADIANCE_MAXIMUM_BAND_6_VCID_1'])
+            else:
+                Lmax_B6 = numpy.float32(data['RADIANCE_MAXIMUM_BAND_6'])
 
-        # Read in LMIN
-        Lmin_B1 = numpy.float32(data['LMIN_BAND1'])
-        Lmin_B2 = numpy.float32(data['LMIN_BAND2'])
-        Lmin_B3 = numpy.float32(data['LMIN_BAND3'])
-        Lmin_B4 = numpy.float32(data['LMIN_BAND4'])
-        Lmin_B5 = numpy.float32(data['LMIN_BAND5'])
-        if Lnum == 7:
-            Lmin_B6 = numpy.float32(data['LMIN_BAND61'])
-        else:
-            Lmin_B6 = numpy.float32(data['LMIN_BAND6'])
+            Lmax_B7 = numpy.float32(data['RADIANCE_MAXIMUM_BAND_7'])
+            Lmax=(Lmax_B1,Lmax_B2,Lmax_B3,Lmax_B4,Lmax_B5,Lmax_B6,Lmax_B7)
 
-        Lmin_B7 = numpy.float32(data['LMIN_BAND7'])
-        Lmin=(Lmin_B1,Lmin_B2,Lmin_B3,Lmin_B4,Lmin_B5,Lmin_B6,Lmin_B7)
+            # Read in LMIN
+            Lmin_B1 = numpy.float32(data['RADIANCE_MINIMUM_BAND_1'])
+            Lmin_B2 = numpy.float32(data['RADIANCE_MINIMUM_BAND_2'])
+            Lmin_B3 = numpy.float32(data['RADIANCE_MINIMUM_BAND_3'])
+            Lmin_B4 = numpy.float32(data['RADIANCE_MINIMUM_BAND_4'])
+            Lmin_B5 = numpy.float32(data['RADIANCE_MINIMUM_BAND_5'])
+            if Lnum == 7:
+                Lmin_B6 = numpy.float32(data['RADIANCE_MINIMUM_BAND_6_VCID_1'])
+            else:
+                Lmin_B6 = numpy.float32(data['RADIANCE_MINIMUM_BAND_6'])
 
-        # Read in QCALMAX
-        Qcalmax_B1 = numpy.float32(data['QCALMAX_BAND1'])
-        Qcalmax_B2 = numpy.float32(data['QCALMAX_BAND2'])
-        Qcalmax_B3 = numpy.float32(data['QCALMAX_BAND3'])
-        Qcalmax_B4 = numpy.float32(data['QCALMAX_BAND4'])
-        Qcalmax_B5 = numpy.float32(data['QCALMAX_BAND5'])
-        if Lnum == 7:
-            Qcalmax_B6 = numpy.float32(data['QCALMAX_BAND61'])
-        else:
-            Qcalmax_B6 = numpy.float32(data['QCALMAX_BAND6'])
+            Lmin_B7 = numpy.float32(data['RADIANCE_MINIMUM_BAND_7'])
+            Lmin=(Lmin_B1,Lmin_B2,Lmin_B3,Lmin_B4,Lmin_B5,Lmin_B6,Lmin_B7)
 
-        Qcalmax_B7 = numpy.float32(data['QCALMAX_BAND7'])
-        Qcalmax=(Qcalmax_B1,Qcalmax_B2,Qcalmax_B3,Qcalmax_B4,Qcalmax_B5,Qcalmax_B6,Qcalmax_B7)
+            # Read in QCALMAX
+            Qcalmax_B1 = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_1'])
+            Qcalmax_B2 = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_2'])
+            Qcalmax_B3 = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_3'])
+            Qcalmax_B4 = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_4'])
+            Qcalmax_B5 = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_5'])
+            if Lnum == 7:
+                Qcalmax_B6 = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_6_VCID_1'])
+            else:
+                Qcalmax_B6 = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_6'])
 
-        # Read in QCALMIN
-        Qcalmin_B1 = numpy.float32(data['QCALMIN_BAND1'])
-        Qcalmin_B2 = numpy.float32(data['QCALMIN_BAND2'])
-        Qcalmin_B3 = numpy.float32(data['QCALMIN_BAND3'])
-        Qcalmin_B4 = numpy.float32(data['QCALMIN_BAND4'])
-        Qcalmin_B5 = numpy.float32(data['QCALMIN_BAND5'])
-        if Lnum == 7:
-            Qcalmin_B6 = numpy.float32(data['QCALMIN_BAND61'])
-        else:
-            Qcalmin_B6 = numpy.float32(data['QCALMIN_BAND6'])
+            Qcalmax_B7 = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_7'])
+            Qcalmax=(Qcalmax_B1,Qcalmax_B2,Qcalmax_B3,Qcalmax_B4,Qcalmax_B5,Qcalmax_B6,Qcalmax_B7)
 
-        Qcalmin_B7 = numpy.float32(data['QCALMIN_BAND7'])
-        Qcalmin=(Qcalmin_B1,Qcalmin_B2,Qcalmin_B3,Qcalmin_B4,Qcalmin_B5,Qcalmin_B6,Qcalmin_B7)
+            # Read in QCALMIN
+            Qcalmin_B1 = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_1'])
+            Qcalmin_B2 = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_2'])
+            Qcalmin_B3 = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_3'])
+            Qcalmin_B4 = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_4'])
+            Qcalmin_B5 = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_5'])
+            if Lnum == 7:
+                Qcalmin_B6 = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_6_VCID_1'])
+            else:
+                Qcalmin_B6 = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_6'])
 
-        # Read in nrows & ncols of optical bands
-        Sample_ref = int(data['PRODUCT_SAMPLES_REF'])
-        Line_ref = int(data['PRODUCT_LINES_REF'])
-        # record ijdimension of optical bands
-        ijdim_ref=(Line_ref,Sample_ref)
+            Qcalmin_B7 = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_7'])
+            Qcalmin=(Qcalmin_B1,Qcalmin_B2,Qcalmin_B3,Qcalmin_B4,Qcalmin_B5,Qcalmin_B6,Qcalmin_B7)
 
-        Sample_thm = int(data['PRODUCT_SAMPLES_THM'])
-        Line_thm = int(data['PRODUCT_LINES_THM'])
-        # record thermal band dimensions (i,j)
-        ijdim_thm=(Line_thm,Sample_thm)
+            # Read in nrows & ncols of optical bands
+            Sample_ref = int(data['REFLECTIVE_SAMPLES'])
+            Line_ref = int(data['REFLECTIVE_LINES'])
+            # record ijdimension of optical bands
+            ijdim_ref=(Line_ref,Sample_ref)
 
-        # Read in resolution of optical and thermal bands
-        reso_ref = numpy.float32(data['GRID_CELL_SIZE_REF'])
-        reso_thm = numpy.float32(data['GRID_CELL_SIZE_THM'])
+            Sample_thm = int(data['THERMAL_SAMPLES'])
+            Line_thm = int(data['THERMAL_LINES'])
+            # record thermal band dimensions (i,j)
+            ijdim_thm=(Line_thm,Sample_thm)
 
-        # Read in UTM Zone Number
-        zc = numpy.float32(data['ZONE_NUMBER'])
-        # Read in Solar Azimuth & Elevation angle (degrees)
-        azi = numpy.float32(data['SUN_AZIMUTH'])
-        zen=90-numpy.float32(data['SUN_ELEVATION'])
-        # Read in upperleft mapx,y
-        ulx=numpy.float32(data['PRODUCT_UL_CORNER_MAPX'])
-        uly=numpy.float32(data['PRODUCT_UL_CORNER_MAPY'])
-        ul=(ulx,uly)
-        # Read in date of year
-        char_doy=data['DATEHOUR_CONTACT_PERIOD']
-        doy=int(char_doy[2:5])
+            # Read in resolution of optical and thermal bands
+            reso_ref = numpy.float32(data['GRID_CELL_SIZE_REFLECTIVE'])
+            reso_thm = numpy.float32(data['GRID_CELL_SIZE_THERMAL'])
+
+            # Read in UTM Zone Number
+            zc = numpy.float32(data['UTM_ZONE'])
+            # Read in Solar Azimuth & Elevation angle (degrees)
+            azi = numpy.float32(data['SUN_AZIMUTH'])
+            zen=90-numpy.float32(data['SUN_ELEVATION'])
+            # Read in upperleft mapx,y
+            ulx=numpy.float32(data['CORNER_UL_PROJECTION_X_PRODUCT'])
+            uly=numpy.float32(data['CORNER_UL_PROJECTION_Y_PRODUCT'])
+            ul=(ulx,uly)
+            # Read in date of year
+            char_doy=data['LANDSAT_SCENE_ID']
+            doy=int(char_doy[15:17]) # This may need to change to 14:16. TODO Test this!
+
+    elif (Lnum == 8):
+            # Retrieve LS8 info
+            Lmax_B2  = numpy.float32(data['RADIANCE_MAXIMUM_BAND_2'])
+            Lmax_B3  = numpy.float32(data['RADIANCE_MAXIMUM_BAND_3'])
+            Lmax_B4  = numpy.float32(data['RADIANCE_MAXIMUM_BAND_4'])
+            Lmax_B5  = numpy.float32(data['RADIANCE_MAXIMUM_BAND_5'])
+            Lmax_B6  = numpy.float32(data['RADIANCE_MAXIMUM_BAND_6'])
+            Lmax_B7  = numpy.float32(data['RADIANCE_MAXIMUM_BAND_7'])
+            Lmax_B9  = numpy.float32(data['RADIANCE_MAXIMUM_BAND_9'])
+            Lmax_B10 = numpy.float32(data['RADIANCE_MAXIMUM_BAND_10'])
+
+            Lmax=(Lmax_B1,Lmax_B2,Lmax_B3,Lmax_B4,Lmax_B5,Lmax_B6,Lmax_B7)
+
+            # Read in LMIN
+            Lmin_B2  = numpy.float32(data['RADIANCE_MINIMUM_BAND_2'])
+            Lmin_B3  = numpy.float32(data['RADIANCE_MINIMUM_BAND_3'])
+            Lmin_B4  = numpy.float32(data['RADIANCE_MINIMUM_BAND_4'])
+            Lmin_B5  = numpy.float32(data['RADIANCE_MINIMUM_BAND_5'])
+            Lmin_B6  = numpy.float32(data['RADIANCE_MINIMUM_BAND_6'])
+            Lmin_B7  = numpy.float32(data['RADIANCE_MINIMUM_BAND_7'])
+            Lmin_B9  = numpy.float32(data['RADIANCE_MINIMUM_BAND_9'])
+            Lmin_B10 = numpy.float32(data['RADIANCE_MINIMUM_BAND_10'])
+
+            Lmin=(Lmin_B1,Lmin_B2,Lmin_B3,Lmin_B4,Lmin_B5,Lmin_B6,Lmin_B7)
+
+            # Read in QCALMAX
+            Qcalmax_B2  = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_2'])
+            Qcalmax_B3  = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_3'])
+            Qcalmax_B4  = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_4'])
+            Qcalmax_B5  = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_5'])
+            Qcalmax_B6  = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_6'])
+            Qcalmax_B7  = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_7'])
+            Qcalmax_B9  = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_9'])
+            Qcalmax_B10 = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_10'])
+
+            Qcalmax=(Qcalmax_B1,Qcalmax_B2,Qcalmax_B3,Qcalmax_B4,Qcalmax_B5,Qcalmax_B6,Qcalmax_B7)
+
+            # Read in QCALMIN
+            Qcalmin_B2  = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_2'])
+            Qcalmin_B3  = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_3'])
+            Qcalmin_B4  = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_4'])
+            Qcalmin_B5  = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_5'])
+            Qcalmin_B6  = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_6'])
+            Qcalmin_B7  = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_7'])
+            Qcalmin_B9  = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_9'])
+            Qcalmin_B10 = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_10'])
+
+            Qcalmin=(Qcalmin_B1,Qcalmin_B2,Qcalmin_B3,Qcalmin_B4,Qcalmin_B5,Qcalmin_B6,Qcalmin_B7)
+
+            # Read in Refmax
+            Refmax_B2 = numpy.float32(data['REFLECTANCE_MAXIMUM_BAND_2']);
+            Refmax_B3 = numpy.float32(data['REFLECTANCE_MAXIMUM_BAND_3']);
+            Refmax_B4 = numpy.float32(data['REFLECTANCE_MAXIMUM_BAND_4']);
+            Refmax_B5 = numpy.float32(data['REFLECTANCE_MAXIMUM_BAND_5']);
+            Refmax_B6 = numpy.float32(data['REFLECTANCE_MAXIMUM_BAND_6']);
+            Refmax_B7 = numpy.float32(data['REFLECTANCE_MAXIMUM_BAND_7']);
+            Refmax_B9 = numpy.float32(data['REFLECTANCE_MAXIMUM_BAND_9']);
+
+            Refmax=[Refmax_B2,Refmax_B3,Refmax_B4,Refmax_B5,Refmax_B6,Refmax_B7,Refmax_B9];
+
+            # Read in Refmin
+            Refmin_B2 = numpy.float32(data['REFLECTANCE_MINIMUM_BAND_2']);
+            Refmin_B3 = numpy.float32(data['REFLECTANCE_MINIMUM_BAND_3']);
+            Refmin_B4 = numpy.float32(data['REFLECTANCE_MINIMUM_BAND_4']);
+            Refmin_B5 = numpy.float32(data['REFLECTANCE_MINIMUM_BAND_5']);
+            Refmin_B6 = numpy.float32(data['REFLECTANCE_MINIMUM_BAND_6']);
+            Refmin_B7 = numpy.float32(data['REFLECTANCE_MINIMUM_BAND_7']);
+            Refmin_B9 = numpy.float32(data['REFLECTANCE_MINIMUM_BAND_9']);
+
+            Refmin=[Refmin_B2,Refmin_B3,Refmin_B4,Refmin_B5,Refmin_B6,Refmin_B7,Refmin_B9];
+
+            # Read in nrows & ncols of optical bands
+            Sample_ref = int(data['REFLECTIVE_SAMPLES'])
+            Line_ref = int(data['REFLECTIVE_LINES'])
+            # record ijdimension of optical bands
+            ijdim_ref=(Line_ref,Sample_ref)
+
+            Sample_thm = int(data['THERMAL_SAMPLES'])
+            Line_thm = int(data['THERMAL_LINES'])
+            # record thermal band dimensions (i,j)
+            ijdim_thm=(Line_thm,Sample_thm)
+
+            # Read in resolution of optical and thermal bands
+            reso_ref = numpy.float32(data['GRID_CELL_SIZE_REFLECTIVE'])
+            reso_thm = numpy.float32(data['GRID_CELL_SIZE_THERMAL'])
+
+            # Read in UTM Zone Number
+            zc = numpy.float32(data['UTM_ZONE'])
+            # Read in Solar Azimuth & Elevation angle (degrees)
+            azi = numpy.float32(data['SUN_AZIMUTH'])
+            zen=90-numpy.float32(data['SUN_ELEVATION'])
+            # Read in upperleft mapx,y
+            ulx=numpy.float32(data['CORNER_UL_PROJECTION_X_PRODUCT'])
+            uly=numpy.float32(data['CORNER_UL_PROJECTION_Y_PRODUCT'])
+            ul=(ulx,uly)
+            # Read in date of year
+            char_doy=data['LANDSAT_SCENE_ID']
+            doy=int(char_doy[15:17]) # This may need to change to 14:16. TODO Test this!
     else:
-        # Process New version of MTL file
-
-        # read in LMAX
-        Lmax_B1 = numpy.float32(data['RADIANCE_MAXIMUM_BAND_1'])
-        Lmax_B2 = numpy.float32(data['RADIANCE_MAXIMUM_BAND_2'])
-        Lmax_B3 = numpy.float32(data['RADIANCE_MAXIMUM_BAND_3'])
-        Lmax_B4 = numpy.float32(data['RADIANCE_MAXIMUM_BAND_4'])
-        Lmax_B5 = numpy.float32(data['RADIANCE_MAXIMUM_BAND_5'])
-        if Lnum == 7:
-            Lmax_B6 = numpy.float32(data['RADIANCE_MAXIMUM_BAND_6_VCID_1'])
-        else:
-            Lmax_B6 = numpy.float32(data['RADIANCE_MAXIMUM_BAND_6'])
-
-        Lmax_B7 = numpy.float32(data['RADIANCE_MAXIMUM_BAND_7'])
-        Lmax=(Lmax_B1,Lmax_B2,Lmax_B3,Lmax_B4,Lmax_B5,Lmax_B6,Lmax_B7)
-
-        # Read in LMIN
-        Lmin_B1 = numpy.float32(data['RADIANCE_MINIMUM_BAND_1'])
-        Lmin_B2 = numpy.float32(data['RADIANCE_MINIMUM_BAND_2'])
-        Lmin_B3 = numpy.float32(data['RADIANCE_MINIMUM_BAND_3'])
-        Lmin_B4 = numpy.float32(data['RADIANCE_MINIMUM_BAND_4'])
-        Lmin_B5 = numpy.float32(data['RADIANCE_MINIMUM_BAND_5'])
-        if Lnum == 7:
-            Lmin_B6 = numpy.float32(data['RADIANCE_MINIMUM_BAND_6_VCID_1'])
-        else:
-            Lmin_B6 = numpy.float32(data['RADIANCE_MINIMUM_BAND_6'])
-
-        Lmin_B7 = numpy.float32(data['RADIANCE_MINIMUM_BAND_7'])
-        Lmin=(Lmin_B1,Lmin_B2,Lmin_B3,Lmin_B4,Lmin_B5,Lmin_B6,Lmin_B7)
-
-        # Read in QCALMAX
-        Qcalmax_B1 = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_1'])
-        Qcalmax_B2 = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_2'])
-        Qcalmax_B3 = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_3'])
-        Qcalmax_B4 = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_4'])
-        Qcalmax_B5 = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_5'])
-        if Lnum == 7:
-            Qcalmax_B6 = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_6_VCID_1'])
-        else:
-            Qcalmax_B6 = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_6'])
-
-        Qcalmax_B7 = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_7'])
-        Qcalmax=(Qcalmax_B1,Qcalmax_B2,Qcalmax_B3,Qcalmax_B4,Qcalmax_B5,Qcalmax_B6,Qcalmax_B7)
-
-        # Read in QCALMIN
-        Qcalmin_B1 = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_1'])
-        Qcalmin_B2 = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_2'])
-        Qcalmin_B3 = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_3'])
-        Qcalmin_B4 = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_4'])
-        Qcalmin_B5 = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_5'])
-        if Lnum == 7:
-            Qcalmin_B6 = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_6_VCID_1'])
-        else:
-            Qcalmin_B6 = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_6'])
-
-        Qcalmin_B7 = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_7'])
-        Qcalmin=(Qcalmin_B1,Qcalmin_B2,Qcalmin_B3,Qcalmin_B4,Qcalmin_B5,Qcalmin_B6,Qcalmin_B7)
-
-        # Read in nrows & ncols of optical bands
-        Sample_ref = int(data['REFLECTIVE_SAMPLES'])
-        Line_ref = int(data['REFLECTIVE_LINES'])
-        # record ijdimension of optical bands
-        ijdim_ref=(Line_ref,Sample_ref)
-
-        Sample_thm = int(data['THERMAL_SAMPLES'])
-        Line_thm = int(data['THERMAL_LINES'])
-        # record thermal band dimensions (i,j)
-        ijdim_thm=(Line_thm,Sample_thm)
-
-        # Read in resolution of optical and thermal bands
-        reso_ref = numpy.float32(data['GRID_CELL_SIZE_REFLECTIVE'])
-        reso_thm = numpy.float32(data['GRID_CELL_SIZE_THERMAL'])
-
-        # Read in UTM Zone Number
-        zc = numpy.float32(data['UTM_ZONE'])
-        # Read in Solar Azimuth & Elevation angle (degrees)
-        azi = numpy.float32(data['SUN_AZIMUTH'])
-        zen=90-numpy.float32(data['SUN_ELEVATION'])
-        # Read in upperleft mapx,y
-        ulx=numpy.float32(data['CORNER_UL_PROJECTION_X_PRODUCT'])
-        uly=numpy.float32(data['CORNER_UL_PROJECTION_Y_PRODUCT'])
-        ul=(ulx,uly)
-        # Read in date of year
-        char_doy=data['LANDSAT_SCENE_ID']
-        doy=int(char_doy[15:17]) # This may need to change to 14:16
+        raise Exception('This sensor is not Landsat 4, 5, 7, or 8!')
 
     if doy < 1 or doy > 365:
         raise ValueError('Invalid Day of Year metadata value - expected (1,365) got %s' % char_doy)
 
-    return (Lmax,Lmin,Qcalmax,Qcalmin,ijdim_ref,ijdim_thm,reso_ref,reso_thm,ul,zen,azi,zc,Lnum,doy)
+    # The new version returns Lmax,Lmin,Qcalmax,Qcalmin,Refmax,Refmin,ijdim_ref,ijdim_thm,reso_ref,reso_thm,ul,zen,azi,zc,Lnum,doy
+    #return (Lmax,Lmin,Qcalmax,Qcalmin,ijdim_ref,ijdim_thm,reso_ref,reso_thm,ul,zen,azi,zc,Lnum,doy)
+    return (Lmax,Lmin,Qcalmax,Qcalmin,Refmax,Refmin,ijdim_ref,ijdim_thm,reso_ref,reso_thm,ul,zen,azi,zc,Lnum,doy)
 
 def nd2toar(filename, images=None):
     """
