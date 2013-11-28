@@ -601,32 +601,32 @@ def nd2toarbt(filename, images=None):
 
             # compute TOA reflectances
             # converted from degrees to radiance
-            s_zen=math.radians(zen)
+            s_zen = math.radians(zen)
             stack = {
                 'a': numpy.float32(10000.0*math.pi),
                 'b': numpy.float32(dsun_doy*dsun_doy),
                 'c': numpy.float32(math.cos(s_zen))
             }
 
-            im_B1=numexpr.evaluate("a*im_B1*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[0]) }.items()), locals())
-            im_B2=numexpr.evaluate("a*im_B2*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[1]) }.items()), locals())
-            im_B3=numexpr.evaluate("a*im_B3*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[2]) }.items()), locals())
-            im_B4=numexpr.evaluate("a*im_B4*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[3]) }.items()), locals())
-            im_B5=numexpr.evaluate("a*im_B5*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[4]) }.items()), locals())
-            im_B7=numexpr.evaluate("a*im_B7*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[6]) }.items()), locals())
+            im_B1 = numexpr.evaluate("a*im_B1*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[0]) }.items()), locals())
+            im_B2 = numexpr.evaluate("a*im_B2*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[1]) }.items()), locals())
+            im_B3 = numexpr.evaluate("a*im_B3*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[2]) }.items()), locals())
+            im_B4 = numexpr.evaluate("a*im_B4*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[3]) }.items()), locals())
+            im_B5 = numexpr.evaluate("a*im_B5*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[4]) }.items()), locals())
+            im_B7 = numexpr.evaluate("a*im_B7*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[6]) }.items()), locals())
 
 
         # convert from Kelvin to Celcius with 0.01 scale_facor
         im_B6=numexpr.evaluate("a * ((K2/log((K1/im_B6)+one)) - b)", { 'a': numpy.float32(100), 'b': numpy.float32(273.15), 'one': numpy.float32(1.0) }, locals())
 
         # get data ready for Fmask
-        im_B1[id_missing]=-9999
-        im_B2[id_missing]=-9999
-        im_B3[id_missing]=-9999
-        im_B4[id_missing]=-9999
-        im_B5[id_missing]=-9999
-        im_B6[id_missing]=-9999
-        im_B7[id_missing]=-9999
+        im_B1[id_missing] = -9999
+        im_B2[id_missing] = -9999
+        im_B3[id_missing] = -9999
+        im_B4[id_missing] = -9999
+        im_B5[id_missing] = -9999
+        im_B6[id_missing] = -9999
+        im_B7[id_missing] = -9999
         del id_missing
 
 
@@ -635,6 +635,80 @@ def nd2toarbt(filename, images=None):
 
         return [im_B6,images,ijdim_ref,ul,zen,azi,zc,B1Satu,B2Satu,B3Satu,resolu]
     elif (Lnum == 8):
+        n_B10=match_file(base, '*B10*')
+        # Check that the thermal band resolution matches the reflectance bands.
+        ref_lines, ref_samples = ijdim_ref
+        thm_lines, thm_samples = ijdim_thm
+
+        if ((thm_lines != ref_lines) | (thm_samples != ref_samples)):
+            im_B10 = imread(n_B10, resample=True, samples=ref_samples, lines=ref_lines).astype(numpy.float32)
+        else:
+            im_B10 = imread(n_B10).astype(numpy.float32)
+
+        # Band2
+        n_B2 = match_file(base, '.*B2.*')
+        im_B2 = imread(n_B2).astype(numpy.float32)
+        # Band3
+        n_B3 = match_file(base, '.*B3.*')
+        im_B3 = imread(n_B3).astype(numpy.float32)
+        # Band4
+        n_B4 = match_file(base, '.*B4.*')
+        im_B4 = imread(n_B4).astype(numpy.float32)
+        # Band5
+        n_B5 = match_file(base, '.*B5.*')
+        im_B5 = imread(n_B5).astype(numpy.float32)
+        # Band6
+        n_B6 = match_file(base, '.*B6.*')
+        im_B6 = imread(n_B6).astype(numpy.float32)
+        # Band7
+        n_B7 = match_file(base, '.*B7.*')
+        im_B7 = imread(n_B7).astype(numpy.float32)
+        # Band9
+        n_B9 = match_file(base, '.*B9.*')
+        im_B9 = imread(n_B9).astype(numpy.float32)
+
+        # only processing pixesl where all bands have values (id_mssing)
+        id_missing = numexpr.evaluate("(im_B2 == 0.0) | (im_B3 == 0.0) | (im_B4 == 0.0) | (im_B5 == 0.0) | (im_B6 == 0.0) | (im_B7 == 0.0) | (im_B9 == 0.0) | (im_B10 == 0.0)")
+
+        # find pixels that are saturated in the visible bands
+        B1Satu = im_B2 == 65535.0
+        B2Satu = im_B3 == 65535.0
+        B3Satu = im_B4 == 65535.0
+
+        # DN to TOA reflectance with 0.0001 scale_factor
+        # This formulae is similar to that used for LS 4,5,7. But is different to that given by
+        # https://landsat.usgs.gov/Landsat8_Using_Product.php : Noted JS 2013/11/28
+        print 'From DNs to TOA ref & BT\n'
+        im_B2  = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B1 - Qmi) + Rmi", { 'Rma': Refmax[0], 'Rmi': Refmin[0], 'Qma': Qcalmax[0], 'Qmi': Qcalmin[0] }, locals())
+        im_B3  = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B1 - Qmi) + Rmi", { 'Rma': Refmax[1], 'Rmi': Refmin[1], 'Qma': Qcalmax[1], 'Qmi': Qcalmin[0] }, locals())
+        im_B4  = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B1 - Qmi) + Rmi", { 'Rma': Refmax[2], 'Rmi': Refmin[2], 'Qma': Qcalmax[2], 'Qmi': Qcalmin[0] }, locals())
+        im_B5  = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B1 - Qmi) + Rmi", { 'Rma': Refmax[3], 'Rmi': Refmin[3], 'Qma': Qcalmax[3], 'Qmi': Qcalmin[0] }, locals())
+        im_B6  = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B1 - Qmi) + Rmi", { 'Rma': Refmax[4], 'Rmi': Refmin[4], 'Qma': Qcalmax[4], 'Qmi': Qcalmin[0] }, locals())
+        im_B7  = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B1 - Qmi) + Rmi", { 'Rma': Refmax[5], 'Rmi': Refmin[5], 'Qma': Qcalmax[5], 'Qmi': Qcalmin[0] }, locals())
+        im_B9  = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B1 - Qmi) + Rmi", { 'Rma': Refmax[6], 'Rmi': Refmin[6], 'Qma': Qcalmax[6], 'Qmi': Qcalmin[0] }, locals())
+        im_B10 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B1 - Qmi) + Lmi", { 'Lma': Lmax[7], 'Lmi': Lmin[7], 'Qma': Qcalmax[7], 'Qmi': Qcalmin[7] }, locals())
+
+    s_zen = numpy.deg2rad(zen)
+    im_B2 = numexpr.evaluate("10000 * im_B2 / cos(s_zen)")
+    im_B3 = numexpr.evaluate("10000 * im_B3 / cos(s_zen)")
+    im_B4 = numexpr.evaluate("10000 * im_B4 / cos(s_zen)")
+    im_B5 = numexpr.evaluate("10000 * im_B5 / cos(s_zen)")
+    im_B6 = numexpr.evaluate("10000 * im_B6 / cos(s_zen)")
+    im_B7 = numexpr.evaluate("10000 * im_B7 / cos(s_zen)")
+    im_B9 = numexpr.evaluate("10000 * im_B9 / cos(s_zen)")
+
+    # convert Band6 from radiance to BT
+    # fprintf('From Band 6 Radiance to Brightness Temperature\n');
+    K1_B10 = numpy.float32(774.89)
+    K2_B10 = numpy.float32(1321.08)
+    one    = numpy.float32(1)
+
+    im_B10 = numpexpr.evaluate("K2_B10 / log((K1_B10 / im_B10) + one)")
+
+    # convert from Kelvin to Celcius with 0.01 scale_factor
+    K      = numpy.float32(273.15)
+    im_B10 = numexpr.evaluate("100 * (im_B10 - K)")
+
     else:
         raise Exception('This sensor is not Landsat 4, 5, 7, or 8!')
 
