@@ -924,96 +924,104 @@ def plcloud(filename, cldprob=22.5, images=None, log_filename="FMASK_LOGFILE.txt
 
         ## Final prob mask (land)
         final_prob = 100 *(Temp_prob * Vari_prob) + 100 * Thin_prob # cloud over land probability
-        clr_max = scipy.stats.scoreatpercentile(final_prob[idlnd], 100 * h_pt) + cldprob
+        clr_max = scipy.stats.scoreatpercentile(final_prob[idlnd], 100 * h_pt) + cldprob # dynamic threshold (land)
 
 
         # release memory
         del Vari_prob
         del Temp_prob
+        del Thin_prob
 
-        clr_max=scipy.stats.scoreatpercentile(final_prob[idlnd],100*h_pt)+cldprob# dynamic threshold (land)
         logger.debug('cldprob: %s', cldprob)
         logger.debug('clr_max: %s', clr_max)
         logger.debug('t_templ: %s', t_templ)
         sys.stdout.flush()
 
         # fprintf('pcloud probability threshold (land) = .2f#\n',clr_max)
-        # cloud over land
-        # thin cloud over water
-        # high prob cloud (land)
-        # extremly cold cloud
-        id_final_cld=numexpr.evaluate('(idplcd&(final_prob>clr_max)&(WT==0))|(idplcd&(wfinal_prob>wclr_max)&(WT==1))|(final_prob>99.0)&(WT==0)|(Temp<t_templ-3500)')
+        # cloud over land : (idplcd & (final_prob > clr_max) & (WT == 0))
+        # thin cloud over water : (idplcd & (wfinal_prob > wclr_max) & (WT == 1))
+        # high prob cloud (land) : (final_prob > 99.0) & (WT == 0)
+        # extremly cold cloud : (Temp < t_templ - 3500)
+        id_final_cld = numexpr.evaluate('(idplcd & (final_prob > clr_max) & (WT == 0)) | (idplcd & (wfinal_prob > wclr_max) & (WT == 1)) | (final_prob > 99.0) & (WT == 0) | (Temp < t_templ - 3500)')
 
         ## Star with potential cloud mask
         # # potential cloud mask
-        Cloud[id_final_cld]=1
-
-        #Cloud[idplcd==True]=1 # all cld
-
-        # Mask the non-contiguous pixels
-        Cloud[~(mask)]=0
-
-        # # improving by majority filtering
-        # ERROR: not aware of a similar filter in scipy (though one may very well exist)
-        # Doing convolution of all surrounding pixels & filtering those > 4, which should in theory have the same result
-        Cloud=scipy.signal.convolve2d(Cloud,numpy.ones((3,3),Cloud.dtype.name))[1:-1,1:-1]
-        Cloud=(Cloud>4).astype('uint8')
-        # Applying twice, makes a cleaner result
-        Cloud=scipy.signal.convolve2d(Cloud,numpy.ones((3,3),Cloud.dtype.name))[1:-1,1:-1]
-        #Cloud=(Cloud>4).astype('uint8')
-        # 3rd, still some single pixels at tile edges
-        #Cloud=scipy.signal.convolve2d(Cloud,numpy.ones((3,3),Cloud.dtype.name))[1:-1,1:-1]
-        Cloud=Cloud>4
+        Cloud[id_final_cld] = 1
 
         # release memory
         del final_prob
         del wfinal_prob
         del id_final_cld
-        ## Star with potential cloud shadow mask
 
+        ## Start with potential cloud shadow mask
         if shadow_prob:
             # band 4 flood fill
-            nir=data4.astype('float32')
+            nir = data4.astype('float32')
             # estimating background (land) Band 4 ref
-            backg_B4=scipy.stats.scoreatpercentile(nir[idlnd],100.0*l_pt)
-            nir[mask==0]=backg_B4
+            backg_B4 = scipy.stats.scoreatpercentile(nir[idlnd], 100.0 * l_pt)
+            nir[mask == 0] = backg_B4
             # fill in regional minimum Band 4 ref
-            nir=imfill(nir, "nir")
-            nir=nir-data4
+            nir = imfill(nir, "nir")
+            nir = nir - data4
 
             # band 5 flood fill
-            swir=data5
+            swir = data5
             # estimating background (land) Band 4 ref
-            backg_B5=scipy.stats.scoreatpercentile(swir[idlnd],100.0*l_pt)
-            swir[mask==0]=backg_B5
+            backg_B5 = scipy.stats.scoreatpercentile(swir[idlnd], 100.0 * l_pt)
+            swir[mask == 0] = backg_B5
             # fill in regional minimum Band 5 ref
-            swir=imfill(swir, "swir")
-            swir=swir-data5
+            swir = imfill(swir, "swir")
+            swir = swir - data5
 
             # compute shadow probability
-            shadow_prob=numpy.minimum(nir,swir)
+            shadow_prob = numpy.minimum(nir, swir)
             # release remory
             del nir
             del swir
 
-            Shadow[shadow_prob>200]=1
+            Shadow[shadow_prob > 200] = 1
             # release remory
             del shadow_prob
+
+        #Cloud[idplcd==True]=1 # all cld
+
+        #*************************************************************************************#
+        #*************************************************************************************#
+        #*************************************************************************************#
+        #************The following code may be removed as the new code has changed************#
+        # Mask the non-contiguous pixels
+        Cloud[~(mask)] = 0
+
+        # # improving by majority filtering
+        # ERROR: not aware of a similar filter in scipy (though one may very well exist)
+        # Doing convolution of all surrounding pixels & filtering those > 4, which should in theory have the same result
+        Cloud = scipy.signal.convolve2d(Cloud, numpy.ones((3,3), Cloud.dtype.name))[1:-1,1:-1]
+        Cloud = (Cloud > 4).astype('uint8')
+        # Applying twice, makes a cleaner result
+        Cloud = scipy.signal.convolve2d(Cloud, numpy.ones((3,3), Cloud.dtype.name))[1:-1,1:-1]
+        #Cloud=(Cloud>4).astype('uint8')
+        # 3rd, still some single pixels at tile edges
+        #Cloud=scipy.signal.convolve2d(Cloud,numpy.ones((3,3),Cloud.dtype.name))[1:-1,1:-1]
+        Cloud = Cloud > 4
+        #************The above code may be removed as the new code has changed****************#
+        #*************************************************************************************#
+        #*************************************************************************************#
+        #*************************************************************************************#
 
     del data
     images = None
     gc.collect()
 
     # refine Water mask - Zhe's water mask (no confusion water/cloud)
-    WT[(WT==1)&(Cloud==0)]=1
+    WT[numexpr.evaluate("(WT == 1) & (Cloud == 0)")] = 1
     # bwmorph changed Cloud to Binary
-    Cloud=Cloud.astype('uint8')
-    Cloud[mask==0]=255
-    Shadow[mask==0]=255
+    Cloud = Cloud.astype('uint8')
+    Cloud[mask == 0] = 255
+    Shadow[mask == 0] = 255
     processing_time = time.time() - start_time
 
     gc.collect()
-    cloud_mask = (Cloud==1)&mask
+    cloud_mask = (Cloud == 1) & mask
 
     if ptm > 0.1:
         cloud_temp = Temp[cloud_mask]
