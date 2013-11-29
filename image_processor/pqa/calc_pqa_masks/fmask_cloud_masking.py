@@ -728,7 +728,7 @@ def nd2toarbt(filename, images=None):
     else:
         raise Exception('This sensor is not Landsat 4, 5, 7, or 8!')
 
-def plcloud_1_6sav(filename, cldprob=22.5, images=None, log_filename="FMASK_LOGFILE.txt",
+def plcloud(filename, cldprob=22.5, images=None, log_filename="FMASK_LOGFILE.txt",
                    shadow_prob=False, mask=None, wclr_max=50):
     """
     Calculates a cloud mask for a landsat 5/7 scene.
@@ -760,72 +760,77 @@ def plcloud_1_6sav(filename, cldprob=22.5, images=None, log_filename="FMASK_LOGF
 
     Temp,data,dim,ul,zen,azi,zc,satu_B1,satu_B2,satu_B3,resolu = nd2toar(filename, images)
 
-    Cloud=numpy.zeros(dim,'uint8')  # cloud mask
-    Snow=numpy.zeros(dim,'uint8') # Snow mask
-    WT=numpy.zeros(dim,'uint8') # Water msk
+    if num_Lst < 8 % Landsat 4~7
+        Thin_prob = 0 #  there is no contribution from the new bands
+    else
+        Thin_prob = numexpr.evaluate("cirrus / 400", {'cirrus' : data[-1]}, locals())
+
+    Cloud = numpy.zeros(dim,'uint8') # cloud mask
+    Snow  = numpy.zeros(dim,'uint8') # Snow mask
+    WT    = numpy.zeros(dim,'uint8') # Water msk
 
     # process only the overlap area
     if mask == None:
-        mask=Temp>-9999
+        mask = Temp > -9999
     else:
-        mask=mask.astype('bool')
+        mask = mask.astype('bool')
 
-    Shadow=numpy.zeros(dim,'uint8') # shadow mask
+    Shadow = numpy.zeros(dim,'uint8') # shadow mask
 
-    data1=data[0,:,:]
-    data2=data[1,:,:]
-    data3=data[2,:,:]
-    data4=data[3,:,:]
-    data5=data[4,:,:]
-    data6=data[5,:,:]
+    data1 = data[0,:,:]
+    data2 = data[1,:,:]
+    data3 = data[2,:,:]
+    data4 = data[3,:,:]
+    data5 = data[4,:,:]
+    data6 = data[5,:,:]
 
-    NDVI=numexpr.evaluate("(data4-data3) / (data4+data3)")
-    NDSI=numexpr.evaluate("(data2-data5) / (data2+data5)")
+    NDVI = numexpr.evaluate("(data4 - data3) / (data4 + data3)")
+    NDSI = numexpr.evaluate("(data2 - data5) / (data2 + data5)")
 
-    NDVI[numexpr.evaluate("(data4+data3)==0")]=0.01
-    NDSI[numexpr.evaluate("(data2+data5)==0")]=0.01
+    NDVI[numexpr.evaluate("(data4 + data3) == 0")] = 0.01
+    NDSI[numexpr.evaluate("(data2 + data5) == 0")] = 0.01
 
     ##############################################saturation in the three visible bands
-    satu_Bv=(satu_B1+satu_B2+satu_B3)>=1
+    satu_Bv = (satu_B1 + satu_B2 + satu_B3) >= 1
     del satu_B1
     ################################################## Basic cloud test
-    idplcd=numexpr.evaluate("(NDSI<0.8)&(NDVI<0.8)&(data6>300)&(Temp<2700)")
+    idplcd = numexpr.evaluate("(NDSI < 0.8) & (NDVI < 0.8) & (data6 > 300) & (Temp < 2700)")
 
     ################################################## Snow test
     # It takes every snow pixels including snow pixel under thin clouds or icy clouds
-    Snow[numexpr.evaluate("(NDSI>0.15)&(Temp<380)&(data4>1100)&(data2>1000)")]=1
-    Snow[mask==0]=255
+    Snow[numexpr.evaluate("(NDSI > 0.15) & (Temp < 1000) & (data4 > 1100) & (data2 > 1000)")] = 1 
+    Snow[mask == 0] = 255
     ################################################## Water test
     # Zhe's water test (works over thin cloud)
-    WT[numexpr.evaluate("((NDVI<0.01)&(data4<1100))|((NDVI<0.1)&(NDVI>0)&(data4<500))")]=1
-    WT[mask==0]=255
+    WT[numexpr.evaluate("((NDVI < 0.01) & (data4 < 1100)) | ((NDVI < 0.1) & (NDVI > 0) & (data4 < 500))")] = 1
+    WT[mask == 0] = 255
     # ################################################ Whiteness test
     # visible bands flatness (sum(abs)/mean < 0.6 => brigt and dark cloud )
-    visimean=(data1+data2+data3)/3
-    whiteness=numexpr.evaluate("(abs(data1-visimean)+abs(data2-visimean)+abs(data3-visimean))/visimean")
+    visimean = numexpr.evaluate("(data1 + data2 + data3) / 3 ")
+    whiteness = numexpr.evaluate("(abs(data1 - visimean) + abs(data2 - visimean)+ abs(data3 - visimean)) / visimean")
     del visimean
 
     # update idplcd
-    whiteness[satu_Bv==1]=0# If one visible is saturated whiteness == 0
-    idplcd &= whiteness<0.7
+    whiteness[satu_Bv == 1] = 0# If one visible is saturated whiteness == 0
+    idplcd &= whiteness < 0.7
 
     ################################################## Haze test
-    HOT=numexpr.evaluate("data1-0.5*data3-800") # Haze test
-    idplcd &= numexpr.evaluate("(HOT>0)|(satu_Bv==1)")
+    HOT = numexpr.evaluate("data1 - 0.5 * data3 - 800") # Haze test
+    idplcd &= numexpr.evaluate("(HOT > 0) | (satu_Bv == 1)")
     del HOT # need to find thick warm cloud
 
     ######################################### Ratio4/5>0.75 cloud test
-    idplcd &= numexpr.evaluate("(data4/data5)>0.75")
+    idplcd &= numexpr.evaluate("(data4 / data5) > 0.75")
 
     ####################################constants##########################
-    l_pt=0.175 # low percent
-    h_pt=1-l_pt # high percent
+    l_pt = 0.175 # low percent
+    h_pt = 1 - l_pt # high percent
     ################################################(temperature & snow test )
     # test whether use thermal or not
-    idclr=numexpr.evaluate("(idplcd==False)&(mask==1)")
-    ptm=100*idclr.sum()/mask.sum() # percent of del pixel
-    idlnd=idclr&(WT==False)
-    lndptm=100*idlnd.sum()/mask.sum()
+    idclr = numexpr.evaluate("(idplcd == False) & (mask == 1)")
+    ptm = 100 * idclr.sum() / mask.sum() # percent of del pixel
+    idlnd = numexpr.evaluate("idclr & (WT == True)") # This used to be idclr & (WT == False) JS 2013/11/29
+    lndptm= 100 * idlnd.sum() / mask.sum()
 
     logger.debug('idlnd: %s', idlnd)
     logger.debug('idlnd.sum(): %s', idlnd.sum())
@@ -834,75 +839,80 @@ def plcloud_1_6sav(filename, cldprob=22.5, images=None, log_filename="FMASK_LOGF
 
     if ptm <= 0.1: # no thermal test => meanless for snow detection (0~1)
         #     fprintf('Clear pixel NOT exist in this scene (del prct = #.2f)\n',ptm)
-        Cloud[idplcd==True]=1 # all cld
+        Cloud[idplcd == True] = 1 # all cld
 
         # mask out the non-contiguous pixels
-        Cloud[~(mask)]=0
+        Cloud[~(mask)] = 0
+
         # # improving by majority filtering
-        Cloud=scipy.signal.convolve2d(Cloud,numpy.ones((3,3),Cloud.dtype.name))[1:-1,1:-1]
-        Cloud=(Cloud>4).astype('uint8')
-        # Applying twice, makes a cleaner result
-        Cloud=scipy.signal.convolve2d(Cloud,numpy.ones((3,3),Cloud.dtype.name))[1:-1,1:-1]
-        Cloud=Cloud>4
         #Cloud=bwmorph(Cloud,'majority')# exclude <5/9
-        Shadow[Cloud==0]=1
-        Temp=-1
-        t_templ=-1
-        t_temph=-1
+        #Cloud = scipy.signal.convolve2d(Cloud,numpy.ones((3,3),Cloud.dtype.name))[1:-1,1:-1]
+        #Cloud = (Cloud > 4).astype('uint8')
+        # Applying twice, makes a cleaner result
+        #Cloud = scipy.signal.convolve2d(Cloud,numpy.ones((3,3),Cloud.dtype.name))[1:-1,1:-1]
+        #Cloud = Cloud > 4
+
+        Shadow[Cloud == 0] = 1
+        Temp = -1
+        t_templ = -1
+        t_temph = -1
     else:
         # fprintf('Clear pixel EXIST in this scene (del prct = #.2f)\n',ptm)
         #################################################(temperature test )
         if lndptm >= 0.1:
-            F_temp=Temp[idlnd] # get land temperature
+            F_temp = Temp[idlnd] # get land temperature
             #       fprintf('Land temperature\n')
         else:
-            F_temp=Temp[idclr] # get del temperature
+            F_temp = Temp[idclr] # get del temperature
             #        fprintf('Clear temperature\n')
 
         # Get cloud prob over water
         ## temperature test (over water)
-        F_wtemp=Temp[(WT==1)&(data6<=300)] # get del water temperature
+        F_wtemp = Temp[numexpr.evaluate("(WT == 1) & (data6 <= 300)")] # get del water temperature
         if len(F_wtemp) == 0:
-            t_wtemp=0
+            t_wtemp = 0
         else:
-            t_wtemp=scipy.stats.scoreatpercentile(F_wtemp,100*h_pt)
-        wTemp_prob=numexpr.evaluate('(t_wtemp-Temp)/400')
+            t_wtemp = scipy.stats.scoreatpercentile(F_wtemp, 100 * h_pt)
+        wTemp_prob = numexpr.evaluate('(t_wtemp - Temp) / 400')
 
         ## Brightness test (over water)
-        t_bright=1100
-        Brightness_prob=data5/t_bright
-        Brightness_prob[Brightness_prob>1]=1
+        t_bright = 1100
+        Brightness_prob = data5 / t_bright
+        Brightness_prob[Brightness_prob > 1] = 1
+        Brightness_prob[Brightness_prob < 0] = 0
 
         ## Final prob mask (water)
-        wfinal_prob=numexpr.evaluate('100*wTemp_prob*Brightness_prob') # cloud over water probability
-
+        wfinal_prob = numexpr.evaluate('100 * wTemp_prob * Brightness_prob + 100 * Thin_prob') # cloud over water probability
+        wclr_max    = scipy.stats.scoreatpercentile(wfinal_prob[idwt], 100 * h_pt) + cldprob # dynamic threshold (land)
+        #wclr_max=50;% fixed threshold (water)
 
         # release memory
         del wTemp_prob
         del Brightness_prob
 
         ## Temperature test
-        t_buffer=4*100
+        t_buffer = 4 * 100
         if len(F_temp) != 0:
             # 0.175 percentile background temperature (low)
-            t_templ=scipy.stats.scoreatpercentile(F_temp,100*l_pt)
+            t_templ = scipy.stats.scoreatpercentile(F_temp, 100 * l_pt)
             # 0.825 percentile background temperature (high)
-            t_temph=scipy.stats.scoreatpercentile(F_temp,100*h_pt)
+            t_temph = scipy.stats.scoreatpercentile(F_temp, 100 * h_pt)
         else:
             t_templ=0
             t_temph=0
 
-        t_tempL=t_templ-t_buffer
-        t_tempH=t_temph+t_buffer
-        Temp_l=t_tempH-t_tempL
-        Temp_prob=(t_tempH-Temp)/Temp_l
+        t_tempL = t_templ - t_buffer
+        t_tempH = t_temph + t_buffer
+        Temp_l = t_tempH - t_tempL
+        Temp_prob = (t_tempH - Temp) / Temp_l
         # Temperature can have prob > 1
-        Temp_prob[Temp_prob<0]=0
+        Temp_prob[Temp_prob < 0]=0
+        #Temp_prob(Temp_prob > 1) = 1
 
-        NDSI[numexpr.evaluate('(satu_B2==True)&(NDSI<0)')]=0
-        NDVI[numexpr.evaluate('(satu_B3==True)&(NDVI>0)')]=0
+        NDSI[numexpr.evaluate('(satu_B2 == True) & (NDSI < 0)')] = 0
+        NDVI[numexpr.evaluate('(satu_B3 == True) & (NDVI > 0)')] = 0
 
-        Vari_prob=1-numpy.maximum(numpy.maximum(numpy.absolute(NDSI),numpy.absolute(NDVI)),whiteness)
+        Vari_prob= 1 - numpy.maximum(numpy.maximum(numpy.absolute(NDSI), numpy.absolute(NDVI)), whiteness)
 
 
         # release memory
@@ -913,7 +923,8 @@ def plcloud_1_6sav(filename, cldprob=22.5, images=None, log_filename="FMASK_LOGF
         del whiteness
 
         ## Final prob mask (land)
-        final_prob=100*(Temp_prob*Vari_prob) # cloud over land probability
+        final_prob = 100 *(Temp_prob * Vari_prob) + 100 * Thin_prob # cloud over land probability
+        clr_max = scipy.stats.scoreatpercentile(final_prob[idlnd], 100 * h_pt) + cldprob
 
 
         # release memory
