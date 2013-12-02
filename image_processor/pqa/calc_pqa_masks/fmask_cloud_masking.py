@@ -115,6 +115,27 @@ def imfill(img, ts):
 
     return output_array
 
+def imfill_skimage(img):
+    from skimage import morphology
+    """
+    Replicates the imfill function available within MATLAB.
+    Based on the example provided in http://scikit-image.org/docs/dev/auto_examples/plot_holes_and_peaks.html#example-plot-holes-and-peaks-py.
+
+    """
+
+    seed = img.copy()
+
+    # Define seed points and the start points for the erosion process.
+    seed[1:-1, 1:-1] = img.max()
+
+    # Define the mask; Probably unneeded.
+    mask = image
+
+    # Fill the holes
+    filled = morphology.reconstruction(seed, mask, method='erosion')
+
+    return filled
+
 def lndhdrread(filename):
     """
     Load Landsat scene MTL file metadata.
@@ -961,7 +982,8 @@ def plcloud(filename, cldprob=22.5, images=None, log_filename="FMASK_LOGFILE.txt
             backg_B4 = scipy.stats.scoreatpercentile(nir[idlnd], 100.0 * l_pt)
             nir[mask == 0] = backg_B4
             # fill in regional minimum Band 4 ref
-            nir = imfill(nir, "nir")
+            #nir = imfill(nir, "nir") # Old method using ITK
+            nir = imfill_skimage(nir)
             nir = nir - data4
 
             # band 5 flood fill
@@ -970,7 +992,8 @@ def plcloud(filename, cldprob=22.5, images=None, log_filename="FMASK_LOGFILE.txt
             backg_B5 = scipy.stats.scoreatpercentile(swir[idlnd], 100.0 * l_pt)
             swir[mask == 0] = backg_B5
             # fill in regional minimum Band 5 ref
-            swir = imfill(swir, "swir")
+            #swir = imfill(swir, "swir") # Old method using ITK
+            swir = imfill_skimage(swir)
             swir = swir - data5
 
             # compute shadow probability
