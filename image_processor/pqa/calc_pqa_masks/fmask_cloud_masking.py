@@ -10,6 +10,8 @@ import scipy.signal
 import scipy.ndimage.morphology
 from scipy import weave
 from osgeo import gdal
+from skimage import morphology
+from skimage import measure
 
 logger = logging.getLogger('root.' + __name__)
 
@@ -116,7 +118,6 @@ def imfill(img, ts):
     return output_array
 
 def imfill_skimage(img):
-    from skimage import morphology
     """
     Replicates the imfill function available within MATLAB.
     Based on the example provided in http://scikit-image.org/docs/dev/auto_examples/plot_holes_and_peaks.html#example-plot-holes-and-peaks-py.
@@ -148,7 +149,7 @@ def lndhdrread(filename):
     # Where:
     # Inputs:
     # filename='L*MTL.txt'
-    # Outputs:
+    # Ouenuts:
     # 1) Lmax = Max radiances
     # 2) Lmin = Min radiances
     # 3) Qcalmax = Max calibrated DNs
@@ -1073,7 +1074,15 @@ def plcloud(filename, cldprob=22.5, images=None, log_filename="FMASK_LOGFILE.txt
 
     return (zen,azi,ptm,Temp,t_templ,t_temph,WT,Snow,Cloud,Shadow,dim,ul,resolu,zc)
 
-def fcssm_1_6sav(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,resolu,ZC,cldpix,sdpix):
+def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,resolu,ZC,cldpix,sdpix):
+    """
+    NEW:
+    fcssm(dir_im,Sun_zen,Sun_azi,ptm,Temp,...
+        t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,jiUL,resolu,ZC,cldpix,sdpix,snpix)
+    ORIGINAL:
+    fcssm_1_6sav(dir_im,Sun_zen,Sun_azi,ptm,Temp,...
+        t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,jiUL,resolu,ZC,cldpix,sdpix)
+    """
     """
     Calculates the cloud shadow mask for a scene, given solar geometry information, the thermal band for the scene & a cloud mask.
 
@@ -1130,38 +1139,38 @@ def fcssm_1_6sav(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim
     # cloud DEM by thermal in cloud and shadow match (Zhe Zhu 1/03/2009)
 
     # solar elevation angle
-    Sun_ele=90.0-Sun_zen
-    sun_ele_rad=math.radians(Sun_ele)
+    Sun_ele = 90.0 - Sun_zen
+    sun_ele_rad = math.radians(Sun_ele)
     # solar azimuth anngle
-    Sun_tazi=Sun_azi-90.0
-    sun_tazi_rad=math.radians(Sun_tazi)
+    Sun_tazi = Sun_azi - 90.0
+    sun_tazi_rad = math.radians(Sun_tazi)
     # assume resolu.x=resolu.y
-    sub_size=resolu[0]
-    win_height=ijDim[0]
-    win_width=ijDim[1]
+    sub_size = resolu[0]
+    win_height = ijDim[0]
+    win_width = ijDim[1]
 
     # potential cloud & shadow layer
-    cloud_test=numpy.zeros(ijDim,'uint8')
-    shadow_test=numpy.zeros(ijDim,'uint8')
+    cloud_test = numpy.zeros(ijDim,'uint8')
+    shadow_test = numpy.zeros(ijDim,'uint8')
     # matched cloud & shadow layer
-    shadow_cal=numpy.zeros(ijDim,'uint8')
-    cloud_cal=numpy.zeros(ijDim,'uint8')
+    shadow_cal = numpy.zeros(ijDim,'uint8')
+    cloud_cal = numpy.zeros(ijDim,'uint8')
     # cloud_height=zeros(ijDim)# cloud relative height (m)
     # boundary layer
-    boundary_test=numpy.zeros(ijDim,'uint8')
+    boundary_test = numpy.zeros(ijDim,'uint8')
     # final cloud, shadow and snow mask
-    cs_final=numpy.zeros(ijDim,'uint8')
+    cs_final = numpy.zeros(ijDim,'uint8')
 
     # get potential mask values
-    shadow_test[plsim==1]=1# plshadow layer
+    shadow_test[plsim == 1] = 1# plshadow layer
     del plsim # empty memory
 
-    boundary_test[plcim<255]=1 # boundary layer
-    cloud_test[plcim==1]=1# plcloud layer
+    boundary_test[plcim < 255] = 1 # boundary layer
+    cloud_test[plcim == 1] = 1# plcloud layer
     del plcim # empty memory
 
     # revised percent of cloud on the scene after plcloud
-    revised_ptm=numpy.sum(cloud_test)/numpy.sum(boundary_test)
+    revised_ptm = numpy.sum(cloud_test) / numpy.sum(boundary_test)
     # no t test  => more than 98 # clouds and partly cloud over land
     # => no match => rest are definite shadows
 
@@ -1171,58 +1180,64 @@ def fcssm_1_6sav(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim
 
     if ptm <= 0.1 or revised_ptm >= 0.90:
         #     fprintf('No Shadow Match due to too much cloud (>90 percent)\n')
-        cloud_cal[cloud_test==True]=1
-        shadow_cal[cloud_test==False]=1
-        similar_num=-1
+        cloud_cal[cloud_test == True] = 1
+        shadow_cal[cloud_test == False] = 1
+        similar_num = -1
         #   height_num=-1
 
     else:
         #     fprintf('Shadow Match in processing\n')
 
         # define constants
-        Tsimilar=0.30
-        Tbuffer=0.98 # threshold for matching buffering
-        num_cldoj=25 # minimum matched cloud object (pixels)
-        num_pix=8 # number of inward pixes (240m) for cloud base temperature
+        Tsimilar = 0.30
+        Tbuffer = 0.95 # threshold for matching buffering
+        num_cldoj = 3 # minimum matched cloud object (pixels)
+        num_pix = 3 # number of inward pixes (90m) for cloud base temperature
         # enviromental lapse rate 6.5 degrees/km
         # dry adiabatic lapse rate 9.8 degrees/km
-        rate_elapse=6.5 # degrees/km
-        rate_dlapse=9.8 # degrees/km
+        rate_elapse = 6.5 # degrees/km
+        rate_dlapse = 9.8 # degrees/km
 
         #     fprintf('Set cloud similarity = #.3f\n',Tsimilar)
         #     fprintf('Set matching buffer = #.3f\n',Tbuffer)
         #     fprintf('Shadow match for cloud object >= #d pixels\n',num_cldoj)
 
-        i_step=2*sub_size*math.tan(sun_ele_rad) # move 2 pixel at a time
+
+        i_step = 2 * sub_size * math.tan(sun_ele_rad) # move 2 pixel at a time
 
         # get moving direction
-        (rows,cols)=numpy.nonzero(boundary_test==1)
-        (y_ul,num)=(rows.min(), rows.argmin())
-        x_ul=cols[num]
+        (rows,cols)= numpy.nonzero(boundary_test == 1)
+        (y_ul,num) = (rows.min(), rows.argmin())
+        x_ul = cols[num]
 
-        (y_lr,num)=(rows.max(), rows.argmax())
-        x_lr=cols[num]
+        (y_lr,num) = (rows.max(), rows.argmax())
+        x_lr = cols[num]
 
-        (x_ll,num)=(cols.min(), cols.argmin())
-        y_ll=rows[num]
+        (x_ll,num) = (cols.min(), cols.argmin())
+        y_ll = rows[num]
 
-        (x_ur,num)=(cols.max(), cols.argmax())
-        y_ur=rows[num]
+        (x_ur,num) = (cols.max(), cols.argmax())
+        y_ur = rows[num]
 
         # get view angle geometry
-        (A,B,C,omiga_par,omiga_per)=viewgeo(x_ul,y_ul,x_ur,y_ur,x_ll,y_ll,x_lr,y_lr)
+        (A,B,C,omiga_par,omiga_per) = viewgeo(x_ul,y_ul,x_ur,y_ur,x_ll,y_ll,x_lr,y_lr)
 
         # Segmentate each cloud
         #     fprintf('Cloud segmentation & matching\n')
-        (segm_cloud_init,segm_cloud_init_features)=scipy.ndimage.measurements.label(cloud_test, scipy.ndimage.morphology.generate_binary_structure(2,2))
-        L = segm_cloud_init
+        (segm_cloud_init,segm_cloud_init_features) = scipy.ndimage.measurements.label(cloud_test, scipy.ndimage.morphology.generate_binary_structure(2,2))
+        #L = segm_cloud_init
         #s = regionprops(L,'area')
         #area = [s.Area]
-        area=numpy.bincount(L.flatten())
+        #area = numpy.bincount(L.flatten())
+        #s = measure.regionprops(L)
+        #area = s.Area
 
         # filter out cloud object < than num_cldoj pixels
-        segm_cloud_tmp = numpy.select([area[L] >= num_cldoj], [L]) # ismember(L,idx)
-        (segm_cloud,num)=scipy.ndimage.measurements.label(segm_cloud_tmp, scipy.ndimage.morphology.generate_binary_structure(2,2))
+        #segm_cloud_tmp = numpy.select([area[L] >= num_cldoj], [L]) # ismember(L,idx)
+        #(segm_cloud,num)=scipy.ndimage.measurements.label(segm_cloud_tmp, scipy.ndimage.morphology.generate_binary_structure(2,2))
+        morphology.remove_small_objects(segm_cloud_init, num_cldoj, in_place=True)
+        segm_cloud = segmentation.relabel_from_one(segm_cloud_init)
+        num = numpy.unique(segm_cloud).shape[0]
 
         #s = regionprops(segm_cloud,'area')
         #area_final = [s.Area]
