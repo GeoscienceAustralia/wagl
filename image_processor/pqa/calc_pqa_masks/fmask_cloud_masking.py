@@ -130,7 +130,7 @@ def imfill_skimage(img):
     seed[1:-1, 1:-1] = img.max()
 
     # Define the mask; Probably unneeded.
-    mask = image
+    mask = img
 
     # Fill the holes
     filled = morphology.reconstruction(seed, mask, method='erosion')
