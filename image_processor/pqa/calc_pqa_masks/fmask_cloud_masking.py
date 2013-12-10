@@ -985,7 +985,8 @@ def plcloud(filename, cldprob=22.5, images=None, log_filename="FMASK_LOGFILE.txt
             # fill in regional minimum Band 4 ref
             #nir = imfill(nir, "nir") # Old method using ITK
             nir = imfill_skimage(nir)
-            nir = nir - data4
+            nir = nir - data4 # TODO Check that this subtraction gives the same result using the imfill_skimage mehod. JS 2013/12/10
+                              # Some other tests using the imfill_skimage use dat - fill rather than fill - data
 
             # band 5 flood fill
             swir = data5
