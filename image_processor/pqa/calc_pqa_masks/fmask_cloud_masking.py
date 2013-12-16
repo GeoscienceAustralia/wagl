@@ -4,6 +4,7 @@
 
 import sys, re, gc, time, math, logging
 import os.path
+import argparse
 import numpy, numexpr
 import scipy.stats
 import scipy.signal
@@ -751,7 +752,7 @@ def nd2toarbt(filename, images=None):
         raise Exception('This sensor is not Landsat 4, 5, 7, or 8!')
 
 def plcloud(filename, cldprob=22.5, images=None, log_filename="FMASK_LOGFILE.txt",
-                   shadow_prob=False, mask=None, wclr_max=50):
+                   shadow_prob=False, mask=None):
     """
     Calculates a cloud mask for a landsat 5/7 scene.
 
@@ -769,9 +770,6 @@ def plcloud(filename, cldprob=22.5, images=None, log_filename="FMASK_LOGFILE.txt
 
     :param shadow_prob:
         A flag indicating if the shadow probability should be calculated or not (required by FMask cloud shadow). Type Bool.
-
-    :param wclr_max:
-        Fixed threshold (water) - NOTE: Default value of 50 seems to miss some clouds over water (which end up having about 35-40% probability, not >50%).
 
     :return:
         Tuple (zen,azi,ptm, temperature band (celcius*100),t_templ,t_temph, water mask, snow mask, cloud mask , shadow probability,dim,ul,resolu,zc).
@@ -1075,7 +1073,7 @@ def plcloud(filename, cldprob=22.5, images=None, log_filename="FMASK_LOGFILE.txt
 
     return (zen,azi,ptm,Temp,t_templ,t_temph,WT,Snow,Cloud,Shadow,dim,ul,resolu,zc)
 
-def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,resolu,ZC,cldpix,sdpix):
+def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,resolu,ZC,cldpix,sdpix,snpix):
     """
     NEW:
     fcssm(dir_im,Sun_zen,Sun_azi,ptm,Temp,...
@@ -1112,6 +1110,9 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
 
     :param plcim:
         A numpy.ndarray of type Bool containing the cloud mask calculated by FMask.
+
+    :param plsim:
+        A numpy.ndarray of type Bool containing the cloud shadow mask calculated by FMask.
 
     :param ijDim:
         A tuple containing the resolution of the scene bands (height, width).
@@ -1263,10 +1264,10 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
             num_pixels = cloud_type['Area']
 
             # moving cloud xys
-            XY_type = numpy.zeros((num_pixels,2)) # Leave as float for the time being. Also might be faster to use (2,num_pixels) JS 16/12/2013
+            XY_type = numpy.zeros((num_pixels,2), dtype='uint32')
 
             # record the max threshold moving cloud xys
-            tmp_XY_type = numpy.zeros((num_pixels,2)) # Leave as float for the time being. Also might be faster to use (2,num_pixels) JS 16/12/2013
+            tmp_XY_type = numpy.zeros((num_pixels,2), dtype='uint32')
 
             # corrected for view angle xys
             tmp_xys = numpy.zeros((num_pixels,2)) # Leave as float for the time being. Also might be faster to use (2,num_pixels) JS 16/12/2013
@@ -1542,10 +1543,12 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
 
         # NOTE: An alternative for a structuring element would be to use the iterations parameter of binary_dilation()
         # The number of iterations is equal to the number of dilations if using a 3x3 structuring element. JS 16/12/2013
-        SEc = 2 * cldpix + 1
-        SEc = numpy.ones((SEc, SEc), 'uint8')
-        SEs = 2 * sdpix + 1
-        SEs = numpy.ones((SEs, SEs), 'uint8')
+        SEc  = 2 * cldpix + 1
+        SEc  = numpy.ones((SEc, SEc), 'uint8')
+        SEs  = 2 * sdpix + 1
+        SEs  = numpy.ones((SEs, SEs), 'uint8')
+        SEsn = 2 * snpix + 1
+        SEsn = numpy.ones((SEsn, SEsn), 'uint8')
 
         # dilate shadow first
         #shadow_cal = (scipy.ndimage.morphology.grey_dilation(shadow_cal, size=SEs.shape, structure=SEs) != 1) # Not sure why greyscale dilation was used JS 16/12/2013
@@ -1561,6 +1564,8 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
         #cloud_cal = (scipy.ndimage.morphology.grey_dilation(segm_cloud_tmp, size=SEc.shape, structure=SEc) != 1) # Not sure why greyscale dilation was used JS 16/12/2013
         # NOTE: The original transcription returned the inverse, i.e. cloud = 0 rather than 1. We'll try inverting it outside this function in order to preserve the original return values of Fmask
         cloud_cal = scipy.ndimage.morphology.binary_dilation(segm_cloud_tmp, structure=SEc)
+
+        Snow = scipy.ndimage.morphology.binary_dilation(Snow, structure=SEsn)
 
     cs_final[Water == 1] = 1
     # mask from plcloud
@@ -1620,26 +1625,53 @@ def mat_truecloud(x, y, h, A, B, C, omiga_par, omiga_per):
     return (x_new, y_new)
 
 if __name__ == '__main__':
-    mtl = sys.argv[1]
+
+    #mtl = sys.argv[1]
+    # TODO: Parse these from command line. DONE: JS 16/12/2013
+    #cldprob = 22.5
+    #cldpix = 0
+    #sdpix = 0
+
+    parser = argparse.ArgumentParser(description='Computes the Fmask algorithm. Cloud, cloud shadow and Fmask combined (contains thecloud, cloud shadow and snow masks in a single array) are output to disk.')
+    parser.add_argument('--mtl', required=True, help='The full file path to the Landsat MTL file.')
+    parser.add_argument('--cldprob', type=float, default=22.5, help='The cloud probability for the scene. Default is 22.5%.')
+    parser.add_argument('--cldpix', type=int, default=3, help='The number of pixels to be dilated for the cloud mask. Default is 3.')
+    parser.add_argument('--sdpix', type=int, default=3, help='The number of pixels to be dilated for the cloud shadow mask. Default is 3.')
+    parser.add_argument('--snpix', type=int, default=3, help='The number of pixels to be dilated for the snow mask. Default is 3.')
+    parser.add_argument('--outdir', required=True, help='The full file path of the output directory that will contain the Fmask results.')
+
+    parsed_args = parser.parse_args()
+    mtl         = parsed_args.mtl
+    cldprob     = parsed_args.cldprob
+    cldpix      = parsed_args.cldpix
+    sdpix       = parsed_args.sdpix
+    snpix       = parsed_args.snpix
+    outdir      = parsed_args.outdir
+
+    # Check that the MTL file exists
     assert os.path.exists(mtl), "Invalid filename: %s" % mtl
 
-    # TODO: Parse these from command line
-    cldprob = 22.5
-    cldpix = 0
-    sdpix = 0
+    # Check that the output directory exists
+    assert os.path.exists(outdir), "Directory doesn't exist: %s" % outdir
 
-    zen,azi,ptm,Temp,t_templ,t_temph,WT,Snow,Cloud,Shadow,dim,ul,resolu,zc = plcloud_1_6sav(mtl, cldprob, shadow_prob=True)
-    similar_num, cspt, shadow_cal, cs_final = fcssm_1_6sav(zen, azi, ptm, Temp, t_templ, t_temph, WT, Snow, Cloud, Shadow, dim, resolu, zc, cldpix, sdpix)
+    # Create the output filenames
+    log_fname          = os.path.join(outdir, 'FMASK_LOGFILE.txt')
+    cloud_fname        = os.path.join(outdir, 'fmask_cloud.tif')
+    cloud_shadow_fname = os.path.join(outdir, '"fmask_cloud_shadow.tif"')
+    fmask_fname        = os.path.join(outdir, '"fmask.tif"')
 
-    c = gdal.GetDriverByName('GTiff').Create("fmask_cloud.tif", Cloud.shape[1], Cloud.shape[0], 1, gdal.GDT_Byte)
+    zen,azi,ptm,Temp,t_templ,t_temph,WT,Snow,Cloud,Shadow,dim,ul,resolu,zc = plcloud(mtl, cldprob, shadow_prob=True, log_filename=log_fname)
+    similar_num, cspt, shadow_cal, cs_final = fcssm(zen, azi, ptm, Temp, t_templ, t_temph, WT, Snow, Cloud, Shadow, dim, resolu, zc, cldpix, sdpix, snpix)
+
+    c = gdal.GetDriverByName('GTiff').Create(cloud_fname, Cloud.shape[1], Cloud.shape[0], 1, gdal.GDT_Byte)
     c.GetRasterBand(1).WriteArray(Cloud*255)
     c = None
 
-    c = gdal.GetDriverByName('GTiff').Create("fmask_cloud_shadow.tif", shadow_cal.shape[1], shadow_cal.shape[0], 1, gdal.GDT_Byte)
+    c = gdal.GetDriverByName('GTiff').Create(cloud_shadow_fname, shadow_cal.shape[1], shadow_cal.shape[0], 1, gdal.GDT_Byte)
     c.GetRasterBand(1).WriteArray(shadow_cal*255)
     c = None
 
-    c = gdal.GetDriverByName('GTiff').Create("fmask.tif", cs_final.shape[1], cs_final.shape[0], 1, gdal.GDT_Byte)
+    c = gdal.GetDriverByName('GTiff').Create(fmask_fname, cs_final.shape[1], cs_final.shape[0], 1, gdal.GDT_Byte)
     c.GetRasterBand(1).WriteArray(cs_final)
     c = None
 
