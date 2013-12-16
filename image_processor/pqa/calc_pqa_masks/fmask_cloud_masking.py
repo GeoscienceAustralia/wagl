@@ -1194,6 +1194,7 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
         Tbuffer = 0.95 # threshold for matching buffering
         num_cldoj = 3 # minimum matched cloud object (pixels)
         num_pix = 3 # number of inward pixes (90m) for cloud base temperature
+
         # enviromental lapse rate 6.5 degrees/km
         # dry adiabatic lapse rate 9.8 degrees/km
         rate_elapse = 6.5 # degrees/km
@@ -1221,7 +1222,7 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
         y_ur = rows[num]
 
         # get view angle geometry
-        (A,B,C,omiga_par,omiga_per) = viewgeo(x_ul,y_ul,x_ur,y_ur,x_ll,y_ll,x_lr,y_lr)
+        (A, B, C, omiga_par, omiga_per) = viewgeo(x_ul, y_ul, x_ur, y_ur, x_ll, y_ll, x_lr, y_lr)
 
         # Segmentate each cloud
         #     fprintf('Cloud segmentation & matching\n')
@@ -1238,12 +1239,14 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
         #(segm_cloud,num)=scipy.ndimage.measurements.label(segm_cloud_tmp, scipy.ndimage.morphology.generate_binary_structure(2,2))
         morphology.remove_small_objects(segm_cloud_init, num_cldoj, in_place=True)
         segm_cloud = segmentation.relabel_from_one(segm_cloud_init)
-        num = numpy.unique(segm_cloud).shape[0]
+        num = numpy.max(segm_cloud)
 
         #s = regionprops(segm_cloud,'area')
         #area_final = [s.Area]
-        area_final = numpy.bincount(segm_cloud.flatten())[1:]
-        obj_num=area_final
+        #area_final = numpy.bincount(segm_cloud.flatten())[1:] # Older method. skimage provides a similar function to MATLAB's regionprops. JS 16/12/2013.
+        #obj_num=area_final
+        # NOTE: properties is deprecated as of version 0.9 and all properties are computed. Currently using version 0.8.2. If this version or a later versionproves too slow, I'll implement another method. JS 16/12/2013
+        s = measure.regionprops(segm_cloud,  properties=['Area', 'Coordinates'])
 
         # Get the x,y of each cloud
         # Matrix used in recording the x,y
@@ -1253,8 +1256,132 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
         # Calulate the moving cloud shadow
 
         # height_num=zeros(num) # cloud relative height (m)
-        similar_num=numpy.zeros(num) # cloud shadow match similarity (m)
+        similar_num = numpy.zeros(num) # cloud shadow match similarity (m)
 
+        # Newer method of looping through the cloud objects/segments JS 16/12/2013
+        for cloud_type in s:
+            num_pixels = cloud_type['Area']
+
+            # moving cloud xys
+            XY_type = numpy.zeros((num_pixels,2)) # Leave as float for the time being. Also might be faster to use (2,num_pixels) JS 16/12/2013
+
+            # record the max threshold moving cloud xys
+            tmp_XY_type = numpy.zeros((num_pixels,2)) # Leave as float for the time being. Also might be faster to use (2,num_pixels) JS 16/12/2013
+
+            # corrected for view angle xys
+            tmp_xys = numpy.zeros((num_pixels,2)) # Leave as float for the time being. Also might be faster to use (2,num_pixels) JS 16/12/2013
+
+            # record this original ids
+            orin_cid = (cloud_type['Coordinates'][:,0],cloud_type['Coordinates'][:,1])
+
+            # Temperature of the cloud object
+            temp_obj = Temp[orin_cid]
+
+            # assume object is round r_obj is radium of object
+            r_obj    = math.sqrt(cloud_type['Area'] / math.pi)
+
+            # number of inward pixes for correct temperature
+            #        num_pix=8
+            pct_obj = math.pow(r_obj - num_pix, 2) / math.pow(r_obj, 2)
+            pct_obj = numpy.minimum(pct_obj, 1) # pct of edge pixel should be less than 1
+            t_obj   = scipy.stats.mstats.mquantiles(temp_obj, pct_obj)
+
+            # put the edge of the cloud the same value as t_obj
+            temp_obj[temp_obj > t_obj] = t_obj
+
+            # wet adiabatic lapse rate 6.5 degrees/km
+            # dry adiabatic lapse rate 9.8 degrees/km
+            #        rate_wlapse=6.5# degrees/km
+            #        rate_dlapse=9.8# degrees/km
+
+            Max_cl_height = 12000 # Max cloud base height (m)
+            Min_cl_height = 200 # Min cloud base height (m)
+
+            # refine cloud height range (m)
+            Min_cl_height = max(Min_cl_height, 10 *(t_templ - 400 - t_obj) / rate_dlapse)
+            Max_cl_height = min(Max_cl_height, 10 *(t_temph + 400 - t_obj))
+
+            # initialize height and similarity info
+            record_h = 0
+            record_thresh = 0
+
+            for base_h in numpy.arange(Min_cl_height, Max_cl_height, i_step): # iterate in height (m)
+                # Get the true postion of the cloud
+                # calculate cloud DEM with initial base height
+                h = (10 * (t_obj - temp_obj) / rate_elapse + base_h)
+                tmp_xys[:,0], tmp_xys[:,1] = mat_truecloud(orin_cid[0], orin_cid[1], h, A, B, C, omiga_par, omiga_per)
+
+                # shadow moved distance (pixel)
+                # i_xy=h*cos(sun_tazi_rad)/(sub_size*math.tan(sun_ele_rad))
+                i_xy = h /(sub_size * math.tan(sun_ele_rad))
+
+                if Sun_azi < 180:
+                    XY_type[:,1] = numpy.round(tmp_xys[:,0] - i_xy * math.cos(sun_tazi_rad)) # X is for j,1
+                    XY_type[:,0] = numpy.round(tmp_xys[:,1] - i_xy * math.sin(sun_tazi_rad)) # Y is for i,0
+                else:
+                    XY_type[:,1] = numpy.round(tmp_xys[:,0] + i_xy * math.cos(sun_tazi_rad)) # X is for j,1
+                    XY_type[:,0] = numpy.round(tmp_xys[:,1] + i_xy * math.sin(sun_tazi_rad)) # Y is for i,0
+
+                tmp_j = XY_type[:,1] # col
+                tmp_i = XY_type[:,0] # row
+
+
+                # the id that is out of the image
+                out_id = (tmp_i < 0) | (tmp_i >= win_height) | (tmp_j < 0) | (tmp_j >= win_width)
+                out_all = numpy.sum(out_id)
+
+                tmp_ii = tmp_i[out_id == 0]
+                tmp_jj = tmp_j[out_id == 0]
+
+                tmp_id = [tmp_ii, tmp_jj]
+
+                # the id that is matched (exclude original cloud)
+                match_id = (boundary_test[tmp_id] == 0) |((segm_cloud[tmp_id] != (cloud_type + 1)) & (cloud_test[tmp_id] > 0) | (shadow_test[tmp_id] == 1))
+                matched_all = numpy.sum(match_id) + out_all
+
+                # the id that is the total pixel (exclude original cloud)
+                total_id = (segm_cloud[tmp_id] != (cloud_type + 1))
+                total_all = numpy.sum(total_id) + out_all
+
+                thresh_match = matched_all / total_all
+                if (thresh_match >= Tbuffer * record_thresh) and (base_h < Max_cl_height - i_step) and (record_thresh < 0.95):
+                    if thresh_match > record_thresh:
+                        record_thresh = thresh_match
+                        record_h = h
+
+                elif record_thresh > Tsimilar:
+                    similar_num[cloud_type] = record_thresh
+                    i_vir = record_h / (sub_size * math.tan(sun_ele_rad))
+                    # height_num=record_h
+
+                    if Sun_azi < 180:
+                        tmp_XY_type[:,1] = numpy.round(tmp_xys[:,0] - i_vir * math.cos(sun_tazi_rad)) # X is for col j,2
+                        tmp_XY_type[:,0] = numpy.round(tmp_xys[:,1] - i_vir * math.sin(sun_tazi_rad)) # Y is for row i,1
+                    else:
+                        tmp_XY_type[:,1] = numpy.round(tmp_xys[:,0] + i_vir * math.cos(sun_tazi_rad)) # X is for col j,2
+                        tmp_XY_type[:,0] = numpy.round(tmp_xys[:,1] + i_vir * math.sin(sun_tazi_rad)) # Y is for row i,1
+
+                    tmp_scol = tmp_XY_type[:,1]
+                    tmp_srow = tmp_XY_type[:,0]
+
+                    # put data within range
+                    tmp_srow[tmp_srow < 0] = 0
+                    tmp_srow[tmp_srow >= win_height] = win_height - 1
+                    tmp_scol[tmp_scol < 0] = 0
+                    tmp_scol[tmp_scol >= win_width] = win_width - 1
+
+                    tmp_sid = [tmp_srow, tmp_scol] # sub2ind(ijDim,tmp_srow,tmp_scol)
+                    # give shadow_cal=1
+                    shadow_cal[tmp_sid] = 1
+                    # record matched cloud
+                    #cloud_cal(orin_cid)=1
+                    # cloud_height[orin_cid]=record_h
+                    break
+                else:
+                    record_thresh = 0
+
+        ##### Start of older method from original transcription
+        """
         # Pre-allocate memory
         XY_type_buffer=numpy.zeros((obj_num.max(),2), 'uint32')
         tmp_XY_type_buffer=numpy.zeros((obj_num.max(),2), 'uint32')
@@ -1267,7 +1394,7 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
             cids[i] = numpy.zeros((obj_num[i],2), 'uint32')
 
         (cy,cx) = segm_cloud.shape
-        code = """
+        code = "#""
                #line 120 "test.py"
                int idx;
                for(int y = 0; y < cy; ++y)
@@ -1284,7 +1411,7 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
                        ci(i,1) = x;
                        ctr[idx] = i+1;
                    }
-               }"""
+               }"#""
         weave.inline(code, ['cx', 'cy', 'ctr', 'segm_cloud', 'cids'], type_converters=weave.converters.blitz, compiler='gcc')
 
         # TODO: Split into threads
@@ -1404,34 +1531,46 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
                     break
                 else:
                     record_thresh=0
+        """
+         ##### END of older method from original transcription
+
 
         # # dilate each cloud and shadow object by 3 and 6 pixel outward in 8 connect directions
         #    cldpix=3 # number of pixels to be dilated for cloud
         #    sdpix=3 # number of pixels to be dilated for shadow
         #fprintf('Dilate #d pixels for cloud & #d pixels for shadow objects\n',cldpix,sdpix)
-        SEc=2*cldpix+1
-        SEc=numpy.ones((SEc, SEc), 'uint8')
-        SEs=2*sdpix+1
-        SEs=numpy.ones((SEs, SEs), 'uint8')
+
+        # NOTE: An alternative for a structuring element would be to use the iterations parameter of binary_dilation()
+        # The number of iterations is equal to the number of dilations if using a 3x3 structuring element. JS 16/12/2013
+        SEc = 2 * cldpix + 1
+        SEc = numpy.ones((SEc, SEc), 'uint8')
+        SEs = 2 * sdpix + 1
+        SEs = numpy.ones((SEs, SEs), 'uint8')
 
         # dilate shadow first
-        shadow_cal = (scipy.ndimage.morphology.grey_dilation(shadow_cal, size=SEs.shape, structure=SEs) != 1)
+        #shadow_cal = (scipy.ndimage.morphology.grey_dilation(shadow_cal, size=SEs.shape, structure=SEs) != 1) # Not sure why greyscale dilation was used JS 16/12/2013
+        # NOTE: The original transcription returned the inverse, i.e. cloud_shadow = 0 rather than 1. We'll try inverting it outside this function in order to preserve the original return values of Fmask
+        shadow_cal = scipy.ndimage.morphology.binary_dilation(shadow_cal, structure=SEs)
+
         #     # find shadow within plshadow
         #     shadow_cal(shadow_test~=1)=0
         #     # dilate shadow again with the more accurate cloud shadow
         #     shadow_cal=imdilate(shadow_cal,SEs)
 
-        cloud_cal = (scipy.ndimage.morphology.grey_dilation(segm_cloud_tmp, size=SEc.shape, structure=SEc) != 1)
+        segm_cloud_tmp = numexpr.evaluate("segm_cloud != 0")
+        #cloud_cal = (scipy.ndimage.morphology.grey_dilation(segm_cloud_tmp, size=SEc.shape, structure=SEc) != 1) # Not sure why greyscale dilation was used JS 16/12/2013
+        # NOTE: The original transcription returned the inverse, i.e. cloud = 0 rather than 1. We'll try inverting it outside this function in order to preserve the original return values of Fmask
+        cloud_cal = scipy.ndimage.morphology.binary_dilation(segm_cloud_tmp, structure=SEc)
 
-    cs_final[Water==1]=1
+    cs_final[Water == 1] = 1
     # mask from plcloud
     # step 1 snow or unknow
-    cs_final[Snow==1]=2 # snow
+    cs_final[Snow == 1] = 2 # snow
     # step 2 shadow above snow and everyting
-    cs_final[shadow_cal==1]=3 #shadow
+    cs_final[shadow_cal == 1] = 3 #shadow
     # step 3 cloud above all
-    cs_final[cloud_cal==1]=4 # cloud
-    cs_final[boundary_test==0]=255
+    cs_final[cloud_cal == 1] = 4 # cloud
+    cs_final[boundary_test == 0] = 255
 
     # record cloud and cloud shadow percent
     tmpcs = ((cs_final == 1) | (cs_final == 3)).astype('uint8')
@@ -1440,43 +1579,43 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
     return (similar_num, cspt, shadow_cal, cs_final)
 
 # viewgeo function
-def viewgeo(x_ul,y_ul,x_ur,y_ur,x_ll,y_ll,x_lr,y_lr):
+def viewgeo(x_ul, y_ul, x_ur, y_ur, x_ll, y_ll, x_lr, y_lr):
     # imput "x",j
     # imput "y",i
     # imput cloud height "h"
 
-    x_u=(x_ul+x_ur)/2
-    x_l=(x_ll+x_lr)/2
-    y_u=(y_ul+y_ur)/2
-    y_l=(y_ll+y_lr)/2
+    x_u = (x_ul + x_ur) / 2
+    x_l = (x_ll + x_lr) / 2
+    y_u = (y_ul + y_ur) / 2
+    y_l = (y_ll + y_lr) / 2
 
-    K_ulr=(y_ul-y_ur)/(x_ul-x_ur) # get k of the upper left and right points
-    K_llr=(y_ll-y_lr)/(x_ll-x_lr) # get k of the lower left and right points
-    K_aver=(K_ulr+K_llr)/2
-    omiga_par=math.atan(K_aver) # get the angle of parallel lines k (in pi)
+    K_ulr =(y_ul - y_ur) / (x_ul - x_ur) # get k of the upper left and right points
+    K_llr = (y_ll - y_lr) / (x_ll - x_lr) # get k of the lower left and right points
+    K_aver = (K_ulr + K_llr) / 2
+    omiga_par = math.atan(K_aver) # get the angle of parallel lines k (in pi)
 
     # AX(j)+BY(i)+C=0
-    A=y_u-y_l
-    B=x_l-x_u
-    C=y_l*x_u-x_l*y_u
+    A = y_u - y_l
+    B = x_l - x_u
+    C = y_l * x_u - x_l * y_u
 
-    omiga_per=math.atan(B/A) # get the angle which is perpendicular to the trace line
+    omiga_per = math.atan( B / A) # get the angle which is perpendicular to the trace line
     return (A,B,C,omiga_par,omiga_per)
 
 # mat_truecloud function
-def mat_truecloud(x,y,h,A,B,C,omiga_par,omiga_per):
+def mat_truecloud(x, y, h, A, B, C, omiga_par, omiga_per):
     # imput "x",j col
     # imput "y",i row
     # imput cloud height "h"
-    H=705000 # average Landsat 7 height (m)
-    dist=(A*x+B*y+C)/math.sqrt(A*A+B*B) # from the cetral perpendicular (unit: pixel)
-    dist_par=dist/math.cos(omiga_per-omiga_par)
-    dist_move=dist_par*h/H # cloud move distance (m)
-    delt_x=dist_move*math.cos(omiga_par)
-    delt_y=dist_move*math.sin(omiga_par)
+    H = 705000 # average Landsat 7 height (m)
+    dist = (A * x + B * y + C) / math.sqrt(A * A + B * B) # from the cetral perpendicular (unit: pixel)
+    dist_par = dist / math.cos(omiga_per - omiga_par)
+    dist_move = dist_par * h / H # cloud move distance (m)
+    delt_x = dist_move * math.cos(omiga_par)
+    delt_y = dist_move * math.sin(omiga_par)
 
-    x_new=x+delt_x # new x, j
-    y_new=y+delt_y # new y, i
+    x_new = x + delt_x # new x, j
+    y_new = y + delt_y # new y, i
 
     return (x_new, y_new)
 
