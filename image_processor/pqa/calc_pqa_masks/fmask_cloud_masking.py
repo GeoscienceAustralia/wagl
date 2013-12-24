@@ -3,6 +3,7 @@
 # - As a result of the literal port, original comments should still be intact - as is the original code structure.
 
 import sys, re, gc, time, math, logging
+import datetime
 import os.path
 import argparse
 import numpy, numexpr
@@ -13,6 +14,7 @@ from scipy import weave
 from osgeo import gdal
 from skimage import morphology
 from skimage import measure
+from skimage import segmentation
 
 logger = logging.getLogger('root.' + __name__)
 
@@ -48,7 +50,7 @@ def imread(filename, resample=False, samples=None, lines=None):
         outds  = driver.Create("", samples, lines, 1, band.DataType)
         outds.SetGeoTransform(img.GetGeoTransform())
         outds.SetProjection(img.GetProjection())
-        proj = gdal.ReprojectImage(img, outds)
+        gdal.ReprojectImage(img, outds)
         return outds.ReadAsArray()
     else:
         return band.ReadAsArray()
@@ -185,9 +187,10 @@ def lndhdrread(filename):
     Lnum=int(LID[len(LID)-1])
 
     if (Lnum >= 4 & Lnum <= 7):
-        Refmax,Refmin = None # LS8 variables only. The original MATLAB function returns all variables.
+        Refmax = None # LS8 variables only. The original MATLAB function returns all variables.
+        Refmin = None # LS8 variables only. The original MATLAB function returns all variables.
         # Test for New/Old MTL file
-        if ('LANDSAT_SCENE_ID' in data.keys()):
+        if not ('LANDSAT_SCENE_ID' in data.keys()):
             # Process Old version of MTL file
 
             # read in LMAX
@@ -726,7 +729,7 @@ def nd2toarbt(filename, images=None):
         K2_B10 = numpy.float32(1321.08)
         one    = numpy.float32(1)
 
-        im_B10 = numpexpr.evaluate("K2_B10 / log((K1_B10 / im_B10) + one)")
+        im_B10 = numexpr.evaluate("K2_B10 / log((K1_B10 / im_B10) + one)")
 
         # convert from Kelvin to Celcius with 0.01 scale_factor
         K      = numpy.float32(273.15)
@@ -751,7 +754,7 @@ def nd2toarbt(filename, images=None):
     else:
         raise Exception('This sensor is not Landsat 4, 5, 7, or 8!')
 
-def plcloud(filename, cldprob=22.5, images=None, log_filename="FMASK_LOGFILE.txt",
+def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMASK_LOGFILE.txt",
                    shadow_prob=False, mask=None):
     """
     Calculates a cloud mask for a landsat 5/7 scene.
@@ -761,6 +764,9 @@ def plcloud(filename, cldprob=22.5, images=None, log_filename="FMASK_LOGFILE.txt
 
     :param cldprob:
         The cloud probability for the scene (defaults to 22.5%).
+
+    :param num_Lst:
+        The Landsat satellite number.
 
     :param images:
         A numpy.ndarray of pre-loaded, scaled, and corrected bands.
@@ -778,11 +784,11 @@ def plcloud(filename, cldprob=22.5, images=None, log_filename="FMASK_LOGFILE.txt
     logfile.write("Processing FMASK cloud cover... \n")
     start_time = time.time()
 
-    Temp,data,dim,ul,zen,azi,zc,satu_B1,satu_B2,satu_B3,resolu = nd2toar(filename, images)
+    Temp,data,dim,ul,zen,azi,zc,satu_B1,satu_B2,satu_B3,resolu = nd2toarbt(filename, images)
 
-    if num_Lst < 8 % Landsat 4~7
+    if num_Lst < 8: # Landsat 4~7
         Thin_prob = 0 #  there is no contribution from the new bands
-    else
+    else:
         Thin_prob = numexpr.evaluate("cirrus / 400", {'cirrus' : data[-1]}, locals())
 
     Cloud = numpy.zeros(dim,'uint8') # cloud mask
@@ -849,7 +855,8 @@ def plcloud(filename, cldprob=22.5, images=None, log_filename="FMASK_LOGFILE.txt
     # test whether use thermal or not
     idclr = numexpr.evaluate("(idplcd == False) & (mask == 1)")
     ptm = 100 * idclr.sum() / mask.sum() # percent of del pixel
-    idlnd = numexpr.evaluate("idclr & (WT == True)") # This used to be idclr & (WT == False) JS 2013/11/29
+    idlnd = numexpr.evaluate("idclr & (WT == False)")
+    idwt = numexpr.evaluate("idclr & (WT == True)") # &data(:,:,6)<=300;
     lndptm= 100 * idlnd.sum() / mask.sum()
 
     logger.debug('idlnd: %s', idlnd)
@@ -983,8 +990,11 @@ def plcloud(filename, cldprob=22.5, images=None, log_filename="FMASK_LOGFILE.txt
             # fill in regional minimum Band 4 ref
             #nir = imfill(nir, "nir") # Old method using ITK
             nir = imfill_skimage(nir)
-            nir = nir - data4 # TODO Check that this subtraction gives the same result using the imfill_skimage mehod. JS 2013/12/10
+            #nir = nir - data4 # TODO Check that this subtraction gives the same result using the imfill_skimage mehod. JS 2013/12/10
                               # Some other tests using the imfill_skimage use dat - fill rather than fill - data
+
+            # Test
+            nir = data4 - nir 
 
             # band 5 flood fill
             swir = data5
@@ -994,7 +1004,10 @@ def plcloud(filename, cldprob=22.5, images=None, log_filename="FMASK_LOGFILE.txt
             # fill in regional minimum Band 5 ref
             #swir = imfill(swir, "swir") # Old method using ITK
             swir = imfill_skimage(swir)
-            swir = swir - data5
+            #swir = swir - data5
+
+            # Test
+            swir = data5 - swir
 
             # compute shadow probability
             shadow_prob = numpy.minimum(nir, swir)
@@ -1239,7 +1252,7 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
         #segm_cloud_tmp = numpy.select([area[L] >= num_cldoj], [L]) # ismember(L,idx)
         #(segm_cloud,num)=scipy.ndimage.measurements.label(segm_cloud_tmp, scipy.ndimage.morphology.generate_binary_structure(2,2))
         morphology.remove_small_objects(segm_cloud_init, num_cldoj, in_place=True)
-        segm_cloud = segmentation.relabel_from_one(segm_cloud_init)
+        segm_cloud, fw, inv = segmentation.relabel_from_one(segm_cloud_init)
         num = numpy.max(segm_cloud)
 
         #s = regionprops(segm_cloud,'area')
@@ -1247,7 +1260,10 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
         #area_final = numpy.bincount(segm_cloud.flatten())[1:] # Older method. skimage provides a similar function to MATLAB's regionprops. JS 16/12/2013.
         #obj_num=area_final
         # NOTE: properties is deprecated as of version 0.9 and all properties are computed. Currently using version 0.8.2. If this version or a later versionproves too slow, I'll implement another method. JS 16/12/2013
+        st = datetime.datetime.now()
         s = measure.regionprops(segm_cloud,  properties=['Area', 'Coordinates'])
+        et = datetime.datetime.now()
+        print "measure.regionprops time taken: ", et - st
 
         # Get the x,y of each cloud
         # Matrix used in recording the x,y
@@ -1310,7 +1326,7 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
                 # Get the true postion of the cloud
                 # calculate cloud DEM with initial base height
                 h = (10 * (t_obj - temp_obj) / rate_elapse + base_h)
-                tmp_xys[:,0], tmp_xys[:,1] = mat_truecloud(orin_cid[0], orin_cid[1], h, A, B, C, omiga_par, omiga_per)
+                tmp_xys[:,1], tmp_xys[:,0] = mat_truecloud(orin_cid[0], orin_cid[1], h, A, B, C, omiga_par, omiga_per) # Function is returned as (x_new,y_new)
 
                 # shadow moved distance (pixel)
                 # i_xy=h*cos(sun_tazi_rad)/(sub_size*math.tan(sun_ele_rad))
@@ -1337,11 +1353,13 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
                 tmp_id = [tmp_ii, tmp_jj]
 
                 # the id that is matched (exclude original cloud)
-                match_id = (boundary_test[tmp_id] == 0) |((segm_cloud[tmp_id] != (cloud_type + 1)) & (cloud_test[tmp_id] > 0) | (shadow_test[tmp_id] == 1))
+                #match_id = (boundary_test[tmp_id] == 0) |((segm_cloud[tmp_id] != (cloud_type + 1)) & (cloud_test[tmp_id] > 0) | (shadow_test[tmp_id] == 1))
+                match_id = (boundary_test[tmp_id] == 0) |((segm_cloud[tmp_id] != (cloud_type['Label'] )) & (cloud_test[tmp_id] > 0) | (shadow_test[tmp_id] == 1))
                 matched_all = numpy.sum(match_id) + out_all
 
                 # the id that is the total pixel (exclude original cloud)
-                total_id = (segm_cloud[tmp_id] != (cloud_type + 1))
+                #total_id = (segm_cloud[tmp_id] != (cloud_type + 1))
+                total_id = (segm_cloud[tmp_id] != (cloud_type['Label']))
                 total_all = numpy.sum(total_id) + out_all
 
                 thresh_match = matched_all / total_all
@@ -1351,7 +1369,7 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
                         record_h = h
 
                 elif record_thresh > Tsimilar:
-                    similar_num[cloud_type] = record_thresh
+                    similar_num[cloud_type['Label'] -1] = record_thresh # -1 to account for the zero based index used by Python (MATLAB is 1 one based).
                     i_vir = record_h / (sub_size * math.tan(sun_ele_rad))
                     # height_num=record_h
 
@@ -1634,7 +1652,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Computes the Fmask algorithm. Cloud, cloud shadow and Fmask combined (contains thecloud, cloud shadow and snow masks in a single array) are output to disk.')
     parser.add_argument('--mtl', required=True, help='The full file path to the Landsat MTL file.')
-    parser.add_argument('--cldprob', type=float, default=22.5, help='The cloud probability for the scene. Default is 22.5%.')
+    parser.add_argument('--cldprob', type=float, default=22.5, help='The cloud probability for the scene. Default is 22.5 percent.')
     parser.add_argument('--cldpix', type=int, default=3, help='The number of pixels to be dilated for the cloud mask. Default is 3.')
     parser.add_argument('--sdpix', type=int, default=3, help='The number of pixels to be dilated for the cloud shadow mask. Default is 3.')
     parser.add_argument('--snpix', type=int, default=3, help='The number of pixels to be dilated for the snow mask. Default is 3.')
@@ -1657,10 +1675,30 @@ if __name__ == '__main__':
     # Create the output filenames
     log_fname          = os.path.join(outdir, 'FMASK_LOGFILE.txt')
     cloud_fname        = os.path.join(outdir, 'fmask_cloud.tif')
-    cloud_shadow_fname = os.path.join(outdir, '"fmask_cloud_shadow.tif"')
-    fmask_fname        = os.path.join(outdir, '"fmask.tif"')
+    cloud_shadow_fname = os.path.join(outdir, 'fmask_cloud_shadow.tif')
+    fmask_fname        = os.path.join(outdir, 'fmask.tif')
 
-    zen,azi,ptm,Temp,t_templ,t_temph,WT,Snow,Cloud,Shadow,dim,ul,resolu,zc = plcloud(mtl, cldprob, shadow_prob=True, log_filename=log_fname)
+    # Open the MTL file.
+    # The original MATLAB code opens the file twice to retrieve the Landsat number.
+    # It would be better to open it once and restructure the function parameters.
+    data = {}
+    fl=open(mtl,'r')
+    file_lines=fl.readlines()
+    for line in file_lines:
+        values = line.split(' = ')
+        if len(values) != 2:
+            continue
+
+        data[values[0].strip()] = values[1].strip().strip('"')
+
+    fl.close()
+
+    # Identify Landsat Number (Lnum = 4, 5 or 7)
+    LID=data['SPACECRAFT_ID']
+    Lnum=int(LID[len(LID)-1])
+
+
+    zen,azi,ptm,Temp,t_templ,t_temph,WT,Snow,Cloud,Shadow,dim,ul,resolu,zc = plcloud(mtl, cldprob, num_Lst=Lnum, shadow_prob=True, log_filename=log_fname)
     similar_num, cspt, shadow_cal, cs_final = fcssm(zen, azi, ptm, Temp, t_templ, t_temph, WT, Snow, Cloud, Shadow, dim, resolu, zc, cldpix, sdpix, snpix)
 
     c = gdal.GetDriverByName('GTiff').Create(cloud_fname, Cloud.shape[1], Cloud.shape[0], 1, gdal.GDT_Byte)
