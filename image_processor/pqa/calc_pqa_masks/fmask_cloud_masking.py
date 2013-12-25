@@ -990,11 +990,13 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMA
             # fill in regional minimum Band 4 ref
             #nir = imfill(nir, "nir") # Old method using ITK
             nir = imfill_skimage(nir)
-            #nir = nir - data4 # TODO Check that this subtraction gives the same result using the imfill_skimage mehod. JS 2013/12/10
+            nir = nir - data4 # TODO Check that this subtraction gives the same result using the imfill_skimage mehod. JS 2013/12/10
                               # Some other tests using the imfill_skimage use dat - fill rather than fill - data
 
+            #UPDATE: filled - data will yield positive values, whereas data - filled will yield negative values. A threshold is set later for values > 200, therefore finding the local minima will be positive values.
+
             # Test
-            nir = data4 - nir 
+            #nir = data4 - nir 
 
             # band 5 flood fill
             swir = data5
@@ -1004,10 +1006,10 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMA
             # fill in regional minimum Band 5 ref
             #swir = imfill(swir, "swir") # Old method using ITK
             swir = imfill_skimage(swir)
-            #swir = swir - data5
+            swir = swir - data5
 
             # Test
-            swir = data5 - swir
+            #swir = data5 - swir
 
             # compute shadow probability
             shadow_prob = numpy.minimum(nir, swir)
