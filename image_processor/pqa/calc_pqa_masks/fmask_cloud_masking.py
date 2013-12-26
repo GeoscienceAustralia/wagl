@@ -995,6 +995,12 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMA
 
             #UPDATE: filled - data will yield positive values, whereas data - filled will yield negative values. A threshold is set later for values > 200, therefore finding the local minima will be positive values.
 
+            drv   = gdal.GetDriverByName("ENVI")
+            outds = drv.Create('nir_holes', nir.shape[1], nir.shape[0], 1, 4)
+            band  = outds.GetRasterBand(1)
+            band.WriteArray(nir)
+            outds = None
+
             # Test
             #nir = data4 - nir 
 
@@ -1011,11 +1017,26 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMA
             # Test
             #swir = data5 - swir
 
+            outds = drv.Create('swir_holes', swir.shape[1], swir.shape[0], 1, 4)
+            band  = outds.GetRasterBand(1)
+            band.WriteArray(swir)
+            outds = None
+
             # compute shadow probability
             shadow_prob = numpy.minimum(nir, swir)
             # release remory
             del nir
             del swir
+
+            outds = drv.Create('shadow_prob', shadow_prob.shape[1], shadow_prob.shape[0], 1, 4)
+            band  = outds.GetRasterBand(1)
+            band.WriteArray(shadow_prob)
+            outds = None
+
+            outds = drv.Create('shadow_prob_gt_200', shadow_prob.shape[1], shadow_prob.shape[0], 1, 1)
+            band  = outds.GetRasterBand(1)
+            band.WriteArray(shadow_prob > 200)
+            outds = None
 
             Shadow[shadow_prob > 200] = 1
             # release remory
@@ -1676,9 +1697,9 @@ if __name__ == '__main__':
 
     # Create the output filenames
     log_fname          = os.path.join(outdir, 'FMASK_LOGFILE.txt')
-    cloud_fname        = os.path.join(outdir, 'fmask_cloud.tif')
-    cloud_shadow_fname = os.path.join(outdir, 'fmask_cloud_shadow.tif')
-    fmask_fname        = os.path.join(outdir, 'fmask.tif')
+    cloud_fname        = os.path.join(outdir, 'fmask_cloud')
+    cloud_shadow_fname = os.path.join(outdir, 'fmask_cloud_shadow')
+    fmask_fname        = os.path.join(outdir, 'fmask')
 
     # Open the MTL file.
     # The original MATLAB code opens the file twice to retrieve the Landsat number.
@@ -1703,15 +1724,15 @@ if __name__ == '__main__':
     zen,azi,ptm,Temp,t_templ,t_temph,WT,Snow,Cloud,Shadow,dim,ul,resolu,zc = plcloud(mtl, cldprob, num_Lst=Lnum, shadow_prob=True, log_filename=log_fname)
     similar_num, cspt, shadow_cal, cs_final = fcssm(zen, azi, ptm, Temp, t_templ, t_temph, WT, Snow, Cloud, Shadow, dim, resolu, zc, cldpix, sdpix, snpix)
 
-    c = gdal.GetDriverByName('GTiff').Create(cloud_fname, Cloud.shape[1], Cloud.shape[0], 1, gdal.GDT_Byte)
+    c = gdal.GetDriverByName('ENVI').Create(cloud_fname, Cloud.shape[1], Cloud.shape[0], 1, gdal.GDT_Byte)
     c.GetRasterBand(1).WriteArray(Cloud*255)
     c = None
 
-    c = gdal.GetDriverByName('GTiff').Create(cloud_shadow_fname, shadow_cal.shape[1], shadow_cal.shape[0], 1, gdal.GDT_Byte)
+    c = gdal.GetDriverByName('ENVI').Create(cloud_shadow_fname, shadow_cal.shape[1], shadow_cal.shape[0], 1, gdal.GDT_Byte)
     c.GetRasterBand(1).WriteArray(shadow_cal*255)
     c = None
 
-    c = gdal.GetDriverByName('GTiff').Create(fmask_fname, cs_final.shape[1], cs_final.shape[0], 1, gdal.GDT_Byte)
+    c = gdal.GetDriverByName('ENVI').Create(fmask_fname, cs_final.shape[1], cs_final.shape[0], 1, gdal.GDT_Byte)
     c.GetRasterBand(1).WriteArray(cs_final)
     c = None
 
