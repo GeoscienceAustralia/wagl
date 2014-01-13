@@ -1274,9 +1274,15 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
         # filter out cloud object < than num_cldoj pixels
         #segm_cloud_tmp = numpy.select([area[L] >= num_cldoj], [L]) # ismember(L,idx)
         #(segm_cloud,num)=scipy.ndimage.measurements.label(segm_cloud_tmp, scipy.ndimage.morphology.generate_binary_structure(2,2))
+        st = datetime.datetime.now()
         morphology.remove_small_objects(segm_cloud_init, num_cldoj, in_place=True)
+        et = datetime.datetime.now()
+        print "morphology.remove_small_objects time taken: ", et - st
+        st = datetime.datetime.now()
         segm_cloud, fw, inv = segmentation.relabel_from_one(segm_cloud_init)
         num = numpy.max(segm_cloud)
+        et = datetime.datetime.now()
+        print "segmentation.relabel_from_one time taken: ", et - st
 
         #s = regionprops(segm_cloud,'area')
         #area_final = [s.Area]
