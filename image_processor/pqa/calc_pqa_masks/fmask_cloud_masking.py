@@ -1304,8 +1304,15 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
         # height_num=zeros(num) # cloud relative height (m)
         similar_num = numpy.zeros(num) # cloud shadow match similarity (m)
 
+        st = datetime.datetime.now()
+        time_obj_zero = st - st
+        time_base_h_zero = st - st
+
         # Newer method of looping through the cloud objects/segments JS 16/12/2013
         for cloud_type in s:
+
+            time_obj_start = datetime.datetime.now()
+
             num_pixels = cloud_type['Area']
 
             # moving cloud xys
@@ -1350,6 +1357,8 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
             # initialize height and similarity info
             record_h = 0
             record_thresh = 0
+
+            time_base_h_start = datetime.datetime.now()
 
             for base_h in numpy.arange(Min_cl_height, Max_cl_height, i_step): # iterate in height (m)
                 # Get the true postion of the cloud
@@ -1427,6 +1436,19 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
                     break
                 else:
                     record_thresh = 0
+
+            time_obj_end = datetime.datetime.now()
+            time_obj_zero += (time_obj_end - time_obj_start)
+            time_base_h_zero += (time_obj_end - time_base_h_start)
+
+        et = datetime.datetime.now()
+        print 'Number of cloud objects: ', len(s)
+
+        print 'Time taken to iterate through each cloud object: ', et - st
+
+        print 'Average time taken per cloud object: ', time_obj_zero / len(s)
+
+        print 'Average time taken per cloud object for base height iteration: ', time_base_h_zero / len(s)
 
         ##### Start of older method from original transcription
         """
