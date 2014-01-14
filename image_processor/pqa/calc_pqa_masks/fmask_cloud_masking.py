@@ -1263,7 +1263,10 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
 
         # Segmentate each cloud
         #     fprintf('Cloud segmentation & matching\n')
+        st = datetime.datetime.now()
         (segm_cloud_init,segm_cloud_init_features) = scipy.ndimage.measurements.label(cloud_test, scipy.ndimage.morphology.generate_binary_structure(2,2))
+        et = datetime.datetime.now()
+        print 'scipy.ndimage.measurements.label time taken: ', et - st
         #L = segm_cloud_init
         #s = regionprops(L,'area')
         #area = [s.Area]
@@ -1316,13 +1319,16 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
             num_pixels = cloud_type['Area']
 
             # moving cloud xys
-            XY_type = numpy.zeros((num_pixels,2), dtype='uint32')
+            #XY_type = numpy.zeros((num_pixels,2), dtype='uint32')
+            XY_type = numpy.zeros((2,num_pixels), dtype='uint32')
 
             # record the max threshold moving cloud xys
-            tmp_XY_type = numpy.zeros((num_pixels,2), dtype='uint32')
+            #tmp_XY_type = numpy.zeros((num_pixels,2), dtype='uint32')
+            tmp_XY_type = numpy.zeros((2,num_pixels), dtype='uint32')
 
             # corrected for view angle xys
-            tmp_xys = numpy.zeros((num_pixels,2)) # Leave as float for the time being. Also might be faster to use (2,num_pixels) JS 16/12/2013
+            #tmp_xys = numpy.zeros((num_pixels,2)) # Leave as float for the time being. Also might be faster to use (2,num_pixels) JS 16/12/2013
+            tmp_xys = numpy.zeros((2,num_pixels)) # Leave as float for the time being. Also might be faster to use (2,num_pixels) JS 16/12/2013
 
             # record this original ids
             orin_cid = (cloud_type['Coordinates'][:,0],cloud_type['Coordinates'][:,1])
@@ -1364,21 +1370,28 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
                 # Get the true postion of the cloud
                 # calculate cloud DEM with initial base height
                 h = (10 * (t_obj - temp_obj) / rate_elapse + base_h)
-                tmp_xys[:,1], tmp_xys[:,0] = mat_truecloud(orin_cid[0], orin_cid[1], h, A, B, C, omiga_par, omiga_per) # Function is returned as (x_new,y_new)
+                #tmp_xys[:,1], tmp_xys[:,0] = mat_truecloud(orin_cid[0], orin_cid[1], h, A, B, C, omiga_par, omiga_per) # Function is returned as (x_new,y_new)
+                tmp_xys[1,:], tmp_xys[0,:] = mat_truecloud(orin_cid[0], orin_cid[1], h, A, B, C, omiga_par, omiga_per) # Function is returned as (x_new,y_new)
 
                 # shadow moved distance (pixel)
                 # i_xy=h*cos(sun_tazi_rad)/(sub_size*math.tan(sun_ele_rad))
                 i_xy = h /(sub_size * math.tan(sun_ele_rad))
 
                 if Sun_azi < 180:
-                    XY_type[:,1] = numpy.round(tmp_xys[:,0] - i_xy * math.cos(sun_tazi_rad)) # X is for j,1
-                    XY_type[:,0] = numpy.round(tmp_xys[:,1] - i_xy * math.sin(sun_tazi_rad)) # Y is for i,0
+                    #XY_type[:,1] = numpy.round(tmp_xys[:,0] - i_xy * math.cos(sun_tazi_rad)) # X is for j,1
+                    XY_type[1,:] = numpy.round(tmp_xys[0,:] - i_xy * math.cos(sun_tazi_rad)) # X is for j,1
+                    #XY_type[:,0] = numpy.round(tmp_xys[:,1] - i_xy * math.sin(sun_tazi_rad)) # Y is for i,0
+                    XY_type[0,:] = numpy.round(tmp_xys[1,:] - i_xy * math.sin(sun_tazi_rad)) # Y is for i,0
                 else:
-                    XY_type[:,1] = numpy.round(tmp_xys[:,0] + i_xy * math.cos(sun_tazi_rad)) # X is for j,1
-                    XY_type[:,0] = numpy.round(tmp_xys[:,1] + i_xy * math.sin(sun_tazi_rad)) # Y is for i,0
+                    #XY_type[:,1] = numpy.round(tmp_xys[:,0] + i_xy * math.cos(sun_tazi_rad)) # X is for j,1
+                    XY_type[1,:] = numpy.round(tmp_xys[0,:] + i_xy * math.cos(sun_tazi_rad)) # X is for j,1
+                    #XY_type[:,0] = numpy.round(tmp_xys[:,1] + i_xy * math.sin(sun_tazi_rad)) # Y is for i,0
+                    XY_type[0,:] = numpy.round(tmp_xys[1,:] + i_xy * math.sin(sun_tazi_rad)) # Y is for i,0
 
-                tmp_j = XY_type[:,1] # col
-                tmp_i = XY_type[:,0] # row
+                #tmp_j = XY_type[:,1] # col
+                tmp_j = XY_type[1,:] # col
+                #tmp_i = XY_type[:,0] # row
+                tmp_i = XY_type[0,:] # row
 
 
                 # the id that is out of the image
@@ -1392,7 +1405,8 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
 
                 # the id that is matched (exclude original cloud)
                 #match_id = (boundary_test[tmp_id] == 0) |((segm_cloud[tmp_id] != (cloud_type + 1)) & (cloud_test[tmp_id] > 0) | (shadow_test[tmp_id] == 1))
-                match_id = (boundary_test[tmp_id] == 0) |((segm_cloud[tmp_id] != (cloud_type['Label'] )) & (cloud_test[tmp_id] > 0) | (shadow_test[tmp_id] == 1))
+                #match_id = (boundary_test[tmp_id] == 0) |((segm_cloud[tmp_id] != (cloud_type['Label'] )) & (cloud_test[tmp_id] > 0) | (shadow_test[tmp_id] == 1))
+                match_id = numexpr.evaluate("(b_test == 0) | ((seg != label) & (cld_test > 0) | (shad_test == 1))", {'b_test':boundary_test[tmp_id], 'seg':segm_cloud[tmp_id], 'label':cloud_type['Label'], 'cld_test':cloud_test[tmp_id], 'shad_test':shadow_test[tmp_id]})
                 matched_all = numpy.sum(match_id) + out_all
 
                 # the id that is the total pixel (exclude original cloud)
@@ -1412,14 +1426,20 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
                     # height_num=record_h
 
                     if Sun_azi < 180:
-                        tmp_XY_type[:,1] = numpy.round(tmp_xys[:,0] - i_vir * math.cos(sun_tazi_rad)) # X is for col j,2
-                        tmp_XY_type[:,0] = numpy.round(tmp_xys[:,1] - i_vir * math.sin(sun_tazi_rad)) # Y is for row i,1
+                        #tmp_XY_type[:,1] = numpy.round(tmp_xys[:,0] - i_vir * math.cos(sun_tazi_rad)) # X is for col j,2
+                        tmp_XY_type[1,:] = numpy.round(tmp_xys[0,:] - i_vir * math.cos(sun_tazi_rad)) # X is for col j,2
+                        #tmp_XY_type[:,0] = numpy.round(tmp_xys[:,1] - i_vir * math.sin(sun_tazi_rad)) # Y is for row i,1
+                        tmp_XY_type[0,:] = numpy.round(tmp_xys[1,:] - i_vir * math.sin(sun_tazi_rad)) # Y is for row i,1
                     else:
-                        tmp_XY_type[:,1] = numpy.round(tmp_xys[:,0] + i_vir * math.cos(sun_tazi_rad)) # X is for col j,2
-                        tmp_XY_type[:,0] = numpy.round(tmp_xys[:,1] + i_vir * math.sin(sun_tazi_rad)) # Y is for row i,1
+                        #tmp_XY_type[:,1] = numpy.round(tmp_xys[:,0] + i_vir * math.cos(sun_tazi_rad)) # X is for col j,2
+                        tmp_XY_type[1,:] = numpy.round(tmp_xys[0,:] + i_vir * math.cos(sun_tazi_rad)) # X is for col j,2
+                        #tmp_XY_type[:,0] = numpy.round(tmp_xys[:,1] + i_vir * math.sin(sun_tazi_rad)) # Y is for row i,1
+                        tmp_XY_type[0,:] = numpy.round(tmp_xys[1,:] + i_vir * math.sin(sun_tazi_rad)) # Y is for row i,1
 
-                    tmp_scol = tmp_XY_type[:,1]
-                    tmp_srow = tmp_XY_type[:,0]
+                    #tmp_scol = tmp_XY_type[:,1]
+                    tmp_scol = tmp_XY_type[1,:]
+                    #tmp_srow = tmp_XY_type[:,0]
+                    tmp_srow = tmp_XY_type[0,:]
 
                     # put data within range
                     tmp_srow[tmp_srow < 0] = 0
@@ -1748,9 +1768,14 @@ if __name__ == '__main__':
     LID=data['SPACECRAFT_ID']
     Lnum=int(LID[len(LID)-1])
 
-
+    st = datetime.datetime.now()
     zen,azi,ptm,Temp,t_templ,t_temph,WT,Snow,Cloud,Shadow,dim,ul,resolu,zc = plcloud(mtl, cldprob, num_Lst=Lnum, shadow_prob=True, log_filename=log_fname)
+    et = datetime.datetime.now()
+    print 'time taken for plcloud function: ', et - st
+    st = datetime.datetime.now()
     similar_num, cspt, shadow_cal, cs_final = fcssm(zen, azi, ptm, Temp, t_templ, t_temph, WT, Snow, Cloud, Shadow, dim, resolu, zc, cldpix, sdpix, snpix)
+    et = datetime.datetime.now()
+    print 'time taken for fcssm function: ', et - st
 
     c = gdal.GetDriverByName('ENVI').Create(cloud_fname, Cloud.shape[1], Cloud.shape[0], 1, gdal.GDT_Byte)
     c.GetRasterBand(1).WriteArray(Cloud*255)
