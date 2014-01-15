@@ -217,7 +217,7 @@ SUBROUTINE terrain_correction( &
                     (1.0-fv(i, j))*(fs(i, j)*aa_solarf + (1.0-fs(i, j))*aa_white)) / aa_white
 
                 a_eqf = (1-aa_flat)*s_mod(i, j)*(1-s_mod(i, j)*ref_lm(i))
-                b_eqf = aa_flat+ref_lm(i)*(1-aa_final)*s_mod(i, j)
+                b_eqf = aa_flat+ref_lm(i)*(1-aa_flat)*s_mod(i, j)
                 c_eqf = -ref_lm(i)
 
                 if (abs(a_eqf) .lt. 0.0000001) then
