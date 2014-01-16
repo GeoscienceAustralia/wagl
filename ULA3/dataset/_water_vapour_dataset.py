@@ -66,6 +66,15 @@ class WaterVapourDataset(Dataset):
         # Note: RasterCount == tiff->samples_per_pixel
 
         logger.debug('band_number = %s', band_number)
+
+	####### hack to enable NBAR NRT
+	if band_number > (self.RasterCount +1):
+	    rasterdoy = (((self.RasterCount)-(int((hour + 3) / 6)))/4)+1
+    	    if (doy-rasterdoy) < 7:
+                band_number = (int(rasterdoy) - 1) * 4 + int((hour + 3) / 6)
+	    #band_number = (self.RasterCount)
+	####### end of hack
+
         assert band_number in range(1, self.RasterCount + 1), 'Invalid Water Vapour band number: %s' % band_number
         return band_number
 
