@@ -183,9 +183,18 @@ def write_metadata(DATA, CONFIG, xml_metadata_template, PROCESSOR_VERSION):
 #    nbar_dataset.browsegraphic_description = "Low-res scene preview image"
     nbar_dataset.browsegraphic_type = "JPG"
     nbar_dataset.browsegraphic_resolution = nbar_dataset.pixel_x_size * nbar_dataset.image_pixels / thumbnail_data['size'][0]
-    nbar_dataset.browsegraphic_redband = "%d" % thumbnail_data['rgb_bands'][0]
-    nbar_dataset.browsegraphic_greenband = "%d" % thumbnail_data['rgb_bands'][1]
-    nbar_dataset.browsegraphic_blueband = "%d" % thumbnail_data['rgb_bands'][2]
+
+    def format_band_num(b):
+        """
+        Format as string, where zero signifies no value
+        @type b: int
+        @rtype: str
+        """
+        return '' if b == 0 else '%d' % b
+
+    nbar_dataset.browsegraphic_redband = format_band_num(thumbnail_data['rgb_bands'][0])
+    nbar_dataset.browsegraphic_greenband = format_band_num(thumbnail_data['rgb_bands'][1])
+    nbar_dataset.browsegraphic_blueband = format_band_num(thumbnail_data['rgb_bands'][2])
 
     nbar_dataset.alternate_title = None
     nbar_dataset.dq_measure_name = None
