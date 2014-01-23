@@ -584,12 +584,10 @@ class ProcessorConfig(object):
             """
             result = None
             s = execute(cwd=os.path.dirname(os.path.dirname(os.path.dirname(__file__))), # __file__ should be <repository>/ULA3/image_processor/__init.py
-                        command_string='git show --pretty=oneline ')['stdout']
+                        command_string='git describe --tags --always')['stdout']
 
-            if s and len(s) > 40:
-                m = re.match('^(\w{40})\s+.*', s)
-                if m:
-                    result = m.group(1)
+            if s:
+                result = s.strip()
 
             return result
 
