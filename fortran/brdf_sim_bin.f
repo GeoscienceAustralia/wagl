@@ -152,8 +152,8 @@ c               calculate black sky albedo for view angle
      &            (1.0-fv(j))*(fs(j)*aa_solar+(1.0-fs(j))*aa_white))
      &            /aa_white
 
-                a_eq=(1-aa_final)*s_mod(j)
-                b_eq=aa_final
+                a_eq=(1-aa_final)*s_mod(j)*(1-s_mod(j)*ref_lm(j))
+                b_eq=aa_final+ref_lm(j)*(1-aa_final)*s_mod(j)
                 c_eq=-ref_lm(j)
 
                 if (abs(a_eq) .lt. 0.0000001) then
