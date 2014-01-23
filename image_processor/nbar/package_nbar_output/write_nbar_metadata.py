@@ -174,10 +174,15 @@ def write_metadata(DATA, CONFIG, xml_metadata_template, PROCESSOR_VERSION):
     nbar_dataset.abstract = '%s NBAR' % nbar_dataset.satellite.NAME
 
     nbar_dataset.algorithm_version = 'Git version ' + CONFIG.git_version
+    nbar_dataset.algorithm_title = 'NBAR'
 
     # Generate comma-separated list of reflective bands
-    nbar_dataset.available_bands = ', '.join([str(nbar_dataset.sensor_band_info(band_number)['NUMBER'] // 10)
-        for band_number in nbar_dataset.bands('REFLECTIVE')])
+    available_bands = [nbar_dataset.sensor_band_info(band_number)['NUMBER'] // 10 for band_number in nbar_dataset.bands('REFLECTIVE')]
+    if any(value == 0 for value in available_bands): # To escape the fact that a potential band 13 might be used
+        available_bands = [nbar_dataset.sensor_band_info(band_number)['NUMBER'] for band_number in nbar_dataset.bands('REFLECTIVE')]
+    nbar_dataset.available_bands = ', '.join([str(band_number) for band_number in available_bands])
+    #nbar_dataset.available_bands = ', '.join([str(nbar_dataset.sensor_band_info(band_number)['NUMBER'] // 10)
+    #    for band_number in nbar_dataset.bands('REFLECTIVE')])
 
     nbar_dataset.browsegraphic_filename = os.path.basename(thumbnail_data['filename'])
 #    nbar_dataset.browsegraphic_description = "Low-res scene preview image"
