@@ -27,10 +27,13 @@ def process(subprocess_list=[], resume=False):
 
     # Store thumbnail info for downstream metadata output
     try:
+        rgb_bands = [band_file_number // 10 for band_file_number in res['l1t_input_dataset'].satellite.rgb_bands]
+        if any(value == 0 for value in rgb_bands): # To escape the fact that a potential band 13 might be used
+            rgb_bands = [band_file_number for band_file_number in res['l1t_input_dataset'].satellite.rgb_bands]
         DATA.set_item('thumbnail.dat', {
             'filename': res['browse_image_path'],
             'size': res['image_dim'],
-            'rgb_bands': [band_file_number // 10 for band_file_number in res['l1t_input_dataset'].satellite.rgb_bands]})
+            'rgb_bands': rgb_bands})
     except Exception, e:
         logger.error('ERROR: thumbnail.create_thumbnail RAISED EXCEPTION (ignored)')
         logger.error('[ %s ]' % e)
