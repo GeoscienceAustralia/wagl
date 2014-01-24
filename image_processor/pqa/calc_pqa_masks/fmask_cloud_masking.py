@@ -1062,9 +1062,9 @@ def fcssm_1_6sav(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim
     cs_final[Water==1]=1
     # mask from plcloud
     # step 1 snow or unknow
-    cs_final[Snow==1]=2 # snow
+    cs_final[Snow==1]=3 # snow
     # step 2 shadow above snow and everyting
-    cs_final[shadow_cal==1]=3 #shadow
+    cs_final[shadow_cal==1]=2 #shadow
     # step 3 cloud above all
     cs_final[cloud_cal==1]=4 # cloud
     cs_final[boundary_test==0]=255
