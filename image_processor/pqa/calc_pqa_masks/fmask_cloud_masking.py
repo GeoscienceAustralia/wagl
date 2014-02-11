@@ -186,7 +186,7 @@ def lndhdrread(filename):
     LID=data['SPACECRAFT_ID']
     Lnum=int(LID[len(LID)-1])
 
-    if (Lnum >= 4 & Lnum <= 7):
+    if ((Lnum >= 4) & (Lnum <= 7)):
         Refmax = None # LS8 variables only. The original MATLAB function returns all variables.
         Refmin = None # LS8 variables only. The original MATLAB function returns all variables.
         # Test for New/Old MTL file
@@ -205,7 +205,7 @@ def lndhdrread(filename):
                 Lmax_B6 = numpy.float32(data['LMAX_BAND6'])
 
             Lmax_B7 = numpy.float32(data['LMAX_BAND7'])
-            Lmax=(Lmax_B1,Lmax_B2,Lmax_B3,Lmax_B4,Lmax_B5,Lmax_B6,Lmax_B7)
+            Lmax = (Lmax_B1,Lmax_B2,Lmax_B3,Lmax_B4,Lmax_B5,Lmax_B6,Lmax_B7)
 
             # Read in LMIN
             Lmin_B1 = numpy.float32(data['LMIN_BAND1'])
@@ -219,7 +219,7 @@ def lndhdrread(filename):
                 Lmin_B6 = numpy.float32(data['LMIN_BAND6'])
 
             Lmin_B7 = numpy.float32(data['LMIN_BAND7'])
-            Lmin=(Lmin_B1,Lmin_B2,Lmin_B3,Lmin_B4,Lmin_B5,Lmin_B6,Lmin_B7)
+            Lmin = (Lmin_B1,Lmin_B2,Lmin_B3,Lmin_B4,Lmin_B5,Lmin_B6,Lmin_B7)
 
             # Read in QCALMAX
             Qcalmax_B1 = numpy.float32(data['QCALMAX_BAND1'])
@@ -233,7 +233,7 @@ def lndhdrread(filename):
                 Qcalmax_B6 = numpy.float32(data['QCALMAX_BAND6'])
 
             Qcalmax_B7 = numpy.float32(data['QCALMAX_BAND7'])
-            Qcalmax=(Qcalmax_B1,Qcalmax_B2,Qcalmax_B3,Qcalmax_B4,Qcalmax_B5,Qcalmax_B6,Qcalmax_B7)
+            Qcalmax = (Qcalmax_B1,Qcalmax_B2,Qcalmax_B3,Qcalmax_B4,Qcalmax_B5,Qcalmax_B6,Qcalmax_B7)
 
             # Read in QCALMIN
             Qcalmin_B1 = numpy.float32(data['QCALMIN_BAND1'])
@@ -247,7 +247,7 @@ def lndhdrread(filename):
                 Qcalmin_B6 = numpy.float32(data['QCALMIN_BAND6'])
 
             Qcalmin_B7 = numpy.float32(data['QCALMIN_BAND7'])
-            Qcalmin=(Qcalmin_B1,Qcalmin_B2,Qcalmin_B3,Qcalmin_B4,Qcalmin_B5,Qcalmin_B6,Qcalmin_B7)
+            Qcalmin = (Qcalmin_B1,Qcalmin_B2,Qcalmin_B3,Qcalmin_B4,Qcalmin_B5,Qcalmin_B6,Qcalmin_B7)
 
             # Read in nrows & ncols of optical bands
             Sample_ref = int(data['PRODUCT_SAMPLES_REF'])
@@ -291,7 +291,7 @@ def lndhdrread(filename):
                 Lmax_B6 = numpy.float32(data['RADIANCE_MAXIMUM_BAND_6'])
 
             Lmax_B7 = numpy.float32(data['RADIANCE_MAXIMUM_BAND_7'])
-            Lmax=(Lmax_B1,Lmax_B2,Lmax_B3,Lmax_B4,Lmax_B5,Lmax_B6,Lmax_B7)
+            Lmax = (Lmax_B1,Lmax_B2,Lmax_B3,Lmax_B4,Lmax_B5,Lmax_B6,Lmax_B7)
 
             # Read in LMIN
             Lmin_B1 = numpy.float32(data['RADIANCE_MINIMUM_BAND_1'])
@@ -305,7 +305,7 @@ def lndhdrread(filename):
                 Lmin_B6 = numpy.float32(data['RADIANCE_MINIMUM_BAND_6'])
 
             Lmin_B7 = numpy.float32(data['RADIANCE_MINIMUM_BAND_7'])
-            Lmin=(Lmin_B1,Lmin_B2,Lmin_B3,Lmin_B4,Lmin_B5,Lmin_B6,Lmin_B7)
+            Lmin = (Lmin_B1,Lmin_B2,Lmin_B3,Lmin_B4,Lmin_B5,Lmin_B6,Lmin_B7)
 
             # Read in QCALMAX
             Qcalmax_B1 = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_1'])
@@ -319,7 +319,7 @@ def lndhdrread(filename):
                 Qcalmax_B6 = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_6'])
 
             Qcalmax_B7 = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_7'])
-            Qcalmax=(Qcalmax_B1,Qcalmax_B2,Qcalmax_B3,Qcalmax_B4,Qcalmax_B5,Qcalmax_B6,Qcalmax_B7)
+            Qcalmax = (Qcalmax_B1,Qcalmax_B2,Qcalmax_B3,Qcalmax_B4,Qcalmax_B5,Qcalmax_B6,Qcalmax_B7)
 
             # Read in QCALMIN
             Qcalmin_B1 = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_1'])
@@ -333,7 +333,7 @@ def lndhdrread(filename):
                 Qcalmin_B6 = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_6'])
 
             Qcalmin_B7 = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_7'])
-            Qcalmin=(Qcalmin_B1,Qcalmin_B2,Qcalmin_B3,Qcalmin_B4,Qcalmin_B5,Qcalmin_B6,Qcalmin_B7)
+            Qcalmin = (Qcalmin_B1,Qcalmin_B2,Qcalmin_B3,Qcalmin_B4,Qcalmin_B5,Qcalmin_B6,Qcalmin_B7)
 
             # Read in nrows & ncols of optical bands
             Sample_ref = int(data['REFLECTIVE_SAMPLES'])
@@ -374,7 +374,7 @@ def lndhdrread(filename):
             Lmax_B9  = numpy.float32(data['RADIANCE_MAXIMUM_BAND_9'])
             Lmax_B10 = numpy.float32(data['RADIANCE_MAXIMUM_BAND_10'])
 
-            Lmax=(Lmax_B1,Lmax_B2,Lmax_B3,Lmax_B4,Lmax_B5,Lmax_B6,Lmax_B7)
+            Lmax = (Lmax_B2,Lmax_B3,Lmax_B4,Lmax_B5,Lmax_B6,Lmax_B7,Lmax_B9,Lmax_B10)
 
             # Read in LMIN
             Lmin_B2  = numpy.float32(data['RADIANCE_MINIMUM_BAND_2'])
@@ -386,7 +386,7 @@ def lndhdrread(filename):
             Lmin_B9  = numpy.float32(data['RADIANCE_MINIMUM_BAND_9'])
             Lmin_B10 = numpy.float32(data['RADIANCE_MINIMUM_BAND_10'])
 
-            Lmin=(Lmin_B1,Lmin_B2,Lmin_B3,Lmin_B4,Lmin_B5,Lmin_B6,Lmin_B7)
+            Lmin = (Lmin_B2,Lmin_B3,Lmin_B4,Lmin_B5,Lmin_B6,Lmin_B7,Lmin_B9,Lmin_B10)
 
             # Read in QCALMAX
             Qcalmax_B2  = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_2'])
@@ -398,7 +398,7 @@ def lndhdrread(filename):
             Qcalmax_B9  = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_9'])
             Qcalmax_B10 = numpy.float32(data['QUANTIZE_CAL_MAX_BAND_10'])
 
-            Qcalmax=(Qcalmax_B1,Qcalmax_B2,Qcalmax_B3,Qcalmax_B4,Qcalmax_B5,Qcalmax_B6,Qcalmax_B7)
+            Qcalmax = (Qcalmax_B2,Qcalmax_B3,Qcalmax_B4,Qcalmax_B5,Qcalmax_B6,Qcalmax_B7,Qcalmax_B9,Qcalmax_B10)
 
             # Read in QCALMIN
             Qcalmin_B2  = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_2'])
@@ -410,7 +410,7 @@ def lndhdrread(filename):
             Qcalmin_B9  = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_9'])
             Qcalmin_B10 = numpy.float32(data['QUANTIZE_CAL_MIN_BAND_10'])
 
-            Qcalmin=(Qcalmin_B1,Qcalmin_B2,Qcalmin_B3,Qcalmin_B4,Qcalmin_B5,Qcalmin_B6,Qcalmin_B7)
+            Qcalmin = (Qcalmin_B2,Qcalmin_B3,Qcalmin_B4,Qcalmin_B5,Qcalmin_B6,Qcalmin_B7,Qcalmin_B9,Qcalmin_B10)
 
             # Read in Refmax
             Refmax_B2 = numpy.float32(data['REFLECTANCE_MAXIMUM_BAND_2']);
@@ -421,7 +421,7 @@ def lndhdrread(filename):
             Refmax_B7 = numpy.float32(data['REFLECTANCE_MAXIMUM_BAND_7']);
             Refmax_B9 = numpy.float32(data['REFLECTANCE_MAXIMUM_BAND_9']);
 
-            Refmax=[Refmax_B2,Refmax_B3,Refmax_B4,Refmax_B5,Refmax_B6,Refmax_B7,Refmax_B9];
+            Refmax = (Refmax_B2,Refmax_B3,Refmax_B4,Refmax_B5,Refmax_B6,Refmax_B7,Refmax_B9)
 
             # Read in Refmin
             Refmin_B2 = numpy.float32(data['REFLECTANCE_MINIMUM_BAND_2']);
@@ -432,7 +432,7 @@ def lndhdrread(filename):
             Refmin_B7 = numpy.float32(data['REFLECTANCE_MINIMUM_BAND_7']);
             Refmin_B9 = numpy.float32(data['REFLECTANCE_MINIMUM_BAND_9']);
 
-            Refmin=[Refmin_B2,Refmin_B3,Refmin_B4,Refmin_B5,Refmin_B6,Refmin_B7,Refmin_B9];
+            Refmin = (Refmin_B2,Refmin_B3,Refmin_B4,Refmin_B5,Refmin_B6,Refmin_B7,Refmin_B9)
 
             # Read in nrows & ncols of optical bands
             Sample_ref = int(data['REFLECTIVE_SAMPLES'])
@@ -453,18 +453,19 @@ def lndhdrread(filename):
             zc = numpy.float32(data['UTM_ZONE'])
             # Read in Solar Azimuth & Elevation angle (degrees)
             azi = numpy.float32(data['SUN_AZIMUTH'])
-            zen=90-numpy.float32(data['SUN_ELEVATION'])
+            zen = 90 - numpy.float32(data['SUN_ELEVATION'])
             # Read in upperleft mapx,y
-            ulx=numpy.float32(data['CORNER_UL_PROJECTION_X_PRODUCT'])
-            uly=numpy.float32(data['CORNER_UL_PROJECTION_Y_PRODUCT'])
-            ul=(ulx,uly)
+            ulx = numpy.float32(data['CORNER_UL_PROJECTION_X_PRODUCT'])
+            uly = numpy.float32(data['CORNER_UL_PROJECTION_Y_PRODUCT'])
+            ul = (ulx,uly)
             # Read in date of year
-            char_doy=data['LANDSAT_SCENE_ID']
-            doy=int(char_doy[15:17]) # This may need to change to 14:16. TODO Test this!
+            char_doy = data['LANDSAT_SCENE_ID']
+            #doy=int(char_doy[15:17]) # This may need to change to 14:16. TODO Test this!
+            doy = int(char_doy[13:16])
     else:
         raise Exception('This sensor is not Landsat 4, 5, 7, or 8!')
 
-    if doy < 1 or doy > 365:
+    if ((doy < 1) or (doy > 365)):
         raise ValueError('Invalid Day of Year metadata value - expected (1,365) got %s' % char_doy)
 
     # The new version returns Lmax,Lmin,Qcalmax,Qcalmin,Refmax,Refmin,ijdim_ref,ijdim_thm,reso_ref,reso_thm,ul,zen,azi,zc,Lnum,doy
@@ -489,7 +490,7 @@ def nd2toarbt(filename, images=None):
     ul=(ul[0]-15,ul[1]+15) # This is in error if GA products are used (25m). JS 2013/11/28
     resolu=(reso_ref,reso_ref)
 
-    if (Lnum >= 4 & Lnum <= 7):
+    if ((Lnum >= 4) & (Lnum <= 7)):
 
         # Band6
         if Lnum == 7:
@@ -523,10 +524,10 @@ def nd2toarbt(filename, images=None):
         if Lnum == 7:
             K1=K1_L7
             K2=K2_L7
-        elif Lnum==5:
+        elif Lnum == 5:
             K1=K1_L5
             K2=K2_L5
-        elif Lnum==4:
+        elif Lnum == 4:
             K1=K1_L4
             K2=K2_L4
 
@@ -602,11 +603,11 @@ def nd2toarbt(filename, images=None):
             esun_L4=[1983.0, 1795.0, 1539.0, 1028.0, 219.8, -1.0, 83.49]
 
             if Lnum == 7:
-                ESUN=esun_L7
+                ESUN = esun_L7
             elif Lnum == 5:
-                ESUN=esun_L5
+                ESUN = esun_L5
             elif Lnum == 4:
-                ESUN=esun_L4
+                ESUN = esun_L4
 
             #  # Interpolate earth-sun distance with day of year from LEDAPS
             #  dsun_table_doy = [1,15,32,46,60,74,91,106,121,135,152,166,182,196,213,227,242,258,274,288,305,319,335,349,366]
@@ -643,7 +644,7 @@ def nd2toarbt(filename, images=None):
 
 
         # convert from Kelvin to Celcius with 0.01 scale_facor
-        im_B6=numexpr.evaluate("a * ((K2/log((K1/im_B6)+one)) - b)", { 'a': numpy.float32(100), 'b': numpy.float32(273.15), 'one': numpy.float32(1.0) }, locals())
+        im_B6 = numexpr.evaluate("a * ((K2/log((K1/im_B6)+one)) - b)", { 'a': numpy.float32(100), 'b': numpy.float32(273.15), 'one': numpy.float32(1.0) }, locals())
 
         # get data ready for Fmask
         im_B1[id_missing] = -9999
@@ -661,7 +662,7 @@ def nd2toarbt(filename, images=None):
 
         return [im_B6,images,ijdim_ref,ul,zen,azi,zc,B1Satu,B2Satu,B3Satu,resolu]
     elif (Lnum == 8):
-        n_B10=match_file(base, '*B10*')
+        n_B10 = match_file(base, '.*B10.*')
         # Check that the thermal band resolution matches the reflectance bands.
         ref_lines, ref_samples = ijdim_ref
         thm_lines, thm_samples = ijdim_thm
@@ -705,14 +706,14 @@ def nd2toarbt(filename, images=None):
         # This formulae is similar to that used for LS 4,5,7. But is different to that given by
         # https://landsat.usgs.gov/Landsat8_Using_Product.php : Noted JS 2013/11/28
         print 'From DNs to TOA ref & BT\n'
-        im_B2  = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B1 - Qmi) + Rmi", { 'Rma': Refmax[0], 'Rmi': Refmin[0], 'Qma': Qcalmax[0], 'Qmi': Qcalmin[0] }, locals())
-        im_B3  = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B1 - Qmi) + Rmi", { 'Rma': Refmax[1], 'Rmi': Refmin[1], 'Qma': Qcalmax[1], 'Qmi': Qcalmin[0] }, locals())
-        im_B4  = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B1 - Qmi) + Rmi", { 'Rma': Refmax[2], 'Rmi': Refmin[2], 'Qma': Qcalmax[2], 'Qmi': Qcalmin[0] }, locals())
-        im_B5  = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B1 - Qmi) + Rmi", { 'Rma': Refmax[3], 'Rmi': Refmin[3], 'Qma': Qcalmax[3], 'Qmi': Qcalmin[0] }, locals())
-        im_B6  = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B1 - Qmi) + Rmi", { 'Rma': Refmax[4], 'Rmi': Refmin[4], 'Qma': Qcalmax[4], 'Qmi': Qcalmin[0] }, locals())
-        im_B7  = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B1 - Qmi) + Rmi", { 'Rma': Refmax[5], 'Rmi': Refmin[5], 'Qma': Qcalmax[5], 'Qmi': Qcalmin[0] }, locals())
-        im_B9  = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B1 - Qmi) + Rmi", { 'Rma': Refmax[6], 'Rmi': Refmin[6], 'Qma': Qcalmax[6], 'Qmi': Qcalmin[0] }, locals())
-        im_B10 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B1 - Qmi) + Lmi", { 'Lma': Lmax[7], 'Lmi': Lmin[7], 'Qma': Qcalmax[7], 'Qmi': Qcalmin[7] }, locals())
+        im_B2  = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B2 - Qmi) + Rmi", { 'Rma': Refmax[0], 'Rmi': Refmin[0], 'Qma': Qcalmax[0], 'Qmi': Qcalmin[0] }, locals())
+        im_B3  = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B3 - Qmi) + Rmi", { 'Rma': Refmax[1], 'Rmi': Refmin[1], 'Qma': Qcalmax[1], 'Qmi': Qcalmin[1] }, locals())
+        im_B4  = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B4 - Qmi) + Rmi", { 'Rma': Refmax[2], 'Rmi': Refmin[2], 'Qma': Qcalmax[2], 'Qmi': Qcalmin[2] }, locals())
+        im_B5  = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B5 - Qmi) + Rmi", { 'Rma': Refmax[3], 'Rmi': Refmin[3], 'Qma': Qcalmax[3], 'Qmi': Qcalmin[3] }, locals())
+        im_B6  = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B6 - Qmi) + Rmi", { 'Rma': Refmax[4], 'Rmi': Refmin[4], 'Qma': Qcalmax[4], 'Qmi': Qcalmin[4] }, locals())
+        im_B7  = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B7 - Qmi) + Rmi", { 'Rma': Refmax[5], 'Rmi': Refmin[5], 'Qma': Qcalmax[5], 'Qmi': Qcalmin[5] }, locals())
+        im_B9  = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B9 - Qmi) + Rmi", { 'Rma': Refmax[6], 'Rmi': Refmin[6], 'Qma': Qcalmax[6], 'Qmi': Qcalmin[6] }, locals())
+        im_B10 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B10 - Qmi) + Lmi", { 'Lma': Lmax[7], 'Lmi': Lmin[7], 'Qma': Qcalmax[7], 'Qmi': Qcalmin[7] }, locals())
 
         s_zen = numpy.deg2rad(zen)
         im_B2 = numexpr.evaluate("10000 * im_B2 / cos(s_zen)")
@@ -848,6 +849,9 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMA
     ######################################### Ratio4/5>0.75 cloud test
     idplcd &= numexpr.evaluate("(data4 / data5) > 0.75")
 
+    ############################### Cirrus tests from Landsat 8
+    idplcd |= numexpr.evaluate("Thin_prob > 0.25")
+
     ####################################constants##########################
     l_pt = 0.175 # low percent
     h_pt = 1 - l_pt # high percent
@@ -895,12 +899,14 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMA
 
         # Get cloud prob over water
         ## temperature test (over water)
-        F_wtemp = Temp[numexpr.evaluate("(WT == 1) & (data6 <= 300)")] # get del water temperature
+        #F_wtemp = Temp[numexpr.evaluate("(WT == 1) & (data6 <= 300)")] # get del water temperature
+        F_wtemp = Temp[idwt]
         if len(F_wtemp) == 0:
             t_wtemp = 0
         else:
             t_wtemp = scipy.stats.scoreatpercentile(F_wtemp, 100 * h_pt)
         wTemp_prob = numexpr.evaluate('(t_wtemp - Temp) / 400')
+        wTemp_prob[numexpr.evaluate('wTemp_prob < 0')] = 0
 
         ## Brightness test (over water)
         t_bright = 1100
@@ -950,7 +956,7 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMA
         del whiteness
 
         ## Final prob mask (land)
-        final_prob = 100 *(Temp_prob * Vari_prob) + 100 * Thin_prob # cloud over land probability
+        final_prob = 100 * Temp_prob * Vari_prob + 100 * Thin_prob # cloud over land probability
         clr_max = scipy.stats.scoreatpercentile(final_prob[idlnd], 100 * h_pt) + cldprob # dynamic threshold (land)
 
 
@@ -969,7 +975,7 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMA
         # thin cloud over water : (idplcd & (wfinal_prob > wclr_max) & (WT == 1))
         # high prob cloud (land) : (final_prob > 99.0) & (WT == 0)
         # extremly cold cloud : (Temp < t_templ - 3500)
-        id_final_cld = numexpr.evaluate('(idplcd & (final_prob > clr_max) & (WT == 0)) | (idplcd & (wfinal_prob > wclr_max) & (WT == 1)) | (final_prob > 99.0) & (WT == 0) | (Temp < t_templ - 3500)')
+        id_final_cld = numexpr.evaluate('(idplcd & (final_prob > clr_max) & (WT == 0)) | (idplcd & (wfinal_prob > wclr_max) & (WT == 1)) | (Temp < t_templ - 3500)')
 
         ## Star with potential cloud mask
         # # potential cloud mask
@@ -1049,19 +1055,19 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMA
         #*************************************************************************************#
         #************The following code may be removed as the new code has changed************#
         # Mask the non-contiguous pixels
-        Cloud[~(mask)] = 0
+        #Cloud[~(mask)] = 0
 
-        # # improving by majority filtering
-        # ERROR: not aware of a similar filter in scipy (though one may very well exist)
-        # Doing convolution of all surrounding pixels & filtering those > 4, which should in theory have the same result
-        Cloud = scipy.signal.convolve2d(Cloud, numpy.ones((3,3), Cloud.dtype.name))[1:-1,1:-1]
-        Cloud = (Cloud > 4).astype('uint8')
-        # Applying twice, makes a cleaner result
-        Cloud = scipy.signal.convolve2d(Cloud, numpy.ones((3,3), Cloud.dtype.name))[1:-1,1:-1]
-        #Cloud=(Cloud>4).astype('uint8')
-        # 3rd, still some single pixels at tile edges
-        #Cloud=scipy.signal.convolve2d(Cloud,numpy.ones((3,3),Cloud.dtype.name))[1:-1,1:-1]
-        Cloud = Cloud > 4
+        ## # improving by majority filtering
+        ## ERROR: not aware of a similar filter in scipy (though one may very well exist)
+        ## Doing convolution of all surrounding pixels & filtering those > 4, which should in theory have the same result
+        #Cloud = scipy.signal.convolve2d(Cloud, numpy.ones((3,3), Cloud.dtype.name))[1:-1,1:-1]
+        #Cloud = (Cloud > 4).astype('uint8')
+        ## Applying twice, makes a cleaner result
+        #Cloud = scipy.signal.convolve2d(Cloud, numpy.ones((3,3), Cloud.dtype.name))[1:-1,1:-1]
+        ##Cloud=(Cloud>4).astype('uint8')
+        ## 3rd, still some single pixels at tile edges
+        ##Cloud=scipy.signal.convolve2d(Cloud,numpy.ones((3,3),Cloud.dtype.name))[1:-1,1:-1]
+        #Cloud = Cloud > 4
         #************The above code may be removed as the new code has changed****************#
         #*************************************************************************************#
         #*************************************************************************************#
