@@ -40,11 +40,23 @@ def match_file(dir_path, pattern):
     return None
 
 
+def im_info(filename):
+    """
+    A function to retrieve the geotransform and projection details using GDAL.
+    The original MATLAB code handles it differently, we'll just implement something unique here
+    and let GDAL automatically handle the read/write of the projection info.
+    Less messy than the MATLAB code which assumes that everything is in UTM.
+    Some products may come as Lat/Lon geographic projections.
+    """
 
+    img  = gdal.Open(filename)
+    geoT = img.GetGeoTransform()
+    prj  = img.GetProjection()
+    return (geoT, prj)
 
 def imread(filename, resample=False, samples=None, lines=None):
-    img=gdal.Open(filename)
-    band=img.GetRasterBand(1)
+    img = gdal.Open(filename)
+    band = img.GetRasterBand(1)
     if resample:
         driver = gdal.GetDriverByName('MEM')
         outds  = driver.Create("", samples, lines, 1, band.DataType)
@@ -460,7 +472,6 @@ def lndhdrread(filename):
             ul = (ulx,uly)
             # Read in date of year
             char_doy = data['LANDSAT_SCENE_ID']
-            #doy=int(char_doy[15:17]) # This may need to change to 14:16. TODO Test this!
             doy = int(char_doy[13:16])
     else:
         raise Exception('This sensor is not Landsat 4, 5, 7, or 8!')
@@ -487,107 +498,103 @@ def nd2toarbt(filename, images=None):
     base = os.path.dirname(filename)
 
     # LPGS Upper left corner alignment (see Landsat handbook for detail)
-    ul=(ul[0]-15,ul[1]+15) # This is in error if GA products are used (25m). JS 2013/11/28
-    resolu=(reso_ref,reso_ref)
+    # Changed from (ul[0]-15,ul[1]+15), GA products are 25m, this should also allow for other resolutions as well
+    ul = (ul[0] - float(reso_ref) / 2, ul[1] + float(reso_ref) / 2)
+    resolu = (reso_ref,reso_ref)
 
     if ((Lnum >= 4) & (Lnum <= 7)):
 
         # Band6
         if Lnum == 7:
-            n_B6=match_file(base, '.*B61.*')
+            n_B6 = match_file(base, '.*B61.*')
         else:
-            n_B6=match_file(base, '.*B6.*')
+            n_B6 = match_file(base, '.*B6.*')
 
         # Check that the thermal band resolution matches the reflectance bands.
         ref_lines, ref_samples = ijdim_ref
         thm_lines, thm_samples = ijdim_thm
         if ((thm_lines != ref_lines) | (thm_samples != ref_samples)):
-            im_B6=imread(n_B6, resample=True, samples=ref_samples, lines=ref_lines).astype(numpy.float32)
+            im_B6 = imread(n_B6, resample=True, samples=ref_samples, lines=ref_lines).astype(numpy.float32)
         else:
-            im_B6=imread(n_B6).astype(numpy.float32)
-
-        # check to see whether need to resample thermal band
-        #if reso_ref != reso_thm:
-            # resmaple thermal band
-            # TODO: Can be done using GDAL. DONE JS 2013/11/28
+            im_B6 = imread(n_B6).astype(numpy.float32)
 
         # convert Band6 from radiance to BT
         # fprintf('From Band 6 Radiance to Brightness Temperature\n')
         # see G. Chander et al. RSE 113 (2009) 893-903
-        K1_L4=  671.62
-        K2_L4= 1284.30
-        K1_L5=  607.76
-        K2_L5= 1260.56
-        K1_L7=  666.09
-        K2_L7= 1282.71
+        K1_L4 =  671.62
+        K2_L4 = 1284.30
+        K1_L5 =  607.76
+        K2_L5 = 1260.56
+        K1_L7 =  666.09
+        K2_L7 = 1282.71
 
         if Lnum == 7:
-            K1=K1_L7
-            K2=K2_L7
+            K1 = K1_L7
+            K2 = K2_L7
         elif Lnum == 5:
-            K1=K1_L5
-            K2=K2_L5
+            K1 = K1_L5
+            K2 = K2_L5
         elif Lnum == 4:
-            K1=K1_L4
-            K2=K2_L4
-
-        # convert from Kelvin to Celcius with 0.01 scale_facor
-        #im_B6=numexpr.evaluate("a * ((K2/log((K1/im_B6)+one)) - b)", { 'a': numpy.float32(100), 'b': numpy.float32(273.15), 'one': numpy.float32(1.0) }, locals())
+            K1 = K1_L4
+            K2 = K2_L4
 
 
         if images != None:
-            im_B1=images[0,:,:].astype(numpy.float32)
-            im_B2=images[1,:,:].astype(numpy.float32)
-            im_B3=images[2,:,:].astype(numpy.float32)
-            im_B4=images[3,:,:].astype(numpy.float32)
-            im_B5=images[4,:,:].astype(numpy.float32)
-            im_B7=images[6,:,:].astype(numpy.float32)
+            im_B1 = images[0,:,:].astype(numpy.float32)
+            im_B2 = images[1,:,:].astype(numpy.float32)
+            im_B3 = images[2,:,:].astype(numpy.float32)
+            im_B4 = images[3,:,:].astype(numpy.float32)
+            im_B5 = images[4,:,:].astype(numpy.float32)
+            im_B7 = images[6,:,:].astype(numpy.float32)
             del images
 
             # find pixels that are saturated in the visible bands
-            B1Satu=im_B1==255.0
-            B2Satu=im_B2==255.0
-            B3Satu=im_B3==255.0
+            B1Satu = im_B1 == 255.0
+            B2Satu = im_B2 == 255.0
+            B3Satu = im_B3 == 255.0
 
             # only processing pixesl where all bands have values (id_mssing)
-            id_missing=numexpr.evaluate("(im_B1==0.0)|(im_B2==0.0)|(im_B3==0.0)|(im_B4==0.0)|(im_B5==0.0)|(im_B6==0.0)|(im_B7==0.0)")
+            id_missing = numexpr.evaluate("(im_B1 == 0.0) | (im_B2 == 0.0) | (im_B3 == 0.0) | (im_B4 == 0.0) |(im_B5 == 0.0) | (im_B6 == 0.0) | (im_B7 == 0.0)")
 
         else:
             # Band1
-            n_B1=match_file(base, '.*B1.*')
-            im_B1=imread(n_B1).astype(numpy.float32)
+            n_B1 = match_file(base, '.*B1.*')
+            im_B1 = imread(n_B1).astype(numpy.float32)
             # Band2
-            n_B2=match_file(base, '.*B2.*')
-            im_B2=imread(n_B2).astype(numpy.float32)
+            n_B2 = match_file(base, '.*B2.*')
+            im_B2 = imread(n_B2).astype(numpy.float32)
             # Band3
-            n_B3=match_file(base, '.*B3.*')
-            im_B3=imread(n_B3).astype(numpy.float32)
+            n_B3 = match_file(base, '.*B3.*')
+            im_B3 = imread(n_B3).astype(numpy.float32)
             # Band4
-            n_B4=match_file(base, '.*B4.*')
-            im_B4=imread(n_B4).astype(numpy.float32)
+            n_B4 = match_file(base, '.*B4.*')
+            im_B4 = imread(n_B4).astype(numpy.float32)
             # Band5
-            n_B5=match_file(base, '.*B5.*')
-            im_B5=imread(n_B5).astype(numpy.float32)
+            n_B5 = match_file(base, '.*B5.*')
+            im_B5 = imread(n_B5).astype(numpy.float32)
             # Band7
-            n_B7=match_file(base, '.*B7.*')
-            im_B7=imread(n_B7).astype(numpy.float32)
+            n_B7 = match_file(base, '.*B7.*')
+            im_B7 = imread(n_B7).astype(numpy.float32)
+
+            # Retrieve the projection and geotransform info from the blue band (B1 LS 4,5,7)
+            geoT, prj = im_info(n_B1)
 
             # find pixels that are saturated in the visible bands
-            B1Satu=im_B1==255.0
-            B2Satu=im_B2==255.0
-            B3Satu=im_B3==255.0
+            B1Satu = im_B1 == 255.0
+            B2Satu = im_B2 == 255.0
+            B3Satu = im_B3 == 255.0
 
             # only processing pixesl where all bands have values (id_mssing)
-            id_missing=numexpr.evaluate("(im_B1==0.0)|(im_B2==0.0)|(im_B3==0.0)|(im_B4==0.0)|(im_B5==0.0)|(im_B6==0.0)|(im_B7==0.0)")
+            id_missing = numexpr.evaluate("(im_B1 == 0.0) | (im_B2 == 0.0) | (im_B3 == 0.0) | (im_B4 == 0.0) | (im_B5 == 0.0) | (im_B6 == 0.0) | (im_B7 == 0.0)")
 
             # ND to radiance first
-            im_B1=numexpr.evaluate("((Lma-Lmi)/(Qma-Qmi))*(im_B1-Qmi)+Lmi", { 'Lma': Lmax[0], 'Lmi': Lmin[0], 'Qma': Qcalmax[0], 'Qmi': Qcalmin[0] }, locals())
-            im_B2=numexpr.evaluate("((Lma-Lmi)/(Qma-Qmi))*(im_B2-Qmi)+Lmi", { 'Lma': Lmax[1], 'Lmi': Lmin[1], 'Qma': Qcalmax[1], 'Qmi': Qcalmin[1] }, locals())
-            im_B3=numexpr.evaluate("((Lma-Lmi)/(Qma-Qmi))*(im_B3-Qmi)+Lmi", { 'Lma': Lmax[2], 'Lmi': Lmin[2], 'Qma': Qcalmax[2], 'Qmi': Qcalmin[2] }, locals())
-            im_B4=numexpr.evaluate("((Lma-Lmi)/(Qma-Qmi))*(im_B4-Qmi)+Lmi", { 'Lma': Lmax[3], 'Lmi': Lmin[3], 'Qma': Qcalmax[3], 'Qmi': Qcalmin[3] }, locals())
-            im_B5=numexpr.evaluate("((Lma-Lmi)/(Qma-Qmi))*(im_B5-Qmi)+Lmi", { 'Lma': Lmax[4], 'Lmi': Lmin[4], 'Qma': Qcalmax[4], 'Qmi': Qcalmin[4] }, locals())
-            im_B6=numexpr.evaluate("((Lma-Lmi)/(Qma-Qmi))*(im_B6-Qmi)+Lmi", { 'Lma': Lmax[5], 'Lmi': Lmin[5], 'Qma': Qcalmax[5], 'Qmi': Qcalmin[5] }, locals())
-            im_B7=numexpr.evaluate("((Lma-Lmi)/(Qma-Qmi))*(im_B7-Qmi)+Lmi", { 'Lma': Lmax[6], 'Lmi': Lmin[6], 'Qma': Qcalmax[6], 'Qmi': Qcalmin[6] }, locals())
+            im_B1 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B1 - Qmi) + Lmi", { 'Lma': Lmax[0], 'Lmi': Lmin[0], 'Qma': Qcalmax[0], 'Qmi': Qcalmin[0] }, locals())
+            im_B2 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B2 - Qmi) + Lmi", { 'Lma': Lmax[1], 'Lmi': Lmin[1], 'Qma': Qcalmax[1], 'Qmi': Qcalmin[1] }, locals())
+            im_B3 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B3 - Qmi) + Lmi", { 'Lma': Lmax[2], 'Lmi': Lmin[2], 'Qma': Qcalmax[2], 'Qmi': Qcalmin[2] }, locals())
+            im_B4 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B4 - Qmi) + Lmi", { 'Lma': Lmax[3], 'Lmi': Lmin[3], 'Qma': Qcalmax[3], 'Qmi': Qcalmin[3] }, locals())
+            im_B5 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B5 - Qmi) + Lmi", { 'Lma': Lmax[4], 'Lmi': Lmin[4], 'Qma': Qcalmax[4], 'Qmi': Qcalmin[4] }, locals())
+            im_B6 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B6 - Qmi) + Lmi", { 'Lma': Lmax[5], 'Lmi': Lmin[5], 'Qma': Qcalmax[5], 'Qmi': Qcalmin[5] }, locals())
+            im_B7 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B7 - Qmi) + Lmi", { 'Lma': Lmax[6], 'Lmi': Lmin[6], 'Qma': Qcalmax[6], 'Qmi': Qcalmin[6] }, locals())
 
 
             # radiance to TOA reflectances
@@ -598,9 +605,9 @@ def nd2toarbt(filename, images=None):
             #  esun_L4=[1957.0, 1825.0, 1557.0, 1033.0, 214.9, -1.0, 80.72]
 
             # see G. Chander et al. RSE 113 (2009) 893-903
-            esun_L7=[1997.000, 1812.000, 1533.000, 1039.000, 230.800, -1.0, 84.90]
-            esun_L5=[1983.0, 1796.0, 1536.0, 1031.0, 220.0, -1.0, 83.44]
-            esun_L4=[1983.0, 1795.0, 1539.0, 1028.0, 219.8, -1.0, 83.49]
+            esun_L7 = [1997.000, 1812.000, 1533.000, 1039.000, 230.800, -1.0, 84.90]
+            esun_L5 = [1983.0, 1796.0, 1536.0, 1031.0, 220.0, -1.0, 83.44]
+            esun_L4 = [1983.0, 1795.0, 1539.0, 1028.0, 219.8, -1.0, 83.49]
 
             if Lnum == 7:
                 ESUN = esun_L7
@@ -630,21 +637,21 @@ def nd2toarbt(filename, images=None):
             # converted from degrees to radiance
             s_zen = math.radians(zen)
             stack = {
-                'a': numpy.float32(10000.0*math.pi),
-                'b': numpy.float32(dsun_doy*dsun_doy),
+                'a': numpy.float32(10000.0 * math.pi),
+                'b': numpy.float32(dsun_doy * dsun_doy),
                 'c': numpy.float32(math.cos(s_zen))
             }
 
-            im_B1 = numexpr.evaluate("a*im_B1*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[0]) }.items()), locals())
-            im_B2 = numexpr.evaluate("a*im_B2*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[1]) }.items()), locals())
-            im_B3 = numexpr.evaluate("a*im_B3*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[2]) }.items()), locals())
-            im_B4 = numexpr.evaluate("a*im_B4*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[3]) }.items()), locals())
-            im_B5 = numexpr.evaluate("a*im_B5*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[4]) }.items()), locals())
-            im_B7 = numexpr.evaluate("a*im_B7*b/(sun*c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[6]) }.items()), locals())
+            im_B1 = numexpr.evaluate("a * im_B1 * b / (sun * c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[0]) }.items()), locals())
+            im_B2 = numexpr.evaluate("a * im_B2 * b / (sun * c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[1]) }.items()), locals())
+            im_B3 = numexpr.evaluate("a * im_B3 * b / (sun * c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[2]) }.items()), locals())
+            im_B4 = numexpr.evaluate("a * im_B4 * b / (sun * c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[3]) }.items()), locals())
+            im_B5 = numexpr.evaluate("a * im_B5 * b / (sun * c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[4]) }.items()), locals())
+            im_B7 = numexpr.evaluate("a * im_B7 * b / (sun * c)", dict(stack.items() + { 'sun': numpy.float32(ESUN[6]) }.items()), locals())
 
 
         # convert from Kelvin to Celcius with 0.01 scale_facor
-        im_B6 = numexpr.evaluate("a * ((K2/log((K1/im_B6)+one)) - b)", { 'a': numpy.float32(100), 'b': numpy.float32(273.15), 'one': numpy.float32(1.0) }, locals())
+        im_B6 = numexpr.evaluate("a * ((K2 / log((K1 / im_B6) + one)) - b)", { 'a': numpy.float32(100), 'b': numpy.float32(273.15), 'one': numpy.float32(1.0) }, locals())
 
         # get data ready for Fmask
         im_B1[id_missing] = -9999
@@ -660,7 +667,8 @@ def nd2toarbt(filename, images=None):
         images = numpy.array([im_B1, im_B2, im_B3, im_B4, im_B5, im_B7], 'float32')
         del im_B1, im_B2, im_B3, im_B4, im_B5, im_B7
 
-        return [im_B6,images,ijdim_ref,ul,zen,azi,zc,B1Satu,B2Satu,B3Satu,resolu]
+        # We'll modify the return argument for the Python implementation (geoT,prj) are added to the list
+        return [im_B6,images,ijdim_ref,ul,zen,azi,zc,B1Satu,B2Satu,B3Satu,resolu,geoT,prj]
     elif (Lnum == 8):
         n_B10 = match_file(base, '.*B10.*')
         # Check that the thermal band resolution matches the reflectance bands.
@@ -693,6 +701,9 @@ def nd2toarbt(filename, images=None):
         # Band9
         n_B9 = match_file(base, '.*B9.*')
         im_B9 = imread(n_B9).astype(numpy.float32)
+
+        # Retrieve the projection and geotransform info from the blue band (B2 in LS8)
+        geoT, prj = im_info(n_B2)
 
         # only processing pixesl where all bands have values (id_mssing)
         id_missing = numexpr.evaluate("(im_B2 == 0.0) | (im_B3 == 0.0) | (im_B4 == 0.0) | (im_B5 == 0.0) | (im_B6 == 0.0) | (im_B7 == 0.0) | (im_B9 == 0.0) | (im_B10 == 0.0)")
@@ -750,7 +761,8 @@ def nd2toarbt(filename, images=None):
         images = numpy.array([im_B2, im_B3, im_B4, im_B5, im_B6, im_B7, im_B9], 'float32')
         del im_B2, im_B3, im_B4, im_B5, im_B6, im_B7, im_B9
 
-        return [im_B10,images,ijdim_ref,ul,zen,azi,zc,B1Satu,B2Satu,B3Satu,resolu]
+        # We'll modify the return argument for the Python implementation (geoT,prj) are added to the list
+        return [im_B10,images,ijdim_ref,ul,zen,azi,zc,B1Satu,B2Satu,B3Satu,resolu,geoT,prj]
 
     else:
         raise Exception('This sensor is not Landsat 4, 5, 7, or 8!')
@@ -785,7 +797,7 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMA
     logfile.write("Processing FMASK cloud cover... \n")
     start_time = time.time()
 
-    Temp,data,dim,ul,zen,azi,zc,satu_B1,satu_B2,satu_B3,resolu = nd2toarbt(filename, images)
+    Temp,data,dim,ul,zen,azi,zc,satu_B1,satu_B2,satu_B3,resolu,geoT,prj = nd2toarbt(filename, images)
 
     if num_Lst < 8: # Landsat 4~7
         Thin_prob = 0 #  there is no contribution from the new bands
@@ -818,7 +830,7 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMA
     NDSI[numexpr.evaluate("(data2 + data5) == 0")] = 0.01
 
     ##############################################saturation in the three visible bands
-    satu_Bv = (satu_B1 + satu_B2 + satu_B3) >= 1
+    satu_Bv = numexpr.evaluate("(satu_B1 | satu_B2 | satu_B3)")
     del satu_B1
     ################################################## Basic cloud test
     idplcd = numexpr.evaluate("(NDSI < 0.8) & (NDVI < 0.8) & (data6 > 300) & (Temp < 2700)")
@@ -826,7 +838,7 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMA
     ################################################## Snow test
     # It takes every snow pixels including snow pixel under thin clouds or icy clouds
     Snow[numexpr.evaluate("(NDSI > 0.15) & (Temp < 1000) & (data4 > 1100) & (data2 > 1000)")] = 1 
-    Snow[mask == 0] = 255
+    #Snow[mask == 0] = 255
     ################################################## Water test
     # Zhe's water test (works over thin cloud)
     WT[numexpr.evaluate("((NDVI < 0.01) & (data4 < 1100)) | ((NDVI < 0.1) & (NDVI > 0) & (data4 < 500))")] = 1
@@ -838,12 +850,12 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMA
     del visimean
 
     # update idplcd
-    whiteness[satu_Bv == 1] = 0# If one visible is saturated whiteness == 0
+    whiteness[satu_Bv] = 0# If one visible is saturated whiteness == 0
     idplcd &= whiteness < 0.7
 
     ################################################## Haze test
     HOT = numexpr.evaluate("data1 - 0.5 * data3 - 800") # Haze test
-    idplcd &= numexpr.evaluate("(HOT > 0) | (satu_Bv == 1)")
+    idplcd &= numexpr.evaluate("(HOT > 0) | satu_Bv")
     del HOT # need to find thick warm cloud
 
     ######################################### Ratio4/5>0.75 cloud test
@@ -870,7 +882,7 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMA
 
     if ptm <= 0.1: # no thermal test => meanless for snow detection (0~1)
         #     fprintf('Clear pixel NOT exist in this scene (del prct = #.2f)\n',ptm)
-        Cloud[idplcd == True] = 1 # all cld
+        Cloud[idplcd] = 1 # all cld
 
         # mask out the non-contiguous pixels
         Cloud[~(mask)] = 0
@@ -931,19 +943,19 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMA
             # 0.825 percentile background temperature (high)
             t_temph = scipy.stats.scoreatpercentile(F_temp, 100 * h_pt)
         else:
-            t_templ=0
-            t_temph=0
+            t_templ = 0
+            t_temph = 0
 
         t_tempL = t_templ - t_buffer
         t_tempH = t_temph + t_buffer
         Temp_l = t_tempH - t_tempL
         Temp_prob = (t_tempH - Temp) / Temp_l
         # Temperature can have prob > 1
-        Temp_prob[Temp_prob < 0]=0
+        Temp_prob[Temp_prob < 0] = 0
         #Temp_prob(Temp_prob > 1) = 1
 
-        NDSI[numexpr.evaluate('(satu_B2 == True) & (NDSI < 0)')] = 0
-        NDVI[numexpr.evaluate('(satu_B3 == True) & (NDVI > 0)')] = 0
+        NDSI[numexpr.evaluate('satu_B2 & (NDSI < 0)')] = 0
+        NDVI[numexpr.evaluate('satu_B3 & (NDVI > 0)')] = 0
 
         Vari_prob= 1 - numpy.maximum(numpy.maximum(numpy.absolute(NDSI), numpy.absolute(NDVI)), whiteness)
 
@@ -994,21 +1006,8 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMA
             backg_B4 = scipy.stats.scoreatpercentile(nir[idlnd], 100.0 * l_pt)
             nir[mask == 0] = backg_B4
             # fill in regional minimum Band 4 ref
-            #nir = imfill(nir, "nir") # Old method using ITK
             nir = imfill_skimage(nir)
-            nir = nir - data4 # TODO Check that this subtraction gives the same result using the imfill_skimage mehod. JS 2013/12/10
-                              # Some other tests using the imfill_skimage use dat - fill rather than fill - data
-
-            #UPDATE: filled - data will yield positive values, whereas data - filled will yield negative values. A threshold is set later for values > 200, therefore finding the local minima will be positive values.
-
-            drv   = gdal.GetDriverByName("ENVI")
-            outds = drv.Create('nir_holes', nir.shape[1], nir.shape[0], 1, 4)
-            band  = outds.GetRasterBand(1)
-            band.WriteArray(nir)
-            outds = None
-
-            # Test
-            #nir = data4 - nir 
+            nir = nir - data4 
 
             # band 5 flood fill
             swir = data5
@@ -1016,33 +1015,14 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMA
             backg_B5 = scipy.stats.scoreatpercentile(swir[idlnd], 100.0 * l_pt)
             swir[mask == 0] = backg_B5
             # fill in regional minimum Band 5 ref
-            #swir = imfill(swir, "swir") # Old method using ITK
             swir = imfill_skimage(swir)
             swir = swir - data5
-
-            # Test
-            #swir = data5 - swir
-
-            outds = drv.Create('swir_holes', swir.shape[1], swir.shape[0], 1, 4)
-            band  = outds.GetRasterBand(1)
-            band.WriteArray(swir)
-            outds = None
 
             # compute shadow probability
             shadow_prob = numpy.minimum(nir, swir)
             # release remory
             del nir
             del swir
-
-            outds = drv.Create('shadow_prob', shadow_prob.shape[1], shadow_prob.shape[0], 1, 4)
-            band  = outds.GetRasterBand(1)
-            band.WriteArray(shadow_prob)
-            outds = None
-
-            outds = drv.Create('shadow_prob_gt_200', shadow_prob.shape[1], shadow_prob.shape[0], 1, 1)
-            band  = outds.GetRasterBand(1)
-            band.WriteArray(shadow_prob > 200)
-            outds = None
 
             Shadow[shadow_prob > 200] = 1
             # release remory
@@ -1113,7 +1093,8 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMA
 
     logfile.write("Completed processing FMASK cloud cover...\n")
 
-    return (zen,azi,ptm,Temp,t_templ,t_temph,WT,Snow,Cloud,Shadow,dim,ul,resolu,zc)
+    # We'll modify the return argument for the Python implementation (geoT,prj) are added to the list
+    return (zen,azi,ptm,Temp,t_templ,t_temph,WT,Snow,Cloud,Shadow,dim,ul,resolu,zc,geoT,prj)
 
 def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,resolu,ZC,cldpix,sdpix,snpix):
     """
@@ -1235,6 +1216,7 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
         # define constants
         Tsimilar = 0.30
         Tbuffer = 0.95 # threshold for matching buffering
+        max_similar = 0.95 # max similarity threshold
         num_cldoj = 3 # minimum matched cloud object (pixels)
         num_pix = 3 # number of inward pixes (90m) for cloud base temperature
 
@@ -1251,7 +1233,7 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
         i_step = 2 * sub_size * math.tan(sun_ele_rad) # move 2 pixel at a time
 
         # get moving direction
-        (rows,cols)= numpy.nonzero(boundary_test == 1)
+        (rows,cols)= numpy.nonzero(boundary_test)
         (y_ul,num) = (rows.min(), rows.argmin())
         x_ul = cols[num]
 
@@ -1265,43 +1247,20 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
         y_ur = rows[num]
 
         # get view angle geometry
-        (A, B, C, omiga_par, omiga_per) = viewgeo(x_ul, y_ul, x_ur, y_ur, x_ll, y_ll, x_lr, y_lr)
+        (A, B, C, omiga_par, omiga_per) = viewgeo(float(x_ul), float(y_ul), float(x_ur), float(y_ur), float(x_ll), float(y_ll), float(x_lr), float(y_lr))
 
         # Segmentate each cloud
         #     fprintf('Cloud segmentation & matching\n')
-        st = datetime.datetime.now()
         (segm_cloud_init,segm_cloud_init_features) = scipy.ndimage.measurements.label(cloud_test, scipy.ndimage.morphology.generate_binary_structure(2,2))
-        et = datetime.datetime.now()
-        print 'scipy.ndimage.measurements.label time taken: ', et - st
-        #L = segm_cloud_init
-        #s = regionprops(L,'area')
-        #area = [s.Area]
-        #area = numpy.bincount(L.flatten())
-        #s = measure.regionprops(L)
-        #area = s.Area
 
         # filter out cloud object < than num_cldoj pixels
-        #segm_cloud_tmp = numpy.select([area[L] >= num_cldoj], [L]) # ismember(L,idx)
-        #(segm_cloud,num)=scipy.ndimage.measurements.label(segm_cloud_tmp, scipy.ndimage.morphology.generate_binary_structure(2,2))
-        st = datetime.datetime.now()
         morphology.remove_small_objects(segm_cloud_init, num_cldoj, in_place=True)
-        et = datetime.datetime.now()
-        print "morphology.remove_small_objects time taken: ", et - st
-        st = datetime.datetime.now()
         segm_cloud, fw, inv = segmentation.relabel_from_one(segm_cloud_init)
         num = numpy.max(segm_cloud)
-        et = datetime.datetime.now()
-        print "segmentation.relabel_from_one time taken: ", et - st
 
-        #s = regionprops(segm_cloud,'area')
-        #area_final = [s.Area]
-        #area_final = numpy.bincount(segm_cloud.flatten())[1:] # Older method. skimage provides a similar function to MATLAB's regionprops. JS 16/12/2013.
-        #obj_num=area_final
         # NOTE: properties is deprecated as of version 0.9 and all properties are computed. Currently using version 0.8.2. If this version or a later versionproves too slow, I'll implement another method. JS 16/12/2013
-        st = datetime.datetime.now()
+        # The properties is taking approx 3min, I can cut that down to just a few seconds using another method, but will leave for the time being.
         s = measure.regionprops(segm_cloud,  properties=['Area', 'Coordinates'])
-        et = datetime.datetime.now()
-        print "measure.regionprops time taken: ", et - st
 
         # Get the x,y of each cloud
         # Matrix used in recording the x,y
@@ -1313,28 +1272,21 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
         # height_num=zeros(num) # cloud relative height (m)
         similar_num = numpy.zeros(num) # cloud shadow match similarity (m)
 
-        st = datetime.datetime.now()
-        time_obj_zero = st - st
-        time_base_h_zero = st - st
-
         # Newer method of looping through the cloud objects/segments JS 16/12/2013
         for cloud_type in s:
 
-            time_obj_start = datetime.datetime.now()
+            cld_area  = cloud_type['Area']
+            cld_label = cloud_type['Label']
 
-            num_pixels = cloud_type['Area']
-
+            # Have re-formatted the arrays to be Python style memory ordering (2,num_pixels) JS 16/12/2013
             # moving cloud xys
-            #XY_type = numpy.zeros((num_pixels,2), dtype='uint32')
             XY_type = numpy.zeros((2,num_pixels), dtype='uint32')
 
             # record the max threshold moving cloud xys
-            #tmp_XY_type = numpy.zeros((num_pixels,2), dtype='uint32')
             tmp_XY_type = numpy.zeros((2,num_pixels), dtype='uint32')
 
             # corrected for view angle xys
-            #tmp_xys = numpy.zeros((num_pixels,2)) # Leave as float for the time being. Also might be faster to use (2,num_pixels) JS 16/12/2013
-            tmp_xys = numpy.zeros((2,num_pixels)) # Leave as float for the time being. Also might be faster to use (2,num_pixels) JS 16/12/2013
+            tmp_xys = numpy.zeros((2,num_pixels)) # Leave as float for the time being
 
             # record this original ids
             orin_cid = (cloud_type['Coordinates'][:,0],cloud_type['Coordinates'][:,1])
@@ -1343,7 +1295,7 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
             temp_obj = Temp[orin_cid]
 
             # assume object is round r_obj is radium of object
-            r_obj    = math.sqrt(cloud_type['Area'] / math.pi)
+            r_obj    = math.sqrt(cld_area / math.pi)
 
             # number of inward pixes for correct temperature
             #        num_pix=8
@@ -1367,36 +1319,27 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
             Max_cl_height = min(Max_cl_height, 10 *(t_temph + 400 - t_obj))
 
             # initialize height and similarity info
-            record_h = 0
-            record_thresh = 0
-
-            time_base_h_start = datetime.datetime.now()
+            record_h = 0.0
+            record_thresh = 0.0
 
             for base_h in numpy.arange(Min_cl_height, Max_cl_height, i_step): # iterate in height (m)
                 # Get the true postion of the cloud
                 # calculate cloud DEM with initial base height
                 h = (10 * (t_obj - temp_obj) / rate_elapse + base_h)
-                #tmp_xys[:,1], tmp_xys[:,0] = mat_truecloud(orin_cid[0], orin_cid[1], h, A, B, C, omiga_par, omiga_per) # Function is returned as (x_new,y_new)
-                tmp_xys[1,:], tmp_xys[0,:] = mat_truecloud(orin_cid[0], orin_cid[1], h, A, B, C, omiga_par, omiga_per) # Function is returned as (x_new,y_new)
+                tmp_xys[1,:], tmp_xys[0,:] = mat_truecloud(orin_cid[1], orin_cid[0], h, A, B, C, omiga_par, omiga_per) # Function is returned as (x_new,y_new)
 
                 # shadow moved distance (pixel)
                 # i_xy=h*cos(sun_tazi_rad)/(sub_size*math.tan(sun_ele_rad))
                 i_xy = h /(sub_size * math.tan(sun_ele_rad))
 
                 if Sun_azi < 180:
-                    #XY_type[:,1] = numpy.round(tmp_xys[:,0] - i_xy * math.cos(sun_tazi_rad)) # X is for j,1
-                    XY_type[1,:] = numpy.round(tmp_xys[0,:] - i_xy * math.cos(sun_tazi_rad)) # X is for j,1
-                    #XY_type[:,0] = numpy.round(tmp_xys[:,1] - i_xy * math.sin(sun_tazi_rad)) # Y is for i,0
-                    XY_type[0,:] = numpy.round(tmp_xys[1,:] - i_xy * math.sin(sun_tazi_rad)) # Y is for i,0
+                    XY_type[1,:] = numpy.round(tmp_xys[1,:] - i_xy * math.cos(sun_tazi_rad)) # X is for j,1
+                    XY_type[0,:] = numpy.round(tmp_xys[0,:] - i_xy * math.sin(sun_tazi_rad)) # Y is for i,0
                 else:
-                    #XY_type[:,1] = numpy.round(tmp_xys[:,0] + i_xy * math.cos(sun_tazi_rad)) # X is for j,1
-                    XY_type[1,:] = numpy.round(tmp_xys[0,:] + i_xy * math.cos(sun_tazi_rad)) # X is for j,1
-                    #XY_type[:,0] = numpy.round(tmp_xys[:,1] + i_xy * math.sin(sun_tazi_rad)) # Y is for i,0
-                    XY_type[0,:] = numpy.round(tmp_xys[1,:] + i_xy * math.sin(sun_tazi_rad)) # Y is for i,0
+                    XY_type[1,:] = numpy.round(tmp_xys[1,:] + i_xy * math.cos(sun_tazi_rad)) # X is for j,1
+                    XY_type[0,:] = numpy.round(tmp_xys[0,:] + i_xy * math.sin(sun_tazi_rad)) # Y is for i,0
 
-                #tmp_j = XY_type[:,1] # col
                 tmp_j = XY_type[1,:] # col
-                #tmp_i = XY_type[:,0] # row
                 tmp_i = XY_type[0,:] # row
 
 
@@ -1410,41 +1353,32 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
                 tmp_id = [tmp_ii, tmp_jj]
 
                 # the id that is matched (exclude original cloud)
-                #match_id = (boundary_test[tmp_id] == 0) |((segm_cloud[tmp_id] != (cloud_type + 1)) & (cloud_test[tmp_id] > 0) | (shadow_test[tmp_id] == 1))
-                #match_id = (boundary_test[tmp_id] == 0) |((segm_cloud[tmp_id] != (cloud_type['Label'] )) & (cloud_test[tmp_id] > 0) | (shadow_test[tmp_id] == 1))
-                match_id = numexpr.evaluate("(b_test == 0) | ((seg != label) & (cld_test > 0) | (shad_test == 1))", {'b_test':boundary_test[tmp_id], 'seg':segm_cloud[tmp_id], 'label':cloud_type['Label'], 'cld_test':cloud_test[tmp_id], 'shad_test':shadow_test[tmp_id]})
+                match_id = numexpr.evaluate("(b_test == 0) | ((seg != cld_label) & ((cld_test > 0) | (shad_test == 1)))", {'b_test':boundary_test[tmp_id], 'seg':segm_cloud[tmp_id], 'cld_test':cloud_test[tmp_id], 'shad_test':shadow_test[tmp_id]})
                 matched_all = numpy.sum(match_id) + out_all
 
                 # the id that is the total pixel (exclude original cloud)
-                #total_id = (segm_cloud[tmp_id] != (cloud_type + 1))
-                total_id = (segm_cloud[tmp_id] != (cloud_type['Label']))
+                total_id = segm_cloud[tmp_id] != cld_label
                 total_all = numpy.sum(total_id) + out_all
 
-                thresh_match = matched_all / total_all
-                if (thresh_match >= Tbuffer * record_thresh) and (base_h < Max_cl_height - i_step) and (record_thresh < 0.95):
+                thresh_match = numpy.float32(matched_all) / total_all
+                if (thresh_match >= (Tbuffer * record_thresh)) and (base_h < (Max_cl_height - i_step)) and (record_thresh < 0.95):
                     if thresh_match > record_thresh:
                         record_thresh = thresh_match
                         record_h = h
 
                 elif record_thresh > Tsimilar:
-                    similar_num[cloud_type['Label'] -1] = record_thresh # -1 to account for the zero based index used by Python (MATLAB is 1 one based).
+                    similar_num[cld_label -1] = record_thresh # -1 to account for the zero based index used by Python (MATLAB is 1 one based).
                     i_vir = record_h / (sub_size * math.tan(sun_ele_rad))
                     # height_num=record_h
 
                     if Sun_azi < 180:
-                        #tmp_XY_type[:,1] = numpy.round(tmp_xys[:,0] - i_vir * math.cos(sun_tazi_rad)) # X is for col j,2
-                        tmp_XY_type[1,:] = numpy.round(tmp_xys[0,:] - i_vir * math.cos(sun_tazi_rad)) # X is for col j,2
-                        #tmp_XY_type[:,0] = numpy.round(tmp_xys[:,1] - i_vir * math.sin(sun_tazi_rad)) # Y is for row i,1
-                        tmp_XY_type[0,:] = numpy.round(tmp_xys[1,:] - i_vir * math.sin(sun_tazi_rad)) # Y is for row i,1
+                        tmp_XY_type[1,:] = numpy.round(tmp_xys[1,:] - i_vir * math.cos(sun_tazi_rad)) # X is for col j,2
+                        tmp_XY_type[0,:] = numpy.round(tmp_xys[0,:] - i_vir * math.sin(sun_tazi_rad)) # Y is for row i,1
                     else:
-                        #tmp_XY_type[:,1] = numpy.round(tmp_xys[:,0] + i_vir * math.cos(sun_tazi_rad)) # X is for col j,2
-                        tmp_XY_type[1,:] = numpy.round(tmp_xys[0,:] + i_vir * math.cos(sun_tazi_rad)) # X is for col j,2
-                        #tmp_XY_type[:,0] = numpy.round(tmp_xys[:,1] + i_vir * math.sin(sun_tazi_rad)) # Y is for row i,1
-                        tmp_XY_type[0,:] = numpy.round(tmp_xys[1,:] + i_vir * math.sin(sun_tazi_rad)) # Y is for row i,1
+                        tmp_XY_type[1,:] = numpy.round(tmp_xys[1,:] + i_vir * math.cos(sun_tazi_rad)) # X is for col j,2
+                        tmp_XY_type[0,:] = numpy.round(tmp_xys[0,:] + i_vir * math.sin(sun_tazi_rad)) # Y is for row i,1
 
-                    #tmp_scol = tmp_XY_type[:,1]
                     tmp_scol = tmp_XY_type[1,:]
-                    #tmp_srow = tmp_XY_type[:,0]
                     tmp_srow = tmp_XY_type[0,:]
 
                     # put data within range
@@ -1461,175 +1395,7 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
                     # cloud_height[orin_cid]=record_h
                     break
                 else:
-                    record_thresh = 0
-
-            time_obj_end = datetime.datetime.now()
-            time_obj_zero += (time_obj_end - time_obj_start)
-            time_base_h_zero += (time_obj_end - time_base_h_start)
-
-        et = datetime.datetime.now()
-        print 'Number of cloud objects: ', len(s)
-
-        print 'Time taken to iterate through each cloud object: ', et - st
-
-        print 'Average time taken per cloud object: ', time_obj_zero / len(s)
-
-        print 'Average time taken per cloud object for base height iteration: ', time_base_h_zero / len(s)
-
-        ##### Start of older method from original transcription
-        """
-        # Pre-allocate memory
-        XY_type_buffer=numpy.zeros((obj_num.max(),2), 'uint32')
-        tmp_XY_type_buffer=numpy.zeros((obj_num.max(),2), 'uint32')
-        tmp_xys_buffer=numpy.zeros((obj_num.max(),2))
-        orin_xys_buffer=numpy.zeros((obj_num.max(),2), 'uint32')
-
-        ctr = [0]*num
-        cids = [None] * num
-        for i in range(num):
-            cids[i] = numpy.zeros((obj_num[i],2), 'uint32')
-
-        (cy,cx) = segm_cloud.shape
-        code = "#""
-               #line 120 "test.py"
-               int idx;
-               for(int y = 0; y < cy; ++y)
-               {
-                   for(int x = 0; x < cx; ++x)
-                   {
-                       idx = segm_cloud(y,x);
-                       if(idx == 0) continue;
-                       --idx;
-
-                       int i = ctr[idx];
-                       blitz::Array<npy_uint32,2> ci = convert_to_blitz<npy_uint32,2>(convert_to_numpy((PyObject*)cids[idx],"_ci_"),"_ci_");
-                       ci(i,0) = y;
-                       ci(i,1) = x;
-                       ctr[idx] = i+1;
-                   }
-               }"#""
-        weave.inline(code, ['cx', 'cy', 'ctr', 'segm_cloud', 'cids'], type_converters=weave.converters.blitz, compiler='gcc')
-
-        # TODO: Split into threads
-        for cloud_type in range(num):
-            #fprintf('Shadow Match of the #d/#d_th cloud with #d
-            #pixels\n',cloud_type,num,obj_num(cloud_type))
-
-            num_pixels = obj_num[cloud_type]
-            # moving cloud xys
-            XY_type=XY_type_buffer[:num_pixels]
-            # record the max threshold moving cloud xys
-            tmp_XY_type=tmp_XY_type_buffer[:num_pixels]
-            # corrected for view angle xys
-            tmp_xys=tmp_xys_buffer[:num_pixels]
-            # record the original xys
-            orin_xys=orin_xys_buffer[:num_pixels]
-            # record this orinal ids
-            orin_cid = cids[cloud_type]
-
-            orin_xys[:,0] = orin_cid[:,0]
-            orin_xys[:,1] = orin_cid[:,1]
-
-            # Temperature of the cloud object
-            temp_obj=Temp[orin_cid[:,0],orin_cid[:,1]].astype('float64')
-            # the base temperature for cloud
-            # assume object is round r_obj is radium of object
-            r_obj=math.sqrt(obj_num[cloud_type]/math.pi)
-            # number of inward pixes for correct temperature
-            #        num_pix=8
-            pct_obj=math.pow(r_obj-num_pix,2)/math.pow(r_obj,2)
-            pct_obj=numpy.minimum(pct_obj,1) # pct of edge pixel should be less than 1
-            t_obj=scipy.stats.mstats.mquantiles(temp_obj,pct_obj)
-            # put the edge of the cloud the same value as t_obj
-            temp_obj[temp_obj>t_obj]=t_obj
-            # wet adiabatic lapse rate 6.5 degrees/km
-            # dry adiabatic lapse rate 9.8 degrees/km
-            #        rate_wlapse=6.5# degrees/km
-            #        rate_dlapse=9.8# degrees/km
-            Max_cl_height=12000# Max cloud base height (m)
-            Min_cl_height=200 # Min cloud base height (m)
-            # refine cloud height range (m)
-            Min_cl_height=max(Min_cl_height,10*(t_templ-400-t_obj)/rate_dlapse)
-            Max_cl_height=min(Max_cl_height,10*(t_temph+400-t_obj))
-            # initialize height and similarity info
-            record_h=0
-            record_thresh=0
-
-            for base_h in numpy.arange(Min_cl_height,Max_cl_height,i_step): # iterate in height (m)
-                # Get the true postion of the cloud
-                # calculate cloud DEM with initial base height
-                h=(10*(t_obj-temp_obj)/rate_elapse+base_h)
-                (a,b)=mat_truecloud(orin_xys[:,0],orin_xys[:,1],h,A,B,C,omiga_par,omiga_per)
-                tmp_xys[:,0] = b
-                tmp_xys[:,1] = a
-                # shadow moved distance (pixel)
-                # i_xy=h*cos(sun_tazi_rad)/(sub_size*math.tan(sun_ele_rad))
-                i_xy=h/(sub_size*math.tan(sun_ele_rad))
-
-                if Sun_azi < 180:
-                    XY_type[:,1]=numpy.round(tmp_xys[:,0]-i_xy*math.cos(sun_tazi_rad)) # X is for j,1
-                    XY_type[:,0]=numpy.round(tmp_xys[:,1]-i_xy*math.sin(sun_tazi_rad)) # Y is for i,0
-                else:
-                    XY_type[:,1]=numpy.round(tmp_xys[:,0]+i_xy*math.cos(sun_tazi_rad)) # X is for j,1
-                    XY_type[:,0]=numpy.round(tmp_xys[:,1]+i_xy*math.sin(sun_tazi_rad)) # Y is for i,0
-
-                tmp_j=XY_type[:,1] # col
-                tmp_i=XY_type[:,0] # row
-
-                # the id that is out of the image
-                out_id=(tmp_i<0)|(tmp_i>=win_height)|(tmp_j<0)|(tmp_j>=win_width)
-                out_all=numpy.sum(out_id)
-
-                tmp_ii=tmp_i[out_id==0]
-                tmp_jj=tmp_j[out_id==0]
-
-                tmp_id = [tmp_ii, tmp_jj]
-                # the id that is matched (exclude original cloud)
-                match_id = (boundary_test[tmp_id]==0)|((segm_cloud[tmp_id]!=(cloud_type+1))&(cloud_test[tmp_id]>0)|(shadow_test[tmp_id]==1))
-                matched_all=numpy.sum(match_id)+out_all
-
-                # the id that is the total pixel (exclude original cloud)
-                total_id=(segm_cloud[tmp_id]!=(cloud_type+1))
-                total_all=numpy.sum(total_id)+out_all
-
-                thresh_match=matched_all/total_all
-                if (thresh_match >= Tbuffer*record_thresh) and (base_h < Max_cl_height-i_step) and (record_thresh<0.95):
-                    if thresh_match > record_thresh:
-                        record_thresh=thresh_match
-                        record_h=h
-
-                elif record_thresh > Tsimilar:
-                    similar_num[cloud_type]=record_thresh
-                    i_vir=record_h/(sub_size*math.tan(sun_ele_rad))
-                    # height_num=record_h
-
-                    if Sun_azi < 180:
-                        tmp_XY_type[:,1]=numpy.round(tmp_xys[:,0]-i_vir*math.cos(sun_tazi_rad)) # X is for col j,2
-                        tmp_XY_type[:,0]=numpy.round(tmp_xys[:,1]-i_vir*math.sin(sun_tazi_rad)) # Y is for row i,1
-                    else:
-                        tmp_XY_type[:,1]=numpy.round(tmp_xys[:,0]+i_vir*math.cos(sun_tazi_rad)) # X is for col j,2
-                        tmp_XY_type[:,0]=numpy.round(tmp_xys[:,1]+i_vir*math.sin(sun_tazi_rad)) # Y is for row i,1
-
-                    tmp_scol=tmp_XY_type[:,1]
-                    tmp_srow=tmp_XY_type[:,0]
-                    # put data within range
-                    tmp_srow[tmp_srow<0]=0
-                    tmp_srow[tmp_srow>=win_height]=win_height-1
-                    tmp_scol[tmp_scol<0]=0
-                    tmp_scol[tmp_scol>=win_width]=win_width-1
-
-                    tmp_sid = [tmp_srow, tmp_scol] # sub2ind(ijDim,tmp_srow,tmp_scol)
-                    # give shadow_cal=1
-                    shadow_cal[tmp_sid]=1
-                    # record matched cloud
-                    #cloud_cal(orin_cid)=1
-                    # cloud_height[orin_cid]=record_h
-                    break
-                else:
-                    record_thresh=0
-        """
-         ##### END of older method from original transcription
-
+                    record_thresh = 0.0
 
         # # dilate each cloud and shadow object by 3 and 6 pixel outward in 8 connect directions
         #    cldpix=3 # number of pixels to be dilated for cloud
@@ -1646,7 +1412,6 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
         SEsn = numpy.ones((SEsn, SEsn), 'uint8')
 
         # dilate shadow first
-        #shadow_cal = (scipy.ndimage.morphology.grey_dilation(shadow_cal, size=SEs.shape, structure=SEs) != 1) # Not sure why greyscale dilation was used JS 16/12/2013
         # NOTE: The original transcription returned the inverse, i.e. cloud_shadow = 0 rather than 1. We'll try inverting it outside this function in order to preserve the original return values of Fmask
         shadow_cal = scipy.ndimage.morphology.binary_dilation(shadow_cal, structure=SEs)
 
@@ -1656,7 +1421,6 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
         #     shadow_cal=imdilate(shadow_cal,SEs)
 
         segm_cloud_tmp = numexpr.evaluate("segm_cloud != 0")
-        #cloud_cal = (scipy.ndimage.morphology.grey_dilation(segm_cloud_tmp, size=SEc.shape, structure=SEc) != 1) # Not sure why greyscale dilation was used JS 16/12/2013
         # NOTE: The original transcription returned the inverse, i.e. cloud = 0 rather than 1. We'll try inverting it outside this function in order to preserve the original return values of Fmask
         cloud_cal = scipy.ndimage.morphology.binary_dilation(segm_cloud_tmp, structure=SEc)
 
@@ -1721,12 +1485,6 @@ def mat_truecloud(x, y, h, A, B, C, omiga_par, omiga_per):
 
 if __name__ == '__main__':
 
-    #mtl = sys.argv[1]
-    # TODO: Parse these from command line. DONE: JS 16/12/2013
-    #cldprob = 22.5
-    #cldpix = 0
-    #sdpix = 0
-
     parser = argparse.ArgumentParser(description='Computes the Fmask algorithm. Cloud, cloud shadow and Fmask combined (contains thecloud, cloud shadow and snow masks in a single array) are output to disk.')
     parser.add_argument('--mtl', required=True, help='The full file path to the Landsat MTL file.')
     parser.add_argument('--cldprob', type=float, default=22.5, help='The cloud probability for the scene. Default is 22.5 percent.')
@@ -1759,8 +1517,8 @@ if __name__ == '__main__':
     # The original MATLAB code opens the file twice to retrieve the Landsat number.
     # It would be better to open it once and restructure the function parameters.
     data = {}
-    fl=open(mtl,'r')
-    file_lines=fl.readlines()
+    fl = open(mtl,'r')
+    file_lines = fl.readlines()
     for line in file_lines:
         values = line.split(' = ')
         if len(values) != 2:
@@ -1775,7 +1533,7 @@ if __name__ == '__main__':
     Lnum=int(LID[len(LID)-1])
 
     st = datetime.datetime.now()
-    zen,azi,ptm,Temp,t_templ,t_temph,WT,Snow,Cloud,Shadow,dim,ul,resolu,zc = plcloud(mtl, cldprob, num_Lst=Lnum, shadow_prob=True, log_filename=log_fname)
+    zen,azi,ptm,Temp,t_templ,t_temph,WT,Snow,Cloud,Shadow,dim,ul,resolu,zc,geoT,prj = plcloud(mtl, cldprob, num_Lst=Lnum, shadow_prob=True, log_filename=log_fname)
     et = datetime.datetime.now()
     print 'time taken for plcloud function: ', et - st
     st = datetime.datetime.now()
@@ -1784,16 +1542,21 @@ if __name__ == '__main__':
     print 'time taken for fcssm function: ', et - st
 
     c = gdal.GetDriverByName('ENVI').Create(cloud_fname, Cloud.shape[1], Cloud.shape[0], 1, gdal.GDT_Byte)
+    c.SetGeoTransform(geoT)
+    c.SetProjection(prj)
     c.GetRasterBand(1).WriteArray(Cloud*255)
     c = None
 
     c = gdal.GetDriverByName('ENVI').Create(cloud_shadow_fname, shadow_cal.shape[1], shadow_cal.shape[0], 1, gdal.GDT_Byte)
+    c.SetGeoTransform(geoT)
+    c.SetProjection(prj)
     c.GetRasterBand(1).WriteArray(shadow_cal*255)
     c = None
 
     c = gdal.GetDriverByName('ENVI').Create(fmask_fname, cs_final.shape[1], cs_final.shape[0], 1, gdal.GDT_Byte)
+    c.SetGeoTransform(geoT)
+    c.SetProjection(prj)
     c.GetRasterBand(1).WriteArray(cs_final)
     c = None
 
     # TODO: Save water/snow masks?
-
