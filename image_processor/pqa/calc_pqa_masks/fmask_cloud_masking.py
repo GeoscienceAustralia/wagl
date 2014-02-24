@@ -10,7 +10,6 @@ import numpy, numexpr
 import scipy.stats
 import scipy.signal
 import scipy.ndimage.morphology
-from scipy import weave
 from osgeo import gdal
 from skimage import morphology
 from skimage import measure
@@ -1262,10 +1261,6 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
         # The properties is taking approx 3min, I can cut that down to just a few seconds using another method, but will leave for the time being.
         s = measure.regionprops(segm_cloud,  properties=['Area', 'Coordinates'])
 
-        # Get the x,y of each cloud
-        # Matrix used in recording the x,y
-        #xys = regionprops(segm_cloud,'PixelList'
-
         # Use iteration to get the optimal move distance
         # Calulate the moving cloud shadow
 
@@ -1277,6 +1272,8 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
 
             cld_area  = cloud_type['Area']
             cld_label = cloud_type['Label']
+
+            num_pixels = cld_area
 
             # Have re-formatted the arrays to be Python style memory ordering (2,num_pixels) JS 16/12/2013
             # moving cloud xys
@@ -1330,7 +1327,7 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
 
                 # shadow moved distance (pixel)
                 # i_xy=h*cos(sun_tazi_rad)/(sub_size*math.tan(sun_ele_rad))
-                i_xy = h /(sub_size * math.tan(sun_ele_rad))
+                i_xy = h / (sub_size * math.tan(sun_ele_rad))
 
                 if Sun_azi < 180:
                     XY_type[1,:] = numpy.round(tmp_xys[1,:] - i_xy * math.cos(sun_tazi_rad)) # X is for j,1
@@ -1353,7 +1350,7 @@ def fcssm(Sun_zen,Sun_azi,ptm,Temp,t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,
                 tmp_id = [tmp_ii, tmp_jj]
 
                 # the id that is matched (exclude original cloud)
-                match_id = numexpr.evaluate("(b_test == 0) | ((seg != cld_label) & ((cld_test > 0) | (shad_test == 1)))", {'b_test':boundary_test[tmp_id], 'seg':segm_cloud[tmp_id], 'cld_test':cloud_test[tmp_id], 'shad_test':shadow_test[tmp_id]})
+                match_id = numexpr.evaluate("(b_test == 0) | ((seg != label) & ((cld_test > 0) | (shad_test == 1)))", {'b_test':boundary_test[tmp_id], 'seg':segm_cloud[tmp_id], 'label':cld_label, 'cld_test':cloud_test[tmp_id], 'shad_test':shadow_test[tmp_id]})
                 matched_all = numpy.sum(match_id) + out_all
 
                 # the id that is the total pixel (exclude original cloud)
