@@ -478,7 +478,6 @@ def eval_centre_data(scene_dataset, sat_ephem):
         'day_of_year': doy,
         'decimal_hour': dec_datetime.decimal_hour(scene_dataset.scene_centre_datetime),
         'decimal_day': dec_datetime.day_fraction(scene_dataset.scene_centre_datetime) + doy,
-        'day_change': start_datetime.day != end_datetime.day,
         'lon': float(scene_dataset.lonlats['CENTRE'][0]),
         'lat': float(scene_dataset.lonlats['CENTRE'][1])
     }
@@ -700,14 +699,20 @@ def compute_time_samples(
     tdelta = timedelta(seconds=delta_tc)
     centre_pts = {}
 
+    discontinuity = False
+    max_timeu = 0 # Latest UTC PM time detected
     for i in xrange(-nc/2, nc/2):
         t = centre_time + tdelta * i
         timeu = dec_datetime.decimal_hour(t)
         
-        # Offset AM times by 24h to avoid discontinuity
-        if centre_data['day_change'] and timeu < 12.0:
+        # Need to keep checking for discontinuity while one hasn't been detected
+        discontinuity = discontinuity or max_timeu - timeu > 12.0
+        if discontinuity and timeu < 12.0: # If discontinuity detected and time is AM
+            # Offset AM times by 24h to avoid discontinuity
             timeu += 24.0
-
+        else:            
+            max_timeu=max(max_timeu, timeu) # Only need to update this if no discontinuity detected yet
+            
         # WARNING
         # ephem can't seem to resolve subsecond timedeltas unless a
         # time tuple of the form (year, month, decimal_day) is used.
@@ -889,6 +894,10 @@ def compute_time_samples(
             az_samples[disp_key]['ipass'].append( az_samples[disp_key]['count'] )
             vu_samples[disp_key]['ipass'].append( vu_samples[disp_key]['count'] )
 
+            #===================================================================
+            # discontinuity = False
+            # max_timeu = 0
+            #===================================================================
             for t in sorted(t_list):
 
                 disp_direction = pts[t]['hbeta'] + disp_az_delta
@@ -946,9 +955,15 @@ def compute_time_samples(
 
                 timeu = dec_datetime.decimal_hour(t)
         
-                # Offset AM times by 24h to avoid discontinuity
-                if centre_data['day_change'] and timeu < 12.0:
-                    timeu += 24.0 
+                #===============================================================
+                # # Need to keep checking for discontinuity while one hasn't been detected
+                # discontinuity = discontinuity or max_timeu - timeu > 12.0
+                # if discontinuity and timeu < 12.0: # If discontinuity detected and time is AM
+                #     # Offset AM times by 24h to avoid discontinuity
+                #     timeu += 24.0
+                # else:            
+                #     max_timeu=max(max_timeu, timeu) # Only need to update this if no discontinuity detected yet
+                #===============================================================
 
                 # Satellite heading
                 # (beta, from www.eoc.csiro.au/hswww/oz_pi/util/heading.pdf)
@@ -1486,9 +1501,8 @@ def eval_sat_grids(
 
     t = interpolate_sample_points(xy, _t, mg, 'linear')
     
-    # Restore sharp discontinuity by removing 24h offset for AM times - probably not necessary
-    if centre_data['day_change']:
-        t[t > 24.0] -= 24.0 
+    # Restore sharp discontinuity by removing 24h offset for AM times
+    t[t > 24.0] -= 24.0 
 
     # View angle (unsigned)
 
