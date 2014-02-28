@@ -894,10 +894,8 @@ def compute_time_samples(
             az_samples[disp_key]['ipass'].append( az_samples[disp_key]['count'] )
             vu_samples[disp_key]['ipass'].append( vu_samples[disp_key]['count'] )
 
-            #===================================================================
-            # discontinuity = False
-            # max_timeu = 0
-            #===================================================================
+            discontinuity = False
+            max_timeu = 0
             for t in sorted(t_list):
 
                 disp_direction = pts[t]['hbeta'] + disp_az_delta
@@ -955,15 +953,13 @@ def compute_time_samples(
 
                 timeu = dec_datetime.decimal_hour(t)
         
-                #===============================================================
-                # # Need to keep checking for discontinuity while one hasn't been detected
-                # discontinuity = discontinuity or max_timeu - timeu > 12.0
-                # if discontinuity and timeu < 12.0: # If discontinuity detected and time is AM
-                #     # Offset AM times by 24h to avoid discontinuity
-                #     timeu += 24.0
-                # else:            
-                #     max_timeu=max(max_timeu, timeu) # Only need to update this if no discontinuity detected yet
-                #===============================================================
+                # Need to keep checking for discontinuity while one hasn't been detected
+                discontinuity = discontinuity or max_timeu - timeu > 12.0
+                if discontinuity and timeu < 12.0: # If discontinuity detected and time is AM
+                    # Offset AM times by 24h to avoid discontinuity
+                    timeu += 24.0
+                else:            
+                    max_timeu=max(max_timeu, timeu) # Only need to update this if no discontinuity detected yet
 
                 # Satellite heading
                 # (beta, from www.eoc.csiro.au/hswww/oz_pi/util/heading.pdf)
