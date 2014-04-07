@@ -156,17 +156,16 @@ def process(subprocess_list=[], resume=False):
             s = [[1,1,1],[1,1,1],[1,1,1]]
             low_sat, num_labels = ndimage.label(low_sat_buff, structure=s)
 
-            flat_label = low_sat.flatten()
             labels = low_sat[edge]
             ulabels = numpy.unique(labels[labels > 0])
 
             # Testing a new method, more code but might be quicker
-            #find_lab = numpy.in1d(flat_label, ulabels)
+            #find_lab = numpy.in1d(low_sat.flatten(), ulabels)
             #th_anom |= find_lab
 
             # Histogram method, a lot faster
             mx = numpy.max(ulabels)
-            h = histogram(flat_label, min=0, max=mx, reverse_indices='ri')
+            h = histogram(low_sat.flatten(), min=0, max=mx, reverse_indices='ri')
             hist = h['histogram']
             ri = h['ri']
 
@@ -221,7 +220,10 @@ def process(subprocess_list=[], resume=False):
 
     mask = Contiguity(l1t_stack, l1t_input_dataset.satellite)
 
-    bit_index = CONFIG.pqa_test_index['CONTIGUITY']
+    # *** Change so that PQ info is retrieved from constants.py
+    #bit_index = CONFIG.pqa_test_index['CONTIGUITY']
+    pq_const = constants.pqaContants(l1t_input_dataset.sensor)
+    bit_index = pq_const.contiguity
     result.set_mask(mask, bit_index)
     if CONFIG.debug:
         dump_array(mask,
