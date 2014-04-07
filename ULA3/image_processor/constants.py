@@ -6,8 +6,8 @@ class pqaContants:
     Such constants include bands for specific tests, bit positions for various tests and thresholds used
     within various tests.
     """
-    def __init__(self, satellite):
-        self.satellite = satellite
+    def __init__(self, sensor):
+        self.sensor = sensor
         # Initialise everything for immediate access
         self.setSaturationBands()
         self.setSaturationBits()
@@ -15,19 +15,20 @@ class pqaContants:
         self.setFmask()
         self.setCloudShadow()
         self.setTestBits()
+        self.setBandIndexLookup()
 
     def setSaturationBands(self):
         """
-        Get the band numbers associated with saturation tests for a given satellite.
-        The band numbers are sequential ordering, eg LS7 Band61, Band62, Band7 are 6, 7, 8.
+        Get the band numbers associated with saturation tests for a given sensor.
+        The band numbers are sequential ordering, eg ETM+ Band61, Band62, Band7 are 6, 7, 8.
         """
         saturation = {
-                     'LS5' : [1,2,3,4,5,6,7],
-                     'LS7' : [1,2,3,4,5,6,7,8],
-                     'LS8' : [2,3,4,5,6,7,10,11]
+                     'TM' : [1,2,3,4,5,6,7],
+                     'ETM+' : [1,2,3,4,5,6,7,8],
+                     'OLI_TIRS' : [2,3,4,5,6,7,10,11]
                      }
 
-        self.saturation_bands = saturation[self.satellite]
+        self.saturation_bands = saturation[self.sensor]
 
     def setSaturationBits(self):
         """
@@ -35,18 +36,18 @@ class pqaContants:
         The order should be the same as that returned by the setSaturationBands() function.
         """
         bits = {
-               'LS5' : [0,1,2,3,4,5,7],
-               'LS7' : [0,1,2,3,4,5,6,7],
-               'LS8' : [0,1,2,3,4,7,5,6]
+               'TM' : [0,1,2,3,4,5,7],
+               'ETM+' : [0,1,2,3,4,5,6,7],
+               'OLI_TIRS' : [0,1,2,3,4,7,5,6]
                }
 
-        self.saturation_bits = bits[self.satellite]
+        self.saturation_bits = bits[self.sensor]
 
     def setACCA(self):
        """
        Set the threshold constants for the ACCA test.
        """
-       # Potentially can configure thresholds per satellite
+       # Potentially can configure thresholds per sensor
        self.acca_thresh_f1      = 0.08
        self.acca_thresh_f2      = 0.7
        self.acca_thresh_f3      = 300
@@ -67,7 +68,7 @@ class pqaContants:
 
        Note: Most of the thresholds are still defined in the python function and not here due to licencing constraints.
        """
-       # Potentially can configure thresholds per satellite
+       # Potentially can configure thresholds per sensor
        self.fmask_cloudprob = 22.5
        # Threshold for water.
        # NB: This seems to miss some clouds over water (which end up having about 35-40% probability, not >50%)
@@ -77,7 +78,7 @@ class pqaContants:
        """
        Set the threshold constants for the Cloud shadow test.
        """
-       # Potentially can configure thresholds per satellite
+       # Potentially can configure thresholds per sensor
        self.cloud_shadow_wt_ndvi        = 0.1
        self.cloud_shadow_wt_b4          = 0.04
        self.cloud_shadow_wt_b5          = 0.05
@@ -104,3 +105,16 @@ class pqaContants:
         self.topo_shadow  = 14
         self.reserved     = 15
 
+    def setBandIndexLookup(self):
+        """
+        Set the array index lookup for the bands from a given sensor.
+        """
+        band_numbers = {
+                       'TM' : [1,2,3,4,5,6,7],
+                       'ETM+' : [1,2,3,4,5,61,62,7],
+                       'OLI_TIRS' : [1,2,3,4,5,6,7,9,10,11],
+                       'OLI' : [1,2,3,4,5,6,7,9]
+                       'TIRS' : [10,11]
+                       }
+
+        self.band_index_lookup = band_numbers[self.sensor]
