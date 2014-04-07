@@ -653,12 +653,11 @@ def process(subprocess_list=[], resume=False):
                 acca_logfile.write('All identified pixels rejected.\n')
                 return numpy.zeros((dims[1], dims[2]), dtype='uint8')
 
-        def majority_filter(cloud):
+        def majority_filter(cloud, iterations=1):
             weights_array = [[1,1,1],[1,1,1],[1,1,1]]
-            cloud = ndimage.convolve(cloud, weights_array)
-            cloud = numexpr.evaluate("cloud > 4")
-            cloud = ndimage.convolve(cloud, weights_array)
-            cloud = numexpr.evaluate("cloud > 4")
+            for i in range(iterations):
+                cloud = ndimage.convolve(cloud, weights_array)
+                cloud = numexpr.evaluate("cloud > 4")
 
     #----------------------------Processing Here---------------------------------
         global acca_logfile
@@ -694,7 +693,7 @@ def process(subprocess_list=[], resume=False):
         # Apply filtering; gets rid of isolated pixels, and holes.
         if cloud.sum() > 0:
             # Majority filtering
-            majority_filter(cloud)
+            majority_filter(cloud, iterations=2)
 
         # Note this is percent of the array, not just contiguous areas.
         Cloud_Percent = (float(cloud.sum())/cloud.size) * 100
