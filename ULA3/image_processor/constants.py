@@ -20,11 +20,12 @@ class pqaContants:
     def setSaturationBands(self):
         """
         Get the band numbers associated with saturation tests for a given sensor.
-        The band numbers are sequential ordering, eg ETM+ Band61, Band62, Band7 are 6, 7, 8.
+        The band numbers are (to some degree) the band names. This may change to
+        be an ordered list, ie 1-n_bands.
         """
         saturation = {
                      'TM' : [1,2,3,4,5,6,7],
-                     'ETM+' : [1,2,3,4,5,6,7,8],
+                     'ETM+' : [1,2,3,4,5,61,62,7],
                      'OLI_TIRS' : [2,3,4,5,6,7,10,11]
                      }
 
@@ -105,16 +106,25 @@ class pqaContants:
         self.topo_shadow  = 14
         self.reserved     = 15
 
-    def setBandIndexLookup(self):
+    def setAvailableBands(self):
         """
-        Set the array index lookup for the bands from a given sensor.
+        Set the availble bands for a given sensor.
         """
         band_numbers = {
                        'TM' : [1,2,3,4,5,6,7],
                        'ETM+' : [1,2,3,4,5,61,62,7],
                        'OLI_TIRS' : [1,2,3,4,5,6,7,9,10,11],
-                       'OLI' : [1,2,3,4,5,6,7,9]
+                       'OLI' : [1,2,3,4,5,6,7,9],
                        'TIRS' : [10,11]
                        }
 
-        self.band_index_lookup = band_numbers[self.sensor]
+        self.available_bands = band_numbers[self.sensor]
+
+    def getArrayBandLookup(self, band_numbers):
+        """
+        Get the correspoding array indices for a given list of band number identifiers.
+        This is only meant to be used wherever dataset.ReadAsArray() is used, otherwise the 
+        array index loopup could be incorrect.
+        """
+        idx = [self.available_bands.index(bn) for bn in band_numbers]
+        return idx
