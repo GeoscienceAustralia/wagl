@@ -721,15 +721,21 @@ def process(subprocess_list=[], resume=False):
         acca_logfile.close()
         return cloud_mask
 
-
-    mask = CloudMask(nbar_stack, kelvin_array, contiguity_mask)
+    if pq_const.run_cloud: # TM/ETM/OLI_TIRS
+        if pq_const.oli_tirs:
+            mask = CloudMask(nbar_stack[1:,:,:], kelvin_array, contiguity_mask)
+        else: # TM or ETM
+            mask = CloudMask(nbar_stack, kelvin_array, contiguity_mask)
+        
+        log_multiline(logger.debug, mask, 'mask', '\t')
     
-    log_multiline(logger.debug, mask, 'mask', '\t')
+        #bit_index = CONFIG.pqa_test_index['ACCA']
+        bit_index = pq_const.acca
+        result.set_mask(mask, bit_index)
+        if CONFIG.debug:
+            dump_array(mask,
+                       os.path.join(CONFIG.work_path, 'mask_%02d.tif' % bit_index),
+                       nbar_input_dataset)
+    else: # OLI/TIRS only
+        logger.debug('Cloud Shadow Algorithm Not Run! %s sensor not configured for the cloud shadow algorithm.'%l1t_input_dataset.sensor)
 
-    #bit_index = CONFIG.pqa_test_index['ACCA']
-    bit_index = pq_const.acca
-    result.set_mask(mask, bit_index)
-    if CONFIG.debug:
-        dump_array(mask,
-                   os.path.join(CONFIG.work_path, 'mask_%02d.tif' % bit_index),
-                   nbar_input_dataset)
