@@ -9,6 +9,7 @@ from osgeo import gdal
 import osr
 
 from ULA3.image_processor import ProcessorConfig
+from ULA3.image_processor import constants
 from ULA3 import DataManager
 from IDL_functions import histogram
 
@@ -85,15 +86,27 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
     # srt_low = 0.9
     # srt_hi  = 1.3
     #===========================================================================
-    wt_ndvi = CONFIG.pqa_param['cloud_shadow_wt_ndvi']
-    wt_b4   = CONFIG.pqa_param['cloud_shadow_wt_b4']
-    wt_b5   = CONFIG.pqa_param['cloud_shadow_wt_b5']
-    vrat_th = CONFIG.pqa_param['cloud_shadow_vrat_th']
-    btt_th  = CONFIG.pqa_param['cloud_shadow_btt_th']
-    rt_b3   = CONFIG.pqa_param['cloud_shadow_rt_b3']
-    rt_b4   = CONFIG.pqa_param['cloud_shadow_rt_b4']
-    srt_low = CONFIG.pqa_param['cloud_shadow_srt_low']
-    srt_hi  = CONFIG.pqa_param['cloud_shadow_srt_hi']
+
+    # *** Redefine using constants.py ***
+    #wt_ndvi = CONFIG.pqa_param['cloud_shadow_wt_ndvi']
+    #wt_b4   = CONFIG.pqa_param['cloud_shadow_wt_b4']
+    #wt_b5   = CONFIG.pqa_param['cloud_shadow_wt_b5']
+    #vrat_th = CONFIG.pqa_param['cloud_shadow_vrat_th']
+    #btt_th  = CONFIG.pqa_param['cloud_shadow_btt_th']
+    #rt_b3   = CONFIG.pqa_param['cloud_shadow_rt_b3']
+    #rt_b4   = CONFIG.pqa_param['cloud_shadow_rt_b4']
+    #srt_low = CONFIG.pqa_param['cloud_shadow_srt_low']
+    #srt_hi  = CONFIG.pqa_param['cloud_shadow_srt_hi']
+    pq_const = constants.pqaContants(input_dataset.sensor)
+    wt_ndvi = pq_const.cloud_shadow_wt_ndvi
+    wt_b4   = pq_const.cloud_shadow_wt_b4
+    wt_b5   = pq_const.cloud_shadow_wt_b5
+    vrat_th = pq_const.cloud_shadow_vrat_th
+    btt_th  = pq_const.cloud_shadow_btt_th
+    rt_b3   = pq_const.cloud_shadow_rt_b3
+    rt_b4   = pq_const.cloud_shadow_rt_b4
+    srt_low = pq_const.cloud_shadow_srt_low
+    srt_hi  = pq_const.cloud_shadow_srt_hi
 
     # Returns the required line from a list of strings
     def linefinder(string_list, string = ""):
@@ -518,9 +531,12 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
 
     cshadow = numpy.zeros(dims, dtype='byte')
     # wet, standard and dry
-    lapse_rates = numpy.array([CONFIG.pqa_param['cloud_shadow_lapse_wet'],
-                               CONFIG.pqa_param['cloud_shadow_lapse_standard'],
-                               CONFIG.pqa_param['cloud_shadow_lapse_dry']], dtype='float32')
+    #lapse_rates = numpy.array([CONFIG.pqa_param['cloud_shadow_lapse_wet'],
+    #                           CONFIG.pqa_param['cloud_shadow_lapse_standard'],
+    #                           CONFIG.pqa_param['cloud_shadow_lapse_dry']], dtype='float32')
+    lapse_rates = numpy.array([pq_const.cloud_shadow_lapse_wet,
+                               pq_const.cloud_shadow_lapse_standard,
+                               pq_const.cloud_shadow_lapse_dry], dtype='float32')
 
     if (sr.IsGeographic() == 1):
         R = sr.GetSemiMajor()
