@@ -15,7 +15,11 @@ class pqaContants:
         self.setFmask()
         self.setCloudShadow()
         self.setTestBits()
-        self.setBandIndexLookup()
+        self.setAvailableBands()
+        #self.setBandIndexLookup()
+        self.setRunCloudShadow()
+        self.setRunCloud()
+        self.setOLITIRS()
 
     def setSaturationBands(self):
         """
@@ -128,7 +132,42 @@ class pqaContants:
         """
         Get the correspoding array indices for a given list of band number identifiers.
         This is only meant to be used wherever dataset.ReadAsArray() is used, otherwise the 
-        array index loopup could be incorrect.
+        array index lookup could be incorrect.
         """
         idx = [self.available_bands.index(bn) for bn in band_numbers]
         return idx
+
+    def setRunCloudShadow(self):
+        """
+        Determine and set (True/False) as to whether or not the cloud shadow algorithm will be run.
+        This is so due to the algorithm needing both spectral and temperature arrays.
+        """
+        sensor_list = ['TM','ETM+','OLI_TIRS']
+        if self.sensor in sensor_list:
+            self.run_cloud_shadow = True
+        else:
+            self.run_cloud_shadow = False
+
+    def setRunCloud(self):
+        """
+        Determine and set (True/False) as to whether or not the cloud algorithm will be run.
+        This is so due to the algorithm needing both spectral and temperature arrays.
+        """
+        sensor_list = ['TM','ETM+','OLI_TIRS']
+        if self.sensor in sensor_list:
+            self.run_cloud = True
+        else:
+            self.run_cloud = False
+
+    def setOLITIRS(self):
+        """
+        Determine and set (True/False) as to whether or not the sensor in question is OLI_TIRS.
+        This will be used for both ACCA and the cloud shadow algorithm, where the argument input
+        "image_stack" doesn't use the coastal aerosol band, but is automatcally read by the
+        ReadAsArray() method.
+        """
+        if self.sensor == 'OLI_TIRS':
+            self.oli_tirs = True
+        else:
+            self.oli_tirs = False
+
