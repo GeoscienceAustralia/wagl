@@ -53,23 +53,33 @@ def process(subprocess_list=[], resume=False):
 
     # Initialise the PQA constants
     pq_const = constants.pqaContants(l1t_input_dataset.sensor)
-    #contiguity_mask = result.get_mask(CONFIG.pqa_test_index['CONTIGUITY'])
-    #fmask_cloud_mask = result.get_mask(CONFIG.pqa_test_index['FMASK'])
-    #land_sea_mask = result.get_mask(CONFIG.pqa_test_index['LAND_SEA'])
-    contiguity_mask = result.get_mask(pq_const.contiguity)
-    acca_cloud_mask = result.get_mask(pq_const.fmask)
-    land_sea_mask = result.get_mask(pq_const.land_sea)
 
-    mask = Cloud_Shadow(image_stack=nbar_stack, kelvin_array=kelvin_array,
-                        cloud_mask=fmask_cloud_mask, input_dataset=l1t_input_dataset,
-                        land_sea_mask=land_sea_mask, contiguity_mask=contiguity_mask,
-                        cloud_algorithm='FMASK', growregion=1)
+    if pq_const.run_cloud_shadow: # TM/ETM/OLI_TIRS
+        #contiguity_mask = result.get_mask(CONFIG.pqa_test_index['CONTIGUITY'])
+        #fmask_cloud_mask = result.get_mask(CONFIG.pqa_test_index['FMASK'])
+        #land_sea_mask = result.get_mask(CONFIG.pqa_test_index['LAND_SEA'])
+        contiguity_mask = result.get_mask(pq_const.contiguity)
+        acca_cloud_mask = result.get_mask(pq_const.fmask)
+        land_sea_mask = result.get_mask(pq_const.land_sea)
 
-    #bit_index = CONFIG.pqa_test_index['FMASK_SHADOW']
-    bit_index = pq_const.fmask_shadow
-    result.set_mask(mask, bit_index)
-    if CONFIG.debug:
-        dump_array(mask,
-                   os.path.join(CONFIG.work_path, 'mask_%02d.tif' % bit_index),
-                   l1t_input_dataset)
+        if pq_const.oli_tirs:
+            mask = Cloud_Shadow(image_stack=nbar_stack[1:,:,:], kelvin_array=kelvin_array,
+                                cloud_mask=fmask_cloud_mask, input_dataset=l1t_input_dataset,
+                                land_sea_mask=land_sea_mask, contiguity_mask=contiguity_mask,
+                                cloud_algorithm='FMASK', growregion=1)
+        else: # TM or ETM
+            mask = Cloud_Shadow(image_stack=nbar_stack, kelvin_array=kelvin_array,
+                                cloud_mask=fmask_cloud_mask, input_dataset=l1t_input_dataset,
+                                land_sea_mask=land_sea_mask, contiguity_mask=contiguity_mask,
+                                cloud_algorithm='FMASK', growregion=1)
+
+        #bit_index = CONFIG.pqa_test_index['FMASK_SHADOW']
+        bit_index = pq_const.fmask_shadow
+        result.set_mask(mask, bit_index)
+        if CONFIG.debug:
+            dump_array(mask,
+                       os.path.join(CONFIG.work_path, 'mask_%02d.tif' % bit_index),
+                       l1t_input_dataset)
+    else: # OLI/TIRS only
+        logger.debug('Cloud Shadow Algorithm Not Run! %s sensor not configured for the cloud shadow algorithm.'%l1t_input_dataset.sensor)
 
