@@ -6,6 +6,7 @@ from osgeo import gdal
 from ULA3.common.pqa_result import PQAResult
 from ULA3.dataset import SceneDataset
 from ULA3.image_processor import ProcessorConfig
+from ULA3.image_processor import constants
 from ULA3 import DataManager, DataGrid
 from ULA3.utils import dump_array
 
@@ -49,16 +50,23 @@ def process(subprocess_list=[], resume=False):
     # assert land_sea_mask is not None, 'Unable to retrieve ndarray object for land_sea_mask'
     # logger.debug( 'ndarray object for land_sea_mask retrieved')
     #===========================================================================
-    contiguity_mask = result.get_mask(CONFIG.pqa_test_index['CONTIGUITY'])
-    fmask_cloud_mask = result.get_mask(CONFIG.pqa_test_index['FMASK'])
-    land_sea_mask = result.get_mask(CONFIG.pqa_test_index['LAND_SEA'])
+
+    # Initialise the PQA constants
+    pq_const = constants.pqaContants(l1t_input_dataset.sensor)
+    #contiguity_mask = result.get_mask(CONFIG.pqa_test_index['CONTIGUITY'])
+    #fmask_cloud_mask = result.get_mask(CONFIG.pqa_test_index['FMASK'])
+    #land_sea_mask = result.get_mask(CONFIG.pqa_test_index['LAND_SEA'])
+    contiguity_mask = result.get_mask(pq_const.contiguity)
+    acca_cloud_mask = result.get_mask(pq_const.fmask)
+    land_sea_mask = result.get_mask(pq_const.land_sea)
 
     mask = Cloud_Shadow(image_stack=nbar_stack, kelvin_array=kelvin_array,
                         cloud_mask=fmask_cloud_mask, input_dataset=l1t_input_dataset,
                         land_sea_mask=land_sea_mask, contiguity_mask=contiguity_mask,
                         cloud_algorithm='FMASK', growregion=1)
 
-    bit_index = CONFIG.pqa_test_index['FMASK_SHADOW']
+    #bit_index = CONFIG.pqa_test_index['FMASK_SHADOW']
+    bit_index = pq_const.fmask_shadow
     result.set_mask(mask, bit_index)
     if CONFIG.debug:
         dump_array(mask,
