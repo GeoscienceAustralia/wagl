@@ -171,3 +171,15 @@ class pqaContants:
         else:
             self.oli_tirs = False
 
+    def setThermalBand(self):
+        """
+        Set the relevant thermal band used for the cloud and cloud shadow algorithms.
+        """
+        thermal = {
+                  'TM' : 6,
+                  'ETM+' : 61,
+                  'OLI_TIRS' : 10
+                  }
+
+        self.thermal_band = thermal[self.sensor]
+
