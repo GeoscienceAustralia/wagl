@@ -20,6 +20,7 @@ class pqaContants:
         self.setRunCloudShadow()
         self.setRunCloud()
         self.setOLITIRS()
+        self.setThermalBand()
 
     def setSaturationBands(self):
         """
