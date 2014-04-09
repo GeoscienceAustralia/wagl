@@ -5,6 +5,7 @@ import numpy, numexpr
 from osgeo import gdal
 from ULA3.dataset import SceneDataset
 from ULA3.image_processor import ProcessorConfig
+from ULA3.image_processor import constants
 from ULA3 import DataManager, DataGrid
 
 logger = logging.getLogger('root.' + __name__)
@@ -98,12 +99,18 @@ def process(subprocess_list=[], resume=False):
 
         #------------------------Processing Goes Here-----------------------------
 
-        full_band_list = sorted(set(l1t_input_dataset.bands('REFLECTIVE')) |
-                            set(l1t_input_dataset.bands('THERMAL')))
+        pq_const = constants.pqaContants(l1t_input_dataset.sensor)
 
-        # Find index of band 62 for LS7, band 60 for LS5
-        thermal_band = max(l1t_input_dataset.bands('THERMAL')) # TODO: May break with LS8
-        thermal_band_index = full_band_list.index(thermal_band)
+        #full_band_list = sorted(set(l1t_input_dataset.bands('REFLECTIVE')) |
+        #                    set(l1t_input_dataset.bands('THERMAL')))
+        full_band_list = pq_const.available_bands
+
+        # Find index of band 62 for LS7, band 60 for LS5 ***Should be band 61 for LS7
+        #thermal_band = max(l1t_input_dataset.bands('THERMAL')) # TODO: May break with LS8
+        #thermal_band_index = full_band_list.index(thermal_band)
+        # Get Band 6 for TM, Band 61 for ETM+ and Band 10 for OLI_TIRS
+        thermal_band = pq_const.thermal_band
+        thermal_band_index = pq_const.getArrayBandLookup([thermal_band])
 
         logger.debug('thermal_band = %d, thermal_band_index = %d', thermal_band, thermal_band_index)
 
