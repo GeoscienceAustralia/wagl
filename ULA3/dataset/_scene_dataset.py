@@ -344,19 +344,23 @@ class SceneDataset(Dataset):
                 print rad_rescale_params
                 pprint(rad_rescale_params)
 
-                for key, value in rad_rescale_params.iteritems():
+                # Need to check if we have a valid return from the metadata lookup
+                if rad_rescale_params:
+                    for key, value in rad_rescale_params.iteritems():
 
-                    # Bias: RADIANCE_ADD_BAND_X = <value>
+                        # Bias: RADIANCE_ADD_BAND_X = <value>
 
-                    match_add = re.match('RADIANCE_ADD_BAND_(\d+)', key)
-                    if match_add:
-                        bdict[ int(match_add.group(1)) ] = float(value)
+                        match_add = re.match('RADIANCE_ADD_BAND_(\d+)', key)
+                        if match_add:
+                            bdict[ int(match_add.group(1)) ] = float(value)
 
-                    # Gain: RADIANCE_MULT_BAND_X = <value>
+                        # Gain: RADIANCE_MULT_BAND_X = <value>
 
-                    match_mult = re.match('RADIANCE_MULT_BAND_(\d+)', key)
-                    if match_mult:
-                        gdict[ int(match_mult.group(1)) ] = float(value)
+                        match_mult = re.match('RADIANCE_MULT_BAND_(\d+)', key)
+                        if match_mult:
+                            gdict[ int(match_mult.group(1)) ] = float(value)
+                else:
+                    logger.debug('No RADIOMETRIC_RESCALING data found in MTL file. Unable to compute bias & gain.')
 
                 print
                 print 'bdict'
