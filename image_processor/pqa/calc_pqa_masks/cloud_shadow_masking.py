@@ -718,10 +718,12 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
 
         # band 4 -> 7 slope
         #slope = (reflectance_stack[6] - reflectance_stack[3])/2
-        slope = numexpr.evaluate("((b7 - b4) / 2) > 0.01", {'b7':reflectance_stack[6], 'b4':reflectance_stack[3]})
+        #slope = numexpr.evaluate("((b7 - b4) / 2) > 0.01", {'b7':reflectance_stack[6], 'b4':reflectance_stack[3]})
+        slope = numexpr.evaluate("((b7 - b4) / 2) > 0.01", {'b7':reflectance_stack[5], 'b4':reflectance_stack[3]})
         #weights[slope > 0.01] += 1
         weights[slope] += 1
-        slope = numexpr.evaluate("abs((b7 - b4) / 2) > 0.05", {'b7':reflectance_stack[6], 'b4':reflectance_stack[3]})
+        #slope = numexpr.evaluate("abs((b7 - b4) / 2) > 0.05", {'b7':reflectance_stack[6], 'b4':reflectance_stack[3]})
+        slope = numexpr.evaluate("abs((b7 - b4) / 2) > 0.05", {'b7':reflectance_stack[5], 'b4':reflectance_stack[3]})
         #weights[numpy.abs(slope) >= 0.05] += 1
         weights[slope] += 1
 
@@ -736,7 +738,8 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
         weights[wt] += 9
 
         # standard deviation thruogh spectral space
-        stdv = stdev(b1=reflectance_stack[0], b2=reflectance_stack[1], b3=reflectance_stack[2], b4=reflectance_stack[3], b5=reflectance_stack[4], b7=reflectance_stack[6])
+        #stdv = stdev(b1=reflectance_stack[0], b2=reflectance_stack[1], b3=reflectance_stack[2], b4=reflectance_stack[3], b5=reflectance_stack[4], b7=reflectance_stack[6])
+        stdv = stdev(b1=reflectance_stack[0], b2=reflectance_stack[1], b3=reflectance_stack[2], b4=reflectance_stack[3], b5=reflectance_stack[4], b7=reflectance_stack[5])
         # This is for water that is spectrally very flat and near zero
         BOOL = numexpr.evaluate("stdv < 0.008")
         # dilate to get water edges; tends to help with river systems
@@ -769,7 +772,8 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
         b3 = reflectance_stack[2]
         b4 = reflectance_stack[3]
         b5 = reflectance_stack[4]
-        b7 = reflectance_stack[6]
+        #b7 = reflectance_stack[6]
+        b7 = reflectance_stack[5]
         weight_sum = numexpr.evaluate("weights *(b1 + b2 + b3 + b4) + 2*(weights * (b5 + b7))")
 
         del b1, b2, b3, b4, b5, b7; gc.collect()
