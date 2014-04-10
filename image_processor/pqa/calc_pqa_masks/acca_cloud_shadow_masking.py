@@ -68,12 +68,12 @@ def process(subprocess_list=[], resume=False):
             mask = Cloud_Shadow(image_stack=nbar_stack[1:,:,:], kelvin_array=kelvin_array,
                                 cloud_mask=acca_cloud_mask, input_dataset=l1t_input_dataset,
                                 land_sea_mask=land_sea_mask, contiguity_mask=contiguity_mask,
-                                cloud_algorithm='ACCA', growregion=1)
+                                cloud_algorithm='ACCA', growregion=True)
         else: # TM or ETM
             mask = Cloud_Shadow(image_stack=nbar_stack, kelvin_array=kelvin_array,
                                 cloud_mask=acca_cloud_mask, input_dataset=l1t_input_dataset,
                                 land_sea_mask=land_sea_mask, contiguity_mask=contiguity_mask,
-                                cloud_algorithm='ACCA', growregion=1)
+                                cloud_algorithm='ACCA', growregion=True)
 
         #bit_index = CONFIG.pqa_test_index['ACCA_SHADOW']
         bit_index = pq_const.acca_shadow
