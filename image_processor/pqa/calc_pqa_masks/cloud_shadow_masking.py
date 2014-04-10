@@ -635,7 +635,7 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
 
     # Only apply spectral tests when growing a region
     # May need to add or change spectral tests to eliminate some landcovers.
-    if growregion is True:
+    if growregion:
         print 'Applying Region Growing'
         stng = datetime.datetime.now()
 
