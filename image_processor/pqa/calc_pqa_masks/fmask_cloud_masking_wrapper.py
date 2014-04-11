@@ -86,6 +86,8 @@ def process(subprocess_list=[], resume=False):
         finally:
             os.chdir(current_dir)
 
+        fmask_byte = fmask_byte == 1 # Convert to bool, True = Cloud, False not Cloud
+        # Use a majority filter to fill holes, 2 iterations works well to smoothe things over
         fmask_byte = majority_filter(array=fmask_byte, iterations=2)
 
         return (fmask_byte != 1).astype('bool') # Invert to a 'land mask'
