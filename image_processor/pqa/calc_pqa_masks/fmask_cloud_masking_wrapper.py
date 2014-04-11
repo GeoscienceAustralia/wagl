@@ -7,6 +7,7 @@ import os
 from glob import glob
 import logging
 from scipy import ndimage
+import numexpr
 
 from ULA3.dataset import SceneDataset
 from ULA3.common.pqa_result import PQAResult
