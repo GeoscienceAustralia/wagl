@@ -89,18 +89,27 @@ class pqaContants:
        Set the threshold constants for the Cloud shadow test.
        """
        # Potentially can configure thresholds per sensor
-       self.cloud_shadow_wt_ndvi        = 0.1
-       self.cloud_shadow_wt_b4          = 0.04
-       self.cloud_shadow_wt_b5          = 0.05
-       self.cloud_shadow_vrat_th        = 0.08
-       self.cloud_shadow_btt_th         = 293
-       self.cloud_shadow_rt_b3          = 0.4
-       self.cloud_shadow_rt_b4          = 0.6
-       self.cloud_shadow_srt_low        = 0.9
-       self.cloud_shadow_srt_hi         = 1.3
-       self.cloud_shadow_lapse_wet      = 4.8
-       self.cloud_shadow_lapse_standard = 6.4
-       self.cloud_shadow_lapse_dry      = 9.8
+       self.cshadow_wt_ndvi                  = 0.1
+       self.cshadow_wt_b4                    = 0.04
+       self.cshadow_wt_b5                    = 0.05
+       self.cshadow_vrat_th                  = 0.08
+       self.cshadow_btt_th                   = 293
+       self.cshadow_rt_b3                    = 0.4
+       self.cshadow_rt_b4                    = 0.6
+       self.cshadow_srt_low                  = 0.9
+       self.cshadow_srt_hi                   = 1.3
+       self.cshadow_lapse_wet                = 4.8
+       self.cshadow_lapse_standard           = 6.4
+       self.cshadow_lapse_dry                = 9.8
+       self.cshadow_stdv_native_bush         = 0.04
+       self.cshadow_stdv_spectral_flat_water = 0.008
+       self.cshadow_mndwi_thresh             = 0.1
+       self.cshadow_dense_veg                = 0.5
+       self.cshadow_slope_b34                = 0.11
+       self.cshadow_slope_b45                = 0.005
+       self.cshadow_slope_b47a               = 0.01
+       self.cshadow_slope_b47b               = 0.05
+       self.cshadow_stdv_multiplier          = 2.5
 
     def setTestBits(self):
         """
