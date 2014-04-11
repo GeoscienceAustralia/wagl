@@ -724,14 +724,14 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
 
         # band 3 -> 4 slope
         #slope = reflectance_stack[3] - reflectance_stack[2]
-        slope = numexpr.evaluate("(b4 - b3) >= slope_b34", {'b4':reflectance_stack[3], 'b3':reflectance_stack[2]})
+        slope = numexpr.evaluate("(b4 - b3) >= slope_b34", {'b4':reflectance_stack[3], 'b3':reflectance_stack[2]}, locals())
         #weights[slope >= 0.1] += 1
         #weights[slope >= 0.11] += 1
         weights[slope] += 1
 
         # band 4 -> 5 slope
         #slope = numpy.abs(reflectance_stack[4] - reflectance_stack[3])
-        slope = numexpr.evaluate("abs(b5 - b4) >= slope_b45", {'b5':reflectance_stack[4], 'b4':reflectance_stack[3]})
+        slope = numexpr.evaluate("abs(b5 - b4) >= slope_b45", {'b5':reflectance_stack[4], 'b4':reflectance_stack[3]}, locals())
         #weights[slope >= 0.05] += 1
         #weights[slope >= 0.055] += 1
         weights[slope] += 1
@@ -739,11 +739,11 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
         # band 4 -> 7 slope
         #slope = (reflectance_stack[6] - reflectance_stack[3])/2
         #slope = numexpr.evaluate("((b7 - b4) / 2) > 0.01", {'b7':reflectance_stack[6], 'b4':reflectance_stack[3]})
-        slope = numexpr.evaluate("((b7 - b4) / 2) > slope_b47a", {'b7':reflectance_stack[5], 'b4':reflectance_stack[3]})
+        slope = numexpr.evaluate("((b7 - b4) / 2) > slope_b47a", {'b7':reflectance_stack[5], 'b4':reflectance_stack[3]}, locals())
         #weights[slope > 0.01] += 1
         weights[slope] += 1
         #slope = numexpr.evaluate("abs((b7 - b4) / 2) > 0.05", {'b7':reflectance_stack[6], 'b4':reflectance_stack[3]})
-        slope = numexpr.evaluate("abs((b7 - b4) / 2) > slope_b47b", {'b7':reflectance_stack[5], 'b4':reflectance_stack[3]})
+        slope = numexpr.evaluate("abs((b7 - b4) / 2) > slope_b47b", {'b7':reflectance_stack[5], 'b4':reflectance_stack[3]}, locals())
         #weights[numpy.abs(slope) >= 0.05] += 1
         weights[slope] += 1
 
@@ -875,7 +875,7 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
     #cshadow = numexpr.evaluate("shadfilt > 4")
     cshadow = majority_filter(array=cshadow, iterations=1)
 
-    del shadfilt; gc.collect()
+    #del shadfilt; gc.collect()
 
     # Where a shadow pixel is a cloud pixel, change to no shadow
     cshadow[cindex] = False
