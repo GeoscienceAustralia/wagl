@@ -131,11 +131,12 @@ def process(subprocess_list=[], resume=False):
             return None
 
         assert type(image_stack[0]) == numpy.ndarray, 'Input is not valid'
+        assert len(image_stack.shape) == 3, 'Input array must contain 3 dimensions!'
 
         logger.debug('Determining pixel contiguity')
         # Create mask array with True for all pixels which are non-zero in all bands
-        #mask = image_stack.all(0)
-        mask = numexpr.evaluate('prod(image_stack, 0)') != 0
+        mask = image_stack.all(0)
+        #mask = numexpr.evaluate('prod(image_stack, 0)') != 0 # ***This has the potential to overflow, roll back to array.all(0)***
 
         # The following is only valid for Landsat 5 images
         if satellite.TAG == 'LS5':
