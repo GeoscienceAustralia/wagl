@@ -480,7 +480,8 @@ def process(subprocess_list=[], resume=False):
             # as valid pixels = 1.  Sum of ones therefore = count
             find         = numexpr.evaluate("where(ndsi_array >= thresh_f2, 1, 0)",{'thresh_f2' : pq_const.acca_thresh_f2}, locals())
             snow_pixels  = find.sum() # Sum is used as valid pixels = 1
-            snow_percent = (float(snow_pixels)/NaN.size) * 100
+            #snow_percent = (float(snow_pixels)/NaN.size) * 100
+            snow_percent = (float(snow_pixels)/find.size) * 100
 
             potential_cloud_array *= query
             if CONFIG.debug:
