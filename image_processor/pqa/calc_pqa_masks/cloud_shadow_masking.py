@@ -873,7 +873,7 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
     #cshadow = numexpr.evaluate("shadfilt > 4")
     #ndimage.convolve(cshadow, s, output=shadfilt)
     #cshadow = numexpr.evaluate("shadfilt > 4")
-    cshadow = majority_filter(array=cshadow, iterations=1)
+    cshadow = majority_filter(array=cshadow, iterations=2)
 
     #del shadfilt; gc.collect()
 
