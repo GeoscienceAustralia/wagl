@@ -115,8 +115,8 @@ def process(subprocess_list=[], resume=False):
         logger.debug('thermal_band = %d, thermal_band_index = %d', thermal_band, thermal_band_index)
 
         radiance_array = radiance_conversion(l1t_stack[thermal_band_index],
-                                             l1t_input_dataset.gain[thermal_band],
-                                             l1t_input_dataset.bias[thermal_band])
+                                             l1t_input_dataset.gain[pq_const.band_num_sequence[thermal_band]],
+                                             l1t_input_dataset.bias[pq_const.band_num_sequence[thermal_band]])
 
         kelvin_array = temperature_conversion(radiance_array,
                                               l1t_input_dataset.satellite.k[0],
