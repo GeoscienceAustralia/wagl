@@ -298,7 +298,8 @@ def process(subprocess_list=[], resume=False):
                 #query  = (thermal_array > new_lower) & (thermal_array <= new_upper)
                 query = numexpr.evaluate("((ambiguous_array * thermal_array) > new_lower) & ((ambiguous_array * thermal_array) <= new_upper)")
                 #query2 = ((ambiguous_array * thermal_array) != 0) & ((ambiguous_array * thermal_array) <= new_lower)
-                query2 = numexpr.evaluate("((ambiguous_array * thermal_array) != 0) & ((ambiguous_array * thermal_array) <= new_lower)")
+                #query2 = numexpr.evaluate("((ambiguous_array * thermal_array) != 0) & ((ambiguous_array * thermal_array) <= new_lower)")
+                query2 = numexpr.evaluate("((ambiguous_array * thermal_array) <= new_lower)")
 
                 # Compute stats for each query/class
                 # Max
