@@ -110,6 +110,9 @@ def process(subprocess_list=[], resume=False):
         #thermal_band_index = full_band_list.index(thermal_band)
         # Get Band 6 for TM, Band 61 for ETM+ and Band 10 for OLI_TIRS
         thermal_band = pq_const.thermal_band
+        if (type(thermal_band) == str):
+            logger.debug('No thermal band defined in constants.py for sensor %s. Generating a blank float32 array.', l1t_input_dataset.sensor)
+            kelvin_array = numpy.zeros((l1t_stack.shape[1],l1t_stack.shape[2]), dtype='float32')
         thermal_band_index = pq_const.getArrayBandLookup([thermal_band])[0] # Function returns a list of one item. Take the first item.
 
         logger.debug('thermal_band = %d, thermal_band_index = %d', thermal_band, thermal_band_index)
