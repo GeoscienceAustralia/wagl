@@ -104,15 +104,17 @@ def process(subprocess_list=[], resume=False):
     assert pq_const.contiguity in result.test_set, 'Contiguity test not yet run'
     contiguity_mask = (result.array & (1 << pq_const.contiguity)) > 0
 
-    mtl = glob(os.path.join(l1t_input_dataset.pathname, 'scene01/*_MTL.txt'))[0] # Crude but effective
-    mask = FMaskCloudMask(mtl, null_mask=contiguity_mask)
+    if pq_const.run_cloud: # TM/ETM/OLI_TIRS
+        mtl = glob(os.path.join(l1t_input_dataset.pathname, 'scene01/*_MTL.txt'))[0] # Crude but effective
+        mask = FMaskCloudMask(mtl, null_mask=contiguity_mask)
 
-    #bit_index = CONFIG.pqa_test_index['FMASK']
-    bit_index = pq_const.fmask
-    result.set_mask(mask, bit_index)
-    if CONFIG.debug:
-        dump_array(mask,
-                   os.path.join(CONFIG.work_path, 'mask_%02d.tif' % bit_index),
-                   l1t_input_dataset)
-
+        #bit_index = CONFIG.pqa_test_index['FMASK']
+        bit_index = pq_const.fmask
+        result.set_mask(mask, bit_index)
+        if CONFIG.debug:
+            dump_array(mask,
+                       os.path.join(CONFIG.work_path, 'mask_%02d.tif' % bit_index),
+                       l1t_input_dataset)
+    else: # OLI/TIRS only
+        logger.debug('Fmask Not Run! %s sensor not configured for the Fmask algorithm.'%l1t_input_dataset.sensor)
 
