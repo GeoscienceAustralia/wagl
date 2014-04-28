@@ -739,5 +739,5 @@ def process(subprocess_list=[], resume=False):
                        os.path.join(CONFIG.work_path, 'mask_%02d.tif' % bit_index),
                        nbar_input_dataset)
     else: # OLI/TIRS only
-        logger.debug('ACCA Not Run! %s sensor not configured for the ACCA algorithm.'%l1t_input_dataset.sensor)
+        logger.debug('ACCA Not Run! %s sensor not configured for the ACCA algorithm.'%nbar_input_dataset.sensor)
 
