@@ -185,6 +185,8 @@ class pqaContants:
     def setThermalBand(self):
         """
         Set the relevant thermal band used for the cloud and cloud shadow algorithms.
+        The thermal_band variable will be set to an integer corresponding to the band number
+        for a given sensors thermal band.  If no band is found, then a string is returned.
         """
         self.thermal_band = {
                             'TM' : 6,
