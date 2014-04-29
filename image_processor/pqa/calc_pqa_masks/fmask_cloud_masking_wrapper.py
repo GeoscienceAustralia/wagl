@@ -117,8 +117,8 @@ def process(subprocess_list=[], resume=False):
                        l1t_input_dataset)
     else: # OLI/TIRS only
         logger.debug('Fmask Not Run! %s sensor not configured for the Fmask algorithm.'%l1t_input_dataset.sensor)
-        logfile = open("FMASK_LOGFILE.txt", 'w', buffering=0)
-        logfile.write("Test Not Run!\n")
-        logfile.write("%s sensor not configured for the Fmask algorithm."%l1t_input_dataset.sensor)
-        logfile.close()
+        fmask_logfile = open(os.path.join(pqa_temp_output, 'scene01', 'FMASK_LOGFILE.txt'), 'w')
+        fmask_logfile.write("Test Not Run!\n")
+        fmask_logfile.write("%s sensor not configured for the Fmask algorithm."%l1t_input_dataset.sensor)
+        fmask_logfile.close()
 

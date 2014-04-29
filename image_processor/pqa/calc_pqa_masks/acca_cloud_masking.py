@@ -740,8 +740,8 @@ def process(subprocess_list=[], resume=False):
                        nbar_input_dataset)
     else: # OLI/TIRS only
         logger.debug('ACCA Not Run! %s sensor not configured for the ACCA algorithm.'%nbar_input_dataset.sensor)
-        logfile = open("ACCA_LOGFILE.txt", 'w', buffering=0)
-        logfile.write("Test Not Run!\n")
-        logfile.write("%s sensor not configured for the ACCA algorithm."%nbar_input_dataset.sensor)
-        logfile.close()
+        acca_logfile = open(os.path.join(pqa_temp_output, 'scene01', 'ACCA_LOGFILE.txt'), 'w')
+        acca_logfile.write("Test Not Run!\n")
+        acca_logfile.write("%s sensor not configured for the ACCA algorithm."%nbar_input_dataset.sensor)
+        acca_logfile.close()
 
