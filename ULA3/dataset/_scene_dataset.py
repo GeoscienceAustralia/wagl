@@ -272,6 +272,11 @@ class SceneDataset(Dataset):
             self.satellite = Satellite(self.satellite_name, self.sensor)
             assert self.satellite, 'Unable to create Satellite object for %s %s' % (self.satellite_name, self.sensor)
 
+            # For LS8 there are issues with OLI-TIRS and OLI_TIRS
+            # The satellite class will convert to OLI_TIRS but the dataset class will remain OLI-TIRS
+            # The dataset sensor and satellite sensor variables should be the same
+            self.sensor = self.satellite.sensor
+
             self._bands = dict(self.satellite.BAND_TYPES) # Copy dict from satellite
             for band_type in self._bands:
                 self._bands[band_type] = []
