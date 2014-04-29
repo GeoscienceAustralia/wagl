@@ -15,6 +15,7 @@ from datetime import datetime
 
 from ULA3 import DataManager
 from ULA3.image_processor import ProcessorConfig
+from ULA3.image_processor import constants
 from ULA3.dataset import SceneDataset
 from ULA3.metadata import Metadata, XMLMetadata
 #from ULA3.metadata import ReportMetadata
