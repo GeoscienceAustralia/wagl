@@ -483,8 +483,8 @@ def lndhdrread(filename):
     else:
         raise Exception('This sensor is not Landsat 4, 5, 7, or 8!')
 
-    if ((doy < 1) or (doy > 365)):
-        raise ValueError('Invalid Day of Year metadata value - expected (1,365) got %s' % char_doy)
+    if ((doy < 1) or (doy > 366)):
+        raise ValueError('Invalid Day of Year metadata value - expected (1,366) got %s' % doy)
 
     # The new version returns Lmax,Lmin,Qcalmax,Qcalmin,Refmax,Refmin,ijdim_ref,ijdim_thm,reso_ref,reso_thm,ul,zen,azi,zc,Lnum,doy
     #return (Lmax,Lmin,Qcalmax,Qcalmin,ijdim_ref,ijdim_thm,reso_ref,reso_thm,ul,zen,azi,zc,Lnum,doy)
