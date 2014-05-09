@@ -300,7 +300,7 @@ CLOUD SHADOW PERCENTAGE Fmask {Fmask_CLOUD_SHADOW_PERCENT}
     if CONFIG.purpose is not None:
         pqa_dataset.purpose = CONFIG.purpose
 
-    pqa_dataset.title = '%s %s PQ x%03d y%03d %s version 0 status completed' % (
+    pqa_dataset.title = '%s %s PQ x%03d y%03d %s' % (
         pqa_dataset.satellite.NAME,
         re.sub('\W+', '', pqa_dataset.satellite.sensor),
         pqa_dataset.path_number,
