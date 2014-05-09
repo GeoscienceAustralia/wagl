@@ -23,6 +23,9 @@ logger = logging.getLogger('root.' + __name__)
 # keywords for BRDF parameters f0, f1, f2
 _FACTOR_LIST = ['geo', 'iso', 'vol']
 
+# Expect BRDF directories of the form 'YYYY.MM.DD'
+_BRDF_DIR_PATTERN = re.compile('^\d{4}\.\d{2}.\d{2}$')
+
 #TODO: Implement resume
 
 
@@ -297,10 +300,11 @@ def get_brdf_dirs_modis(brdf_root, scene_date, n_dirs=2):
         # Returns interval midpoint date of a MCD43A1.005/YYYY.MM.DD directory.
         return datetime.date(*[int(x) for x in s.split(sep)]) + offset
 
+    # List only directories that match 'YYYY.MM.DD' format.
+    dirs = sorted([d for d in os.listdir(brdf_root) if _BRDF_DIR_PATTERN.match(d)])
+
     # Find the N (n_dirs) BRDF directories with midpoints closest to the
     # scene date.
-
-    dirs = sorted(os.listdir(brdf_root))
     delta_map = { abs(__date(x) - scene_date): x for x in dirs }
 
     if scene_date < (__date(dirs[0]) - offset):
