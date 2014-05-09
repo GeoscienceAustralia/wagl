@@ -210,7 +210,7 @@ def write_metadata(DATA, CONFIG, xml_metadata_template, PROCESSOR_VERSION):
     if CONFIG.purpose is not None:
         nbar_dataset.purpose = CONFIG.purpose
 
-    nbar_dataset.title = '%s %s NBAR x%03d y%03d %s version 1 status completed' % (
+    nbar_dataset.title = '%s %s NBAR x%03d y%03d %s' % (
         nbar_dataset.satellite.NAME,
         re.sub('\W+', '', nbar_dataset.satellite.sensor),
         nbar_dataset.path_number,
