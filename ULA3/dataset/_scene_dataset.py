@@ -250,17 +250,24 @@ class SceneDataset(Dataset):
             self.__gather_metadata()
 
             # Find root dataset, check all files and set up references to subdatasets. Bands are loaded in numerical order.
-            self.__find_root_dataset_xml()
-            self.__load_bands_xml()
+            if self.processor_level == 'Pixel Quality':
+                # PQ dataset, use filename pattern match to find the dataset.
+                self.__find_root_dataset_pq()
+                self.__load_bands_pq()
+
+            elif self.processor_level == 'Fractional Cover':
+                raise AssertionError('Fractional Cover dataset detected.')
+
+            else:
+                # ORTHO or NBAR dataset, get bands from self.satellite
+                self.__find_root_dataset_xml()
+                self.__load_bands_xml()
 
             # Remove duplicates and sort file list
             fileSet = set()
             for subDataset in self._sub_datasets:
                 fileSet |= set(subDataset.GetFileList())
             self._file_list = sorted(list(fileSet))
-
-            if self.satellite.rgb_bands:
-                self.rgb_bands = [self._band_number_map[band_file_number] for band_file_number in self.satellite.rgb_bands]
 
             # Set any class-specific attributes derived from metadata
             self.__set_instance_values()
@@ -336,6 +343,79 @@ class SceneDataset(Dataset):
         self._bands = dict(self.satellite.BAND_TYPES) # Copy dict from satellite
         for band_type in self._bands:
             self._bands[band_type] = []
+
+
+    def __find_root_dataset_pq(self):
+        """
+        Method to find and load the root dataset of a Pixel Quality dataset.
+        """
+
+        self._data_dir = None
+        for datadir in self._DATADIRS:
+            datadir = os.path.abspath(os.path.join(self._pathname, datadir))
+
+            if os.path.isdir(datadir):
+
+                for f in sorted(os.listdir(datadir)):
+                    m = re.search(r'(\w+)_([01]{16}).(\w+)$', f)
+
+                    if m:
+                        suffix = m.group(2)
+                        extension = m.group(3).upper()
+
+                        if extension == 'TIF':
+                            self._root_dataset_pathname = os.path.abspath(os.path.join(datadir, f))
+                            self._sub_dataset_type = extension
+                            self._data_dir = datadir
+
+                            try:
+                                self._root_dataset = gdal.Open(self._root_dataset_pathname, self._eAccess)
+                            except:
+                                self._root_dataset = None
+                                raise DSException(e.message)
+
+                            self._sub_datasets.append(self._root_dataset)
+
+            if self._data_dir: # Data directory has been determined
+                break # Stop searching
+
+        assert self._data_dir, 'Unable to find root dataset under ' + self._pathname
+
+        # Perform basic checks on root dataset
+        assert self._sub_dataset_type, 'Unable to determine dataset type'
+        assert self._root_dataset, 'Unable to open root dataset'
+
+
+    def __load_bands_pq(self):
+        """
+        Method to register information for a Pixel Quality dataset.
+
+        Note that PQ datasets only have one band (already loaded as the
+        root dataset), so all this has to do is build and register the
+        band_dict.
+        """
+
+        band_number = 1
+        band_file_number = 1 # This is arbitrary - the band actually has a symbolic key 'PQ', not a number
+
+        band_dict = {
+            'file': self._root_dataset_pathname,
+            'band_file_number': band_file_number,
+            'type': 'Derived',
+            'dataSet': self._root_dataset,
+            'rasterIndex': 1
+            }
+
+        # Add band for type 'Derived' if needed
+        if 'Derived' not in self._bands:
+            self._bands['Derived'] = []
+
+        # Register lookup information for band
+        self._raster_dict[band_number] = band_dict
+        self._band_number_map[band_file_number] = band_number
+        self._bands['ALL'].append(band_number)
+        self._bands[band_dict['type']].append(band_number)
+        self._root_band_number = band_number
 
 
     def __find_root_dataset_xml(self):
@@ -498,6 +578,10 @@ class SceneDataset(Dataset):
         assert len(self._raster_dict), 'No band information found'
         if len(self._raster_dict) < len(self.satellite.BAND_TYPES['ALL']):
             logger.debug('Only %s/%s bands found' % (len(self._raster_dict), len(self.satellite.BAND_TYPES['ALL'])))
+
+        # Set up rgb bands
+        if self.satellite.rgb_bands:
+            self.rgb_bands = [self._band_number_map[band_file_number] for band_file_number in self.satellite.rgb_bands]
 
 
     def __set_instance_values(self):
