@@ -68,6 +68,15 @@ class SceneDataset(Dataset):
 
     _CACHED_DATASETS = {}
 
+    _FC_ROOT_SUFFIX = 'PV'
+
+    _FC_BAND_LIST = [
+        {'NUMBER': 1, 'SUFFIX': 'PV', 'TYPE': 'Derived'},
+        {'NUMBER': 2, 'SUFFIX': 'NPV', 'TYPE': 'Derived'},
+        {'NUMBER': 3, 'SUFFIX': 'BS', 'TYPE': 'Derived'},
+        {'NUMBER': 4, 'SUFFIX': 'UE', 'TYPE': 'Derived'}
+        ]
+
     def __new__(cls, pathname=None, eAccess=gdalconst.GA_ReadOnly, default_metadata_required=True, utm_fix=False):
         """
         Implements a cache of SceneDatasets.
@@ -259,7 +268,9 @@ class SceneDataset(Dataset):
                 self.__load_bands_pq()
 
             elif self.processor_level == 'Fractional Cover':
-                raise AssertionError('Fractional Cover dataset detected. Not yet implemented.')
+                # FC dataset
+                self.__find_root_dataset_fc()
+                self.__load_bands_fc()
 
             else:
                 # ORTHO or NBAR dataset, get bands from ULA3/geodesic/satellite.xml via self.satellite
@@ -422,6 +433,89 @@ class SceneDataset(Dataset):
         self._bands[band_dict['type']].append(band_number)
         self._root_band_number = band_number
 
+    def __find_root_dataset_fc(self):
+        """
+        Method to find the root dataset of a Fractional Cover dataset.
+        """
+
+        self._data_dir = None
+        for datadir in self._DATADIRS:
+            datadir = os.path.abspath(os.path.join(self._pathname, datadir))
+            if os.path.isdir(datadir):
+                for f in sorted(os.listdir(datadir)):
+                    m = re.search('(\w+)_(\w+).(\w+)$', f)
+                    if m:
+                        suffix = m.group(2).upper()
+                        extension = m.group(3).upper()
+
+                    if suffix == self._FC_ROOT_SUFFIX:
+                        self._root_dataset_pathname = os.path.abspath(os.path.join(datadir, f))
+                        self._sub_dataset_type = extension
+                        self._data_dir = datadir
+
+                        try:
+                            self._root_dataset = gdal.Open(self._root_dataset_pathname, self._eAccess)
+                        except (RuntimeError), e:
+                            self._root_dataset = None
+                            raise DSException(e.message)
+
+                        self._sub_datasets.append(self._root_dataset)
+
+            if self._data_dir: # Data directory has been determined
+                break # Stop searching
+
+        # Perform basic checks on root dataset
+        assert self._sub_dataset_type, 'Unable to determine dataset type'
+        assert self._root_dataset, 'Unable to open root dataset'
+
+    def __load_bands_fc(self):
+        """
+        Method to load the bands into sub-datasets for a Fractional Cover dataset.
+        """
+
+        # Add band for type 'Derived' if needed
+        if 'Derived' not in self._bands:
+            self._bands['Derived'] = []
+
+        for band_index in range(len(self._FC_BAND_LIST)):
+            band_number = band_index + 1
+            band_info = self._FC_BAND_LIST[band_index]
+            band_file_number = band_info['NUMBER']
+            band_suffix = band_info['SUFFIX']
+            file_list = glob(os.path.join(self._data_dir, '*_' + band_suffix + '.' + self._sub_dataset_type.lower()))
+            file_list += glob(os.path.join(self._data_dir, '*_' + band_suffix + '.' + self._sub_dataset_type.upper()))
+            if len(file_list) == 1:
+                band_file = os.path.abspath(file_list[0])
+
+                band_dict = {
+                    'file': band_file,
+                    'band_file_number': band_file_number,
+                    'type': band_info['TYPE']
+                    }
+
+                if band_dict['file'] == self._root_dataset_pathname:
+                    band_dict['dataSet'] = self._root_dataset
+                else:
+                    band_dict['dataSet'] = gdal.Open(band_dict['file'], self._eAccess)
+                    self._sub_datasets.append(band_dict['dataSet'])
+
+                band_dict['rasterIndex'] = 1
+
+                # Register lookup information for band
+                self._raster_dict[band_number] = band_dict
+                self._band_number_map[band_file_number] = band_number
+                self._bands['ALL'].append(band_number)
+                self._bands[band_info['TYPE']].append(band_number)
+                if band_suffix == self._FC_ROOT_SUFFIX:
+                    self._root_band_number = band_number
+
+            else:
+                logger.debug('%s files found for band file number %s' % (len(file_list), band_file_number))
+
+        # Validity checks for required bands
+        assert len(self._raster_dict), 'No band information found'
+        if len(self._raster_dict) < len(self._FC_BAND_LIST):
+            logger.debug('Only %s/%s bands found' % (len(self._raster_dict), len(self._FC_BAND_LIST)))
 
     def __find_root_dataset_xml(self):
         """
@@ -587,7 +681,6 @@ class SceneDataset(Dataset):
         # Set up rgb bands
         if self.satellite.rgb_bands:
             self.rgb_bands = [self._band_number_map[band_file_number] for band_file_number in self.satellite.rgb_bands]
-
 
     def __set_instance_values(self):
         """
