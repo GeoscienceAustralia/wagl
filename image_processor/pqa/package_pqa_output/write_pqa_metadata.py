@@ -92,9 +92,8 @@ def write_metadata(DATA, CONFIG, xml_metadata_template, PROCESSOR_VERSION):
             test_const_dict[CONFIG.pqa_test_index[test_const]] = test_const
 
         lineage_string = """
-Pixel Quality SVN Version %s
 The pixel quality algorithm assesses quality aspects such as saturation, band/spectral contiguity, land/sea, cloud and cloud shadow.
-""" % CONFIG.svn_revision
+"""
         for test_index in range(len(tests_run)):
             lineage_string += '%s (Bit %d): ' % (CONFIG.pqa_test_description[test_const_dict[test_index]], test_index)
             if test_index == 6 and l1t_input_dataset.satellite.TAG == 'LS5': #
