@@ -183,6 +183,7 @@ class SceneDataset(Dataset):
             self._bands = {} # Dict containing lists of bands by type
             self._band_number_map = {} # Map file numbers to band numbers
             self.rgb_bands = [] # List of RGB band numbers in order
+            self.pq_tests_run = None # Tests run for PQ datasets, flags in the form of a 16 bit integer
             self._metadata_vars = [] # List of variables read from metadata
             self.spatial_ref = None
             self.spatial_ref_geo = None
@@ -249,17 +250,19 @@ class SceneDataset(Dataset):
             # Read all metadata into nested dict and look up satellite info
             self.__gather_metadata()
 
-            # Find root dataset, check all files and set up references to subdatasets. Bands are loaded in numerical order.
+            # Find root dataset, check all files and set up references to
+            # subdatasets. Bands are loaded in numerical order.
+
             if self.processor_level == 'Pixel Quality':
                 # PQ dataset, use filename pattern match to find the dataset.
                 self.__find_root_dataset_pq()
                 self.__load_bands_pq()
 
             elif self.processor_level == 'Fractional Cover':
-                raise AssertionError('Fractional Cover dataset detected.')
+                raise AssertionError('Fractional Cover dataset detected. Not yet implemented.')
 
             else:
-                # ORTHO or NBAR dataset, get bands from self.satellite
+                # ORTHO or NBAR dataset, get bands from ULA3/geodesic/satellite.xml via self.satellite
                 self.__find_root_dataset_xml()
                 self.__load_bands_xml()
 
@@ -373,6 +376,8 @@ class SceneDataset(Dataset):
                             except:
                                 self._root_dataset = None
                                 raise DSException(e.message)
+
+                            self.pq_tests_run = int(suffix, base=2)
 
                             self._sub_datasets.append(self._root_dataset)
 
