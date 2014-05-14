@@ -68,6 +68,15 @@ class SceneDataset(Dataset):
 
     _CACHED_DATASETS = {}
 
+    _FC_ROOT_SUFFIX = 'PV'
+
+    _FC_BAND_LIST = [
+        {'NUMBER': 1, 'SUFFIX': 'PV', 'TYPE': 'Derived'},
+        {'NUMBER': 2, 'SUFFIX': 'NPV', 'TYPE': 'Derived'},
+        {'NUMBER': 3, 'SUFFIX': 'BS', 'TYPE': 'Derived'},
+        {'NUMBER': 4, 'SUFFIX': 'UE', 'TYPE': 'Derived'}
+        ]
+
     def __new__(cls, pathname=None, eAccess=gdalconst.GA_ReadOnly, default_metadata_required=True, utm_fix=False):
         """
         Implements a cache of SceneDatasets.
@@ -172,6 +181,9 @@ class SceneDataset(Dataset):
             self._file_list = [] # List of files managed
             self._raster_dict = {} # Dict containing lookup information for bands
             self._root_dataset_pathname = None # Pathname of root subdataset
+            self._root_dataset = None # Current root dataset (gdal.Dataset)
+            self._thermal_dataset = None # Current thermal dataset (gdal.Dataset)
+            self._panchromatic_dataset = None # Current panchromatic_dataset (gdal.Dataset)
             self._data_dir = None # Directory containing image files
             self._sub_dataset_type = None # 'TIF' or 'FST'
             self._xml_uses_attributes = False # Flag indicating whether XML values are stored as tag attributes
@@ -180,6 +192,7 @@ class SceneDataset(Dataset):
             self._bands = {} # Dict containing lists of bands by type
             self._band_number_map = {} # Map file numbers to band numbers
             self.rgb_bands = [] # List of RGB band numbers in order
+            self.pq_tests_run = None # Tests run for PQ datasets, flags in the form of a 16 bit integer
             self._metadata_vars = [] # List of variables read from metadata
             self.spatial_ref = None
             self.spatial_ref_geo = None
@@ -235,407 +248,6 @@ class SceneDataset(Dataset):
             ``self``
         """
 
-        def _gather_metadata():
-            """
-            Function to read ALL available metadata into a single nested dict tree structure
-            """
-            logger.debug('  _gather_metadata() called')
-            for metadata_type in ['XML', 'MTL', 'REPORT']:
-                for file_pattern in self._METADATA_SOURCES[metadata_type]['FILE_PATTERNS']:
-                    file_list = find_files(self._pathname, file_pattern)
-                    if file_list:
-                        logger.debug('Reading %s metadata file %s', metadata_type, file_list[0])
-                        if metadata_type == 'XML':
-                            xml_metadata = XMLMetadata(file_list[0])
-                            self._xml_uses_attributes = xml_metadata.uses_attributes # Remember whether attributes are used in XML
-                            self._metadata.merge_root_metadata_from_object(metadata_object=xml_metadata, overwrite=False)
-                        elif metadata_type == 'MTL':
-                            self._metadata.merge_root_metadata_from_object(metadata_object=MTLMetadata(file_list[0]))
-                        elif metadata_type == 'REPORT':
-                            self._metadata.set_root_metadata_from_object(metadata_object=ReportMetadata(file_list[0]))
-                    else:
-                        logger.debug('No %s files matching "%s" found', metadata_type, file_pattern)
-
-                assert self._metadata.get_metadata([metadata_type]) or not self._METADATA_SOURCES[metadata_type]['REQUIRED'], (
-                    'No ' + metadata_type + ' metadata file(s) found for ' + self._pathname)
-
-            #===================================================================
-            # # Import image metadata (if any) and store under 'FST' or 'TIF as required
-            # image_metadata = self._root_dataset.GetMetadata_Dict()
-            # if image_metadata:
-            #    self._metadata.set_root_metadata(self._sub_dataset_type, image_metadata)
-            #===================================================================
-
-            # Set all instance attributes as defined in class XML file
-            self.read_metadata()
-
-            self.satellite = Satellite(self.satellite_name, self.sensor)
-            assert self.satellite, 'Unable to create Satellite object for %s %s' % (self.satellite_name, self.sensor)
-
-            # For LS8 there are issues with OLI-TIRS and OLI_TIRS
-            # The satellite class will convert to OLI_TIRS but the dataset class will remain OLI-TIRS
-            # The dataset sensor and satellite sensor variables should be the same
-            self.sensor = self.satellite.sensor
-
-            self._bands = dict(self.satellite.BAND_TYPES) # Copy dict from satellite
-            for band_type in self._bands:
-                self._bands[band_type] = []
-
-        def _set_instance_values():
-            """
-            Function to set any class-specific attributes derived from metadata
-            This is called after read_metadata(). Any derived vales should be set here.
-            """
-            def get_mtl_bias_gain():
-                '''
-                Calculate bias & gain for each band from MTL metadata
-                Sets self.bias & self.gain lists with values for each band
-                Code adapted from old ula.metadata.py
-                N.B: Will exit with warning if required metadata not found
-                '''
-                bdict = {}
-                gdict = {}
-
-                # Get MIN_MAX_RADIANCE dict from MTL data
-                mmr = self._metadata.get_metadata('MTL,L1_METADATA_FILE,MIN_MAX_RADIANCE')
-                if mmr:
-                    # Get MIN_MAX_RADIANCE dict from MTL data
-                    mmpv = self._metadata.get_metadata('MTL,L1_METADATA_FILE,MIN_MAX_PIXEL_VALUE')
-                    if mmpv:
-                        # TODO: This will probably break with Landsat 8 data
-                        for key in sorted(mmr.keys()):
-                            m = re.match('LMIN_BAND(\d+)', key)
-                            if m:
-                                mmr_number = int(m.group(1))
-                                if 60 <= mmr_number < 70:
-                                    band_file_number = mmr_number
-                                else:
-                                    band_file_number = mmr_number * 10
-#                                logger.info('key = %s, band_file_number = %s', key, band_file_number)
-                                assert band_file_number in self.satellite.BAND_TYPES['ALL'], 'Invalid band file number %d' % band_file_number
-                                if band_file_number in self._band_number_map:
-                                    band_number = self._band_number_map[band_file_number]
-
-#                                    bias = gain = 0.0
-#                                    if band_number in self._bands['REFLECTIVE']:
-                                    lmin = float(mmr['LMIN_BAND%d' % mmr_number])
-                                    lmax = float(mmr['LMAX_BAND%d' % mmr_number])
-                                    qcalmin = float(mmpv['QCALMIN_BAND%d' % mmr_number])
-                                    qcalmax = float(mmpv['QCALMAX_BAND%d' % mmr_number])
-                                    gain = (lmax - lmin) / (qcalmax - qcalmin)
-                                    bias = lmax - gain * qcalmax
-
-#                                    logger.info('mmr_number = %s, band_number = %s, lmin = %s, lmax = %s, gain = %s, bias = %s',
-#                                                mmr_number, band_number, lmin, lmax, gain, bias)
-
-                                    bdict[band_number] = bias
-                                    gdict[band_number] = gain
-                    else:
-                        logger.debug('No MIN_MAX_PIXEL_VALUE data found in MTL file. Unable to compute bias & gain.')
-                else:
-                    logger.debug('No MIN_MAX_RADIANCE data found in MTL file. Unable to compute bias & gain.')
-
-                self.bias = bdict
-                self.gain = gdict
-
-            def get_mtl_bias_gain_landsat8_lookup():
-
-                bdict = {}
-                gdict = {}
-
-                rad_rescale_params = self._metadata.get_metadata('MTL,L1_METADATA_FILE,RADIOMETRIC_RESCALING')
-
-                print
-                print rad_rescale_params
-                pprint(rad_rescale_params)
-
-                # Need to check if we have a valid return from the metadata lookup
-                if rad_rescale_params:
-                    for key, value in rad_rescale_params.iteritems():
-
-                        # Bias: RADIANCE_ADD_BAND_X = <value>
-
-                        match_add = re.match('RADIANCE_ADD_BAND_(\d+)', key)
-                        if match_add:
-                            bdict[ int(match_add.group(1)) ] = float(value)
-
-                        # Gain: RADIANCE_MULT_BAND_X = <value>
-
-                        match_mult = re.match('RADIANCE_MULT_BAND_(\d+)', key)
-                        if match_mult:
-                            gdict[ int(match_mult.group(1)) ] = float(value)
-                else:
-                    logger.debug('No RADIOMETRIC_RESCALING data found in MTL file. Unable to compute bias & gain.')
-
-                print
-                print 'bdict'
-                pprint(bdict)
-                print
-                print 'gdict'
-                pprint(gdict)
-                print
-
-                self.bias = bdict
-                self.gain = gdict
-
-
-
-            if self.scene_centre_date and self.scene_centre_time:
-                self.scene_centre_datetime = datetime(
-                    self.scene_centre_date.year,
-                    self.scene_centre_date.month,
-                    self.scene_centre_date.day,
-                    self.scene_centre_time.hour,
-                    self.scene_centre_time.minute,
-                    self.scene_centre_time.second,
-                    self.scene_centre_time.microsecond)
-
-                self.scene_start_datetime = self.scene_centre_datetime - self.satellite.acquistion_seconds // 2
-                self.scene_end_datetime = self.scene_start_datetime + self.satellite.acquistion_seconds
-            else:
-                self.scene_centre_datetime = None
-                self.scene_start_datetime = None
-                self.scene_end_datetime = None
-
-            if self.completion_date and self.completion_time:
-                self.completion_datetime = datetime(
-                    self.completion_date.year,
-                    self.completion_date.month,
-                    self.completion_date.day,
-                    self.completion_time.hour,
-                    self.completion_time.minute,
-                    self.completion_time.second,
-                    self.completion_time.microsecond)
-            else:
-                self.completion_datetime = None
-
-            # SPATIAL REFERENCE GENERAL CASE
-            # Use the projection and geotransform that GDAL gives us.
-            # WARNING: in special case code below, always create a new spatial reference
-            # instance. Modifying the instance created here DOES NOT WORK.
-
-            self.spatial_ref = osr.SpatialReference()
-            self.spatial_ref.ImportFromWkt(self.GetProjection())
-
-            # Initialise geotransform to None (otherwise it calls the SceneDataset Class function
-            # GetGeoTransform() which is supposed to override the Dataset Class function of the same name.
-            self.geotransform = None
-            self.geotransform = self.GetGeoTransform()
-
-            # SPATIAL REFERENCE SPECIAL CASE
-            # FAST-EQR dataset. HRF.FST files coming from EODS may have PROJECTION=EQR,
-            # but also contain UTM-like extents and pixel size, which are in the spec
-            # but give GDAL fits -- GetProjection() and GetGeoTransform() return
-            # unusable values. To fix this situation, create new spatial reference and
-            # geotransform objects using values derived from metadata. WARNING: Client
-            # code should always use <dataset>.geotransform rather than
-            # <dataset>.GetGeoTransform().
-
-            if self.product_format.startswith('FAST') and self.map_projection.startswith('EQR'):
-                self.spatial_ref = osr.SpatialReference()
-                self.spatial_ref.SetWellKnownGeogCS('WGS84')
-
-                #self.geotransform = [
-                #    self.ul_lon - self.pixel_x_size / 2.,
-#               #     (self.ur_lon - self.ul_lon) / self.image_pixels,
-                #    self.pixel_x_size,
-                #    0.0,
-                #    self.ul_lat + self.pixel_y_size / 2.,
-                #    0.0,
-#               #     (self.ll_lat - self.ul_lat) / self.image_lines,
-                #    -self.pixel_y_size
-                #]
-
-                gt = self.GetGeoTransform()
-                self.geotransform = (numpy.array(gt)/100000.).tolist()
-                # Need to reset the rotation params. These are probably zero anyway as our imagery 
-                # is created North-Up (for L1T), but it is better to be safe. But then again rotation
-                # values might be scaled incorrectly???
-                self.geotransform[2] = gt[2]
-                self.geotransform[4] = gt[4]
-                self.coordinate_reference_system = 'WGS84'
-
-                # Force calculation of the corner points - metadata values may be scaled incorrectly
-                self.ul_x = None
-                self.ul_y = None
-                self.ur_x = None
-                self.ur_y = None
-                self.ll_x = None
-                self.ll_y = None
-                self.lr_x = None
-                self.lr_y = None
-
-                logger.warning('FAST-EQR format, created substitute spatial reference and geotransform')
-
-            # SPATIAL REFERENCE SPECIAL CASE
-            # UTM zone outside of GDA94 datum specification, e.g. UTM zone 60 for GDA94.
-            # Substitute a WGS84 spatial reference. Differences between GDA94 and WGS84
-            # should be sub-pixel, see http://www.icsm.gov.au/gda/wgs84fact.pdf.
-            # *************************************************************************
-            # *** This workaround is likely wrong, based on further info from Matthew.
-            # *** Need ITRF2008 support.
-            # *************************************************************************
-
-            _local = self.spatial_ref.GetAttrValue('LOCAL_CS')
-            if _local:
-                assert self.utm_fix, 'LOCAL_CS [%s] (UTM zone could be outside the datum spec) -- ABORTED' % _local
-
-                m = re.search('UTM Zone (\d+) ', _local)  # hardwired
-                if m:
-                    zone = int(m.group(1))
-                else:
-                    assert False, 'Could not parse LOCAL_CS\n%s' % _local
-                self.spatial_ref = osr.SpatialReference()
-                self.spatial_ref.SetWellKnownGeogCS('WGS84')
-                self.spatial_ref.SetUTM(zone, False)
-                self.geotransform = [
-                    self.ul_lon,
-                    (self.ur_lon - self.ul_lon) / self.image_pixels,
-                    0.0,
-                    self.ul_lat,
-                    0.0,
-                    (self.ll_lat - self.ul_lat) / self.image_lines,
-                ]
-                logger.warning('Overrode LOCAL_CS spatial reference with WGS84 (zone=%d)' % zone)
-
-            #
-            # TODO ...catch other spatialreference/projection error cases...
-            #
-
-            self.spatial_ref_geo = self.spatial_ref.CloneGeogCS()
-
-            self.cxform_to_geo = osr.CoordinateTransformation(self.spatial_ref, self.spatial_ref_geo)
-            self.cxform_from_geo = osr.CoordinateTransformation(self.spatial_ref_geo, self.spatial_ref)
-
-            extents        = self.GetExtent()
-            array_extents  = numpy.array(extents)
-            centre_x       = float(numpy.mean(array_extents[:,0]))
-            centre_y       = float(numpy.mean(array_extents[:,1]))
-            extents.append([centre_x,centre_y])
-
-            #self.lonlats = {
-            #    'CENTRE': (self.scene_centre_long, self.scene_centre_lat),
-            #    'UL': (self.ul_lon, self.ul_lat),
-            #    'UR': (self.ur_lon, self.ur_lat),
-            #    'LL': (self.ll_lon, self.ll_lat),
-            #    'LR': (self.lr_lon, self.lr_lat)}
-
-            if self.IsGeographic():
-                print 'IsGeographic'
-                self.lonlats = {
-                    'CENTRE' : (extents[4][0], extents[4][1]),
-                    'UL'     : (extents[0][0], extents[0][1]),
-                    'UR'     : (extents[2][0], extents[2][1]),
-                    'LL'     : (extents[1][0], extents[1][1]),
-                    'LR'     : (extents[3][0], extents[3][1])
-                               }
-                print self.lonlats
-                # If the scene is natively in geographics, we shouldn't need to 
-                # project the co-ordinates to UTM.
-
-                # Set the georeferenced coordinates of the corner points if we don't already have them.
-                # These generally only get set when the product is FAST-EQR when they're forced to None
-                if not (self.ul_x and self.ul_y):
-                    self.ul_x, self.ul_y = self.lonlats['UL']
-                if not (self.ur_x and self.ur_y):
-                    self.ur_x, self.ur_y = self.lonlats['UR']
-                if not (self.ll_x and self.ll_y):
-                    self.ll_x, self.ll_y = self.lonlats['LL']
-                if not (self.lr_x and self.lr_y):
-                    self.lr_x, self.lr_y = self.lonlats['LR']
-
-
-                self.scene_centre_x, self.scene_centre_y = self.lonlats['CENTRE']
-            else:
-                self.coords = {
-                    'CENTRE' : (extents[4][0], extents[4][1]),
-                    'UL'     : (extents[0][0], extents[0][1]),
-                    'UR'     : (extents[2][0], extents[2][1]),
-                    'LL'     : (extents[1][0], extents[1][1]),
-                    'LR'     : (extents[3][0], extents[3][1])
-                              }
-
-                re_prj_extents=[]
-                for x,y in extents:
-                    new_x, new_y, new_z = self.cxform_to_geo.TransformPoint(x,y)
-                    re_prj_extents.append([new_x,new_y])
-                    print new_x, new_y
-
-                self.lonlats = {
-                    'CENTRE' : (re_prj_extents[4][0], re_prj_extents[4][1]),
-                    'UL'     : (re_prj_extents[0][0], re_prj_extents[0][1]),
-                    'UR'     : (re_prj_extents[2][0], re_prj_extents[2][1]),
-                    'LL'     : (re_prj_extents[1][0], re_prj_extents[1][1]),
-                    'LR'     : (re_prj_extents[3][0], re_prj_extents[3][1])
-                               }
-
-                # Set the georeferenced coordinates of the corner points if we don't already have them.
-                # These generally only get set when the product is FAST-EQR when they're forced to None
-                if not (self.ul_x and self.ul_y):
-                    self.ul_x, self.ul_y = self.coords['UL']
-                if not (self.ur_x and self.ur_y):
-                    self.ur_x, self.ur_y = self.coords['UR']
-                if not (self.ll_x and self.ll_y):
-                    self.ll_x, self.ll_y = self.coords['LL']
-                if not (self.lr_x and self.lr_y):
-                    self.lr_x, self.lr_y = self.coords['LR']
-
-
-                self.scene_centre_x, self.scene_centre_y = self.coords['CENTRE']
-
-
-            #self.scene_centre_x, self.scene_centre_y = self.coord_from_geo(self.lonlats['CENTRE'])
-            #self.scene_centre_x, self.scene_centre_y = self.coords['CENTRE']
-
-            # Set the georeferenced coordinates of the corner points if we don't already have them
-            #if not (self.ul_x and self.ul_y):
-            #    #self.ul_x, self.ul_y = self.coord_from_geo(self.lonlats['UL'])
-            #    self.ul_x, self.ul_y = self.coords['UL']
-            #if not (self.ur_x and self.ur_y):
-            #    #self.ur_x, self.ur_y = self.coord_from_geo(self.lonlats['UR'])
-            #    self.ur_x, self.ur_y = self.coords['UR']
-            #if not (self.ll_x and self.ll_y):
-            #    #self.ll_x, self.ll_y = self.coord_from_geo(self.lonlats['LL'])
-            #    self.ll_x, self.ll_y = self.coords['LL']
-            #if not (self.lr_x and self.lr_y):
-            #    #self.lr_x, self.lr_y = self.coord_from_geo(self.lonlats['LR'])
-            #    self.lr_x, self.lr_y = self.coords['LR']
-
-            #self.coords = {
-            #    'CENTRE': (self.scene_centre_x, self.scene_centre_y),
-            #    'UL': (self.ul_x, self.ul_y),
-            #    'UR': (self.ur_x, self.ur_y),
-            #    'LL': (self.ll_x, self.ll_y),
-            #    'LR': (self.lr_x, self.lr_y)}
-
-            # Pre-compute some useful derived time quantities
-            if self.scene_centre_date:
-                self.DOY = self.scene_centre_date.timetuple().tm_yday
-
-            if self.scene_centre_time:
-                self.decimal_hour = (self.scene_centre_time.hour +
-                    (self.scene_centre_time.minute +
-                     (self.scene_centre_time.second +
-                      self.scene_centre_time.microsecond / 1000000.0) / 60.0) / 60.0)
-
-            if self.scene_centre_date and self.scene_centre_time:
-                self.decimal_day = self.DOY + self.decimal_hour / 24.0
-
-            MTL_bias_gain_dict = {
-                          'Landsat-5' : get_mtl_bias_gain,
-                          'Landsat-7' : get_mtl_bias_gain,
-                          'Landsat-8' : get_mtl_bias_gain_landsat8_lookup,
-                                 }
-            MTL_bias_gain_dict[self.satellite.NAME]()
-            #get_mtl_bias_gain()
-            #get_mtl_bias_gain_landsat8_lookup()
-
-            # Deal with special case where datum/ellipsoid requires +ve UTM zone
-            if self.zone and self.zone < 0 and self.datum == 'GDA94' and self.earth_ellipsoid == 'GRS80':
-                self.zone = abs(self.zone)
-                self.update_metadata('zone')
-
-
         logger.debug('SceneDataset.Open(%s,%s) called', repr(pathname), repr(eAccess))
         self._pathname = os.path.abspath(pathname)
         self._eAccess = eAccess
@@ -645,143 +257,25 @@ class SceneDataset(Dataset):
             assert os.path.isdir(pathname), pathname + ' is not a directory'
 
             # Read all metadata into nested dict and look up satellite info
-            _gather_metadata()
+            self.__gather_metadata()
 
-            # Find root dataset
-            thermal_dataset = None
-            panchromatic_dataset = None
-            self._data_dir = None
-            for datadir in self._DATADIRS:
-                datadir = os.path.abspath(os.path.join(self._pathname, datadir))
-                if os.path.isdir(datadir):
-                    for f in sorted(os.listdir(datadir)):
-                        m = re.search('(\w+)_(\w+).(\w+)$', f)
-                        if m:
-                            suffix = m.group(2).upper()
-                            extension = m.group(3).upper()
+            # Find root dataset, check all files and set up references to
+            # subdatasets. Bands are loaded in numerical order.
 
-                            print 'suffix         ', suffix
-                            print 'extension      ', extension
-                            print '_FILE_TYPE_INFO', self._FILE_TYPE_INFO
-                            print 'extension in _FILE_TYPE_INFO', (extension in self._FILE_TYPE_INFO)
-                            print 'satellite.root_band', self.satellite.root_band
+            if self.processor_level == 'Pixel Quality':
+                # PQ dataset, use filename pattern match to find the dataset.
+                self.__find_root_dataset_pq()
+                self.__load_bands_pq()
 
-                            # Determine the root suffix for the found file type
-                            if extension in self._FILE_TYPE_INFO:
-                                try:
-                                    root_suffix = self._FILE_TYPE_INFO[extension]['ROOTSUFFIX'] % self.satellite.root_band
-                                except (TypeError):
-                                    root_suffix = self._FILE_TYPE_INFO[extension]['ROOTSUFFIX']
+            elif self.processor_level == 'Fractional Cover':
+                # FC dataset
+                self.__find_root_dataset_fc()
+                self.__load_bands_fc()
 
-                                print 'root_suffix', root_suffix, (suffix == root_suffix)
-
-                                if suffix == root_suffix:
-                                    self._root_dataset_pathname = os.path.abspath(os.path.join(datadir, f))
-                                    self._sub_dataset_type = extension
-                                    self._data_dir = datadir
-
-                                    print '_root_dataset_pathname', self._root_dataset_pathname
-
-                                    try: # ToDo: Need to deal with open failure here
-                                        self._root_dataset = gdal.Open(self._root_dataset_pathname, eAccess)
-                                    except (RuntimeError), e: # ToDo: Need to handle specific exception type
-                                        self._root_dataset = None
-                                        raise DSException(e.message)
-
-                                    self._sub_datasets.append(self._root_dataset)
-
-                                elif extension == 'FST' and suffix == 'HTM': # Found Thermal FST dataset
-                                    thermal_dataset = gdal.Open(os.path.join(datadir, f), eAccess)
-
-                                elif extension == 'FST' and suffix == 'HPN': # Found Pan-Chromatic FST dataset
-                                    panchromatic_dataset = gdal.Open(os.path.join(datadir, f), eAccess)
-
-                if self._data_dir and self._root_dataset_pathname: # Data directory has been determined
-                    break # Stop searching
-
-            print
-            print '_data_dir             ', self._data_dir
-            print '_root_dataset_pathname', self._root_dataset_pathname
-
-            assert self._data_dir and self._root_dataset_pathname, 'Unable to find root dataset under ' + self._pathname
-
-            # Perform basic checks on root dataset
-            assert self._sub_dataset_type, 'Unable to determine dataset type'
-            assert self._root_dataset, 'Unable to open root dataset'
-
-            # check all files and set up references to subdatasets. Bands are loaded in numerical order
-            for band_index in range(len(self.satellite.BAND_LIST)):
-                band_number = band_index + 1
-                sensor_band_info = self.satellite.BAND_LIST[band_index]
-                band_file_number = sensor_band_info['NUMBER']
-                file_list = glob(os.path.join(self._data_dir, '*_B' + str(band_file_number) + '.' + self._sub_dataset_type.lower()))
-                file_list += glob(os.path.join(self._data_dir, '*_B' + str(band_file_number) + '.' + self._sub_dataset_type.upper()))
-                if len(file_list) == 1:# There can be only one...
-                    # Use absolute pathnames to ensure string matches
-                    band_file = os.path.abspath(file_list[0])
-
-                    band_dict = {
-                        'file': band_file,
-                        'band_file_number': band_file_number,
-                        'type': sensor_band_info['TYPE']}
-
-                    # TIF only ever one raster per subDataset
-                    if self._sub_dataset_type == 'TIF':
-                        # Do not duplicate _root_dataset - already opened
-                        if band_dict['file'] == self._root_dataset_pathname:
-                            band_dict['dataSet'] = self._root_dataset
-                        else:
-                            band_dict['dataSet'] = gdal.Open(band_dict['file'], eAccess)
-                            # ToDo: Perform sanity checks on sub-datasets here
-                            # (e.g. same extents)
-                            self._sub_datasets.append(band_dict['dataSet'])
-
-                        band_dict['rasterIndex'] = 1
-
-                    # FST has multiple rasters per subDataset
-                    elif self._sub_dataset_type == 'FST':
-
-                        # Multiple reflective bands in one dataset
-                        if band_file_number in self.satellite.BAND_TYPES['REFLECTIVE'] and self._root_dataset:
-
-                            # Filter *.aux.xml files from the root dataset file list.
-                            # These XML files mess up band_dict construction.
-                            __flist = [x for x in self._root_dataset.GetFileList() if not x.endswith('.aux.xml')]
-                            band_dict['rasterIndex'] = __flist.index(file_list[0])
-                            band_dict['dataSet'] = self._root_dataset
-
-                        # Two thermal bands in one dataset
-                        elif band_file_number in self.satellite.BAND_TYPES['THERMAL'] and thermal_dataset:
-                            band_dict['dataSet'] = thermal_dataset
-                            band_dict['rasterIndex'] = thermal_dataset.GetFileList().index(file_list[0])
-                            if thermal_dataset not in self._sub_datasets:
-                                self._sub_datasets.append(thermal_dataset)
-
-                        # Pan-chromatic band is in its own dataset
-                        elif band_file_number in self.satellite.BAND_TYPES['PANCHROMATIC'] and panchromatic_dataset:
-                            band_dict['dataSet'] = panchromatic_dataset
-                            # Only ever one band in pan-chromatic dataset
-                            band_dict['rasterIndex'] = 1
-                            if panchromatic_dataset not in self._sub_datasets:
-                                self._sub_datasets.append(panchromatic_dataset)
-
-                        else:
-                            raise Exception('Invalid band file number ' + str(band_file_number))
-
-                    # Register lookup information for band
-                    self._raster_dict[band_number] = band_dict
-                    self._band_number_map[band_file_number] = band_number
-                    self._bands['ALL'].append(band_number)
-                    self._bands[sensor_band_info['TYPE']].append(band_number)
-                    if band_file_number == self.satellite.root_band:
-                        self._root_band_number = band_number
-                else:
-                    logger.debug('%s files found for band file number %s' % (len(file_list), band_file_number))
-
-            # Validity checks for required bands
-            assert len(self._raster_dict), 'No band information found'
-            if len(self._raster_dict) < len(self.satellite.BAND_TYPES['ALL']):
-                logger.debug('Only %s/%s bands found' % (len(self._raster_dict), len(self.satellite.BAND_TYPES['ALL'])))
+            else:
+                # ORTHO or NBAR dataset, get bands from ULA3/geodesic/satellite.xml via self.satellite
+                self.__find_root_dataset_xml()
+                self.__load_bands_xml()
 
             # Remove duplicates and sort file list
             fileSet = set()
@@ -789,11 +283,8 @@ class SceneDataset(Dataset):
                 fileSet |= set(subDataset.GetFileList())
             self._file_list = sorted(list(fileSet))
 
-            if self.satellite.rgb_bands:
-                self.rgb_bands = [self._band_number_map[band_file_number] for band_file_number in self.satellite.rgb_bands]
-
             # Set any class-specific attributes derived from metadata
-            _set_instance_values()
+            self.__set_instance_values()
 
             # Dataset opened successfully
             return self
@@ -802,8 +293,749 @@ class SceneDataset(Dataset):
             logger.error( 'SceneDataset.Open(' + pathname + ') error: %s', e.message)
             raise DSException(e.message)
 
+        #
+        # TO FIX: THE FOLLOWING CODE IS UNREACHABLE
+        # Note return and raise directly above.
+        #
+        # It seems to enable the caching mechanism, which may not have been tested,
+        # so I don't want to turn it on in case it breaks something.
+        #
+        # Either:
+        # 1) Caching mechanism should be removed (since it apparently is not needed), or
+        # 2) Caching should be activated (by moving the return to the bottom of the method)
+        #    and provided with a unit test.
+        #
+        # Matt Hoyles
+        #
+
         if eAccess==gdalconst.GA_ReadOnly:
             SceneDataset._CACHED_DATASETS[pathname] = self
+
+
+    def __gather_metadata(self):
+        """
+        Function to read ALL available metadata into a single nested dict tree structure
+        """
+        logger.debug('  _gather_metadata() called')
+        for metadata_type in ['XML', 'MTL', 'REPORT']:
+            for file_pattern in self._METADATA_SOURCES[metadata_type]['FILE_PATTERNS']:
+                file_list = find_files(self._pathname, file_pattern)
+                if file_list:
+                    logger.debug('Reading %s metadata file %s', metadata_type, file_list[0])
+                    if metadata_type == 'XML':
+                        xml_metadata = XMLMetadata(file_list[0])
+                        self._xml_uses_attributes = xml_metadata.uses_attributes # Remember whether attributes are used in XML
+                        self._metadata.merge_root_metadata_from_object(metadata_object=xml_metadata, overwrite=False)
+                    elif metadata_type == 'MTL':
+                        self._metadata.merge_root_metadata_from_object(metadata_object=MTLMetadata(file_list[0]))
+                    elif metadata_type == 'REPORT':
+                        self._metadata.set_root_metadata_from_object(metadata_object=ReportMetadata(file_list[0]))
+                else:
+                    logger.debug('No %s files matching "%s" found', metadata_type, file_pattern)
+
+            assert self._metadata.get_metadata([metadata_type]) or not self._METADATA_SOURCES[metadata_type]['REQUIRED'], (
+                'No ' + metadata_type + ' metadata file(s) found for ' + self._pathname)
+
+        #===================================================================
+        # # Import image metadata (if any) and store under 'FST' or 'TIF as required
+        # image_metadata = self._root_dataset.GetMetadata_Dict()
+        # if image_metadata:
+        #    self._metadata.set_root_metadata(self._sub_dataset_type, image_metadata)
+        #===================================================================
+
+        # Set all instance attributes as defined in class XML file
+        self.read_metadata()
+
+        self.satellite = Satellite(self.satellite_name, self.sensor)
+        assert self.satellite, 'Unable to create Satellite object for %s %s' % (self.satellite_name, self.sensor)
+
+        # For LS8 there are issues with OLI-TIRS and OLI_TIRS
+        # The satellite class will convert to OLI_TIRS but the dataset class will remain OLI-TIRS
+        # The dataset sensor and satellite sensor variables should be the same
+        self.sensor = self.satellite.sensor
+
+        self._bands = dict(self.satellite.BAND_TYPES) # Copy dict from satellite
+        for band_type in self._bands:
+            self._bands[band_type] = []
+
+
+    def __find_root_dataset_pq(self):
+        """
+        Method to find and load the root dataset of a Pixel Quality dataset.
+        """
+
+        self._data_dir = None
+        for datadir in self._DATADIRS:
+            datadir = os.path.abspath(os.path.join(self._pathname, datadir))
+
+            if os.path.isdir(datadir):
+
+                for f in sorted(os.listdir(datadir)):
+                    m = re.search(r'(\w+)_([01]{16}).(\w+)$', f)
+
+                    if m:
+                        suffix = m.group(2)
+                        extension = m.group(3).upper()
+
+                        if extension == 'TIF':
+                            self._root_dataset_pathname = os.path.abspath(os.path.join(datadir, f))
+                            self._sub_dataset_type = extension
+                            self._data_dir = datadir
+
+                            try:
+                                self._root_dataset = gdal.Open(self._root_dataset_pathname, self._eAccess)
+                            except:
+                                self._root_dataset = None
+                                raise DSException(e.message)
+
+                            self.pq_tests_run = int(suffix, base=2)
+
+                            self._sub_datasets.append(self._root_dataset)
+
+            if self._data_dir: # Data directory has been determined
+                break # Stop searching
+
+        assert self._data_dir, 'Unable to find root dataset under ' + self._pathname
+
+        # Perform basic checks on root dataset
+        assert self._sub_dataset_type, 'Unable to determine dataset type'
+        assert self._root_dataset, 'Unable to open root dataset'
+
+
+    def __load_bands_pq(self):
+        """
+        Method to register information for a Pixel Quality dataset.
+
+        Note that PQ datasets only have one band (already loaded as the
+        root dataset), so all this has to do is build and register the
+        band_dict.
+        """
+
+        band_number = 1
+        band_file_number = 1 # This is arbitrary - the band actually has a symbolic key 'PQ', not a number
+
+        band_dict = {
+            'file': self._root_dataset_pathname,
+            'band_file_number': band_file_number,
+            'type': 'Derived',
+            'dataSet': self._root_dataset,
+            'rasterIndex': 1
+            }
+
+        # Add band for type 'Derived' if needed
+        if 'Derived' not in self._bands:
+            self._bands['Derived'] = []
+
+        # Register lookup information for band
+        self._raster_dict[band_number] = band_dict
+        self._band_number_map[band_file_number] = band_number
+        self._bands['ALL'].append(band_number)
+        self._bands[band_dict['type']].append(band_number)
+        self._root_band_number = band_number
+
+    def __find_root_dataset_fc(self):
+        """
+        Method to find the root dataset of a Fractional Cover dataset.
+        """
+
+        self._data_dir = None
+        for datadir in self._DATADIRS:
+            datadir = os.path.abspath(os.path.join(self._pathname, datadir))
+            if os.path.isdir(datadir):
+                for f in sorted(os.listdir(datadir)):
+                    m = re.search('(\w+)_(\w+).(\w+)$', f)
+                    if m:
+                        suffix = m.group(2).upper()
+                        extension = m.group(3).upper()
+
+                    if suffix == self._FC_ROOT_SUFFIX:
+                        self._root_dataset_pathname = os.path.abspath(os.path.join(datadir, f))
+                        self._sub_dataset_type = extension
+                        self._data_dir = datadir
+
+                        try:
+                            self._root_dataset = gdal.Open(self._root_dataset_pathname, self._eAccess)
+                        except (RuntimeError), e:
+                            self._root_dataset = None
+                            raise DSException(e.message)
+
+                        self._sub_datasets.append(self._root_dataset)
+
+            if self._data_dir: # Data directory has been determined
+                break # Stop searching
+
+        # Perform basic checks on root dataset
+        assert self._sub_dataset_type, 'Unable to determine dataset type'
+        assert self._root_dataset, 'Unable to open root dataset'
+
+    def __load_bands_fc(self):
+        """
+        Method to load the bands into sub-datasets for a Fractional Cover dataset.
+        """
+
+        # Add band for type 'Derived' if needed
+        if 'Derived' not in self._bands:
+            self._bands['Derived'] = []
+
+        for band_index in range(len(self._FC_BAND_LIST)):
+            band_number = band_index + 1
+            band_info = self._FC_BAND_LIST[band_index]
+            band_file_number = band_info['NUMBER']
+            band_suffix = band_info['SUFFIX']
+            file_list = glob(os.path.join(self._data_dir, '*_' + band_suffix + '.' + self._sub_dataset_type.lower()))
+            file_list += glob(os.path.join(self._data_dir, '*_' + band_suffix + '.' + self._sub_dataset_type.upper()))
+            if len(file_list) == 1:
+                band_file = os.path.abspath(file_list[0])
+
+                band_dict = {
+                    'file': band_file,
+                    'band_file_number': band_file_number,
+                    'type': band_info['TYPE']
+                    }
+
+                if band_dict['file'] == self._root_dataset_pathname:
+                    band_dict['dataSet'] = self._root_dataset
+                else:
+                    band_dict['dataSet'] = gdal.Open(band_dict['file'], self._eAccess)
+                    self._sub_datasets.append(band_dict['dataSet'])
+
+                band_dict['rasterIndex'] = 1
+
+                # Register lookup information for band
+                self._raster_dict[band_number] = band_dict
+                self._band_number_map[band_file_number] = band_number
+                self._bands['ALL'].append(band_number)
+                self._bands[band_info['TYPE']].append(band_number)
+                if band_suffix == self._FC_ROOT_SUFFIX:
+                    self._root_band_number = band_number
+
+            else:
+                logger.debug('%s files found for band file number %s' % (len(file_list), band_file_number))
+
+        # Validity checks for required bands
+        assert len(self._raster_dict), 'No band information found'
+        if len(self._raster_dict) < len(self._FC_BAND_LIST):
+            logger.debug('Only %s/%s bands found' % (len(self._raster_dict), len(self._FC_BAND_LIST)))
+
+    def __find_root_dataset_xml(self):
+        """
+        Method to find the root dataset using the band information ULA3/geodisic/satellite.xml.
+        It also finds the data directory containing the sub-datasets.
+
+        The results are stored in:
+            self._data_dir - path to the directory contining the sub-datasets
+            self._sub_dataset_type - the extension of the root dataset filename.
+            self._root_dataset_pathname - path to the root dataset
+            self._root_dataset - open gdal dataset
+            self._thermal_dataset - open gdal dataset if thermal dataset found, otherwise None
+            self._panchromatic_dataset - open gdal dataset if panchromatic dataset found, otherwise None
+        """
+
+        self._thermal_dataset = None
+        self._panchromatic_dataset = None
+        self._data_dir = None
+        for datadir in self._DATADIRS:
+            datadir = os.path.abspath(os.path.join(self._pathname, datadir))
+            if os.path.isdir(datadir):
+                for f in sorted(os.listdir(datadir)):
+                    m = re.search('(\w+)_(\w+).(\w+)$', f)
+                    if m:
+                        suffix = m.group(2).upper()
+                        extension = m.group(3).upper()
+
+                        print 'suffix         ', suffix
+                        print 'extension      ', extension
+                        print '_FILE_TYPE_INFO', self._FILE_TYPE_INFO
+                        print 'extension in _FILE_TYPE_INFO', (extension in self._FILE_TYPE_INFO)
+                        print 'satellite.root_band', self.satellite.root_band
+
+                        # Determine the root suffix for the found file type
+                        if extension in self._FILE_TYPE_INFO:
+                            try:
+                                root_suffix = self._FILE_TYPE_INFO[extension]['ROOTSUFFIX'] % self.satellite.root_band
+                            except (TypeError):
+                                root_suffix = self._FILE_TYPE_INFO[extension]['ROOTSUFFIX']
+
+                            print 'root_suffix', root_suffix, (suffix == root_suffix)
+
+                            if suffix == root_suffix:
+                                self._root_dataset_pathname = os.path.abspath(os.path.join(datadir, f))
+                                self._sub_dataset_type = extension
+                                self._data_dir = datadir
+
+                                print '_root_dataset_pathname', self._root_dataset_pathname
+
+                                try: # ToDo: Need to deal with open failure here
+                                    self._root_dataset = gdal.Open(self._root_dataset_pathname, self._eAccess)
+                                except (RuntimeError), e: # ToDo: Need to handle specific exception type
+                                    self._root_dataset = None
+                                    raise DSException(e.message)
+
+                                self._sub_datasets.append(self._root_dataset)
+
+                            elif extension == 'FST' and suffix == 'HTM': # Found Thermal FST dataset
+                                self._thermal_dataset = gdal.Open(os.path.join(datadir, f), self._eAccess)
+
+                            elif extension == 'FST' and suffix == 'HPN': # Found Pan-Chromatic FST dataset
+                                self._panchromatic_dataset = gdal.Open(os.path.join(datadir, f), self._eAccess)
+
+            if self._data_dir and self._root_dataset_pathname: # Data directory has been determined
+                break # Stop searching
+
+        print
+        print '_data_dir             ', self._data_dir
+        print '_root_dataset_pathname', self._root_dataset_pathname
+
+        assert self._data_dir and self._root_dataset_pathname, 'Unable to find root dataset under ' + self._pathname
+
+        # Perform basic checks on root dataset
+        assert self._sub_dataset_type, 'Unable to determine dataset type'
+        assert self._root_dataset, 'Unable to open root dataset'
+
+
+    def __load_bands_xml(self):
+        """
+        Method to load the bands into sub-datasets. Band information is from
+        ULA3/geodisic/satellite.xml via the self.satellite object.
+
+        The results are stored in:
+            self._raster_dict - map from band number to dicts containing lookup information for each band
+            self._band_number_map - map file numbers to band numbers
+            self._bands - dict containing lists of bands by type
+            self._root_band_number - the number of the root band
+        """
+
+        for band_index in range(len(self.satellite.BAND_LIST)):
+            band_number = band_index + 1
+            sensor_band_info = self.satellite.BAND_LIST[band_index]
+            band_file_number = sensor_band_info['NUMBER']
+            file_list = glob(os.path.join(self._data_dir, '*_B' + str(band_file_number) + '.' + self._sub_dataset_type.lower()))
+            file_list += glob(os.path.join(self._data_dir, '*_B' + str(band_file_number) + '.' + self._sub_dataset_type.upper()))
+            if len(file_list) == 1:# There can be only one...
+                # Use absolute pathnames to ensure string matches
+                band_file = os.path.abspath(file_list[0])
+
+                band_dict = {
+                    'file': band_file,
+                    'band_file_number': band_file_number,
+                    'type': sensor_band_info['TYPE']}
+
+                # TIF only ever one raster per subDataset
+                if self._sub_dataset_type == 'TIF':
+                    # Do not duplicate _root_dataset - already opened
+                    if band_dict['file'] == self._root_dataset_pathname:
+                        band_dict['dataSet'] = self._root_dataset
+                    else:
+                        band_dict['dataSet'] = gdal.Open(band_dict['file'], self._eAccess)
+                        # ToDo: Perform sanity checks on sub-datasets here
+                        # (e.g. same extents)
+                        self._sub_datasets.append(band_dict['dataSet'])
+
+                    band_dict['rasterIndex'] = 1
+
+                # FST has multiple rasters per subDataset
+                elif self._sub_dataset_type == 'FST':
+
+                    # Multiple reflective bands in one dataset
+                    if band_file_number in self.satellite.BAND_TYPES['REFLECTIVE'] and self._root_dataset:
+
+                        # Filter *.aux.xml files from the root dataset file list.
+                        # These XML files mess up band_dict construction.
+                        __flist = [x for x in self._root_dataset.GetFileList() if not x.endswith('.aux.xml')]
+                        band_dict['rasterIndex'] = __flist.index(file_list[0])
+                        band_dict['dataSet'] = self._root_dataset
+
+                    # Two thermal bands in one dataset
+                    elif band_file_number in self.satellite.BAND_TYPES['THERMAL'] and self._thermal_dataset:
+                        band_dict['dataSet'] = self._thermal_dataset
+                        band_dict['rasterIndex'] = self._thermal_dataset.GetFileList().index(file_list[0])
+                        if self._thermal_dataset not in self._sub_datasets:
+                            self._sub_datasets.append(self._thermal_dataset)
+
+                    # Pan-chromatic band is in its own dataset
+                    elif band_file_number in self.satellite.BAND_TYPES['PANCHROMATIC'] and self._panchromatic_dataset:
+                        band_dict['dataSet'] = self._panchromatic_dataset
+                        # Only ever one band in pan-chromatic dataset
+                        band_dict['rasterIndex'] = 1
+                        if self._panchromatic_dataset not in self._sub_datasets:
+                            self._sub_datasets.append(self._panchromatic_dataset)
+
+                    else:
+                        raise Exception('Invalid band file number ' + str(band_file_number))
+
+                # Register lookup information for band
+                self._raster_dict[band_number] = band_dict
+                self._band_number_map[band_file_number] = band_number
+                self._bands['ALL'].append(band_number)
+                self._bands[sensor_band_info['TYPE']].append(band_number)
+                if band_file_number == self.satellite.root_band:
+                    self._root_band_number = band_number
+            else:
+                logger.debug('%s files found for band file number %s' % (len(file_list), band_file_number))
+
+        # Validity checks for required bands
+        assert len(self._raster_dict), 'No band information found'
+        if len(self._raster_dict) < len(self.satellite.BAND_TYPES['ALL']):
+            logger.debug('Only %s/%s bands found' % (len(self._raster_dict), len(self.satellite.BAND_TYPES['ALL'])))
+
+        # Set up rgb bands
+        if self.satellite.rgb_bands:
+            self.rgb_bands = [self._band_number_map[band_file_number] for band_file_number in self.satellite.rgb_bands]
+
+    def __set_instance_values(self):
+        """
+        Function to set any class-specific attributes derived from metadata
+        This is called after read_metadata(). Any derived vales should be set here.
+        """
+
+        if self.scene_centre_date and self.scene_centre_time:
+            self.scene_centre_datetime = datetime(
+                self.scene_centre_date.year,
+                self.scene_centre_date.month,
+                self.scene_centre_date.day,
+                self.scene_centre_time.hour,
+                self.scene_centre_time.minute,
+                self.scene_centre_time.second,
+                self.scene_centre_time.microsecond)
+
+            self.scene_start_datetime = self.scene_centre_datetime - self.satellite.acquistion_seconds // 2
+            self.scene_end_datetime = self.scene_start_datetime + self.satellite.acquistion_seconds
+        else:
+            self.scene_centre_datetime = None
+            self.scene_start_datetime = None
+            self.scene_end_datetime = None
+
+        if self.completion_date and self.completion_time:
+            self.completion_datetime = datetime(
+                self.completion_date.year,
+                self.completion_date.month,
+                self.completion_date.day,
+                self.completion_time.hour,
+                self.completion_time.minute,
+                self.completion_time.second,
+                self.completion_time.microsecond)
+        else:
+            self.completion_datetime = None
+
+        # SPATIAL REFERENCE GENERAL CASE
+        # Use the projection and geotransform that GDAL gives us.
+        # WARNING: in special case code below, always create a new spatial reference
+        # instance. Modifying the instance created here DOES NOT WORK.
+
+        self.spatial_ref = osr.SpatialReference()
+        self.spatial_ref.ImportFromWkt(self.GetProjection())
+
+        # Initialise geotransform to None (otherwise it calls the SceneDataset Class function
+        # GetGeoTransform() which is supposed to override the Dataset Class function of the same name.
+        self.geotransform = None
+        self.geotransform = self.GetGeoTransform()
+
+        # SPATIAL REFERENCE SPECIAL CASE
+        # FAST-EQR dataset. HRF.FST files coming from EODS may have PROJECTION=EQR,
+        # but also contain UTM-like extents and pixel size, which are in the spec
+        # but give GDAL fits -- GetProjection() and GetGeoTransform() return
+        # unusable values. To fix this situation, create new spatial reference and
+        # geotransform objects using values derived from metadata. WARNING: Client
+        # code should always use <dataset>.geotransform rather than
+        # <dataset>.GetGeoTransform().
+
+        if self.product_format.startswith('FAST') and self.map_projection.startswith('EQR'):
+            self.spatial_ref = osr.SpatialReference()
+            self.spatial_ref.SetWellKnownGeogCS('WGS84')
+
+            #self.geotransform = [
+            #    self.ul_lon - self.pixel_x_size / 2.,
+            #     (self.ur_lon - self.ul_lon) / self.image_pixels,
+            #    self.pixel_x_size,
+            #    0.0,
+            #    self.ul_lat + self.pixel_y_size / 2.,
+            #    0.0,
+            #     (self.ll_lat - self.ul_lat) / self.image_lines,
+            #    -self.pixel_y_size
+            #]
+
+            gt = self.GetGeoTransform()
+            self.geotransform = (numpy.array(gt)/100000.).tolist()
+            # Need to reset the rotation params. These are probably zero anyway as our imagery 
+            # is created North-Up (for L1T), but it is better to be safe. But then again rotation
+            # values might be scaled incorrectly???
+            self.geotransform[2] = gt[2]
+            self.geotransform[4] = gt[4]
+            self.coordinate_reference_system = 'WGS84'
+
+            # Force calculation of the corner points - metadata values may be scaled incorrectly
+            self.ul_x = None
+            self.ul_y = None
+            self.ur_x = None
+            self.ur_y = None
+            self.ll_x = None
+            self.ll_y = None
+            self.lr_x = None
+            self.lr_y = None
+
+            logger.warning('FAST-EQR format, created substitute spatial reference and geotransform')
+
+        # SPATIAL REFERENCE SPECIAL CASE
+        # UTM zone outside of GDA94 datum specification, e.g. UTM zone 60 for GDA94.
+        # Substitute a WGS84 spatial reference. Differences between GDA94 and WGS84
+        # should be sub-pixel, see http://www.icsm.gov.au/gda/wgs84fact.pdf.
+        # *************************************************************************
+        # *** This workaround is likely wrong, based on further info from Matthew.
+        # *** Need ITRF2008 support.
+        # *************************************************************************
+
+        _local = self.spatial_ref.GetAttrValue('LOCAL_CS')
+        if _local:
+            assert self.utm_fix, 'LOCAL_CS [%s] (UTM zone could be outside the datum spec) -- ABORTED' % _local
+
+            m = re.search('UTM Zone (\d+) ', _local)  # hardwired
+            if m:
+                zone = int(m.group(1))
+            else:
+                assert False, 'Could not parse LOCAL_CS\n%s' % _local
+            self.spatial_ref = osr.SpatialReference()
+            self.spatial_ref.SetWellKnownGeogCS('WGS84')
+            self.spatial_ref.SetUTM(zone, False)
+            self.geotransform = [
+                self.ul_lon,
+                (self.ur_lon - self.ul_lon) / self.image_pixels,
+                0.0,
+                self.ul_lat,
+                0.0,
+                (self.ll_lat - self.ul_lat) / self.image_lines,
+            ]
+            logger.warning('Overrode LOCAL_CS spatial reference with WGS84 (zone=%d)' % zone)
+
+        #
+        # TODO ...catch other spatialreference/projection error cases...
+        #
+
+        self.spatial_ref_geo = self.spatial_ref.CloneGeogCS()
+
+        self.cxform_to_geo = osr.CoordinateTransformation(self.spatial_ref, self.spatial_ref_geo)
+        self.cxform_from_geo = osr.CoordinateTransformation(self.spatial_ref_geo, self.spatial_ref)
+
+        extents        = self.GetExtent()
+        array_extents  = numpy.array(extents)
+        centre_x       = float(numpy.mean(array_extents[:,0]))
+        centre_y       = float(numpy.mean(array_extents[:,1]))
+        extents.append([centre_x,centre_y])
+
+        #self.lonlats = {
+        #    'CENTRE': (self.scene_centre_long, self.scene_centre_lat),
+        #    'UL': (self.ul_lon, self.ul_lat),
+        #    'UR': (self.ur_lon, self.ur_lat),
+        #    'LL': (self.ll_lon, self.ll_lat),
+        #    'LR': (self.lr_lon, self.lr_lat)}
+
+        if self.IsGeographic():
+            print 'IsGeographic'
+            self.lonlats = {
+                'CENTRE' : (extents[4][0], extents[4][1]),
+                'UL'     : (extents[0][0], extents[0][1]),
+                'UR'     : (extents[2][0], extents[2][1]),
+                'LL'     : (extents[1][0], extents[1][1]),
+                'LR'     : (extents[3][0], extents[3][1])
+                           }
+            print self.lonlats
+            # If the scene is natively in geographics, we shouldn't need to 
+            # project the co-ordinates to UTM.
+
+            # Set the georeferenced coordinates of the corner points if we don't already have them.
+            # These generally only get set when the product is FAST-EQR when they're forced to None
+            if not (self.ul_x and self.ul_y):
+                self.ul_x, self.ul_y = self.lonlats['UL']
+            if not (self.ur_x and self.ur_y):
+                self.ur_x, self.ur_y = self.lonlats['UR']
+            if not (self.ll_x and self.ll_y):
+                self.ll_x, self.ll_y = self.lonlats['LL']
+            if not (self.lr_x and self.lr_y):
+                self.lr_x, self.lr_y = self.lonlats['LR']
+
+
+            self.scene_centre_x, self.scene_centre_y = self.lonlats['CENTRE']
+        else:
+            self.coords = {
+                'CENTRE' : (extents[4][0], extents[4][1]),
+                'UL'     : (extents[0][0], extents[0][1]),
+                'UR'     : (extents[2][0], extents[2][1]),
+                'LL'     : (extents[1][0], extents[1][1]),
+                'LR'     : (extents[3][0], extents[3][1])
+                          }
+
+            re_prj_extents=[]
+            for x,y in extents:
+                new_x, new_y, new_z = self.cxform_to_geo.TransformPoint(x,y)
+                re_prj_extents.append([new_x,new_y])
+                print new_x, new_y
+
+            self.lonlats = {
+                'CENTRE' : (re_prj_extents[4][0], re_prj_extents[4][1]),
+                'UL'     : (re_prj_extents[0][0], re_prj_extents[0][1]),
+                'UR'     : (re_prj_extents[2][0], re_prj_extents[2][1]),
+                'LL'     : (re_prj_extents[1][0], re_prj_extents[1][1]),
+                'LR'     : (re_prj_extents[3][0], re_prj_extents[3][1])
+                           }
+
+            # Set the georeferenced coordinates of the corner points if we don't already have them.
+            # These generally only get set when the product is FAST-EQR when they're forced to None
+            if not (self.ul_x and self.ul_y):
+                self.ul_x, self.ul_y = self.coords['UL']
+            if not (self.ur_x and self.ur_y):
+                self.ur_x, self.ur_y = self.coords['UR']
+            if not (self.ll_x and self.ll_y):
+                self.ll_x, self.ll_y = self.coords['LL']
+            if not (self.lr_x and self.lr_y):
+                self.lr_x, self.lr_y = self.coords['LR']
+
+
+            self.scene_centre_x, self.scene_centre_y = self.coords['CENTRE']
+
+
+        #self.scene_centre_x, self.scene_centre_y = self.coord_from_geo(self.lonlats['CENTRE'])
+        #self.scene_centre_x, self.scene_centre_y = self.coords['CENTRE']
+
+        # Set the georeferenced coordinates of the corner points if we don't already have them
+        #if not (self.ul_x and self.ul_y):
+        #    #self.ul_x, self.ul_y = self.coord_from_geo(self.lonlats['UL'])
+        #    self.ul_x, self.ul_y = self.coords['UL']
+        #if not (self.ur_x and self.ur_y):
+        #    #self.ur_x, self.ur_y = self.coord_from_geo(self.lonlats['UR'])
+        #    self.ur_x, self.ur_y = self.coords['UR']
+        #if not (self.ll_x and self.ll_y):
+        #    #self.ll_x, self.ll_y = self.coord_from_geo(self.lonlats['LL'])
+        #    self.ll_x, self.ll_y = self.coords['LL']
+        #if not (self.lr_x and self.lr_y):
+        #    #self.lr_x, self.lr_y = self.coord_from_geo(self.lonlats['LR'])
+        #    self.lr_x, self.lr_y = self.coords['LR']
+
+        #self.coords = {
+        #    'CENTRE': (self.scene_centre_x, self.scene_centre_y),
+        #    'UL': (self.ul_x, self.ul_y),
+        #    'UR': (self.ur_x, self.ur_y),
+        #    'LL': (self.ll_x, self.ll_y),
+        #    'LR': (self.lr_x, self.lr_y)}
+
+        # Pre-compute some useful derived time quantities
+        if self.scene_centre_date:
+            self.DOY = self.scene_centre_date.timetuple().tm_yday
+
+        if self.scene_centre_time:
+            self.decimal_hour = (self.scene_centre_time.hour +
+                (self.scene_centre_time.minute +
+                 (self.scene_centre_time.second +
+                  self.scene_centre_time.microsecond / 1000000.0) / 60.0) / 60.0)
+
+        if self.scene_centre_date and self.scene_centre_time:
+            self.decimal_day = self.DOY + self.decimal_hour / 24.0
+
+        MTL_bias_gain_dict = {
+                      'Landsat-5' : self.__get_mtl_bias_gain,
+                      'Landsat-7' : self.__get_mtl_bias_gain,
+                      'Landsat-8' : self.__get_mtl_bias_gain_landsat8_lookup,
+                             }
+        MTL_bias_gain_dict[self.satellite.NAME]()
+        #get_mtl_bias_gain()
+        #get_mtl_bias_gain_landsat8_lookup()
+
+        # Deal with special case where datum/ellipsoid requires +ve UTM zone
+        if self.zone and self.zone < 0 and self.datum == 'GDA94' and self.earth_ellipsoid == 'GRS80':
+            self.zone = abs(self.zone)
+            self.update_metadata('zone')
+
+
+    def __get_mtl_bias_gain(self):
+        '''
+        Calculate bias & gain for each band from MTL metadata
+        Sets self.bias & self.gain lists with values for each band
+        Code adapted from old ula.metadata.py
+        N.B: Will exit with warning if required metadata not found
+        '''
+        bdict = {}
+        gdict = {}
+
+        # Get MIN_MAX_RADIANCE dict from MTL data
+        mmr = self._metadata.get_metadata('MTL,L1_METADATA_FILE,MIN_MAX_RADIANCE')
+        if mmr:
+            # Get MIN_MAX_RADIANCE dict from MTL data
+            mmpv = self._metadata.get_metadata('MTL,L1_METADATA_FILE,MIN_MAX_PIXEL_VALUE')
+            if mmpv:
+                # TODO: This will probably break with Landsat 8 data
+                for key in sorted(mmr.keys()):
+                    m = re.match('LMIN_BAND(\d+)', key)
+                    if m:
+                        mmr_number = int(m.group(1))
+                        if 60 <= mmr_number < 70:
+                            band_file_number = mmr_number
+                        else:
+                            band_file_number = mmr_number * 10
+                        # logger.info('key = %s, band_file_number = %s', key, band_file_number)
+                        assert band_file_number in self.satellite.BAND_TYPES['ALL'], 'Invalid band file number %d' % band_file_number
+                        if band_file_number in self._band_number_map:
+                            band_number = self._band_number_map[band_file_number]
+
+                            # bias = gain = 0.0
+                            # if band_number in self._bands['REFLECTIVE']:
+                            lmin = float(mmr['LMIN_BAND%d' % mmr_number])
+                            lmax = float(mmr['LMAX_BAND%d' % mmr_number])
+                            qcalmin = float(mmpv['QCALMIN_BAND%d' % mmr_number])
+                            qcalmax = float(mmpv['QCALMAX_BAND%d' % mmr_number])
+                            gain = (lmax - lmin) / (qcalmax - qcalmin)
+                            bias = lmax - gain * qcalmax
+
+                            #logger.info('mmr_number = %s, band_number = %s, lmin = %s, lmax = %s, gain = %s, bias = %s',
+                            #            mmr_number, band_number, lmin, lmax, gain, bias)
+
+                            bdict[band_number] = bias
+                            gdict[band_number] = gain
+            else:
+                logger.debug('No MIN_MAX_PIXEL_VALUE data found in MTL file. Unable to compute bias & gain.')
+        else:
+            logger.debug('No MIN_MAX_RADIANCE data found in MTL file. Unable to compute bias & gain.')
+
+        self.bias = bdict
+        self.gain = gdict
+
+
+    def __get_mtl_bias_gain_landsat8_lookup(self):
+
+        bdict = {}
+        gdict = {}
+
+        rad_rescale_params = self._metadata.get_metadata('MTL,L1_METADATA_FILE,RADIOMETRIC_RESCALING')
+
+        print
+        print rad_rescale_params
+        pprint(rad_rescale_params)
+
+        # Need to check if we have a valid return from the metadata lookup
+        if rad_rescale_params:
+            for key, value in rad_rescale_params.iteritems():
+
+                # Bias: RADIANCE_ADD_BAND_X = <value>
+
+                match_add = re.match('RADIANCE_ADD_BAND_(\d+)', key)
+                if match_add:
+                    bdict[ int(match_add.group(1)) ] = float(value)
+
+                # Gain: RADIANCE_MULT_BAND_X = <value>
+
+                match_mult = re.match('RADIANCE_MULT_BAND_(\d+)', key)
+                if match_mult:
+                    gdict[ int(match_mult.group(1)) ] = float(value)
+        else:
+            logger.debug('No RADIOMETRIC_RESCALING data found in MTL file. Unable to compute bias & gain.')
+
+        print
+        print 'bdict'
+        pprint(bdict)
+        print
+        print 'gdict'
+        pprint(gdict)
+        print
+
+        self.bias = bdict
+        self.gain = gdict
 
 
     def read_metadata(self, metadata_type_id = None, class_config_dom_tree = None, ignore_empty_values=False):
