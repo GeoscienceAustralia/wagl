@@ -5,6 +5,7 @@ import numpy, numexpr
 from osgeo import gdal
 from ULA3.dataset import SceneDataset
 from ULA3.image_processor import ProcessorConfig
+from ULA3.image_processor import constants
 from ULA3 import DataManager, DataGrid
 
 logger = logging.getLogger('root.' + __name__)
@@ -98,18 +99,28 @@ def process(subprocess_list=[], resume=False):
 
         #------------------------Processing Goes Here-----------------------------
 
-        full_band_list = sorted(set(l1t_input_dataset.bands('REFLECTIVE')) |
-                            set(l1t_input_dataset.bands('THERMAL')))
+        pq_const = constants.pqaContants(l1t_input_dataset.sensor)
 
-        # Find index of band 62 for LS7, band 60 for LS5
-        thermal_band = max(l1t_input_dataset.bands('THERMAL')) # TODO: May break with LS8
-        thermal_band_index = full_band_list.index(thermal_band)
+        #full_band_list = sorted(set(l1t_input_dataset.bands('REFLECTIVE')) |
+        #                    set(l1t_input_dataset.bands('THERMAL')))
+        full_band_list = pq_const.available_bands
+
+        # Find index of band 62 for LS7, band 60 for LS5 ***Should be band 61 for LS7
+        #thermal_band = max(l1t_input_dataset.bands('THERMAL')) # TODO: May break with LS8
+        #thermal_band_index = full_band_list.index(thermal_band)
+        # Get Band 6 for TM, Band 61 for ETM+ and Band 10 for OLI_TIRS
+        thermal_band = pq_const.thermal_band
+        if (type(thermal_band) == str):
+            logger.debug('No thermal band defined in constants.py for sensor %s. Generating a blank float32 array.', l1t_input_dataset.sensor)
+            kelvin_array = numpy.zeros((l1t_stack.shape[1],l1t_stack.shape[2]), dtype='float32')
+            return kelvin_array
+        thermal_band_index = pq_const.getArrayBandLookup([thermal_band])[0] # Function returns a list of one item. Take the first item.
 
         logger.debug('thermal_band = %d, thermal_band_index = %d', thermal_band, thermal_band_index)
 
         radiance_array = radiance_conversion(l1t_stack[thermal_band_index],
-                                             l1t_input_dataset.gain[thermal_band],
-                                             l1t_input_dataset.bias[thermal_band])
+                                             l1t_input_dataset.gain[pq_const.band_num_sequence[thermal_band]],
+                                             l1t_input_dataset.bias[pq_const.band_num_sequence[thermal_band]])
 
         kelvin_array = temperature_conversion(radiance_array,
                                               l1t_input_dataset.satellite.k[0],

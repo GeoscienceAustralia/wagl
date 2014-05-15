@@ -9,6 +9,7 @@ from osgeo import gdal
 import osr
 
 from ULA3.image_processor import ProcessorConfig
+from ULA3.image_processor import constants
 from ULA3 import DataManager
 from IDL_functions import histogram
 
@@ -85,15 +86,39 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
     # srt_low = 0.9
     # srt_hi  = 1.3
     #===========================================================================
-    wt_ndvi = CONFIG.pqa_param['cloud_shadow_wt_ndvi']
-    wt_b4   = CONFIG.pqa_param['cloud_shadow_wt_b4']
-    wt_b5   = CONFIG.pqa_param['cloud_shadow_wt_b5']
-    vrat_th = CONFIG.pqa_param['cloud_shadow_vrat_th']
-    btt_th  = CONFIG.pqa_param['cloud_shadow_btt_th']
-    rt_b3   = CONFIG.pqa_param['cloud_shadow_rt_b3']
-    rt_b4   = CONFIG.pqa_param['cloud_shadow_rt_b4']
-    srt_low = CONFIG.pqa_param['cloud_shadow_srt_low']
-    srt_hi  = CONFIG.pqa_param['cloud_shadow_srt_hi']
+
+    # *** Redefine using constants.py ***
+    #wt_ndvi = CONFIG.pqa_param['cloud_shadow_wt_ndvi']
+    #wt_b4   = CONFIG.pqa_param['cloud_shadow_wt_b4']
+    #wt_b5   = CONFIG.pqa_param['cloud_shadow_wt_b5']
+    #vrat_th = CONFIG.pqa_param['cloud_shadow_vrat_th']
+    #btt_th  = CONFIG.pqa_param['cloud_shadow_btt_th']
+    #rt_b3   = CONFIG.pqa_param['cloud_shadow_rt_b3']
+    #rt_b4   = CONFIG.pqa_param['cloud_shadow_rt_b4']
+    #srt_low = CONFIG.pqa_param['cloud_shadow_srt_low']
+    #srt_hi  = CONFIG.pqa_param['cloud_shadow_srt_hi']
+    pq_const = constants.pqaContants(input_dataset.sensor)
+    wt_ndvi        = pq_const.cshadow_wt_ndvi
+    wt_b4          = pq_const.cshadow_wt_b4
+    wt_b5          = pq_const.cshadow_wt_b5
+    vrat_th        = pq_const.cshadow_vrat_th
+    btt_th         = pq_const.cshadow_btt_th
+    rt_b3          = pq_const.cshadow_rt_b3
+    rt_b4          = pq_const.cshadow_rt_b4
+    srt_low        = pq_const.cshadow_srt_low
+    srt_hi         = pq_const.cshadow_srt_hi
+    lapse_wet      = pq_const.cshadow_lapse_wet
+    lapse_standard = pq_const.cshadow_lapse_standard
+    lapse_dry      = pq_const.cshadow_lapse_dry
+    stdv_bush      = pq_const.cshadow_stdv_native_bush
+    stdv_wt        = pq_const.cshadow_stdv_spectral_flat_water
+    mndwi_thresh   = pq_const.cshadow_mndwi_thresh
+    dense_veg      = pq_const.cshadow_dense_veg
+    slope_b34      = pq_const.cshadow_slope_b34
+    slope_b45      = pq_const.cshadow_slope_b45
+    slope_b47a     = pq_const.cshadow_slope_b47a
+    slope_b47b     = pq_const.cshadow_slope_b47b
+    stdv_mltp      = pq_const.cshadow_stdv_multiplier
 
     # Returns the required line from a list of strings
     def linefinder(string_list, string = ""):
@@ -380,7 +405,7 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
             Band 7 of Landsat TM/ETM+.
 
         :return:
-            An 2D array of type 'bool'.
+            An 2D array of type 'float32'.
         """
 
         xbar = numexpr.evaluate("(b1 + b2 + b3 + b4 + b5 + b7) / 6")
@@ -389,6 +414,13 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
 
 
         return stdv
+
+    def majority_filter(array, iterations=1):
+        weights_array = [[1,1,1],[1,1,1],[1,1,1]]
+        for i in range(iterations):
+            array = ndimage.convolve(array, weights_array)
+            array = numexpr.evaluate("array > 4")
+        return array
 
 
 #---------------------------------------Processing Here------------------------
@@ -486,7 +518,8 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
 
     ndvi      = ndvi(red=reflectance_stack[2], nir=reflectance_stack[3])
     #ni        = ndvi > 0.5 # What if none satisfy?
-    ni        = numexpr.evaluate("ndvi > 0.5") # What if none satisfy?
+    #ni        = numexpr.evaluate("ndvi > 0.5") # What if none satisfy?
+    ni        = numexpr.evaluate("ndvi > dense_veg") # What if none satisfy?
     if (ni.sum() == 0):
         # Then just take non-cloud pixels
         ni = numexpr.evaluate("cloud_mask == True")
@@ -518,9 +551,12 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
 
     cshadow = numpy.zeros(dims, dtype='byte')
     # wet, standard and dry
-    lapse_rates = numpy.array([CONFIG.pqa_param['cloud_shadow_lapse_wet'],
-                               CONFIG.pqa_param['cloud_shadow_lapse_standard'],
-                               CONFIG.pqa_param['cloud_shadow_lapse_dry']], dtype='float32')
+    #lapse_rates = numpy.array([CONFIG.pqa_param['cloud_shadow_lapse_wet'],
+    #                           CONFIG.pqa_param['cloud_shadow_lapse_standard'],
+    #                           CONFIG.pqa_param['cloud_shadow_lapse_dry']], dtype='float32')
+    lapse_rates = numpy.array([lapse_wet,
+                               lapse_standard,
+                               lapse_dry], dtype='float32')
 
     if (sr.IsGeographic() == 1):
         R = sr.GetSemiMajor()
@@ -619,7 +655,7 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
 
     # Only apply spectral tests when growing a region
     # May need to add or change spectral tests to eliminate some landcovers.
-    if growregion is True:
+    if growregion:
         print 'Applying Region Growing'
         stng = datetime.datetime.now()
 
@@ -688,24 +724,26 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
 
         # band 3 -> 4 slope
         #slope = reflectance_stack[3] - reflectance_stack[2]
-        slope = numexpr.evaluate("(b4 - b3) >= 0.11", {'b4':reflectance_stack[3], 'b3':reflectance_stack[2]})
+        slope = numexpr.evaluate("(b4 - b3) >= slope_b34", {'b4':reflectance_stack[3], 'b3':reflectance_stack[2]}, locals())
         #weights[slope >= 0.1] += 1
         #weights[slope >= 0.11] += 1
         weights[slope] += 1
 
         # band 4 -> 5 slope
         #slope = numpy.abs(reflectance_stack[4] - reflectance_stack[3])
-        slope = numexpr.evaluate("abs(b5 - b4) >= 0.005", {'b5':reflectance_stack[4], 'b4':reflectance_stack[3]})
+        slope = numexpr.evaluate("abs(b5 - b4) >= slope_b45", {'b5':reflectance_stack[4], 'b4':reflectance_stack[3]}, locals())
         #weights[slope >= 0.05] += 1
         #weights[slope >= 0.055] += 1
         weights[slope] += 1
 
         # band 4 -> 7 slope
         #slope = (reflectance_stack[6] - reflectance_stack[3])/2
-        slope = numexpr.evaluate("((b7 - b4) / 2) > 0.01", {'b7':reflectance_stack[6], 'b4':reflectance_stack[3]})
+        #slope = numexpr.evaluate("((b7 - b4) / 2) > 0.01", {'b7':reflectance_stack[6], 'b4':reflectance_stack[3]})
+        slope = numexpr.evaluate("((b7 - b4) / 2) > slope_b47a", {'b7':reflectance_stack[5], 'b4':reflectance_stack[3]}, locals())
         #weights[slope > 0.01] += 1
         weights[slope] += 1
-        slope = numexpr.evaluate("abs((b7 - b4) / 2) > 0.05", {'b7':reflectance_stack[6], 'b4':reflectance_stack[3]})
+        #slope = numexpr.evaluate("abs((b7 - b4) / 2) > 0.05", {'b7':reflectance_stack[6], 'b4':reflectance_stack[3]})
+        slope = numexpr.evaluate("abs((b7 - b4) / 2) > slope_b47b", {'b7':reflectance_stack[5], 'b4':reflectance_stack[3]}, locals())
         #weights[numpy.abs(slope) >= 0.05] += 1
         weights[slope] += 1
 
@@ -720,16 +758,17 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
         weights[wt] += 9
 
         # standard deviation thruogh spectral space
-        stdv = stdev(b1=reflectance_stack[0], b2=reflectance_stack[1], b3=reflectance_stack[2], b4=reflectance_stack[3], b5=reflectance_stack[4], b7=reflectance_stack[6])
+        #stdv = stdev(b1=reflectance_stack[0], b2=reflectance_stack[1], b3=reflectance_stack[2], b4=reflectance_stack[3], b5=reflectance_stack[4], b7=reflectance_stack[6])
+        stdv = stdev(b1=reflectance_stack[0], b2=reflectance_stack[1], b3=reflectance_stack[2], b4=reflectance_stack[3], b5=reflectance_stack[4], b7=reflectance_stack[5])
         # This is for water that is spectrally very flat and near zero
-        BOOL = numexpr.evaluate("stdv < 0.008")
+        BOOL = numexpr.evaluate("stdv < stdv_wt")
         # dilate to get water edges; tends to help with river systems
         ndimage.binary_dilation(BOOL, s, output=wt)
         weights[wt] += 15
 
         # some aussie native bushland is still picked up. Its stdv is generally
         # higher than shadow though. More testing needed!
-        BOOL = numexpr.evaluate("stdv > 0.04")
+        BOOL = numexpr.evaluate("stdv > stdv_bush")
         weights[BOOL] += 1
 
         del slope, wt, BOOL, stdv; gc.collect()
@@ -753,7 +792,8 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
         b3 = reflectance_stack[2]
         b4 = reflectance_stack[3]
         b5 = reflectance_stack[4]
-        b7 = reflectance_stack[6]
+        #b7 = reflectance_stack[6]
+        b7 = reflectance_stack[5]
         weight_sum = numexpr.evaluate("weights *(b1 + b2 + b3 + b4) + 2*(weights * (b5 + b7))")
 
         del b1, b2, b3, b4, b5, b7; gc.collect()
@@ -779,8 +819,8 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
                 binmean[i] = numpy.mean(temp_array)
                 binstdv[i] = numpy.std(temp_array)
 
-
-        limit = binstdv * 2.5
+        # Define a fuzzy limit
+        limit = binstdv * stdv_mltp
         upper = binmean + limit
         lower = binmean - limit
 
@@ -828,13 +868,14 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset,
         cshadow[sindex] = 1
 
     # Majority filtering; applying twice, makes a cleaner result
-    s = [[1,1,1],[1,1,1],[1,1,1]]
-    shadfilt = ndimage.convolve(cshadow, s)
-    cshadow = numexpr.evaluate("shadfilt > 4")
-    ndimage.convolve(cshadow, s, output=shadfilt)
-    cshadow = numexpr.evaluate("shadfilt > 4")
+    #s = [[1,1,1],[1,1,1],[1,1,1]]
+    #shadfilt = ndimage.convolve(cshadow, s)
+    #cshadow = numexpr.evaluate("shadfilt > 4")
+    #ndimage.convolve(cshadow, s, output=shadfilt)
+    #cshadow = numexpr.evaluate("shadfilt > 4")
+    cshadow = majority_filter(array=cshadow, iterations=2)
 
-    del shadfilt; gc.collect()
+    #del shadfilt; gc.collect()
 
     # Where a shadow pixel is a cloud pixel, change to no shadow
     cshadow[cindex] = False

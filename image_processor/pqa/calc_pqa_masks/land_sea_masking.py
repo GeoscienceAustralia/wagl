@@ -6,6 +6,7 @@ from ULA3.dataset import SceneDataset
 from ULA3.utils import dump_array
 from ULA3.common.pqa_result import PQAResult
 from ULA3.image_processor import ProcessorConfig
+from ULA3.image_processor import constants
 from ULA3 import DataManager
 
 logger = logging.getLogger('root.' + __name__)
@@ -136,7 +137,9 @@ def process(subprocess_list=[], resume=False):
 
     mask = LandSeaMasking(l1t_stack, l1t_input_dataset)
 
-    bit_index = CONFIG.pqa_test_index['LAND_SEA']
+    pq_const = constants.pqaContants(l1t_input_dataset.sensor)
+    #bit_index = CONFIG.pqa_test_index['LAND_SEA']
+    bit_index = pq_const.land_sea
     result.set_mask(mask, bit_index)
     if CONFIG.debug:
         dump_array(mask,

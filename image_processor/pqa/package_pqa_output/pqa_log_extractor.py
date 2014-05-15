@@ -38,29 +38,41 @@ class PQALogExtractor(object):
         f = open(logfile_list[0], 'r')
         acca_log = f.readlines()
         f.close()
-        find  = linefinder(acca_log,'Final Cloud Layer Percent')
-        self.acca_percent = float(find.split()[-1])
+        if (acca_log[0].strip() == 'Test Not Run!'):
+            self.acca_percent = 'NaN'
+        else:
+            find  = linefinder(acca_log,'Final Cloud Layer Percent')
+            self.acca_percent = float(find.split()[-1])
 
         #get Fmask percent
         f = open(logfile_list[1], 'r')
         fmask_log = f.readlines()
         f.close()
-        find  = linefinder(fmask_log,'Final Cloud Layer Percent')
-        self.fmask_percent = float(find.split()[-1])
+        if (fmask_log[0].strip() == 'Test Not Run!'):
+            self.fmask_percent = 'NaN'
+        else:
+            find  = linefinder(fmask_log,'Final Cloud Layer Percent')
+            self.fmask_percent = float(find.split()[-1])
 
         #get ACCA cloud shadow
         f = open(logfile_list[2], 'r')
         acca_cloud_shadow_log = f.readlines()
         f.close()
-        find  = linefinder(acca_cloud_shadow_log,'Cloud Shadow Percent')
-        self.acca_cloud_shadow_percent = float(find.split()[-1])
+        if (acca_cloud_shadow_log[0].strip() == 'Test Not Run!'):
+            self.acca_cloud_shadow_percent = 'NaN'
+        else:
+            find  = linefinder(acca_cloud_shadow_log,'Cloud Shadow Percent')
+            self.acca_cloud_shadow_percent = float(find.split()[-1])
 
         #get Fmask cloud shadow
         f = open(logfile_list[3], 'r')
         fmask_cloud_shadow_log = f.readlines()
         f.close()
-        find  = linefinder(fmask_cloud_shadow_log,'Cloud Shadow Percent')
-        self.fmask_cloud_shadow_percent = float(find.split()[-1])
+        if (fmask_cloud_shadow_log[0].strip() == 'Test Not Run!'):
+            self.fmask_cloud_shadow_percent = 'NaN'
+        else:
+            find  = linefinder(fmask_cloud_shadow_log,'Cloud Shadow Percent')
+            self.fmask_cloud_shadow_percent = float(find.split()[-1])
 
 
         #extract which tests have been run from TIF file name and return the list

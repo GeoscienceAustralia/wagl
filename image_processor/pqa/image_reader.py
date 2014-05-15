@@ -31,9 +31,15 @@ def process(subprocess_list=[], resume=False):
     assert nbar_input_dataset, 'Unable to retrieve SceneDataset object for NBAR input scene dataset'
     logger.debug( 'SceneDataset object for %s retrieved', nbar_input_dataset.pathname)
 
+    # *** Need to change as LS8 has a band type of ATMOSPHERE ***
     # SceneDataset.ReadAsArray() only returns reflective & thermal bands (no panchromatic)
     l1t_stack = l1t_input_dataset.ReadAsArray()
-    assert l1t_stack.shape[0] == len(l1t_input_dataset.satellite.BAND_TYPES['REFLECTIVE']) + len(l1t_input_dataset.satellite.BAND_TYPES['THERMAL']), "Unexpected number of L1T bands"
+    avail_band_types = [bt for bt in l1t_input_dataset.satellite.BAND_TYPES.keys() if bt not in ['ALL','PANCHROMATIC']]
+    n_bands = 0
+    for bt in avail_band_types:
+        n_bands += len(l1t_input_dataset.satellite.BAND_TYPES[bt])
+    #assert l1t_stack.shape[0] == len(l1t_input_dataset.satellite.BAND_TYPES['REFLECTIVE']) + len(l1t_input_dataset.satellite.BAND_TYPES['THERMAL']), "Unexpected number of L1T bands"
+    assert l1t_stack.shape[0] == n_bands, "Unexpected number of L1T bands"
 
     nbar_stack = nbar_input_dataset.ReadAsArray()
     assert nbar_stack.shape[0] == len(l1t_input_dataset.satellite.BAND_TYPES['REFLECTIVE']), "Unexpected number of nbar bands"
