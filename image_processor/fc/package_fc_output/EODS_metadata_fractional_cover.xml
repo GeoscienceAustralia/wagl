@@ -17,9 +17,9 @@
          <EDITION/>
          <EDITIONDATE/>
          <ENTEREDBYRESPONSIBLEPARTY>
-            <INDIVIDUALNAME>NEO Group</INDIVIDUALNAME>
+            <INDIVIDUALNAME>NEMO Group</INDIVIDUALNAME>
             <ORGANISATIONNAME>Geoscience Australia</ORGANISATIONNAME>
-            <POSITIONNAME>NEO Operation</POSITIONNAME>
+            <POSITIONNAME>NEMO Operation</POSITIONNAME>
             <ROLE>pointOfContact</ROLE>
          </ENTEREDBYRESPONSIBLEPARTY>
          <UPDATEDBYRESPONSIBLEPARTY>
@@ -35,9 +35,9 @@
       <PARENTID/>
       <DATALANGUAGE>eng</DATALANGUAGE>
       <MDCONTACT>
-            <INDIVIDUALNAME>NEO Group</INDIVIDUALNAME>
+            <INDIVIDUALNAME>NEMO Group</INDIVIDUALNAME>
             <ORGANISATIONNAME>Geoscience Australia</ORGANISATIONNAME>
-            <POSITIONNAME>NEO Operation</POSITIONNAME>
+            <POSITIONNAME>NEMO Operation</POSITIONNAME>
          <ROLE>pointOfContact</ROLE>
       </MDCONTACT>
       <RESOURCETYPE>Processed Image</RESOURCETYPE>
@@ -50,7 +50,7 @@
       <ENVIRONMENTDESCRIPTION/>
       <SPATIALREPRESENTATIONTYPE/>
       <SUPPLEMENTARYINFORMATION>
-              Fractional cover - Landsat, Joint Remote Sensing Research Program algorithm, Australian coverage. Processed by Geoscience Australia.
+              ::ctional cover - Landsat, Joint Remote Sensing Research Program algorithm, Australian coverage. Processed by Geoscience Australia.
 
               The Fractional Cover algorithm utilises spectral bands 2,3,4,5,7 for either of the TM or ETM+ sensors. The spectral band inputs are sourced from the Australian Reflectance Grid 25m (ARG25); processed by Geoscience Australia. The bare soil, green vegetation and non-green vegetation endmenbers are calculated using models linked to an intensive field sampling program whereby more than 600 sites covering a wide variety of vegetation, soil and climate types were sampled to measure overstorey and ground cover following the procedure outlined in Muir et al (2011).
 

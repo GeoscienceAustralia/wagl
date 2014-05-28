@@ -17,9 +17,9 @@
          <EDITION/>
          <EDITIONDATE/>
          <ENTEREDBYRESPONSIBLEPARTY>
-            <INDIVIDUALNAME>NEO Group</INDIVIDUALNAME>
+            <INDIVIDUALNAME>NEMO Group</INDIVIDUALNAME>
             <ORGANISATIONNAME>Geoscience Australia</ORGANISATIONNAME>
-            <POSITIONNAME>NEO Operation</POSITIONNAME>
+            <POSITIONNAME>NEMO Operation</POSITIONNAME>
             <ROLE>pointOfContact</ROLE>
          </ENTEREDBYRESPONSIBLEPARTY>
          <UPDATEDBYRESPONSIBLEPARTY>
@@ -35,9 +35,9 @@
       <PARENTID/>
       <DATALANGUAGE>eng</DATALANGUAGE>
       <MDCONTACT>
-         <INDIVIDUALNAME>NEO Group</INDIVIDUALNAME>
+         <INDIVIDUALNAME>NEMO Group</INDIVIDUALNAME>
          <ORGANISATIONNAME>Geoscience Australia</ORGANISATIONNAME>
-         <POSITIONNAME>NEO Operation</POSITIONNAME>
+         <POSITIONNAME>NEMO Operation</POSITIONNAME>
          <ROLE>pointOfContact</ROLE>
       </MDCONTACT>
       <RESOURCETYPE>Processed Image</RESOURCETYPE>
@@ -109,7 +109,7 @@
       <SCOPELEVEL>dataset</SCOPELEVEL>
       <SCOPELEVELDESCRIPTION/>
       <LINEAGE>
-         <STATEMENT>Pixel Quality SVN Version 1228
+         <STATEMENT>
          The pixel quality algorithm assesses quality aspects such as saturation, band/spectral contiguity, land/sea, cloud and cloud shadow.
                               Tests Run:
                               Saturation Band1: {Run}
