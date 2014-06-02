@@ -8,7 +8,7 @@ import numpy
 from glob import glob
 from datetime import datetime, date, time
 import xml.dom.minidom
-from pprint import pprint
+from pprint import pprint, pformat
 from osgeo import gdal, gdalconst, osr
 
 import ULA3.geodesic as geocentric
@@ -541,11 +541,12 @@ class SceneDataset(Dataset):
                         suffix = m.group(2).upper()
                         extension = m.group(3).upper()
 
-                        print 'suffix         ', suffix
-                        print 'extension      ', extension
-                        print '_FILE_TYPE_INFO', self._FILE_TYPE_INFO
-                        print 'extension in _FILE_TYPE_INFO', (extension in self._FILE_TYPE_INFO)
-                        print 'satellite.root_band', self.satellite.root_band
+                        logger.debug("__find_root_dataset_xml:")
+                        logger.debug("    suffix = %s", suffix)
+                        logger.debug("    extension = %s", extension)
+                        logger.debug("    _FILE_TYPE_INFO = %s", self._FILE_TYPE_INFO)
+                        logger.debug("    extension in _FILE_TYPE_INFO = %s", (extension in self._FILE_TYPE_INFO))
+                        logger.debug("    satellite.root_band = %s", self.satellite.root_band)
 
                         # Determine the root suffix for the found file type
                         if extension in self._FILE_TYPE_INFO:
@@ -554,14 +555,14 @@ class SceneDataset(Dataset):
                             except (TypeError):
                                 root_suffix = self._FILE_TYPE_INFO[extension]['ROOTSUFFIX']
 
-                            print 'root_suffix', root_suffix, (suffix == root_suffix)
+                            logger.debug("    root_suffix = %s", root_suffix)
 
                             if suffix == root_suffix:
                                 self._root_dataset_pathname = os.path.abspath(os.path.join(datadir, f))
                                 self._sub_dataset_type = extension
                                 self._data_dir = datadir
 
-                                print '_root_dataset_pathname', self._root_dataset_pathname
+                                logger.debug("    _root_dataset_pathname = %s", self._root_dataset_pathname)
 
                                 try: # ToDo: Need to deal with open failure here
                                     self._root_dataset = gdal.Open(self._root_dataset_pathname, self._eAccess)
@@ -580,9 +581,11 @@ class SceneDataset(Dataset):
             if self._data_dir and self._root_dataset_pathname: # Data directory has been determined
                 break # Stop searching
 
-        print
-        print '_data_dir             ', self._data_dir
-        print '_root_dataset_pathname', self._root_dataset_pathname
+        logger.debug("")
+        logger.debug("__find_root_dataset_xml results:")
+        logger.debug("    self._data_dir = %s", self._data_dir)
+        logger.debug("    self._root_dataset_pathname = %s", self._root_dataset_pathname)
+        logger.debug("")
 
         assert self._data_dir and self._root_dataset_pathname, 'Unable to find root dataset under ' + self._pathname
 
@@ -842,7 +845,7 @@ class SceneDataset(Dataset):
         #    'LR': (self.lr_lon, self.lr_lat)}
 
         if self.IsGeographic():
-            print 'IsGeographic'
+            logger.debug("IsGeographic:")
             self.lonlats = {
                 'CENTRE' : (extents[4][0], extents[4][1]),
                 'UL'     : (extents[0][0], extents[0][1]),
@@ -850,7 +853,7 @@ class SceneDataset(Dataset):
                 'LL'     : (extents[1][0], extents[1][1]),
                 'LR'     : (extents[3][0], extents[3][1])
                            }
-            print self.lonlats
+            logger.debug("lonlats = %s", self.lonlats)
             # If the scene is natively in geographics, we shouldn't need to 
             # project the co-ordinates to UTM.
 
@@ -880,7 +883,7 @@ class SceneDataset(Dataset):
             for x,y in extents:
                 new_x, new_y, new_z = self.cxform_to_geo.TransformPoint(x,y)
                 re_prj_extents.append([new_x,new_y])
-                print new_x, new_y
+                logger.debug("new_x = %s, new_y = %s", new_x, new_y)
 
             self.lonlats = {
                 'CENTRE' : (re_prj_extents[4][0], re_prj_extents[4][1]),
@@ -1038,9 +1041,10 @@ class SceneDataset(Dataset):
 
         rad_rescale_params = self._metadata.get_metadata('MTL,L1_METADATA_FILE,RADIOMETRIC_RESCALING')
 
-        print
-        print rad_rescale_params
-        pprint(rad_rescale_params)
+        logger.debug("")
+        logger.debug("__get_mtl_bias_gain_landsat8_lookup:")
+        logger.debug(str(rad_rescale_params))
+        logger.debug(pformat(rad_rescale_params))
 
         # Need to check if we have a valid return from the metadata lookup
         if rad_rescale_params:
@@ -1060,13 +1064,14 @@ class SceneDataset(Dataset):
         else:
             logger.debug('No RADIOMETRIC_RESCALING data found in MTL file. Unable to compute bias & gain.')
 
-        print
-        print 'bdict'
-        pprint(bdict)
-        print
-        print 'gdict'
-        pprint(gdict)
-        print
+        logger.debug("")
+        logger.debug("bdict")
+        logger.debug(pformat(bdict))
+
+        logger.debug("")
+        logger.debug("gdict")
+        logger.debug(pformat(gdict))
+        logger.debug("")
 
         self.bias = bdict
         self.gain = gdict
