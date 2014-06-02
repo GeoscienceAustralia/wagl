@@ -686,6 +686,15 @@ class SceneDataset(Dataset):
         This is called after read_metadata(). Any derived vales should be set here.
         """
 
+        #
+        # Keep the original start and end datetimes (direct from the
+        # metadata) as alternate start and end datetimes. These can
+        # provide values where the scene_center_time is not available. 
+        # 
+
+        self.scene_alt_start_datetime = self.scene_start_datetime
+        self.scene_alt_end_datetime = self.scene_end_datetime
+
         if self.scene_centre_date and self.scene_centre_time:
             self.scene_centre_datetime = datetime(
                 self.scene_centre_date.year,
