@@ -1,0 +1,10 @@
+intel-fc
+intel-cc
+intel-mkl
+python/2.7.6
+hdf4/4.2.9
+gdal/1.10.1
+proj/4.8.0
+pyephem
+numexpr
+sphinx
