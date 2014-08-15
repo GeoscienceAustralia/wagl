@@ -2,7 +2,7 @@ from numpy.distutils.core import Extension, setup
 
 setup(name='ULA3',
       ext_modules=[
-          Extension(name='filter',
+          Extension(name='filtering',
                     sources=['read_array_int32.f90',
                              'read_array_int16.f90',
                              'read_array_int8.f90',
