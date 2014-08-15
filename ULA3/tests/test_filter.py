@@ -3,8 +3,8 @@ import unittest as ut
 from pprint import pprint
 from os.path import join, dirname
 from osgeo import gdal, gdalconst
-from ULA3.filter import filter_float as filter
-from ULA3.filter import read_array
+from ULA3.filtering import filter_float as filter
+from ULA3.filtering import read_array
 
 """
 Since we are lacking a portable test harness, these tests are configured to run on the NCI.
