@@ -71,23 +71,28 @@ def setup_spheroid(proj_wkt):
 
     return spheroid 
 
-def setup_orbital_elements():
+def setup_orbital_elements(ephemeral, datetime):
     """
     
     """
 
-    # For the moment hard code the values
-    # Need to be able to get these from a TLE
+    ephemeral.compute(datetime)
+    pi = numpy.pi
+    n = ephemeral._n # number or orbits per day
+    s = 24*60*60 # Seconds in a day
+    mu = 398600441800000.0 # Earth Gravitational parameter m^3s^-2
+
     orbital_elements = numpy.zeros((3))
 
     # orbital inclination (degrees)
-    orbital_elements[0] = 98.200000
+    orbital_elements[0] = numpy.rad2deg(ephemeral._inc)
 
     # semi_major radius (m)
-    orbital_elements[1] = 7083160.000000
-
+    # http://smallsats.org/2012/12/06/two-line-element-set-tle/
+    orbital_elements[1] = (mu/(2*pi*n/s)**2)**(1./3)
+    
     # angular velocity (rad sec-1)
-    orbital_elements[2] = 0.001059
+    orbital_elements[2] = (2*pi*n)/s
 
     return orbital_elements
 
@@ -116,6 +121,7 @@ def calculate_angles(scene_dataset, lon_array, lat_array, npoints=12):
 
     prj = scene_dataset.GetProjection()
     geoT = scene_dataset.GetGeoTransform()
+    centre_datetime = scene_dataset.scene_centre_datetime
 
     centre_xy = numpy.array(scene_dataset.lonlats['CENTRE'])
 
@@ -123,16 +129,19 @@ def calculate_angles(scene_dataset, lon_array, lat_array, npoints=12):
     spheroid = setup_spheroid(scene_dataset.GetProjection())
 
     print "Setup the orbital_elements"
-    orbital_elements = setup_orbital_elements()
+    tle_dir = '/g/data1/v10/eoancillarydata/ephemeris'
+    sat_ephemeral = scene_dataset.satellite.load_tle(centre_datetime, tle_dir)
+    orbital_elements = setup_orbital_elements(sat_ephemeral, centre_datetime)
 
     lat_min_max = scene_dataset.get_bounds()[1]
     hours = scene_dataset.decimal_hour
 
     print "Calculate the julian century past JD2000"
-    century = calculate_julian_century(scene_dataset.scene_centre_datetime)
+    century = calculate_julian_century(centre_datetime)
 
     # Need something to determine max satellite view angle
-    view_max = 9.0
+    # Currently not even used in Fuqin's code
+    #view_max = 9.0
 
     print "Setup the smodel"
     smodel = setup_smodel(centre_xy[0], centre_xy[1], spheroid, orbital_elements)
