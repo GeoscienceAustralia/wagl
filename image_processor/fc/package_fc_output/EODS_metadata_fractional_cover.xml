@@ -50,15 +50,15 @@
       <ENVIRONMENTDESCRIPTION/>
       <SPATIALREPRESENTATIONTYPE/>
       <SUPPLEMENTARYINFORMATION>
-              ::ctional cover - Landsat, Joint Remote Sensing Research Program algorithm, Australian coverage. Processed by Geoscience Australia.
+              Fractional cover - Landsat, Joint Remote Sensing Research Program algorithm, Australian coverage. Processed by Geoscience Australia.
 
               The Fractional Cover algorithm utilises spectral bands 2,3,4,5,7 for either of the TM or ETM+ sensors. The spectral band inputs are sourced from the Australian Reflectance Grid 25m (ARG25); processed by Geoscience Australia. The bare soil, green vegetation and non-green vegetation endmenbers are calculated using models linked to an intensive field sampling program whereby more than 600 sites covering a wide variety of vegetation, soil and climate types were sampled to measure overstorey and ground cover following the procedure outlined in Muir et al (2011).
 
               Individual band information:
-              PV: Green Cover Fraction. Fraction of green cover including green groundcover and green leaf material over all strata, within the Landsat pixel. Expressed as a percent * 1000.
-              NPV: Non-green cover fraction. Fraction of non green cover including litter, dead leaf and branches over all strata, within the Landsat pixel. Expressed as a percent * 1000.
-              BS: Bare ground fraction. Fraction of bare ground including rock, bare and disturbed soil, within the Landsat pixel. Expressed as a percent * 1000.
-              UE: Unmixing Error. The residual error, defined as the Eclidean Norm of the Residual Vector. High values express less confidence in the fractional components.
+              PV: Green Cover Fraction. Fraction of green cover including green groundcover and green leaf material over all strata, within the Landsat pixel. Expressed as 100% = 10000.
+              NPV: Non-green cover fraction. Fraction of non green cover including litter, dead leaf and branches over all strata, within the Landsat pixel. Expressed as 100% = 10000.
+              BS: Bare ground fraction. Fraction of bare ground including rock, bare and disturbed soil, within the Landsat pixel. Expressed as 100% = 10000.
+              UE: Unmixing Error. The residual error, defined as the Euclidean Norm of the Residual Vector. High values express less confidence in the fractional components.
 
               References:
               Scarth, P., Roeder, A., &amp; Schmidt, M., 2010, 'Tracking grazing pressure and climate interaction - the role of Landsat fractional cover in time series analysis' ,in Proceedings of the 15th Australasian Remote Sensing and Photogrammetry Conference, Alice Springs, Australia, 13-17 September 2010.
