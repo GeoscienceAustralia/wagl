@@ -255,8 +255,7 @@ def calculate_angles(scene_dataset, lon_array, lat_array, npoints=12):
         satellite track. Default is 12
 
     :return:
-        6 float32 NumPy arrays of the same shape as lon_array &
-        lat_array.
+        6 float32 NumPy arrays of the same shape as lon_array:
         Satellite zenith angle.
         Satellite azimuth angle.
         Solar zenith angle.
@@ -265,7 +264,7 @@ def calculate_angles(scene_dataset, lon_array, lat_array, npoints=12):
         Time.
         3 float32 NumPy arrays with the same shape as
         lon_array.shape[0] containing the array coodinates of the
-        satellite track line and N_Cent(??).
+        satellite track line and N_Cent(??):
         Y_coordinates (Starting at 1)
         X_coordinates
         N_cent (Value 2 if centre x coordinate was averaged and
@@ -360,4 +359,4 @@ def calculate_angles(scene_dataset, lon_array, lat_array, npoints=12):
     Y_cent = numpy.rint(Y_cent)
     X_cent = numpy.rint(X_cent)
 
-    return (view, azi,  asol, soazi, rela_angle, time, Y_cent, X_cent, N_cent)
+    return (view, azi, asol, soazi, rela_angle, time, Y_cent, X_cent, N_cent)
