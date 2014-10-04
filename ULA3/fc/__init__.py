@@ -4,6 +4,8 @@ from ULA3.dataset import SceneDataset
 from ULA3.meta import print_call
 from ULA3.fc.utils import datatype, create_dir, unmix
 
+from endmembers import EndMember, EndMemberFactory
+
 """
 Fractional cover calculations. The only function that is likely to be of interest to users
 is :py:func:`fractional_cover`. The other modules under fc contain utility functions used internally.
