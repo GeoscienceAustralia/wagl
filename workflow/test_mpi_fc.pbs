@@ -13,8 +13,6 @@ module load EOtools
 module load openmpi/1.8
 module load luigi-mpi
 
-cat $PBS_NODEFILE
-
 export OUTPUT_ROOT=/short/v10/$USER/FC_luigi_mpi_testing
 rm -r ${OUTPUT_ROOT}
 mkdir -p ${OUTPUT_ROOT}/work
