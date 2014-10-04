@@ -2,44 +2,41 @@
 
 import luigi
 import os
+from ULA3.fc import fractional_cover
 from EOtools.DatasetDrivers import SceneDataset
 
 
-class FractionalCoverGenerator(luigi.Task):
+class FractionalCoverTask(luigi.Task):
     nbar_path = luigi.Parameter()
-    output_base_dir = luigi.Parameter()
+    fc_path = luigi.Parameter()
 
     def output(self):
-        output_path = "%s/dummy_fc_output.txt" % (self.output_base_dir,)     
-        return FractionalCoverDataset(output_path)
+        return FCDataset(self.fc_path)
 
     def requires(self):
-        return NBAR_dataset_generator(self.nbar_path)
+        return NBARTask(self.nbar_path)
 
     def run(self):
-        print "Hello world - processing %s" % (self.nbar_path,)
-        print "Input is %s" % (self.input())
-        print "Metadata is %s" % (self.input().dataset.GetMetadata())
-
-        # some code here to write data such that self.output().exists() returns True
+        result = fractional_cover(self.input().nbar_path,  asfloat32=False,
+            fc_data_path=self.output().path, single_tif=False)
 
 
-class FractionalCoverDataset(luigi.Target):
+class FCDataset(luigi.Target):
 
-    def __init__(self, output_path):
-        self.output_path = output_path
+    def __init__(self, path):
+        self.path = path
 
     def exists(self):
-        return os.path.exists(self.output_path)
+        return os.path.exists(self.path)
 
-class NBAR_dataset_generator(luigi.ExternalTask):
+class NBARTask(luigi.ExternalTask):
     nbar_path = luigi.Parameter()
 
     def output(self):
-        return NBAR_dataset(self.nbar_path)
+        return NBARdataset(self.nbar_path)
 
 
-class NBAR_dataset(luigi.Target):
+class NBARdataset(luigi.Target):
 
     def __init__(self, nbar_path):
         self.nbar_path = nbar_path
@@ -51,8 +48,3 @@ class NBAR_dataset(luigi.Target):
 
 if __name__ == '__main__':
     luigi.run()
-   
-
-
-
-
