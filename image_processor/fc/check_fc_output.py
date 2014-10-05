@@ -74,6 +74,8 @@ def process(subprocess_list=[], resume=False):
         logger.debug('  check_dataset_id(%s) called')
 
         def get_fc_dataset_id():
+            # TODO: Move this code to a generic LandsatProductDataset class
+            # it does not belong here - SMR, Sep 2014
             station_code = CONFIG.station_code.get(nbar_input_dataset.ground_station)
             assert station_code, 'Unrecognised ground station ID %s' % nbar_input_dataset.ground_station
 
@@ -88,19 +90,21 @@ def process(subprocess_list=[], resume=False):
                 nbar_input_dataset.row_number,
                 nbar_input_dataset.scene_centre_date.strftime('%Y%m%d'))
 
+        # SMR SEP14: here the DataManager object is being used as a singleton global data dictionary
+
         fc_dataset_id = get_fc_dataset_id()
         logger.info('fc_dataset_id: %s', fc_dataset_id)
-        DATA.set_item('fc_dataset_id.dat', fc_dataset_id)
+        DATA.set_item('fc_dataset_id.dat', fc_dataset_id)  # SMR SEP14: side effect here
 
         # Determine path of temporary output image and create directory
         fc_temp_output = os.path.join(CONFIG.work_path, fc_dataset_id)
         logger.info('fc_temp_output: %s', fc_temp_output)
-        DATA.set_item('fc_temp_output.dat', fc_temp_output)
+        DATA.set_item('fc_temp_output.dat', fc_temp_output)  # SMR SEP14: side effect here
 
         # Default output_path to standard directory under FC_DATA_ROOT if not specified
         fc_output_path = os.path.abspath(CONFIG.output_path or os.path.join(CONFIG.output_root, fc_dataset_id))
         logger.info('fc_output_path: %s', fc_output_path)
-        DATA.set_item('fc_output_path.dat', fc_output_path)
+        DATA.set_item('fc_output_path.dat', fc_output_path) # SMR SEP14: side effect here
 
         old_dataset_id = re.match('.*(?=_)', os.path.basename(nbar_input_dataset.root_dataset_pathname)).group()
         old_fc_tif_template = os.path.join(fc_output_path, 'scene01', '%s_*.tif' % old_dataset_id)
