@@ -110,13 +110,16 @@ def fractional_cover(nbar_data_path, asfloat32=False, fc_data_path=None, single_
     # Setting the no_data values to zero. It was just easier to do this when
     # feeding into the pixel unmixing algorithm.
     logging.info("setting no_data values to zero")
-    image = numexpr.evaluate("(r_data == data_ignore) * null_val + (r_data != data_ignore) * r_data")
+#    numexpr.evaluate("(r_data == data_ignore) * null_val + (r_data != data_ignore) * r_data", out=r_data)
+#    r_data = numexpr.evaluate("where(r_data == data_ignore, null_val, r_data)", out=r_data)
+    wh = numexpr.evaluate("r_data==data_ignore")
+    r_data[wh] = null_val
     logging.info("done setting no_data values to zero")
-    del r_data; gc.collect()
+     # del r_data; gc.collect()
 
     # 2013_01_08_version produces green, dead1, dead2, bare, unmixing error
     logging.info("Calling unmix()")
-    frac = unmix(image)
+    frac = unmix(r_data)
     logging.info("unmix() done")
     wh = numexpr.evaluate("r_data == null_val")
 
