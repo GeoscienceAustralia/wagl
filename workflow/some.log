@@ -1,0 +1,57 @@
+2014-10-05 22:32:46,027 root  INFO     MemTotal:888M,Resident:41M,Swap:0M FC started
+2014-10-05 22:32:46,284 root  INFO     MemTotal:1031M,Resident:49M,Swap:0M In FractionalCoverTask.run method
+2014-10-05 22:32:46,934 root  INFO     MemTotal:1845M,Resident:857M,Swap:0M Reading band 0
+2014-10-05 22:32:47,179 root  INFO     MemTotal:1887M,Resident:891M,Swap:0M Reading band 1
+2014-10-05 22:32:47,377 root  INFO     MemTotal:1888M,Resident:891M,Swap:0M Reading band 2
+2014-10-05 22:32:47,569 root  INFO     MemTotal:1888M,Resident:891M,Swap:0M Reading band 3
+2014-10-05 22:32:47,762 root  INFO     MemTotal:1888M,Resident:891M,Swap:0M Reading band 4
+2014-10-05 22:32:47,973 root  INFO     MemTotal:1888M,Resident:891M,Swap:0M All NBAR bands read
+2014-10-05 22:32:47,974 root  INFO     MemTotal:1888M,Resident:891M,Swap:0M setting no_data values to zero
+2014-10-05 22:32:48,560 root  INFO     MemTotal:2794M,Resident:1285M,Swap:0M done setting no_data values to zero
+2014-10-05 22:32:48,560 root  INFO     MemTotal:2794M,Resident:1285M,Swap:0M Calling unmix()
+2014-10-05 22:32:49,648 root  INFO     MemTotal:4382M,Resident:2871M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:49,724 root  INFO     MemTotal:4390M,Resident:2879M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:49,801 root  INFO     MemTotal:4391M,Resident:2879M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:49,877 root  INFO     MemTotal:4395M,Resident:2884M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:49,953 root  INFO     MemTotal:4391M,Resident:2879M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:50,028 root  INFO     MemTotal:4395M,Resident:2884M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:50,104 root  INFO     MemTotal:4391M,Resident:2879M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:50,177 root  INFO     MemTotal:4395M,Resident:2884M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:50,252 root  INFO     MemTotal:4391M,Resident:2879M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:50,325 root  INFO     MemTotal:4395M,Resident:2884M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:50,398 root  INFO     MemTotal:4391M,Resident:2879M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:50,470 root  INFO     MemTotal:4395M,Resident:2884M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:50,544 root  INFO     MemTotal:4391M,Resident:2879M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:50,618 root  INFO     MemTotal:4395M,Resident:2884M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:50,692 root  INFO     MemTotal:4391M,Resident:2879M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:50,765 root  INFO     MemTotal:4395M,Resident:2884M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:50,837 root  INFO     MemTotal:4391M,Resident:2879M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:50,907 root  INFO     MemTotal:4395M,Resident:2884M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:50,983 root  INFO     MemTotal:4391M,Resident:2879M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:51,058 root  INFO     MemTotal:4395M,Resident:2884M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:51,133 root  INFO     MemTotal:4391M,Resident:2879M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:51,207 root  INFO     MemTotal:4395M,Resident:2884M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:51,281 root  INFO     MemTotal:4391M,Resident:2879M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:51,355 root  INFO     MemTotal:4395M,Resident:2884M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:51,429 root  INFO     MemTotal:4391M,Resident:2879M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:51,500 root  INFO     MemTotal:4395M,Resident:2884M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:51,574 root  INFO     MemTotal:4391M,Resident:2879M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:51,645 root  INFO     MemTotal:4395M,Resident:2884M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:51,717 root  INFO     MemTotal:4391M,Resident:2879M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:51,788 root  INFO     MemTotal:4395M,Resident:2884M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:51,860 root  INFO     MemTotal:4391M,Resident:2879M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:51,932 root  INFO     MemTotal:4395M,Resident:2884M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:52,005 root  INFO     MemTotal:4391M,Resident:2879M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:52,078 root  INFO     MemTotal:4395M,Resident:2884M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:52,150 root  INFO     MemTotal:4391M,Resident:2879M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:52,220 root  INFO     MemTotal:4395M,Resident:2884M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:52,291 root  INFO     MemTotal:4391M,Resident:2879M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:52,362 root  INFO     MemTotal:4395M,Resident:2884M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:52,434 root  INFO     MemTotal:4391M,Resident:2879M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:52,507 root  INFO     MemTotal:4395M,Resident:2884M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:52,579 root  INFO     MemTotal:4391M,Resident:2879M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:52,650 root  INFO     MemTotal:4395M,Resident:2884M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:52,723 root  INFO     MemTotal:4391M,Resident:2879M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:52,796 root  INFO     MemTotal:4395M,Resident:2884M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:52,870 root  INFO     MemTotal:4391M,Resident:2879M,Swap:0M Calling unmiximage() for tile
+2014-10-05 22:32:52,943 root  INFO     MemTotal:4395M,Resident:2884M,Swap:0M Calling unmiximage() for tile
