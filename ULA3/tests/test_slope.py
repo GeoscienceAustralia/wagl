@@ -42,6 +42,162 @@ def calculate_slope_angles(scene_dataset, ref_dir, outdir, pixel_buffer=250):
 
     slope_results = run_slope(scene_dataset, dsm_data, solar_angle, view_angle, sazi_angle, azi_angle, pixel_buf, is_utm)
 
+    slope_results.dump_arrays(dump_path, scene_dataset, "ENVI", ".bin")
+
+
+class test_slope_filenames():
+    """
+    
+    """
+
+    def __init__(self):
+        """
+        
+        """
+
+        self.reference_dir = reference_dir
+        self.test_dir = test_dir
+
+        self.fname_mask_self = 'mask_self'
+        self.fname_slope = 'slope'
+        self.fname_aspect = 'aspect'
+        self.fname_incident = 'incident'
+        self.fname_exiting = 'exiting'
+        self.fname_azi_incident = 'azi_incident'
+        self.fname_azi_exiting = 'azi_exiting'
+        self.fname_rela_slope = 'rela_slope'
+
+    def test_mask_self_ref(self):
+        """
+        Check that the mask self reference file exists.
+        """
+        fname = os.path.join(self.reference_dir, self.fname_mask_self)
+        self.assertIs(os.path.exists(fname), True,
+                      'Reference file does not exist: %s'%fname)
+
+    def test_mask_self_tst(self):
+        """
+        Check that the mask self test file exists.
+        """
+        fname = os.path.join(self.test_dir, self.fname_mask_self)
+        self.assertIs(os.path.exists(fname), True,
+                      'Test file does not exist: %s'%fname)
+
+    def test_slope_ref(self):
+        """
+        Check that the slope reference file exists.
+        """
+        fname = os.path.join(self.reference_dir, self.fname_slope)
+        self.assertIs(os.path.exists(fname), True,
+                      'Reference file does not exist: %s'%fname)
+
+    def test_slope_tst(self):
+        """
+        Check that the slope test file exists.
+        """
+        fname = os.path.join(self.test_dir, self.fname_slope)
+        self.assertIs(os.path.exists(fname), True,
+                      'Test file does not exist: %s'%fname)
+
+    def test_aspect_ref(self):
+        """
+        Check that the aspect reference file exists.
+        """
+        fname = os.path.join(self.reference_dir, self.fname_aspect)
+        self.assertIs(os.path.exists(fname), True,
+                      'Reference file does not exist: %s'%fname)
+
+    def test_aspect_tst(self):
+        """
+        Check that the aspect test file exists.
+        """
+        fname = os.path.join(self.test_dir, self.fname_aspect)
+        self.assertIs(os.path.exists(fname), True,
+                      'Test file does not exist: %s'%fname)
+
+    def test_incident_ref(self):
+        """
+        Check that the incident reference file exists.
+        """
+        fname = os.path.join(self.reference_dir, self.fname_incident)
+        self.assertIs(os.path.exists(fname), True,
+                      'Reference file does not exist: %s'%fname)
+
+    def test_incident_tst(self):
+        """
+        Check that the mask self test file exists.
+        """
+        fname = os.path.join(self.test_dir, self.fname_incident)
+        self.assertIs(os.path.exists(fname), True,
+                      'Test file does not exist: %s'%fname)
+
+    def test_exiting_ref(self):
+        """
+        Check that the exiting reference file exists.
+        """
+        fname = os.path.join(self.reference_dir, self.fname_exiting)
+        self.assertIs(os.path.exists(fname), True,
+                      'Reference file does not exist: %s'%fname)
+
+    def test_exiting_tst(self):
+        """
+        Check that the exiting self test file exists.
+        """
+        fname = os.path.join(self.test_dir, self.fname_exiting)
+        self.assertIs(os.path.exists(fname), True,
+                      'Test file does not exist: %s'%fname)
+
+    def test_azi_incident_ref(self):
+        """
+        Check that the azimuth incident reference file exists.
+        """
+        fname = os.path.join(self.reference_dir, self.fname_azi_incident)
+        self.assertIs(os.path.exists(fname), True,
+                      'Reference file does not exist: %s'%fname)
+
+    def test_azi_incident_tst(self):
+        """
+        Check that the azimuth incident test file exists.
+        """
+        fname = os.path.join(self.test_dir, self.fname_azi_incident)
+        self.assertIs(os.path.exists(fname), True,
+                      'Test file does not exist: %s'%fname)
+
+    def test_azi_exiting_ref(self):
+        """
+        Check that the azimuth exiting reference file exists.
+        """
+        fname = os.path.join(self.reference_dir, self.fname_azi_exiting)
+        self.assertIs(os.path.exists(fname), True,
+                      'Reference file does not exist: %s'%fname)
+
+    def test_azi_exiting_tst(self):
+        """
+        Check that the azimuth exiting test file exists.
+        """
+        fname = os.path.join(self.test_dir, self.fname_azi_exiting)
+        self.assertIs(os.path.exists(fname), True,
+                      'Test file does not exist: %s'%fname)
+
+    def test_rela_slope_ref(self):
+        """
+        Check that the relative slope reference file exists.
+        """
+        fname = os.path.join(self.reference_dir, self.fname_rela_slope)
+        self.assertIs(os.path.exists(fname), True,
+                      'Reference file does not exist: %s'%fname)
+
+    def test_rela_slope_tst(self):
+        """
+        Check that the relative slope test file exists.
+        """
+        fname = os.path.join(self.test_dir, self.fname_rela_slope)
+        self.assertIs(os.path.exists(fname), True,
+                      'Test file does not exist: %s'%fname)
+
+
+class test_slope_angles():
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
