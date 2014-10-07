@@ -4,10 +4,10 @@ import argparse
 import os
 import sys
 
-from osgeo import gdal
-from osgeo import osr
 import numpy
 import numpy.testing as npt
+from osgeo import gdal
+from osgeo import osr
 
 from EOtools.DatasetDrivers import SceneDataset
 from ULA3._gdal_tools.py import Buffers
