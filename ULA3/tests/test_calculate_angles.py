@@ -1,60 +1,27 @@
 #!/usr/bin/env python
-import sys
-import os
+
 import argparse
 import gc
+import os
+import sys
 import unittest
 
-import numpy
-import numpy.testing as npt
+import ephem
 from osgeo import gdal
 from osgeo import osr
-import ephem
+import numpy
+import numpy.testing as npt
 
+from angle_all import angle
 from EOtools.DatasetDrivers import SceneDataset
-
-from ULA3.geodesic import calculate_angles as ca
 from set_satmod import set_satmod
 from set_times import set_times
-from angle_all import angle
+from ULA3.geodesic import calculate_angles as ca
 
-import pdb
-
-def write_img(array, name='', format='ENVI', projection=None, geotransform=None):
-    """
-    Just a small function to write float32 2D arrays.
-    """
-
-    dims = array.shape
-    dtype = 6
-    bands = 1
-
-    drv = gdal.GetDriverByName(format)
-    outds = drv.Create(name, dims[1], dims[0], bands, dtype)
-
-    if prj:
-        outds.SetProjection(prj)
-
-    if geot:
-        outds.SetGeoTransform(geot)
-
-    band = outds.GetRasterBand(1)
-    band.WriteArray(array)
-    band.FlushCache()
-
-    outds = None
-
-
-def find_file(dir, file):
-    """
-    
-    """
-    fname = os.path.join(dir, file)
-    if os.path.isfile(fname):
-        return fname
-    else:
-        print "Error! file not found: %s" %fname
-        sys.exit(2)
+from unittesting_tools import find_file
+from unittesting_tools import ParameterisedTestCase
+from unittesting_tools import read_img
+from unittesting_tools import write_img
 
 
 def compute_angles(scene_dataset, lon_array, lat_array, npoints=12):
@@ -121,7 +88,7 @@ def compute_angles(scene_dataset, lon_array, lat_array, npoints=12):
     outf.close()
 
 
-class CorrectFilenames(unittest.TestCase):
+class TestAngleFilenames(ParameterisedTestCase):
     """
     Tests to ensure we have all the correct files on disk before
     proceeding with array comparisons.
@@ -131,9 +98,6 @@ class CorrectFilenames(unittest.TestCase):
         """
         
         """
-
-        self.reference_dir = reference_dir
-        self.test_dir = test_dir
 
         self.fname_sat_v = 'SAT_V.bin'
         self.fname_sat_az = 'SAT_AZ.bin'
@@ -155,7 +119,7 @@ class CorrectFilenames(unittest.TestCase):
         """
         Check that test CENTRELINE text file exists.
         """
-        fname = os.path.join(self.reference_dir, self.fname_centreline)
+        fname = os.path.join(self.test_dir, self.fname_centreline)
         self.assertIs(os.path.exists(fname), True, 
                       'Test file does not exist: %s'%fname)
 
@@ -171,7 +135,7 @@ class CorrectFilenames(unittest.TestCase):
         """
         Check that the test SAT_V.bin image file exists.
         """
-        fname = os.path.join(self.reference_dir, self.fname_sat_v)
+        fname = os.path.join(self.test_dir, self.fname_sat_v)
         self.assertIs(os.path.exists(fname), True,
                       'Test file does not exist: %s'%fname)
 
@@ -187,7 +151,7 @@ class CorrectFilenames(unittest.TestCase):
         """
         Check that the test SAT_AZ.bin image file exists.
         """
-        fname = os.path.join(self.reference_dir, self.fname_sat_az)
+        fname = os.path.join(self.test_dir, self.fname_sat_az)
         self.assertIs(os.path.exists(fname), True,
                       'Test file does not exist: %s'%fname)
 
@@ -203,7 +167,7 @@ class CorrectFilenames(unittest.TestCase):
         """
         Check that the test SOL_Z.bin image file exists.
         """
-        fname = os.path.join(self.reference_dir, self.fname_sol_z)
+        fname = os.path.join(self.test_dir, self.fname_sol_z)
         self.assertIs(os.path.exists(fname), True,
                       'Test file does not exist: %s'%fname)
 
@@ -219,7 +183,7 @@ class CorrectFilenames(unittest.TestCase):
         """
         Check that the test SOL_AZ.bin image file exists.
         """
-        fname = os.path.join(self.reference_dir, self.fname_sol_az)
+        fname = os.path.join(self.test_dir, self.fname_sol_az)
         self.assertIs(os.path.exists(fname), True,
                       'Test file does not exist: %s'%fname)
 
@@ -235,7 +199,7 @@ class CorrectFilenames(unittest.TestCase):
         """
         Check that the test REL_AZ.bin image file exists.
         """
-        fname = os.path.join(self.reference_dir, self.fname_rel_az)
+        fname = os.path.join(self.test_dir, self.fname_rel_az)
         self.assertIs(os.path.exists(fname), True,
                       'Test file does not exist: %s'%fname)
 
@@ -251,19 +215,18 @@ class CorrectFilenames(unittest.TestCase):
         """
         Check that the reference TIME.bin image file exists.
         """
-        fname = os.path.join(self.reference_dir, self.fname_time)
+        fname = os.path.join(self.test_dir, self.fname_time)
         self.assertIs(os.path.exists(fname), True,
                       'Test file does not exist: %s'%fname)
 
 
 #class AnglesOutputsTester(unittest.TestCase):
-class AnglesOutputsTester(npt.TestCase):
+class TestSatSolAngles(ParameterisedTestCase):
     """
     Unittesting for the satellite and solar angle calculations.
     """
 
-    def __init__(self, reference_dir, test_dir, decimal_precision=4,
-                 integer_precision=1):
+    def __init__(self):
         """
         Unittests will occur for the following files:
         SAT_V.bin
@@ -293,17 +256,12 @@ class AnglesOutputsTester(npt.TestCase):
             in order to Pass.
         """
 
-        self.reference_dir = reference_dir
-        self.test_dir = test_dir
-        self.dec_precision = decimal_precision
-        self.int_precision = integer_precision
-
-        self.fname_sat_v = 'SAT_V.bin'
-        self.fname_sat_az = 'SAT_AZ.bin'
-        self.fname_sol_z = 'SOL_Z.bin'
-        self.fname_sol_az = 'SOL_AZ.bin'
-        self.fname_rel_az = 'REL_AZ.bin'
-        self.fname_time = 'TIME.bin'
+        self.fname_sat_v      = 'SAT_V.bin'
+        self.fname_sat_az     = 'SAT_AZ.bin'
+        self.fname_sol_z      = 'SOL_Z.bin'
+        self.fname_sol_az     = 'SOL_AZ.bin'
+        self.fname_rel_az     = 'REL_AZ.bin'
+        self.fname_time       = 'TIME.bin'
         self.fname_centreline = 'CENTRELINE'
 
         # Read and store the centreline data in memory
@@ -317,8 +275,8 @@ class AnglesOutputsTester(npt.TestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname = self.find_file(self.reference_dir, self.fname_centreline)
-        test_fname = self.find_file(self.test_dir, self.fname_centreline)
+        ref_fname = find_file(self.reference_dir, self.fname_centreline)
+        test_fname = find_file(self.test_dir, self.fname_centreline)
 
         # Open and read the reference data
         f = open(ref_fname)
@@ -339,16 +297,12 @@ class AnglesOutputsTester(npt.TestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname = self.find_file(self.reference_dir, self.fname_sat_v)
-        test_fname = self.find_file(self.test_dir, self.fname_sat_v)
-
-        # Open the image datasets
-        ref_ds = gdal.Open(ref_fname)
-        test_ds = gdal.Open(test_fname)
+        ref_fname = find_file(self.reference_dir, self.fname_sat_v)
+        test_fname = find_file(self.test_dir, self.fname_sat_v)
 
         # Get the image data
-        ref_img = ref_ds.ReadAsArray()
-        test_img = test_ds.ReadAsArray()
+        ref_img = read_img(ref_fname)
+        test_img = read_img(test_fname)
 
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
                                                   decimal=self.dec_precision))
@@ -359,16 +313,12 @@ class AnglesOutputsTester(npt.TestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname = self.find_file(self.reference_dir, self.fname_sat_az)
-        test_fname = self.find_file(self.test_dir, self.fname_sat_az)
-
-        # Open the image datasets
-        ref_ds = gdal.Open(ref_fname)
-        test_ds = gdal.Open(test_fname)
+        ref_fname = find_file(self.reference_dir, self.fname_sat_az)
+        test_fname = find_file(self.test_dir, self.fname_sat_az)
 
         # Get the image data
-        ref_img = ref_ds.ReadAsArray()
-        test_img = test_ds.ReadAsArray()
+        ref_img = read_img(ref_fname)
+        test_img = read_img(test_fname)
 
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
                                                   decimal=self.dec_precision))
@@ -379,16 +329,12 @@ class AnglesOutputsTester(npt.TestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname = self.find_file(self.reference_dir, self.fname_sol_z)
-        test_fname = self.find_file(self.test_dir, self.fname_sol_z)
-
-        # Open the image datasets
-        ref_ds = gdal.Open(ref_fname)
-        test_ds = gdal.Open(test_fname)
+        ref_fname = find_file(self.reference_dir, self.fname_sol_z)
+        test_fname = find_file(self.test_dir, self.fname_sol_z)
 
         # Get the image data
-        ref_img = ref_ds.ReadAsArray()
-        test_img = test_ds.ReadAsArray()
+        ref_img = read_img(ref_fname)
+        test_img = read_img(test_fname)
 
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
                                                   decimal=self.dec_precision))
@@ -399,16 +345,12 @@ class AnglesOutputsTester(npt.TestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname = self.find_file(self.reference_dir, self.fname_sol_az)
-        test_fname = self.find_file(self.test_dir, self.fname_sol_az)
-
-        # Open the image datasets
-        ref_ds = gdal.Open(ref_fname)
-        test_ds = gdal.Open(test_fname)
+        ref_fname = find_file(self.reference_dir, self.fname_sol_az)
+        test_fname = find_file(self.test_dir, self.fname_sol_az)
 
         # Get the image data
-        ref_img = ref_ds.ReadAsArray()
-        test_img = test_ds.ReadAsArray()
+        ref_img = read_img(ref_fname)
+        test_img = read_img(test_fname)
 
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
                                                   decimal=self.dec_precision))
@@ -419,16 +361,12 @@ class AnglesOutputsTester(npt.TestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname = self.find_file(self.reference_dir, self.fname_rel_az)
-        test_fname = self.find_file(self.test_dir, self.fname_rel_az)
-
-        # Open the image datasets
-        ref_ds = gdal.Open(ref_fname)
-        test_ds = gdal.Open(test_fname)
+        ref_fname = find_file(self.reference_dir, self.fname_rel_az)
+        test_fname = find_file(self.test_dir, self.fname_rel_az)
 
         # Get the image data
-        ref_img = ref_ds.ReadAsArray()
-        test_img = test_ds.ReadAsArray()
+        ref_img = read_img(ref_fname)
+        test_img = read_img(test_fname)
 
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
                                                   decimal=self.dec_precision))
@@ -439,16 +377,12 @@ class AnglesOutputsTester(npt.TestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname = self.find_file(self.reference_dir, self.fname_time)
-        test_fname = self.find_file(self.test_dir, self.fname_time)
-
-        # Open the image datasets
-        ref_ds = gdal.Open(ref_fname)
-        test_ds = gdal.Open(test_fname)
+        ref_fname = find_file(self.reference_dir, self.fname_time)
+        test_fname = find_file(self.test_dir, self.fname_time)
 
         # Get the image data
-        ref_img = ref_ds.ReadAsArray()
-        test_img = test_ds.ReadAsArray()
+        ref_img = read_img(ref_fname)
+        test_img = read_img(test_fname)
 
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
                                                   decimal=self.dec_precision))
@@ -535,6 +469,7 @@ if __name__ == '__main__':
     parser.add_argument('--outdir', required=True, help='A directory path that will contain the output files.')
     parser.add_argument('--dec_precision', default=4, help='The decimal precision used for array comparison')
     parser.add_argument('--int_precision', default=1, help='The integer precision used for array comparison')
+    parser.add_argument('--compute', action='store_true', help='If set then the solar and sateliite angles will be computed as will the CENTRELINE text file before running the unittests.')
 
     parsed_args = parser.parse_args()
 
@@ -542,55 +477,44 @@ if __name__ == '__main__':
     #lon_f = '/short/v10/jps547/nbar/test_skew/work/LON.tif'
     #lat_f = '/short/v10/jps547/nbar/test_skew/work/LAT.tif'
 
-    L1T_dir = parsed_args.L1T_dir
+    L1T_dir       = parsed_args.L1T_dir
     nbar_work_dir = parsed_args.nbar_work_dir
-    outdir = parsed_args.outdir
+    outdir        = parsed_args.outdir
     dec_precision = parsed_args.dec_precision
     int_precision = parsed_args.int_precision
+    compute       = parsed_args.compute
 
-    # Check the output directory
-    if not os.path.exists(outdir):
-        os.makedirs(outdir)
+    if compute:
+        # Check the output directory
+        if not os.path.exists(outdir):
+            os.makedirs(outdir)
 
-    # Change to the output directory that will contain the results
-    os.chdir(outdir)
+        # Get the current directory
+        cwd = os.getcwd()
 
-    # Open the L1T dataset
-    ds = SceneDataset(L1T_dir)
+        # Change to the output directory that will contain the results
+        os.chdir(outdir)
 
-    # Find and open the longitude and lattitude files
-    lon_f = os.path.join(nbar_work_dir, 'LON.tif')
-    lat_f = os.path.join(nbar_work_dir, 'LAT.tif')
+        # Open the L1T dataset
+        ds = SceneDataset(L1T_dir)
 
-    if os.path.isfile(lon_f):
-        lon_ds = gdal.Open(lon_f)
-    else:
-        print "Error! No longitude file could be found:\n %s"%lon_f
-        sys.exit(2)
-    
-    if os.path.isfile(lat_f):
-        lat_ds = gdal.Open(lat_f)
-    else:
-        print "Error! No lattitude file could be found:\n %s"%lat_f
-        sys.exit(2)
+        # Find and open the longitude and lattitude files
+        lon_fname = find_file(nbar_work_dir, 'LON.tif')
+        lat_fname = find_file(nbar_work_dir, 'LAT.tif')
 
-    #lon_ds = gdal.Open(lon_f)
-    #lat_ds = gdal.Open(lat_f)
+        lon_arr = read_img(lon_fname)
+        lat_arr = read_img(lat_fname)
 
-    lon_arr = lon_ds.ReadAsArray()
-    lat_arr = lat_ds.ReadAsArray()
+        print "Computing satellite & solar angle grids."
+        compute_angles(ds, lon_arr, lat_arr)
 
-    # Close the lat/long datasets
-    lon_ds = None
-    lat_ds = None
+        # Change back to the original directory
+        os.chdir(cwd)
 
-    print "Starting main routine"
-    comput_angles(ds, lon_arr, lat_arr)
-
-    print "Running unittests on the angle grids and the CENTRELINE file."
-    suite = AnglesOutputsTester(reference_dir=nbar_work_dir, test_dir=outdir,
-                                decimal_precision=dec_precision,
-                                integer_precision=int_precision)
+    #print "Running unittests on the angle grids and the CENTRELINE file."
+    #suite = AnglesOutputsTester(reference_dir=nbar_work_dir, test_dir=outdir,
+    #                            decimal_precision=dec_precision,
+    #                            integer_precision=int_precision)
 
     # Run each test
     #suite.test_satellite_view()
@@ -605,8 +529,19 @@ if __name__ == '__main__':
     #suite.test_number_centreline_points()
     #suite.test_centreline_points()
 
-    Suite = unittest.TestSuite()
-    Suite.addTest(suite)
-    unittest.TextTestRunner(verbosity=2).run(Suite)
+    print "Checking that we have all the reference and test data files neccessary."
+    suite = unittest.TestSuite()
+    suite.addTest(ParameterisedTestCase.parameterise(TestAngleFilenames,
+                  reference_dir=nbar_work_dir, test_dir=outdir,
+                  decimal_precision=dec_precision,
+                  integer_precision=int_precision)
+    unittest.TextTestRunner(verbosity=2).run(suite)
 
-    print "Finished"
+    print "Comparing the reference and test angle grids and CENTRELINE file."
+    suite = unittest.TestSuite()
+    suite.addTest(ParameterisedTestCase.parameterise(TestSatSolAngles,
+                  reference_dir=nbar_work_dir, test_dir=outdir,
+                  decimal_precision=dec_precision,
+                  integer_precision=int_precision)
+    unittest.TextTestRunner(verbosity=2).run(suite)
+
