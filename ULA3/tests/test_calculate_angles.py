@@ -26,7 +26,8 @@ from unittesting_tools import write_img
 
 def compute_angles(scene_dataset, lon_array, lat_array, npoints=12):
     """
-    
+    Creates the satellite and solar angle arrays as well as the time
+    array.
     """
     # Get the array dimensions
     dims = lon_array.shape
@@ -49,6 +50,10 @@ def compute_angles(scene_dataset, lon_array, lat_array, npoints=12):
     solar_azimuth_fname = 'SOL_AZ.bin'
     relative_azimuth_fname = 'REL_AZ.bin'
     time_fname = 'TIME.bin'
+
+    # Image projection, geotransform
+    prj = scene_dataset.GetProjection()
+    geoT = scene_dataset.GetGeoTransform()
 
     print "Writing satelite view zenith angle: %s" %sat_view_zenith_fname
     write_img(satellite_zenith, sat_view_zenith_fname, projection=prj,
@@ -213,7 +218,7 @@ class TestAngleFilenames(ParameterisedTestCase):
 
     def test_time_tst(self):
         """
-        Check that the reference TIME.bin image file exists.
+        Check that the test TIME.bin image file exists.
         """
         fname = os.path.join(self.test_dir, self.fname_time)
         self.assertIs(os.path.exists(fname), True,
@@ -236,24 +241,6 @@ class TestSatSolAngles(ParameterisedTestCase):
         REL_AZ.bin
         TIME.bin
         CENTRELINE
-
-        :param reference_dir:
-            A full file pathname to the directory containing the
-            reference data.
-
-        :param test_dir:
-            A full file pathname to the directory containing the
-            test data.
-
-        :param decimal_precision:
-            The decimal precision to be used during array comparison.
-            Default is 4, i.e. values must be correct up to 4 d.p. in
-            order to Pass.
-
-        :param integer_precision:
-            The intger precision to be used during array comparison.
-            Default is 1, i.e. values must be correct within 1 integer
-            in order to Pass.
         """
 
         self.fname_sat_v      = 'SAT_V.bin'

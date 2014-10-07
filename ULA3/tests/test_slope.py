@@ -31,7 +31,7 @@ def calculate_slope_angles(scene_dataset, ref_dir, outdir, pixel_buffer=250):
     fname_sat_az = 'SAT_AZ.bin'
     fname_sol_z = 'SOL_Z.bin'
     fname_sol_az = 'SOL_AZ.bin'
-    fname_dsm = 'smoothed_dsm'
+    fname_dsm = 'region_dsm_image_smoothed.img'
 
     view_angle = read_img(find_file(ref_dir, fname_sat_v))
     azi_angle = read_img(find_file(ref_dir, fname_sat_az))

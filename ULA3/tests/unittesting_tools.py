@@ -8,13 +8,14 @@ import numpy
 from osgeo import gdal
 
 class ParameterisedTestCase(unittest.TestCase):
-    """ TestCase classes that want to be parameterised should
-        inherit from this class.
+    """ 
+    TestCase classes that want to be parameterised should
+    inherit from this class.
 
-        Source for this code taken from:
-        http://eli.thegreenplace.net/2011/08/02/python-unit-testing-parametrized-test-cases/
+    Source for this code taken from:
+    http://eli.thegreenplace.net/2011/08/02/python-unit-testing-parametrized-test-cases/
 
-        Modified to suit our given parameters.
+    Modified to suit our given parameters.
     """
     def __init__(self, methodName='runTest', reference_dir=None, test_dir=None,
                  decimal_precision=4, integer_precision=1):
@@ -32,9 +33,31 @@ class ParameterisedTestCase(unittest.TestCase):
     @staticmethod
     def parameterise(testcase_klass, reference_dir=None, test_dir=None,
                     decimal_precision=4, integer_precision=1):
-        """ Create a suite containing all tests taken from the given
-            subclass, passing them the parameters 'reference_dir,
-            test_dir, decimal_precision, integer_precision'.
+        """
+        Create a suite containing all tests taken from the given
+        subclass, passing them the parameters 'reference_dir,
+        test_dir, decimal_precision, integer_precision'.
+
+        :param testcase_klass:
+            A unittest.TestCase Class
+
+        :param reference_dir:
+            A full file pathname to the directory containing the
+            reference data.
+
+        :param test_dir:
+            A full file pathname to the directory containing the
+            test data.
+
+        :param decimal_precision:
+            The decimal precision to be used during array comparison.
+            Default is 4, i.e. values must be correct up to 4 d.p. in
+            order to Pass.
+
+        :param integer_precision:
+            The intger precision to be used during array comparison.
+            Default is 1, i.e. values must be correct within 1 integer
+            in order to Pass.
         """
         testloader = unittest.TestLoader()
         testnames = testloader.getTestCaseNames(testcase_klass)
