@@ -36,15 +36,15 @@ def compute_angles(scene_dataset, lon_array, lat_array, npoints=12):
                                                    lat_array, npoints=12)
 
     # Define the output file names
-    sat_view_zenith_fname = 'SAT_V.bin'
-    sat_azimuth_fname = 'SAT_AZ.bin'
-    solar_zenith_fname = 'SOL_Z.bin'
-    solar_azimuth_fname = 'SOL_AZ.bin'
+    sat_view_zenith_fname  = 'SAT_V.bin'
+    sat_azimuth_fname      = 'SAT_AZ.bin'
+    solar_zenith_fname     = 'SOL_Z.bin'
+    solar_azimuth_fname    = 'SOL_AZ.bin'
     relative_azimuth_fname = 'REL_AZ.bin'
-    time_fname = 'TIME.bin'
+    time_fname             = 'TIME.bin'
 
     # Image projection, geotransform
-    prj = scene_dataset.GetProjection()
+    prj  = scene_dataset.GetProjection()
     geoT = scene_dataset.GetGeoTransform()
 
     print "Writing satelite view zenith angle: %s" %sat_view_zenith_fname
@@ -86,25 +86,30 @@ class TestAngleFilenames(ParameterisedTestCase):
     """
     Tests to ensure we have all the correct files on disk before
     proceeding with array comparisons.
+    Unittests will occur for the following files:
+    SAT_V.bin
+    SAT_AZ.bin
+    SOL_Z.bin
+    SOL_AZ.bin
+    REL_AZ.bin
+    TIME.bin
+    CENTRELINE
     """
 
-    def __init__(self):
-        """
-        
-        """
-
-        self.fname_sat_v = 'SAT_V.bin'
-        self.fname_sat_az = 'SAT_AZ.bin'
-        self.fname_sol_z = 'SOL_Z.bin'
-        self.fname_sol_az = 'SOL_AZ.bin'
-        self.fname_rel_az = 'REL_AZ.bin'
-        self.fname_time = 'TIME.bin'
-        self.fname_centreline = 'CENTRELINE'
+    # Files of interest
+    ParameterisedTestCase.fname_sat_v      = 'SAT_V.bin'
+    ParameterisedTestCase.fname_sat_az     = 'SAT_AZ.bin'
+    ParameterisedTestCase.fname_sol_z      = 'SOL_Z.bin'
+    ParameterisedTestCase.fname_sol_az     = 'SOL_AZ.bin'
+    ParameterisedTestCase.fname_rel_az     = 'REL_AZ.bin'
+    ParameterisedTestCase.fname_time       = 'TIME.bin'
+    ParameterisedTestCase.fname_centreline = 'CENTRELINE'
 
     def test_centreline_ref(self):
         """
         Check that reference CENTRELINE text file exists.
         """
+
         fname = os.path.join(self.reference_dir, self.fname_centreline)
         self.assertIs(os.path.exists(fname), True,
                       'Reference file does not exist: %s'%fname)
@@ -113,6 +118,7 @@ class TestAngleFilenames(ParameterisedTestCase):
         """
         Check that test CENTRELINE text file exists.
         """
+
         fname = os.path.join(self.test_dir, self.fname_centreline)
         self.assertIs(os.path.exists(fname), True, 
                       'Test file does not exist: %s'%fname)
@@ -121,6 +127,7 @@ class TestAngleFilenames(ParameterisedTestCase):
         """
         Check that the reference SAT_V.bin image file exists.
         """
+
         fname = os.path.join(self.reference_dir, self.fname_sat_v)
         self.assertIs(os.path.exists(fname), True,
                       'Reference file does not exist: %s'%fname)
@@ -129,6 +136,7 @@ class TestAngleFilenames(ParameterisedTestCase):
         """
         Check that the test SAT_V.bin image file exists.
         """
+
         fname = os.path.join(self.test_dir, self.fname_sat_v)
         self.assertIs(os.path.exists(fname), True,
                       'Test file does not exist: %s'%fname)
@@ -137,6 +145,7 @@ class TestAngleFilenames(ParameterisedTestCase):
         """
         Check that the reference SAT_AZ.bin image file exists.
         """
+
         fname = os.path.join(self.reference_dir, self.fname_sat_az)
         self.assertIs(os.path.exists(fname), True,
                       'Reference file does not exist: %s'%fname)
@@ -145,6 +154,7 @@ class TestAngleFilenames(ParameterisedTestCase):
         """
         Check that the test SAT_AZ.bin image file exists.
         """
+
         fname = os.path.join(self.test_dir, self.fname_sat_az)
         self.assertIs(os.path.exists(fname), True,
                       'Test file does not exist: %s'%fname)
@@ -153,6 +163,7 @@ class TestAngleFilenames(ParameterisedTestCase):
         """
         Check that the reference SOL_Z.bin image file exists.
         """
+
         fname = os.path.join(self.reference_dir, self.fname_sol_z)
         self.assertIs(os.path.exists(fname), True,
                       'Reference file does not exist: %s'%fname)
@@ -161,6 +172,7 @@ class TestAngleFilenames(ParameterisedTestCase):
         """
         Check that the test SOL_Z.bin image file exists.
         """
+
         fname = os.path.join(self.test_dir, self.fname_sol_z)
         self.assertIs(os.path.exists(fname), True,
                       'Test file does not exist: %s'%fname)
@@ -169,6 +181,7 @@ class TestAngleFilenames(ParameterisedTestCase):
         """
         Check that the reference SOL_AZ.bin image file exists.
         """
+
         fname = os.path.join(self.reference_dir, self.fname_sol_az)
         self.assertIs(os.path.exists(fname), True,
                       'Reference file does not exist: %s'%fname)
@@ -177,6 +190,7 @@ class TestAngleFilenames(ParameterisedTestCase):
         """
         Check that the test SOL_AZ.bin image file exists.
         """
+
         fname = os.path.join(self.test_dir, self.fname_sol_az)
         self.assertIs(os.path.exists(fname), True,
                       'Test file does not exist: %s'%fname)
@@ -185,6 +199,7 @@ class TestAngleFilenames(ParameterisedTestCase):
         """
         Check that the reference REL_AZ.bin image file exists.
         """
+
         fname = os.path.join(self.reference_dir, self.fname_rel_az)
         self.assertIs(os.path.exists(fname), True,
                       'Reference file does not exist: %s'%fname)
@@ -193,6 +208,7 @@ class TestAngleFilenames(ParameterisedTestCase):
         """
         Check that the test REL_AZ.bin image file exists.
         """
+
         fname = os.path.join(self.test_dir, self.fname_rel_az)
         self.assertIs(os.path.exists(fname), True,
                       'Test file does not exist: %s'%fname)
@@ -201,6 +217,7 @@ class TestAngleFilenames(ParameterisedTestCase):
         """
         Check that the reference TIME.bin image file exists.
         """
+
         fname = os.path.join(self.reference_dir, self.fname_time)
         self.assertIs(os.path.exists(fname), True,
                       'Reference file does not exist: %s'%fname)
@@ -209,6 +226,7 @@ class TestAngleFilenames(ParameterisedTestCase):
         """
         Check that the test TIME.bin image file exists.
         """
+
         fname = os.path.join(self.test_dir, self.fname_time)
         self.assertIs(os.path.exists(fname), True,
                       'Test file does not exist: %s'%fname)
@@ -218,32 +236,29 @@ class TestAngleFilenames(ParameterisedTestCase):
 class TestSatSolAngles(ParameterisedTestCase):
     """
     Unittesting for the satellite and solar angle calculations.
+    Unittests will occur for the following files:
+    SAT_V.bin
+    SAT_AZ.bin
+    SOL_Z.bin
+    SOL_AZ.bin
+    REL_AZ.bin
+    TIME.bin
+    CENTRELINE
     """
 
-    def __init__(self):
-        """
-        Unittests will occur for the following files:
-        SAT_V.bin
-        SAT_AZ.bin
-        SOL_Z.bin
-        SOL_AZ.bin
-        REL_AZ.bin
-        TIME.bin
-        CENTRELINE
-        """
+    # Files of interest
+    ParameterisedTestCase.fname_sat_v      = 'SAT_V.bin'
+    ParameterisedTestCase.fname_sat_az     = 'SAT_AZ.bin'
+    ParameterisedTestCase.fname_sol_z      = 'SOL_Z.bin'
+    ParameterisedTestCase.fname_sol_az     = 'SOL_AZ.bin'
+    ParameterisedTestCase.fname_rel_az     = 'REL_AZ.bin'
+    ParameterisedTestCase.fname_time       = 'TIME.bin'
+    ParameterisedTestCase.fname_centreline = 'CENTRELINE'
 
-        self.fname_sat_v      = 'SAT_V.bin'
-        self.fname_sat_az     = 'SAT_AZ.bin'
-        self.fname_sol_z      = 'SOL_Z.bin'
-        self.fname_sol_az     = 'SOL_AZ.bin'
-        self.fname_rel_az     = 'REL_AZ.bin'
-        self.fname_time       = 'TIME.bin'
-        self.fname_centreline = 'CENTRELINE'
-
-        # Read and store the centreline data in memory
-        self.centreline_ref = None
-        self.centreline_test = None
-        self._read_centreline_files()
+    # Read and store the centreline data in memory
+    ParameterisedTestCase.centreline_ref = None
+    ParameterisedTestCase.centreline_test = None
+    ParameterisedTestCase._read_centreline_files()
 
     def _read_centreline_files(self):
         """
@@ -251,20 +266,20 @@ class TestSatSolAngles(ParameterisedTestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname = find_file(self.reference_dir, self.fname_centreline)
+        ref_fname  = find_file(self.reference_dir, self.fname_centreline)
         test_fname = find_file(self.test_dir, self.fname_centreline)
 
         # Open and read the reference data
-        f = open(ref_fname)
+        f        = open(ref_fname)
         ref_data = f.readlines()
         f.close()
 
         # Open and read the test data
-        f = open(test_fname)
+        f         = open(test_fname)
         test_data = f.readlines()
         f.close()
 
-        self.centreline_ref = ref_data
+        self.centreline_ref  = ref_data
         self.centreline_test = test_data
 
     def test_satellite_view(self):
@@ -273,15 +288,18 @@ class TestSatSolAngles(ParameterisedTestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname = find_file(self.reference_dir, self.fname_sat_v)
+        ref_fname  = find_file(self.reference_dir, self.fname_sat_v)
         test_fname = find_file(self.test_dir, self.fname_sat_v)
 
         # Get the image data
-        ref_img = read_img(ref_fname)
+        ref_img  = read_img(ref_fname)
         test_img = read_img(test_fname)
 
+        # Precision
+        dp = self.decimal_precision
+
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
-                                                  decimal=self.dec_precision))
+                                                  decimal=dp))
 
     def test_satellite_azimuth(self):
         """
@@ -289,15 +307,18 @@ class TestSatSolAngles(ParameterisedTestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname = find_file(self.reference_dir, self.fname_sat_az)
+        ref_fname  = find_file(self.reference_dir, self.fname_sat_az)
         test_fname = find_file(self.test_dir, self.fname_sat_az)
 
         # Get the image data
-        ref_img = read_img(ref_fname)
+        ref_img  = read_img(ref_fname)
         test_img = read_img(test_fname)
 
+        # Precision
+        dp = self.decimal_precision
+
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
-                                                  decimal=self.dec_precision))
+                                                  decimal=dp))
 
     def test_solar_zenith(self):
         """
@@ -305,15 +326,18 @@ class TestSatSolAngles(ParameterisedTestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname = find_file(self.reference_dir, self.fname_sol_z)
+        ref_fname  = find_file(self.reference_dir, self.fname_sol_z)
         test_fname = find_file(self.test_dir, self.fname_sol_z)
 
         # Get the image data
-        ref_img = read_img(ref_fname)
+        ref_img  = read_img(ref_fname)
         test_img = read_img(test_fname)
 
+        # Precision
+        dp = self.decimal_precision
+
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
-                                                  decimal=self.dec_precision))
+                                                  decimal=dp))
 
     def test_solar_azimuth(self):
         """
@@ -321,15 +345,18 @@ class TestSatSolAngles(ParameterisedTestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname = find_file(self.reference_dir, self.fname_sol_az)
+        ref_fname  = find_file(self.reference_dir, self.fname_sol_az)
         test_fname = find_file(self.test_dir, self.fname_sol_az)
 
         # Get the image data
-        ref_img = read_img(ref_fname)
+        ref_img  = read_img(ref_fname)
         test_img = read_img(test_fname)
 
+        # Precision
+        dp = self.decimal_precision
+
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
-                                                  decimal=self.dec_precision))
+                                                  decimal=dp))
 
     def test_relative_azimuth(self):
         """
@@ -337,15 +364,18 @@ class TestSatSolAngles(ParameterisedTestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname = find_file(self.reference_dir, self.fname_rel_az)
+        ref_fname  = find_file(self.reference_dir, self.fname_rel_az)
         test_fname = find_file(self.test_dir, self.fname_rel_az)
 
         # Get the image data
-        ref_img = read_img(ref_fname)
+        ref_img  = read_img(ref_fname)
         test_img = read_img(test_fname)
 
+        # Precision
+        dp = self.decimal_precision
+
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
-                                                  decimal=self.dec_precision))
+                                                  decimal=dp))
 
     def test_time_array(self):
         """
@@ -353,15 +383,18 @@ class TestSatSolAngles(ParameterisedTestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname = find_file(self.reference_dir, self.fname_time)
+        ref_fname  = find_file(self.reference_dir, self.fname_time)
         test_fname = find_file(self.test_dir, self.fname_time)
 
         # Get the image data
-        ref_img = read_img(ref_fname)
+        ref_img  = read_img(ref_fname)
         test_img = read_img(test_fname)
 
+        # Precision
+        dp = self.decimal_precision
+
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
-                                                  decimal=self.dec_precision))
+                                                  decimal=dp))
 
     def test_centreline_max_view_angle(self):
         """
@@ -369,7 +402,7 @@ class TestSatSolAngles(ParameterisedTestCase):
         This is the first line of the centreline file.
         """
 
-        ref_data = float(self.centreline_ref[0].split())
+        ref_data  = float(self.centreline_ref[0].split())
         test_data = float(self.centreline_test[0].split())
 
         self.assertEqual(ref_data, test_data)
@@ -381,7 +414,7 @@ class TestSatSolAngles(ParameterisedTestCase):
         centreline file.
         """
 
-        ref_rows = int(self.centreline_ref[1].split[0])
+        ref_rows  = int(self.centreline_ref[1].split[0])
         test_rows = int(self.centreline_test[1].split[0])
 
         self.assertEqual(ref_rows, test_rows)
@@ -393,7 +426,7 @@ class TestSatSolAngles(ParameterisedTestCase):
         centreline file.
         """
 
-        ref_cols = int(self.centreline_ref[1].split[1])
+        ref_cols  = int(self.centreline_ref[1].split[1])
         test_cols = int(self.centreline_test[1].split[1])
 
         self.assertEqual(ref_cols, test_cols)
@@ -405,7 +438,7 @@ class TestSatSolAngles(ParameterisedTestCase):
         contain 3 elements.
         """
 
-        ref_data = self.centreline_ref[2:]
+        ref_data  = self.centreline_ref[2:]
         test_data = self.centreline_test[2:]
 
         self.assertEqual(len(ref_data), len(test_data))
@@ -419,12 +452,12 @@ class TestSatSolAngles(ParameterisedTestCase):
         eg ['1742','4624','1.00000']
         """
 
-        ref_data = self.centreline_ref[2:]
+        ref_data  = self.centreline_ref[2:]
         test_data = self.centreline_test[2:]
 
         int_prec = self.integer_precision
 
-        ref_points = numpy.zeros((len(ref_data), 3), dtype='int')
+        ref_points  = numpy.zeros((len(ref_data), 3), dtype='int')
         test_points = numpy.zeros((len(ref_data), 3))
 
         for i in range(len(ref_data)):
@@ -486,24 +519,6 @@ if __name__ == '__main__':
 
         # Change back to the original directory
         os.chdir(cwd)
-
-    #print "Running unittests on the angle grids and the CENTRELINE file."
-    #suite = AnglesOutputsTester(reference_dir=nbar_work_dir, test_dir=outdir,
-    #                            decimal_precision=dec_precision,
-    #                            integer_precision=int_precision)
-
-    # Run each test
-    #suite.test_satellite_view()
-    #suite.test_satellite_azimuth()
-    #suite.test_solar_zenith()
-    #suite.test_solar_azimuth()
-    #suite.test_relative_azimuth()
-    ##suite.test_time_array() #Currently no time array output from Fuqins code
-    #suite.test_centreline_max_view_angle()
-    #suite.test_centreline_rows()
-    #suite.test_centreline_columns()
-    #suite.test_number_centreline_points()
-    #suite.test_centreline_points()
 
     print "Checking that we have all the reference and test data files neccessary."
     suite = unittest.TestSuite()

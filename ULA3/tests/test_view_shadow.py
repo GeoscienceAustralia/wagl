@@ -53,27 +53,25 @@ class TestViewShadowFileNames(ParameterisedTestCase):
     shadow_v.img
     """
 
-    def __init__(self):
-        """
-        """
-
-        self.fname_view_shadow = 'shadow_v.img'
+    ParameterisedTestCase.fname_view_shadow = 'shadow_v.img'
 
     def test_view_shadow_ref(self):
         """
         Check that the view shadow reference file exists.
         """
+
         fname = os.path.join(self.reference_dir, self.fname_view_shadow)
         self.assertIs(os.path.exists(fname), True,
-                      '_reference file does not exist: %s'%fname)
+                      'Reference file does not exist: %s'%fname)
 
     def test_view_shadow_tst(self):
         """
         Check that the view shadow test file exists.
         """
+
         fname = os.path.join(self.test_dir, self.fname_view_shadow)
         self.assertIs(os.path.exists(fname), True,
-                      '_reference file does not exist: %s'%fname)
+                      'Test file does not exist: %s'%fname)
 
 
 class TestViewShadowOutputs(ParameterisedTestCase):
@@ -82,10 +80,7 @@ class TestViewShadowOutputs(ParameterisedTestCase):
     shadow_v.img
     """
 
-    def __init__(self):
-        """
-        """
-        self.fname_view_shadow = 'shadow_v.img'
+    ParameterisedTestCase.fname_view_shadow = 'shadow_v.img'
 
     def test_view_shadow(self):
         """
@@ -93,15 +88,18 @@ class TestViewShadowOutputs(ParameterisedTestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname = find_file(self.reference_dir, self.fname_view_shadow)
+        ref_fname  = find_file(self.reference_dir, self.fname_view_shadow)
         test_fname = find_file(self.test_dir, self.fname_view_shadow)
 
         # Get the image data
-        ref_img = read_img(ref_fname)
+        ref_img  = read_img(ref_fname)
         test_img = read_img(test_fname)
 
+        # Precision
+        dp = self.dec_precision
+
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
-                                                  decimal=self.dec_precision))
+                                                  decimal=dp))
 
 
 if __name__ == '__main__':

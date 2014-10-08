@@ -52,27 +52,26 @@ class TestSelfShadowFileNames(ParameterisedTestCase):
     shadow_s.img
     """
 
-    def __init__(self):
-        """
-        """
-
-        self.fname_self_shadow = 'shadow_s.img'
+    # File of interest
+    ParameterisedTestCase.fname_self_shadow = 'shadow_s.img'
 
     def test_self_shadow_ref(self):
         """
         Check that the self shadow reference file exists.
         """
+
         fname = os.path.join(self.reference_dir, self.fname_self_shadow)
         self.assertIs(os.path.exists(fname), True,
-                      '_reference file does not exist: %s'%fname)
+                      'Reference file does not exist: %s'%fname)
 
     def test_self_shadow_tst(self):
         """
         Check that the self shadow test file exists.
         """
+
         fname = os.path.join(self.test_dir, self.fname_self_shadow)
         self.assertIs(os.path.exists(fname), True,
-                      '_reference file does not exist: %s'%fname)
+                      'Test file does not exist: %s'%fname)
 
 
 class TestSelfShadowOutputs(ParameterisedTestCase):
@@ -81,11 +80,8 @@ class TestSelfShadowOutputs(ParameterisedTestCase):
     shadow_s.img
     """
 
-    def __init__(self):
-        """
-        """
-
-        self.fname_self_shadow = 'shadow_s.img'
+    # File of interest
+    ParameterisedTestCase.fname_self_shadow = 'shadow_s.img'
 
     def test_self_shadow(self):
         """
@@ -93,15 +89,18 @@ class TestSelfShadowOutputs(ParameterisedTestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname = find_file(self.reference_dir, self.fname_self_shadow)
+        ref_fname  = find_file(self.reference_dir, self.fname_self_shadow)
         test_fname = find_file(self.test_dir, self.fname_self_shadow)
 
         # Get the image data
-        ref_img = read_img(ref_fname)
+        ref_img  = read_img(ref_fname)
         test_img = read_img(test_fname)
 
+        # Precision
+        dp = self.dec_precision
+
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
-                                                  decimal=self.dec_precision))
+                                                  decimal=dp))
 
 
 if __name__ == '__main__':

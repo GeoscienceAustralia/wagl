@@ -16,28 +16,40 @@ from unittesting_tools import read_img
 
 def calculate_slope_angles(scene_dataset, ref_dir, outdir, pixel_buffer=250):
     """
-    
+    Calculates all the slope angles.
+    Output files produced from the calculations are:
+    mask_self.img
+    slope.img
+    aspect.img
+    incident.img
+    exiting.img
+    azi_incident.img
+    azi_exiting.img
+    rela_slope.img
     """
 
     # Define the pixel buffering object
     pixel_buf = Buffers(pixel_buffer)
 
     # Check and load the required files from disk
-    fname_sat_v = 'SAT_V.bin'
+    fname_sat_v  = 'SAT_V.bin'
     fname_sat_az = 'SAT_AZ.bin'
-    fname_sol_z = 'SOL_Z.bin'
+    fname_sol_z  = 'SOL_Z.bin'
     fname_sol_az = 'SOL_AZ.bin'
-    fname_dsm = 'region_dsm_image_smoothed.img'
+    fname_dsm    = 'region_dsm_image_smoothed.img'
 
-    view_angle = read_img(find_file(ref_dir, fname_sat_v))
-    azi_angle = read_img(find_file(ref_dir, fname_sat_az))
+    # Read the reference images
+    view_angle  = read_img(find_file(ref_dir, fname_sat_v))
+    azi_angle   = read_img(find_file(ref_dir, fname_sat_az))
     solar_angle = read_img(find_file(ref_dir, fname_sol_z))
-    sazi_angle = read_img(find_file(ref_dir, fname_sol_az))
-    dsm_data = read_img(find_file(ref_dir, fname_dsm))
+    sazi_angle  = read_img(find_file(ref_dir, fname_sol_az))
+    dsm_data    = read_img(find_file(ref_dir, fname_dsm))
 
+    # Are we looking at a UTM product?
     is_utm =  not scene_dataset.IsGeographic()
 
-    slope_results = run_slope(scene_dataset, dsm_data, solar_angle, view_angle, sazi_angle, azi_angle, pixel_buf, is_utm)
+    slope_results = run_slope(scene_dataset, dsm_data, solar_angle, view_angle,
+                              sazi_angle, azi_angle, pixel_buf, is_utm)
 
     slope_results.dump_arrays(outdir, scene_dataset, "ENVI", ".img")
 
@@ -55,32 +67,30 @@ class TestSlopeFilenames(ParameterisedTestCase):
     rela_slope.img
     """
 
-    def __init__(self):
-        """
-        
-        """
-
-        self.fname_mask_self     = 'mask_self.img'
-        self.fname_slope         = 'slope.img'
-        self.fname_aspect        = 'aspect.img'
-        self.fname_incident      = 'incident.img'
-        self.fname_exiting       = 'exiting.img'
-        self.fname_azi_indcident = 'azi_incident.img'
-        self.fname_azi_exiting   = 'azi_exiting.img'
-        self.fname_rela_slope    = 'rela_slope.img'
+    # Files of interest
+    ParameterisedTestCase.fname_mask_self     = 'mask_self.img'
+    ParameterisedTestCase.fname_slope         = 'slope.img'
+    ParameterisedTestCase.fname_aspect        = 'aspect.img'
+    ParameterisedTestCase.fname_incident      = 'incident.img'
+    ParameterisedTestCase.fname_exiting       = 'exiting.img'
+    ParameterisedTestCase.fname_azi_indcident = 'azi_incident.img'
+    ParameterisedTestCase.fname_azi_exiting   = 'azi_exiting.img'
+    ParameterisedTestCase.fname_rela_slope    = 'rela_slope.img'
 
     def test_mask_self_ref(self):
         """
         Check that the mask self reference file exists.
         """
+
         fname = os.path.join(self.reference_dir, self.fname_mask_self)
         self.assertIs(os.path.exists(fname), True,
-                      '_reference file does not exist: %s'%fname)
+                      'Reference file does not exist: %s'%fname)
 
     def test_mask_self_tst(self):
         """
         Check that the mask self test file exists.
         """
+
         fname = os.path.join(self.test_dir, self.fname_mask_self)
         self.assertIs(os.path.exists(fname), True,
                       'Test file does not exist: %s'%fname)
@@ -89,14 +99,16 @@ class TestSlopeFilenames(ParameterisedTestCase):
         """
         Check that the slope reference file exists.
         """
+
         fname = os.path.join(self.reference_dir, self.fname_slope)
         self.assertIs(os.path.exists(fname), True,
-                      '_reference file does not exist: %s'%fname)
+                      'Reference file does not exist: %s'%fname)
 
     def test_slope_tst(self):
         """
         Check that the slope test file exists.
         """
+
         fname = os.path.join(self.test_dir, self.fname_slope)
         self.assertIs(os.path.exists(fname), True,
                       'Test file does not exist: %s'%fname)
@@ -105,14 +117,16 @@ class TestSlopeFilenames(ParameterisedTestCase):
         """
         Check that the aspect reference file exists.
         """
+
         fname = os.path.join(self.reference_dir, self.fname_aspect)
         self.assertIs(os.path.exists(fname), True,
-                      '_reference file does not exist: %s'%fname)
+                      'Reference file does not exist: %s'%fname)
 
     def test_aspect_tst(self):
         """
         Check that the aspect test file exists.
         """
+
         fname = os.path.join(self.test_dir, self.fname_aspect)
         self.assertIs(os.path.exists(fname), True,
                       'Test file does not exist: %s'%fname)
@@ -121,14 +135,16 @@ class TestSlopeFilenames(ParameterisedTestCase):
         """
         Check that the incident reference file exists.
         """
+
         fname = os.path.join(self.reference_dir, self.fname_incident)
         self.assertIs(os.path.exists(fname), True,
-                      '_reference file does not exist: %s'%fname)
+                      'Reference file does not exist: %s'%fname)
 
     def test_incident_tst(self):
         """
         Check that the mask self test file exists.
         """
+
         fname = os.path.join(self.test_dir, self.fname_incident)
         self.assertIs(os.path.exists(fname), True,
                       'Test file does not exist: %s'%fname)
@@ -137,14 +153,16 @@ class TestSlopeFilenames(ParameterisedTestCase):
         """
         Check that the exiting reference file exists.
         """
+
         fname = os.path.join(self.reference_dir, self.fname_exiting)
         self.assertIs(os.path.exists(fname), True,
-                      '_reference file does not exist: %s'%fname)
+                      'Reference file does not exist: %s'%fname)
 
     def test_exiting_tst(self):
         """
         Check that the exiting self test file exists.
         """
+
         fname = os.path.join(self.test_dir, self.fname_exiting)
         self.assertIs(os.path.exists(fname), True,
                       'Test file does not exist: %s'%fname)
@@ -153,14 +171,16 @@ class TestSlopeFilenames(ParameterisedTestCase):
         """
         Check that the azimuth incident reference file exists.
         """
+
         fname = os.path.join(self.reference_dir, self.fname_azi_incident)
         self.assertIs(os.path.exists(fname), True,
-                      '_reference file does not exist: %s'%fname)
+                      'Reference file does not exist: %s'%fname)
 
     def test_azi_incident_tst(self):
         """
         Check that the azimuth incident test file exists.
         """
+
         fname = os.path.join(self.test_dir, self.fname_azi_incident)
         self.assertIs(os.path.exists(fname), True,
                       'Test file does not exist: %s'%fname)
@@ -169,14 +189,16 @@ class TestSlopeFilenames(ParameterisedTestCase):
         """
         Check that the azimuth exiting reference file exists.
         """
+
         fname = os.path.join(self.reference_dir, self.fname_azi_exiting)
         self.assertIs(os.path.exists(fname), True,
-                      '_reference file does not exist: %s'%fname)
+                      'Reference file does not exist: %s'%fname)
 
     def test_azi_exiting_tst(self):
         """
         Check that the azimuth exiting test file exists.
         """
+
         fname = os.path.join(self.test_dir, self.fname_azi_exiting)
         self.assertIs(os.path.exists(fname), True,
                       'Test file does not exist: %s'%fname)
@@ -185,14 +207,16 @@ class TestSlopeFilenames(ParameterisedTestCase):
         """
         Check that the relative slope reference file exists.
         """
+
         fname = os.path.join(self.reference_dir, self.fname_rela_slope)
         self.assertIs(os.path.exists(fname), True,
-                      '_reference file does not exist: %s'%fname)
+                      'Reference file does not exist: %s'%fname)
 
     def test_rela_slope_tst(self):
         """
         Check that the relative slope test file exists.
         """
+
         fname = os.path.join(self.test_dir, self.fname_rela_slope)
         self.assertIs(os.path.exists(fname), True,
                       'Test file does not exist: %s'%fname)
@@ -211,18 +235,14 @@ class TestSlopeAngles(ParameterisedTestCase):
     rela_slope.img
     """
 
-    def __init__(self):
-        """
-        
-        """
-        self.fname_mask_self     = 'mask_self.img'
-        self.fname_slope         = 'slope.img'
-        self.fname_aspect        = 'aspect.img'
-        self.fname_incident      = 'incident.img'
-        self.fname_exiting       = 'exiting.img'
-        self.fname_azi_indcident = 'azi_incident.img'
-        self.fname_azi_exiting   = 'azi_exiting.img'
-        self.fname_rela_slope    = 'rela_slope.img'
+    ParameterisedTestCase.fname_mask_self     = 'mask_self.img'
+    ParameterisedTestCase.fname_slope         = 'slope.img'
+    ParameterisedTestCase.fname_aspect        = 'aspect.img'
+    ParameterisedTestCase.fname_incident      = 'incident.img'
+    ParameterisedTestCase.fname_exiting       = 'exiting.img'
+    ParameterisedTestCase.fname_azi_indcident = 'azi_incident.img'
+    ParameterisedTestCase.fname_azi_exiting   = 'azi_exiting.img'
+    ParameterisedTestCase.fname_rela_slope    = 'rela_slope.img'
 
     def test_mask_self(self):
         """
@@ -230,15 +250,18 @@ class TestSlopeAngles(ParameterisedTestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname = find_file(self.reference_dir, self.fname_mask_self)
+        ref_fname  = find_file(self.reference_dir, self.fname_mask_self)
         test_fname = find_file(self.test_dir, self.fname_mask_self)
 
         # Get the image data
-        ref_img = read_img(ref_fname)
+        ref_img  = read_img(ref_fname)
         test_img = read_img(test_fname)
 
+        # Precision
+        dp = self.dec_precision
+
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
-                                                  decimal=self.dec_precision))
+                                                  decimal=dp))
 
     def test_slope(self):
         """
@@ -246,15 +269,18 @@ class TestSlopeAngles(ParameterisedTestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname = find_file(self.reference_dir, self.fname_slope)
+        ref_fname  = find_file(self.reference_dir, self.fname_slope)
         test_fname = find_file(self.test_dir, self.fname_slope)
 
         # Get the image data
-        ref_img = read_img(ref_fname)
+        ref_img  = read_img(ref_fname)
         test_img = read_img(test_fname)
 
+        # Precision
+        dp = self.dec_precision
+
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
-                                                  decimal=self.dec_precision))
+                                                  decimal=dp))
 
     def test_aspect(self):
         """
@@ -262,15 +288,18 @@ class TestSlopeAngles(ParameterisedTestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname = find_file(self.reference_dir, self.fname_aspect)
+        ref_fname  = find_file(self.reference_dir, self.fname_aspect)
         test_fname = find_file(self.test_dir, self.fname_aspect)
 
         # Get the image data
-        ref_img = read_img(ref_fname)
+        ref_img  = read_img(ref_fname)
         test_img = read_img(test_fname)
 
+        # Precision
+        dp = self.dec_precision
+
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
-                                                  decimal=self.dec_precision))
+                                                  decimal=dp))
 
     def test_incident(self):
         """
@@ -278,15 +307,18 @@ class TestSlopeAngles(ParameterisedTestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname = find_file(self.reference_dir, self.fname_incident)
+        ref_fname  = find_file(self.reference_dir, self.fname_incident)
         test_fname = find_file(self.test_dir, self.fname_incident)
 
         # Get the image data
-        ref_img = read_img(ref_fname)
+        ref_img  = read_img(ref_fname)
         test_img = read_img(test_fname)
 
+        # Precision
+        dp = self.dec_precision
+
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
-                                                  decimal=self.dec_precision))
+                                                  decimal=dp))
 
     def test_exiting(self):
         """
@@ -294,15 +326,18 @@ class TestSlopeAngles(ParameterisedTestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname = find_file(self.reference_dir, self.fname_exiting)
+        ref_fname  = find_file(self.reference_dir, self.fname_exiting)
         test_fname = find_file(self.test_dir, self.fname_exiting)
 
         # Get the image data
-        ref_img = read_img(ref_fname)
+        ref_img  = read_img(ref_fname)
         test_img = read_img(test_fname)
 
+        # Precision
+        dp = self.dec_precision
+
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
-                                                  decimal=self.dec_precision))
+                                                  decimal=dp))
 
     def test_azimuth_indcident(self):
         """
@@ -317,8 +352,11 @@ class TestSlopeAngles(ParameterisedTestCase):
         ref_img = read_img(ref_fname)
         test_img = read_img(test_fname)
 
+        # Precision
+        dp = self.dec_precision
+
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
-                                                  decimal=self.dec_precision))
+                                                  decimal=dp))
 
     def test_azimuth_exiting(self):
         """
@@ -326,15 +364,18 @@ class TestSlopeAngles(ParameterisedTestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname = find_file(self.reference_dir, self.fname_azi_exiting)
+        ref_fname  = find_file(self.reference_dir, self.fname_azi_exiting)
         test_fname = find_file(self.test_dir, self.fname_azi_exiting)
 
         # Get the image data
-        ref_img = read_img(ref_fname)
+        ref_img  = read_img(ref_fname)
         test_img = read_img(test_fname)
 
+        # Precision
+        dp = self.dec_precision
+
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
-                                                  decimal=self.dec_precision))
+                                                  decimal=dp))
 
     def test_relative_slope(self):
         """
@@ -342,15 +383,18 @@ class TestSlopeAngles(ParameterisedTestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname = find_file(self.reference_dir, self.fname_rela_slope)
+        ref_fname  = find_file(self.reference_dir, self.fname_rela_slope)
         test_fname = find_file(self.test_dir, self.fname_rela_slope)
 
         # Get the image data
-        ref_img = read_img(ref_fname)
+        ref_img  = read_img(ref_fname)
         test_img = read_img(test_fname)
 
+        # Precision
+        dp = self.dec_precision
+
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
-                                                  decimal=self.dec_precision))
+                                                  decimal=dp))
 
 
 if __name__ == '__main__':
