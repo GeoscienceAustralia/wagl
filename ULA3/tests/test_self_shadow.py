@@ -163,7 +163,7 @@ if __name__ == '__main__':
     suite.addTest(ParameterisedTestCase.parameterise(TestSelfShadowFileNames,
                   reference_dir=nbar_work_dir, test_dir=outdir,
                   decimal_precision=dec_precision,
-                  integer_precision=int_precision)
+                  integer_precision=int_precision))
     unittest.TextTestRunner(verbosity=2).run(suite)
 
     print "Comparing the reference and test view shadow output files."
@@ -171,6 +171,6 @@ if __name__ == '__main__':
     suite.addTest(ParameterisedTestCase.parameterise(TestSelfShadowOutputs,
                   reference_dir=nbar_work_dir, test_dir=outdir,
                   decimal_precision=dec_precision,
-                  integer_precision=int_precision)
+                  integer_precision=int_precision))
     unittest.TextTestRunner(verbosity=2).run(suite)
 
