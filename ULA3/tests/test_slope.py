@@ -2,20 +2,16 @@
 
 import argparse
 import os
-import sys
+import unittest
 
-import numpy
 import numpy.testing as npt
-from osgeo import gdal
-from osgeo import osr
 
 from EOtools.DatasetDrivers import SceneDataset
-from ULA3._gdal_tools.py import Buffers
+from ULA3._gdal_tools import Buffers
 from ULA3.tc import run_slope
 from unittesting_tools import find_file
 from unittesting_tools import ParameterisedTestCase
 from unittesting_tools import read_img
-from unittesting_tools import write_img
 
 
 def calculate_slope_angles(scene_dataset, ref_dir, outdir, pixel_buffer=250):
@@ -43,7 +39,7 @@ def calculate_slope_angles(scene_dataset, ref_dir, outdir, pixel_buffer=250):
 
     slope_results = run_slope(scene_dataset, dsm_data, solar_angle, view_angle, sazi_angle, azi_angle, pixel_buf, is_utm)
 
-    slope_results.dump_arrays(dump_path, scene_dataset, "ENVI", ".img")
+    slope_results.dump_arrays(outdir, scene_dataset, "ENVI", ".img")
 
 
 class TestSlopeFilenames(ParameterisedTestCase):

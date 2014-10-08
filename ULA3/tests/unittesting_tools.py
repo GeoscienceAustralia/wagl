@@ -4,7 +4,6 @@ import os
 import sys
 import unittest
 
-import numpy
 from osgeo import gdal
 
 class ParameterisedTestCase(unittest.TestCase):
@@ -111,11 +110,11 @@ def write_img(array, name='', format='ENVI', projection=None, geotransform=None)
     drv = gdal.GetDriverByName(format)
     outds = drv.Create(name, samples, lines, bands, dtype)
 
-    if prj:
-        outds.SetProjection(prj)
+    if projection:
+        outds.SetProjection(projection)
 
-    if geot:
-        outds.SetGeoTransform(geot)
+    if geotransform:
+        outds.SetGeoTransform(geotransform)
 
     if bands > 1:
         for i in range(bands):

@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 import argparse
+import os
 from os.path import join
 from os.path import dirname
-from pprint import pprint
-import unittest as ut
+import unittest
 
 import numpy as np
 import numpy.testing as npt
@@ -27,7 +27,7 @@ Hopefully, in the near future, we will have a test harness that can be more port
 possible elsewhere.
 """
 
-class FilterTestCase(ut.TestCase):
+class FilterTestCase(unittest.TestCase):
     """
     Test case for running Fuquin's filter.
     """
@@ -72,8 +72,8 @@ class FilterTestCase(ut.TestCase):
 
 
 
-def suite():
-    return ut.TestSuite((FilterTestCase(),))
+def suite_old():
+    return unittest.TestSuite((FilterTestCase(),))
 
 
 def calculate_smoothed_dsm(scene_dataset, ref_dir, outdir):
@@ -136,7 +136,7 @@ class TestFilterOutputs(ParameterisedTestCase):
         """
         """
 
-    self.fname_smoothed_dsm = 'region_dsm_image_smoothed.img'
+        self.fname_smoothed_dsm = 'region_dsm_image_smoothed.img'
 
     def test_smoothed_dsm(self):
         """

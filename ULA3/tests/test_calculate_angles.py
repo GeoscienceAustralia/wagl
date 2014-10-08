@@ -1,21 +1,13 @@
 #!/usr/bin/env python
 
 import argparse
-import gc
 import os
-import sys
 import unittest
 
-import ephem
-from osgeo import gdal
-from osgeo import osr
 import numpy
 import numpy.testing as npt
 
-from angle_all import angle
 from EOtools.DatasetDrivers import SceneDataset
-from set_satmod import set_satmod
-from set_times import set_times
 from ULA3.geodesic import calculate_angles as ca
 
 from unittesting_tools import find_file
@@ -77,9 +69,6 @@ def compute_angles(scene_dataset, lon_array, lat_array, npoints=12):
 
     print "Writing time array: %s" %time_fname
     write_img(time, time_fname, projection=prj, geotransform=geoT)
-
-    del view, azi, asol, soazi, rela_angle, time
-    gc.collect()
 
     print "Writing out the centreline file"
     # Write the centreline to disk

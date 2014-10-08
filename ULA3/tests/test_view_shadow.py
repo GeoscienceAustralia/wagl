@@ -2,15 +2,12 @@
 
 import argparse
 import os
-import sys
+import unittest
 
-import numpy
 import numpy.testing as npt
-from osgeo import gdal
-from osgeo import osr
 
 from EOtools.DatasetDrivers import SceneDataset
-from ULA3._gdal_tools.py import Buffers
+from ULA3._gdal_tools import Buffers
 from ULA3.tc import run_castshadow
 from unittesting_tools import find_file
 from unittesting_tools import ParameterisedTestCase
