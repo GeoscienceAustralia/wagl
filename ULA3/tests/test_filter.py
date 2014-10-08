@@ -13,7 +13,7 @@ from osgeo import gdalconst
 
 from EOtools.DatasetDrivers import SceneDataset
 from ULA3.filtering import filter_float as filter
-from ULA3.filtering import read_array
+from ULA3.filtering import read_array_float32 as read_array
 from unittesting_tools import find_file
 from unittesting_tools import ParameterisedTestCase
 from unittesting_tools import read_img
@@ -148,7 +148,7 @@ class TestFilterOutputs(ParameterisedTestCase):
         test_img = read_img(test_fname)
 
         # Precision
-        dp = self.dec_precision
+        dp = self.decimal_precision
 
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
                                                   decimal=dp))

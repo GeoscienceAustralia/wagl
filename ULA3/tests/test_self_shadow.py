@@ -97,7 +97,7 @@ class TestSelfShadowOutputs(ParameterisedTestCase):
         test_img = read_img(test_fname)
 
         # Precision
-        dp = self.dec_precision
+        dp = self.decimal_precision
 
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
                                                   decimal=dp))
