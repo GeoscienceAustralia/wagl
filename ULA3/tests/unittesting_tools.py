@@ -2,7 +2,7 @@
 
 import os
 import sys
-import unittests
+import unittest
 
 import numpy
 from osgeo import gdal
