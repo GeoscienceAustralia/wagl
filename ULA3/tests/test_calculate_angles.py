@@ -258,7 +258,6 @@ class TestSatSolAngles(ParameterisedTestCase):
     # Read and store the centreline data in memory
     ParameterisedTestCase.centreline_ref = None
     ParameterisedTestCase.centreline_test = None
-    ParameterisedTestCase._read_centreline_files()
 
     def _read_centreline_files(self):
         """
@@ -402,8 +401,12 @@ class TestSatSolAngles(ParameterisedTestCase):
         This is the first line of the centreline file.
         """
 
-        ref_data  = float(self.centreline_ref[0].split())
-        test_data = float(self.centreline_test[0].split())
+        # Read the CENTRELINE file if needed
+        if self.centreline_ref is None:
+            self._read_centreline_files()
+
+        ref_data  = float(self.centreline_ref[0].split(',')[0])
+        test_data = float(self.centreline_test[0].split(',')[0])
 
         self.assertEqual(ref_data, test_data)
 
@@ -414,8 +417,12 @@ class TestSatSolAngles(ParameterisedTestCase):
         centreline file.
         """
 
-        ref_rows  = int(self.centreline_ref[1].split[0])
-        test_rows = int(self.centreline_test[1].split[0])
+        # Read the CENTRELINE file if needed
+        if self.centreline_ref is None:
+            self._read_centreline_files()
+
+        ref_rows  = int(self.centreline_ref[1].split(',')[0])
+        test_rows = int(self.centreline_test[1].split(',')[0])
 
         self.assertEqual(ref_rows, test_rows)
 
@@ -426,8 +433,12 @@ class TestSatSolAngles(ParameterisedTestCase):
         centreline file.
         """
 
-        ref_cols  = int(self.centreline_ref[1].split[1])
-        test_cols = int(self.centreline_test[1].split[1])
+        # Read the CENTRELINE file if needed
+        if self.centreline_ref is None:
+            self._read_centreline_files()
+
+        ref_cols  = int(self.centreline_ref[1].split(',')[1])
+        test_cols = int(self.centreline_test[1].split(',')[1])
 
         self.assertEqual(ref_cols, test_cols)
 
@@ -437,6 +448,10 @@ class TestSatSolAngles(ParameterisedTestCase):
         These start at the third line of the centreline file and
         contain 3 elements.
         """
+
+        # Read the CENTRELINE file if needed
+        if self.centreline_ref is None:
+            self._read_centreline_files()
 
         ref_data  = self.centreline_ref[2:]
         test_data = self.centreline_test[2:]
@@ -452,6 +467,10 @@ class TestSatSolAngles(ParameterisedTestCase):
         eg ['1742','4624','1.00000']
         """
 
+        # Read the CENTRELINE file if needed
+        if self.centreline_ref is None:
+            self._read_centreline_files()
+
         ref_data  = self.centreline_ref[2:]
         test_data = self.centreline_test[2:]
 
@@ -461,8 +480,8 @@ class TestSatSolAngles(ParameterisedTestCase):
         test_points = numpy.zeros((len(ref_data), 3))
 
         for i in range(len(ref_data)):
-            rx, ry, rz = ref_data[i].split()
-            tx, ty, tz = test_data[i].split()
+            rx, ry, rz = ref_data[i].split(',')
+            tx, ty, tz = test_data[i].split(',')
             ref_points[i,0], ref_points[i,1], ref_points[i,2] = rx, ry, float(rz)
             test_points[i,0], test_points[i,1], test_points[i,2] = tx, ty, float(tz)
 
