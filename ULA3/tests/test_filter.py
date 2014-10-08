@@ -133,8 +133,8 @@ class TestFilterOutputs(ParameterisedTestCase):
     """
 
     def __init__(self):
-    """
-    """
+        """
+        """
 
     self.fname_smoothed_dsm = 'region_dsm_image_smoothed.img'
 
