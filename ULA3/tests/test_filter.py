@@ -84,7 +84,7 @@ def calculate_smoothed_dsm(scene_dataset, ref_dir, outdir):
     # Check and load the required files from disk
     fname_dsm = 'region_dsm_image.img'
 
-    dsm = (read_img(find_file(ref_dir, fname_sat_v))).astype('float32')
+    dsm = (read_img(find_file(ref_dir, fname_dsm))).astype('float32')
 
     smoothed_dsm = filter(dsm)
 
@@ -124,6 +124,7 @@ class TestFilterFileNames(ParameterisedTestCase):
         fname = os.path.join(self.test_dir, self.fname_smoothed_dsm)
         self.assertIs(os.path.exists(fname), True,
                       '_reference file does not exist: %s'%fname)
+
 
 class TestFilterOutputs(ParameterisedTestCase):
     """
