@@ -6,9 +6,9 @@
 #PBS -me
 ##PBS -M 
 
-module load python/2.7.3
+module load python/2.7.6
 module use /projects/u46/opt/modules/modulefiles --append
-module load luigi
+module load luigi-mpi
 module load image_processor
 module load EOtools
 
@@ -17,6 +17,9 @@ rm -r ${OUTPUT_ROOT}
 mkdir -p ${OUTPUT_ROOT}/work
 mkdir -p ${OUTPUT_ROOT}/output
 
+
+# override the image_processor so we get out code
+export PYTHONPATH=/home/547/smr547/ga-neo-landsat-processor:$PYTHONPATH
 
 python ./fc.py FractionalCoverTask --local-scheduler \
 --nbar-path /g/data1/rs0/scenes/ARG25_V0.0/2009-01/LS5_TM_NBAR_P54_GANBAR01-002_092_086_20090115 \

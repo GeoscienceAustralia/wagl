@@ -1,6 +1,5 @@
 import os, errno, sys, numpy, numexpr
 import unmiximage, endmembers
-import logging
 
 """
 Utility functions used in fractional cover. These should not be used outside of this package as they
@@ -238,13 +237,10 @@ def unmix(landsatReflectance):
         inNullValDN = 0.0001
         outUnmixNullVal = 0
 
-        logging.info("Calling unmiximage() for tile")
-
         fractions[:,ystart:yend,xstart:xend] = unmiximage.unmiximage(weightedSpectra, endmembers_array, inNullValDN, outUnmixNullVal) # The fortan method
 
     # 2013v gives green, dead1, dead2 and bare fractions
     # the last band should be the unmixing error
-    logging.info("returning fractions")
     return fractions
 
 
