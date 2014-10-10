@@ -10,6 +10,8 @@ from ULA3.utils import Buffers, dump_array, load_bin_file, as_array
 from ULA3.dataset import SceneDataset
 from ULA3.image_processor import ProcessorConfig
 
+from ULA3.tests import unittesting_tools as ut
+
 logger = logging.getLogger('root.' + __name__)
 
 
@@ -80,6 +82,10 @@ def process(subprocess_list=[], resume=False):
     dsm_data = filter_dsm(clip_dsm(l1t_input_dataset, national_dsm_path, output_dsm_path, pixel_buf, output_format))
     pref = ''
 
+    output_smDSM_path = os.path.join(work_path, 'region_dsm_image_smoothed' + output_extension)
+    # NOTE!!! write_tif_file() doesn't necessarily write tif files
+    write_tif_file(l1t_input_dataset, dsm_data, output_dsm_path, file_type=output_format)
+
     if CONFIG.debug:
         # the location to dump the data.
         dump_path = os.path.join(work_path, 'important_intermediates')
@@ -96,13 +102,24 @@ def process(subprocess_list=[], resume=False):
         l1_shape.write_header_slope_file(os.path.join(dump_path, 'SLOPE_ANGLE_INPUTS'), pixel_buf)
 
     # solar angle data (these are set in ULA3.image_processor.utils.calc_solar_grids).
-    solar_angle = as_array(DATA.get_item('SOL_Z_DEG.bin', DataGrid).array, dtype=numpy.float32)
-    sazi_angle = as_array(DATA.get_item('SOL_AZ_DEG.bin', DataGrid).array, dtype=numpy.float32)
+    #solar_angle = as_array(DATA.get_item('SOL_Z_DEG.bin', DataGrid).array, dtype=numpy.float32)
+    #sazi_angle = as_array(DATA.get_item('SOL_AZ_DEG.bin', DataGrid).array, dtype=numpy.float32)
+    fname = ut.find_file(work_path, 'SOL_Z.bin')
+    solar_angle = ut.read_img(fname)
+    fname = ut.find_file(work_path, 'SOL_AZ.bin')
+    sazi_angle = ut.read_img(fname)
+    
 
     # satellite angle data (these are set in ULA3.image_processor.utils.calc_satellite_grids)
-    view_angle = as_array(DATA.get_item('SAT_V_DEG.bin', DataGrid).array, dtype=numpy.float32)
-    azi_angle = as_array(DATA.get_item('SAT_AZ_DEG.bin', DataGrid).array, dtype=numpy.float32)
-    rela_angle = as_array(DATA.get_item('REL_AZ_DEG.bin', DataGrid).array, dtype=numpy.float32)
+    #view_angle = as_array(DATA.get_item('SAT_V_DEG.bin', DataGrid).array, dtype=numpy.float32)
+    #azi_angle = as_array(DATA.get_item('SAT_AZ_DEG.bin', DataGrid).array, dtype=numpy.float32)
+    #rela_angle = as_array(DATA.get_item('REL_AZ_DEG.bin', DataGrid).array, dtype=numpy.float32)
+    fname = ut.find_file(work_path, 'SAT_V.bin')
+    view_angle = ut.read_img(fname)
+    fname = ut.find_file(work_path, 'SAT_AZ.bin')
+    azi_angle = ut.read_img(fname)
+    fname = ut.find_file(work_path, 'REL_AZ.bin')
+    rela_angle = ut.read_img(fname)
 
     if dump_path:
         write_tif_file(l1t_input_dataset, solar_angle, os.path.join(dump_path, 'solar_angle.img'), file_type = 'ENVI')
