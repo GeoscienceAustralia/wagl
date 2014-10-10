@@ -19,6 +19,10 @@ from ULA3.metadata import Metadata, XMLMetadata, ReportMetadata
 from ULA3.geodesic import Satellite, eval_centre_data, eval_sat_grids
 from ULA3.solar import eval_sol_grids
 
+# Imports for newer angle calculations method
+from ULA3.geodesic import calculate_angles as ca
+from ULA3.tests import unittesting_tools as ut
+
 logger = logging.getLogger('root.' + __name__)
 
 @print_call(logger.info)
@@ -229,3 +233,135 @@ def calc_solar_grids(DATA, CONFIG):
     #DATA.free_item('SAT_AZ_RAD.bin', DataGrid) // this is now used in terrain correction.
     DATA.free_item('centre_data.dat', dict)
     DATA.free_item('satellite.dat', Satellite)
+
+
+@print_call(logger.info)
+def create_centreline_file(y, x, n, cols, view_max, outdir, outfname='CENTRELINE'):
+    """
+    :param y:
+        A 1D NumPy array of type int with the same shape as x & n.
+        Details the row number starting at 1.
+
+    :param x:
+        A 1D NumPy array of type int with the same shape as y & n.
+        Details the column number starting at 0.
+
+    :param n:
+        A 1D NumPy array of type int with the same shaoe as y & x.
+        Details whether or not the track point coordinate is
+        averaged.
+
+    :param cols:
+        An integer indicating the number of columns in the original
+        array.
+
+    :param view_max:
+        An float indicating the maximum view angle of the satellite
+        used for determining the centreline.
+
+    :param outdir:
+        A string containing the output directory.
+
+    :param outfname:
+        A string containing the output filename.
+        Default is CENTRELINE.
+    """
+
+    rows = y.shape[0]
+
+    # I'm not sure of the formatting used by FORTRAN, nothing was specified
+    # but the outputs had spaces.
+    # It might be more ideal to created it as a csv???
+    fname = os.path.join(outdir, outfname)
+    outf  = open(fname, 'w')
+    
+    outf.write('%f\n' %view_max)
+    outf.write('%i      %i\n' %(rows, cols))
+
+    for r in range(rows):
+        outf.write('%i      %i       %f     %f     %f\n'%(y[r], x[r], n[r], n[r], n[r]))    
+
+    outf.close()
+
+
+@print_call(logger.info)
+def calc_sat_sol_angle_grids(DATA, CONFIG):
+    """
+    Generate the satellite and solar grids.
+    """
+
+    # Track our working directory so we can save files
+    work_dir = CONFIG.work_path
+
+    # Find and open the longitude and lattitude files
+    # Avoiding DataManger here. find_file will be used sparingly until a proper
+    # workflow is written.
+    # NOTE: find_file() will call sys.exit(2) if the file isn't found
+    lon_fname = ut.find_file(work_dir, 'LON.tif')
+    lat_fname = ut.find_file(work_dir, 'LAT.tif')
+
+    lon_arr = ut.read_img(lon_fname)
+    lat_arr = ut.read_img(lat_fname)
+
+    # Get the array dimensions
+    dims = lon_arr.shape
+    cols = dims[1]
+    rows = dims[0]
+
+    # Get the L1T data. (Code borrowed from above)
+    L1T_dataset = DATA.get_item(CONFIG.input['l1t']['path'], SceneDataset)
+    assert L1T_dataset, 'Unable to retrieve SceneDataset object for L1T input scene dataset'
+    logger.debug( 'SceneDataset object for %s retrieved', L1T_dataset.pathname)
+
+    # Get the angles, time, & satellite track coordinates
+    (satellite_zenith, satellite_azimuth, solar_zenith,
+     solar_azimuth, relative_azimuth, time,
+     Y_cent, X_cent, N_cent) = ca.calculate_angles(L1T_dataset, lon_arr,
+                                                   lat_arr, npoints=12)
+
+    # Image projection, geotransform
+    prj  = L1T_dataset.GetProjection()
+    geoT = L1T_dataset.GetGeoTransform()
+
+    # Define the output file names
+    sat_view_zenith_fname  = os.path.join(work_dir, 'SAT_V.bin')
+    sat_azimuth_fname      = os.path.join(work_dir, 'SAT_AZ.bin')
+    solar_zenith_fname     = os.path.join(work_dir, 'SOL_Z.bin')
+    solar_azimuth_fname    = os.path.join(work_dir, 'SOL_AZ.bin')
+    relative_azimuth_fname = os.path.join(work_dir, 'REL_AZ.bin')
+    time_fname             = os.path.join(work_dir, 'TIME.bin')
+
+    # Write the image files to disk
+    logger.debug("Writing satelite view zenith angle: %s", sat_view_zenith_fname)
+    ut.write_img(satellite_zenith, sat_view_zenith_fname, projection=prj,
+                 geotransform=geoT)
+
+    logger.debug("Writing satellite azimuth angle: %s", sat_azimuth_fname)
+    ut.write_img(satellite_azimuth, sat_azimuth_fname, projection=prj,
+                 geotransform=geoT)
+
+    logger.debug("Writing solar zenith angle: %s", solar_zenith_fname)
+    ut.write_img(solar_zenith, solar_zenith_fname, projection=prj,
+                 geotransform=geoT)
+
+    logger.debug("Writing solar azimith angle: %s", solar_azimuth_fname)
+    ut.write_img(solar_azimuth, solar_azimuth_fname, projection=prj,
+                 geotransform=geoT)
+
+    logger.debug("Writing relative azimuth angle: %s", relative_azimuth_fname)
+    ut.write_img(relative_azimuth, relative_azimuth_fname, projection=prj,
+                 geotransform=geoT)
+
+    logger.debug("Writing time array: %s", time_fname)
+    ut.write_img(time, time_fname, projection=prj, geotransform=geoT)
+
+
+    # Close files
+    del satellite_zenith, satellite_azimuth, solar_zenith, solar_azimuth
+    del relative_azimuth, time
+
+    # Write out the CENTRELINE file
+    create_centreline_file(Y_cent, X_cent, N_cent, cols, view_max=9.0,
+                           outdir=work_dir)
+
+

@@ -6,9 +6,9 @@ import ephem
 
 from EOtools.DatasetDrivers import SceneDataset
 
-from set_satmod import set_satmod
-from set_times import set_times
-from angle_all import angle
+from ULA3.set_satmod import set_satmod
+from ULA3.set_times import set_times
+from ULA3.angle_all import angle
 
 def calculate_julian_century(datetime):
     """
@@ -121,6 +121,12 @@ def setup_orbital_elements(ephemeral, datetime):
     
     # angular velocity (rad sec-1)
     orbital_elements[2] = (2*pi*n)/s
+
+
+    # For testing we'll use static values
+    orbital_elements[0] = 98.200000
+    orbital_elements[1] = 7083160.000000
+    orbital_elements[2] = 0.001059
 
     return orbital_elements
 

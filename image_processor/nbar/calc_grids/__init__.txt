@@ -1,6 +1,5 @@
 # Default process list for calc_grids
 [
 calc_lat_long_grids,
-calc_satellite_grids,
-calc_solar_grids
+calc_sat_sol_grids
 ]
