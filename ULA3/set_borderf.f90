@@ -98,8 +98,8 @@ subroutine set_borderf(set_border,phi_sun, zmax, zmin, sun_zen, hx, hy, &
 !   the two buffers will be on sides of the target image defined
 !   by the azimuth case
 
-    n_add=ifix(d*cosphc/hx+1.5)
-    m_add=ifix(d*sinphc/hy+1.5)
+    n_add=ifix(sngl(d*cosphc/hx+1.5))
+    m_add=ifix(sngl(d*sinphc/hy+1.5))
 
     if ((n_add.gt.add_max .or. m_add.gt.add_max) .or. (n_add.lt.0.or.m_add.lt.0)) then
         ierr=63
