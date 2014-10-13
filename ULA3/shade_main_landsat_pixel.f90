@@ -101,6 +101,7 @@ SUBROUTINE shade_main_landsat_pixel( &
 ! internal variables
     integer*4 nsA, nlA, nchf, i, j, ii, jj
     integer*4 k, l, kkx, kky, nmax_sub, Mmax_sub
+    integer istat
     real*4 n_inc(k_setting) !
     real*4 m_inc(k_setting) !
     real*4 h_offset(k_setting) !

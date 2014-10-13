@@ -41,6 +41,7 @@ SUBROUTINE slope_pixelsize_newpole( &
     real*8 dx, dy
     real*8 pi, pia, pib
     real*8 p, q
+    integer istat
 
 !f2py intent(in) dresx, dresy, spheroid, alat, dem, solar, view, sazi, azi, is_utm
 !f2py intent(out) mask, theta, phit, it, et, azi_it, azi_et, rela
