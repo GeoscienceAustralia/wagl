@@ -10,7 +10,8 @@ subroutine set_borderf(set_border,phi_sun, zmax, zmin, sun_zen, hx, hy, &
     integer k_max, k, n_add, m_add, k_setting, add_max, ierr, az_case
     real n_inc(k_setting), m_inc(k_setting)
     real h_offset(k_setting)
-    real phi_sun, zmax, zmin, sun_zen, hx, hy, phc
+    real phi_sun, zmax, zmin, sun_zen, phc
+    real*8 hx, hy
     real sinphc, cosphc, d, d0
     real pi, r2d, d2r, eps
     common/base/pi,r2d,d2r,eps
