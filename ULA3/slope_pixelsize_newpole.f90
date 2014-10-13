@@ -1,5 +1,5 @@
 SUBROUTINE slope_pixelsize_newpole( &
-    dres, alat, is_utm, &
+    dresx, dresy, spheroid, alat, is_utm, &
     dem, solar, view, sazi, azi, &
     mask, theta, phit, it, et, azi_it, azi_et, rela, &
     nrow_alloc, ncol_alloc, nrow, ncol, ierr)
@@ -9,7 +9,16 @@ SUBROUTINE slope_pixelsize_newpole( &
 ! note: the row and column of DEM data must be larger
 ! than the image (extra each line and column for the four sides.
 ! it is needed for sobel filter.
-    real*8 dres
+
+!   Inputs:
+!       spheroid
+!           1. Spheroid major axis
+!           2. Inverse flattening
+!           3. Eccentricity squared
+!           4. Earth rotational angular velocity rad/sec
+
+    real*8 dresx, dresy
+    real*8 spheroid(4)
 	real*8 alat(nrow) ! remember that row starts at 2
 	real*4 dem(nrow, ncol) !
     real*4 solar(nrow_alloc, ncol_alloc) !
@@ -33,7 +42,7 @@ SUBROUTINE slope_pixelsize_newpole( &
     real*8 pi, pia, pib
     real*8 p, q
 
-!f2py intent(in) dres, alat, dem, solar, view, sazi, azi, is_utm
+!f2py intent(in) dres, spheroid, alat, dem, solar, view, sazi, azi, is_utm
 !f2py intent(out) mask, theta, phit, it, et, azi_it, azi_et, rela
 !f2py intent(out) ierr
 !f2py integer intent(hide),depend(solar) :: nrow_alloc=shape(solar,0), ncol_alloc=shape(solar,1)
@@ -64,13 +73,14 @@ SUBROUTINE slope_pixelsize_newpole( &
 
 !   calculate pixel size in meters
     if(is_utm) then
-        dx = dres
-        dy = dres
+        dx = dresx
+        dy = dresy
     endif
 !-------------------------------------------------------------------
     do row=2,nrow+1
         if(.not. is_utm) then
-            call pixelsize(alat(row), dres, dx, dy, pia)
+            call geo2metres_pixel_size(alat(row), dresx, dresy, &
+                                       spheroid, dx, dy, istat)
         endif
 
         do col=2,ncol+1
