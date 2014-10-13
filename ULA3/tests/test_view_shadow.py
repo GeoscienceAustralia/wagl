@@ -8,6 +8,7 @@ import numpy.testing as npt
 
 from EOtools.DatasetDrivers import SceneDataset
 from ULA3._gdal_tools import Buffers
+from ULA3.geodesic import calculate_angles as ca
 from ULA3.tc import run_castshadow
 from unittesting_tools import find_file
 from unittesting_tools import ParameterisedTestCase
@@ -38,9 +39,14 @@ def calculate_view_shadow(scene_dataset, ref_dir, outdir, pixel_buffer=250,
 
     dsm = (read_img(find_file(ref_dir, fname_smoothed_dsm))).astype('float32')
 
+    # Retrive the spheroid parameters
+    # (used in calculating pixel size in metres per lat/lon)
+    spheroid = ca.setup_spheroid(scene_dataset.GetProjection())
+
     # Compute the self shadow
     shadow_self = run_castshadow(scene_dataset, dsm, zen_angle, azi_angle,
-                                 pixel_buf, block_height, block_width, is_utm)
+                                 pixel_buf, block_height, block_width,
+                                 is_utm, spheroid)
 
     # Write the self shadow result to disk
     outfname = os.path.join(outdir, 'shadow_v.img')
