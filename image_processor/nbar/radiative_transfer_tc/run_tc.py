@@ -10,6 +10,7 @@ from ULA3.utils import Buffers, dump_array, load_bin_file, as_array
 from ULA3.dataset import SceneDataset
 from ULA3.image_processor import ProcessorConfig
 
+from ULA3.geodesic import calculate_angles as ca
 from ULA3.tests import unittesting_tools as ut
 
 logger = logging.getLogger('root.' + __name__)
@@ -82,6 +83,10 @@ def process(subprocess_list=[], resume=False):
     dsm_data = filter_dsm(clip_dsm(l1t_input_dataset, national_dsm_path, output_dsm_path, pixel_buf, output_format))
     pref = ''
 
+    # Retrive the spheroid parameters
+    # (used in calculating pixel size in metres per lat/lon)
+    spheroid = ca.setup_spheroid(l1t_input_dataset.GetProjection())
+
     output_smDSM_path = os.path.join(work_path, 'region_dsm_image_smoothed' + output_extension)
     # NOTE!!! write_tif_file() doesn't necessarily write tif files
     write_tif_file(l1t_input_dataset, dsm_data, output_dsm_path, file_type=output_format)
@@ -128,7 +133,7 @@ def process(subprocess_list=[], resume=False):
         write_tif_file(l1t_input_dataset, view_angle, os.path.join(dump_path, 'view_angle.img'), file_type = 'ENVI')
         write_tif_file(l1t_input_dataset, azi_angle, os.path.join(dump_path, 'azi_angle.img'), file_type = 'ENVI')
 
-    def do_run_castshadow(zen_angle, azi_angle):
+    def do_run_castshadow(zen_angle, azi_angle, spheroid):
         return run_castshadow(
             l1t_input_dataset,
             dsm_data,
@@ -137,12 +142,16 @@ def process(subprocess_list=[], resume=False):
             pixel_buf,
             shadow_sub_matrix_height,
             shadow_sub_matrix_width,
-            is_utm)
+            is_utm,
+            spheroid)
 
     # calculate the slope and angle
-    slope_results = run_slope(l1t_input_dataset, dsm_data, solar_angle, view_angle, sazi_angle, azi_angle, pixel_buf, is_utm)
-    shadow_s = do_run_castshadow(solar_angle, sazi_angle)
-    shadow_v = do_run_castshadow(view_angle, azi_angle)
+    slope_results = run_slope(l1t_input_dataset, dsm_data, solar_angle,
+                              view_angle, sazi_angle, azi_angle, pixel_buf,
+                              is_utm, spheroid)
+
+    shadow_s = do_run_castshadow(solar_angle, sazi_angle, spheroid)
+    shadow_v = do_run_castshadow(view_angle, azi_angle, spheroid)
 
     if dump_path:
         write_tif_file(l1t_input_dataset, shadow_s, os.path.join(dump_path, 'shadow_s.img'), file_type = 'ENVI')
