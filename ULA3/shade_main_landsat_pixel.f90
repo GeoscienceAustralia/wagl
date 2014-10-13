@@ -207,7 +207,7 @@ SUBROUTINE shade_main_landsat_pixel( &
         if(.not.is_utm) then
 !           calculate latitude for each line
             do i=1,nlA
-                alat(i)=alat1-((k-1)*nlA_ori+i-1)*dres
+                alat(i)=alat1-((k-1)*nlA_ori+i-1)*dresy
             enddo
             ii=nlA/2
             call geo2metres_pixel_size(alat(ii), dresx, dresy, &
@@ -400,7 +400,7 @@ SUBROUTINE shade_main_landsat_pixel( &
         if(.not.is_utm) then
 !           calculate latitude and longitude for sub_matrix
             do i=1,nlA
-                alat(i)=alat1-(kky*nlA_ori+i-1)*dres
+                alat(i)=alat1-(kky*nlA_ori+i-1)*dresy
             enddo
         endif
 
