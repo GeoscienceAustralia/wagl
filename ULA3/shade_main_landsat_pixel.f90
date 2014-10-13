@@ -114,7 +114,7 @@ SUBROUTINE shade_main_landsat_pixel( &
     common/base/pi,r2d,d2r,eps
 
 !f2py intent(in) dem_data, solar_data, sazi_data
-!f2py intent(in) dres, spheroid, alat1, alon1
+!f2py intent(in) dresx, dresy, spheroid, alat1, alon1
 !f2py intent(in) Aoff_x1, Aoff_x2, Aoff_y1, Aoff_y2
 !f2py intent(in) nlA_ori, nsA_ori
 !f2py intent(in) is_utm

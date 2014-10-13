@@ -42,7 +42,7 @@ SUBROUTINE slope_pixelsize_newpole( &
     real*8 pi, pia, pib
     real*8 p, q
 
-!f2py intent(in) dres, spheroid, alat, dem, solar, view, sazi, azi, is_utm
+!f2py intent(in) dresx, dresy, spheroid, alat, dem, solar, view, sazi, azi, is_utm
 !f2py intent(out) mask, theta, phit, it, et, azi_it, azi_et, rela
 !f2py intent(out) ierr
 !f2py integer intent(hide),depend(solar) :: nrow_alloc=shape(solar,0), ncol_alloc=shape(solar,1)
