@@ -10,7 +10,8 @@ subroutine get_proj_shadows(hx, hy, ns, nl, &
 !   NOTE: n_inc and m_inc are Floating Point arrays
     real n_inc(k_setting), m_inc(k_setting)
     real h_offset(k_setting)
-    real phi_sun,zmax,zmin,sun_zen,hx,hy,htol
+    real phi_sun,zmax,zmin,sun_zen,htol
+    real*8 hx, hy
     real d, d0, a(dem_nr, dem_nc)
     integer ncho, aoff_x, aoff_y, nsA, nlA
     integer t_aoff_x,t_aoff_y,t_nsA,t_nlA
