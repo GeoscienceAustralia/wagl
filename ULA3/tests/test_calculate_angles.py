@@ -405,8 +405,8 @@ class TestSatSolAngles(ParameterisedTestCase):
         if self.centreline_ref is None:
             self._read_centreline_files()
 
-        ref_data  = float(self.centreline_ref[0].split(',')[0])
-        test_data = float(self.centreline_test[0].split(',')[0])
+        ref_data  = float(self.centreline_ref[0].split()[0])
+        test_data = float(self.centreline_test[0].split()[0])
 
         self.assertEqual(ref_data, test_data)
 
@@ -421,8 +421,8 @@ class TestSatSolAngles(ParameterisedTestCase):
         if self.centreline_ref is None:
             self._read_centreline_files()
 
-        ref_rows  = int(self.centreline_ref[1].split(',')[0])
-        test_rows = int(self.centreline_test[1].split(',')[0])
+        ref_rows  = int(self.centreline_ref[1].split()[0])
+        test_rows = int(self.centreline_test[1].split()[0])
 
         self.assertEqual(ref_rows, test_rows)
 
@@ -437,8 +437,8 @@ class TestSatSolAngles(ParameterisedTestCase):
         if self.centreline_ref is None:
             self._read_centreline_files()
 
-        ref_cols  = int(self.centreline_ref[1].split(',')[1])
-        test_cols = int(self.centreline_test[1].split(',')[1])
+        ref_cols  = int(self.centreline_ref[1].split()[1])
+        test_cols = int(self.centreline_test[1].split()[1])
 
         self.assertEqual(ref_cols, test_cols)
 
@@ -480,8 +480,8 @@ class TestSatSolAngles(ParameterisedTestCase):
         test_points = numpy.zeros((len(ref_data), 3))
 
         for i in range(len(ref_data)):
-            rx, ry, rz = ref_data[i].split(',')
-            tx, ty, tz = test_data[i].split(',')
+            rx, ry, rz = ref_data[i].split()
+            tx, ty, tz = test_data[i].split()
             ref_points[i,0], ref_points[i,1], ref_points[i,2] = rx, ry, float(rz)
             test_points[i,0], test_points[i,1], test_points[i,2] = tx, ty, float(tz)
 
