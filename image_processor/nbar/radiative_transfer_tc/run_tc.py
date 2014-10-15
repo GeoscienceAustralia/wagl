@@ -88,8 +88,7 @@ def process(subprocess_list=[], resume=False):
     spheroid = ca.setup_spheroid(l1t_input_dataset.GetProjection())
 
     output_smDSM_path = os.path.join(work_path, 'region_dsm_image_smoothed' + output_extension)
-    # NOTE!!! write_tif_file() doesn't necessarily write tif files
-    write_tif_file(l1t_input_dataset, dsm_data, output_dsm_path, file_type=output_format)
+    ut.write_img(dsm_data, output_smDSM_path) # No georeference info
 
     if CONFIG.debug:
         # the location to dump the data.
