@@ -15,7 +15,7 @@ from ULA3.utils import Buffers, ImageShape
 from ULA3.dataset import SceneDataset
 from ULA3.tc import clip_dsm, run_castshadow, run_slope, run_brdfterrain
 from ULA3.utils import load_bin_file, read_array_int8, as_array, dump_array
-from ULA3.filter import filter_float as filter
+from ULA3.filtering import filter_float as filter
 
 
 SYS_BASE_DIR = '/g/data/v10'

@@ -6,7 +6,7 @@ from pprint import pformat
 # note that some of these imports are not used directly in this file,
 # but they are imported from this file so must remain.
 from meta import print_call
-from filter import read_array_int8, read_array_int16, read_array_int32, read_array_float32
+from filtering import read_array_int8, read_array_int16, read_array_int32, read_array_float32
 from _execute import execute # needs to be imported otherwise we get circular dependency in _gdal_tools
 from _gdal_tools import NUMPY_GDAL_TYPE_MAP as DTYPE_MAP
 from _gdal_tools import warp

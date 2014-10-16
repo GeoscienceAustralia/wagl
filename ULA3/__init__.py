@@ -4,7 +4,7 @@ in its own right, though there are still some dependencies on the specifics of t
 of it from being so. These should be removed in later versions.
 """
 import pickle, os, threading, logging, re, numpy
-import blrb
+from EOtools import blrb
 from osgeo import gdal, gdalconst
 from meta import Singleton
 from dataset import Dataset

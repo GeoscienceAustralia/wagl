@@ -8,7 +8,7 @@ import os, logging
 import numpy
 import gdal, gdalconst
 from ULA3.meta import print_call
-from ULA3.filter import filter_float as filter
+from ULA3.filtering import filter_float as filter
 from ULA3.utils import warp, get_bounds, DTYPE_MAP, as_array, dump_array
 from _shade_main_landsat_pixel import shade_main_landsat_pixel
 from _slope_pixelsize_newpole import slope_pixelsize_newpole
@@ -168,6 +168,7 @@ def run_slope(
     view_azimuth_data,
     pix_buf,
     is_utm,
+    spheroid,
     output_type = "ENVI",
     slope_dataset = None,
     aspect_dataset = None,
@@ -218,6 +219,15 @@ def run_slope(
         uses it to determine whether the edge length of the pixels (if it is not true, then the resolution
         is assumed to be in degrees, and the pixel size is calculated internally).
 
+    :param spheroid:
+        A 4 element floating point array containing the Earth
+        spheroidal paramaters.
+        Index 0 contains the spheroid Major Axis.
+        Index 1 contains the spheroid Inverse Flattening.
+        Index 2 contains the spheroid Squared Eccentricity.
+        Index 3 contains the Earth rotational angular velocity in
+        radians/second.
+
     :param output_type:
         The output types for any datasets written to disk (see the following arguments).
 
@@ -255,14 +265,18 @@ def run_slope(
     dres = bounds.RasterCellSize # assumes that the x and y res are the same.
     rlat = bounds.RasterYOrigin
 
+    # x & y pixel resolution (This should handle cases of non-square pixels.)
+    dresx = abs(bounds.RasterXCellSize)
+    dresy = abs(bounds.RasterYCellSize)
+
     dem_dat = as_array(dem_data, dtype=numpy.float32)[(pix_buf.top-1):-(pix_buf.bottom-1),(pix_buf.left-1):-(pix_buf.right-1)]
     assert dem_dat.shape == (nrow, ncol), "dem_data not of correct shape " + str((nrow, ncol)) + " != " + str(dem_dat.shape)
 
     # This will be ignored if is_utm == True
-    alat = numpy.array([rlat-i*dres for i in range(-1, nrow-1)], dtype=numpy.float64) # yes, I did mean float64.
+    alat = numpy.array([rlat-i*dresy for i in range(-1, nrow-1)], dtype=numpy.float64) # yes, I did mean float64.
 
     mask, theta, phit, it, et, azi_it, azi_et, rela, ierr = slope_pixelsize_newpole(
-        dres, alat, is_utm,
+        dresx, dresy, spheroid, alat, is_utm,
         dem_dat,
         as_array(solar_zenith_data, dtype=numpy.float32),
         as_array(view_zenith_data, dtype=numpy.float32),
@@ -411,7 +425,8 @@ def run_castshadow(
     pix_buf,
     block_height,
     block_width,
-    is_utm):
+    is_utm,
+    spheroid):
     """
     This code is an interface to the fortran code shade_main_landsat_pixel.f90 written by Fuqin
     (and modified to work with F2py).
@@ -476,6 +491,15 @@ def run_castshadow(
     :type block_width:
         int
 
+    :param spheroid:
+        A 4 element floating point array containing the Earth
+        spheroidal paramaters.
+        Index 0 contains the spheroid Major Axis.
+        Index 1 contains the spheroid Inverse Flattening.
+        Index 2 contains the spheroid Squared Eccentricity.
+        Index 3 contains the Earth rotational angular velocity in
+        radians/second.
+
     :warning:
         The parameters ``solar_angle_data`` and ``sazi_angle_data`` require inputs that are in degrees.
         This is different to most other functions in ULA3. This is the case because this is just a thin wrapper
@@ -496,6 +520,10 @@ def run_castshadow(
 
     bounds = get_bounds(shape_dataset)
 
+    # x & y pixel resolution (This should handle cases of non-square pixels.)
+    dresx = abs(bounds.RasterXCellSize)
+    dresy = abs(bounds.RasterYCellSize)
+
     #print "bounds = %s" % str(bounds)
     #print "dem_data.shape = %s" % str(dem_data.shape)
     #print "solar_angle_data.shape = %s" % str(solar_angle_data.shape)
@@ -506,7 +534,9 @@ def run_castshadow(
         as_array(dem_data, dtype=numpy.float32),
         as_array(solar_angle_data, dtype=numpy.float32),
         as_array(sazi_angle_data, dtype=numpy.float32),
-        bounds.RasterCellSize,
+        dresx,
+        dresy,
+        spheroid,
         bounds.RasterYOrigin,
         bounds.RasterXOrigin,
         pix_buf.left,
