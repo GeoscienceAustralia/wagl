@@ -8,6 +8,7 @@ import numpy.testing as npt
 
 from EOtools.DatasetDrivers import SceneDataset
 from ULA3._gdal_tools import Buffers
+from ULA3.geodesic import calculate_angles as ca
 from ULA3.tc import run_slope
 from unittesting_tools import find_file
 from unittesting_tools import ParameterisedTestCase
@@ -48,8 +49,15 @@ def calculate_slope_angles(scene_dataset, ref_dir, outdir, pixel_buffer=250):
     # Are we looking at a UTM product?
     is_utm =  not scene_dataset.IsGeographic()
 
-    slope_results = run_slope(scene_dataset, dsm_data, solar_angle, view_angle,
-                              sazi_angle, azi_angle, pixel_buf, is_utm)
+    # Retrive the spheroid parameters
+    # (used in calculating pixel size in metres per lat/lon)
+    spheroid = ca.setup_spheroid(scene_dataset.GetProjection())
+
+    slope_results = run_slope(scene_dataset,
+                              dsm_data,
+                              solar_angle, view_angle,
+                              sazi_angle, azi_angle,
+                              pixel_buf, is_utm, spheroid)
 
     slope_results.dump_arrays(outdir, scene_dataset, "ENVI", ".img")
 

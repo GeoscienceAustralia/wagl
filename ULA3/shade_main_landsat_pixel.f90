@@ -1,6 +1,6 @@
 SUBROUTINE shade_main_landsat_pixel( &
     dem_data, solar_data, sazi_data, &
-    dres, alat1, alon1, &
+    dresx, dresy, spheroid, alat1, alon1, &
     Aoff_x1, Aoff_x2, Aoff_y1, Aoff_y2, &
     nlA_ori, nsA_ori, &
     is_utm, &
@@ -46,7 +46,14 @@ SUBROUTINE shade_main_landsat_pixel( &
 !   nrow and ncol are the number of rows and columns in the region.
 !   nl and ns are the number of rows and columns in the dem data
 !   dem_nr and dem_nc are the number of rows and columns in 'one chunk' of a submatrix (includes the boundary padding).
-!   dres is the cell size.
+!   dresx is the x cell size.
+!   dresy is the y cell size.
+!   spheroid is the spheroidal parameters.
+!       1. Spheroid major axis
+!       2. Inverse flattening
+!       3. Eccentricity squared
+!       4. Earth rotational angular velocity rad/sec
+!
 !   ierr provides a spot for the a return error code.
 !   alat and alon are the lattitude and longitude of the origin of the region.
 !   nlA_ori, nsA_ori are the sub-matrix lines and columns.
@@ -75,7 +82,8 @@ SUBROUTINE shade_main_landsat_pixel( &
     real*4 dem_data(nl, ns) !
     real*4 solar_data(nrow, ncol) !
     real*4 sazi_data(nrow, ncol) !
-    real*8 dres, alat1, alon1
+    real*8 spheroid(4)
+    real*8 dresx, dresy, alat1, alon1
     integer*4 Aoff_x1, Aoff_x2, Aoff_y1, Aoff_y2
     integer*4 nlA_ori, nsA_ori
     logical is_utm
@@ -93,10 +101,11 @@ SUBROUTINE shade_main_landsat_pixel( &
 ! internal variables
     integer*4 nsA, nlA, nchf, i, j, ii, jj
     integer*4 k, l, kkx, kky, nmax_sub, Mmax_sub
+    integer istat
     real*4 n_inc(k_setting) !
     real*4 m_inc(k_setting) !
     real*4 h_offset(k_setting) !
-    real*4 hx, hy
+    real*8 hx, hy
     real*4 zmax, zmin
     real*4 phi_sun
     real*4 sun_zen
@@ -106,7 +115,7 @@ SUBROUTINE shade_main_landsat_pixel( &
     common/base/pi,r2d,d2r,eps
 
 !f2py intent(in) dem_data, solar_data, sazi_data
-!f2py intent(in) dres, alat1, alon1
+!f2py intent(in) dresx, dresy, spheroid, alat1, alon1
 !f2py intent(in) Aoff_x1, Aoff_x2, Aoff_y1, Aoff_y2
 !f2py intent(in) nlA_ori, nsA_ori
 !f2py intent(in) is_utm
@@ -128,12 +137,12 @@ SUBROUTINE shade_main_landsat_pixel( &
     htol=1.0
 
     if(is_utm) then
-        hx = dres
-        hy = dres
+        hx = dresx
+        hy = dresy
     else
         !       calculate longitude for each pixel of the line
         do j=1,ncol
-            alon(j)=alon1+(j-1)*dres
+            alon(j)=alon1+(j-1)*dresx
         enddo
     endif
 
@@ -199,10 +208,11 @@ SUBROUTINE shade_main_landsat_pixel( &
         if(.not.is_utm) then
 !           calculate latitude for each line
             do i=1,nlA
-                alat(i)=alat1-((k-1)*nlA_ori+i-1)*dres
+                alat(i)=alat1-((k-1)*nlA_ori+i-1)*dresy
             enddo
             ii=nlA/2
-            call pixelsize(alat(ii),dres,hx,hy)
+            call geo2metres_pixel_size(alat(ii), dresx, dresy, &
+                                       spheroid, hx, hy, istat)
         endif
 
 
@@ -391,14 +401,15 @@ SUBROUTINE shade_main_landsat_pixel( &
         if(.not.is_utm) then
 !           calculate latitude and longitude for sub_matrix
             do i=1,nlA
-                alat(i)=alat1-(kky*nlA_ori+i-1)*dres
+                alat(i)=alat1-(kky*nlA_ori+i-1)*dresy
             enddo
         endif
 
         ii=nlA/2
 
         if(.not.is_utm) then
-            call pixelsize(alat(ii),dres,hx,hy)
+            call geo2metres_pixel_size(alat(ii), dresx, dresy, &
+                                       spheroid, hx, hy, istat)
         endif
 
 !       divide seveal sub_matrix according to columns
