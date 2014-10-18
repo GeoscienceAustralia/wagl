@@ -1,0 +1,27 @@
+#!/bin/bash
+#PBS -P v10
+#PBS -q normal
+#PBS -l walltime=01:30:00,ncpus=64,mem=124GB,jobfs=4GB
+#PBS -l wd
+#PBS -me
+##PBS -M 
+
+module load python/2.7.6
+module use /projects/u46/opt/modules/modulefiles --append
+module load image_processor
+module load EOtools
+module load openmpi/1.8
+module load luigi-mpi
+
+cat $PBS_NODEFILE
+
+export OUTPUT_ROOT=/short/v10/$USER/FC_luigi_mpi_testing
+rm -r ${OUTPUT_ROOT}
+mkdir -p ${OUTPUT_ROOT}/work
+mkdir -p ${OUTPUT_ROOT}/output
+
+# override the image_processor so we get out code
+export PYTHONPATH=/home/547/smr547/ga-neo-landsat-processor:$PYTHONPATH
+
+# now run on all nodes
+mpirun -npernode 8 python ./Test_FC_mpi.py 

@@ -317,3 +317,33 @@ def endmember_version(date='', help=False):
     endmembers = get_endmembers(date, sumToOneWeight=sum_to_one_weight)
 
     return endmembers
+
+
+class EndMember(object):
+
+    def __init__(self, id, componentNames, values, sumWeight):
+        self.id = id
+        self.componentNames = componentNames
+        self.values = values
+        self.sumWeight = sumWeight
+       
+class EndMemberFactory(object):
+
+    _WEIGHTS_AND_NAMES = {
+        '2013_01_08' : {'weight': 0.02, 'components':('green', 'dead1', 'dead2', 'bare')},
+        '2012_12_07' : {'weight': 0.02, 'components':('green', 'dead', 'bare1', 'bare2')},
+        '2009_08_10' : {'weight': 0.01, 'components':('green', 'dead', 'bare1', 'bare2')}
+    }
+
+
+    @staticmethod
+    def getAllIds():
+        return EndMemberFactory._WEIGHTS_AND_NAMES.keys()
+
+    @staticmethod
+    def getEndMemberById(id):
+        sumWeight = EndMemberFactory._WEIGHTS_AND_NAMES[id]['weight']
+        componentNames = EndMemberFactory._WEIGHTS_AND_NAMES[id]['components']
+        values = endmember_version(id)
+
+        return EndMember(id, componentNames, values, sumWeight)

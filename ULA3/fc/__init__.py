@@ -3,6 +3,8 @@ from osgeo import gdal, gdalconst
 from ULA3.dataset import SceneDataset
 from ULA3.meta import print_call
 from ULA3.fc.utils import datatype, create_dir, unmix
+import logging
+from endmembers import EndMember, EndMemberFactory
 
 """
 Fractional cover calculations. The only function that is likely to be of interest to users
@@ -82,7 +84,10 @@ def fractional_cover(nbar_data_path, asfloat32=False, fc_data_path=None, single_
     r_data = numpy.zeros((len(b_match), nbar_dataset.RasterYSize, nbar_dataset.RasterXSize), dtype=datype)
 
     for i in range(len(b_match)):
+        logging.debug("Reading band %d" % (i,))
         r_data[i,:,:] = nbar_dataset.band_read_as_array(b_match[i])
+
+    logging.debug("All NBAR bands read")
 
     # Get the dimensions, only interested in the x and y dims
     dims = r_data.shape
@@ -104,16 +109,25 @@ def fractional_cover(nbar_data_path, asfloat32=False, fc_data_path=None, single_
 
     # Setting the no_data values to zero. It was just easier to do this when
     # feeding into the pixel unmixing algorithm.
-    image = numexpr.evaluate("(r_data == data_ignore) * null_val + (r_data != data_ignore) * r_data")
-    del r_data; gc.collect()
+    logging.debug("setting no_data values to zero")
+#    numexpr.evaluate("(r_data == data_ignore) * null_val + (r_data != data_ignore) * r_data", out=r_data)
+#    r_data = numexpr.evaluate("where(r_data == data_ignore, null_val, r_data)", out=r_data)
+#    wh = numexpr.evaluate("r_data==data_ignore")
+#    r_data[wh] = null_val
+    numpy.maximum(r_data, null_val, out=r_data)
+    logging.debug("done setting no_data values to zero")
+     # del r_data; gc.collect()
 
     # 2013_01_08_version produces green, dead1, dead2, bare, unmixing error
-    frac = unmix(image)
-    wh = numexpr.evaluate("image == null_val")
+    logging.debug("Calling unmix()")
+    frac = unmix(r_data)
+    logging.debug("unmix() done")
+    wh = numexpr.evaluate("r_data == null_val")
 
     # Need to change the null data values back to the original -999 null value
     wh_any = numpy.any(wh, axis=0)
     del wh; gc.collect()
+    logging.debug("gc.collect() done")
 
     # scale factors
     sf2 = numpy.float32(0.01)
@@ -126,6 +140,7 @@ def fractional_cover(nbar_data_path, asfloat32=False, fc_data_path=None, single_
     bare  = frac[3,:,:]
     err   = frac[4,:,:] # unmixing error
 
+    logging.debug("Writing GeoTiff output")
     # Creating the output image
     driver = gdal.GetDriverByName("GTiff")
 
@@ -172,6 +187,7 @@ def fractional_cover(nbar_data_path, asfloat32=False, fc_data_path=None, single_
             for band_index in range(len(_fc_bands)):
                 outband = outds.GetRasterBand(band_index + 1)
                 outband.SetNoDataValue(data_ignore)
+                logging.debug("Writing band %d" % (band_index,))
                 outband.WriteArray(_fc_bands[band_index][1])
 
         else: # Multiple single-band TIF files required
@@ -183,9 +199,11 @@ def fractional_cover(nbar_data_path, asfloat32=False, fc_data_path=None, single_
 
                 outband = outds.GetRasterBand(1)
                 outband.SetNoDataValue(data_ignore)
+                logging.debug("Writing band %d" % (band_index,))
                 outband.WriteArray(_fc_bands[band_index][1])
 
         outds = None
+        logging.debug("output dataset closed by not flushedd")
 
 
     return FractionalCoverResult(green, dead, bare, unmix_err)

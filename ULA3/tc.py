@@ -8,7 +8,7 @@ import os, logging
 import numpy
 import gdal, gdalconst
 from ULA3.meta import print_call
-from ULA3.filter import filter_float as filter
+from ULA3.filtering import filter_float as filter
 from ULA3.utils import warp, get_bounds, DTYPE_MAP, as_array, dump_array
 from _shade_main_landsat_pixel import shade_main_landsat_pixel
 from _slope_pixelsize_newpole import slope_pixelsize_newpole
