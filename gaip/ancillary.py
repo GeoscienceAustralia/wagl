@@ -10,10 +10,11 @@ from os.path import join as pjoin, exists, splitext
 
 log = logging.getLogger()
 
-def get_data_value(filename, coords, band=1):
-    x, y = coords
+
+def get_pixel(filename, lonlat, band=1):
     with rasterio.open(filename) as src:
-        data = src.read_band(band, window)
+        x, y = [int(v) for v in ~src.affine * lonlat]
+        return src.read_band(band, window=((y, y + 1), (x, x + 1))).flat[0]
 
 
 def get_aerosol_value(dt, ll_lat, ll_lon, ur_lat, ur_lon, aerosol_path,
@@ -166,3 +167,36 @@ def run_aot_loader(filename, dt, ll_lat, ll_lon, ur_lat, ur_lon,
     log.error('Aerosol file %s could not be parsed', filename)
     return None
 
+
+def get_elevation_data(lonlat, dem_path):
+    """
+    Get elevation data for a scene.
+
+    :param lon_lat:
+        The latitude, longitude of the scene center.
+    :type lon_lat:
+        float (2-tuple)
+
+    :dem_dir:
+        The directory in which the DEM can be found.
+    :type dem_dir:
+        str
+    """
+    datafile = pjoin(dem_path, "DEM_one_deg.tif")
+    value = get_pixel(datafile, lonlat) * 0.001  # scale to correct units
+    return {'data_source': 'Elevation',
+            'data_file': datafile,
+            'value': value}
+
+
+def get_ozone_data(ozone_path, lonlat, datetime):
+    """
+    Get ozone data for a scene. `lonlat` should be the (x,y) for the centre
+    the scene.
+    """
+    filename = datetime.strftime("%b").lower()
+    datafile = pjoin(ozone_path, filename)
+    value = get_pixel(datafile, lonlat)
+    return {'data_source': 'Ozone',
+            'data_file': datafile,
+            'value': value}
