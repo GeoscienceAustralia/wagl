@@ -1,5 +1,5 @@
-! subroutine geo_pix_size
-subroutine geo_pix_size(ycent,hx,hy,spheroid, &
+! subroutine geo2metres_pixel_size
+subroutine geo2metres_pixel_size(ycent,hx,hy,spheroid, &
              hx_out,hy_out,istat)
 
 !   integer subroutine to get pixel size for geographic coordinates
@@ -10,6 +10,12 @@ subroutine geo_pix_size(ycent,hx,hy,spheroid, &
 
 !   * Re-written as an indepentent subroutine by JS, Aug 2014
 !   * Probable overlap with subroutine pixelsize(rlat,dres,dx,dy)???
+!   * pixelsize(rlat,dres,dx,dy) & pixelsize(rlat,dres,dx,dy,pia)
+!     have now been replaced by this routine which itself has
+!     been renamed to geo2metres_pixel_size which describes the
+!     routine a little better.
+!   * The routine now takes a 4 element spheroid parameter rather
+!     than hard coded WGS84 parameters.
 
 !   Inputs:
 !       ycent
@@ -20,10 +26,6 @@ subroutine geo_pix_size(ycent,hx,hy,spheroid, &
 !           2. Inverse flattening
 !           3. Eccentricity squared
 !           4. Earth rotational angular velocity rad/sec
-!       orb_elements
-!           1. Orbital inclination (degrees)
-!           2. Semi_major radius (m)
-!           3. Angular velocity (rad sec-1)
 !
 !   Outputs:
 !       hx_out
@@ -66,4 +68,4 @@ subroutine geo_pix_size(ycent,hx,hy,spheroid, &
 
     return
 
-end subroutine geo_pix_size
+end subroutine geo2metres_pixel_size

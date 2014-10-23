@@ -101,8 +101,8 @@ subroutine cal_track(num,tin,orb_elements,spheroid,smodel, &
         beta(j) = atan(-1.0d0/(tan(oi)*sin(rho(j))))
         skew(j) = atan(we*cos(phi_p(j))*cos(beta(j))/(ws+we* &
           cos(phi_p(j))*sin(beta(j))))
-        call geo_pix_size(phi_p(j)*r2d,psx,psy,spheroid,psx_out, &
-               psy_out,istat)
+        call geo2metres_pixel_size(phi_p(j)*r2d,psx,psy,spheroid,&
+               psx_out,psy_out,istat)
         hxy(j) = psx_out/psy_out
         if (j.gt.1) then
             mj(j-1) = (phi_p(j)-phi_p(j-1))/(lam(j)-lam(j-1))

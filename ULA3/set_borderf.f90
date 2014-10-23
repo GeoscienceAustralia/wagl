@@ -10,7 +10,8 @@ subroutine set_borderf(set_border,phi_sun, zmax, zmin, sun_zen, hx, hy, &
     integer k_max, k, n_add, m_add, k_setting, add_max, ierr, az_case
     real n_inc(k_setting), m_inc(k_setting)
     real h_offset(k_setting)
-    real phi_sun, zmax, zmin, sun_zen, hx, hy, phc
+    real phi_sun, zmax, zmin, sun_zen, phc
+    real*8 hx, hy
     real sinphc, cosphc, d, d0
     real pi, r2d, d2r, eps
     common/base/pi,r2d,d2r,eps
@@ -97,8 +98,8 @@ subroutine set_borderf(set_border,phi_sun, zmax, zmin, sun_zen, hx, hy, &
 !   the two buffers will be on sides of the target image defined
 !   by the azimuth case
 
-    n_add=ifix(d*cosphc/hx+1.5)
-    m_add=ifix(d*sinphc/hy+1.5)
+    n_add=ifix(sngl(d*cosphc/hx+1.5))
+    m_add=ifix(sngl(d*sinphc/hy+1.5))
 
     if ((n_add.gt.add_max .or. m_add.gt.add_max) .or. (n_add.lt.0.or.m_add.lt.0)) then
         ierr=63
