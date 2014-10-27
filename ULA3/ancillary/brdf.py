@@ -533,3 +533,57 @@ def average_brdf_value(
         os.remove(final_hdf_file)
 
     return (final_hdf_file, brdf_mean_value)
+
+
+# Maybe a candidate for constants.py
+def brdf_wavelength_lut(satellite_sensor):
+    """
+    Retrieves the BRDF wavelengths for a given satellite-sensor.
+
+    :param satellite_sensor:
+        A string containing a valid satellite-sensor combination.
+        Valid combinations are:
+        landsat5tm
+        landsat7etm
+        landsat8oli
+        landsat8olitirs
+
+    :return:
+        A dictionary containing the Band numbers of a sensor as the
+        keys, and the BRDF wavelengths as the values.
+    """
+
+    input_str = str(satellite_sensor)
+
+    BRDF_LUT = {
+        'landsat5tm' : { 1 : '0459_0479nm',
+                         2 : '0545_0565nm',
+                         3 : '0620_0670nm',
+                         4 : '0841_0876nm',
+                         5 : '1628_1652nm',
+                         7 : '2105_2155nm'
+                       },
+        'landsat7etm' : { 1 : '0459_0479nm',
+                          2 : '0545_0565nm',
+                          3 : '0620_0670nm',
+                          4 : '0841_0876nm',
+                          5 : '1628_1652nm',
+                          7 : '2105_2155nm'
+                        },
+        'landsat8oli' : { 1 : '0459_0479nm',
+                          2 : '0459_0479nm',
+                          3 : '0545_0565nm',
+                          4 : '0620_0670nm',
+                          5 : '0841_0876nm',
+                          6 : '1628_1652nm',
+                          7 : '2105_2155nm'
+                        },
+        'landsat8olitirs' : { 1 : '0459_0479nm',
+                               2 : '0459_0479nm',
+                               3 : '0545_0565nm',
+                               4 : '0620_0670nm',
+                               5 : '0841_0876nm',
+                               6 : '1628_1652nm',
+                               7 : '2105_2155nm'
+                            }
+               }.get(input_str, 'Error')
