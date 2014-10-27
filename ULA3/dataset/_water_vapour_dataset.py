@@ -99,7 +99,7 @@ class WaterVapourDataset(Dataset):
         wv_value_raw = super(WaterVapourDataset, self).get_data_value(longlat, nBand)
         logger.debug('Raw (scaled) water vapour value for %s = %s', longlat, wv_value_raw)
 
-        return 27.765 + wv_value_raw * 0.001 # Apply scale & offset to return correct units
+        return wv_value_raw * 0.1 # Convert from kg/m^2 to g/cm^2
 
 def main():
     """Main program for command-line utility.
