@@ -57,6 +57,13 @@ def get_average_brdf_value(
             work_path,
             brdf_root, brdf_dir)
 
+# Remove any occurences of - and _ then convert to lowercase
+satellite_name = re.sub('[-_]', '', ds.satellite_name).lower()
+sensor_name = re.sub('[-_]', '', ds.sensor).lower()
+
+sat_sensor = ''.join((satellite_name, sensor_name))
+
+brdf_wavelengths = brdf_wavelength_lut(sat_sensor)
 
 
 
