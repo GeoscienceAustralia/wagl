@@ -8,6 +8,7 @@ from memuseFilter import MemuseFilter
 from constants import PQAConstants
 from pqa_result import PQAResult
 from saturation_masking import setSaturationBits
+from contiguity_masking import setContiguityBit
 
 
 class PixelQualityTask(luigi.Task):
@@ -55,6 +56,11 @@ class PixelQualityTask(luigi.Task):
         setSaturationBits(l1t_data, pq_const, pqaResult)
         logging.debug("done setting saturation bits")
 
+        # contiguity
+
+        logging.debug("setting contiguity bit")
+        setContiguityBit(l1t_data, l1t_sd.satellite, pq_const, pqaResult)
+        logging.debug("done setting contiguity bit")
 
 
         
