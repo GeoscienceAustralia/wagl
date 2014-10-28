@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
-class pqaContants:
+class PQAConstants:
     """
     A Class object that contains the majority of constants used throughout the PQA process.
     Such constants include bands for specific tests, bit positions for various tests and thresholds used
     within various tests.
     """
     def __init__(self, sensor):
+        assert sensor is not None
         self.sensor = sensor
         # Initialise everything for immediate access
         self.setSaturationBands()
