@@ -9,11 +9,15 @@ from constants import PQAConstants
 from pqa_result import PQAResult
 from saturation_masking import setSaturationBits
 from contiguity_masking import setContiguityBit
+from land_sea_masking import setLandSeaBit
 
 
 class PixelQualityTask(luigi.Task):
+
+    # TODO: review each of these parameters, some could qualify as "Requires"
     l1t_path = luigi.Parameter()
     nbar_path = luigi.Parameter()
+    land_sea_path = luigi.Parameter()
     pq_path = luigi.Parameter()
 
     def output(self):
@@ -62,9 +66,11 @@ class PixelQualityTask(luigi.Task):
         setContiguityBit(l1t_data, l1t_sd.satellite, pq_const, pqaResult)
         logging.debug("done setting contiguity bit")
 
+        # land/sea
 
-        
-
+        logging.debug("setting land/sea bit")
+        setLandSeaBit(l1t_data, l1t_sd, self.land_sea_path, pq_const, pqaResult)
+        logging.debug("done setting land/sea bit")
 
 class PQDataset(luigi.Target):
 
