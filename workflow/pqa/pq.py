@@ -10,6 +10,7 @@ from pqa_result import PQAResult
 from saturation_masking import setSaturationBits
 from contiguity_masking import setContiguityBit
 from land_sea_masking import setLandSeaBit
+from thermal_conversion import get_landsat_temperature
 
 
 class PixelQualityTask(luigi.Task):
@@ -71,6 +72,11 @@ class PixelQualityTask(luigi.Task):
         logging.debug("setting land/sea bit")
         setLandSeaBit(l1t_data, l1t_sd, self.land_sea_path, pq_const, pqaResult)
         logging.debug("done setting land/sea bit")
+
+        # get temperature data from thermal band in prepartion for cloud detection
+
+        logging.debug("setting land/sea bit")
+        kelvin_band = get_landsat_temperature(l1t_data, l1t_sd, pq_const)
 
 class PQDataset(luigi.Target):
 
