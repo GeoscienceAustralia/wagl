@@ -121,7 +121,7 @@ def acquisitions(filename):
             minimum = section[tag + 'min_' + band]
             maximum = section[tag + 'max_' + band]
             for k in section.keys():
-                if k.endswith(band):
+                if k.startswith(tag + 'min_') or k.startswith(tag + 'max_'):
                     section.pop(k, None)
             section[tag + 'min'] = minimum
             section[tag + 'max'] = maximum
