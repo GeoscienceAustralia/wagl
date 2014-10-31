@@ -138,8 +138,7 @@ def acquisitions(filename):
                 elif k.startswith(band):
                     newkey = k.replace(band + '_', '')
                     section[newkey] = section[k]
-                else:
-                    section.pop(k, None)
+                section.pop(k, None)
 
         replace_param('PRODUCT_PARAMETERS')
         replace_param('CORRECTIONS_APPLIED')

@@ -83,6 +83,9 @@ class AcquisitionTest(unittest.TestCase):
         self.assertFalse(hasattr(acq, 'lmin_band1'))
         self.assertFalse(hasattr(acq, 'lmin_band2'))
 
+        self.assertFalse(hasattr(acq, 'band1_sl_gain_change'))
+
+
 
 if __name__ == '__main__':
     unittest.main()
