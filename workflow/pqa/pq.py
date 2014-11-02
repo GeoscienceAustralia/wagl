@@ -101,6 +101,29 @@ class PixelQualityTask(luigi.Task):
                % (sensor, ))
         
 
+
+            calc_fmask_cloud_mask(l1t_data, l1t_sd, pq_const, contiguity_mask, aux_data)
+
+  
+        # fmask cloud mask
+
+        logging.debug("calculating fmask cloud mask")
+        if pq_const.run_cloud:
+            mask = None
+            aux_data = {}   # for collecting result metadata
+            mtl = glob(os.path.join(l1t_sd.pathname, \
+                'scene01/*_MTL.txt'))[0] # Crude but effective
+            mask = FMaskCloudMask(mtl, null_mask=contiguity_mask)
+
+            # set the result
+            pqaResult.set_mask(mask, pq_const.fmsk)
+            pqaResult.add_to_aux_data(aux_data)
+        else:
+            logging.warning('FMASK Not Run! %s sensor not configured for the FMASK algorithm.' \
+               % (sensor, ))
+        
+
+
 class PQDataset(luigi.Target):
 
     def __init__(self, path):
