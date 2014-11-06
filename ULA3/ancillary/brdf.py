@@ -398,7 +398,7 @@ class BRDFLookupError(Exception):
 
 
 
-def get_brdf_dirs_modis(brdf_root, scene_date, pattern='.', n_dirs=2):
+def get_brdf_dirs_modis(brdf_root, scene_date, pattern='.'):
     """
     Get list of MODIS BRDF directories for the dataset.
 
@@ -420,13 +420,8 @@ def get_brdf_dirs_modis(brdf_root, scene_date, pattern='.', n_dirs=2):
     :type pattern:
         :py:class:`str`
 
-    :param n_dirs:
-        The number of directories to be found (primary + secondaries).
-    :type n_dirs:
-        :py:class:`int`
-
     :return:
-       List of BRDF directories, [<primary>, <secondary>, ...]
+       A string containing the closest matching BRDF directory.
 
     """
 
@@ -459,7 +454,7 @@ def get_brdf_dirs_modis(brdf_root, scene_date, pattern='.', n_dirs=2):
 
 
 
-def get_brdf_dirs_pre_modis(brdf_root, scene_date, n_dirs=3):
+def get_brdf_dirs_pre_modis(brdf_root, scene_date):
     """
     Get list of pre-MODIS BRDF directories for the dataset.
 
@@ -473,13 +468,8 @@ def get_brdf_dirs_pre_modis(brdf_root, scene_date, n_dirs=3):
     :type scene_date:
         :py:class:`datetime.date`
 
-    :param n_dirs:
-        Number of directories to be found (primary + secondaries).
-    :type n_dirs:
-        :py:class:`int`
-
     :return:
-       List of BRDF directories, [<primary>, <secondary>, ...]
+       A string containing the closest matching BRDF directory.
 
     """
     # Pre-MODIS db interval half-width (days).
