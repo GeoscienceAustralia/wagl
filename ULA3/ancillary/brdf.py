@@ -16,15 +16,100 @@ deriving `BRDF <http://en.wikipedia.org/wiki/Bidirectional_reflectance_distribut
 
 import logging, os, re, commands, datetime, math, numpy
 from glob import glob
+import re
 from osgeo import gdal, gdalconst
+import rasterio
 
 logger = logging.getLogger('root.' + __name__)
 
-# keywords for BRDF parameters f0, f1, f2
-_FACTOR_LIST = ['geo', 'iso', 'vol']
 
-# Expect BRDF directories of the form 'YYYY.MM.DD'
-_BRDF_DIR_PATTERN = re.compile('^\d{4}\.\d{2}.\d{2}$')
+# This function will be moved when directory structure is outlined properly
+def read_subset(fname, ULxy, URxy, LRxy, LLxy, bands=1):
+    """
+    Return a 2D or 3D NumPy array subsetted to the given bounding
+    extents.
+
+    :param fname:
+        A string containing the full file pathname to an image on
+        disk.
+
+    :param ULxy:
+        A tuple containing the Upper Left (x,y) co-ordinate pair
+        in real world (map) co-ordinates.  Co-ordinate pairs can be
+        (longitude, latitude) or (eastings, northings), but they must
+        be of the same reference as the image of interest.
+
+    :param URxy:
+        A tuple containing the Upper Right (x,y) co-ordinate pair
+        in real world (map) co-ordinates.  Co-ordinate pairs can be
+        (longitude, latitude) or (eastings, northings), but they must
+        be of the same reference as the image of interest.
+
+    :param LRxy:
+        A tuple containing the Lower Right (x,y) co-ordinate pair
+        in real world (map) co-ordinates.  Co-ordinate pairs can be
+        (longitude, latitude) or (eastings, northings), but they must
+        be of the same reference as the image of interest.
+
+    :param LLxy:
+        A tuple containing the Lower Left (x,y) co-ordinate pair
+        in real world (map) co-ordinates.  Co-ordinate pairs can be
+        (longitude, latitude) or (eastings, northings), but they must
+        be of the same reference as the image of interest.
+
+    :param bands:
+        Can be an integer of list of integers representing the band(s)
+        to be read from disk.  If bands is a list, then the returned
+        subset will be 3D, otherwise the subset will be strictly 2D.
+
+    :return:
+        A 2D or 3D NumPy array containing the image subset.
+
+    :additional notes:
+        The ending array co-ordinates are increased by +1,
+        i.e. xend = 270 + 1
+        to account for Python's [inclusive, exclusive) index notation.
+    """
+
+    # Open the file
+    with rasterio.open(fname) as src:
+
+        # Get the inverse transform of the affine co-ordinate reference
+        inv = ~src.affine
+
+        # Convert each map co-ordinate to image/array co-ordinates
+        imgULx, imgULy = [int(v) for v in inv*ULxy]
+        imgURx, imgURy = [int(v) for v in inv*URxy]
+        imgLRx, imgLRy = [int(v) for v in inv*LRxy]
+        imgLLx, imgLLy = [int(v) for v in inv*LLxy]
+
+        # Calculate the min and max array extents
+        # The ending array extents have +1 to account for Python's
+        # [inclusive, exclusive) index notation.
+        xstart = min(imgULx, imgLLx)
+        ystart = min(imgULy, imgURy)
+        xend = max(imgURx, imgLRx) + 1
+        yend = max(imgLLy, imgLRy) + 1
+
+        # Read the subset
+        subs =  src.read(bands, window=((ystart, yend), (xstart, xend)))
+
+        # Get the projection as WKT
+        prj = src.crs_wkt
+
+        # Get the original geotransform
+        base_gt = src.get_transform()
+
+        # Get the new UL co-ordinates of the array
+        ULx, ULy = src.Affine * (imgULx, imgULy)
+
+        # Setup the new geotransform
+        geot = (ULx, base_gt[1], base_gt[2], ULy, base_gt[4], base_gt[5])
+
+    return (subs, geot, prj)
+
+
+
 
 #TODO: Implement resume
 
@@ -254,7 +339,51 @@ class BRDFLoader(object):
 
         return result
 
+    def convert_format(self, filename, format='ENVI'):
+        """
+        Convert the HDF file to a more spatially recognisable data
+        format such as ENVI or GTiff.
+        The default format is ENVI (flat bianry file and an
+        accompanying header (*.hdr) text file.
+        """
 
+        # Get the UL corner of the UL pixel co-ordinate
+        ULlon = self.roi['UL'][0]
+        ULlat = self.roi['UL'][1]
+
+        # pixel size x & y
+        pixsz_x = self.delta_lon
+        pixsz_y = self.delta_lat
+
+        # Construct the geotransform tuple; assuming 0 degree rotation
+        geotransform = (ULlon, pixsz_x, 0, ULlat, 0, pixsz_y)
+
+        # Setup the projection; assuming Geographics WGS84
+        # (Tests have shown that this appears to be the case)
+        # (unfortunately it is not expicitly defined in the HDF file)
+        sr = osr.SpatialReference()
+        sr.SetWellKnownGeogCS("WGS84")
+        prj = sr.ExportToWkt()
+
+        # Write the file
+        ut.write_img(self.data[0], filename, format, prj, geotransform)
+
+    def get_mean(array):
+        """
+        This mechanism will be used to calculate the mean in place in
+        place of mean_data_value, which will still be kept until
+        the results have been successfully validated.
+        """
+
+        valid = array != self.fill_value
+        xbar = numpy.mean(array[valid])
+
+        if not numpy.isfinite(xbar):
+            xbar = 0.0
+        else:
+            xbar = self.scale_factor * (xbar - self.add_offset)
+
+        return xbar
 
 
 
@@ -269,7 +398,7 @@ class BRDFLookupError(Exception):
 
 
 
-def get_brdf_dirs_modis(brdf_root, scene_date, n_dirs=2):
+def get_brdf_dirs_modis(brdf_root, scene_date, pattern='.', n_dirs=2):
     """
     Get list of MODIS BRDF directories for the dataset.
 
@@ -282,6 +411,14 @@ def get_brdf_dirs_modis(brdf_root, scene_date, n_dirs=2):
         Scene Date.
     :type scene_date:
         :py:class:`datetime.date`
+
+    :param pattern:
+        A string containing the pattern upon which directories should
+        be matched to. Default is '.' to match any charachter.
+        Regular expression (re module) will be used for string
+        matching.
+    :type pattern:
+        :py:class:`str`
 
     :param n_dirs:
         The number of directories to be found (primary + secondaries).
@@ -300,8 +437,11 @@ def get_brdf_dirs_modis(brdf_root, scene_date, n_dirs=2):
         # Returns interval midpoint date of a MCD43A1.005/YYYY.MM.DD directory.
         return datetime.date(*[int(x) for x in s.split(sep)]) + offset
 
+    # Compile the search pattern
+    BRDF_DIR_PATTERN = re.compile(pattern)
+
     # List only directories that match 'YYYY.MM.DD' format.
-    dirs = sorted([d for d in os.listdir(brdf_root) if _BRDF_DIR_PATTERN.match(d)])
+    dirs = sorted([d for d in os.listdir(brdf_root) if BRDF_DIR_PATTERN.match(d)])
 
     # Find the N (n_dirs) BRDF directories with midpoints closest to the
     # scene date.
@@ -310,7 +450,10 @@ def get_brdf_dirs_modis(brdf_root, scene_date, n_dirs=2):
     if scene_date < (__date(dirs[0]) - offset):
         raise BRDFLookupError('scene date precedes first MODIS date (%s)' % dirs[0])
 
-    return [delta_map[k] for k in sorted(delta_map)[:n_dirs]]
+    # Return the closest match (the zeroth index)
+    result = delta_map[sorted(delta_map)[0]]
+
+    return result
 
 
 
@@ -358,232 +501,8 @@ def get_brdf_dirs_pre_modis(brdf_root, scene_date, n_dirs=3):
              abs(db_doy_max - abs(int(x) + offset - i)) ) : x for x in dirs
     }
 
-    return [delta_map[k] for k in sorted(delta_map)[:n_dirs]]
+    # Return the closest match (the zeroth index)
+    result = delta_map[sorted(delta_map)[0]]
 
+    return result
 
-
-
-
-def average_brdf_value(
-    ll_lat, ll_lon,
-    ur_lat, ur_lon,
-    band_string,
-    wavelength_range,
-    factor,
-    work_path,
-    brdf_root, brdf_dir):
-    """
-    Get the average value of subset of a HDF file.
-
-    :param ll_lat:
-        The latitude of the lower left corner of the region ('ll' for 'Lower Left').
-    :type ll_lat:
-        :py:class:`float`
-
-    :param ll_lon:
-        The longitude of the lower left corner of the region ('ll' for 'Lower Left').
-    :type ll_lon:
-        :py:class:`float`
-
-    :param ur_lat:
-        The latitude of the upper right corner of the region ('ur' for 'Upper Right').
-    :type ur_lat:
-        :py:class:`float`
-
-    :param ur_lon:
-        The longitude of the upper right corner of the region ('ur' for 'Upper Right').
-    :type ur_lon:
-        :py:class:`float`
-
-    :param band_string:
-        1-based band number string (i.e. in ['1','2','3','4','5','7']).
-    :type band_string:
-        :py:class:`str`
-
-    :param wavelength_range:
-        Not sure.
-    :type wavelength_range:
-        Not sure
-
-    :param factor:
-        Not sure.
-    :type factor:
-        Not sure
-
-    :param work_path:
-        The working directory.
-    :type work_path:
-        :py:class:`str`
-
-    :param brdf_root:
-        Not sure.
-    :type brdf_root:
-        :py:class:`str`
-
-    :param brdf_dir:
-        Not sure.
-    :type brdf_dir:
-        :py:class:`str`
-
-    :note:
-        This uses maximal axis-aligned extents for BRDF mean value calculation. Note that latitude
-        min-max logic is valid for the Southern hemisphere only.
-
-    :todo:
-        :py:func:`ULA3.ancillary.aerosol.get_aerosol_value_for_region` accepts a default value
-        which is returned if all else fails. Should we do a similar thing here? This would make
-        the interface more consistent and potentially be more useful to users.
-
-    :todo:
-        ``wavelength_range`` should be documented by someone who knows what it is.
-
-    """
-    ul_lat = ur_lat
-    ul_lon = ll_lon
-    lr_lat = ll_lat
-    lr_lon = ur_lon
-
-    def findFile(brdf_root, brdf_dir, band_number, factor):
-        '''
-        Find the BRDF file corresponding to the wavelength of the band
-        N.B: band_index argument is the 0-based band index. It is NOT the 1-based band number
-        '''
-        def find_wavelength_file(band_number, file_list, max_bandwidth_ratio = 5.0):
-            '''Determine wavelength range for specified band index
-            and find the first file in the list whose average wavelength
-            falls into this range.
-            N.B: band_index argument is the 0-based band index. It is NOT the 1-based band number
-            '''
-
-            fnames     = []
-            brdf_upper = []
-            brdf_lower = []
-
-            for fname in sorted(file_list):
-                s = re.search('.+_(\d+)_(\d+)nm(\w+)f.+\.hdf.*', fname)
-                data_wavelength_range = [x/1000.0 for x in (int(s.group(1)), int(s.group(2)))]
-
-                fnames.append(fname)
-                brdf_upper.append(data_wavelength_range[1])
-                brdf_lower.append(data_wavelength_range[0])
-
-            # The following method is similar to residual analysis and is only a
-            # temporary fix. The previous automated method didn't work for Landsat 5,7,8.
-            # Temporary until Alex I. gets more time or another developer comes on board to
-            # define hardcoded lookup tables within the satellite.xml configuration file.
-            spectral_resids = []
-            for i in range(len(brdf_upper)):
-                r1 = abs(wavelength_range[0] - brdf_lower[i])
-                r2 = abs(wavelength_range[1] - brdf_upper[i])
-                spectral_resids.append(abs(r1 + r2))
-
-            spectral_resids  = numpy.array(spectral_resids)
-            brdf_match_loc   = numpy.argmin(spectral_resids)
-
-            brdf_fname = fnames[brdf_match_loc]
-
-            print
-            print 'New BRDF Lookup!!!'
-            print
-            print 'band_number          ', band_number
-            print 'wavelength_range     ', wavelength_range
-            print 'brdf_lower           ', brdf_lower
-            print 'brdf_upper           ', brdf_upper
-            print 'fnames               ', fnames
-            print 'spectral_resids      ', spectral_resids
-            print 'brdf_match_loc       ', brdf_match_loc
-            print 'brdf_fname           ', brdf_fname
-            print
-
-            return brdf_fname
-
-        found_file = find_wavelength_file(band_number,
-                         glob(os.path.join(brdf_root, brdf_dir, '*_*_*nm*f' + factor + '.hdf*')))
-        assert found_file, 'No filename found for %s %s, %s, %s' % (brdf_root, brdf_dir, band_number, factor)
-        return found_file # Should only have one match per directory
-
-
-    initial_hdf_file = findFile(brdf_root, brdf_dir, int(band_string), factor)
-    assert initial_hdf_file, 'BRDF file not found for %s, %s, %s, %s' % (brdf_root, brdf_dir, band_string, factor)
-
-    if initial_hdf_file.endswith(".hdf.gz"):
-        final_hdf_file = os.path.join(
-            work_path,
-            re.sub(".hdf.gz", ".hdf", os.path.basename(initial_hdf_file)))
-        gunzipCmd = "gunzip -c %s > %s" % (initial_hdf_file, final_hdf_file)
-        (status, msg) = commands.getstatusoutput(gunzipCmd)
-        assert status == 0, "gunzip failed: %s" % msg
-    else:
-        final_hdf_file = initial_hdf_file
-
-    # Use maximal axis-aligned extents for BRDF mean value calculation.
-    # Note that latitude min-max logic is valid for the Southern
-    # hemisphere only.
-
-    nw = ( min(ul_lon, ll_lon),
-           max(ul_lat, ur_lat), )
-
-    se = ( max(lr_lon, ur_lon),
-           min(ll_lat, lr_lat), )
-
-    brdf_mean_value = BRDFLoader(final_hdf_file, UL=nw, LR=se).mean_data_value()
-
-    # Remove temporary unzipped file
-    if final_hdf_file.find(work_path) == 0:
-        os.remove(final_hdf_file)
-
-    return (final_hdf_file, brdf_mean_value)
-
-
-# Maybe a candidate for constants.py
-def brdf_wavelength_lut(satellite_sensor):
-    """
-    Retrieves the BRDF wavelengths for a given satellite-sensor.
-
-    :param satellite_sensor:
-        A string containing a valid satellite-sensor combination.
-        Valid combinations are:
-        landsat5tm
-        landsat7etm
-        landsat8oli
-        landsat8olitirs
-
-    :return:
-        A dictionary containing the Band numbers of a sensor as the
-        keys, and the BRDF wavelengths as the values.
-    """
-
-    input_str = str(satellite_sensor)
-
-    BRDF_LUT = {
-        'landsat5tm' : { 1 : '0459_0479nm',
-                         2 : '0545_0565nm',
-                         3 : '0620_0670nm',
-                         4 : '0841_0876nm',
-                         5 : '1628_1652nm',
-                         7 : '2105_2155nm'
-                       },
-        'landsat7etm' : { 1 : '0459_0479nm',
-                          2 : '0545_0565nm',
-                          3 : '0620_0670nm',
-                          4 : '0841_0876nm',
-                          5 : '1628_1652nm',
-                          7 : '2105_2155nm'
-                        },
-        'landsat8oli' : { 1 : '0459_0479nm',
-                          2 : '0459_0479nm',
-                          3 : '0545_0565nm',
-                          4 : '0620_0670nm',
-                          5 : '0841_0876nm',
-                          6 : '1628_1652nm',
-                          7 : '2105_2155nm'
-                        },
-        'landsat8olitirs' : { 1 : '0459_0479nm',
-                               2 : '0459_0479nm',
-                               3 : '0545_0565nm',
-                               4 : '0620_0670nm',
-                               5 : '0841_0876nm',
-                               6 : '1628_1652nm',
-                               7 : '2105_2155nm'
-                            }
-               }.get(input_str, 'Error')
