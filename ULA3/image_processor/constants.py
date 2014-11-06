@@ -319,7 +319,7 @@ class NBARConstants:
         self.satellite = satellite
         self.sensor = sensor
 
-    def getBRDFLUT(self)
+    def getBRDFlut(self):
         """
         
         """
@@ -333,3 +333,11 @@ class NBARConstants:
         brdf_wavelengths = brdf_wavelength_lut(sat_sensor)
 
         return brdf_wavelengths
+
+    def getBRDFfactors(self):
+        """
+        
+        """
+        factors = ['geo', 'iso', 'vol']
+
+        return factors
