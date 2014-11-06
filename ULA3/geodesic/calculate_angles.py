@@ -240,7 +240,8 @@ def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, npoints=12):
 
     return track
 
-def calculate_angles(scene_dataset, lon_array, lat_array, npoints=12):
+def calculate_angles(scene_dataset, lon_array, lat_array, npoints=12,
+        to_disk=None):
     """
     Calcualte the satellite view, satellite azimuth, solar zenith,
     solar azimuth, and relative aziumth angle grids, as well as the
@@ -260,8 +261,26 @@ def calculate_angles(scene_dataset, lon_array, lat_array, npoints=12):
         The number of time sample points to be calculated along the
         satellite track. Default is 12
 
+    :param to_disk:
+        If set to None (default) then the results will be returned
+        in memory and no disk space will be used. Otherwise to_disk
+        should be a list of length 6 containing file path names for
+        the computed arrays. These arrays will be written directly
+        to disk in a tiled fashion. Setting this keyword reduces
+        memory consumption. When set, then 6 filepathnames will
+        be returned instead of NumPy arrays.
+        The order is important, and is given as follows:
+        Satellite zenith angle.
+        Satellite azimuth angle.
+        Solar zenith angle.
+        Solar azimuth angle.
+        Relative azimuth angle.
+        Time.
+
     :return:
-        6 float32 NumPy arrays of the same shape as lon_array:
+        6 float32 NumPy arrays of the same shape as lon_array unless
+        the outfilenames is set in which case 6 filepath
+        names will be returned:
         Satellite zenith angle.
         Satellite azimuth angle.
         Solar zenith angle.
@@ -317,13 +336,54 @@ def calculate_angles(scene_dataset, lon_array, lat_array, npoints=12):
     cols = dims[1]
     rows = dims[0]
 
-    # Initialise the arrays to hold the angles
-    view = numpy.zeros(dims, dtype='float32')
-    azi = numpy.zeros(dims, dtype='float32')
-    asol = numpy.zeros(dims, dtype='float32')
-    soazi = numpy.zeros(dims, dtype='float32')
-    rela_angle = numpy.zeros(dims, dtype='float32')
-    time = numpy.zeros(dims, dtype='float32')
+    if to_disk is None:
+        # Initialise 2D arrays to hold the angles
+        view = numpy.zeros(dims, dtype='float32')
+        azi = numpy.zeros(dims, dtype='float32')
+        asol = numpy.zeros(dims, dtype='float32')
+        soazi = numpy.zeros(dims, dtype='float32')
+        rela_angle = numpy.zeros(dims, dtype='float32')
+        time = numpy.zeros(dims, dtype='float32')
+    else:
+        # Initialise 1D arrays to hold the angles
+        view = numpy.zeros(dims, dtype='float32')
+        azi = numpy.zeros(dims, dtype='float32')
+        asol = numpy.zeros(dims, dtype='float32')
+        soazi = numpy.zeros(dims, dtype='float32')
+        rela_angle = numpy.zeros(dims, dtype='float32')
+        time = numpy.zeros(dims, dtype='float32')
+
+        # Generate a list of tiles for processing
+        # Process 1 row of data at a time
+        tiles = tiling.generate_tiles(cols, rows, cols, 1)
+
+        if len(to_disk) != 6:
+            print "Incorrect number of filenames!"
+            print "Results will be returned as NumPy arrays"
+            to_disk = None
+
+        # Initialise the output files
+        output_files = []
+        drv = gdal.GetDriverByName("ENVI")
+        output_files.append(drv.Create(to_disk[0], cols, rows, 1, 6))
+        output_files.append(drv.Create(to_disk[1], cols, rows, 1, 6))
+        output_files.append(drv.Create(to_disk[2], cols, rows, 1, 6))
+        output_files.append(drv.Create(to_disk[3], cols, rows, 1, 6))
+        output_files.append(drv.Create(to_disk[4], cols, rows, 1, 6))
+        output_files.append(drv.Create(to_disk[5], cols, rows, 1, 6))
+
+        # Set the projection and geotransfrom
+        for outds in output_files:
+            outds.SetProjection(prj)
+            outds.SetGeoTransform(geoT)
+
+        # Get the band level write access
+        out_SAT_V_bnd  = output_files[0].GetRasterBand(1)
+        out_SAT_AZ_bnd = output_files[1].GetRasterBand(1)
+        out_SOL_Z_bnd  = output_files[2].GetRasterBand(1)
+        out_SOL_AZ_bnd = output_files[3].GetRasterBand(1)
+        out_REL_AZ_bnd = output_files[4].GetRasterBand(1)
+        out_TIME_bnd   = output_files[5].GetRasterBand(1)
 
     # Set to null value
     view[:] = -999
@@ -338,12 +398,54 @@ def calculate_angles(scene_dataset, lon_array, lat_array, npoints=12):
     X_cent = numpy.zeros((rows), dtype='float32')
     N_cent = numpy.zeros((rows), dtype='float32')
 
-    # Loop over each row
-    for i in range(rows):
-        istat = angle(cols, rows, i+1, lat_array[i], lon_array[i], spheroid,
-                      orbital_elements, hours, century, npoints, smodel, track,
-                      view[i], azi[i], asol[i], soazi[i], rela_angle[i],
-                      time[i], X_cent, N_cent)
+    # Rather than do 8000+ if checks within the loop, we'll construct
+    # different loops
+    if to_disk is None:
+        # Loop over each row
+        for i in range(rows):
+            istat = angle(cols, rows, i+1, lat_array[i], lon_array[i],
+                spheroid, orbital_elements, hours, century, npoints, smodel,
+                track, view[i], azi[i], asol[i], soazi[i], rela_angle[i],
+                time[i], X_cent, N_cent)
+    else:
+        # Loop over each row
+        for i in range(rows):
+            # Set to null value
+            view[:] = -999
+            azi[:] = -999
+            asol[:] = -999
+            soazi[:] = -999
+            rela_angle[:] = -999
+            time[:] = -999
+
+            # Get current tile
+            tile = tiles[i]
+            xstart = tile[2]
+            ystart = tile[0]
+
+            istat = angle(cols, rows, i+1, lat_array[i], lon_array[i],
+                spheroid, orbital_elements, hours, century, npoints,
+                smodel, track, view, azi, asol, soazi, rela_angle,
+                time, X_cent, N_cent)
+
+            # Output to disk
+            out_SAT_V_bnd.WriteArray(view, xstart, ystart).FlushCache()
+            out_SAT_AZ_bnd.WriteArray(azi, xstart, ystart).FlushCache()
+            out_SOL_Z_bnd.WriteArray(asol, xstart, ystart).FlushCache()
+            out_SOL_AZ_bnd.WriteArray(soazi, xstart, ystart).FlushCache()
+            out_REL_AZ_bnd.WriteArray(rela_angle, xstart, ystart).FlushCache()
+            out_TIME_bnd.WriteArray(time, xstart, ystart).FlushCache()
+
+    if to_disk is not None:
+        # Close all image files opened for writing
+        output_files = None
+        outds = None
+        out_SAT_V_bnd  = None
+        out_SAT_AZ_bnd = None
+        out_SOL_Z_bnd  = None
+        out_SOL_AZ_bnd = None
+        out_REL_AZ_bnd = None
+        out_TIME_bnd   = None
 
     # Centreline
     # here need code to write the track in the image as an ascii file
@@ -365,4 +467,14 @@ def calculate_angles(scene_dataset, lon_array, lat_array, npoints=12):
     Y_cent = numpy.rint(Y_cent)
     X_cent = numpy.rint(X_cent)
 
-    return (view, azi, asol, soazi, rela_angle, time, Y_cent, X_cent, N_cent)
+    # If we didn't write to disk return NumPy arrays otherwise
+    # return the filepath names
+    if to_disk is None:
+        result = (view, azi, asol, soazi, rela_angle, time, Y_cent, X_cent,
+            N_cent)
+        return result
+    else:
+        result = (to_disk[0], to_disk[1], to_disk[2], to_disk[3], to_disk[4],
+            to_disk[5], Y_cent, X_cent, N_cent)
+        return result
+
