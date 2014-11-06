@@ -29,12 +29,6 @@ def compute_angles(scene_dataset, lon_array, lat_array, npoints=12):
     # Initialise the satellite maximum view angle
     view_max = 9.0
 
-    # Get the angles, time, & satellite track coordinates
-    (satellite_zenith, satellite_azimuth, solar_zenith, 
-     solar_azimuth, relative_azimuth, time,
-     Y_cent, X_cent, N_cent) = ca.calculate_angles(scene_dataset, lon_array,
-                                                   lat_array, npoints=12)
-
     # Define the output file names
     sat_view_zenith_fname  = 'SAT_V.bin'
     sat_azimuth_fname      = 'SAT_AZ.bin'
@@ -43,32 +37,14 @@ def compute_angles(scene_dataset, lon_array, lat_array, npoints=12):
     relative_azimuth_fname = 'REL_AZ.bin'
     time_fname             = 'TIME.bin'
 
-    # Image projection, geotransform
-    prj  = scene_dataset.GetProjection()
-    geoT = scene_dataset.GetGeoTransform()
+    out_fnames = [sat_view_zenith_fname, sat_azimuth_fname, solar_zenith_fname,
+                  solar_azimuth_fname, relative_azimuth_fname, time_fname]
 
-    print "Writing satelite view zenith angle: %s" %sat_view_zenith_fname
-    write_img(satellite_zenith, sat_view_zenith_fname, projection=prj,
-              geotransform=geoT)
-
-    print "Writing satellite azimuth angle: %s" %sat_azimuth_fname
-    write_img(satellite_azimuth, sat_azimuth_fname, projection=prj,
-              geotransform=geoT)
-
-    print "Writing solar zenith angle: %s" %solar_zenith_fname
-    write_img(solar_zenith, solar_zenith_fname, projection=prj,
-              geotransform=geoT)
-
-    print "Writing solar azimith angle: %s" %solar_azimuth_fname
-    write_img(solar_azimuth, solar_azimuth_fname, projection=prj,
-              geotransform=geoT)
-
-    print "Writing relative azimuth angle: %s" %relative_azimuth_fname
-    write_img(relative_azimuth, relative_azimuth_fname, projection=prj,
-              geotransform=geoT)
-
-    print "Writing time array: %s" %time_fname
-    write_img(time, time_fname, projection=prj, geotransform=geoT)
+    # Get the angles, time, & satellite track coordinates
+    (satellite_zenith, satellite_azimuth, solar_zenith, 
+     solar_azimuth, relative_azimuth, time,
+     Y_cent, X_cent, N_cent) = ca.calculate_angles(scene_dataset, lon_array,
+                                   lat_array, npoints=12, to_disk=out_fnames)
 
     print "Writing out the centreline file"
     # Write the centreline to disk
