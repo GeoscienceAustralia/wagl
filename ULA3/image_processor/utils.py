@@ -313,16 +313,6 @@ def calc_sat_sol_angle_grids(DATA, CONFIG):
     assert L1T_dataset, 'Unable to retrieve SceneDataset object for L1T input scene dataset'
     logger.debug( 'SceneDataset object for %s retrieved', L1T_dataset.pathname)
 
-    # Get the angles, time, & satellite track coordinates
-    (satellite_zenith, satellite_azimuth, solar_zenith,
-     solar_azimuth, relative_azimuth, time,
-     Y_cent, X_cent, N_cent) = ca.calculate_angles(L1T_dataset, lon_arr,
-                                                   lat_arr, npoints=12)
-
-    # Image projection, geotransform
-    prj  = L1T_dataset.GetProjection()
-    geoT = L1T_dataset.GetGeoTransform()
-
     # Define the output file names
     sat_view_zenith_fname  = os.path.join(work_dir, 'SAT_V.bin')
     sat_azimuth_fname      = os.path.join(work_dir, 'SAT_AZ.bin')
@@ -331,34 +321,14 @@ def calc_sat_sol_angle_grids(DATA, CONFIG):
     relative_azimuth_fname = os.path.join(work_dir, 'REL_AZ.bin')
     time_fname             = os.path.join(work_dir, 'TIME.bin')
 
-    # Write the image files to disk
-    logger.debug("Writing satelite view zenith angle: %s", sat_view_zenith_fname)
-    ut.write_img(satellite_zenith, sat_view_zenith_fname, projection=prj,
-                 geotransform=geoT)
+    out_fnames = [sat_view_zenith_fname, sat_azimuth_fname, solar_zenith_fname
+        solar_azimuth_fname, relative_azimuth_fname, time_fname]
 
-    logger.debug("Writing satellite azimuth angle: %s", sat_azimuth_fname)
-    ut.write_img(satellite_azimuth, sat_azimuth_fname, projection=prj,
-                 geotransform=geoT)
-
-    logger.debug("Writing solar zenith angle: %s", solar_zenith_fname)
-    ut.write_img(solar_zenith, solar_zenith_fname, projection=prj,
-                 geotransform=geoT)
-
-    logger.debug("Writing solar azimith angle: %s", solar_azimuth_fname)
-    ut.write_img(solar_azimuth, solar_azimuth_fname, projection=prj,
-                 geotransform=geoT)
-
-    logger.debug("Writing relative azimuth angle: %s", relative_azimuth_fname)
-    ut.write_img(relative_azimuth, relative_azimuth_fname, projection=prj,
-                 geotransform=geoT)
-
-    logger.debug("Writing time array: %s", time_fname)
-    ut.write_img(time, time_fname, projection=prj, geotransform=geoT)
-
-
-    # Close files
-    del satellite_zenith, satellite_azimuth, solar_zenith, solar_azimuth
-    del relative_azimuth, time
+    # Get the angles, time, & satellite track coordinates
+    (satellite_zenith, satellite_azimuth, solar_zenith,
+     solar_azimuth, relative_azimuth, time,
+     Y_cent, X_cent, N_cent) = ca.calculate_angles(L1T_dataset, lon_arr,
+        lat_arr, npoints=12, to_disk=out_fnames)
 
     # Write out the CENTRELINE file
     create_centreline_file(Y_cent, X_cent, N_cent, cols, view_max=9.0,
