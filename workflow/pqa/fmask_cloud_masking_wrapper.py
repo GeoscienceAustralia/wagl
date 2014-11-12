@@ -17,6 +17,7 @@ def majority_filter(array, iterations=1):
         array = numexpr.evaluate("array > 4")
     return array.astype('uint8')
 
+# def calc_fmask_cloud_mask(l1t_data, l1t_sd, pq_const, contiguity_mask, aux_data={}):
 def FMaskCloudMask(mtl, null_mask=None, cloud_prob=None, wclr_max=None, sat_tag=None, aux_data={}):
     Lnum=int(sat_tag[-1:])
     zen,azi,ptm,Temp,t_templ,t_temph,WT,Snow,fmask_byte,Shadow,dim,ul,resolu,zc, \
@@ -27,5 +28,3 @@ def FMaskCloudMask(mtl, null_mask=None, cloud_prob=None, wclr_max=None, sat_tag=
     fmask_byte = majority_filter(array=fmask_byte, iterations=2)
 
     return (fmask_byte != 1).astype('bool') # Invert to a 'land mask'
-
-def calc_fmask_cloud_mask(l1t_data, l1t_sd, pq_const, contiguity_mask, aux_data={}):

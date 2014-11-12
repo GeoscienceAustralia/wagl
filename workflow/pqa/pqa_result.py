@@ -1,3 +1,4 @@
+import os
 import logging
 import numpy
 import rasterio as rio
@@ -8,13 +9,17 @@ class PQAResult(object):
     Represents the PQA result
     '''
 
-    def __init__(self, shape, dtype=numpy.uint16, aux_data={}):
+    def __init__(self, shape, aGriddedGeoBox, dtype=numpy.uint16, aux_data={}):
         '''
         Constructor
 
         Arguments:
             :shape: 
                 the shape of the numpy array holding the data
+            :aGriddedGeoBox: 
+                an instance of class GriddedGeoBox providing the 
+                spatial location, scale and coordinate refernced system
+                for this PQAResult
             :dtype:
                 the datatype of the array
             :aux_data:
@@ -30,6 +35,7 @@ class PQAResult(object):
         self.array = numpy.zeros(shape, dtype=dtype)
         self.bitcount = self.array.itemsize * 8
         self.aux_data = aux_data
+        self.geoBox = aGriddedGeoBox
 
     def set_mask(self, mask, bit_index, unset_bits=False):
         '''Takes a boolean mask array and sets the bit in the result array.
@@ -60,16 +66,21 @@ class PQAResult(object):
         aux_data property
         """
         self.aux_data.update(new_data)
-#
-#    def save_as_tiff(self, name, crs):
-#        (width, height) = self.array.shape
-#        with rio.open(path, mode='w', driver='GTiff', \
-#            width=width, \
-#            height=height, \
-#            count=1, \
-#            crs=crs, \
-#            dtype=rio.uint16) as ds:
-        
+
+    def save_as_tiff(self, path, crs=None):
+        os.makedirs(os.path.dirname(path))
+        (height, width) = self.array.shape
+        with rio.open(path, mode='w', driver='GTiff', \
+            width=width, \
+            height=height, \
+            count=1, \
+            crs=self.geoBox.crs.ExportToWkt(), \
+            transform=self.geoBox.affine, \
+            dtype=rio.uint16) as ds:
+
+            ds.write_band(1, self.array)
+            ds.update_tags(1, **self.aux_data)
+       
     @property
     def test_list(self):
         '''Returns a sorted list of all bit indices which have been set
