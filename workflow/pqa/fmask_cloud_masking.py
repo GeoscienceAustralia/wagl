@@ -774,8 +774,7 @@ def nd2toarbt(filename, images=None):
     else:
         raise Exception('This sensor is not Landsat 4, 5, 7, or 8!')
 
-def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMASK_LOGFILE.txt",
-                   shadow_prob=False, mask=None):
+def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, shadow_prob=False, mask=None, aux_data={}):
     """
     Calculates a cloud mask for a landsat 5/7 scene.
 
@@ -800,8 +799,6 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMA
     :return:
         Tuple (zen,azi,ptm, temperature band (celcius*100),t_templ,t_temph, water mask, snow mask, cloud mask , shadow probability,dim,ul,resolu,zc).
     """
-    logfile = open(log_filename, 'w', buffering=0)
-    logfile.write("Processing FMASK cloud cover... \n")
     start_time = time.time()
 
     Temp,data,dim,ul,zen,azi,zc,satu_B1,satu_B2,satu_B3,resolu,geoT,prj = nd2toarbt(filename, images)
@@ -882,9 +879,8 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMA
     idwt = numexpr.evaluate("idclr & (WT == True)") # &data(:,:,6)<=300;
     lndptm= 100 * idlnd.sum() / mask.sum()
 
-    logger.debug('idlnd: %s', idlnd)
-    logger.debug('idlnd.sum(): %s', idlnd.sum())
-    logger.debug('lndptm: %s', lndptm)
+    logging.debug('idlnd.sum(): %s', idlnd.sum())
+    logging.debug('lndptm: %s', lndptm)
     sys.stdout.flush()
 
     if ptm <= 0.1: # no thermal test => meanless for snow detection (0~1)
@@ -968,6 +964,7 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMA
 
 
         # release memory
+        logging.debug("FMASK releasing memory")
         del satu_B2
         del satu_B3
         del NDSI
@@ -1078,8 +1075,10 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMA
     if ptm > 0.1:
         cloud_temp = Temp[cloud_mask]
 
-        logfile.write("Snow Percent: %f\n" % ((float(Snow[mask].sum()) / float(mask.sum())) * 100.0))
-        logfile.write("Cloud Mean: %f C\n" % (numpy.mean(cloud_temp) / 100.0))
+        logging.debug("FMASK snow percent: %f" % ((float(Snow[mask].sum()) / float(mask.sum())) * 100.0))
+        aux_data['fmask_snow_percent'] = float(Snow[mask].sum()) * 100.0 / float(mask.sum())
+        logging.debug("FMASK cloud mean: %f C" % (numpy.mean(cloud_temp) / 100.0))
+        aux_data['fmask_cloud_mean_temp_deg_C'] = numpy.mean(cloud_temp) / 100.0
 
         if numpy.sum(cloud_mask) > 0:
             cloud_stddev  = numpy.std(cloud_temp, dtype='float64', ddof=1) / 100.0
@@ -1087,18 +1086,21 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, log_filename="FMA
             pct_lower     = numpy.percentile(cloud_temp, 83.5) / 100.0
             pct_upper_max = numpy.percentile(cloud_temp, 98.75) / 100.0
 
-            logfile.write("Standard Deviation: %f C\n" % cloud_stddev)
-            logfile.write("97.5 percentile: %f C\n" % pct_upper)
-            logfile.write("83.5 percentile: %f C\n" % pct_lower)
-            logfile.write("98.75 percentile: %f C\n" % pct_upper_max)
+            logging.debug("FMASK Standard Deviation: %f C" % cloud_stddev)
+            aux_data['FMASK_std_dev_degC'] =  cloud_stddev
+            logging.debug("FMASK 97.5 percentile: %f C" % pct_upper)
+            aux_data['FMASK_97.5_percentile'] =  pct_upper
+            logging.debug("FMASK 83.5 percentile: %f C" % pct_lower)
+            aux_data['FMASK_83.5_percentile'] =  pct_lower
+            logging.debug("FMASK 98.75 percentile: %f C" % pct_upper_max)
+            aux_data['FMASK_98.75_percentile'] =  pct_upper_max
 
     cloud_skew    = 0.0 # TODO
-    #logfile.write("Skewness: %f\n" % cloud_skew)
 
-    logfile.write("Final Cloud Layer Percent: %f\n" % ((float(Cloud[cloud_mask].sum()) / float(mask.sum())) * 100.0))
-    logfile.write("FMask Process Time: %f seconds\n" % processing_time)
+    logging.debug("FMASK Final Cloud Layer Percent: %f\n" % ((float(Cloud[cloud_mask].sum()) / float(mask.sum())) * 100.0))
+    aux_data['FMASK_cloud_layer_percent'] =  (float(Cloud[cloud_mask].sum()) / float(mask.sum())) * 100.0
+    aux_data['FMASK_processing_time'] = processing_time
 
-    logfile.write("Completed processing FMASK cloud cover...\n")
 
     # We'll modify the return argument for the Python implementation (geoT,prj) are added to the list
     return (zen,azi,ptm,Temp,t_templ,t_temph,WT,Snow,Cloud,Shadow,dim,ul,resolu,zc,geoT,prj)

@@ -113,7 +113,8 @@ class PixelQualityTask(luigi.Task):
             aux_data = {}   # for collecting result metadata
             mtl = glob(os.path.join(l1t_sd.pathname, \
                 'scene01/*_MTL.txt'))[0] # Crude but effective
-            mask = FMaskCloudMask(mtl, null_mask=contiguity_mask)
+            mask = FMaskCloudMask(mtl, null_mask=contiguity_mask, sat_tag=l1t_sd.satellite.TAG, \
+                aux_data=aux_data)
 
             # set the result
             pqaResult.set_mask(mask, pq_const.fmsk)
