@@ -1096,7 +1096,7 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, shadow_prob=False
 
     cloud_skew    = 0.0 # TODO
 
-    logging.debug("FMASK Final Cloud Layer Percent: %f\n" % ((float(Cloud[cloud_mask].sum()) / float(mask.sum())) * 100.0))
+    logging.debug("FMASK Final Cloud Layer Percent: %f" % ((float(Cloud[cloud_mask].sum()) / float(mask.sum())) * 100.0))
     aux_data['FMASK_cloud_layer_percent'] =  (float(Cloud[cloud_mask].sum()) / float(mask.sum())) * 100.0
     aux_data['FMASK_processing_time'] = processing_time
 
