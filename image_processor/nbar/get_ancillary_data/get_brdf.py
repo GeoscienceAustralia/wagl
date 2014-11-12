@@ -1,13 +1,20 @@
 #!/usr/bin/env python
 
-from datetime import datetime
+import commands
+import datetime
 import os
+import re
 
 from ULA3.image_processor import constants
 from ULA3.ancillary.brdf import BRDFLoader
 from ULA3.ancillary.brdf import get_brdf_dirs_modis
 from ULA3.ancillary.brdf import get_brdf_dirs_pre_modis
+from ULA3.ancillary.brdf import read_subset
 
+# Until we sort out an IO mechanism for rasterio
+# we can use this.  It is simple and easy and does internal datatype
+# conversions
+from ULA3.tests import unittesting_tools as ut
 
 def findFile(fileList, bandWL, factor):
     for file in fileList:
@@ -19,7 +26,52 @@ def findFile(fileList, bandWL, factor):
 def get_brdf_data(extents, satellite, sensor, Date, brdf_primary_path,
                   brdf_secondary_path, work_path):
     """
-    
+    Calculates the mean BRDF value for each band wavelength of your
+    sensor, for each BRDF factor ['geo', 'iso', 'vol'] that covers
+    your image extents.
+
+    :param extents:
+        A dictionary containing (x, y) tuples for the 4 corners of
+        an image. The dictionary should contain the following keys:
+        UL -> Upper Left
+        UR -> Upper Right
+        LR -> Lower Right
+        LL -> Lower Left
+
+    :param satellite:
+        A string containing the name of the satellite to which your
+        images belong.
+
+    :param sensor:
+        A string containing the name of the sensor to which your
+        images belong.
+
+    :param Date:
+        A datetime.date object representing your image acquistion.
+
+    :param brdf_primary_path:
+        A string containing the full file system path to your directory
+        containing the source BRDF files.  The BRDF directories are
+        assumed to be yyyy.mm.dd naming convention.
+
+    :param brdf_secondary_path:
+        A string containing the full file system path to your directory
+        containing the Jupp-Li backup BRDF data.  To be used for
+        pre-MODIS and potentially post-MODIS acquisitions.
+
+    :param work_path:
+        A string containing the full file system path to your NBAR
+        working directory. Intermediate BRDF files will be saved to
+        work_path/brdf_intermediates/.
+
+    :return:
+        A dictionary with tuple (band, factor) as the keys. Each key
+        represents the band of your satllite/sensor and brdf factor.
+        Each key contains a dictionary with the following keys:
+        data_source -> BRDF
+        data_file -> File system path to the location of the selected
+            BRDF wavelength and factor combination.
+        value -> The mean BRDF value covering your image extents.
     """
 
     # Get the required BRDF LUT & factors list
@@ -54,7 +106,7 @@ def get_brdf_data(extents, satellite, sensor, Date, brdf_primary_path,
     # (currently 2000-02-18 through 2013-01-09) should use the pre-MODIS,
     # Jupp-Li BRDF.
     brdf_dir_list  = sorted(os.listdir(brdf_primary_path))
-    brdf_dir_range = [brdf_dir_list[0], modis_brdf_dir_list[-1]]
+    brdf_dir_range = [brdf_dir_list[0], brdf_dir_list[-1]]
     brdf_range     = [datetime.date(*[int(x) for x in y.split('.')])
                       for y in brdf_dir_range]
 
@@ -82,6 +134,11 @@ def get_brdf_data(extents, satellite, sensor, Date, brdf_primary_path,
     # Initialise the brdf dictionary to store the results
     brdf_dict = {}
 
+    # Create a BRDF directory in the work path to store the intermediate
+    # files such as format conversion and subsets.
+    brdf_out_path = os.path.join(work_path, 'brdf_intermediates')
+    if not os.path.exists(brdf_out_path):
+        os.makedirs(brdf_out_path)
 
     # Loop over each defined band and each BRDF factor
     for band in brdf_lut.keys():
@@ -89,7 +146,6 @@ def get_brdf_data(extents, satellite, sensor, Date, brdf_primary_path,
         for factor in brdf_factors:
             hdfFileName = findFile(hdfList, bandwl, factor)
             assert hdfFileName is not None, 'Could not find HDF file for: %s, %s' % (bandwl, factor)
-            hdf_file_list.append(hdfFileName)
 
             hdfFile = os.path.join(hdfHome, hdfFileName)
 
@@ -123,8 +179,8 @@ def get_brdf_data(extents, satellite, sensor, Date, brdf_primary_path,
 
 
             # setup the output filename
-            out_fname = '_'.join(['Band', str(band), wvl, factor])
-            out_fname = os.path.join(work_path, out_fname)
+            out_fname = '_'.join(['Band', str(band), bandwl, factor])
+            out_fname = os.path.join(brdf_out_path, out_fname)
 
 
             # Convert the file format
