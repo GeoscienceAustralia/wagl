@@ -14,11 +14,22 @@ deriving `BRDF <http://en.wikipedia.org/wiki/Bidirectional_reflectance_distribut
     Someone who knows more about this (particularly the pre 2001 stuff) should document it.
 """
 
-import logging, os, re, commands, datetime, math, numpy
-from glob import glob
+import datetime
+import logging
+import math
+import os
 import re
-from osgeo import gdal, gdalconst
+
+import numpy
+from osgeo import gdal
+from osgeo import gdalconst
+from osgeo import osr
 import rasterio
+
+# Until we sort out an IO mechanism for rasterio
+# we can use this.  It is simple and easy and does internal datatype
+# conversions
+from ULA3.tests import unittesting_tools as ut
 
 logger = logging.getLogger('root.' + __name__)
 
@@ -95,13 +106,13 @@ def read_subset(fname, ULxy, URxy, LRxy, LLxy, bands=1):
         subs =  src.read(bands, window=((ystart, yend), (xstart, xend)))
 
         # Get the projection as WKT
-        prj = src.crs_wkt
+        prj = str(src.crs_wkt) # rasterio returns a unicode
 
         # Get the original geotransform
         base_gt = src.get_transform()
 
         # Get the new UL co-ordinates of the array
-        ULx, ULy = src.Affine * (imgULx, imgULy)
+        ULx, ULy = src.affine * (xstart, ystart)
 
         # Setup the new geotransform
         geot = (ULx, base_gt[1], base_gt[2], ULy, base_gt[4], base_gt[5])
@@ -348,8 +359,8 @@ class BRDFLoader(object):
         """
 
         # Get the UL corner of the UL pixel co-ordinate
-        ULlon = self.roi['UL'][0]
-        ULlat = self.roi['UL'][1]
+        ULlon = self.UL[0]
+        ULlat = self.UL[1]
 
         # pixel size x & y
         pixsz_x = self.delta_lon
@@ -368,7 +379,7 @@ class BRDFLoader(object):
         # Write the file
         ut.write_img(self.data[0], filename, format, prj, geotransform)
 
-    def get_mean(array):
+    def get_mean(self, array):
         """
         This mechanism will be used to calculate the mean in place in
         place of mean_data_value, which will still be kept until
