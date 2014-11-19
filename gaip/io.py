@@ -154,6 +154,22 @@ def read_subset(fname, ULxy, URxy, LRxy, LLxy, bands=1):
     return (subs, geot, prj)
 
 
+def read_img(fname):
+    """
+    A small and simple routine to read a GDAL compliant image.
+    This is only intended for reading the raw file into a NumPy memory
+    variable.
+    """
+
+    ds = gdal.Open(fname)
+
+    img = ds.ReadAsArray()
+
+    ds = None
+
+    return img
+
+
 def find_file(dir, file):
     """
     A simple routine for checking existance of files on disk.
