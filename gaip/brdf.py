@@ -24,107 +24,13 @@ import numpy
 from osgeo import gdal
 from osgeo import gdalconst
 from osgeo import osr
-import rasterio
 
-# Until we sort out an IO mechanism for rasterio
-# we can use this.  It is simple and easy and does internal datatype
-# conversions
-from ULA3.tests import unittesting_tools as ut
+import write_img
 
 logger = logging.getLogger('root.' + __name__)
 
 
-# This function will be moved when directory structure is outlined properly
-def read_subset(fname, ULxy, URxy, LRxy, LLxy, bands=1):
-    """
-    Return a 2D or 3D NumPy array subsetted to the given bounding
-    extents.
-
-    :param fname:
-        A string containing the full file pathname to an image on
-        disk.
-
-    :param ULxy:
-        A tuple containing the Upper Left (x,y) co-ordinate pair
-        in real world (map) co-ordinates.  Co-ordinate pairs can be
-        (longitude, latitude) or (eastings, northings), but they must
-        be of the same reference as the image of interest.
-
-    :param URxy:
-        A tuple containing the Upper Right (x,y) co-ordinate pair
-        in real world (map) co-ordinates.  Co-ordinate pairs can be
-        (longitude, latitude) or (eastings, northings), but they must
-        be of the same reference as the image of interest.
-
-    :param LRxy:
-        A tuple containing the Lower Right (x,y) co-ordinate pair
-        in real world (map) co-ordinates.  Co-ordinate pairs can be
-        (longitude, latitude) or (eastings, northings), but they must
-        be of the same reference as the image of interest.
-
-    :param LLxy:
-        A tuple containing the Lower Left (x,y) co-ordinate pair
-        in real world (map) co-ordinates.  Co-ordinate pairs can be
-        (longitude, latitude) or (eastings, northings), but they must
-        be of the same reference as the image of interest.
-
-    :param bands:
-        Can be an integer of list of integers representing the band(s)
-        to be read from disk.  If bands is a list, then the returned
-        subset will be 3D, otherwise the subset will be strictly 2D.
-
-    :return:
-        A 2D or 3D NumPy array containing the image subset.
-
-    :additional notes:
-        The ending array co-ordinates are increased by +1,
-        i.e. xend = 270 + 1
-        to account for Python's [inclusive, exclusive) index notation.
-    """
-
-    # Open the file
-    with rasterio.open(fname) as src:
-
-        # Get the inverse transform of the affine co-ordinate reference
-        inv = ~src.affine
-
-        # Convert each map co-ordinate to image/array co-ordinates
-        imgULx, imgULy = [int(v) for v in inv*ULxy]
-        imgURx, imgURy = [int(v) for v in inv*URxy]
-        imgLRx, imgLRy = [int(v) for v in inv*LRxy]
-        imgLLx, imgLLy = [int(v) for v in inv*LLxy]
-
-        # Calculate the min and max array extents
-        # The ending array extents have +1 to account for Python's
-        # [inclusive, exclusive) index notation.
-        xstart = min(imgULx, imgLLx)
-        ystart = min(imgULy, imgURy)
-        xend = max(imgURx, imgLRx) + 1
-        yend = max(imgLLy, imgLRy) + 1
-
-        # Read the subset
-        subs =  src.read(bands, window=((ystart, yend), (xstart, xend)))
-
-        # Get the projection as WKT
-        prj = str(src.crs_wkt) # rasterio returns a unicode
-
-        # Get the original geotransform
-        base_gt = src.get_transform()
-
-        # Get the new UL co-ordinates of the array
-        ULx, ULy = src.affine * (xstart, ystart)
-
-        # Setup the new geotransform
-        geot = (ULx, base_gt[1], base_gt[2], ULy, base_gt[4], base_gt[5])
-
-    return (subs, geot, prj)
-
-
-
-
 #TODO: Implement resume
-
-
 class BRDFLoaderError(Exception):
     """
     :todo:
@@ -377,7 +283,7 @@ class BRDFLoader(object):
         prj = sr.ExportToWkt()
 
         # Write the file
-        ut.write_img(self.data[0], filename, format, prj, geotransform)
+        write_img(self.data[0], filename, format, prj, geotransform)
 
     def get_mean(self, array):
         """
