@@ -108,7 +108,11 @@ def read_subset(fname, ULxy, URxy, LRxy, LLxy, bands=1):
         subset will be 3D, otherwise the subset will be strictly 2D.
 
     :return:
-        A 2D or 3D NumPy array containing the image subset.
+        A tuple of 3 elements:
+            [0] 2D or 3D NumPy array containing the image subset.
+            [1] A list of length 6 containing the GDAL geotransform.
+            [2] A WKT formatted string representing the co-ordinate
+                reference system (projection).
 
     :additional notes:
         The ending array co-ordinates are increased by +1,
@@ -140,7 +144,7 @@ def read_subset(fname, ULxy, URxy, LRxy, LLxy, bands=1):
         subs =  src.read(bands, window=((ystart, yend), (xstart, xend)))
 
         # Get the projection as WKT
-        prj = str(src.crs_wkt) # rasterio returns a unicode
+        prj = bytes(src.crs_wkt) # rasterio returns a unicode
 
         # Get the original geotransform
         base_gt = src.get_transform()
