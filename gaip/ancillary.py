@@ -2,19 +2,13 @@
 
 import logging
 import subprocess
-import rasterio
+import gaip
 import os
 
 from datetime import datetime
 from os.path import join as pjoin, exists, splitext
 
 log = logging.getLogger()
-
-
-def get_pixel(filename, lonlat, band=1):
-    with rasterio.open(filename) as src:
-        x, y = [int(v) for v in ~src.affine * lonlat]
-        return src.read_band(band, window=((y, y + 1), (x, x + 1))).flat[0]
 
 
 def get_aerosol_value(dt, ll_lat, ll_lon, ur_lat, ur_lon, aerosol_path,
@@ -183,7 +177,7 @@ def get_elevation_data(lonlat, dem_path):
         str
     """
     datafile = pjoin(dem_path, "DEM_one_deg.tif")
-    value = get_pixel(datafile, lonlat) * 0.001  # scale to correct units
+    value = gaip.get_pixel(datafile, lonlat) * 0.001  # scale to correct units
     return {'data_source': 'Elevation',
             'data_file': datafile,
             'value': value}
@@ -196,7 +190,7 @@ def get_ozone_data(ozone_path, lonlat, datetime):
     """
     filename = datetime.strftime("%b").lower()
     datafile = pjoin(ozone_path, filename)
-    value = get_pixel(datafile, lonlat)
+    value = gaip.get_pixel(datafile, lonlat)
     return {'data_source': 'Ozone',
             'data_file': datafile,
             'value': value}
