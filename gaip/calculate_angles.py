@@ -10,8 +10,8 @@ from ULA3.set_satmod import set_satmod
 from ULA3.set_times import set_times
 from ULA3.angle_all import angle
 
-import find_file
-import read_img
+from gaip import find_file
+from gaip import read_img
 
 
 # To be used as a template while gaip is restructured

@@ -25,7 +25,7 @@ from osgeo import gdal
 from osgeo import gdalconst
 from osgeo import osr
 
-import write_img
+from gaip import write_img
 
 logger = logging.getLogger('root.' + __name__)
 
