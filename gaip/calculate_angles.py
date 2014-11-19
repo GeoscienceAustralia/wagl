@@ -10,6 +10,9 @@ from ULA3.set_satmod import set_satmod
 from ULA3.set_times import set_times
 from ULA3.angle_all import angle
 
+import find_file
+import read_img
+
 
 # To be used as a template while gaip is restructured
 def sat_sol_grid_workflow(DATA, CONFIG):
@@ -23,12 +26,15 @@ def sat_sol_grid_workflow(DATA, CONFIG):
     # Find and open the longitude and lattitude files
     # Avoiding DataManger here. find_file will be used sparingly until a proper
     # workflow is written.
-    # NOTE: find_file() will call sys.exit(2) if the file isn't found
-    lon_fname = ut.find_file(work_dir, 'LON.tif')
-    lat_fname = ut.find_file(work_dir, 'LAT.tif')
+    lon_fname = find_file(work_dir, 'LON.tif')
+    lat_fname = find_file(work_dir, 'LAT.tif')
 
-    lon_arr = ut.read_img(lon_fname)
-    lat_arr = ut.read_img(lat_fname)
+    # We should be able to change the workflow and pass these as filename
+    # strings.  Internally, the calculate_angles could read a row at a time
+    # rather than pass the entire array. Internally angles are calculated one
+    # row at a time.
+    lon_arr = read_img(lon_fname)
+    lat_arr = read_img(lat_fname)
 
     # Get the array dimensions
     dims = lon_arr.shape
