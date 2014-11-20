@@ -163,6 +163,7 @@ def read_img(fname):
     A small and simple routine to read a GDAL compliant image.
     This is only intended for reading the raw file into a NumPy memory
     variable.
+    Largely used in the unittesting suite.
     """
 
     ds = gdal.Open(fname)
