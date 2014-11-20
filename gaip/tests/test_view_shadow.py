@@ -8,12 +8,12 @@ import numpy.testing as npt
 
 from EOtools.DatasetDrivers import SceneDataset
 from ULA3._gdal_tools import Buffers
-from ULA3.geodesic import calculate_angles as ca
+from gaip import calculate_angles as ca
 from ULA3.tc import run_castshadow
-from unittesting_tools import find_file
+from gaip import find_file
+from gaip import read_img
+from gaip import write_img
 from unittesting_tools import ParameterisedTestCase
-from unittesting_tools import read_img
-from unittesting_tools import write_img
 
 def calculate_view_shadow(scene_dataset, ref_dir, outdir, pixel_buffer=250,
                           block_height=500, block_width=500):

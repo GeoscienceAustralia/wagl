@@ -8,12 +8,12 @@ import numpy
 import numpy.testing as npt
 
 from EOtools.DatasetDrivers import SceneDataset
-from ULA3.geodesic import calculate_angles as ca
+from gaip import calculate_angles as ca
 
-from unittesting_tools import find_file
+from gaip import find_file
+from gaip import read_img
+from gaip import write_img
 from unittesting_tools import ParameterisedTestCase
-from unittesting_tools import read_img
-from unittesting_tools import write_img
 
 
 def compute_angles(scene_dataset, lon_array, lat_array, npoints=12):
