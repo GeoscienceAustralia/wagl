@@ -3,6 +3,7 @@ import gaip
 import datetime
 import rasterio
 import os
+from osgeo import osr
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
@@ -401,6 +402,49 @@ class Landsat8AcquisitionTest(unittest.TestCase):
         self.assertEqual(self.acqs[0].sun_elevation, 52.25003864)
 
 
+
+
+
+    def test_gridded_geo_box(self):
+        box = self.acqs[0].gridded_geo_box()
+        self.assertEqual(type(box), gaip.GriddedGeoBox)
+        self.assertEqual(box.origin, (644000.0, 6283000.0))
+        self.assertEqual(box.corner, (879025.0, 6055975.0))
+        self.assertEqual(box.shape, (9081, 9401))
+        self.assertEqual(box.pixelsize, (25.0, 25.0))
+
+    def test_gridded_geo_box_crs(self):
+        box = self.acqs[0].gridded_geo_box()
+        crs = box.crs
+        self.assertEqual(type(crs), osr.SpatialReference)
+        self.assertEqual(crs.IsProjected(), 1)
+        self.assertEqual(crs.IsGeographic(), 0)
+        self.assertEqual(crs.IsGeocentric(), 0)
+        self.assertEqual(crs.GetUTMZone(), -55)
+        self.assertEqual(crs.GetLinearUnits(), 1.0)
+        self.assertEqual(crs.GetLinearUnitsName(), 'metre')
+        self.assertAlmostEqual(crs.GetAngularUnits(), 0.0174532925199433)
+        self.assertEqual(crs.ExportToProj4(), "+proj=utm +zone=55 +south +ellps=GRS80 " \
+             "+towgs84=0,0,0,0,0,0,0 +units=m +no_defs " )
+
+    def test_single_band_read(self):
+        acq = self.acqs[0]
+        band_data = acq.data()
+        self.assertEqual(band_data.shape, (9081, 9401))
+
+    def test_single_band_read_with_gridded_geo_box(self):
+        acq = self.acqs[0]
+        band_data, box = acq.data_and_box()
+        self.assertEqual(band_data.shape, (9081, 9401))
+        self.assertEqual(type(box), gaip.GriddedGeoBox)
+        self.assertEqual(box.origin, (644000.0, 6283000.0))
+        self.assertEqual(box.corner, (879025.0, 6055975.0))
+        self.assertEqual(box.shape, (9081, 9401))
+        self.assertEqual(box.pixelsize, (25.0, 25.0))
+
+#    def test_multi_band_read(self):
+#        bands = gaip.vstack_data(self.acqs)
+#        self.assertEqual(bands.shape, (7, 9081, 9401))
 
 
 
