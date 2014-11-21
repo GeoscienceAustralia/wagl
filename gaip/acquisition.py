@@ -2,7 +2,6 @@
 Core code.
 """
 import os
-import re
 import gaip
 import copy
 import json
@@ -28,11 +27,10 @@ with open(pjoin(dirname(__file__), 'sensors.json')) as fo:
 @total_ordering
 class Acquisition(object):
 
-    """Acquisition information.
-    """
+    """Acquisition metadata."""
 
     def __init__(self, metadata):
-        for k, v in metadata.iteritems():
+        for v in metadata.values():
             self.__dict__.update(v)
 
     def __eq__(self, other):
@@ -45,25 +43,29 @@ class Acquisition(object):
         return 'Acquisition(band_name=' + self.band_name + ')'
 
     def data(self):
+        """Return `numpy.array` of the data for this acquisition."""
         return gaip.data(self)
 
     def data_and_box(self):
+        """Return `numpy.array` of the data and the `GriddedGeoBox` 
+        for this acquisition."""
         return gaip.data_and_box(self)
 
     def gridded_geo_box(self):
+        """Return the `GriddedGeoBox` for this acquisition."""
         return gaip.gridded_geo_box(self)
 
 
-
-
-
 class LandsatAcquisition(Acquisition):
+
+    """A Landsat acquisition."""
 
     def __init__(self, metadata):
         super(LandsatAcquisition, self).__init__(metadata)
 
     @property
     def samples(self):
+        """The number of samples (aka. `height`)."""
         if self.band_type == REF:
             return self.product_samples_ref
         if self.band_type == THM:
@@ -73,6 +75,7 @@ class LandsatAcquisition(Acquisition):
 
     @property
     def lines(self):
+        """The number of lines."""
         if self.band_type == REF:
             return self.product_lines_ref
         if self.band_type == THM:
@@ -82,6 +85,7 @@ class LandsatAcquisition(Acquisition):
 
     @property
     def grid_cell_size(self):
+        """The resolution of the cell."""
         if self.band_type == REF:
             return self.grid_cell_size_ref
         if self.band_type == THM:
@@ -91,72 +95,82 @@ class LandsatAcquisition(Acquisition):
 
     @property
     def height(self):
+        """The height of the acquisition (aka. `samples`)."""
         return self.samples
 
     @property
     def width(self):
+        """The width of the acquisition (aka. `lines`)."""
         return self.lines
 
     @property
     def resolution(self):
+        """The resolution of the acquisition (aka. `grid_cell_size`)."""
         return self.grid_cell_size
 
     @property
     def scene_center_datetime(self):
-        return datetime.datetime.combine(self.acquisition_date, self.scene_center_time)
+        """The acquisition time."""
+        return datetime.datetime.combine(self.acquisition_date,
+                                         self.scene_center_time)
 
     @property
     def min_radiance(self):
+        """The minimum radiance (aka. `lmin`)."""
         return self.lmin
 
     @property
     def max_radiance(self):
+        """The maximum radiance (aka. `lmax`)."""
         return self.lmax
-
-    @property
-    def min_reflectance(self):
-        return getattr(self, 'qcalmin')
-
-    @property
-    def max_reflectance(self):
-        return getattr(self, 'qcalmax')
 
 
 class Landsat5Acquisition(LandsatAcquisition):
+
+    """ Landsat 5 acquisition. """
 
     def __init__(self, metadata):
         super(Landsat5Acquisition, self).__init__(metadata)
 
     @property
     def scene_center_time(self):
+        """The acquisition time."""
         return self.scene_center_scan_time
 
     @property
     def date_acquired(self):
+        """The acquisition time."""
         return self.acquisition_date
 
 
 class Landsat7Acquisition(LandsatAcquisition):
+
+    """ Landsat 7 acquisition. """
 
     def __init__(self, metadata):
         super(Landsat7Acquisition, self).__init__(metadata)
 
     @property
     def scene_center_time(self):
+        """The acquisition time."""
         return self.scene_center_scan_time
 
     @property
     def date_acquired(self):
+        """The acquisition time."""
         return self.acquisition_date
 
 
 class Landsat8Acquisition(LandsatAcquisition):
+
+    """ Landsat 8 acquisition. """
 
     def __init__(self, metadata):
         super(Landsat8Acquisition, self).__init__(metadata)
 
     @property
     def samples(self):
+        """The number of samples (aka. `height`)."""
         if self.band_type == REF:
             return self.reflective_samples
         if self.band_type == ATM:
@@ -168,6 +182,7 @@ class Landsat8Acquisition(LandsatAcquisition):
 
     @property
     def lines(self):
+        """The number of lines (aka. `width`)."""
         if self.band_type == REF:
             return self.reflective_lines
         if self.band_type == ATM:
@@ -179,6 +194,7 @@ class Landsat8Acquisition(LandsatAcquisition):
 
     @property
     def grid_cell_size(self):
+        """The resolution of the cell."""
         if self.band_type == REF:
             return self.grid_cell_size_reflective
         if self.band_type == ATM:
@@ -190,14 +206,17 @@ class Landsat8Acquisition(LandsatAcquisition):
 
     @property
     def acquisition_date(self):
+        """The acquisition time."""
         return self.date_acquired
 
     @property
     def min_radiance(self):
+        """The minimum radiance."""
         return getattr(self, 'radiance_minimum')
 
     @property
     def max_radiance(self):
+        """The minimum radiance."""
         return getattr(self, 'radiance_maximum')
 
     @property
@@ -224,14 +243,17 @@ class Landsat8Acquisition(LandsatAcquisition):
 
     @property
     def min_reflectance(self):
+        """The minimum reflectance."""
         return getattr(self, 'reflectance_minimum')
 
     @property
     def max_reflectance(self):
+        """The maximum reflectance."""
         return getattr(self, 'reflectance_maximum')
 
     @property
     def zone_number(self):
+        """The UTM zone number."""
         return getattr(self, 'utm_zone')
 
 
@@ -245,7 +267,7 @@ ACQUISITION_TYPE = {
 def find_in(path, s):
     """Search through `path` and its children for the first occurance of a
     file with `s` in its name. Returns the path of the file or `None`. """
-    for root, dirs, files in os.walk(path):
+    for root, _, files in os.walk(path):
         for f in files:
             if s in f:
                 return os.path.join(root, f)
@@ -257,7 +279,7 @@ def acquisitions(path):
     can be a MTL file or a directory name. If `path` is a directory then the 
     MTL file will be search for in the directory and its children."""
 
-    if os.path.isdir(path):
+    if isdir(path):
         filename = find_in(path, 'MTL')
     else:
         filename = path
@@ -265,7 +287,6 @@ def acquisitions(path):
     if filename is None:
         raise OSError("Cannot find MTL file in %s" % path)
 
-    dirname = os.path.dirname(os.path.abspath(filename))
 
     data = gaip.load_mtl(filename)
     bandfiles = [k for k in data['PRODUCT_METADATA'].keys() if 'band' in k
@@ -275,7 +296,7 @@ def acquisitions(path):
     # We now create an acquisition object for each band and make the
     # parameters names nice.
 
-    acquisitions = []
+    acqs = []
     for band in bands:
 
         # create a new copy
@@ -285,19 +306,21 @@ def acquisitions(path):
         for kv in new.values():
             for k in kv.keys():
                 if band in k:
+                    # remove the values for the other bands
                     rm = [k.replace(band, b) for b in bands if b != band]
                     for r in rm:
                         try:
                             del kv[r]
                         except KeyError:
                             pass
-                    # replace name
+                    # rename old key to remove band information
                     newkey = k.replace(band, '').strip('_')
                     kv[newkey] = kv[k]
                     del kv[k]
 
         # set path
-        new['PRODUCT_METADATA']['dir_name'] = dirname
+        dir_name = os.path.dirname(os.path.abspath(filename))
+        new['PRODUCT_METADATA']['dir_name'] = dir_name
 
         # set band name and number
         new['PRODUCT_METADATA']['band_name'] = band
@@ -336,7 +359,6 @@ def acquisitions(path):
         except KeyError:
             acqtype = LandsatAcquisition
 
-        acquisitions.append(acqtype(new))
+        acqs.append(acqtype(new))
 
-    return sorted(acquisitions)
-
+    return sorted(acqs)
