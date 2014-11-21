@@ -168,6 +168,27 @@ class Landsat5AcquisitionTest(unittest.TestCase):
         self.assertEqual(self.acqs[0].min_reflectance, 1.0)
         self.assertEqual(self.acqs[0].max_reflectance, 255.0)
 
+    def test_lmin(self):
+        self.assertEqual(self.acqs[0].lmin, -1.520)
+
+    def test_lmax(self):
+        self.assertEqual(self.acqs[0].lmax, 193.0)
+
+    def test_qcalmin(self):
+        self.assertEqual(self.acqs[0].qcalmin, 1.0)
+
+    def test_qcalmax(self):
+        self.assertEqual(self.acqs[0].qcalmax, 255.0)
+
+    def test_zone_number(self):
+        self.assertEqual(self.acqs[0].zone_number, -55)
+
+    def test_sun_azimuth(self):
+        self.assertEqual(self.acqs[0].sun_azimuth, 51.1073225)
+
+    def test_sun_elevation(self):
+        self.assertEqual(self.acqs[0].sun_elevation, 28.704069)
+
 
 class Landsat7AcquisitionTest(unittest.TestCase):
 
@@ -249,6 +270,29 @@ class Landsat7AcquisitionTest(unittest.TestCase):
     def test_min_max_reflectance_band3(self):
         self.assertEqual(self.acqs[0].min_reflectance, 1.0)
         self.assertEqual(self.acqs[0].max_reflectance, 255.0)
+
+    def test_lmin(self):
+        self.assertEqual(self.acqs[0].lmin, -6.2)
+
+    def test_lmax(self):
+        self.assertEqual(self.acqs[0].lmax, 191.6)
+
+    def test_qcalmin(self):
+        self.assertEqual(self.acqs[0].qcalmin, 1.0)
+
+    def test_qcalmax(self):
+        self.assertEqual(self.acqs[0].qcalmax, 255.0)
+
+    def test_zone_number(self):
+        self.assertEqual(self.acqs[0].zone_number, -55)
+
+    def test_sun_azimuth(self):
+        self.assertEqual(self.acqs[0].sun_azimuth, 46.9270726)
+
+    def test_sun_elevation(self):
+        self.assertEqual(self.acqs[0].sun_elevation, 40.4612407)
+
+
 
 
 class Landsat8AcquisitionTest(unittest.TestCase):
@@ -334,6 +378,30 @@ class Landsat8AcquisitionTest(unittest.TestCase):
     def test_min_max_reflectance_band3(self):
         self.assertEqual(self.acqs[0].max_reflectance, 1.210700)
         self.assertEqual(self.acqs[0].min_reflectance, -0.099980)
+
+    def test_lmin(self):
+        self.assertEqual(self.acqs[0].lmin, -64.75256)
+
+    def test_lmax(self):
+        self.assertEqual(self.acqs[0].lmax, 784.11609)
+
+    def test_qcalmin(self):
+        self.assertEqual(self.acqs[0].qcalmin, 1)
+
+    def test_qcalmax(self):
+        self.assertEqual(self.acqs[0].qcalmax, 65535)
+
+    def test_zone_number(self):
+        self.assertEqual(self.acqs[0].zone_number, -55)
+
+    def test_sun_azimuth(self):
+        self.assertEqual(self.acqs[0].sun_azimuth, 50.86088724)
+
+    def test_sun_elevation(self):
+        self.assertEqual(self.acqs[0].sun_elevation, 52.25003864)
+
+
+
 
 
 class L1TDataTest(unittest.TestCase):

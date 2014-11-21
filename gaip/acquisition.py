@@ -98,19 +98,19 @@ class LandsatAcquisition(Acquisition):
 
     @property
     def min_radiance(self):
-        return getattr(self, 'lmin_' + self.band_name)
+        return self.lmin
 
     @property
     def max_radiance(self):
-        return getattr(self, 'lmax_' + self.band_name)
+        return self.lmax
 
     @property
     def min_reflectance(self):
-        return getattr(self, 'qcalmin_' + self.band_name)
+        return getattr(self, 'qcalmin')
 
     @property
     def max_reflectance(self):
-        return getattr(self, 'qcalmax_' + self.band_name)
+        return getattr(self, 'qcalmax')
 
 
 class Landsat5Acquisition(LandsatAcquisition):
@@ -185,19 +185,45 @@ class Landsat8Acquisition(LandsatAcquisition):
 
     @property
     def min_radiance(self):
-        return getattr(self, 'radiance_minimum_' + self.band_name)
+        return getattr(self, 'radiance_minimum')
 
     @property
     def max_radiance(self):
-        return getattr(self, 'radiance_maximum_' + self.band_name)
+        return getattr(self, 'radiance_maximum')
+
+    @property
+    def lmin(self):
+        """The spectral radiance that is scaled to QCALMIN in
+        watts/(meter squared * ster * micrometers). """
+        return getattr(self, 'radiance_minimum')
+
+    @property
+    def lmax(self):
+        """The spectral radiance that is scaled to QCALMAX in
+        watts/(meter squared * ster * micrometers). """
+        return getattr(self, 'radiance_maximum')
+
+    @property
+    def qcalmin(self):
+        """The minimum quantized calibrated pixel value."""
+        return getattr(self, 'quantize_cal_min')
+
+    @property
+    def qcalmax(self):
+        """The maximum quantized calibrated pixel value."""
+        return getattr(self, 'quantize_cal_max')
 
     @property
     def min_reflectance(self):
-        return getattr(self, 'reflectance_minimum_' + self.band_name)
+        return getattr(self, 'reflectance_minimum')
 
     @property
     def max_reflectance(self):
-        return getattr(self, 'reflectance_maximum_' + self.band_name)
+        return getattr(self, 'reflectance_maximum')
+
+    @property
+    def zone_number(self):
+        return getattr(self, 'utm_zone')
 
 
 ACQUISITION_TYPE = {
@@ -294,16 +320,31 @@ def acquisitions(path):
     data = load_mtl(filename)
     bandfiles = [k for k in data['PRODUCT_METADATA'].keys() if 'band' in k
                  and 'file_name' in k]
+    bands = [b.replace('file_name', '').strip('_') for b in bandfiles]
 
     # We now create an acquisition object for each band and make the
     # parameters names nice.
 
     acquisitions = []
-    for bandfile in bandfiles:
-        band = bandfile.replace('file_name', '').strip('_')
+    for band in bands:
 
         # create a new copy
         new = copy.deepcopy(data)
+
+        # remove unnecessary values
+        for kv in new.values():
+            for k in kv.keys():
+                if band in k:
+                    rm = [k.replace(band, b) for b in bands if b != band]
+                    for r in rm:
+                        try:
+                            del kv[r]
+                        except KeyError:
+                            pass
+                    # replace name
+                    newkey = k.replace(band, '').strip('_')
+                    kv[newkey] = kv[k]
+                    del kv[k]
 
         # set path
         new['PRODUCT_METADATA']['dir_name'] = dirname
@@ -316,31 +357,7 @@ def acquisitions(path):
         except ValueError:
             new['PRODUCT_METADATA']['band_num'] = None
 
-        # replace filename
         product = new['PRODUCT_METADATA']
-        filename = product[bandfile]
-        for k in product.keys():
-            if 'band' in k and 'file_name' in k:
-                product.pop(k, None)
-            product['file_name'] = filename
-
-        def replace_param(section_name):
-            try:
-                section = new[section_name]
-                for k in section.keys():
-                    if k.endswith(band):
-                        newkey = k.replace('_' + band, '')
-                        section[newkey] = section[k]
-                    elif k.startswith(band):
-                        newkey = k.replace(band + '_', '')
-                        section[newkey] = section[k]
-                    section.pop(k, None)
-            except KeyError:
-                pass
-
-        replace_param('PRODUCT_PARAMETERS')
-        replace_param('CORRECTIONS_APPLIED')
-
         spacecraft = product['spacecraft_id']
         sensor = product['sensor_id']
 
@@ -348,19 +365,19 @@ def acquisitions(path):
         db = SENSORS[spacecraft]
         for k, v in db.iteritems():
             if k is not 'sensors':
-                new['SPACECRAFT'][k] = v
+                new['SPACECRAFT'][str(k)] = v
 
         new['SENSOR_INFO'] = {}
         db = db['sensors'][sensor]
         for k, v in db.iteritems():
             if k is not 'bands':
-                new['SENSOR_INFO'][k] = v
+                new['SENSOR_INFO'][str(k)] = v
 
         bandname = band.replace('band', '').strip('_')
         new['BAND_INFO'] = {}
         db = db['bands'][bandname]
         for k, v in db.iteritems():
-            new['BAND_INFO'][k] = v
+            new['BAND_INFO'][str(k)] = v
         band_type = db['type_desc']
         new['BAND_INFO']['band_type'] = BAND_TYPE[band_type]
 
