@@ -1,10 +1,10 @@
 import os
 import subprocess
 
-def fast_read(origin_path, ssd_env_var='PBS_JOBFS'):
+def fast_read(origin_path, ssd_env_var='PBS_JOBFS', cache_scope=os.getpid()):
 
     """
-    Provide fasti, read-only access to the specified a file or directory
+    Provide fast, read-only access to the specified a file or directory
     (origin_path) by first copying data to solid state drive defined
     by the supplied enviroment variable PBS_JOBFS
 
@@ -14,6 +14,13 @@ def fast_read(origin_path, ssd_env_var='PBS_JOBFS'):
 
     If no SSD device is available (PBS_JOBSFS not defined) then
     no copy is performed and ssd_path == origin_path
+
+    The cached copy of the data is shared within the specified scope which 
+    defaults to the current process. Use:
+
+        path = fast_read(some_path, cache_scope=os.environ['PBS_JOBID'])
+
+    for a cache which operates across the current PBS job.
     """
 
     # origin must exist, if not then NO-OP and let the caller handle it
@@ -25,9 +32,8 @@ def fast_read(origin_path, ssd_env_var='PBS_JOBFS'):
         return origin_path
 
     # compute the path to the root of the cache on SSD
-#    print "env", os.environ[ssd_env_var]
-    cache_root = os.path.join(os.environ[ssd_env_var],'fast_read_cache',str(os.getpid()))
-#    print "cache_root=", cache_root
+    cache_root = os.path.join(os.environ[ssd_env_var], 'fast_read_cache', \
+        str(cache_scope))
     if not os.path.exists(cache_root):
         os.makedirs(cache_root)
 
@@ -36,37 +42,31 @@ def fast_read(origin_path, ssd_env_var='PBS_JOBFS'):
     ssd_path = os.path.abspath(ssd_path)
 
     # return it if already in cache
-#    print "ssd_path=", ssd_path
     if os.path.exists(ssd_path):
-        print "ssd_path exists"
         return ssd_path
 
-    # not there so copy it in 
+    # not there so copy it into the cache
 
     # first make the target directory
-    
     target_dir = os.path.dirname(ssd_path)
 
-#    print "target_dir=", target_dir
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
 
-    # now the cp command as a child process
-
+    # now copy the data to the cache
     recurse = ''
     if os.path.isdir(origin_path):
         recurse = '-r'
 
     cmd = "cp %s %s %s" % (recurse, origin_path, target_dir)
 
-    # print "executing ", cmd
+    # execute the copy in a child process
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     for line in p.stdout.readlines():
         pass
-        # print line,
     retval = p.wait()
 
-    # If we can't copy then use original file/dir in-situ 
+    # If we can't copy for ANY reason then use original file/dir in-situ 
     if retval != 0:
         return origin_path
 
