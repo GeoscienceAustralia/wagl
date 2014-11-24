@@ -148,6 +148,10 @@ class GriddedGeoBox(object):
     def getShapeYX(self):
         return self.shape
 
+    def transformPoint(self, transformation, point):
+        (x, y, z) = transformation.TransformPoint(point[0], point[1])
+        return (x, y)
+
     def copy(self, crs='EPSG:4326'):
         """
         Create a copy of this GriddedGeoBox transformed to the supplied
@@ -158,18 +162,14 @@ class GriddedGeoBox(object):
         newCrs = osr.SpatialReference()
         newCrs.SetFromUserInput(crs)
         old2New = osr.CoordinateTransformation(self.crs, newCrs)
-        newOrigin = transformPoint(old2New, self.origin)
-        newCorner = transformPoint(old2New, self.corner)
+        newOrigin = self.transformPoint(old2New, self.origin)
+        newCorner = self.transformPoint(old2New, self.corner)
         newPixelSize = tuple([
             abs((self.origin[0]-newCorner[0])/self.shape[0]),
             abs((self.origin[1]-newCorner[1])/self.shape[0])
             ])
 
         return GriddedGeoBox(self.shape, newOrigin, newPixelSize, crs=crs)
-
-    def transformPoint(transformation, point):
-        (x, y, z) = transformation.TransformPoint(point[0], point[1])
-        return (x, y)
 
     def __str__(self):
         return 'GriddedGeoBox(origin=%s,shape=%s,pixelsize=%s,crs: %s)' % (
@@ -242,10 +242,9 @@ class GriddedGeoBox(object):
             if to_map=True (Default).
         """
         if to_map:
-            x, y = xy*self.affine
             if centre:
-                x = x + (self.pixelsize[0] * 0.5)
-                y = y + (self.pixelsize[1] * 0.5)
+                xy = tuple(v + 0.5 for v in xy)
+            x, y = xy*self.affine
         else:
             inv = ~self.affine
             x, y = [int(v) for v in inv*xy]
@@ -275,6 +274,6 @@ class GriddedGeoBox(object):
         # Define the transform we are transforming to
         transform = osr.CoordinateTransformation(self.crs, to_crs)
 
-        x, y = transformPoint(transform, point)
+        x, y = self.transformPoint(transform, point)
 
         return (x, y)
