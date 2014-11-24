@@ -2,8 +2,8 @@
 
 from functools import partial
 
-import numpy
 import osr
+import numpy
 
 from gaip import interpolate_grid
 from gaip import write_img
@@ -165,6 +165,9 @@ def create_lon_lat_grids(geobox, lon_fname='LON.tif', lat_fname='LAT.tif',
     shape = geobox.getShapeYX()
 
     lon_arr = interpolate_array(shape, lon_func)
+
+    crs = geobox.crs.ExportToWkt()
+    transform = geobox.affine.to_gdal()
 
     if to_disk:
         lon_fname = os.path.join(work_dir, lon_fname)
