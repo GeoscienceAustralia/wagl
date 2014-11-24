@@ -3,6 +3,8 @@
 import rasterio
 from rasterio import Affine
 
+from GriddedGeoBox import GriddedGeoBox
+
 def write_img(array, filename, format='ENVI', geotransform=None, projection=None):
     """
     Writes a 2D/3D image to disk using rasterio.
@@ -155,7 +157,13 @@ def read_subset(fname, ULxy, URxy, LRxy, LLxy, bands=1):
         # Setup the new geotransform
         geot = (ULx, base_gt[1], base_gt[2], ULy, base_gt[4], base_gt[5])
 
-    return (subs, geot, prj)
+        # Get the x & y pixel resolution
+        res = src.res
+
+        geobox = GriddedGeoBox(shape=subs.shape, origin=(ULx, ULy),
+            pixelsize=res)
+
+    return (subs, geot, prj, geobox)
 
 
 def read_img(fname):
