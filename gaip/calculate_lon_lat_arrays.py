@@ -1,11 +1,92 @@
 #!/usr/bin/env python
 
+from functools import partial
+
 import numpy
+import osr
 
 from gaip import interpolate_grid
 from gaip import write_img
 
-def calculate_array(shape, eval_func, depth=7, dtype='float64'):
+GEOCRS = "WGS84"
+
+def get_lon_coordinate(x, y, geobox, geo_crs=None, centre=False):
+    """
+    Given an image/array x & y co-ordinate return the corresponding
+    longitude co-ordinate.
+
+    :param x:
+        An integer representing an image/array column coordinate.
+
+    :param y:
+        An integer representing an image/array row coordinate.
+
+    :param geobox:
+        An instance of a GriddedGeoBox object.
+
+    :param geo_crs:
+        An instance of a defined geographic osr.SpatialReference
+        object. If set to None (Default), then geo_crs will be set
+        to WGS84.
+
+    :param centre:
+        A boolean indicating whether or not the returned co-ordinate
+        should reference the centre of a pixel, in which case a 0.5
+        offset is applied in the x & y directions. Default is False.
+
+    :return:
+        A floating point value representing the longitude
+        co-ordinate.
+    """
+    if geo_crs is None:
+        sr = osr.SpatialReference()
+        sr.SetWellKnownGeogCS(GEOCRS)
+
+    xy = (x, y)
+    mapx, mapy = geobox.convert_coordinates(xy, to_map=True, centre=centre)
+    x = geobox.transform_coordinates((mapx, mapy), geo_crs)[0]
+
+    return x
+
+def get_lat_coordinate(x, y, geobox, geo_crs=None, centre=False):
+    """
+    Given an image/array x & y co-ordinate return the corresponding
+    latitude co-ordinate.
+
+    :param x:
+        An integer representing an image/array column coordinate.
+
+    :param y:
+        An integer representing an image/array row coordinate.
+
+    :param geobox:
+        An instance of a GriddedGeoBox object.
+
+    :param geo_crs:
+        An instance of a defined geographic osr.SpatialReference
+        object. If set to None (Default), then geo_crs will be set
+        to WGS84.
+
+    :param centre:
+        A boolean indicating whether or not the returned co-ordinate
+        should reference the centre of a pixel, in which case a 0.5
+        offset is applied in the x & y directions. Default is False.
+
+    :return:
+        A floating point value representing the latitude
+        co-ordinate.
+    """
+    if geo_crs is None:
+        sr = osr.SpatialReference()
+        sr.SetWellKnownGeogCS(GEOCRS)
+
+    xy = (x, y)
+    mapx, mapy = geobox.convert_coordinates(xy, to_map=True, centre=centre)
+    y = geobox.transform_coordinates((mapx, mapy), geo_crs)[1]
+
+    return y
+
+def interpolate_array(shape, eval_func, depth=7, dtype='float64'):
     """
     A general interface to interpolating co-ordinate arrays.
 
@@ -74,14 +155,16 @@ def create_lon_lat_grids(geobox, lon_fname='LON.tif', lat_fname='LAT.tif',
         the longitude and latitude arrays are returned as a tuple
         (longitude, latitude) 2D float64 NumPy arrays.
     """
-    # Define the transform funtions
-    lon_func = None
-    lat_func = None
 
-    lon_arr = calculate_array(shape, lon_func)
+    # Define the lon and lat transform funtions
+    lon_func = partial(get_lon_coordinate, geobox=geobox, centre=True)
+    lat_func = partial(get_lat_coordinate, geobox=geobox, centre=True)
 
     crs = geobox.crs.ExportToWkt()
     transform = geobox.affine.to_gdal()
+    shape = geobox.getShapeYX()
+
+    lon_arr = interpolate_array(shape, lon_func)
 
     if to_disk:
         lon_fname = os.path.join(work_dir, lon_fname)
@@ -89,7 +172,7 @@ def create_lon_lat_grids(geobox, lon_fname='LON.tif', lat_fname='LAT.tif',
             projection=crs)
         lon_arr = None
 
-    lat_arr = calculate_array(shape, lat_func)
+    lat_arr = interpolate_array(shape, lat_func)
 
     if to_disk:
         lat_fname = os.path.join(work_dir, lat_fname)
