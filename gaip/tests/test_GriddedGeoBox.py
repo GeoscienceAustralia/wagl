@@ -223,5 +223,71 @@ class TestGriddedGeoBox(unittest.TestCase):
                 self.fail("%s == %s" % (windowShape, flindersGGB.shape))
 
 
+    def test_convert_coordinate_to_map(self):
+        """
+        Test that an input image/array co-ordinate is correctly
+        converted to a map co-cordinate.
+        Simple case: The first pixel.
+        """
+        # get Land/Sea data file for this bounding box
+        utmZone = 56
+        utmDataPath = '/g/data/v10/eoancillarydata/Land_Sea_Rasters/WORLDzone%d.tif' % (utmZone,)
+
+        # read the data for the Flinders islet region
+        with rio.open(utmDataPath) as ds:
+
+            # get the gridded box for the full data extent
+            datasetGGB = GriddedGeoBox.from_dataset(ds)
+
+            xmap, ymap = datasetGGB.convert_coordinates((0,0))
+
+            self.assertTrue(datasetGGB.origin == (xmap, ymap))
+
+
+    def test_convert_coordinate_to_image(self):
+        """
+        Test that an input image/array co-ordinate is correctly
+        converted to a map co-cordinate.
+        Simple case: The first pixel.
+        """
+        # get Land/Sea data file for this bounding box
+        utmZone = 56
+        utmDataPath = '/g/data/v10/eoancillarydata/Land_Sea_Rasters/WORLDzone%d.tif' % (utmZone,)
+
+        # read the data for the Flinders islet region
+        with rio.open(utmDataPath) as ds:
+
+            # get the gridded box for the full data extent
+            datasetGGB = GriddedGeoBox.from_dataset(ds)
+
+            ximg, yimg = datasetGGB.convert_coordinates(datasetGGB.origin, to_map=False)
+
+            self.assertTrue((0, 0) == (ximg, yimg))
+
+
+    def test_convert_coordinate_to_map_offset(self):
+        """
+        Test that an input image/array co-ordinate is correctly
+        converted to a map co-cordinate using a pixel centre offset.
+        Simple case: The first pixel.
+        """
+        # get Land/Sea data file for this bounding box
+        utmZone = 56
+        utmDataPath = '/g/data/v10/eoancillarydata/Land_Sea_Rasters/WORLDzone%d.tif' % (utmZone,)
+
+        # read the data for the Flinders islet region
+        with rio.open(utmDataPath) as ds:
+
+            # get the gridded box for the full data extent
+            datasetGGB = GriddedGeoBox.from_dataset(ds)
+
+            xmap, ymap = datasetGGB.convert_coordinates((0,0), centre=True)
+
+            # Get the actual centre co-ordinate of the first pixel
+            xcentre, ycentre = datasetGGB.convert_coordinates((0.5, 0.5))
+
+            self.assertTrue((xcentre, ycentre) == (xmap, ymap))
+
+
 if __name__ == '__main__':
     unittest.main()
