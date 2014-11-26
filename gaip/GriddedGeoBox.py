@@ -130,11 +130,7 @@ class GriddedGeoBox(object):
         """
         self.pixelsize = pixelsize
         self.shape = tuple([int(v) for v in shape])
-        # the origin must be aligned with the grid
-        self.origin = tuple([
-            int(origin[0] / self.pixelsize[0]) * self.pixelsize[0],
-            int(origin[1] / self.pixelsize[1]) * self.pixelsize[1]
-            ])
+        self.origin = origin
         self.crs = osr.SpatialReference()
         if self.crs == self.crs.SetFromUserInput(crs):
             raise ValueError("Invalid crs: %s" % (crs, ))
@@ -268,12 +264,12 @@ class GriddedGeoBox(object):
         """
         if not isinstance(to_crs, osr.SpatialReference):
             err = 'Err: to_crs is not an instance of osr.SpatialReference: {}'
-            err.format(to_crs)
+            err = err.format(type(to_crs))
             raise TypeError(err)
 
         # Define the transform we are transforming to
         transform = osr.CoordinateTransformation(self.crs, to_crs)
 
-        x, y = self.transformPoint(transform, point)
+        x, y = self.transformPoint(transform, xy)
 
         return (x, y)
