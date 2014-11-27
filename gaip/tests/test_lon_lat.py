@@ -114,6 +114,13 @@ class TestLonLatArrays(unittest.TestCase):
         """
         Test that the interpolated longitude array has sensible
         values.
+
+        :notes:
+        The default image that is used is a 1000 by 1000. This might
+        be too small for a recursive depth of 7 (default within the
+        NBAR framework). As such a depth of 3 is used and produced
+        correct results. If a larger image is used, then the depth
+        level should probably be increased.
         """
         # Initialise the test data
         img, geobox = createTestImage()
@@ -145,9 +152,15 @@ class TestLonLatArrays(unittest.TestCase):
 
     def test_lat_array(self):
         """
-        
         Test that the interpolated latitude array has sensible
         values.
+
+        :notes:
+        The default image that is used is a 1000 by 1000. This might
+        be too small for a recursive depth of 7 (default within the
+        NBAR framework). As such a depth of 3 is used and produced
+        correct results. If a larger image is used, then the depth
+        level should probably be increased.
         """
         # Initialise the test data
         img, geobox = createTestImage()
