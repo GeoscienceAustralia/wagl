@@ -1,25 +1,26 @@
 #!/usr/bin/env python
 
 from functools import partial
+import os
 
-import osr
 import numpy
+import osr
 
-from gaip import interpolate_grid
+from EOtools.blrb import interpolate_grid
 from gaip import write_img
 
-GEOCRS = "WGS84"
+CRS = "EPSG:4326"
 
-def get_lon_coordinate(x, y, geobox, geo_crs=None, centre=False):
+def get_lon_coordinate(y, x, geobox, geo_crs=None, centre=False):
     """
-    Given an image/array x & y co-ordinate return the corresponding
-    longitude co-ordinate.
-
-    :param x:
-        An integer representing an image/array column coordinate.
+    Given an image/array y & x co-ordinate return the corresponding
+    longitude co-ordinate. The y, x style mimics Python indices.
 
     :param y:
         An integer representing an image/array row coordinate.
+
+    :param x:
+        An integer representing an image/array column coordinate.
 
     :param geobox:
         An instance of a GriddedGeoBox object.
@@ -39,8 +40,8 @@ def get_lon_coordinate(x, y, geobox, geo_crs=None, centre=False):
         co-ordinate.
     """
     if geo_crs is None:
-        sr = osr.SpatialReference()
-        sr.SetWellKnownGeogCS(GEOCRS)
+        geo_crs = osr.SpatialReference()
+        geo_crs.SetFromUserInput(CRS)
 
     xy = (x, y)
     mapx, mapy = geobox.convert_coordinates(xy, to_map=True, centre=centre)
@@ -48,16 +49,16 @@ def get_lon_coordinate(x, y, geobox, geo_crs=None, centre=False):
 
     return x
 
-def get_lat_coordinate(x, y, geobox, geo_crs=None, centre=False):
+def get_lat_coordinate(y, x, geobox, geo_crs=None, centre=False):
     """
     Given an image/array x & y co-ordinate return the corresponding
-    latitude co-ordinate.
-
-    :param x:
-        An integer representing an image/array column coordinate.
+    latitude co-ordinate. The y, x style mimics Python indices.
 
     :param y:
         An integer representing an image/array row coordinate.
+
+    :param x:
+        An integer representing an image/array column coordinate.
 
     :param geobox:
         An instance of a GriddedGeoBox object.
@@ -77,8 +78,8 @@ def get_lat_coordinate(x, y, geobox, geo_crs=None, centre=False):
         co-ordinate.
     """
     if geo_crs is None:
-        sr = osr.SpatialReference()
-        sr.SetWellKnownGeogCS(GEOCRS)
+        geo_crs = osr.SpatialReference()
+        geo_crs.SetFromUserInput(CRS)
 
     xy = (x, y)
     mapx, mapy = geobox.convert_coordinates(xy, to_map=True, centre=centre)
@@ -86,40 +87,8 @@ def get_lat_coordinate(x, y, geobox, geo_crs=None, centre=False):
 
     return y
 
-def interpolate_array(shape, eval_func, depth=7, dtype='float64'):
-    """
-    A general interface to interpolating co-ordinate arrays.
-
-    :param shape:
-        A tuple of 2 elements (y,x)  describing the array dimensions.
-
-    :param eval_func:
-        Co-ordinate location generation fuction.
-
-    :param depth:
-        The number of recursive bisections to be made. Default is 7.
-
-    :param dtype:
-        The datatype of the returned array. Default is float64.
-
-    :return:
-        A 2D NumPy array of type defined by the dtype keyword.
-    """
-    ndims = len(shape)
-    if len(ndims) != 2:
-        err = "Dimensions must be 2D; Received: {dims}".format(dims=ndims)
-        raise ValueError(err)
-
-    # Initialise the array to contain the result
-    array = numpy.zeros(shape, dtype=dtype)
-
-    interpolate_grid(depth=depth, origin=(0, 0), shape=shape,
-                     eval_func=eval_func, grid=array)
-
-    return array
-
-def create_lon_lat_grids(geobox, lon_fname='LON.tif', lat_fname='LAT.tif',
-    work_dir='', to_disk=True):
+def create_lon_lat_grids(geobox, depth=7, dtype='float64',
+    lon_fname='LON.tif', lat_fname='LAT.tif', work_dir='', to_disk=True):
     """
     Creates 2 by 2D NumPy arrays containing longitude and latitude
     co-ordinates for each array element.
@@ -160,14 +129,15 @@ def create_lon_lat_grids(geobox, lon_fname='LON.tif', lat_fname='LAT.tif',
     lon_func = partial(get_lon_coordinate, geobox=geobox, centre=True)
     lat_func = partial(get_lat_coordinate, geobox=geobox, centre=True)
 
+    # Get some basic info about the image
     crs = geobox.crs.ExportToWkt()
     transform = geobox.affine.to_gdal()
     shape = geobox.getShapeYX()
 
-    lon_arr = interpolate_array(shape, lon_func)
-
-    crs = geobox.crs.ExportToWkt()
-    transform = geobox.affine.to_gdal()
+    # Initialise the array to contain the result
+    lon_arr = numpy.zeros(shape, dtype=dtype)
+    interpolate_grid(depth=depth, origin=(0, 0), shape=shape,
+        eval_func=lon_func, grid=lon_arr)
 
     if to_disk:
         lon_fname = os.path.join(work_dir, lon_fname)
@@ -175,7 +145,9 @@ def create_lon_lat_grids(geobox, lon_fname='LON.tif', lat_fname='LAT.tif',
             projection=crs)
         lon_arr = None
 
-    lat_arr = interpolate_array(shape, lat_func)
+    lat_arr = numpy.zeros(shape, dtype=dtype)
+    interpolate_grid(depth=depth, origin=(0, 0), shape=shape,
+        eval_func=lat_func, grid=lat_arr)
 
     if to_disk:
         lat_fname = os.path.join(work_dir, lat_fname)
