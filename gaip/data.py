@@ -46,25 +46,45 @@ def gridded_geo_box(acq):
     with rasterio.open(pjoin(dirname, filename), 'r') as fo:
         return gaip.GriddedGeoBox.from_dataset(fo)
 
-def vstack_data(acqs):
-    # determine result shape (all acquistions must have the same shape)
-    stack_shape = (len(acqs), acqs[0].width, acqs[0].height)
-    stack = np.empty(stack_shape)
+def stack_data(acqs_list, filter=(lambda acq: True)):
+    """
+    Given a list of acquisitions, apply the supplied filter to select the
+    desired acquisitions and return the data from each acquisition
+    collected in a 3D numpy array (first index is the acquisition number).
 
-    # determine data type by reading a byte
+    :param acqs_list:
+        The list of acquisitions to consider
+
+    :param filter:
+        A function that takes a single acquisition and returns True if the
+        acquisition is to be selected for inclusion in the output
+
+    :return:
+        A tuple containing the list of selected acquisitions (possibly empty)
+        and a 3D numpy array (or None) containing the corresponding
+        acquisition data.
+    """
+
+    # get the subset of acquisitions required
+
+    acqs = [acq for acq in acqs_list if filter(acq)]
+    if len(acqs) == 0:
+       return acqs, None
+
+    # determine data type by reading the first band
 
     a = acqs[0].data()
 
     # create the result array, setting datatype based on source type
 
+    stack_shape = (len(acqs), acqs[0].width, acqs[0].height)
     stack = np.empty(stack_shape, type(a[0][0]))
-    
-    # read aquisitions into it
+    stack[0] = a
 
-    for i in range(0, stack_shape[0]):
-        print acqs[i].dir_name, acqs[i].file_name
+    # read remaining aquisitions into it
+
+    for i in range(1, stack_shape[0]):
         stack[i] = acqs[i].data()
 
-    return stack
-    
+    return acqs, stack
 
