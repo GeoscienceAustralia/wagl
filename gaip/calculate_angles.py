@@ -10,6 +10,7 @@ from ULA3.set_satmod import set_satmod
 from ULA3.set_times import set_times
 from ULA3.angle_all import angle
 
+from gaip import acquisitions
 from gaip import find_file
 from gaip import read_img
 
@@ -21,6 +22,12 @@ def sat_sol_grid_workflow(L1T_path, work_path):
     """
     # Retrieve an acquisitions object
     acqs = acquisitions(L1T_path)
+
+    # Get the datetime of acquisition
+    acqs[0].scene_center_datetime
+
+    # create the geo_box
+    geobox = gridded_geo_box(acqs[0])
 
     # Find and open the longitude and lattitude files
     # Avoiding DataManger here. find_file will be used sparingly until a proper
@@ -54,7 +61,7 @@ def sat_sol_grid_workflow(L1T_path, work_path):
     # Get the angles, time, & satellite track coordinates
     (satellite_zenith, satellite_azimuth, solar_zenith,
      solar_azimuth, relative_azimuth, time,
-     Y_cent, X_cent, N_cent) = calculate_angles(acqs, lon_fname
+     Y_cent, X_cent, N_cent) = calculate_angles(Datetime, geobox, lon_fname
         lat_fname, npoints=12, to_disk=out_fnames)
 
     # Write out the CENTRELINE file
@@ -345,7 +352,7 @@ def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, npoints=12):
     return track
 
 
-def calculate_angles(scene_dataset, lon_fname, lat_fname, npoints=12,
+def calculate_angles(Datetime, geobox, lon_fname, lat_fname, npoints=12,
         to_disk=None):
     """
     Calcualte the satellite view, satellite azimuth, solar zenith,
@@ -353,8 +360,12 @@ def calculate_angles(scene_dataset, lon_fname, lat_fname, npoints=12,
     time grid. All grids are output as float32 ENVI files.
     The CENTRELINE is also calculated and output to disk.
 
-    :param scene_dataset:
-        An object based on the SceneDataset Class.
+    :param Datetime:
+        A Python datetime object containing the the date & time
+        of the acquisition.
+
+    :param geobox:
+        A GriddedGeoBox object.
 
     :param lon_fname:
         A string containing the full file path name to the location
@@ -404,20 +415,19 @@ def calculate_angles(scene_dataset, lon_fname, lat_fname, npoints=12,
     """
 
     # Image projection, geotransform and scene centre time stamp
-    prj = scene_dataset.GetProjection()
-    geoT = scene_dataset.GetGeoTransform()
-    centre_datetime = scene_dataset.scene_centre_datetime
+    prj = geobox.crs.ExportToWkt()
+    geoT = geobox.affine.to_gdal()
 
     # Get the lat/lon of the scene centre
     centre_xy = numpy.array(scene_dataset.lonlats['CENTRE'])
 
     # Get the earth spheroidal paramaters
-    spheroid = setup_spheroid(scene_dataset.GetProjection())
+    spheroid = setup_spheroid(prj)
 
     # Get the satellite orbital elements
     tle_dir = '/g/data1/v10/eoancillarydata/sensor-specific'
-    sat_ephemeral = scene_dataset.satellite.load_tle(centre_datetime, tle_dir)
-    orbital_elements = setup_orbital_elements(sat_ephemeral, centre_datetime)
+    sat_ephemeral = scene_dataset.satellite.load_tle(Datetime, tle_dir)
+    orbital_elements = setup_orbital_elements(sat_ephemeral, Datetime)
 
     # Min and Max lat extents
     lat_min_max = scene_dataset.get_bounds()[1]
@@ -426,7 +436,7 @@ def calculate_angles(scene_dataset, lon_fname, lat_fname, npoints=12,
     hours = scene_dataset.decimal_hour
 
     # Calculate the julian century past JD2000
-    century = calculate_julian_century(centre_datetime)
+    century = calculate_julian_century(Datetime)
 
     # Need something to determine max satellite view angle
     # Currently not even used in Fuqin's code
