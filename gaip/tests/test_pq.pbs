@@ -23,10 +23,9 @@ mkdir -p ${OUTPUT_ROOT}/logs
 
 
 # override the image_processor so we get out code
-#export PYTHONPATH=.:/home/547/smr547/ga-neo-landsat-processor:$PYTHONPATH
-export PYTHONPATH=.:$PYTHONPATH
+export PYTHONPATH=.:/home/547/smr547/ga-neo-landsat-processor:$PYTHONPATH
 
-python ./pq.py PixelQualityTask --local-scheduler \
+python ../pq.py PixelQualityTask --local-scheduler \
 --nbar-path /g/data1/rs0/scenes/ARG25_V0.0/2009-01/LS5_TM_NBAR_P54_GANBAR01-002_092_086_20090115 \
 --l1t-path /g/data/v10/L1/2009-01/LS5_TM_OTH_P51_GALPGS01-002_092_086_20090115 \
 --pq-path ${OUTPUT_ROOT}/output/LS5_TM_NBAR_P54_GAPQ01-002_092_086_20090115 \

@@ -2,6 +2,7 @@
 Core code.
 """
 import os
+import re
 import gaip
 import copy
 import json
@@ -273,8 +274,86 @@ def find_in(path, s, suffix='txt'):
                 return os.path.join(root, f)
     return None
 
+def find_all_in(path, s):
+    """
+    Search through `path` and its children for all occurances of 
+    files with `s` in their name. Returns the (possibly empty) list of file paths
+    """
+    result = []
+    for root, _, files in os.walk(path):
+        for f in files:
+            if s in f:
+                result.append(os.path.join(root, f))
+    return result
+
 
 def acquisitions(path):
+    """
+    Return a list of Acquisition objects from `path`. The argument `path`
+    can be a MTL file or a directory name. 
+
+    If `path` is a directory will be searched to find an MTL file. If this 
+    search fails the directory will be searched for a collection of GeoTiff 
+    files.
+
+    The search will include the `path` directory and its children.
+    """
+
+    try:
+        acqs = acquisitions_via_MTL(path)
+    except OSError:
+        acqs = acquisitions_via_geotiff(path)
+
+    return acqs
+
+def acquisitions_via_geotiff(path):
+    """
+    Collect all the GeoTiffs in the supplied directory path and return as
+    a list of Acquisitions. Acquisition properties are extracted from the
+    filename.
+    """
+    NAME_PATTERN = '(?P<spacecraft_id>LS\d)_(?P<sensor_id>\w+)_(?P<product_type>\w+)' \
+        '_(?P<product_id>P\d+)_GA(?P<product_code>.*)-(?P<station_id>\d+)_' \
+        '(?P<wrs_path>\d+)_(?P<wrs_row>\d+)_(?P<acquisition_date>\d{8})_' \
+        'B(?P<band_num>\d{2})\.tif'
+
+    acqs = []
+    if isdir(path):
+        p = re.compile(NAME_PATTERN)
+        for tif_path in find_all_in(path, 'tif'):
+            dir_name, file_name = os.path.split(tif_path)
+            match_obj = p.match(file_name)
+            if match_obj is not None:
+                md = match_obj.groupdict()
+ 
+                # normalise the band number
+
+                bn = int(md['band_num'])
+                if bn % 10 == 0:
+                    bn = bn / 10
+                md['band_num'] = bn
+
+                # convert acquisition_date to a datetime
+
+                ad = md['acquisition_date']
+                md['acquisition_date'] = datetime.datetime(int(ad[0:4]), int(ad[4:6]), \
+                    int(ad[6:8]))
+
+                # band_name is required
+
+                md['band_name'] = 'band%d' % (bn, )
+
+                # file and directory name
+
+                md['dir_name'] = dir_name
+                md['file_name'] = file_name
+
+                # create the Acquisition
+                acqs.append(Acquisition({'md':md}))
+
+    return sorted(acqs)
+
+def acquisitions_via_MTL(path):
     """Obtain a list of Acquisition objects from `path`. The argument `path`
     can be a MTL file or a directory name. If `path` is a directory then the 
     MTL file will be search for in the directory and its children."""

@@ -65,20 +65,24 @@ def stack_data(acqs_list, filter=(lambda acq: True)):
         acquisition is to be selected for inclusion in the output
 
     :return:
-        A tuple containing the list of selected acquisitions (possibly empty)
-        and a 3D numpy array (or None) containing the corresponding
-        acquisition data.
+        A 3-tuple containing
+            1: the list of selected acquisitions (possibly empty)
+            2: a 3D numpy array (or None) containing the corresponding
+               acquisition data. (None if no data)
+            3: A GriddedGeoBox instance specifying the spatial context
+               or the 3D numpy array. Note: All Acquisitions share the
+               same GriddedGeoBox
     """
 
     # get the subset of acquisitions required
 
     acqs = [acq for acq in acqs_list if filter(acq)]
     if len(acqs) == 0:
-       return acqs, None
+       return acqs, None, None
 
     # determine data type by reading the first band
 
-    a = acqs[0].data()
+    a, geo_box = acqs[0].data_and_box()
 
     # create the result array, setting datatype based on source type
 
@@ -91,7 +95,7 @@ def stack_data(acqs_list, filter=(lambda acq: True)):
     for i in range(1, stack_shape[0]):
         stack[i] = acqs[i].data()
 
-    return acqs, stack
+    return acqs, stack, geo_box
 
 
 def write_img(array, filename, format='ENVI', geobox=None):

@@ -2,16 +2,18 @@ import os
 import numpy
 import logging
 from osgeo import gdal
+from gaip import GriddedGeoBox
 
-def calc_land_sea_mask(image_stack, input_dataset, ancillary_path):
+def calc_land_sea_mask(gridded_geo_box, utm_zone, ancillary_path):
     """
     Creates a Land/Sea mask.
 
-    :param image_stack:
-        An ordered array of all bands.
+    :param gridded_geo_box:
+        An instance of GriddedGeoBox prescribing the spatial properties
+        of the pixel quality mask.
 
-    :param input_dataset:
-        A 2D Numpy array of the Land/Sea file.
+    :param utm_zone:
+        The UTM_ZONE for this mask.
 
     :param ancillary_path:
         Path to land/sea ancillary data directory
@@ -23,83 +25,47 @@ def calc_land_sea_mask(image_stack, input_dataset, ancillary_path):
         Josh Sixsmith, joshua.sixsmith@ga.gov.au
     """
 
-    def img2map(geoTransform, pixel):
-        """
-        Converts a pixel (image) co-ordinate into a map co-ordinate.
-
-        :param geoTransform:
-            The Image co-ordinate information (upper left coords, offset
-            and pixel sizes)
-
-        :param pixel:
-            A tuple containg the y and x image co-ordinates.
-
-        :return:
-            A tuple containg the x and y map co-ordinates.
-        """
-
-        mapx = pixel[1] * geoTransform[1] + geoTransform[0]
-        mapy = geoTransform[3] - (pixel[0] * (numpy.abs(geoTransform[5])))
-
-        return (mapx,mapy)
-
-    def map2img(geoTransform, location):
-        """
-        Converts a map co-ordinate into a pixel (image) co-ordinate.
-
-        :param geoTransform:
-            The Image co-ordinate information (upper left coords, offset
-            and pixel sizes)
-
-        :param location:
-            A tuple containg the x and y map co-ordinates.
-
-        :return:
-            A tuple containg the y and x image co-ordinates.
-        """
-
-        imgx = int(numpy.round((location[0] - geoTransform[0])/geoTransform[1]))
-        imgy = int(numpy.round((geoTransform[3] - location[1])/numpy.abs(geoTransform[5])))
-        return (imgy,imgx)
-
-
-    rasfile = os.path.join(ancillary_path, 'WORLDzone%02d.tif' % input_dataset.zone)
+    rasfile = os.path.join(ancillary_path, 'WORLDzone%02d.tif' % abs(utm_zone))
     assert os.path.exists(rasfile), 'ERROR: Raster File Not Found (%s)' % rasfile
 
-    prj = input_dataset.GetProjection()
-    geoTransform = input_dataset.GetGeoTransform()
-
-    if prj == None: raise Exception('Image projection Infomation is needed')
-    if geoTransform == None: raise Exception('Image geotransformation Info is needed')
-
-    dims = image_stack.shape
-    if len(dims) >2:
-        ncols = dims[2]
-        nrows = dims[1]
-        dims  = (nrows,ncols)
+    # open the land/sea data file
 
     lsobj   = gdal.Open(rasfile, gdal.gdalconst.GA_ReadOnly)
-    ls_geoT = lsobj.GetGeoTransform()
+    land_sea_geo_box = GriddedGeoBox.from_gdal_dataset(lsobj)
+    print "shape=%s" % (str(gridded_geo_box.shape), )
 
-    # Convert the images' image co-ords into map co-ords
-    mUL = img2map(geoTransform=geoTransform, pixel=(0,0))
-    mLR = img2map(geoTransform=geoTransform, pixel=(dims[0],dims[1]))
+    affine = gridded_geo_box.affine
+    mUL = (0, 0) * affine
+    mLR = gridded_geo_box.shape * affine
+
+    print "mUL=%s" % (str(mUL), )
+    print "mLR=%s" % (str(mLR), )
 
     # Convert the map co-ords into the rasfile image co-ords
-    iUL = map2img(geoTransform=ls_geoT, location=mUL)
-    iLR = map2img(geoTransform=ls_geoT, location=mLR)
 
-    xoff = iUL[1]
-    yoff = iUL[0]
-    xsize = iLR[1] - xoff
-    ysize = iLR[0] - yoff
+    affine = ~ land_sea_geo_box.affine
+    iUL = mUL * affine
+    iLR = mLR * affine
+    print "iUL=%s" % (str(iUL), )
+    print "iLR=%s" % (str(iLR), )
+
+    xoff = int(iUL[1])
+    yoff = int(iUL[0])
+    xsize = int(iLR[1] - xoff)
+    ysize = int(iLR[0] - yoff)
+    print "xoff=%s" % (str(xoff), )
+    print "yoff=%s" % (str(yoff), )
+    print "xsize=%s" % (str(xsize), )
+    print "ysize=%s" % (str(ysize), )
 
     # Read in the land/sea array
     ls_arr = lsobj.ReadAsArray(xoff, yoff, xsize, ysize)
+    lsobj.FlushCache()
+    lsobj = None
 
     return (ls_arr.astype('bool'))
 
-def setLandSeaBit(l1t_data, l1t_dataset, ancillary_path, pq_const, pqaResult):
-    mask = calc_land_sea_mask(l1t_data, l1t_dataset, ancillary_path)
+def setLandSeaBit(gridded_geo_box, utm_zone, ancillary_path, pq_const, pqaResult):
+    mask = calc_land_sea_mask(gridded_geo_box, utm_zone, ancillary_path)
     bit_index = pq_const.land_sea
     pqaResult.set_mask(mask, bit_index)
