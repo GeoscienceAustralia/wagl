@@ -8,23 +8,32 @@ import numpy
 import numpy.testing as npt
 
 from EOtools.DatasetDrivers import SceneDataset
-from gaip import calculate_angles as ca
 
+from gaip import acquisitions
+from gaip import calculate_angles as ca
 from gaip import find_file
 from gaip import read_img
 from gaip import write_img
 from unittesting_tools import ParameterisedTestCase
 
 
-def compute_angles(scene_dataset, lon_array, lat_array, npoints=12):
+def compute_angles(L1T_path, lon_fname, lat_fname, npoints=12):
     """
     Creates the satellite and solar angle arrays as well as the time
     array.
     """
+    # Retrieve an acquisitions object
+    acqs = acquisitions(L1T_path)
+
+    # Get the datetime of acquisition
+    acqs[0].scene_center_datetime
+
+    # create the geo_box
+    geobox = gridded_geo_box(acqs[0])
+
     # Get the array dimensions
-    dims = lon_array.shape
-    cols = dims[1]
-    rows = dims[0]
+    cols = acqs[0].samples
+    rows = acqs[0].lines
 
     # Initialise the satellite maximum view angle
     view_max = 9.0
@@ -43,8 +52,8 @@ def compute_angles(scene_dataset, lon_array, lat_array, npoints=12):
     # Get the angles, time, & satellite track coordinates
     (satellite_zenith, satellite_azimuth, solar_zenith, 
      solar_azimuth, relative_azimuth, time,
-     Y_cent, X_cent, N_cent) = ca.calculate_angles(scene_dataset, lon_array,
-                                   lat_array, npoints=12, to_disk=out_fnames)
+     Y_cent, X_cent, N_cent) = ca.calculate_angles(Datetime, geobox, lon_fname,
+                                   lat_fname, npoints=12, to_disk=out_fnames)
 
     print "Writing out the centreline file"
     # Write the centreline to disk
@@ -499,18 +508,12 @@ if __name__ == '__main__':
         # Change to the output directory that will contain the results
         os.chdir(outdir)
 
-        # Open the L1T dataset
-        ds = SceneDataset(L1T_dir)
-
         # Find and open the longitude and lattitude files
         lon_fname = find_file(nbar_work_dir, 'LON.tif')
         lat_fname = find_file(nbar_work_dir, 'LAT.tif')
 
-        lon_arr = read_img(lon_fname)
-        lat_arr = read_img(lat_fname)
-
         print "Computing satellite & solar angle grids."
-        compute_angles(ds, lon_arr, lat_arr)
+        compute_angles(L1T_dir, lon_fname, lat_fname)
 
         # Change back to the original directory
         os.chdir(cwd)

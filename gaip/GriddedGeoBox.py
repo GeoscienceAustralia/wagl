@@ -8,6 +8,9 @@ import osr
 
 from affine import Affine
 
+# WGS84
+CRS = "EPSG:4326"
+
 class GriddedGeoBox(object):
 
     """
@@ -273,3 +276,102 @@ class GriddedGeoBox(object):
         x, y = self.transformPoint(transform, xy)
 
         return (x, y)
+
+    @property
+    def ul(self):
+        """
+        Return the upper left corner co-ordinate in the units
+        defined by the geobox's co-ordinate reference frame.
+        """
+        return self.origin
+
+    @property
+    def ur(self):
+        """
+        Return the upper right corner co-ordinate in the units
+        defined by the geobox's co-ordinate reference frame.
+        """
+        ur  = self.convert_coordinates((self.shape[1], 0))
+        return ur
+
+    @property
+    def lr(self):
+        """
+        Return the lower right corner co-ordinate in the units
+        defined by the geobox's co-ordinate reference frame.
+        """
+        return self.corner
+
+    @property
+    def ll(self):
+        """
+        Return the lower left corner co-ordinate in the units
+        defined by the geobox's co-ordinate reference frame.
+        """
+        ll = self.convert_coordinates((0, self.shape[0]))
+        return ll
+
+    @property
+    def centre(self):
+        """
+        Return the centre co-ordinate in the units defined by the
+        geobox's co-ordinate reference frame.
+        """
+        x = (self.ul[0] + self.ur[0] + self.lr[0] + self.ll[0]) / 4.0
+        y = (self.ul[1] + self.ur[1] + self.lr[1] + self.ll[1]) / 4.0
+        return (x, y)
+
+    @property
+    def ul_lonlat(self):
+        """
+        Return the upper left corner co-ordinate in geographical
+        longitude and latitude degrees based on the WGS84 datum.
+        """
+        sr = osr.SpatialReference()
+        sr.SetFromUserInput(CRS)
+        ul = self.transform_coordinates(self.origin, sr)
+        return ul
+
+    @property
+    def ur_lonlat(self):
+        """
+        Return the upper right corner co-ordinate in geographical
+        longitude and latitude degrees based on the WGS84 datum.
+        """
+        sr = osr.SpatialReference()
+        sr.SetFromUserInput(CRS)
+        ur  = self.transform_coordinates(self.ur, sr)
+        return ur
+
+    @property
+    def lr_lonlat(self):
+        """
+        Return the lower right corner co-ordinate in geographical
+        longitude and latitude degrees based on the WGS84 datum.
+        """
+        sr = osr.SpatialReference()
+        sr.SetFromUserInput(CRS)
+        lr  = self.transform_coordinates(self.corner, sr)
+        return lr
+
+    @property
+    def ll_lonlat(self):
+        """
+        Return the lower left corner co-ordinate in geographical
+        longitude and latitude degrees based on the WGS84 datum.
+        """
+        sr = osr.SpatialReference()
+        sr.SetFromUserInput(CRS)
+        ll = self.transform_coordinates(self.ll, sr)
+        return ll
+
+    @property
+    def centre_lonlat(self):
+        """
+        Return the centre co-ordinate in geographical longitude
+        and latitude degrees based on the WGS84 datum.
+        """
+        sr = osr.SpatialReference()
+        sr.SetFromUserInput(CRS)
+        centre = self.transform_coordinates(self.centre, sr)
+        return centre
