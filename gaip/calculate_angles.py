@@ -112,7 +112,7 @@ def create_centreline_file(y, x, n, cols, view_max, outdir, outfname='CENTRELINE
     outf.write('%i      %i\n' %(rows, cols))
 
     for r in range(rows):
-        outf.write('%i      %i       %f     %f     %f\n'%(y[r], x[r], n[r], n[r], n[r]))
+        outf.write('%i      %i       %f\n'%(y[r], x[r], n[r]))
 
     outf.close()
 
