@@ -11,13 +11,14 @@ from EOtools.DatasetDrivers import SceneDataset
 
 from gaip import acquisitions
 from gaip import calculate_angles as ca
+from gaip import create_centreline_file 
 from gaip import find_file
 from gaip import read_img
 from gaip import write_img
 from unittesting_tools import ParameterisedTestCase
 
 
-def compute_angles(L1T_path, lon_fname, lat_fname, npoints=12):
+def compute_angles(L1T_path, lon_fname, lat_fname, work_path='', npoints=12):
     """
     Creates the satellite and solar angle arrays as well as the time
     array.
@@ -39,12 +40,12 @@ def compute_angles(L1T_path, lon_fname, lat_fname, npoints=12):
     view_max = 9.0
 
     # Define the output file names
-    sat_view_zenith_fname  = 'SAT_V.bin'
-    sat_azimuth_fname      = 'SAT_AZ.bin'
-    solar_zenith_fname     = 'SOL_Z.bin'
-    solar_azimuth_fname    = 'SOL_AZ.bin'
-    relative_azimuth_fname = 'REL_AZ.bin'
-    time_fname             = 'TIME.bin'
+    sat_view_zenith_fname  = os.path.join(work_path, 'SAT_V.bin')
+    sat_azimuth_fname      = os.path.join(work_path, 'SAT_AZ.bin')
+    solar_zenith_fname     = os.path.join(work_path, 'SOL_Z.bin')
+    solar_azimuth_fname    = os.path.join(work_path, 'SOL_AZ.bin')
+    relative_azimuth_fname = os.path.join(work_path, 'REL_AZ.bin')
+    time_fname             = os.path.join(work_path, 'TIME.bin')
 
     out_fnames = [sat_view_zenith_fname, sat_azimuth_fname, solar_zenith_fname,
                   solar_azimuth_fname, relative_azimuth_fname, time_fname]
@@ -53,18 +54,12 @@ def compute_angles(L1T_path, lon_fname, lat_fname, npoints=12):
     (satellite_zenith, satellite_azimuth, solar_zenith, 
      solar_azimuth, relative_azimuth, time,
      Y_cent, X_cent, N_cent) = ca.calculate_angles(Datetime, geobox, lon_fname,
-                                   lat_fname, npoints=12, to_disk=out_fnames)
+         lat_fname, npoints=npoints, to_disk=out_fnames)
 
     print "Writing out the centreline file"
-    # Write the centreline to disk
-    outf = open('CENTRELINE', 'w')
-
-    outf.write('%f\n'%view_max)
-    outf.write('%i, %i\n'%(rows, cols))
-    for r in range(rows):
-        outf.write('%i, %i, %f\n'%(Y_cent[r], X_cent[r], N_cent[r]))
-
-    outf.close()
+    # Write out the CENTRELINE file
+    create_centreline_file(Y_cent, X_cent, N_cent, cols, view_max=9.0,
+                           outdir=work_path)
 
 
 class TestAngleFilenames(ParameterisedTestCase):
