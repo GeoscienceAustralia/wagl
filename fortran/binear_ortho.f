@@ -181,7 +181,7 @@ c       read header of center line
 c       calculate bilinear coefficients for four box
         do i=1,nrow
           read (3,*)line,istart,iend
-          read (4,*)line,icenter,clat,clon
+          read (4,*)line,icenter
 
           do j=1,ncol
             jj=j-istart+1
