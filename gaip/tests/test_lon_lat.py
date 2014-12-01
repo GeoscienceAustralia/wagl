@@ -82,7 +82,7 @@ def createTestImage(dimensions=(1000,1000), geotransform=None,
 
     return (img, geobox)
 
-def randomPixelLocations(dimensions, nPixels=10):
+def randomPixelLocations(dimensions, nPixels=100):
     """
     Given a tuple of (y, x) dimensions, generate a random index of
     pixel locations.
@@ -96,6 +96,7 @@ def randomPixelLocations(dimensions, nPixels=10):
 
     :param nPixels:
         An integer representing the desired number of random pixels.
+        Default is 100 pixels.
 
     :return:
         A tuple of (y, x) where both y & x are 1D NumPy arrays.
@@ -191,10 +192,5 @@ class TestLonLatArrays(unittest.TestCase):
             decimal=6))
 
 if __name__ == '__main__':
-    fname = '/g/data1/v10/NBAR_validation_reference/Nov2013/NBAR/LS5_90-84_1996-08-25/UTM/output/LS5_TM_NBAR_P54_GANBAR01-002_090_084_19960825/scene01/LS5_TM_NBAR_P54_GANBAR01-002_090_084_19960825_B40.tif'
-    ds = rasterio.open(fname)
-    geobox = GriddedGeoBox.from_rio_dataset(ds)
-    outdir = '/g/data1/v10/testing_ground/jps547/test_lon_lat'
-    create_lon_lat_grids(geobox, work_dir=outdir, lon_fname='LON_new2.tif', lat_fname='LAT_new2.tif')
     unittest.main()
 
