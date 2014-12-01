@@ -14,6 +14,7 @@ from gaip import acquisitions
 from gaip import find_file
 from gaip import read_img
 
+CRS = "EPSG:4326"
 
 # To be used as a template while gaip is restructured
 def sat_sol_grid_workflow(L1T_path, work_path):
@@ -65,12 +66,16 @@ def sat_sol_grid_workflow(L1T_path, work_path):
         lat_fname, npoints=12, to_disk=out_fnames)
 
     # Write out the CENTRELINE file
-    create_centreline_file(Y_cent, X_cent, N_cent, cols, view_max=9.0,
+    create_centreline_file(geobox, Y_cent, X_cent, N_cent, cols, view_max=9.0,
                            outdir=work_path)
 
 
-def create_centreline_file(y, x, n, cols, view_max, outdir, outfname='CENTRELINE'):
+def create_centreline_file(geobox, y, x, n, cols, view_max, outdir,
+        outfname='CENTRELINE'):
     """
+    :param geobox:
+        An instance of a GriddedGeoBox object.
+
     :param y:
         A 1D NumPy array of type int with the same shape as x & n.
         Details the row number starting at 1.
@@ -102,17 +107,28 @@ def create_centreline_file(y, x, n, cols, view_max, outdir, outfname='CENTRELINE
 
     rows = y.shape[0]
 
+    # Define the TO_CRS for lon & lat outputs
+    sr = osr.SpatialReference()
+    sr.SetFromUserInput(CRS)
+
     # I'm not sure of the formatting used by FORTRAN, nothing was specified
     # but the outputs had spaces.
     # It might be more ideal to create it as a csv???
     fname = os.path.join(outdir, outfname)
     outf  = open(fname, 'w')
 
-    outf.write('%f\n' %view_max)
-    outf.write('%i      %i\n' %(rows, cols))
+    # Right justified with length of 14 per item
+    outf.write('{view_max:>14}\n'.format(view_max=view_max)
+    outf.write('{rows:>14}{cols:>14}\n'.format(rows=rows, cols=cols))
 
     for r in range(rows):
-        outf.write('%i      %i       %f\n'%(y[r], x[r], n[r]))
+        # We offset by -1 to get the zero based col and row id
+        mapXY = geobox.convert_coordinates((x[r]-1, y[r]-1))
+        lon, lat = geobox.transform_coordinates(mapXY, to_crs=sr)
+        # Right justified at various lengths
+        msg = '{row:>14}{col:>14}{n:>14}{lat:>21}{lon:>21}\n'
+        msg = msg.format(row=y[r], col=x[r], n=n[r], lat=lat, lon=lon)
+        outf.write(msg)
 
     outf.close()
 
