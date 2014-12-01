@@ -58,7 +58,7 @@ def compute_angles(L1T_path, lon_fname, lat_fname, work_path='', npoints=12):
 
     print "Writing out the centreline file"
     # Write out the CENTRELINE file
-    create_centreline_file(Y_cent, X_cent, N_cent, cols, view_max=9.0,
+    create_centreline_file(geobox, Y_cent, X_cent, N_cent, cols, view_max=9.0,
                            outdir=work_path)
 
 
