@@ -264,12 +264,12 @@ ACQUISITION_TYPE = {
 }
 
 
-def find_in(path, s):
+def find_in(path, s, suffix='txt'):
     """Search through `path` and its children for the first occurance of a
     file with `s` in its name. Returns the path of the file or `None`. """
     for root, _, files in os.walk(path):
         for f in files:
-            if s in f:
+            if s in f and f.endswith(suffix):
                 return os.path.join(root, f)
     return None
 
