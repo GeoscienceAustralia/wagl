@@ -24,7 +24,7 @@ def sat_sol_grid_workflow(L1T_path, work_path):
     acqs = acquisitions(L1T_path)
 
     # Get the datetime of acquisition
-    acqs[0].scene_center_datetime
+    Datetime = acqs[0].scene_center_datetime
 
     # create the geo_box
     geobox = gridded_geo_box(acqs[0])
@@ -419,7 +419,7 @@ def calculate_angles(Datetime, geobox, lon_fname, lat_fname, npoints=12,
     geoT = geobox.affine.to_gdal()
 
     # Get the lat/lon of the scene centre
-    centre_xy = numpy.array(scene_dataset.lonlats['CENTRE'])
+    centre_xy = geobox.centre_lonlat
 
     # Get the earth spheroidal paramaters
     spheroid = setup_spheroid(prj)
@@ -430,10 +430,15 @@ def calculate_angles(Datetime, geobox, lon_fname, lat_fname, npoints=12,
     orbital_elements = setup_orbital_elements(sat_ephemeral, Datetime)
 
     # Min and Max lat extents
-    lat_min_max = scene_dataset.get_bounds()[1]
+    # This method should handle northern and southern hemispheres
+    min_lat = min(min(geobox.ul_lonlat[1], geobox.ur_lonlat[1]),
+        min(geobox.ll_lonlat[1], geobox.lr_lonlat[1]))
+    max_lat = max(max(geobox.ul_lonlat[1], geobox.ur_lonlat[1]),
+        max(geobox.ll_lonlat[1], geobox.lr_lonlat[1]))
 
     # Scene centre in time stamp in decimal hours
-    hours = scene_dataset.decimal_hour
+    hours = (Datetime.hour + (Datetime.minute +
+        (Datetime.second + Datetime.microsecond /1000000.0) / 60.0) /60.0)
 
     # Calculate the julian century past JD2000
     century = calculate_julian_century(Datetime)
@@ -446,7 +451,7 @@ def calculate_angles(Datetime, geobox, lon_fname, lat_fname, npoints=12,
     smodel = setup_smodel(centre_xy[0], centre_xy[1], spheroid, orbital_elements)
 
     # Get the times and satellite track information
-    track = setup_times(lat_min_max[0], lat_min_max[1], spheroid, orbital_elements, smodel, npoints)
+    track = setup_times(min_lat, max_lat, spheroid, orbital_elements, smodel, npoints)
 
     # Array dimensions
     cols = acqs[0].samples
