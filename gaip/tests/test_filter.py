@@ -11,13 +11,15 @@ import numpy.testing as npt
 from osgeo import gdal
 from osgeo import gdalconst
 
-from EOtools.DatasetDrivers import SceneDataset
+from gaip import acquisitions
+from gaip import find_file
+from gaip import gridded_geo_box
+from gaip import read_img
+from gaip import write_img
 from ULA3.filtering import filter_float as filter
 from ULA3.filtering import read_array_float32 as read_array
-from unittesting_tools import find_file
 from unittesting_tools import ParameterisedTestCase
-from unittesting_tools import read_img
-from unittesting_tools import write_img
+
 
 
 """
@@ -76,7 +78,7 @@ def suite_old():
     return unittest.TestSuite((FilterTestCase(),))
 
 
-def calculate_smoothed_dsm(scene_dataset, ref_dir, outdir):
+def calculate_smoothed_dsm(geobox, ref_dir, outdir):
     """
     Creates a smoothed DSM.
     """
@@ -88,13 +90,9 @@ def calculate_smoothed_dsm(scene_dataset, ref_dir, outdir):
 
     smoothed_dsm = filter(dsm)
 
-    # Image projection, geotransform
-    prj = scene_dataset.GetProjection()
-    geoT = scene_dataset.GetGeoTransform()
-
     # Write out the smoothed dsm file
     out_fname = os.path.join(outdir, 'region_dsm_image_smoothed.img')
-    write_img(smoothed_dsm, out_fname, projection=prj, geotransform=geoT)
+    write_img(smoothed_dsm, out_fname, geobox=geobox)
 
 
 class TestFilterFileNames(ParameterisedTestCase):
@@ -187,13 +185,16 @@ if __name__ == '__main__':
         os.chdir(outdir)
 
         # Open the L1T dataset
-        ds = SceneDataset(L1T_dir)
+        acqs = acquisitions(L1T_dir)
+
+        # Get a geobox of the 1st acquisition
+        geobox = gridded_geo_box(acqs[0])
 
         # Compute the smoothed dsm
-        calculate_smoothed_dsm(ds, nbar_work_dir, outdir)
+        calculate_smoothed_dsm(geobox, nbar_work_dir, outdir)
 
         # Close the L1T dataset
-        ds = None
+        acqs = None
 
         # Change back to the original directory
         os.chdir(cwd)
