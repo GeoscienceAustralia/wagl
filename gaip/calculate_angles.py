@@ -14,6 +14,7 @@ from gaip import acquisitions
 from gaip import find_file
 from gaip import read_img
 
+CRS = "EPSG:4326"
 
 # To be used as a template while gaip is restructured
 def sat_sol_grid_workflow(L1T_path, work_path):
@@ -24,7 +25,7 @@ def sat_sol_grid_workflow(L1T_path, work_path):
     acqs = acquisitions(L1T_path)
 
     # Get the datetime of acquisition
-    acqs[0].scene_center_datetime
+    Datetime = acqs[0].scene_center_datetime
 
     # create the geo_box
     geobox = gridded_geo_box(acqs[0])
@@ -65,12 +66,16 @@ def sat_sol_grid_workflow(L1T_path, work_path):
         lat_fname, npoints=12, to_disk=out_fnames)
 
     # Write out the CENTRELINE file
-    create_centreline_file(Y_cent, X_cent, N_cent, cols, view_max=9.0,
+    create_centreline_file(geobox, Y_cent, X_cent, N_cent, cols, view_max=9.0,
                            outdir=work_path)
 
 
-def create_centreline_file(y, x, n, cols, view_max, outdir, outfname='CENTRELINE'):
+def create_centreline_file(geobox, y, x, n, cols, view_max, outdir,
+        outfname='CENTRELINE'):
     """
+    :param geobox:
+        An instance of a GriddedGeoBox object.
+
     :param y:
         A 1D NumPy array of type int with the same shape as x & n.
         Details the row number starting at 1.
@@ -102,17 +107,28 @@ def create_centreline_file(y, x, n, cols, view_max, outdir, outfname='CENTRELINE
 
     rows = y.shape[0]
 
+    # Define the TO_CRS for lon & lat outputs
+    sr = osr.SpatialReference()
+    sr.SetFromUserInput(CRS)
+
     # I'm not sure of the formatting used by FORTRAN, nothing was specified
     # but the outputs had spaces.
     # It might be more ideal to create it as a csv???
     fname = os.path.join(outdir, outfname)
     outf  = open(fname, 'w')
 
-    outf.write('%f\n' %view_max)
-    outf.write('%i      %i\n' %(rows, cols))
+    # Right justified with length of 14 per item
+    outf.write('{view_max:>14}\n'.format(view_max=view_max)
+    outf.write('{rows:>14}{cols:>14}\n'.format(rows=rows, cols=cols))
 
     for r in range(rows):
-        outf.write('%i      %i       %f     %f     %f\n'%(y[r], x[r], n[r], n[r], n[r]))
+        # We offset by -1 to get the zero based col and row id
+        mapXY = geobox.convert_coordinates((x[r]-1, y[r]-1))
+        lon, lat = geobox.transform_coordinates(mapXY, to_crs=sr)
+        # Right justified at various lengths
+        msg = '{row:>14}{col:>14}{n:>14}{lat:>21}{lon:>21}\n'
+        msg = msg.format(row=y[r], col=x[r], n=n[r], lat=lat, lon=lon)
+        outf.write(msg)
 
     outf.close()
 
@@ -419,7 +435,7 @@ def calculate_angles(Datetime, geobox, lon_fname, lat_fname, npoints=12,
     geoT = geobox.affine.to_gdal()
 
     # Get the lat/lon of the scene centre
-    centre_xy = numpy.array(scene_dataset.lonlats['CENTRE'])
+    centre_xy = geobox.centre_lonlat
 
     # Get the earth spheroidal paramaters
     spheroid = setup_spheroid(prj)
@@ -430,10 +446,15 @@ def calculate_angles(Datetime, geobox, lon_fname, lat_fname, npoints=12,
     orbital_elements = setup_orbital_elements(sat_ephemeral, Datetime)
 
     # Min and Max lat extents
-    lat_min_max = scene_dataset.get_bounds()[1]
+    # This method should handle northern and southern hemispheres
+    min_lat = min(min(geobox.ul_lonlat[1], geobox.ur_lonlat[1]),
+        min(geobox.ll_lonlat[1], geobox.lr_lonlat[1]))
+    max_lat = max(max(geobox.ul_lonlat[1], geobox.ur_lonlat[1]),
+        max(geobox.ll_lonlat[1], geobox.lr_lonlat[1]))
 
     # Scene centre in time stamp in decimal hours
-    hours = scene_dataset.decimal_hour
+    hours = (Datetime.hour + (Datetime.minute +
+        (Datetime.second + Datetime.microsecond /1000000.0) / 60.0) /60.0)
 
     # Calculate the julian century past JD2000
     century = calculate_julian_century(Datetime)
@@ -446,7 +467,7 @@ def calculate_angles(Datetime, geobox, lon_fname, lat_fname, npoints=12,
     smodel = setup_smodel(centre_xy[0], centre_xy[1], spheroid, orbital_elements)
 
     # Get the times and satellite track information
-    track = setup_times(lat_min_max[0], lat_min_max[1], spheroid, orbital_elements, smodel, npoints)
+    track = setup_times(min_lat, max_lat, spheroid, orbital_elements, smodel, npoints)
 
     # Array dimensions
     cols = acqs[0].samples

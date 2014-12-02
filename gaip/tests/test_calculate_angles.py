@@ -11,13 +11,14 @@ from EOtools.DatasetDrivers import SceneDataset
 
 from gaip import acquisitions
 from gaip import calculate_angles as ca
+from gaip import create_centreline_file 
 from gaip import find_file
 from gaip import read_img
 from gaip import write_img
 from unittesting_tools import ParameterisedTestCase
 
 
-def compute_angles(L1T_path, lon_fname, lat_fname, npoints=12):
+def compute_angles(L1T_path, lon_fname, lat_fname, work_path='', npoints=12):
     """
     Creates the satellite and solar angle arrays as well as the time
     array.
@@ -39,12 +40,12 @@ def compute_angles(L1T_path, lon_fname, lat_fname, npoints=12):
     view_max = 9.0
 
     # Define the output file names
-    sat_view_zenith_fname  = 'SAT_V.bin'
-    sat_azimuth_fname      = 'SAT_AZ.bin'
-    solar_zenith_fname     = 'SOL_Z.bin'
-    solar_azimuth_fname    = 'SOL_AZ.bin'
-    relative_azimuth_fname = 'REL_AZ.bin'
-    time_fname             = 'TIME.bin'
+    sat_view_zenith_fname  = os.path.join(work_path, 'SAT_V.bin')
+    sat_azimuth_fname      = os.path.join(work_path, 'SAT_AZ.bin')
+    solar_zenith_fname     = os.path.join(work_path, 'SOL_Z.bin')
+    solar_azimuth_fname    = os.path.join(work_path, 'SOL_AZ.bin')
+    relative_azimuth_fname = os.path.join(work_path, 'REL_AZ.bin')
+    time_fname             = os.path.join(work_path, 'TIME.bin')
 
     out_fnames = [sat_view_zenith_fname, sat_azimuth_fname, solar_zenith_fname,
                   solar_azimuth_fname, relative_azimuth_fname, time_fname]
@@ -53,18 +54,12 @@ def compute_angles(L1T_path, lon_fname, lat_fname, npoints=12):
     (satellite_zenith, satellite_azimuth, solar_zenith, 
      solar_azimuth, relative_azimuth, time,
      Y_cent, X_cent, N_cent) = ca.calculate_angles(Datetime, geobox, lon_fname,
-                                   lat_fname, npoints=12, to_disk=out_fnames)
+         lat_fname, npoints=npoints, to_disk=out_fnames)
 
     print "Writing out the centreline file"
-    # Write the centreline to disk
-    outf = open('CENTRELINE', 'w')
-
-    outf.write('%f\n'%view_max)
-    outf.write('%i, %i\n'%(rows, cols))
-    for r in range(rows):
-        outf.write('%i, %i, %f\n'%(Y_cent[r], X_cent[r], N_cent[r]))
-
-    outf.close()
+    # Write out the CENTRELINE file
+    create_centreline_file(geobox, Y_cent, X_cent, N_cent, cols, view_max=9.0,
+                           outdir=work_path)
 
 
 class TestAngleFilenames(ParameterisedTestCase):
@@ -447,9 +442,10 @@ class TestSatSolAngles(ParameterisedTestCase):
         """
         Test that the centreline points are roughly the same.
         These start at the third line of the centreline file and
-        contain 3 elements. We'll allow for variation by 1 integer.
+        contain 5 elements. We'll allow for variation by 1 integer.
 
-        eg ['1742','4624','1.00000']
+        eg ['1742','4624','1.00000', '-33.608469649266', '150.080204768921']
+        We'll only test the 1st three elements.
         """
 
         # Read the CENTRELINE file if needed
@@ -465,12 +461,46 @@ class TestSatSolAngles(ParameterisedTestCase):
         test_points = numpy.zeros((len(ref_data), 3))
 
         for i in range(len(ref_data)):
-            rx, ry, rz = ref_data[i].split()
-            tx, ty, tz = test_data[i].split()
+            rx, ry, rz, _, _ = ref_data[i].split()
+            tx, ty, tz, _, _ = test_data[i].split()
             ref_points[i,0], ref_points[i,1], ref_points[i,2] = rx, ry, float(rz)
             test_points[i,0], test_points[i,1], test_points[i,2] = tx, ty, float(tz)
 
-        self.assertIsNone(npt.assert_allclose(test_points, ref_points, atol=int_prec))
+        self.assertIsNone(npt.assert_allclose(test_points, ref_points,
+            atol=int_prec))
+
+    def test_centreline_lonlat_points(self):
+        """
+        Test that the centreline longitude and latitude points are
+        roughly the same.
+        These start at the third line of the centreline file and
+        contain 5 elements. We'll allow for variation at the 6th
+        decimal place.
+
+        eg ['1742','4624','1.00000', '-33.608469649266', '150.080204768921']
+        We'll only test the last two elements.
+        """
+
+        # Read the CENTRELINE file if needed
+        if self.centreline_ref is None:
+            self._read_centreline_files()
+
+        ref_data  = self.centreline_ref[2:]
+        test_data = self.centreline_test[2:]
+
+        int_prec = self.integer_precision
+
+        ref_points  = numpy.zeros((len(ref_data), 2))
+        test_points = numpy.zeros((len(ref_data), 2))
+
+        for i in range(len(ref_data)):
+            _, _, _, rlat, rlon = ref_data[i].split()
+            _, _, _, tlat, tlon = test_data[i].split()
+            ref_points[i,0], ref_points[i,1] = float(rlat), float(rlon)
+            test_points[i,0], test_points[i,1] = float(tlat), float(tlon)
+
+        self.assertIsNone(npt.assert_almost_equal(test_points, ref_points,
+            decimal=6))
 
 if __name__ == '__main__':
 

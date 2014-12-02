@@ -4,7 +4,6 @@ c       written by Fuqin Li in 2009 and update in 2010
 c       command line read_modtrancor_ortho <centreline>
 c        <view_angle.bin> <output_coordinator>
         integer line(20000), ncenter(20000),istart(20000),iend(20000)
-        real rlat(20000),rlon(20000)
         real view(20000)
         character fname*150
 c       program determines 9 coordinators from centre line
@@ -44,7 +43,7 @@ c       get output file (start box lines for bilinaer))
         call GETARG(4, fname)
         open (4, file=fname)
         do i=1,nrow
-          read(1,*)line(i),ncenter(i),rlat(i),rlon(i)
+          read(1,*)line(i),ncenter(i)
           read(2,rec=i)(view(j), j=1,ncol)
           kk1=0
           kk2=0
