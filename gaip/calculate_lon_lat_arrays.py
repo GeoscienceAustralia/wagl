@@ -141,8 +141,7 @@ def create_lon_lat_grids(geobox, depth=7, dtype='float64',
 
     if to_disk:
         lon_fname = os.path.join(work_dir, lon_fname)
-        write_img(lon_arr, lon_fname, format='GTiff', geotransform=transform,
-            projection=crs)
+        write_img(lon_arr, lon_fname, format='GTiff', geobox=geobox)
         lon_arr = None
 
     lat_arr = numpy.zeros(shape, dtype=dtype)
@@ -151,8 +150,7 @@ def create_lon_lat_grids(geobox, depth=7, dtype='float64',
 
     if to_disk:
         lat_fname = os.path.join(work_dir, lat_fname)
-        write_img(lat_arr, lat_fname, format='GTiff', geotransform=transform,
-            projection=crs)
+        write_img(lat_arr, lat_fname, format='GTiff', geobox=geobox)
         lat_arr = None
         return
     else:
