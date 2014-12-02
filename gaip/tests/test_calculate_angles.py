@@ -442,9 +442,10 @@ class TestSatSolAngles(ParameterisedTestCase):
         """
         Test that the centreline points are roughly the same.
         These start at the third line of the centreline file and
-        contain 3 elements. We'll allow for variation by 1 integer.
+        contain 5 elements. We'll allow for variation by 1 integer.
 
-        eg ['1742','4624','1.00000']
+        eg ['1742','4624','1.00000', '-33.608469649266', '150.080204768921']
+        We'll only test the 1st three elements.
         """
 
         # Read the CENTRELINE file if needed
@@ -460,12 +461,46 @@ class TestSatSolAngles(ParameterisedTestCase):
         test_points = numpy.zeros((len(ref_data), 3))
 
         for i in range(len(ref_data)):
-            rx, ry, rz = ref_data[i].split()
-            tx, ty, tz = test_data[i].split()
+            rx, ry, rz, _, _ = ref_data[i].split()
+            tx, ty, tz, _, _ = test_data[i].split()
             ref_points[i,0], ref_points[i,1], ref_points[i,2] = rx, ry, float(rz)
             test_points[i,0], test_points[i,1], test_points[i,2] = tx, ty, float(tz)
 
-        self.assertIsNone(npt.assert_allclose(test_points, ref_points, atol=int_prec))
+        self.assertIsNone(npt.assert_allclose(test_points, ref_points,
+            atol=int_prec))
+
+    def test_centreline_lonlat_points(self):
+        """
+        Test that the centreline longitude and latitude points are
+        roughly the same.
+        These start at the third line of the centreline file and
+        contain 5 elements. We'll allow for variation at the 6th
+        decimal place.
+
+        eg ['1742','4624','1.00000', '-33.608469649266', '150.080204768921']
+        We'll only test the last two elements.
+        """
+
+        # Read the CENTRELINE file if needed
+        if self.centreline_ref is None:
+            self._read_centreline_files()
+
+        ref_data  = self.centreline_ref[2:]
+        test_data = self.centreline_test[2:]
+
+        int_prec = self.integer_precision
+
+        ref_points  = numpy.zeros((len(ref_data), 2))
+        test_points = numpy.zeros((len(ref_data), 2))
+
+        for i in range(len(ref_data)):
+            _, _, _, rlat, rlon = ref_data[i].split()
+            _, _, _, tlat, tlon = test_data[i].split()
+            ref_points[i,0], ref_points[i,1] = float(rlat), float(rlon)
+            test_points[i,0], test_points[i,1] = float(tlat), float(tlon)
+
+        self.assertIsNone(npt.assert_almost_equal(test_points, ref_points,
+            decimal=6))
 
 if __name__ == '__main__':
 
