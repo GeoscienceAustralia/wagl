@@ -12,9 +12,9 @@ from gaip import find_file
 from gaip import gridded_geo_box
 from gaip import read_img
 from gaip import write_img
+from gaip.tests.unittesting_tools import ParameterisedTestCase
 from ULA3._gdal_tools import Buffers
 from ULA3.tc import run_castshadow
-from unittesting_tools import ParameterisedTestCase
 
 def calculate_view_shadow(geobox, ref_dir, outdir, pixel_buffer=250,
                           block_height=500, block_width=500):

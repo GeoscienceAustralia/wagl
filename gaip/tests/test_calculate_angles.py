@@ -15,7 +15,7 @@ from gaip import create_centreline_file
 from gaip import find_file
 from gaip import read_img
 from gaip import write_img
-from unittesting_tools import ParameterisedTestCase
+from gaip.tests.unittesting_tools import ParameterisedTestCase
 
 
 def compute_angles(L1T_path, lon_fname, lat_fname, work_path='', npoints=12):

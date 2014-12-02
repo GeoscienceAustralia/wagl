@@ -16,9 +16,9 @@ from gaip import find_file
 from gaip import gridded_geo_box
 from gaip import read_img
 from gaip import write_img
+from gaip.tests.unittesting_tools import ParameterisedTestCase
 from ULA3.filtering import filter_float as filter
 from ULA3.filtering import read_array_float32 as read_array
-from unittesting_tools import ParameterisedTestCase
 
 
 
