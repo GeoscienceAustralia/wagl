@@ -6,25 +6,25 @@ import unittest
 
 import numpy.testing as npt
 
-from EOtools.DatasetDrivers import SceneDataset
-from ULA3._gdal_tools import Buffers
+from gaip import acquisitions
 from gaip import calculate_angles as ca
-from ULA3.tc import run_castshadow
 from gaip import find_file
+from gaip import gridded_geo_box
 from gaip import read_img
 from gaip import write_img
-from unittesting_tools import ParameterisedTestCase
+from gaip.tests.unittesting_tools import ParameterisedTestCase
+from ULA3._gdal_tools import Buffers
+from ULA3.tc import run_castshadow
 
-def calculate_view_shadow(scene_dataset, ref_dir, outdir, pixel_buffer=250,
+def calculate_view_shadow(geobox, ref_dir, outdir, pixel_buffer=250,
                           block_height=500, block_width=500):
     """
     Calculates the view shadow array.
     """
 
-    # Image projection, geotransform, UTM(True/False)
-    prj    = scene_dataset.GetProjection()
-    geoT   = scene_dataset.GetGeoTransform()
-    is_utm =  not scene_dataset.IsGeographic()
+    # Image projection, UTM(True/False)
+    prj    = geobox.crs.ExportToWkt()
+    is_utm = not geobox.crs.IsGeographic()
 
     # Define the pixel buffering object
     pixel_buf = Buffers(pixel_buffer)
@@ -41,16 +41,16 @@ def calculate_view_shadow(scene_dataset, ref_dir, outdir, pixel_buffer=250,
 
     # Retrive the spheroid parameters
     # (used in calculating pixel size in metres per lat/lon)
-    spheroid = ca.setup_spheroid(scene_dataset.GetProjection())
+    spheroid = ca.setup_spheroid(prj)
 
     # Compute the self shadow
-    shadow_self = run_castshadow(scene_dataset, dsm, zen_angle, azi_angle,
+    shadow_self = run_castshadow(geobox, dsm, zen_angle, azi_angle,
                                  pixel_buf, block_height, block_width,
                                  is_utm, spheroid)
 
     # Write the self shadow result to disk
     outfname = os.path.join(outdir, 'shadow_v.img')
-    write_img(shadow_self, outfname, projection=prj, geotransform=geoT)
+    write_img(shadow_self, outfname, geobox=geobox)
 
 
 class TestViewShadowFileNames(ParameterisedTestCase):
@@ -147,14 +147,17 @@ if __name__ == '__main__':
         os.chdir(outdir)
 
         # Open the L1T dataset
-        ds = SceneDataset(L1T_dir)
+        acqs = acquisitions(L1T_dir)
+
+        # Get a geobox of the 1st acquisition
+        geobox = gridded_geo_box(acqs[0])
 
         # Compute the angles
-        calculate_view_shadow(ds, nbar_work_dir, outdir, buffer,
+        calculate_view_shadow(geobox, nbar_work_dir, outdir, buffer,
                               block_y, block_x)
 
         # Close the L1T dataset
-        ds = None
+        acqs = None
 
         # Change back to the original directory
         os.chdir(cwd)

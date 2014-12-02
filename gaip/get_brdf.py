@@ -19,23 +19,18 @@ def findFile(fileList, bandWL, factor):
     return None
 
 
-def get_brdf_data(geobox, satellite, sensor, Date, brdf_primary_path,
+def get_brdf_data(acquisition, geobox, Date, brdf_primary_path,
                   brdf_secondary_path, work_path):
     """
     Calculates the mean BRDF value for each band wavelength of your
     sensor, for each BRDF factor ['geo', 'iso', 'vol'] that covers
     your image extents.
 
+    :param acquisition:
+        Am instance of an acquisitions object.
+
     :param geobox:
         An instance of a GriddedGeoBox object.
-
-    :param satellite:
-        A string containing the name of the satellite to which your
-        images belong.
-
-    :param sensor:
-        A string containing the name of the sensor to which your
-        images belong.
 
     :param Date:
         A datetime.date object representing your image acquistion.
@@ -64,6 +59,9 @@ def get_brdf_data(geobox, satellite, sensor, Date, brdf_primary_path,
             BRDF wavelength and factor combination.
         value -> The mean BRDF value covering your image extents.
     """
+    # Retrieve the satellite and sensor for the acquisition
+    satellite = acquisition.spacecraft_id
+    sensor    = acquisition.sensor_id
 
     # Get the required BRDF LUT & factors list
     nbar_constants = constants.NBARConstants(satellite, sensor)
