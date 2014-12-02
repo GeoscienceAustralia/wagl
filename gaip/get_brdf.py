@@ -19,20 +19,15 @@ def findFile(fileList, bandWL, factor):
     return None
 
 
-def get_brdf_data(extents, satellite, sensor, Date, brdf_primary_path,
+def get_brdf_data(geobox, satellite, sensor, Date, brdf_primary_path,
                   brdf_secondary_path, work_path):
     """
     Calculates the mean BRDF value for each band wavelength of your
     sensor, for each BRDF factor ['geo', 'iso', 'vol'] that covers
     your image extents.
 
-    :param extents:
-        A dictionary containing (x, y) tuples for the 4 corners of
-        an image. The dictionary should contain the following keys:
-        UL -> Upper Left
-        UR -> Upper Right
-        LR -> Lower Right
-        LL -> Lower Left
+    :param geobox:
+        An instance of a GriddedGeoBox object.
 
     :param satellite:
         A string containing the name of the satellite to which your
@@ -79,14 +74,14 @@ def get_brdf_data(extents, satellite, sensor, Date, brdf_primary_path,
 
     # Get the boundary extents of the image
     # Each is a co-ordinate pair of (x, y)
-    UL_Lon = extents['UL'][0]
-    UL_Lat = extents['UL'][1]
-    UR_Lon = extents['UR'][0]
-    UR_Lat = extents['UR'][1]
-    LR_Lon = extents['LR'][0]
-    LR_Lat = extents['LR'][1]
-    LL_Lon = extents['LL'][0]
-    LL_Lat = extents['LL'][1]
+    UL_Lon = geobox.ul_lonlat[0]
+    UL_Lat = geobox.ul_lonlat[1]
+    UR_Lon = geobox.ur_lonlat[0]
+    UR_Lat = geobox.ur_lonlat[1]
+    LR_Lon = geobox.lr_lonlat[0]
+    LR_Lat = geobox.lr_lonlat[1]
+    LL_Lon = geobox.ll_lonlat[0]
+    LL_Lat = geobox.ll_lonlat[1]
 
 
     # Use maximal axis-aligned extents for BRDF mean value calculation.
@@ -184,8 +179,8 @@ def get_brdf_data(extents, satellite, sensor, Date, brdf_primary_path,
 
 
             # Read the subset and geotransform that corresponds to the subset
-            subset, geot, prj = read_subset(out_fname, extents['UL'],
-                extents['UR'], extents['LR'], extents['LL'])
+            subset, geobox_subset = read_subset(out_fname, (UL_Lat, UL_Lat),
+                (UR_Lon, UR_Lat), (LR_Lon, LR_Lat), (LL_Lon, LL_Lat))
 
 
             # The brdf_object has the scale and offsets so calculate the mean
@@ -195,8 +190,7 @@ def get_brdf_data(extents, satellite, sensor, Date, brdf_primary_path,
 
             # Output the brdf subset
             out_fname_subset = out_fname + '_subset'
-            write_img(subset, out_fname_subset, projection=prj,
-                geotransform=geot)
+            write_img(subset, out_fname_subset, geobox=geobox_subset)
 
 
             # Remove temporary unzipped file
