@@ -14,7 +14,6 @@ from thermal_conversion import get_landsat_temperature
 from acca_cloud_masking import calc_acca_cloud_mask
 from fmask_cloud_masking_wrapper import FMaskCloudMask
 from cloud_shadow_masking import Cloud_Shadow
-from GriddedGeoBox import GriddedGeoBox
 import gaip
 
 #TODO: remove soon
