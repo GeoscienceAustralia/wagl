@@ -7,14 +7,12 @@ import unittest
 import numpy
 import numpy.testing as npt
 
-from EOtools.DatasetDrivers import SceneDataset
-
 from gaip import acquisitions
 from gaip import calculate_angles as ca
 from gaip import create_centreline_file 
 from gaip import find_file
+from gaip import gridded_geo_box
 from gaip import read_img
-from gaip import write_img
 from gaip.tests.unittesting_tools import ParameterisedTestCase
 
 
@@ -27,7 +25,7 @@ def compute_angles(L1T_path, lon_fname, lat_fname, work_path='', npoints=12):
     acqs = acquisitions(L1T_path)
 
     # Get the datetime of acquisition
-    acqs[0].scene_center_datetime
+    Datetime = acqs[0].scene_center_datetime
 
     # create the geo_box
     geobox = gridded_geo_box(acqs[0])

@@ -56,13 +56,13 @@ def sat_sol_grid_workflow(L1T_path, work_path):
     relative_azimuth_fname = os.path.join(work_path, 'REL_AZ.bin')
     time_fname             = os.path.join(work_path, 'TIME.bin')
 
-    out_fnames = [sat_view_zenith_fname, sat_azimuth_fname, solar_zenith_fname
+    out_fnames = [sat_view_zenith_fname, sat_azimuth_fname, solar_zenith_fname,
         solar_azimuth_fname, relative_azimuth_fname, time_fname]
 
     # Get the angles, time, & satellite track coordinates
     (satellite_zenith, satellite_azimuth, solar_zenith,
      solar_azimuth, relative_azimuth, time,
-     Y_cent, X_cent, N_cent) = calculate_angles(Datetime, geobox, lon_fname
+     Y_cent, X_cent, N_cent) = calculate_angles(Datetime, geobox, lon_fname,
         lat_fname, npoints=12, to_disk=out_fnames)
 
     # Write out the CENTRELINE file
@@ -118,7 +118,7 @@ def create_centreline_file(geobox, y, x, n, cols, view_max, outdir,
     outf  = open(fname, 'w')
 
     # Right justified with length of 14 per item
-    outf.write('{view_max:>14}\n'.format(view_max=view_max)
+    outf.write('{view_max:>14}\n'.format(view_max=view_max))
     outf.write('{rows:>14}{cols:>14}\n'.format(rows=rows, cols=cols))
 
     for r in range(rows):
