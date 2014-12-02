@@ -91,8 +91,8 @@ class TestGriddedGeoBox(unittest.TestCase):
         # print "aGGB.corner=",aGGB.corner
         # print "aGGB.pixelsize=",aGGB.pixelsize
         # print "aGGB.shape=",aGGB.shape
-        self.assertTrue(aGGB.origin == (-221550.0, 9850025.0))
-        self.assertTrue(aGGB.corner == (1088750.0, 936800.0))
+        self.assertTrue(aGGB.origin == (-221573.33728165628, 9850031.808687024))
+        self.assertTrue(aGGB.corner == (1088726.6627183438, 936806.8086870238))
         # self.assertTrue(aGGB.pixelsize == (25.0, 25.0))
         self.assertTrue(isinstance(aGGB.crs, osr.SpatialReference))
 
