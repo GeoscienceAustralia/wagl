@@ -5,7 +5,7 @@ from rasterio import Affine
 
 from GriddedGeoBox import GriddedGeoBox
 
-def write_img(array, filename, format='ENVI', geotransform=None, projection=None):
+def write_img(array, filename, format='ENVI', geobox=None):
     """
     Writes a 2D/3D image to disk using rasterio.
 
@@ -19,12 +19,8 @@ def write_img(array, filename, format='ENVI', geotransform=None, projection=None
         A string containing a GDAL compliant image format. Default is
         'ENVI'.
 
-    :param projection:
-        A variable containing the projection information of the array.
-
-    :param geotransform:
-        A variable containing the geotransform information for the
-        array.
+    :param geobox:
+        An instance of a GriddedGeoBox object.
     """
 
     dtype = array.dtype.name
@@ -51,8 +47,13 @@ def write_img(array, filename, format='ENVI', geotransform=None, projection=None
         err = 'Array dimensions: {dims}'.format(dims=ndims)
         raise IndexError(err)
 
-    # Convert the GDAL geotransform to rasterio Affine transform
-    transform = Affine.from_gdal(*geotransform)
+    # If we have a geobox, then retrieve the geotransform and projection
+    if geobox is not None:
+        transform  = geobox.affine
+        projection = bytes(geobox.crs.ExportToWkt())
+    else:
+        transform = None
+        projection = None
 
     kwargs = {'count': bands,
               'width': samples,
@@ -148,22 +149,16 @@ def read_subset(fname, ULxy, URxy, LRxy, LLxy, bands=1):
         # Get the projection as WKT
         prj = bytes(src.crs_wkt) # rasterio returns a unicode
 
-        # Get the original geotransform
-        base_gt = src.get_transform()
-
         # Get the new UL co-ordinates of the array
         ULx, ULy = src.affine * (xstart, ystart)
-
-        # Setup the new geotransform
-        geot = (ULx, base_gt[1], base_gt[2], ULy, base_gt[4], base_gt[5])
 
         # Get the x & y pixel resolution
         res = src.res
 
         geobox = GriddedGeoBox(shape=subs.shape, origin=(ULx, ULy),
-            pixelsize=res)
+            pixelsize=res, crs=prj)
 
-    return (subs, geot, prj, geobox)
+    return (subs, geobox)
 
 
 def read_img(fname):
