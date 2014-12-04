@@ -8,38 +8,20 @@ from os.path import join as pjoin, dirname
 CONFIG = luigi.configuration.get_config()
 CONFIG.add_config_path(pjoin(dirname(__file__), 'nbar.cfg'))
 
-WORK_PATH = CONFIG.get('work', 'path')
-
-DEM_PATH = CONFIG.get('ancillary', 'dem_path')
-DEM_TARGET = pjoin(WORK_PATH, 'elevation.pkl')
-
-OZONE_PATH = CONFIG.get('ancillary', 'ozone_path')
-OZONE_TARGET = pjoin(WORK_PATH, 'ozone.pkl')
-
 
 def save(target, value):
-    with target().open('w') as outfile:
-        pickle.dump(value, outfile)
+    with target.open('w') as outfile:
+        if target.fn.endswith('pkl'):
+            pickle.dump(value, outfile)
+        else:
+            print >>outfile, value
 
 
 def load(target):
-    with target().open('r') as infile:
+    if not target.fn.endswith('pkl'):
+        raise IOError('Cannot load non-pickled object')
+    with target.open('r') as infile:
         return pickle.load(infile)
-
-
-class CheckNBAROutputTask(luigi.Task):
-
-    def requires(self):
-        return []
-
-    def output(self):
-        pass
-
-    def run(self):
-        pass
-
-    def is_complete(self):
-        return True
 
 
 class GetElevationAncillaryDataTask(luigi.Task):
@@ -50,13 +32,15 @@ class GetElevationAncillaryDataTask(luigi.Task):
         return []
 
     def output(self):
-        return luigi.LocalTarget(DEM_TARGET)
+        target = CONFIG.get('work', 'dem_target')
+        return luigi.LocalTarget(target)
 
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
         geobox = acqs[0].gridded_geo_box()
-        value = gaip.get_elevation_data(geobox.centre_lonlat, DEM_PATH)
-        save(self.output, value)
+        dem_path = CONFIG.get('ancillary', 'dem_path')
+        value = gaip.get_elevation_data(geobox.centre_lonlat, dem_path)
+        save(self.output(), value)
 
 
 class GetOzoneAncillaryDataTask(luigi.Task):
@@ -67,66 +51,95 @@ class GetOzoneAncillaryDataTask(luigi.Task):
         return []
 
     def output(self):
-        return luigi.LocalTarget(OZONE_TARGET)
+        target = CONFIG.get('work', 'ozone_target')
+        return luigi.LocalTarget(target)
 
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
-        dt = acqs[0].scene_center_datetime
         geobox = acqs[0].gridded_geo_box()
+        ozone_path = CONFIG.get('ancillary', 'ozone_path')
         centre = geobox.centre_lonlat
-        value = gaip.get_ozone_data(OZONE_PATH, centre, dt)
-        save(self.output, value)
+        dt = acqs[0].scene_center_datetime
+        value = gaip.get_ozone_data(ozone_path, centre, dt)
+        save(self.output(), value)
 
 
-class GetSolarIrradienceAncillaryDataTask(luigi.Task):
+class GetSolarIrradianceAncillaryDataTask(luigi.Task):
+
+    l1t_path = luigi.Parameter()
 
     def requires(self):
-        return [CheckNBAROutputTask()]
+        return []
 
     def output(self):
-        pass
+        target = CONFIG.get('work', 'irrad_target')
+        return luigi.LocalTarget(target)
 
     def run(self):
-        pass
+        acqs = gaip.acquisitions(self.l1t_path)
+        solar_path = CONFIG.get('ancillary', 'solar_path')
+        value = gaip.get_solar_irrad(acqs, solar_path)
+        save(self.output(), value)
 
 
 class GetSolarDistanceAncillaryDataTask(luigi.Task):
 
+    l1t_path = luigi.Parameter()
+
     def requires(self):
-        return [CheckNBAROutputTask()]
+        return []
 
     def output(self):
-        pass
+        target = CONFIG.get('work', 'sundist_target')
+        return luigi.LocalTarget(target)
 
     def run(self):
-        pass
+        acqs = gaip.acquisitions(self.l1t_path)
+        sundist_path = CONFIG.get('ancillary', 'sundist_path')
+        value = gaip.get_solar_dist(acqs[0], sundist_path)
+        save(self.output(), value)
 
 
 class GetWaterVapourAncillaryDataTask(luigi.Task):
 
+    l1t_path = luigi.Parameter()
+
     def requires(self):
-        return [CheckNBAROutputTask()]
+        return []
 
     def output(self):
-        pass
+        target = CONFIG.get('work', 'vapour_target')
+        return luigi.LocalTarget(target)
 
     def run(self):
-        pass
+        acqs = gaip.acquisitions(self.l1t_path)
+        vapour_path = CONFIG.get('ancillary', 'vapour_path')
+        value = gaip.get_water_vapour(acqs[0], vapour_path)
+        save(self.output(), value)
 
 
 class GetAerosolAncillaryDataTask(luigi.Task):
 
     def requires(self):
-        return [CheckNBAROutputTask()]
+        return []
 
     def output(self):
-        pass
+        target = CONFIG.get('work', 'aerosol_target')
+        return luigi.LocalTarget(target)
 
     def run(self):
-        pass
+        acqs = gaip.acquisitions(self.l1t_path)
+        aerosol_path = CONFIG.get('ancillary', 'aerosol_path')
+        aot_loader_path = CONFIG.get('binaries', 'aot_loader_path')
+        value = gaip.get_aerosol_data(acqs[0], aerosol_path, aot_loader_path)
+        save(self.output(), value)
+
+
+
 
 
 class GetBrdfAncillaryDataTask(luigi.Task):
+
 
     def requires(self):
         return [CheckNBAROutputTask()]
