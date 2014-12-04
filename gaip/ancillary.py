@@ -188,7 +188,7 @@ def get_ozone_data(ozone_path, lonlat, datetime):
     Get ozone data for a scene. `lonlat` should be the (x,y) for the centre
     the scene.
     """
-    filename = datetime.strftime("%b").lower()
+    filename = datetime.strftime('%b').lower() + '.tif'
     datafile = pjoin(ozone_path, filename)
     value = gaip.get_pixel(datafile, lonlat)
     return {'data_source': 'Ozone',
