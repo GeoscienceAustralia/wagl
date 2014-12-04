@@ -16,48 +16,12 @@ from gaip import read_img
 from gaip.tests.unittesting_tools import ParameterisedTestCase
 
 
-def compute_angles(L1T_path, lon_fname, lat_fname, work_path='', npoints=12):
+def compute_angles(L1T_path, work_path, lonlat_path):
     """
     Creates the satellite and solar angle arrays as well as the time
     array.
     """
-    # Retrieve an acquisitions object
-    acqs = acquisitions(L1T_path)
-
-    # Get the datetime of acquisition
-    Datetime = acqs[0].scene_center_datetime
-
-    # create the geo_box
-    geobox = gridded_geo_box(acqs[0])
-
-    # Get the array dimensions
-    cols = acqs[0].samples
-    rows = acqs[0].lines
-
-    # Initialise the satellite maximum view angle
-    view_max = 9.0
-
-    # Define the output file names
-    sat_view_zenith_fname  = os.path.join(work_path, 'SAT_V.bin')
-    sat_azimuth_fname      = os.path.join(work_path, 'SAT_AZ.bin')
-    solar_zenith_fname     = os.path.join(work_path, 'SOL_Z.bin')
-    solar_azimuth_fname    = os.path.join(work_path, 'SOL_AZ.bin')
-    relative_azimuth_fname = os.path.join(work_path, 'REL_AZ.bin')
-    time_fname             = os.path.join(work_path, 'TIME.bin')
-
-    out_fnames = [sat_view_zenith_fname, sat_azimuth_fname, solar_zenith_fname,
-                  solar_azimuth_fname, relative_azimuth_fname, time_fname]
-
-    # Get the angles, time, & satellite track coordinates
-    (satellite_zenith, satellite_azimuth, solar_zenith, 
-     solar_azimuth, relative_azimuth, time,
-     Y_cent, X_cent, N_cent) = ca.calculate_angles(Datetime, geobox, lon_fname,
-         lat_fname, npoints=npoints, to_disk=out_fnames)
-
-    print "Writing out the centreline file"
-    # Write out the CENTRELINE file
-    create_centreline_file(geobox, Y_cent, X_cent, N_cent, cols, view_max=9.0,
-                           outdir=work_path)
+    sat_sol_grid_workflow(L1T_path, work_path, lonlat_path)
 
 
 class TestAngleFilenames(ParameterisedTestCase):
@@ -536,12 +500,8 @@ if __name__ == '__main__':
         # Change to the output directory that will contain the results
         os.chdir(outdir)
 
-        # Find and open the longitude and lattitude files
-        lon_fname = find_file(nbar_work_dir, 'LON.tif')
-        lat_fname = find_file(nbar_work_dir, 'LAT.tif')
-
         print "Computing satellite & solar angle grids."
-        compute_angles(L1T_dir, lon_fname, lat_fname)
+        compute_angles(L1T_dir, work_dir=outdir, lonlat_path=nbar_work_dir)
 
         # Change back to the original directory
         os.chdir(cwd)

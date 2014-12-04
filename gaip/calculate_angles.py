@@ -12,36 +12,27 @@ from ULA3.angle_all import angle
 
 from gaip import acquisitions
 from gaip import find_file
+from gaip import gridded_geo_box
 from gaip import read_img
 
 CRS = "EPSG:4326"
 
 # To be used as a template while gaip is restructured
-def sat_sol_grid_workflow(L1T_path, work_path):
+def sat_sol_grid_workflow(L1T_path, work_path, lonlat_path):
     """
     Workflow to generate the satellite and solar grids.
     """
     # Retrieve an acquisitions object
     acqs = acquisitions(L1T_path)
 
-    # Get the datetime of acquisition
-    Datetime = acqs[0].scene_center_datetime
-
-    # create the geo_box
+    # Create the geobox
     geobox = gridded_geo_box(acqs[0])
 
     # Find and open the longitude and lattitude files
     # Avoiding DataManger here. find_file will be used sparingly until a proper
     # workflow is written.
-    lon_fname = find_file(work_path, 'LON.tif')
-    lat_fname = find_file(work_path, 'LAT.tif')
-
-    # We should be able to change the workflow and pass these as filename
-    # strings.  Internally, the calculate_angles could read a row at a time
-    # rather than pass the entire array. Internally angles are calculated one
-    # row at a time.
-    #lon_arr = read_img(lon_fname)
-    #lat_arr = read_img(lat_fname)
+    lon_fname = find_file(lonlat_path, 'LON.tif')
+    lat_fname = find_file(lonlat_path, 'LAT.tif')
 
     # Get the array dimensions from the first acquisistion
     # The dimensions should match for all bands except the panchromatic
@@ -62,7 +53,7 @@ def sat_sol_grid_workflow(L1T_path, work_path):
     # Get the angles, time, & satellite track coordinates
     (satellite_zenith, satellite_azimuth, solar_zenith,
      solar_azimuth, relative_azimuth, time,
-     Y_cent, X_cent, N_cent) = calculate_angles(Datetime, geobox, lon_fname,
+     Y_cent, X_cent, N_cent) = calculate_angles(acqs[0], lon_fname,
         lat_fname, npoints=12, to_disk=out_fnames)
 
     # Write out the CENTRELINE file
@@ -368,7 +359,7 @@ def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, npoints=12):
     return track
 
 
-def calculate_angles(Datetime, geobox, lon_fname, lat_fname, npoints=12,
+def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
         to_disk=None):
     """
     Calcualte the satellite view, satellite azimuth, solar zenith,
@@ -376,12 +367,8 @@ def calculate_angles(Datetime, geobox, lon_fname, lat_fname, npoints=12,
     time grid. All grids are output as float32 ENVI files.
     The CENTRELINE is also calculated and output to disk.
 
-    :param Datetime:
-        A Python datetime object containing the the date & time
-        of the acquisition.
-
-    :param geobox:
-        A GriddedGeoBox object.
+    :param acquisition:
+        An instance of an acquisitions object.
 
     :param lon_fname:
         A string containing the full file path name to the location
@@ -429,6 +416,11 @@ def calculate_angles(Datetime, geobox, lon_fname, lat_fname, npoints=12,
         N_cent (Value 2 if centre x coordinate was averaged and
                 1 if centre x coordinate was not averaged)
     """
+    # Get the Datetime of the acquisition
+    Datetime = acquisition.scene_center_datetime
+    
+    # Compute the geobox
+    geobox = gridded_geo_box(acquisition)
 
     # Image projection, geotransform and scene centre time stamp
     prj = geobox.crs.ExportToWkt()
