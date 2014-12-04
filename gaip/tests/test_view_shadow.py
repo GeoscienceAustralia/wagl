@@ -21,6 +21,8 @@ def calculate_view_shadow(geobox, ref_dir, outdir, pixel_buffer=250,
     """
     Calculates the view shadow array.
     """
+    # Compute the geobox
+    geobox = gridded_geo_box(acquisition)
 
     # Image projection, UTM(True/False)
     prj    = geobox.crs.ExportToWkt()
@@ -149,11 +151,8 @@ if __name__ == '__main__':
         # Open the L1T dataset
         acqs = acquisitions(L1T_dir)
 
-        # Get a geobox of the 1st acquisition
-        geobox = gridded_geo_box(acqs[0])
-
         # Compute the angles
-        calculate_view_shadow(geobox, nbar_work_dir, outdir, buffer,
+        calculate_view_shadow(acqs[0], nbar_work_dir, outdir, buffer,
                               block_y, block_x)
 
         # Close the L1T dataset

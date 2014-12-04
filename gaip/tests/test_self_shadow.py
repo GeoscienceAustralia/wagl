@@ -16,11 +16,13 @@ from gaip.tests.unittesting_tools import ParameterisedTestCase
 from ULA3._gdal_tools import Buffers
 from ULA3.tc import run_castshadow
 
-def calculate_self_shadow(geobox, ref_dir, outdir, pixel_buffer=250,
+def calculate_self_shadow(acquisition, ref_dir, outdir, pixel_buffer=250,
                           block_height=500, block_width=500):
     """
     Calculates the self shadow array.
     """
+    # Compute the geobox
+    geobox = gridded_geo_box(acquisition)
 
     # Image projection, UTM(True/False)
     prj    = geobox.crs.ExportToWkt()
@@ -150,11 +152,8 @@ if __name__ == '__main__':
         # Open the L1T dataset
         acqs = acquisitions(L1T_dir)
 
-        # Get a geobox of the 1st acquisition
-        geobox = gridded_geo_box(acqs[0])
-
         # Compute the angles
-        calculate_self_shadow(geobox, nbar_work_dir, outdir, buffer,
+        calculate_self_shadow(acqs[0], nbar_work_dir, outdir, buffer,
                               block_y, block_x)
 
         # Close the L1T dataset

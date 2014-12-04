@@ -19,21 +19,15 @@ def findFile(fileList, bandWL, factor):
     return None
 
 
-def get_brdf_data(acquisition, geobox, Date, brdf_primary_path,
-                  brdf_secondary_path, work_path):
+def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
+        work_path):
     """
     Calculates the mean BRDF value for each band wavelength of your
     sensor, for each BRDF factor ['geo', 'iso', 'vol'] that covers
     your image extents.
 
     :param acquisition:
-        Am instance of an acquisitions object.
-
-    :param geobox:
-        An instance of a GriddedGeoBox object.
-
-    :param Date:
-        A datetime.date object representing your image acquistion.
+        An instance of an acquisitions object.
 
     :param brdf_primary_path:
         A string containing the full file system path to your directory
@@ -69,6 +63,11 @@ def get_brdf_data(acquisition, geobox, Date, brdf_primary_path,
     brdf_lut = nbar_constants.getBRDFlut()
     brdf_factors = nbar_constants.getBRDFfactors()
 
+    # Compute the geobox
+    geobox = gridded_geo_box(acquisition)
+
+    # Get the date of acquisition
+    Date = acquisition.scene_center_datetime
 
     # Get the boundary extents of the image
     # Each is a co-ordinate pair of (x, y)

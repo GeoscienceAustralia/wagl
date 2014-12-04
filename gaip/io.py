@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 
+import numpy
 import rasterio
 from rasterio import Affine
+from rasterio import crs
+from rasterio.warp import reproject
+from rasterio.warp import RESAMPLING
 
 from GriddedGeoBox import GriddedGeoBox
 
@@ -191,3 +195,104 @@ def find_file(dir, file):
         err = "Error! file not found: {filename}".format(filename=fname)
         raise IOError(err)
 
+
+def reprojectFile2Array(src_filename, src_band=1, dst_geobox=None,
+        resampling=RESAMPLING.nearest):
+    """
+    Given an image on file, reproject to the desired coordinate
+    reference system.
+
+    :param src_filename:
+        A string containing the full file path name to the source
+        image on disk.
+
+    :param src_band:
+        An integer representing the band number to be reprojected.
+        Default is 1, the 1st band.
+
+    :param dst_geobox:
+        An instance of a GriddedGeoBox object containing the
+        destination parameters such as origin, affine, projection,
+        and array dimensions.
+
+    :param resampling:
+        An integer representing the resampling method to be used.
+        check rasterio.warp.RESMPLING for more details.
+        Default is 0, nearest neighbour resampling.
+
+    :return:
+        A NumPy array containing the reprojected result.
+    """
+
+    if not isinstance(dst_geobox, GriddedGeoBox):
+        msg = 'dst_geobox must be an instance of a GriddedGeoBox! Type: {}'
+        msg = msg.format(type(dst_geobox))
+        raise TypeError(msg)
+
+    with rasterio.open(src_filename) as src:
+        # Define a rasterio band
+        rio_band = rasterio.band(src, src_band)
+
+        # Define the output NumPy array
+        dst_arr = numpy.zeros(dst_geobox.shape, dtype=src.dtypes[0])
+
+        # Get the rasterio proj4 styled dict
+        prj = crs.from_string(dst_geobox.crs.ExportToProj4())
+
+        reproject(rio_band, dst_arr, dst_transform=dst_geobox.affine,
+            dst_crs=prj, resampling=resampling)
+
+    return dst_arr
+
+
+def reprojectImg2Img(src_img, src_geobox, dst_geobox, resampling=RESAMPLING.nearest):
+    """
+    Reprojects an image/array to the desired co-ordinate reference system.
+
+    :param src_img:
+        A NumPy array containing the source image.
+
+    :param src_geobox:
+        An instance of a GriddedGeoBox object containing the
+        source parameters such as origin, affine, projection.
+
+    :param dst_geobox:
+        An instance of a GriddedGeoBox object containing the
+        destination parameters such as origin, affine, projection,
+        and array dimensions.
+
+    :param resampling:
+        An integer representing the resampling method to be used.
+        check rasterio.warp.RESMPLING for more details.
+        Default is 0, nearest neighbour resampling.
+
+    :return:
+        A NumPy array containing the reprojected result.
+    """
+
+    if not isinstance(dst_geobox, GriddedGeoBox):
+        msg = 'dst_geobox must be an instance of a GriddedGeoBox! Type: {}'
+        msg = msg.format(type(dst_geobox))
+        raise TypeError(msg)
+
+    if not isinstance(src_geobox, GriddedGeoBox):
+        msg = 'src_geobox must be an instance of a GriddedGeoBox! Type: {}'
+        msg = msg.format(type(src_geobox))
+        raise TypeError(msg)
+
+    # Get the source and destination projections in Proj4 styled dicts
+    src_prj = crs.from_string(src_geobox.crs.ExportToProj4())
+    dst_prj = crs.from_string(dst_geobox.crs.ExportToProj4())
+
+    # Get the source and destination transforms
+    src_trans = src_geobox.affine
+    dst_trans = dst_geobox.affine
+
+    # Define the output NumPy array
+    dst_arr = numpy.zeros(dst_geobox.shape, dtype=scr_img.dtype)
+
+    reproject(src_img, dst_arr, src_transform=src_trans,
+        src_crs=src_prj, dst_transform=dst_trans, dst_crs=dst_prj,
+        resampling=resampling)
+
+    return dst_arr
