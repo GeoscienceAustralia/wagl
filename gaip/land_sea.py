@@ -44,6 +44,7 @@ def get_land_sea_mask(gridded_geo_box, \
     to_crs = osr.SpatialReference()
     to_crs.SetFromUserInput('EPSG:4326')
     origin_longlat = gridded_geo_box.transform_coordinates(gridded_geo_box.origin, to_crs)
+    print "origin_lonlat=%s" % (origin_longlat,)
 
     # get Land/Sea data file for this bounding box
     utmZone = abs(getUtmZone(origin_longlat))
