@@ -442,7 +442,6 @@ def prepare_modtran_input(
             '%d %d' % l1t_input_dataset.shape,
             '%f' % resolution_deg,
             '%10.6f %10.6f' % (UL[1], UL[0]),
-        #    '%f %f' % (l1t_input_dataset.scene_centre_lat, l1t_input_dataset.scene_centre_long),
             '%f %f' % (l1t_input_dataset.lonlats['CENTRE'][1],l1t_input_dataset.lonlats['CENTRE'][0]),
             '%f %f %f' % (satellite.SEMI_MAJOR_AXIS,
                           math.degrees(satellite.INCLINATION), # Convert to degrees
