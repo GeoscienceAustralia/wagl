@@ -163,21 +163,16 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
             # Convert the file format
             brdf_object.convert_format(out_fname)
 
-            print 'x'
-
             # Read the subset and geotransform that corresponds to the subset
-            subset, geobox_subset = read_subset(out_fname, (UL_Lat, UL_Lat),
+            subset, geobox_subset = read_subset(out_fname,
+                                                (UL_Lon, UL_Lat),
                                                 (UR_Lon, UR_Lat),
                                                 (LR_Lon, LR_Lat),
                                                 (LL_Lon, LL_Lat))
 
-            print 'x'
-
             # The brdf_object has the scale and offsets so calculate the mean
             # through the brdf_object
             brdf_mean_value = brdf_object.get_mean(subset)
-
-            print 'x'
 
             # Output the brdf subset
             out_fname_subset = out_fname + '_subset'
