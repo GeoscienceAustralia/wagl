@@ -4,6 +4,7 @@ import logging
 import subprocess
 import gaip
 import os
+import re
 
 from datetime import datetime
 from os.path import join as pjoin, exists, splitext, abspath, dirname, pardir
@@ -30,7 +31,7 @@ def get_aerosol_data(acquisition, aerosol_path, aot_loader_path=None):
                                ur_lon, aot_loader_path)
         if value:
             return {'data_source': description,
-                    'data_file': atsr_file,
+                    'data_file': filename,
                     'value': value}
 
     raise IOError('No aerosol ancillary data found.')
@@ -92,7 +93,7 @@ def run_aot_loader(filename, dt, ll_lat, ll_lon, ur_lat, ur_lon,
         :py:class:`str`
 
     """
-    basename, filetype = splitext(filename)
+    filetype = splitext(filename)[1][1:]
     if not exists(filename):
         log.error('Aerosol %s file (%s) not found', filetype, filename)
         return None
@@ -103,16 +104,15 @@ def run_aot_loader(filename, dt, ll_lat, ll_lon, ur_lat, ur_lon,
     cmd = pjoin(aot_loader_path, 'aot_loader')
     if not exists(cmd):
         log.error('%s not found.', cmd)
-
-    result = subprocess.check_output([cmd,
-                                      '--' + filetype, atsr_file,
-                                      '--west', str(ll_lon),
-                                      '--east', str(lr_lon),
-                                      '--south', str(ll_lat),
-                                      '--north', str(ul_lat),
-                                      '--date', dt.strftime('%Y-%m-%d'),
-                                      '--t', dt.strftime('%H:%M:%S')],
-                                     shell=True)
+    task = [cmd, '--' + filetype, filename,
+                 '--west', str(ll_lon),
+                 '--east', str(ur_lon),
+                 '--south', str(ll_lat),
+                 '--north', str(ur_lat),
+                 '--date', dt.strftime('%Y-%m-%d'),
+                 '--t', dt.strftime('%H:%M:%S')]
+    task = ' '.join(task)
+    result = subprocess.check_output(task, shell=True)
 
     m = re.search(r'AOT AATSR value:\s+(.+)$', result, re.MULTILINE)
     if m and m.group(1):

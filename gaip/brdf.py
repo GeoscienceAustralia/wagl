@@ -322,7 +322,7 @@ class BRDFLookupError(Exception):
 
 
 
-def get_brdf_dirs_modis(brdf_root, scene_date, pattern='.'):
+def get_brdf_dirs_modis(brdf_root, scene_date, pattern='\d{4}.\d{2}.\d{2}$'):
     """
     Get list of MODIS BRDF directories for the dataset.
 
@@ -352,7 +352,7 @@ def get_brdf_dirs_modis(brdf_root, scene_date, pattern='.'):
     # MCD43A1.005 db interval half-width (days).
     offset = datetime.timedelta(8)
 
-    def __date(s, sep='.'):
+    def parsedate(s, sep='.'):
         # Returns interval midpoint date of a MCD43A1.005/YYYY.MM.DD directory.
         return datetime.date(*[int(x) for x in s.split(sep)]) + offset
 
@@ -364,9 +364,9 @@ def get_brdf_dirs_modis(brdf_root, scene_date, pattern='.'):
 
     # Find the N (n_dirs) BRDF directories with midpoints closest to the
     # scene date.
-    delta_map = { abs(__date(x) - scene_date): x for x in dirs }
+    delta_map = { abs(parsedate(x) - scene_date): x for x in dirs }
 
-    if scene_date < (__date(dirs[0]) - offset):
+    if scene_date < (parsedate(dirs[0]) - offset):
         raise BRDFLookupError('scene date precedes first MODIS date (%s)' % dirs[0])
 
     # Return the closest match (the zeroth index)
