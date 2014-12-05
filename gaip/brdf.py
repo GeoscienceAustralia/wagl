@@ -1,17 +1,20 @@
 """
 Utilities for the extraction of BRDF data.
 
-The :ref:`nbar-algorithm-label` and :ref:`tc-algorithm-label` algorithms require estimates of various atmospheric
-parameters, which are produced using `MODTRAN <http://modtran5.com/>`_. MODTRAN, in turn, requires
-`BRDF <http://en.wikipedia.org/wiki/Bidirectional_reflectance_distribution_function>`_ estimates. The estimates used
-in the ULA, are based on `MODIS <http://modis.gsfc.nasa.gov/>`_ and are produced by CSIRO. For more information, on
-how these are used, see :download:`this <auxiliary/li_etal_2010_05422912.pdf>`.
+The :ref:`nbar-algorithm-label` and :ref:`tc-algorithm-label` algorithms
+require estimates of various atmospheric parameters, which are produced using
+`MODTRAN <http://modtran5.com/>`_. MODTRAN, in turn, requires `BRDF
+<http://en.wikipedia.org/wiki/Bidirectional_reflectance_distribution_function>`_
+estimates. The estimates used in the ULA, are based on `MODIS
+<http://modis.gsfc.nasa.gov/>`_ and are produced by CSIRO. For more
+information, on how these are used, see :download:`this
+<auxiliary/li_etal_2010_05422912.pdf>`.
 
-`MODIS <http://modis.gsfc.nasa.gov/>`_, pre Feb 2001, MODIS data was not available and an alternative method of
-deriving `BRDF <http://en.wikipedia.org/wiki/Bidirectional_reflectance_distribution_function>`_ estimates is required.
+`MODIS <http://modis.gsfc.nasa.gov/>`_, pre Feb 2001, MODIS data was not
+available and an alternative method of deriving `BRDF
+<http://en.wikipedia.org/wiki/Bidirectional_reflectance_distribution_function>`_
+estimates is required.
 
-:todo:
-    Someone who knows more about this (particularly the pre 2001 stuff) should document it.
 """
 
 import datetime

@@ -77,7 +77,7 @@ class GetSolarIrradianceAncillaryDataTask(luigi.Task):
 
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
-        solar_path = CONFIG.get('ancillary', 'solar_path')
+        solar_path = CONFIG.get('ancillary', 'solarirrad_path')
         value = gaip.get_solar_irrad(acqs, solar_path)
         save(self.output(), value)
 
@@ -120,6 +120,8 @@ class GetWaterVapourAncillaryDataTask(luigi.Task):
 
 class GetAerosolAncillaryDataTask(luigi.Task):
 
+    l1t_path = luigi.Parameter()
+
     def requires(self):
         return []
 
@@ -130,25 +132,29 @@ class GetAerosolAncillaryDataTask(luigi.Task):
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
         aerosol_path = CONFIG.get('ancillary', 'aerosol_path')
-        aot_loader_path = CONFIG.get('binaries', 'aot_loader_path')
-        value = gaip.get_aerosol_data(acqs[0], aerosol_path, aot_loader_path)
+        value = gaip.get_aerosol_data(acqs[0], aerosol_path)
         save(self.output(), value)
-
-
-
 
 
 class GetBrdfAncillaryDataTask(luigi.Task):
 
+    l1t_path = luigi.Parameter()
 
     def requires(self):
-        return [CheckNBAROutputTask()]
+        return []
 
     def output(self):
-        pass
+        target = CONFIG.get('work', 'brdf_target')
+        return luigi.LocalTarget(target)
 
     def run(self):
-        pass
+        acqs = gaip.acquisitions(self.l1t_path)
+        brdf_path = CONFIG.get('ancillary', 'brdf_path')
+        brdf_premodis_path = CONFIG.get('ancillary', 'brdf_premodis_path')
+        work_path = CONFIG.get('work', 'path')
+        value = gaip.get_brdf_data(acqs[0], brdf_path, brdf_premodis_path,
+                                   work_path)
+        save(self.output(), value)
 
 
 class GetAncillaryData(luigi.Task):

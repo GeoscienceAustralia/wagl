@@ -19,26 +19,26 @@ def get_water_vapour(acquisition, vapour_path, scale_factor=0.1):
 
     doy = dt.timetuple().tm_yday
     hour = dt.timetuple().tm_hour
-    band_number = (int(doy) - 1) * 4 + int((hour + 3) / 6)
+    band = (int(doy) - 1) * 4 + int((hour + 3) / 6)
 
     # Check for boundary condition: 1 Jan, 0-3 hours
-    if band_number == 0 and doy == 1:
-        band_number = 1
+    if band == 0 and doy == 1:
+        band = 1
 
     # Get the number of bands
     with rasterio.open(datafile) as src:
         n_bands = src.count
 
     # Enable NBAR Near Real Time (NRT) processing
-    if band_number > (n_bands + 1):
+    if band > (n_bands + 1):
         rasterdoy = (((n_bands) - (int((hour + 3) / 6))) / 4) + 1
         if (doy - rasterdoy) < 7:
-            band_idx = (int(rasterdoy) - 1) * 4 + int((hour + 3) / 6)
+            band = (int(rasterdoy) - 1) * 4 + int((hour + 3) / 6)
 
     try:
-        value = gaip.get_pixel(datafile, geobox.centre_lonlat, band=band_idx)
+        value = gaip.get_pixel(datafile, geobox.centre_lonlat, band=band)
     except IndexError:
-        msg = "Invalid water vapour band number: {band}".format(band=band_idx)
+        msg = "Invalid water vapour band number: {band}".format(band=band)
         raise IndexError(msg)
 
     value = value * scale_factor

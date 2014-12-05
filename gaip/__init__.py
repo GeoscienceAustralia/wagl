@@ -9,3 +9,5 @@ from brdf import *
 from fast_cache import *
 from calculate_lon_lat_arrays import *
 from tle import *
+from brdf import *
+from get_brdf import *
