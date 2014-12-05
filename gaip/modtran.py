@@ -1,9 +1,6 @@
-import os, logging, errno, math, numpy
+import os, errno, math, numpy
 from osgeo import gdal
-from ULA3.utils import execute, log_multiline
-from ULA3.meta import print_call, create_arg_string
-
-logger = logging.getLogger('root.' + __name__)
+from ULA3.utils import execute
 
 
 """
@@ -21,7 +18,6 @@ class modtran_config(object):
 
 
 
-@print_call(logger.info)
 def run_modtran(coordinator, albedo, sublogger, work_path, modtran_exe):
     """
     Run MODTRAN for a specified coordinator and albedo. This assumes that the directory structure and files have
@@ -51,21 +47,17 @@ def run_modtran(coordinator, albedo, sublogger, work_path, modtran_exe):
     :param modtran_exe:
         The path of the MODTRAN program.
     """
-    sublogger.info('run_modtran(%s) called', create_arg_string(run_modtran, coordinator, albedo, sublogger, work_path, modtran_exe))
     modtran_work_dir = os.path.join(work_path, 'mod', coordinator, 'alb_' + albedo)
 
     result = execute(command_string=modtran_exe, cwd=modtran_work_dir)
 
-    log_multiline(sublogger.info, result['stdout'], modtran_exe + ' in ' + modtran_work_dir, '\t')
     if result['returncode']:
-        log_multiline(sublogger.error, result['stderr'], 'stderr from ' + modtran_exe, '\t')
         raise Exception('%s failed for coordinator %s, albedo %s' % (modtran_exe, coordinator, albedo))
 
 
 
 
 
-@print_call(logger.info)
 def run_flux(coordinator, albedo, sublogger, work_path, bin_dir):
     """
     Extract information from MODTRAN output file \*.flx.
@@ -95,7 +87,6 @@ def run_flux(coordinator, albedo, sublogger, work_path, bin_dir):
     :param bin_dir:
         The directory where the programs ``read_flx_ga_trans`` and ``read_flx_ga`` are located.
     """
-    sublogger.info('runflux(%s) called', create_arg_string(run_flux, coordinator, albedo, sublogger, work_path, bin_dir))
     runtrans_exe = 'read_flx_ga_trans' if albedo == 't' else 'read_flx_ga'
     modtran_work_dir = os.path.join(work_path, 'mod', coordinator, 'alb_' + albedo)
 
@@ -105,22 +96,15 @@ def run_flux(coordinator, albedo, sublogger, work_path, bin_dir):
             os.path.join(work_path, 'mod', coordinator + '_alb_' + albedo + '.dir')
             )
 
-    sublogger.info('Invoking: %s', command_string)
-
     result = execute(command_string=command_string, cwd=modtran_work_dir)
 
-    if result['stdout']:
-        log_multiline(sublogger.info, result['stdout'], runtrans_exe + ' in ' + modtran_work_dir, '\t')
-
     if result['returncode']:
-        log_multiline(sublogger.error, result['stderr'], 'stderr from ' + runtrans_exe, '\t')
         raise Exception('%s failed for coordinator %s, albedo %s' % (runtrans_exe, coordinator, albedo))
 
 
 
 
 
-@print_call(logger.info)
 def run_coefficient(coordinator, sublogger, work_path, bin_dir):
     """
     Compute the atmospheric parameters needed by BRDF and atmospheric correction couple model.
@@ -144,7 +128,6 @@ def run_coefficient(coordinator, sublogger, work_path, bin_dir):
     :param bin_dir:
         The directory where the programs ``coefficient`` is located.
     """
-    sublogger.info('run_coefficient(%s) called', create_arg_string(run_coefficient, coordinator, sublogger, work_path, bin_dir))
     runcoefficient_exe = os.path.join(bin_dir, 'coefficient')
     modtran_work_dir = os.path.join(work_path, 'mod')
 
@@ -158,22 +141,16 @@ def run_coefficient(coordinator, sublogger, work_path, bin_dir):
         os.path.join(modtran_work_dir, coordinator + '_alb.txt')
         )
 
-    sublogger.info('Invoking: %s', command_string)
-
     result = execute(command_string=command_string, cwd=modtran_work_dir)
 
-    if result['stdout']:
-        log_multiline(sublogger.info, result['stdout'], runcoefficient_exe + ' in ' + modtran_work_dir, '\t')
 
     if result['returncode']:
-        log_multiline(sublogger.error, result['stderr'], 'stderr from ' + runcoefficient_exe, '\t')
         raise Exception('%s failed for coordinator %s' % (runcoefficient_exe, coordinator))
 
 
 
 
 
-@print_call(logger.info)
 def read_modtran(band_strings, sublogger, work_path, bin_dir):
     """
     Reformat the atmospheric parameters produced by MODTRAN for four boxes. These are needed to conduct bilinear analysis.
@@ -215,29 +192,21 @@ def read_modtran(band_strings, sublogger, work_path, bin_dir):
         for factor in ['fv', 'fs', 'b', 's', 'a', 'dir', 'dif', 'ts']:
             command_string += ' ' + os.path.join(modtran_work_dir, factor + '_out_b' + band_string + '.txt')
 
-    sublogger.info('Invoking: %s', command_string)
-
     result = execute(command_string=command_string, cwd=modtran_work_dir)
 
-    if result['stdout']:
-        log_multiline(sublogger.info, result['stdout'], read_modtran_exe + ' in ' + modtran_work_dir, '\t')
-
     if result['returncode']:
-        log_multiline(sublogger.error, result['stderr'], 'stderr from ' + read_modtran_exe, '\t')
         raise Exception('%s failed' % read_modtran_exe)
 
 
 
 
 
-@print_call(logger.info)
 def run_bilinear_ortho(band_number, factor, sublogger, work_path, bin_dir):
     """
     Runs the (interpolation) program "binear_ortho" (which does contain a typo in its name).
 
     :todo: Someone whom understands what this program is used for should document it.
     """
-    sublogger.info('run_bilinear_ortho(%s) called', create_arg_string(run_bilinear_ortho, band_number, factor, sublogger, work_path, bin_dir))
     band_string = str(band_number)
 
     bilinear_ortho_exe = os.path.join(bin_dir, 'binear_ortho') # Note typo in name
@@ -253,15 +222,9 @@ def run_bilinear_ortho(band_number, factor, sublogger, work_path, bin_dir):
         output_filename
         )
 
-    sublogger.info('Invoking: %s', command_string)
-
     result = execute(command_string=command_string, cwd=modtran_work_dir)
 
-    if result['stdout']:
-        log_multiline(sublogger.info, result['stdout'], bilinear_ortho_exe + ' in ' + modtran_work_dir, '\t')
-
     if result['returncode']:
-        log_multiline(sublogger.error, result['stderr'], 'stderr from ' + bilinear_ortho_exe, '\t')
         raise Exception('%s failed' % bilinear_ortho_exe)
 
     return output_filename
@@ -270,7 +233,6 @@ def run_bilinear_ortho(band_number, factor, sublogger, work_path, bin_dir):
 
 
 
-@print_call(logger.info)
 def run_brdf_sim_bin(l1t_input_dataset, band_number, sublogger, work_path, bin_dir, DEBUG, L7_SLC_DATE):
     """
     Perform atmospheric correction (NBAR). This runs either ``brdf_sim_bin`` or ``brdf_sim_bin_slc`` depending
@@ -326,7 +288,6 @@ def run_brdf_sim_bin(l1t_input_dataset, band_number, sublogger, work_path, bin_d
         array.tofile(band_filename)
         return band_filename
 
-    sublogger.info('run_brdf_sim_bin(%s) called', create_arg_string(run_brdf_sim_bin, l1t_input_dataset, band_number, sublogger, work_path, bin_dir, DEBUG, L7_SLC_DATE))
 
     band_string = str(band_number)
 
@@ -360,15 +321,9 @@ def run_brdf_sim_bin(l1t_input_dataset, band_number, sublogger, work_path, bin_d
         os.path.join(work_path, 'ref_wbrdf_b' + band_string + '.bin')
         )
 
-    sublogger.info('Invoking: %s', command_string)
-
     result = execute(command_string=command_string, cwd=work_path)
 
-    if result['stdout']:
-        log_multiline(sublogger.info, result['stdout'], brdf_sim_bin_exe + ' in ' + modtran_work_dir, '\t')
-
     if result['returncode']:
-        log_multiline(sublogger.error, result['stderr'], 'stderr from ' + brdf_sim_bin_exe, '\t')
         raise Exception('%s failed for band %s' % (brdf_sim_bin_exe, band_string))
 
     # Clean up band file if not required for debugging
@@ -379,7 +334,6 @@ def run_brdf_sim_bin(l1t_input_dataset, band_number, sublogger, work_path, bin_d
 
 
 
-@print_call(logger.info)
 def prepare_modtran_input(
     l1t_input_dataset,
     ha_file,
@@ -445,19 +399,16 @@ def prepare_modtran_input(
                 except OSError, e:
                     if e.errno != errno.EEXIST:
                         raise
-                logger.info('Created directory %s', modtran_work_dir)
 
                 try:
                     os.symlink(data_dir, symlink_dir)
                 except OSError, e:
                     if e.errno != errno.EEXIST:
                         raise
-                logger.info('Created symlink %s to %s', symlink_dir, data_dir)
 
                 out_file = open(mod5root_in, 'w')
                 out_file.write(coordinator + '_alb_' + albedo + '\n')
                 out_file.close()
-                logger.info('Created file %s', mod5root_in)
 
         symlink_dir = os.path.join(CONFIG.work_path, 'mod', 'DATA')
         try:
@@ -465,8 +416,9 @@ def prepare_modtran_input(
         except OSError, e:
             if e.errno != errno.EEXIST:
                 raise
-        logger.info('Created symlink %s to %s', symlink_dir, data_dir)
 
+    # TODO Re-Write so the correct data is written and the formatting
+    # is more human readable. JS 20141205
     def create_header_angle_file(max_view_angle):#ha_file, l1t_input_dataset, max_view_angle=None):
         """Create header angle file.
 
@@ -479,7 +431,6 @@ def prepare_modtran_input(
         max_view_angle = max_view_angle or CONFIG.VIEW_ANGLE_MAX
 
         # Centre of UL pixel (degrees)
-        #UL = [math.degrees(q) for q in l1t_input_dataset.geo_coord(0, 0, 0.0, 0.0)]
         UL = l1t_input_dataset.lonlats['UL']
 
         # Resolution -- hardwired per original NBAR code
@@ -505,20 +456,12 @@ def prepare_modtran_input(
         finally:
             fd.close()
 
-        logger.info('create_header_angle_file: %s', ha_file)
-        logger.debug('create_header_angle_file: resolution (deg)     = %f' % resolution_deg)
-        logger.debug('create_header_angle_file: UL                   = (%f, %f)' % (UL[1], UL[0]))
-        #logger.debug('create_header_angle_file: centre               = (%f, %f)' % (l1t_input_dataset.scene_centre_lat, l1t_input_dataset.scene_centre_long))
-        logger.debug('create_header_angle_file: centre               = (%f, %f)' % (l1t_input_dataset.lonlats['CENTRE'][1], l1t_input_dataset.lonlats['CENTRE'][0]))
-        logger.debug('create_header_angle_file: max_view_angle (deg) = %f' % max_view_angle)
 
     def write_modtran_input():
         """Generate modtran input file"""
-        logger.info("Creating Modtran input file: %s" % modtran_input_file)
 
         out_file = open(modtran_input_file, 'w')
 
-        #out_file.write("%f %f\n" % (l1t_input_dataset.ul_lat, l1t_input_dataset.ul_lon))
         out_file.write("%f %f\n" % (l1t_input_dataset.lonlats['UL'][1],l1t_input_dataset.lonlats['UL'][0]))
         out_file.write("%f\n" % satellite.NOMINAL_PIXEL_DEGREES)
         out_file.write("%s\n" % ozone_data['value'])
@@ -526,7 +469,6 @@ def prepare_modtran_input(
         # NOTE: The water vapour value for MODTRAN5 input should be the
         # scaled value, not the raw value from the GeoTIFF file. The processor
         # module should scale the value before storing it in nbar.vapourVal.
-        # scaled_value = ((raw_value/1000) + 27.765)
         out_file.write("%f\n" % water_vapour_data['value'])
 
         out_file.write("DATA/%s\n" % satellite.SPECTRAL_FILTER_FILE)
@@ -554,14 +496,10 @@ def prepare_modtran_input(
             os.path.join(CONFIG.work_path, 'COORDINATOR') + ' ' +
             os.path.join(CONFIG.work_path, 'BOXLINE'))
 
-        logger.info('Invoking: %s', command)
 
         result = execute(command_string=command,
                          cwd=os.path.join(CONFIG.work_path, 'mod'))
-        if result['stdout']:
-            log_multiline(logger.info, result['stdout'], command, '\t')
         if result['returncode']:
-            log_multiline(logger.error, result['stderr'], 'stderr from read_modtrancor_ortho', '\t')
             raise Exception('read_modtrancor_ortho failed')
 
 
@@ -585,14 +523,9 @@ def prepare_modtran_input(
         command += (' ' + os.path.join(CONFIG.work_path, 'LON.bin') + ' ' +
             os.path.join(CONFIG.work_path, 'LAT.bin'))
 
-        logger.info('Invoking: %s', command)
-
         result = execute(command_string=command,
                          cwd=os.path.join(CONFIG.work_path, 'mod'))
-        if result['stdout']:
-            log_multiline(logger.info, result['stdout'], command, '\t')
         if result['returncode']:
-            log_multiline(logger.error, result['stderr'], 'stderr from input_modtran_ortho_ula', '\t')
             raise Exception('input_modtran_ortho_ula failed')
 
     def run_refort_tp5_ga():
@@ -600,14 +533,8 @@ def prepare_modtran_input(
         """
         # Set MODTRAN default profile
         modtranProfile = "tropical"
-        #if l1t_input_dataset.scene_centre_lat < -23.0:
-        #    modtranProfile = "midlat_summer"
         if l1t_input_dataset.lonlats['CENTRE'][1] < -23.0:
              modtranProfile = "midlat_summer"
-        #logger.info('MODTRAN default profile for lat %f: %s'
-        #            % (l1t_input_dataset.scene_centre_lat, modtranProfile))
-        logger.info('MODTRAN default profile for lat %f: %s'
-                     % (l1t_input_dataset.lonlats['CENTRE'][1], modtranProfile))
 
         for coordinator in modtran_config.FULL_COORD_LIST:
             for albedo in [albedo.lower() for albedo in modtran_config.FULL_ALBEDO_LIST]:
@@ -624,20 +551,15 @@ def prepare_modtran_input(
                     os.path.join(CONFIG.work_path, 'mod', coordinator, 'alb_' + albedo,
                                  coordinator + '_alb_' + albedo + '.tp5'))
 
-                logger.info('Invoking: %s', command)
 
                 result = execute(command_string=command,
                                  cwd=os.path.join(CONFIG.work_path, 'mod'))
-                if result['stdout']:
-                    log_multiline(logger.info, result['stdout'], command, '\t')
                 if result['returncode']:
-                    log_multiline(logger.error, result['stderr'], 'stderr from %s' % executable, '\t')
                     raise Exception('%s failed' % executable)
 
     def writeSatFilterFile():
         """Generate satellite filter input file"""
         satFilterFile = os.path.join(CONFIG.work_path, 'SATELLITEFILTER')
-        logger.info("Creating satellite filter input file: %s" % satFilterFile)
 
         out_file = open(satFilterFile, 'w')
 
@@ -649,13 +571,11 @@ def prepare_modtran_input(
 
     def write_modis_brdf_files():
         """Generate modtran input file"""
-        logger.debug("write_modis_brdf_files() called")
         for band_number in l1t_input_dataset.bands('REFLECTIVE'):
             band_string = str(band_number)
 
             modis_brdf_filename = os.path.join(CONFIG.work_path, "brdf_modis_band" + band_string + ".txt")
 
-            logger.debug("writing file %s for band %s", modis_brdf_filename, band_number)
             out_file = open(modis_brdf_filename, 'w')
 
             out_file.write("%f %f %f\n" % (brdf_data[(band_number, 'iso')]['value'],
@@ -666,8 +586,8 @@ def prepare_modtran_input(
                         str(solar_irrad_data[band_number]['value']) + " " +
                         str(solar_dist_data['value']) + "\n")
             out_file.close()
-            logger.info("Created MODIS BRDF parameter file: %s", modis_brdf_filename)
 
+    # TODO REMOVE as no longer needed. JS 20141205
     def create_startend_file():
         """Create startend file.
         """
