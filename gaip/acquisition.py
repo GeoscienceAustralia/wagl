@@ -125,6 +125,16 @@ class LandsatAcquisition(Acquisition):
         """The maximum radiance (aka. `lmax`)."""
         return self.lmax
 
+    @property
+    def gain(self):
+        """The sensor gain"""
+        return (self.lmax - self.lmin)/(self.qcalmax - self.qcalmin)
+
+    @property
+    def bias(self):
+        """Sensor bias"""
+        return self.lmax - (self.gain * self.qcalmax)
+
 
 class Landsat5Acquisition(LandsatAcquisition):
 
@@ -142,7 +152,6 @@ class Landsat5Acquisition(LandsatAcquisition):
     def date_acquired(self):
         """The acquisition time."""
         return self.acquisition_date
-
 
 class Landsat7Acquisition(LandsatAcquisition):
 
@@ -256,6 +265,19 @@ class Landsat8Acquisition(LandsatAcquisition):
     def zone_number(self):
         """The UTM zone number."""
         return getattr(self, 'utm_zone')
+
+    @property
+    def gain(self):
+        """The sensor gain
+        """
+        return self.radiance_mult
+
+    @property
+    def bias(self):
+        """Sensor bias
+        Use value from MTL file for consistency with SceneDataset code
+        """
+        return self.radiance_add
 
 
 ACQUISITION_TYPE = {
