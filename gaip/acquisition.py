@@ -338,19 +338,19 @@ def acquisitions(path):
         db = SENSORS[spacecraft]
         for k, v in db.iteritems():
             if k is not 'sensors':
-                new['SPACECRAFT'][str(k)] = v
+                new['SPACECRAFT'][k.encode('ascii')] = v
 
         new['SENSOR_INFO'] = {}
         db = db['sensors'][sensor]
         for k, v in db.iteritems():
             if k is not 'bands':
-                new['SENSOR_INFO'][str(k)] = v
+                new['SENSOR_INFO'][k.encode('ascii')] = v
 
         bandname = band.replace('band', '').strip('_')
         new['BAND_INFO'] = {}
         db = db['bands'][bandname]
         for k, v in db.iteritems():
-            new['BAND_INFO'][str(k)] = v
+            new['BAND_INFO'][k.encode('ascii')] = v
         band_type = db['type_desc']
         new['BAND_INFO']['band_type'] = BAND_TYPE[band_type]
 
