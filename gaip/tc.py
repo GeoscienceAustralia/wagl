@@ -8,11 +8,11 @@ import os, logging
 import numpy
 import gdal, gdalconst
 from ULA3.meta import print_call
-from ULA3.filtering import filter_float as filter
 from ULA3.utils import warp, get_bounds, DTYPE_MAP, as_array, dump_array
-from _shade_main_landsat_pixel import shade_main_landsat_pixel
-from _slope_pixelsize_newpole import slope_pixelsize_newpole
-from _brdf_terrain_newdiff_all import terrain_correction
+from gaip import filter
+from gaip import shade_main_landsat_pixel
+from gaip import slope_pixelsize_newpole
+from gaip import terrain_correction
 # from _brdf_terrain_newdiff_all_LS8 import terrain_correction_ls8
 
 logger = logging.getLogger('root.' + __name__)
