@@ -338,7 +338,10 @@ def acquisitions(path):
         db = SENSORS[spacecraft]
         for k, v in db.iteritems():
             if k is not 'sensors':
-                new['SPACECRAFT'][k.encode('ascii')] = v
+                try:
+                    new['SPACECRAFT'][k.encode('ascii')] = v.encode('ascii')
+                except AttributeError:
+                    new['SPACECRAFT'][k.encode('ascii')] = v
 
         new['SENSOR_INFO'] = {}
         db = db['sensors'][sensor]
