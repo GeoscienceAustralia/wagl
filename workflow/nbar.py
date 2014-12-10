@@ -159,70 +159,111 @@ class GetBrdfAncillaryDataTask(luigi.Task):
 
 class GetAncillaryData(luigi.Task):
 
+    l1t_path = luigi.Parameter()
+
     def requires(self):
-        return [GetElevationAncillaryDataTask(),
-                GetOzoneAncillaryDataTask(),
-                GetSolarIrradienceAncillaryDataTask(),
-                GetSolarDistanceAncillaryDataTask(),
-                GetWaterVapourAncillaryDataTask(),
-                GetAerosolAncillaryDataTask(),
-                GetBrdfAncillaryDataTask()]
+        return [GetElevationAncillaryDataTask(self.l1t_path),
+                GetOzoneAncillaryDataTask(self.l1t_path),
+                GetSolarDistanceAncillaryDataTask(self.l1t_path),
+                GetWaterVapourAncillaryDataTask(self.l1t_path),
+                GetAerosolAncillaryDataTask(self.l1t_path),
+                GetBrdfAncillaryDataTask(self.l1t_path)]
+
+    def complete(self):
+        return all([d.complete() for d in self.requires()])
+
+
+class CalculateLonGrid(luigi.Task):
+
+    l1t_path = luigi.Parameter()
+
+    def requires(self):
+        return []
 
     def output(self):
-        pass
+        target = CONFIG.get('work', 'lon_grid_target')
+        return luigi.LocalTarget(target)
 
     def run(self):
-        pass
+        acqs = gaip.acquisitions(self.l1t_path)
+        target = self.output()
+        gaip.create_lon_grid(acqs[0], target.fn)
+
+
+class CalculateLatGrid(luigi.Task):
+
+    l1t_path = luigi.Parameter()
+
+    def requires(self):
+        return []
+
+    def output(self):
+        target = CONFIG.get('work', 'lat_grid_target')
+        return luigi.LocalTarget(target)
+
+    def run(self):
+        acqs = gaip.acquisitions(self.l1t_path)
+        target = self.output()
+        gaip.create_lat_grid(acqs[0], target.fn)
 
 
 class CalculateLatLonGrids(luigi.Task):
 
+    l1t_path = luigi.Parameter()
+
     def requires(self):
-        return []
+        return [CalculateLatGrid(self.l1t_path),
+                CalculateLonGrid(self.l1t_path)]
 
-    def output(self):
-        pass
-
-    def run(self):
-        pass
+    def complete(self):
+        return all([d.complete() for d in self.requires()])
 
 
 class CalculateSatelliteGrids(luigi.Task):
 
+    l1t_path = luigi.Parameter()
+
     def requires(self):
         return []
 
     def output(self):
-        pass
+        target = CONFIG.get('work', 'lat_grid_target')
+        return luigi.LocalTarget(target)
 
     def run(self):
-        pass
+        acqs = gaip.acquisitions(self.l1t_path)
+        target = self.output()
+        gaip.create_lat_grid(acqs[0], target.fn)
 
 
 class CalculateSolarGrids(luigi.Task):
 
+    l1t_path = luigi.Parameter()
+
     def requires(self):
         return []
 
     def output(self):
-        pass
+        target = CONFIG.get('work', 'lat_grid_target')
+        return luigi.LocalTarget(target)
 
     def run(self):
-        pass
+        acqs = gaip.acquisitions(self.l1t_path)
+        target = self.output()
+        gaip.create_lat_grid(acqs[0], target.fn)
 
 
 class CalculateGridsTask(luigi.Task):
 
+    l1t_path = luigi.Parameter()
+
     def requires(self):
-        return [CalculateLatLonGrids(),
-                CalculateSatelliteGrids(),
-                CalculateSolarGrids()]
+        return [CalculateLatLonGrids(self.l1t_path),
+                CalculateSatelliteGrids(self.l1t_path),
+                CalculateSolarGrids(self.l1t_path)]
 
-    def output(self):
-        pass
-
-    def run(self):
-        pass
+    def complete(self):
+        return all([d.complete() for d in self.requires()])
 
 
 class PrepareModtranInputTask(luigi.Task):
