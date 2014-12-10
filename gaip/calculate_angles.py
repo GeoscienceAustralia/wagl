@@ -1,19 +1,23 @@
 #!/usr/bin/env python
+
+import math
+import os
+
+import ephem
 import numpy
 from osgeo import gdal
 from osgeo import osr
-import ephem
+import rasterio
 
-from EOtools.DatasetDrivers import SceneDataset
-
-from ULA3.set_satmod import set_satmod
-from ULA3.set_times import set_times
-from ULA3.angle_all import angle
-
+from EOtools import tiling
 from gaip import acquisitions
+from gaip import angle
 from gaip import find_file
 from gaip import gridded_geo_box
+from gaip import load_tle
 from gaip import read_img
+from gaip import set_satmod
+from gaip import set_times
 
 CRS = "EPSG:4326"
 
@@ -238,12 +242,6 @@ def setup_orbital_elements(ephemeral, datetime):
     # angular velocity (rad sec-1)
     orbital_elements[2] = (2*pi*n)/s
 
-
-    # For testing we'll use static values
-    orbital_elements[0] = 98.200000
-    orbital_elements[1] = 7083160.000000
-    orbital_elements[2] = 0.001059
-
     return orbital_elements
 
 
@@ -434,8 +432,21 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
 
     # Get the satellite orbital elements
     tle_dir = '/g/data1/v10/eoancillarydata/sensor-specific'
-    sat_ephemeral = scene_dataset.satellite.load_tle(Datetime, tle_dir)
-    orbital_elements = setup_orbital_elements(sat_ephemeral, Datetime)
+    sat_ephemeral = load_tle(acquisition, tle_dir)
+
+    # If we have None, then no suitable TLE was found, so use values gathered
+    # by the acquisition object
+    if sat_ephemeral is None:
+        # orbital inclination (degrees)
+        orb_incl = math.degrees(acquisition.inclination)
+        # semi_major radius (m)
+        orb_radius = acquisition.semi_major_axis
+        # angular velocity (rad sec-1)
+        omega = acquisition.omega
+        orbital_elements = numpy.array([orb_incl, orb_radius, omega],
+            dtype='float')
+    else:
+        orbital_elements = setup_orbital_elements(sat_ephemeral, Datetime)
 
     # Min and Max lat extents
     # This method should handle northern and southern hemispheres
@@ -462,8 +473,8 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
     track = setup_times(min_lat, max_lat, spheroid, orbital_elements, smodel, npoints)
 
     # Array dimensions
-    cols = acqs[0].samples
-    rows = acqs[0].lines
+    cols = acquisition.samples
+    rows = acquisition.lines
     dims = (rows, cols)
 
     if to_disk is None:
@@ -476,12 +487,13 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
         time = numpy.zeros(dims, dtype='float32')
     else:
         # Initialise 1D arrays to hold the angles
-        view = numpy.zeros(cols, dtype='float32')
-        azi = numpy.zeros(cols, dtype='float32')
-        asol = numpy.zeros(cols, dtype='float32')
-        soazi = numpy.zeros(cols, dtype='float32')
-        rela_angle = numpy.zeros(cols, dtype='float32')
-        time = numpy.zeros(cols, dtype='float32')
+        view = numpy.zeros((1,cols), dtype='float32')
+        azi = numpy.zeros((1,cols), dtype='float32')
+        asol = numpy.zeros((1,cols), dtype='float32')
+        soazi = numpy.zeros((1,cols), dtype='float32')
+        rela_angle = numpy.zeros((1,cols), dtype='float32')
+        time = numpy.zeros((1,cols), dtype='float32')
+
 
         if len(to_disk) != 6:
             print "Incorrect number of filenames!"
@@ -526,7 +538,7 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
 
     # Initialise the tile generator for processing
     # Process 1 row of data at a time
-    tiles = tiling.generate_tiles(cols, rows, cols, 1)
+    tiles = tiling.generate_tiles(cols, rows, cols, 1, Generator=True)
 
     # Rather than do 8000+ if checks within the loop, we'll construct two
     # seperate loops
@@ -541,7 +553,7 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
 
                 # Read the lon and lat tile
                 lon_array = lon.read_band(1, window=tile)
-                lat_array = lon.read_band(1, window=tile)
+                lat_array = lat.read_band(1, window=tile)
 
                 istat = angle(cols, rows, i+1, lat_array, lon_array,
                     spheroid, orbital_elements, hours, century, npoints, smodel,
@@ -558,7 +570,7 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
 
                 # Read the lon and lat tile
                 lon_array = lon.read_band(1, window=tile)
-                lat_array = lon.read_band(1, window=tile)
+                lat_array = lat.read_band(1, window=tile)
 
                 # Set to null value
                 view[:] = -999
@@ -570,16 +582,24 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
 
                 istat = angle(cols, rows, i+1, lat_array, lon_array,
                     spheroid, orbital_elements, hours, century, npoints,
-                    smodel, track, view, azi, asol, soazi, rela_angle,
-                    time, X_cent, N_cent)
+                    smodel, track, view[0], azi[0], asol[0], soazi[0],
+                    rela_angle[0], time[0], X_cent, N_cent)
+
 
                 # Output to disk
-                out_SAT_V_bnd.WriteArray(view, xstart, ystart).FlushCache()
-                out_SAT_AZ_bnd.WriteArray(azi, xstart, ystart).FlushCache()
-                out_SOL_Z_bnd.WriteArray(asol, xstart, ystart).FlushCache()
-                out_SOL_AZ_bnd.WriteArray(soazi, xstart, ystart).FlushCache()
-                out_REL_AZ_bnd.WriteArray(rela_angle, xstart, ystart).FlushCache()
-                out_TIME_bnd.WriteArray(time, xstart, ystart).FlushCache()
+                out_SAT_V_bnd.WriteArray(view, xstart, ystart)
+                out_SAT_V_bnd.FlushCache()
+                out_SAT_AZ_bnd.WriteArray(azi, xstart, ystart)
+                out_SAT_AZ_bnd.FlushCache()
+                out_SOL_Z_bnd.WriteArray(asol, xstart, ystart)
+                out_SOL_Z_bnd.FlushCache()
+                out_SOL_AZ_bnd.WriteArray(soazi, xstart, ystart)
+                out_SOL_AZ_bnd.FlushCache()
+                out_REL_AZ_bnd.WriteArray(rela_angle, xstart, ystart)
+                out_REL_AZ_bnd.FlushCache()
+                out_TIME_bnd.WriteArray(time, xstart, ystart)
+                out_TIME_bnd.FlushCache()
+
 
     if to_disk is not None:
         # Close all image files opened for writing
