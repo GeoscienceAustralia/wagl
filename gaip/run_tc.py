@@ -94,6 +94,17 @@ def process(subprocess_list=[], resume=False):
 
     ###################################################################
 
+    # Terrain correction working path
+    tc_work_path = os.path.join(work_path, 'tc_intermediates')
+    try:
+        os.mkdir(tc_work_path)
+    except OSError:
+        if not os.path.exists(tc_work_path):
+            msg = ("Error creating directory for terrain correction "
+                   "intermediates.")
+            print msg
+            raise
+
     # Use the 1st acquisition to setup the geobox
     geobox = gridded_geo_box(aqcuistions[0])
 
@@ -105,6 +116,7 @@ def process(subprocess_list=[], resume=False):
     is_utm = not geobox.crs.IsGeographic()
 
     # National DSM data path
+    # TODO get the location of the DEM path from the new config
     national_dsm_path = os.path.join(CONFIG.DIR_DEM_TC, 'dsm1sv1_0_Clean.img')
     pixel_buf = Buffers(dsm_buffer_width)
 
@@ -125,26 +137,16 @@ def process(subprocess_list=[], resume=False):
         resampling=RESAMPLING.bilinear)
 
     # Output the reprojected result
-    write_img(dsm_data, output_dsm_path, geobox=dem_geobox)
+    fname_DSM_subset = os.path.join(tc_work_path, 'region_dsm_image.img')
+    write_img(dsm_data, fname_DSM_subset, geobox=dem_geobox)
 
     # Smooth the DSM
     dsm_data = filter_dsm(dsm_data)
 
     # Output the smoothed DSM
-    output_smDSM_path = os.path.join(work_path, 'region_dsm_image_smoothed' + output_extension)
-    write_img(dsm_data, output_smDSM_path, geobox=dem_geobox)
+    fname_smDSM = os.path.join(tc_work_path, 'region_dsm_image_smoothed.img')
+    write_img(dsm_data, fname_smDSM, geobox=dem_geobox)
 
-    #TODO Need a new debug flag for the luigi workflow
-    if CONFIG.debug:
-        # the location to dump the data.
-        # TODO change important_intermediates to TC_intermediates??
-        dump_path = os.path.join(work_path, 'important_intermediates')
-        try:
-            os.mkdir(dump_path)
-        except OSError:
-            if not os.path.exists(dump_path):
-                dump_path = False
-                logger.error("error creating directory for important intermediates.")
 
     if dump_path:
         # write the equivalent input file for Fuqin.
@@ -182,14 +184,14 @@ def process(subprocess_list=[], resume=False):
         azi_angle, pixel_buf, shadow_sub_matrix_height,
         shadow_sub_matrix_width, spheroid)
 
-    write_img(shadow_s, 'shadow_s.img', geobox=geobox)
-    write_img(shadow_v, 'shadow_v.img', geobox=geobox)
+    # Output the two shadow masks to disk
+    fname_shadow_s = os.path.join(tc_work_path, 'shadow_s.img')
+    fname_shadow_v = os.path.join(tc_work_path, 'shadow_v.img')
+    write_img(shadow_s, fname_shadow_s, geobox=geobox)
+    write_img(shadow_v, fname_shadow_v, geobox=geobox)
 
-    if dump_path:
-        write_tif_file(l1t_input_dataset, shadow_s, os.path.join(dump_path, 'shadow_s.img'), file_type = 'ENVI')
-        write_tif_file(l1t_input_dataset, shadow_v, os.path.join(dump_path, 'shadow_v.img'), file_type = 'ENVI')
-        # TODO re-work this slope_results routine
-        slope_results.dump_arrays(dump_path, l1t_input_dataset, "ENVI", ".img")
+    # TODO re-work this slope_results routine
+    slope_results.dump_arrays(dump_path, l1t_input_dataset, "ENVI", ".img")
 
     # load the line starts and ends.
     region_nrow, region_ncol = l1t_input_dataset.shape
