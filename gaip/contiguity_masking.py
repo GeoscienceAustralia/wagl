@@ -45,7 +45,8 @@ def calc_contiguity_mask(image_stack, spacecraft_id):
     #mask = numexpr.evaluate('prod(image_stack, 0)') != 0 # ***This has the potential to overflow, roll back to array.all(0)***
 
     # The following is only valid for Landsat 5 images
-    if spacecraft_id == 'LS5':
+    logging.debug('calc_contiguity_mask: spacecraft_id=%s' % (spacecraft_id,))
+    if spacecraft_id == 'Landsat5':
         logging.debug('Finding thermal edge anomalies')
         # Apply thermal edge anomalies
         struct = numpy.ones((7,7), dtype='bool')

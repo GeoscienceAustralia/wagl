@@ -10,7 +10,7 @@ import osr
 from IDL_functions import histogram
 
 
-def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, acquisitions, pq_const, \
+def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun_elev_deg, pq_const, \
                  land_sea_mask=None, contiguity_mask=None, cloud_algorithm='ACCA', 
                  growregion=False, aux_data={}):
     """
@@ -31,9 +31,11 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, acquisitions, p
         An instance of GriddedGeoBox representing the spatial context of
         the required shadow mask
 
-    :param acquisitions:
-        A list of Acquisition instances that represent each band in the 
-        image_stack.
+    :param sun_az_deg:
+        the azimutth of the sun in degrees
+
+    :param sun_elev_deg:
+        the elevation of the sun in degrees
 
     :param pq_const:
         An instance of PQAConstants applicable to the reflectance stack supplied
@@ -469,11 +471,11 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, acquisitions, p
 #                corrected_az = 360 - corrected_az + 90
 #===========================================================================
 
-    rad_elev     = numpy.radians(acquisitions[0].sun_elevation)
-    if acquisitions[0].sun_azimuth >= 180:
-        corrected_az = acquisitions[0].sun_azimuth - 180
+    rad_elev     = numpy.radians(sun_elev_deg)
+    if sun_az_deg >= 180:
+        corrected_az = sun_az_deg - 180
     else: # azimuth < 180
-        corrected_az = acquisitions[0].sun_azimuth + 180
+        corrected_az = sun_az_deg + 180
 
     if (sr.IsGeographic() == 0):
         # azimuth is dealt in polar form

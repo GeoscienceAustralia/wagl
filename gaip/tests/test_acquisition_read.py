@@ -27,8 +27,9 @@ class Landsat5AcquisitionTest(unittest.TestCase):
 
     def test_multi_band_read(self):
         acqs_subset, bands, geo_box = gaip.stack_data(self.acqs, \
-            filter=(lambda acq: acq.band_type != gaip.PAN))
-        self.assertEqual(bands.shape, (7, 8801, 9721))
+            filter=(lambda acq: acq.band_type != gaip.PAN \
+            and acq.band_type != gaip.THM))
+        self.assertEqual(bands.shape, (6, 8801, 9721))
 
     def test_multi_band_read(self):
         acqs_subset, bands, geo_box = gaip.stack_data(self.acqs, \

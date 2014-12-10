@@ -8,6 +8,7 @@ from rasterio import Affine
 from rasterio import crs
 from rasterio.warp import reproject
 from rasterio.warp import RESAMPLING
+import logging
 import os
 import gaip
 from GriddedGeoBox import GriddedGeoBox
@@ -82,19 +83,28 @@ def stack_data(acqs_list, filter=(lambda acq: True)):
 
     # determine data type by reading the first band
 
+    logging.debug("stack_data: reading data and box for first acquisition")
     a, geo_box = acqs[0].data_and_box()
 
     # create the result array, setting datatype based on source type
 
-    stack_shape = (len(acqs), acqs[0].width, acqs[0].height)
-    stack = np.empty(stack_shape, type(a[0][0]))
+    stack_shape = (len(acqs), a.shape[0], a.shape[1])
+    logging.debug("stack_data: creating stack numpy arry, shape=%s, dtype=%s" \
+        % (str(stack_shape), str(a.dtype)))
+    stack = np.empty(stack_shape, a.dtype)
+    logging.debug("stack_data: copy in first band")
     stack[0] = a
+    logging.debug("stack_data: release first band memory")
+    del a
 
     # read remaining aquisitions into it
 
+    logging.debug("stack_data: reading remaining bands")
     for i in range(1, stack_shape[0]):
+        logging.debug("stack_data: reading bands %d" % (i, ))
         stack[i] = acqs[i].data()
 
+    logging.debug("stack_data: all done, returning results")
     return acqs, stack, geo_box
 
 

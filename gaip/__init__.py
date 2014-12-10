@@ -18,3 +18,4 @@ from _slope_pixelsize_newpole import slope_pixelsize_newpole # F2Py
 from _brdf_terrain_newdiff_all import terrain_correction # F2Py
 from calculate_angles import *
 from calculate_lon_lat_arrays import *
+from land_sea_masking import *
