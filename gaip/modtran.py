@@ -417,8 +417,17 @@ def prepare_modtran_input(
             if e.errno != errno.EEXIST:
                 raise
 
-    # TODO Re-Write so the correct data is written and the formatting
-    # is more human readable. JS 20141205
+    # TODO Change of format
+    # Fuqin uses a different format in her calculate angles stuff:
+    # year month day hours
+    # lines columns
+    # centre_lat centre_lon
+    # satellite_semi_mjr_radius orbital_inc angular_velocity
+    # Also Fuqin says that it isn't actually used by MODTRAN, so maybe this
+    # should be moved to a new area, potentially the calculate_angles file
+    # The file itself is not used by the F2Py version (unlike the original
+    # Fortran version), but can be used as an aid for validation purposes.
+    # JS 20141205
     def create_header_angle_file(max_view_angle):#ha_file, l1t_input_dataset, max_view_angle=None):
         """Create header angle file.
 
@@ -586,7 +595,8 @@ def prepare_modtran_input(
                         str(solar_dist_data['value']) + "\n")
             out_file.close()
 
-    # TODO REMOVE as no longer needed. JS 20141205
+    # TODO The STARTEND file is no longer used in the NBAR/TC code.
+    # JS 20141205
     def create_startend_file():
         """Create startend file.
         """
