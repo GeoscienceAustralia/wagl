@@ -43,14 +43,23 @@ class Acquisition(object):
     def __repr__(self):
         return 'Acquisition(band_name=' + self.band_name + ')'
 
-    def data(self):
-        """Return `numpy.array` of the data for this acquisition."""
-        return gaip.data(self)
+    def data(self, out=None):
+        """
+        Return `numpy.array` of the data for this acquisition.
+        If `out` is supplied, it must be a numpy.array into which
+        the Acquisition's data will be read.
+        """
+        return gaip.data(self, out=out)
 
-    def data_and_box(self):
-        """Return `numpy.array` of the data and the `GriddedGeoBox` 
-        for this acquisition."""
-        return gaip.data_and_box(self)
+    def data_and_box(self, out=None):
+        """
+        Return a tuple comprising the `numpy.array` of the data for this
+        Acquisition and the `GriddedGeoBox` describing the spatial extent.
+        If `out` is supplied, it must be a numpy.array into which
+        the Acquisition's data will be read.
+        for this acquisition.
+        """
+        return gaip.data_and_box(self, out=out)
 
     def gridded_geo_box(self):
         """Return the `GriddedGeoBox` for this acquisition."""

@@ -24,24 +24,31 @@ def get_pixel(filename, lonlat, band=1):
         return src.read_band(band, window=((y, y + 1), (x, x + 1))).flat[0]
 
 
-def data(acq):
-    """Return a `numpy.array` containing the data of the acquisition `acq`. 
-    The parameter `acq` should behave like a `gaip.Acquisition` object."""
+def data(acq, out=None):
+    """
+    Read the supplied acquisition's data into the `out` array if provided,
+    otherwise return a new `numpy.array` containing the data.
+    The parameter `acq` should behave like a `gaip.Acquisition` object.
+    """
     dirname = acq.dir_name
     filename = acq.file_name
     with rasterio.open(pjoin(dirname, filename), 'r') as fo:
-        return fo.read_band(1)
+        return fo.read_band(1, out=out)
 
-def data_and_box(acq):
-    """Return a tuple comprising the `numpy.array` containing the data of
+def data_and_box(acq, out=None):
+    """
+    Return a tuple comprising the `numpy.array` containing the data of
     the acquisition `acq` together with the associated GriddedGeoBox describing
     the data extent. 
-    The parameter `acq` should behave like a `gaip.Acquisition` object."""
+    The parameter `acq` should behave like a `gaip.Acquisition` object.
+    The `out` parameter, if supplied is a numpy.array into which the
+    acquisition data is read.
+    """
     dirname = acq.dir_name
     filename = acq.file_name
     with rasterio.open(pjoin(dirname, filename), 'r') as fo:
         box = gaip.GriddedGeoBox.from_dataset(fo)
-        return (fo.read_band(1), box)
+        return (fo.read_band(1, out=out), box)
 
 def gridded_geo_box(acq):
     """Return a GriddedGeoBox instance representing the spatial extent and 
@@ -81,30 +88,22 @@ def stack_data(acqs_list, filter=(lambda acq: True)):
     if len(acqs) == 0:
        return acqs, None, None
 
-    # determine data type by reading the first band
+    # determine data type and dimensions by reading the first band
 
-    logging.debug("stack_data: reading data and box for first acquisition")
     a, geo_box = acqs[0].data_and_box()
 
     # create the result array, setting datatype based on source type
 
     stack_shape = (len(acqs), a.shape[0], a.shape[1])
-    logging.debug("stack_data: creating stack numpy arry, shape=%s, dtype=%s" \
-        % (str(stack_shape), str(a.dtype)))
     stack = np.empty(stack_shape, a.dtype)
-    logging.debug("stack_data: copy in first band")
     stack[0] = a
-    logging.debug("stack_data: release first band memory")
     del a
 
     # read remaining aquisitions into it
 
-    logging.debug("stack_data: reading remaining bands")
     for i in range(1, stack_shape[0]):
-        logging.debug("stack_data: reading bands %d" % (i, ))
-        stack[i] = acqs[i].data()
+        acqs[i].data(out=stack[i])
 
-    logging.debug("stack_data: all done, returning results")
     return acqs, stack, geo_box
 
 
