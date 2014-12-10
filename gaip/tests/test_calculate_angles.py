@@ -13,6 +13,7 @@ from gaip import create_centreline_file
 from gaip import find_file
 from gaip import gridded_geo_box
 from gaip import read_img
+from gaip import sat_sol_grid_workflow
 from gaip.tests.unittesting_tools import ParameterisedTestCase
 
 
@@ -501,7 +502,7 @@ if __name__ == '__main__':
         os.chdir(outdir)
 
         print "Computing satellite & solar angle grids."
-        compute_angles(L1T_dir, work_dir=outdir, lonlat_path=nbar_work_dir)
+        compute_angles(L1T_dir, work_path=outdir, lonlat_path=nbar_work_dir)
 
         # Change back to the original directory
         os.chdir(cwd)
