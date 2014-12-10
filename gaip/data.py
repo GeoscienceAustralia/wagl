@@ -218,6 +218,10 @@ def read_subset(fname, ULxy, URxy, LRxy, LLxy, bands=1):
         # Get the inverse transform of the affine co-ordinate reference
         inv = ~src.affine
 
+        # Get the dimensions
+        cols = src.width
+        rows = src.height
+
         # Convert each map co-ordinate to image/array co-ordinates
         imgULx, imgULy = [int(v) for v in inv*ULxy]
         imgURx, imgURy = [int(v) for v in inv*URxy]
@@ -231,6 +235,13 @@ def read_subset(fname, ULxy, URxy, LRxy, LLxy, bands=1):
         ystart = min(imgULy, imgURy)
         xend = max(imgURx, imgLRx) + 1
         yend = max(imgLLy, imgLRy) + 1
+
+        # Check for out of bounds
+        if ((xstart < 0) or (ystart < 0)) or ((xend > cols) or (yend > rows)):
+            msg = ("Error! Attempt to read a subset that is outside of the"
+                   "image domain. Index: ({ys}, {ye}), ({xs}, {xe}))")
+            msg = msg.format(ys=ystart, ye=yend, xs=xstart, xe=xend)
+            raise IndexError(msg)
 
         # Read the subset
         subs =  src.read(bands, window=((ystart, yend), (xstart, xend)))
