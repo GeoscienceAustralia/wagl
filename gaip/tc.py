@@ -7,7 +7,6 @@ or :py:class:`numpy.ndarray`s.
 import os, logging
 import numpy
 import gdal, gdalconst
-from ULA3.meta import print_call
 from ULA3.utils import warp, get_bounds, DTYPE_MAP, as_array, dump_array
 from gaip import filter
 from gaip import shade_main_landsat_pixel
@@ -40,7 +39,6 @@ class FortranError(Exception):
 
 
 
-@print_call(logger.info)
 def clip_dsm(shape_dataset, dsm_filename, output_filename, buffer_widths, output_format):
     """
     Clip a region out of a DSM. This function calls :py:func:`ULA3.utils.warp` (which imports it from
@@ -82,7 +80,6 @@ def clip_dsm(shape_dataset, dsm_filename, output_filename, buffer_widths, output
 
 
 
-@print_call(logger.info)
 def filter_dsm(clipped_dem):
     """
     Apply Fuqin's (3x3 Gausian) smoothing filter to a clipped DEM. This code is an interface to the fortran code
@@ -158,7 +155,6 @@ class SlopeError(FortranError):
             return "Y dimensions of scene and DEM not correct."
 
 #TODO: ensure that we are reading from the bottom, not the top (see second arg).
-@print_call(logger.info)
 def run_slope(
     shape_dataset,
     dem_data,
@@ -416,16 +412,14 @@ class CastShadowError(FortranError):
 
 
 
-@print_call(logger.info)
 def run_castshadow(
-    shape_dataset,
-    dem_data,
-    solar_angle_data,
-    sazi_angle_data,
-    pix_buf,
+    acquisition,
+    DEM,
+    zenith_angle,
+    azimuth_angle,
+    buffer,
     block_height,
     block_width,
-    is_utm,
     spheroid):
     """
     This code is an interface to the fortran code shade_main_landsat_pixel.f90 written by Fuqin
@@ -455,31 +449,34 @@ def run_castshadow(
     thus the DEM image will be larger than landsat image for
     500 lines x 500 columns
 
-    :param shape_dataset:
-        Dataset that defines the shape of the region.
-    :type shape_dataset:
-        anything that can be passed to :py:class:`ULA3._gdal_tools.default_bounds_getter`.
+    :param acquisition:
+        An instance of an acquisition object.
+    :type acquisition:
+        Class, Acquisition
 
-    :param dem_data:
-        A DEM of the region. This must have the same dimensions as ``shape_dataset`` plus a buffer of
-        widths specified by ``pix_buf``.
-    :type dem_data:
-        Anything that can be passed to :py:func:`ULA3.utils.as_array` along with a dtype of :py:class:`numpy.float32`.
+    :param DEM:
+        A DEM of the region. This must have the same dimensions as
+        zenith_angle plus a buffer of widths specified by buffer.
+    :type DEM:
+        A 2D NumPy float32 array.
 
-    :param solar_angle_data:
-        Array of solar zenith angles (in degrees).
-    :type solar_angle_data:
-        Anything that can be passed to :py:func:`ULA3.utils.as_array` along with a dtype of :py:class:`numpy.float32`.
+    :param zenith_angle:
+        Array of zenith angles (in degrees). Must be of the same
+        dimensions as azimuth_angle.
+    :type zenith_angle:
+        A 2D NumPy float32 array.
 
-    :param sazi_angle_data:
-        Array of solar azimuth angles (in degrees).
-    :type sazi_angle_data:
-        Anything that can be passed to :py:func:`ULA3.utils.as_array` along with a dtype of :py:class:`numpy.float32`.
+    :param azimuth_angle:
+        Array of azimuth angles (in degrees). Must be of the same
+        dimensions as zenith_angle.
+    :type azimuth_angle:
+        A 2D NumPy float32 array.
 
-    :param pix_buf:
-        Object describing the buffers around ``dem_data``.
-    :type pix_buf:
-        :py:class:`ULA3._gdal_tools.ImageShape`.
+    :param buffer:
+        Object describing the pixel buffers around the azimuth_angle
+        and the zenith_angle arrays.
+    :type buffer:
+        Class, Buffers with properties left, right, top & bottom.
 
     :param block_height:
         The height of the sub-array to be embedded (see notes above).
@@ -500,57 +497,63 @@ def run_castshadow(
         Index 3 contains the Earth rotational angular velocity in
         radians/second.
 
-    :warning:
-        The parameters ``solar_angle_data`` and ``sazi_angle_data`` require inputs that are in degrees.
-        This is different to most other functions in ULA3. This is the case because this is just a thin wrapper
-        around Fuqin's Fortran code, which expects arrays in degrees.
+    :return:
+        A 2D NumPy array containing the shadow mask.
 
     :warning:
         The Fortran code cannot be compiled with ``-O3`` as it produces incorrect results if it is.
-
-    :todo:
-        Perhaps the functions ``solar_angle_data`` and ``sazi_angle_data`` should accept that arrays are
-        in radians rather than degrees for consistency with the rest of ULA3.
     """
-    # save the inputs (this has been useful for debugging - they get read again from
-    # ULA3.tests.RunCastShadowTestCase.test3).
-    #numpy.save(file="/short/v10/tmp/ula3_tests/nbar/work/cs_dem_data.npy", arr=dem_data)
-    #numpy.save(file="/short/v10/tmp/ula3_tests/nbar/work/cs_solar_data.npy", arr=solar_angle_data)
-    #numpy.save(file="/short/v10/tmp/ula3_tests/nbar/work/cs_sazi_data.npy", arr=sazi_angle_data)
 
-    bounds = get_bounds(shape_dataset)
+    # OLD call
+    #ierr, mask_all = shade_main_landsat_pixel(
+    #    as_array(dem_data, dtype=numpy.float32),
+    #    as_array(solar_angle_data, dtype=numpy.float32),
+    #    as_array(sazi_angle_data, dtype=numpy.float32),
+    #    dresx,
+    #    dresy,
+    #    spheroid,
+    #    bounds.RasterYOrigin,
+    #    bounds.RasterXOrigin,
+    #    pix_buf.left,
+    #    pix_buf.right,
+    #    pix_buf.top,
+    #    pix_buf.bottom,
+    #    block_height,
+    #    block_width,
+    #    is_utm)
 
-    # x & y pixel resolution (This should handle cases of non-square pixels.)
-    dresx = abs(bounds.RasterXCellSize)
-    dresy = abs(bounds.RasterYCellSize)
+    # Get the x and y pixel sizes
+    geobox = acquisition.gridded_geo_box()
+    x_res, y_res = geobox.pixelsize
+    x_origin, y_origin = geobox.origin
 
-    #print "bounds = %s" % str(bounds)
-    #print "dem_data.shape = %s" % str(dem_data.shape)
-    #print "solar_angle_data.shape = %s" % str(solar_angle_data.shape)
-    #print "sazi_angle_data.shape = %s" % str(sazi_angle_data.shape)
-    #print "as_array(dem_data, dtype=numpy.float32).shape = %s" % str(as_array(dem_data, dtype=numpy.float32).shape)
+    # Are we in UTM or geographics?
+    is_utm = not geobox.crs.IsGeographic()
 
-    ierr, mask_all = shade_main_landsat_pixel(
-        as_array(dem_data, dtype=numpy.float32),
-        as_array(solar_angle_data, dtype=numpy.float32),
-        as_array(sazi_angle_data, dtype=numpy.float32),
-        dresx,
-        dresy,
-        spheroid,
-        bounds.RasterYOrigin,
-        bounds.RasterXOrigin,
-        pix_buf.left,
-        pix_buf.right,
-        pix_buf.top,
-        pix_buf.bottom,
-        block_height,
-        block_width,
-        is_utm)
+    # Perform datatype checks
+    if DEM.dtype.name != 'float32':
+        msg = 'DEM datatype must be float32! Datatype: {dtype}'
+        msg = msg.format(dtype=DEM.dtype.name)
+        raise TypeError(msg)
+
+    if zenith_angle.dtype.name != 'float32':
+        msg = 'Zenith angle datatype must be float32! Datatype: {dtype}'
+        msg = msg.format(dtype=zenith_angle.dtype.name)
+        raise TypeError(msg)
+
+    if azimuth_angle.dtype.name != 'float32':
+        msg = 'Azimuth angle datatype must be float32! Datatype: {dtype}'
+        msg = msg.format(dtype=azimuth_angle.dtype.name)
+        raise TypeError(msg)
+
+    ierr, mask = shade_main_landsat_pixel(DEM, zenith_angle, azimuth_angle,
+        x_res, y_res, spheroid, y_origin, x_origin, buffer.left, buffer.right,
+        buffer.top, buffer.bottom, block_height, block_width, is_utm)
 
     if ierr:
         raise CastShadowError(ierr)
 
-    return mask_all
+    return mask
 
 
 
@@ -558,264 +561,7 @@ def run_castshadow(
 
 
 
-"""
-@print_call(logger.info)
-def run_brdfterrain(
-    rori, # threshold for terrain correction
-    brdf0, brdf1, brdf2, # BRDF parameters
-    bias, slope_ca, esun, dd, # satellite calibration coefficients
-    ref_adj, # average reflectance for terrain correction
-    #line,
-    istart,
-    #imid,
-    iend,
-    #ii,
-    dn_1, # raw image
-    mask_self, # mask
-    mask_castsun, # self shadow mask
-    mask_castview, # cast shadow mask
-    solar_angle, # solar zenith angle
-    sazi_angle, # solar azimuth angle
-    view_angle, # view angle (for flat surface)
-    rela_angle, # relative azimuth angle (for flat surface)
-    slope_angle, # slop angle
-    aspect_angle, # aspect angle
-    it_angle, # incident angle (for inclined surface)
-    et_angle, # exiting angle (for inclined surface)
-    rela_slope, # relative angle (for inclined surface)
-    a_mod, # MODTRAN output (a)
-    b_mod, # MODTRAN output (b)
-    s_mod, # MODTRAN output (s)
-    fs, # MODTRAN output (fs)
-    fv, # MODTRAN output (fv)
-    ts, # MODTRAN output (ts)
-    edir_h, # MODTRAN output (direct irradiance)
-    edif_h # MODTRAN output (diffuse irradiance)
-    ):
-    """"""
-    BRDF correction including terrain correction. This code is an interface to the fortran code brdf_terrain_newdiff.f90
-    (which is compiled to a Python module using F2py). The parameters have the same names as those used in that code...
-    so please see Fuqin for information on what they mean!
 
-    :param rori:
-        (type: float) Threshold for terrain correction.
-    :type rori:
-        float
-
-    :param brdf0:
-        (type: float) BRDF parameter.
-    :type brdf0:
-        float
-
-    :param brdf1:
-        (type: float) BRDF parameter.
-    :type brdf1:
-        float
-
-    :param brdf2:
-        (type: float) BRDF parameter.
-    :type brdf2:
-        float
-
-    :param bias:
-        (type: float) Satellite calibration coefficient.
-    :type bias:
-        float
-
-    :param slope_ca:
-        (type: float) Satellite calibration coefficient.
-    :type slope_cs:
-        float
-
-    :param esun:
-        (type: float) Satellite calibration coefficient.
-    :param esun:
-        float
-
-    :param dd:
-        (type: float) Satellite calibration coefficients.
-    :type dd:
-        float
-
-    :param ref_adj:
-        (type: float) Average reflectance for terrain correction.
-    :type ref_adj:
-        float
-
-    :param istart:
-        ???
-    :type istart:
-        One dimensional :py:class:`numpy.ndarray` which can be cast to type :py:const:`numpy.int4` with length equal to the
-        number of rows in ``dn_1``.
-
-    :param iend:
-        ???
-    :type iend:
-        One dimensional :py:class:`numpy.ndarray` which can be cast to type :py:const:`numpy.int4` with length equal to the
-        number of rows in ``dn_1``.
-
-    :param dn_1:
-        Raw image data.
-    :type dn_1:
-        Two dimensional :py:class:`numpy.ndarray` which can be cast to type :py:const:`numpy.int8`. The dimensions are
-        unspecified and are used to determine the dimensions of ``istart``, ``iend`` the remaining (all following)
-        array arguments.
-
-    :param mask_self:
-        Mask of pixels where the incident angle is greater than 90 degrees. These pixels are excluded as there is no
-        illumination of the scene at these locations.
-    :type mask_self:
-        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.int16`.
-
-    :param mask_castsun:
-        Mask of pixels which are shaded by other objects. These pixels are excluded as there is no illumination of the
-        scene at these locations.
-    :type mask_castsun:
-        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.int16`.
-
-    :param mask_castview:
-        Mask of pixels which are not visible to the satelite.
-    :type mask_castview:
-        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.int16`.
-
-    :param solar_angle:
-        The solar zenith angle.
-    :type solar_angle:
-        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
-
-    :param sazi_angle:
-        solar azimuth angle.
-    :type sazi_angle:
-        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
-
-    :param view_angle:
-        view angle (for flat surface).
-    :type view_angle:
-        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
-
-    :param rela_angle:
-        relative azimuth angle (for flat surface).
-    :type rela_angle:
-        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
-
-    :param slope_angle:
-        slope angle.
-    :type slope_angle:
-        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
-
-    :param aspect_angle:
-        aspect angle.
-    :type aspect_angle:
-        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
-
-    :param it_angle:
-        incident angle (for inclined surface).
-    :type it_angle:
-        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
-
-    :param et_angle:
-        exiting angle (for inclined surface).
-    :type et_angle:
-        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
-
-    :param rela_slope:
-        relative angle (for inclined surface).
-    :type rela_slope:
-        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
-
-    :param a_mod:
-        MODTRAN output (a).
-    :type a_mod:
-        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
-
-    :param b_mod:
-        MODTRAN output (b).
-    :type b_mod:
-        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
-
-    :param s_mod:
-        MODTRAN output (s).
-    :type s_mod:
-        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
-
-    :param fs:
-        MODTRAN output (fs).
-    :type fs:
-        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
-
-    :param fv:
-        MODTRAN output (fv).
-    :type fv:
-        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
-
-    :param ts:
-        MODTRAN output (ts).
-    :type ts:
-        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
-
-    :param edir_h:
-        MODTRAN output (direct irradiance).
-    :type edir_h:
-        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
-
-    :param edif_h:
-        MODTRAN output (diffuse irradiance).
-    :type edif_h:
-        Array with the same dimensions as ``dn_1`` which can be cast to type :py:const:`numpy.float32`.
-
-    Parameters: ``mask_self``, ``mask_castsun``, ``mask_castview`` can be generated using :py:func:`run_castshadow`.
-
-    Parameters ``mask_self``, ``slope_angle``, ``aspect_angle``, ``it_angle``, ``et_angle``, and ``rela_slope``
-    can be generated using the function :py:func:`run_slope`.
-
-    All parameters after ``ref_adj`` are passed through :py:func:`ULA3.utils.as_array` with the appropriate argument
-    type and hence, can have types that will work as arguments to that function; inparticular, they can be
-    :py:class:`gdal.Dataset`s or paths to files that can be opened using :py:func:`gdal.Open`.
-
-    :return: A tuple of three :py:class:`numpy.ndarray`s:
-
-        - (index 0) Atmospheric corrected lambertial reflectance,
-
-        - (index 1) Atmospheric and brdf corrected reflectance, and
-
-        - (index 2) Atmospheric and brdf and terrain corrected reflectance
-
-    :todo:
-        This documentation should be reviewed by someone whom understands the process more thoroughly, and better
-        descriptions of the arguments provided.
-
-    """"""
-    return terrain_correction(
-        rori,
-        brdf0, brdf1, brdf2,
-        bias, slope_ca, esun, dd,
-        ref_adj,
-        as_array(istart, dtype=numpy.int32),
-        as_array(iend, dtype=numpy.int32),
-        as_array(dn_1, dtype=numpy.int8),
-        as_array(mask_self, dtype=numpy.int16),
-        as_array(mask_castsun, dtype=numpy.int16),
-        as_array(mask_castview, dtype=numpy.int16),
-        as_array(solar_angle, dtype=numpy.float32),
-        as_array(sazi_angle, dtype=numpy.float32),
-        as_array(view_angle, dtype=numpy.float32),
-        as_array(rela_angle, dtype=numpy.float32),
-        as_array(slope_angle, dtype=numpy.float32),
-        as_array(aspect_angle, dtype=numpy.float32),
-        as_array(it_angle, dtype=numpy.float32),
-        as_array(et_angle, dtype=numpy.float32),
-        as_array(rela_slope, dtype=numpy.float32),
-        as_array(a_mod, dtype=numpy.float32),
-        as_array(b_mod, dtype=numpy.float32),
-        as_array(s_mod, dtype=numpy.float32),
-        as_array(fs, dtype=numpy.float32),
-        as_array(fv, dtype=numpy.float32),
-        as_array(ts, dtype=numpy.float32),
-        as_array(edir_h, dtype=numpy.float32),
-        as_array(edif_h, dtype=numpy.float32))
-"""
-
-@print_call(logger.info)
 def run_brdfterrain(
     rori, # threshold for terrain correction
     brdf0, brdf1, brdf2, # BRDF parameters
