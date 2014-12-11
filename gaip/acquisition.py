@@ -115,6 +115,11 @@ class LandsatAcquisition(Acquisition):
                                          self.scene_center_time)
 
     @property
+    def scene_centre_datetime(self):
+        """The acquisition time."""
+        return self.scene_center_datetime
+
+    @property
     def min_radiance(self):
         """The minimum radiance (aka. `lmin`)."""
         return self.lmin
@@ -123,6 +128,13 @@ class LandsatAcquisition(Acquisition):
     def max_radiance(self):
         """The maximum radiance (aka. `lmax`)."""
         return self.lmax
+
+    @property
+    def decimal_hour(self):
+        return (self.scene_centre_time.hour + (self.scene_centre_time.minute
+                + (self.scene_centre_time.second 
+                   + self.scene_centre_time.microsecond / 1000000.0) / 60.0)
+                / 60.0)
 
 
 class Landsat5Acquisition(LandsatAcquisition):
