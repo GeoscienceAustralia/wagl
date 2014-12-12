@@ -24,6 +24,14 @@ def load(target):
         return pickle.load(infile)
 
 
+def load_value(target)
+    data = load(target)
+    try:
+        return data['value']
+    except KeyError:
+        return data
+
+
 class GetElevationAncillaryDataTask(luigi.Task):
 
     l1t_path = luigi.Parameter()
@@ -219,38 +227,46 @@ class CalculateLatLonGrids(luigi.Task):
         return all([d.complete() for d in self.requires()])
 
 
-class CalculateSatelliteGrids(luigi.Task):
+class CalculateSatelliteAndSolarGrids(luigi.Task):
 
     l1t_path = luigi.Parameter()
+    targets = None
 
     def requires(self):
-        return []
-
-    def output(self):
-        target = CONFIG.get('work', 'lat_grid_target')
-        return luigi.LocalTarget(target)
+        return [CalculateLatGrid(self.l1t_path),
+                CalculateLonGrid(self.l1t_path)]
 
     def run(self):
+        self.targets = [
+            CONFIG.get('work', 'sat_view_zenith_target'),
+            CONFIG.get('work', 'sat_azimuth_target'),
+            CONFIG.get('work', 'solar_zenith_target'),
+            CONFIG.get('work', 'solar_azimuth_target'),
+            CONFIG.get('work', 'relative_azimuth_target'),
+            CONFIG.get('work', 'time_target')]
+        work_path = CONFIG.get('work', 'path')
+        lon_target = CONFIG.get('work', 'lon_target')
+        lat_target = CONFIG.get('work', 'lat_target')
+
         acqs = gaip.acquisitions(self.l1t_path)
-        target = self.output()
-        gaip.create_lat_grid(acqs[0], target.fn)
 
+        geobox = acqs[0].gridded_geo_box()
+        cols = acqs[0].samples
+        rows = acqs[0].lines
 
-class CalculateSolarGrids(luigi.Task):
+        (satellite_zenith, satellite_azimuth, solar_zenith, solar_azimuth,
+         relative_azimuth, time, Y_cent, X_cent, N_cent) = \
+            gaip.calculate_angles(acqs[0], lon_target, lat_target,
+                                  npoints=12, to_disk=self.targets)
 
-    l1t_path = luigi.Parameter()
+        gaip.create_centreline_file(geobox, Y_cent, X_cent, N_cent, cols,
+                                    view_max=9.0, outdir=work_path)
 
-    def requires(self):
-        return []
-
-    def output(self):
-        target = CONFIG.get('work', 'lat_grid_target')
-        return luigi.LocalTarget(target)
-
-    def run(self):
-        acqs = gaip.acquisitions(self.l1t_path)
-        target = self.output()
-        gaip.create_lat_grid(acqs[0], target.fn)
+    def complete(self):
+        if self.targets:
+            return all([exists(t) for t in self.targets])
+        else:
+            return False
 
 
 class CalculateGridsTask(luigi.Task):
@@ -259,8 +275,7 @@ class CalculateGridsTask(luigi.Task):
 
     def requires(self):
         return [CalculateLatLonGrids(self.l1t_path),
-                CalculateSatelliteGrids(self.l1t_path),
-                CalculateSolarGrids(self.l1t_path)]
+                CalculateSatelliteAndSolarGrids(self.l1t_path)]
 
     def complete(self):
         return all([d.complete() for d in self.requires()])
@@ -317,10 +332,160 @@ class WriteModtranInputFile(luigi.Task):
         return luigi.LocalTarget(target)
 
     def run(self):
-        #TODO
+        ozone_target = CONFIG.get('work', 'ozone_target')
+        vapour_target = CONFIG.get('work', 'vapour_target')
+        aerosol_target = CONFIG.get('work', 'aerosol_target')
+        elevation_target = CONFIG.get('work', 'elevation_target')
+        acqs = gaip.acquisitions(self.l1t_path)
         target = self.output().fn
+        ozone = load_value(ozone_target)
+        vapour = load_value(vapour_target)
+        aerosol = load_value(aerosol_target)
+        elevation = load_value(elevation_target)
         gaip.write_modtran_input(acqs, target, ozone, vapour, aerosol,
                                  elevation)
+
+
+class WriteModisBrdfFiles(luigi.Task):
+
+    l1t_path = luigi.Parameter()
+
+    def requires():
+        return []
+
+    def run(self):
+        acqs = gaip.acquisitions(self.l1t_path)
+        modis_brdf_prefix = CONFIG.get('work', 'modis_brdf_prefix')
+        brdf_target = CONFIG.get('work', 'brdf_target')
+        brdf_data = load(brdf_target)
+        #TODO
+        gaip.write_modis_brdf_files(acqs, prefix, brdf_data)
+
+
+class RunModtranCorOrtho(luigi.Task):
+
+    l1t_path = luigi.Parameter()
+    created = None
+
+    def requires():
+        return [CalculateSatelliteAndSolarGrids(self.l1t_path)]
+
+    def run(self):
+        # sources
+        centreline_target = CONFIG.get('work', 'centreline_target')
+        sat_view_zenith_target = CONFIG.get('work', 'sat_view_zenith_target') 
+        # targets
+        coordinator_target = CONFIG.get('work', 'coordinator_target')
+        boxline_target = CONFIG.get('work', 'boxline_target')
+
+        cwd = CONFIG.get('work', 'read_modtrancor_ortho_cwd')
+        gaip.run_read_modtrancor_ortho([centreline_target,
+                                        sat_view_zenith_target,
+                                        coordinator_target,
+                                        boxline_target],
+                                       cwd=cwd)
+
+        self.created = [coordinator_target, boxline_target]
+
+    def complete(self):
+        if self.created:
+            return all([exists(p) for p in self.created])
+        else:
+            return False
+
+
+class RunInputModtranOrthoUla(luigi.task):
+
+    l1t_path = luigi.Parameter()
+    created = None
+
+    def requires():
+        return [RunModtranCorOrtho(self.l1t_path),
+                CalculateSatelliteAndSolarGrids(self.l1t_path),
+                WriteModtranInputFile(self.l1t_path),
+                CalculateLatGrid(self.l1t_path),
+                CalculateLonGrid(self.l1t_path)]
+
+    def run(self):
+        # sources
+        modtran_input_target = CONFIG.get('work', 'modtran_input_target')
+        coordinator_target = CONFIG.get('work', 'coordinator_target')
+        sat_view_zenith_target = CONFIG.get('work', 'sat_view_zenith_target') 
+        sat_azimuth_target = CONFIG.get('work', 'sat_azimuth_target')
+        lon_grid_target = CONFIG.get('work', 'lon_grid_target')
+        lat_grid_target = CONFIG.get('work', 'lat_grid_target')
+
+        cwd = CONFIG.get('work', 'input_modtran_ortho_ula_cwd')
+        coordinators = CONFIG.get('modtran', 'coordinators').split(',')
+        albedos = CONFIG.get('modtran', 'albedos').split(',')
+
+        targets = []
+        for coord in coordinators:
+            for albedo in albedos:
+                target = '%s_alb_%s.txt' % (coord, albedo)
+                targets.append(pjoin(cwd, target))
+
+        args = []
+        args.append(lon_grid_target)
+        args.append(lat_grid_target)
+
+        cwd = CONFIG.get('work', 'input_modtran_ortho_ula_cwd')
+        gaip.run_input_modtran_ortho_ula(targets + args, cwd=cwd)
+
+        self.created = targets
+
+    def complete(self):
+        if self.created:
+            return all([exists(p) for p in self.created])
+        else:
+            return False
+
+
+class ReformatModtranInput(luigi.task):
+
+    l1t_path = luigi.Parameter()
+    created = None
+
+    def requires():
+        return [RunModtranOrthoUla(self.l1t_path)]
+
+    def run(self):
+        # sources
+        modtran_input_target = CONFIG.get('work', 'modtran_input_target')
+        coordinator_target = CONFIG.get('work', 'coordinator_target')
+        sat_view_zenith_target = CONFIG.get('work', 'sat_view_zenith_target') 
+        sat_azimuth_target = CONFIG.get('work', 'sat_azimuth_target')
+        lon_grid_target = CONFIG.get('work', 'lon_grid_target')
+        lat_grid_target = CONFIG.get('work', 'lat_grid_target')
+
+        cwd = CONFIG.get('work', 'refort_tp5_ga_cwd')
+        coordinators = CONFIG.get('modtran', 'coordinators').split(',')
+        albedos = CONFIG.get('modtran', 'albedos').split(',')
+
+        #TODO
+
+        targets = []
+        for coord in coordinators:
+            for albedo in albedos:
+                target = '%s_alb_%s.txt' % (coord, albedo)
+                targets.append(pjoin(cwd, target))
+
+        args = []
+        args.append(lon_grid_target)
+        args.append(lat_grid_target)
+
+        cwd = CONFIG.get('work', 'input_modtran_ortho_ula_cwd')
+        gaip.run_input_modtran_ortho_ula(targets + args, cwd=cwd)
+
+        self.created = targets
+
+    def complete(self):
+        if self.created:
+            return all([exists(p) for p in self.created])
+        else:
+            return False
+
+
 
 
 class PrepareModtranInput(luigi.Task):
@@ -329,15 +494,8 @@ class PrepareModtranInput(luigi.Task):
 
     def requires(self):
         return [CreateModtranDirectories(),
-                CreateSatelliteFilterFile(self.l1t_path)]
-
-    def run(self):
-        acqs = gaip.acquisitions(self.l1t_path)
-        workpath = CONFIG.get('work', 'path')
-        modtran_root = CONFIG.get('modtran', 'root')
-        satfilter_path = CONFIG.get('ancillary', 'satfilter_path')
-        modtran_exe = CONFIG.get('modtran', 'exe')
-        gaip.create_satellite_filter_file(acqs, workpath, satfilter_path)
+                CreateSatelliteFilterFile(self.l1t_path),
+                WriteModtranInputFile(self.l1t_path)]
 
 
 class RunModtranTask(luigi.Task):

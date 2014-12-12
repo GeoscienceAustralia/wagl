@@ -149,6 +149,42 @@ def write_modtran_input(acquisitions, modtran_input_file, ozone, vapour,
         outfile.write("%f\n" % dechour)
 
 
+def write_modis_brdf_files(acquisitions, prefix, brdf_data):
+    """Generate brdf input file"""
+    ref_acqs = [a for a in acquisitions if a.band_type == gaip.REF]
+
+    for acq in ref_acqs:
+        band = str(acq.band_num)
+        modis_brdf_filename = prefix + band + ".txt"
+
+        with open(modis_brdf_filename, 'w') as outfile:
+            outfile.write("%f %f %f\n" % \
+                    (brdf_data[(band, 'iso')]['value'],
+                     brdf_data[(band, 'vol')]['value'],
+                     brdf_data[(band, 'geo')]['value']))
+
+            outfile.write(str(l1t_input_dataset.bias[band_number]) + " " +
+                           str(l1t_input_dataset.gain[band_number]) + " " +
+                           str(solar_irrad_data[band_number]['value']) + " " +
+                           str(solar_dist_data['value']) + "\n")
+
+
+def run_read_modtrancor_ortho():
+    """run read_modtrancor_ortho executable."""
+    command = (os.path.join(CONFIG.BIN_DIR, "read_modtrancor_ortho") + ' ' +
+               os.path.join(CONFIG.work_path, 'CENTRELINE') + ' ' +
+               os.path.join(CONFIG.work_path, 'SAT_V.bin') + ' ' +
+               os.path.join(CONFIG.work_path, 'COORDINATOR') + ' ' +
+               os.path.join(CONFIG.work_path, 'BOXLINE'))
+
+    result = execute(command_string=command,
+                     cwd=os.path.join(CONFIG.work_path, 'mod'))
+    if result['returncode']:
+        raise Exception('read_modtrancor_ortho failed')
+
+
+
+
 
 def run_modtran(coordinator, albedo, sublogger, work_path, modtran_exe):
     """
@@ -581,26 +617,6 @@ def prepare_modtran_input(
                 if result['returncode']:
                     raise Exception('%s failed' % executable)
 
-    def write_modis_brdf_files():
-        """Generate modtran input file"""
-        for band_number in l1t_input_dataset.bands('REFLECTIVE'):
-            band_string = str(band_number)
-
-            modis_brdf_filename = os.path.join(
-                CONFIG.work_path, "brdf_modis_band" + band_string + ".txt")
-
-            out_file = open(modis_brdf_filename, 'w')
-
-            out_file.write("%f %f %f\n" % (brdf_data[(band_number, 'iso')]['value'],
-                                           brdf_data[
-                                               (band_number, 'vol')]['value'],
-                                           brdf_data[(band_number, 'geo')]['value']))
-            out_file.write(str(l1t_input_dataset.bias[band_number]) + " " +
-                           str(l1t_input_dataset.gain[band_number]) + " " +
-                           str(solar_irrad_data[band_number]['value']) + " " +
-                           str(solar_dist_data['value']) + "\n")
-            out_file.close()
-
     # TODO The STARTEND file is no longer used in the NBAR/TC code.
     # JS 20141205
     def create_startend_file():
@@ -642,9 +658,9 @@ def prepare_modtran_input(
     assert satellite, 'Unable to find Satellite object'
 
     create_header_angle_file(max_view_angle)
-    write_modtran_input()
-    write_modis_brdf_files()
-    create_startend_file()
-    run_read_modtrancor_ortho()
-    run_input_modtran_ortho_ula()
+    #write_modtran_input()
+    #write_modis_brdf_files()
+    #create_startend_file()
+    #run_read_modtrancor_ortho()
+    #run_input_modtran_ortho_ula()
     run_refort_tp5_ga()

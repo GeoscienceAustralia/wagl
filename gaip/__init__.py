@@ -9,6 +9,9 @@ from tle import *
 from brdf import *
 from get_brdf import *
 from calculate_lon_lat_arrays import *
+from land_sea_masking import *
+from binaries import *
+
 try:
     from calculate_angles import *
     from set_satmod import set_satmod # F2Py
@@ -21,4 +24,3 @@ try:
 except ImportError:
     print 'You need to run `python setup.py build_ext -i` to compile modules'
     print 'Some functionality in library is disabled'
-from land_sea_masking import *
