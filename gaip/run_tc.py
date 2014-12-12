@@ -159,7 +159,6 @@ def process(subprocess_list=[], resume=False):
     fname = find_file(work_path, 'SOL_AZ.bin')
     sazi_angle = read_img(fname)
     
-
     # satellite angle data
     fname = find_file(work_path, 'SAT_V.bin')
     view_angle = read_img(fname)
@@ -169,11 +168,13 @@ def process(subprocess_list=[], resume=False):
     rela_angle = read_img(fname)
 
 
-    # TODO re-work this routine
     # calculate the slope and angle
-    slope_results = run_slope(l1t_input_dataset, dsm_data, solar_angle,
+    slope_results = run_slope(acquisition[0], dsm_data, solar_angle,
                               view_angle, sazi_angle, azi_angle, pixel_buf,
                               is_utm, spheroid)
+
+    # Output slope results
+    slope_results.write_arrays(tc_work_path, geobox, "ENVI", ".img")
 
     # TODO find out what shadow_s & shadow_v are
     shadow_s = run_castshadow(acquisition[0], dsm_data, solar_angle,
@@ -190,11 +191,8 @@ def process(subprocess_list=[], resume=False):
     write_img(shadow_s, fname_shadow_s, geobox=geobox)
     write_img(shadow_v, fname_shadow_v, geobox=geobox)
 
-    # TODO re-work this slope_results routine
-    slope_results.dump_arrays(dump_path, l1t_input_dataset, "ENVI", ".img")
-
     # load the line starts and ends.
-    region_nrow, region_ncol = l1t_input_dataset.shape
+    rows, cols = geobox.shape
 
     boo = DATA.get_item("bilinear_ortho_outputs", item_type=dict)
 
@@ -252,14 +250,14 @@ def process(subprocess_list=[], resume=False):
 	    slope_results.incident,
 	    slope_results.exiting,
 	    slope_results.rela_slope,
-	    load_bin_file(boo[(band_number, 'a')], region_nrow, region_ncol, dtype=numpy.float32),
-	    load_bin_file(boo[(band_number, 'b')], region_nrow, region_ncol, dtype=numpy.float32),
-	    load_bin_file(boo[(band_number, 's')], region_nrow, region_ncol, dtype=numpy.float32),
-	    load_bin_file(boo[(band_number, 'fs')], region_nrow, region_ncol, dtype=numpy.float32),
-	    load_bin_file(boo[(band_number, 'fv')], region_nrow, region_ncol, dtype=numpy.float32),
-	    load_bin_file(boo[(band_number, 'ts')], region_nrow, region_ncol, dtype=numpy.float32),
-	    load_bin_file(boo[(band_number, 'dir')], region_nrow, region_ncol, dtype=numpy.float32),
-	    load_bin_file(boo[(band_number, 'dif')], region_nrow, region_ncol, dtype=numpy.float32))
+	    load_bin_file(boo[(band_number, 'a')], rows, cols, dtype=numpy.float32),
+	    load_bin_file(boo[(band_number, 'b')], rows, cols, dtype=numpy.float32),
+	    load_bin_file(boo[(band_number, 's')], rows, cols, dtype=numpy.float32),
+	    load_bin_file(boo[(band_number, 'fs')], rows, cols, dtype=numpy.float32),
+	    load_bin_file(boo[(band_number, 'fv')], rows, cols, dtype=numpy.float32),
+	    load_bin_file(boo[(band_number, 'ts')], rows, cols, dtype=numpy.float32),
+	    load_bin_file(boo[(band_number, 'dir')], rows, cols, dtype=numpy.float32),
+	    load_bin_file(boo[(band_number, 'dif')], rows, cols, dtype=numpy.float32))
 
 
         write_tif_file(l1t_input_dataset, ref_lm, os.path.join(work_path, pref + 'ref_lm_' + str(out_bn_name) + output_extension), file_type = output_format)
