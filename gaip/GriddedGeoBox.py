@@ -6,7 +6,15 @@ import rasterio as rio
 import math
 import osr
 
+#======================================================
 from affine import Affine
+# Landsat tranforms have very small determinants
+# the following setting is required, and there is a
+# bug in rasterio.set_epsilon() ver < 1.0.5
+import affine; 
+affine.EPSILON=1e-9; affine.EPSILON2=1e-18
+# affine.set_epsilon(1e-9)    # works for rasterio ver >= 1.0.5
+
 
 # WGS84
 CRS = "EPSG:4326"

@@ -10,7 +10,7 @@ import osr
 from IDL_functions import histogram
 
 
-def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset, pq_const, \
+def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun_elev_deg, pq_const, \
                  land_sea_mask=None, contiguity_mask=None, cloud_algorithm='ACCA', 
                  growregion=False, aux_data={}):
     """
@@ -26,9 +26,16 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset, pq_const,
     :param cloud_mask:
         A 2D Numpy array where 0 = Cloud and 1 = Not Cloud. A boolean of
         False = Cloud and True = Not Cloud is also accepted.
+    
+    :param geo_box:
+        An instance of GriddedGeoBox representing the spatial context of
+        the required shadow mask
 
-    :param input_dataset:
-        SceneDataset object for input dataset.
+    :param sun_az_deg:
+        the azimutth of the sun in degrees
+
+    :param sun_elev_deg:
+        the elevation of the sun in degrees
 
     :param pq_const:
         An instance of PQAConstants applicable to the reflectance stack supplied
@@ -65,8 +72,9 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset, pq_const,
     if type(image_stack[0]) != numpy.ndarray: raise Exception('Array input is not valid')
     if cloud_mask == None: raise Exception('Cloud Layer input is not valid')
 
-    geoTransform = input_dataset.GetGeoTransform()
-    projection = input_dataset.GetProjection()
+    # geoTransform = input_dataset.GetGeoTransform()
+    geoTransform = geo_box.affine.to_gdal()
+    # projection = input_dataset.GetProjection()
 
 #-------------------------Filter Thresholds-----------------------------------
 
@@ -426,8 +434,9 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset, pq_const,
         return cshadow
 
     # Create a spatial reference from the projection string
-    sr = osr.SpatialReference()
-    sr.ImportFromWkt(projection)
+    # sr = osr.SpatialReference()
+    # sr.ImportFromWkt(projection)
+    sr = geo_box.crs
 
 #===========================================================================
 #    if (type(metafile) != dict): # Is an actual file in which case read it.
@@ -462,11 +471,11 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, input_dataset, pq_const,
 #                corrected_az = 360 - corrected_az + 90
 #===========================================================================
 
-    rad_elev     = numpy.radians(input_dataset.sun_elevation)
-    if input_dataset.sun_azimuth >= 180:
-        corrected_az = input_dataset.sun_azimuth - 180
+    rad_elev     = numpy.radians(sun_elev_deg)
+    if sun_az_deg >= 180:
+        corrected_az = sun_az_deg - 180
     else: # azimuth < 180
-        corrected_az = input_dataset.sun_azimuth + 180
+        corrected_az = sun_az_deg + 180
 
     if (sr.IsGeographic() == 0):
         # azimuth is dealt in polar form
