@@ -8,6 +8,7 @@ from rasterio import Affine
 from rasterio import crs
 from rasterio.warp import reproject
 from rasterio.warp import RESAMPLING
+import logging
 import os
 import gaip
 from GriddedGeoBox import GriddedGeoBox
@@ -23,24 +24,31 @@ def get_pixel(filename, lonlat, band=1):
         return src.read_band(band, window=((y, y + 1), (x, x + 1))).flat[0]
 
 
-def data(acq):
-    """Return a `numpy.array` containing the data of the acquisition `acq`. 
-    The parameter `acq` should behave like a `gaip.Acquisition` object."""
+def data(acq, out=None):
+    """
+    Read the supplied acquisition's data into the `out` array if provided,
+    otherwise return a new `numpy.array` containing the data.
+    The parameter `acq` should behave like a `gaip.Acquisition` object.
+    """
     dirname = acq.dir_name
     filename = acq.file_name
     with rasterio.open(pjoin(dirname, filename), 'r') as fo:
-        return fo.read_band(1)
+        return fo.read_band(1, out=out)
 
-def data_and_box(acq):
-    """Return a tuple comprising the `numpy.array` containing the data of
+def data_and_box(acq, out=None):
+    """
+    Return a tuple comprising the `numpy.array` containing the data of
     the acquisition `acq` together with the associated GriddedGeoBox describing
     the data extent. 
-    The parameter `acq` should behave like a `gaip.Acquisition` object."""
+    The parameter `acq` should behave like a `gaip.Acquisition` object.
+    The `out` parameter, if supplied is a numpy.array into which the
+    acquisition data is read.
+    """
     dirname = acq.dir_name
     filename = acq.file_name
     with rasterio.open(pjoin(dirname, filename), 'r') as fo:
         box = gaip.GriddedGeoBox.from_dataset(fo)
-        return (fo.read_band(1), box)
+        return (fo.read_band(1, out=out), box)
 
 def gridded_geo_box(acq):
     """Return a GriddedGeoBox instance representing the spatial extent and 
@@ -65,33 +73,38 @@ def stack_data(acqs_list, filter=(lambda acq: True)):
         acquisition is to be selected for inclusion in the output
 
     :return:
-        A tuple containing the list of selected acquisitions (possibly empty)
-        and a 3D numpy array (or None) containing the corresponding
-        acquisition data.
+        A 3-tuple containing
+            1: the list of selected acquisitions (possibly empty)
+            2: a 3D numpy array (or None) containing the corresponding
+               acquisition data. (None if no data)
+            3: A GriddedGeoBox instance specifying the spatial context
+               or the 3D numpy array. Note: All Acquisitions share the
+               same GriddedGeoBox
     """
 
     # get the subset of acquisitions required
 
     acqs = [acq for acq in acqs_list if filter(acq)]
     if len(acqs) == 0:
-       return acqs, None
+       return acqs, None, None
 
-    # determine data type by reading the first band
+    # determine data type and dimensions by reading the first band
 
-    a = acqs[0].data()
+    a, geo_box = acqs[0].data_and_box()
 
     # create the result array, setting datatype based on source type
 
-    stack_shape = (len(acqs), acqs[0].width, acqs[0].height)
-    stack = np.empty(stack_shape, type(a[0][0]))
+    stack_shape = (len(acqs), a.shape[0], a.shape[1])
+    stack = np.empty(stack_shape, a.dtype)
     stack[0] = a
+    del a
 
     # read remaining aquisitions into it
 
     for i in range(1, stack_shape[0]):
-        stack[i] = acqs[i].data()
+        acqs[i].data(out=stack[i])
 
-    return acqs, stack
+    return acqs, stack, geo_box
 
 
 def write_img(array, filename, format='ENVI', geobox=None):
