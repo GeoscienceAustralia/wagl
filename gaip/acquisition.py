@@ -358,7 +358,7 @@ def acquisitions_via_geotiff(path):
     NAME_PATTERN = '(?P<spacecraft_id>LS\d)_(?P<sensor_id>\w+)_(?P<product_type>\w+)' \
         '_(?P<product_id>P\d+)_GA(?P<product_code>.*)-(?P<station_id>\d+)_' \
         '(?P<wrs_path>\d+)_(?P<wrs_row>\d+)_(?P<acquisition_date>\d{8})_' \
-        'B(?P<band_num>\d{2})\.tif'
+        'B(?P<band_num>\d+)\.tif'
 
     acqs = []
     if isdir(path):
