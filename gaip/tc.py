@@ -101,10 +101,13 @@ class SlopeResultSet(object):
     """
     Holds the results of a call to :py:func:`run_slope`.
     """
-    def __init__(self, mask_self, slope, aspect, incident, exiting, azi_incident, azi_exiting, rela_slope):
+    def __init__(self, mask_self, slope, aspect, incident, exiting,
+        azi_incident, azi_exiting, rela_slope):
         """
-        All arguments are :py:class:`numpy.ndarray`s. These correspond to the arguments I have no idea what these
-        actually represent, so someone who does should document this (Fuqin will know).
+        All arguments are :py:class:`numpy.ndarray`s. These
+        correspond to the arguments I have no idea what these
+        actually represent, so someone who does should document this
+        (Fuqin will know).
         """
         self.mask_self = mask_self
         self.slope = slope
@@ -115,24 +118,36 @@ class SlopeResultSet(object):
         self.azi_exiting = azi_exiting
         self.rela_slope = rela_slope
 
-    def dump_arrays(self, output_path, l1t_input_dataset, file_type='ENVI', file_extension='.img'):
-        def dumper(data, name):
-            dump_array(
-                array=data,
-                output_path=os.path.join(output_path, name + file_extension),
-                template_dataset=l1t_input_dataset,
-                no_data_value=-999,
-                convert_to_byte=False,
-                file_format=file_type)
+    def write_arrays(self, output_path, geobox, file_type='ENVI',
+        file_extension='.img'):
 
-        dumper(self.mask_self, 'mask_self')
-        dumper(self.slope, 'slope')
-        dumper(self.aspect, 'aspect')
-        dumper(self.incident, 'incident')
-        dumper(self.exiting, 'exiting')
-        dumper(self.azi_incident, 'azi_incident')
-        dumper(self.azi_exiting, 'azi_exiting')
-        dumper(self.rela_slope, 'rela_slope')
+        # Filenames
+        fname_mask_self = os.path.join(output_path, 'mask_self' +
+            file_extension)
+        fname_slope = os.path.join(output_path, 'slope' + file_extension)
+        fname_aspect = os.path.join(output_path, 'aspect' + file_extension)
+        fname_incident = os.path.join(output_path, 'incident' +
+            file_extension)
+        fname_exiting = os.path.join(output_path, 'exiting' + file_extension)
+        fname_azimuth_incident = os.path.join(output_path, 'azi_incident' +
+            file_extension)
+        fname_azimuth_exiting = os.path.join(output_path, 'azi_exiting' +
+            file_extension)
+        fname_relative_slope = os.path.join(output_path, 'rela_slope' +
+            file_extension)
+        # Write
+        write_img(mask_self, fname_mask_self, format=file_type, geobox=geobox)
+        write_img(slope, fname_slope, format=file_type, geobox=geobox)
+        write_img(aspect, fname_aspect, format=file_type, geobox=geobox)
+        write_img(incident, fname_incident, format=file_type, geobox=geobox)
+        write_img(exiting, fname_exiting, format=file_type, geobox=geobox)
+        write_img(azi_incident, fname_azimuth_incident, format=file_type,
+            geobox=geobox)
+        write_img(azi_exiting, fname_azimuth_exiting, format=file_type,
+            geobox=geobox)
+        write_img(rela_slope, fname_relative_slope, format=file_type,
+            geobox=geobox)
+
 
 
 
@@ -156,13 +171,13 @@ class SlopeError(FortranError):
 
 #TODO: ensure that we are reading from the bottom, not the top (see second arg).
 def run_slope(
-    shape_dataset,
-    dem_data,
-    solar_zenith_data,
-    view_zenith_data,
-    solar_azimuth_data,
-    view_azimuth_data,
-    pix_buf,
+    acquisition,
+    DEM,
+    solar_zenith,
+    satellite_zenith,
+    solar_azimuth,
+    satellite_azimuth,
+    buffer,
     is_utm,
     spheroid,
     output_type = "ENVI",
@@ -186,34 +201,36 @@ def run_slope(
     than the image (extra each line and column for the four sides.
     it is needed for sobel filter.
 
-    :param shape_dataset:
-        Object used to specify the 'shape' of the region (origin, cell size and dimensions).
+    :param acquisition:
+        An instance of an acquisition object.
 
-    :param dem_data:
-        The DEM data for the region. This must have the same dimensions as ``shape_dataset`` plus buffers as specified
-        by ``pix_buf`` (see :py:func:`clip_dsm`). This is converted to a :py:class:`gdal.ndarray` of type
-        :py:class:`gdal.float32` using the function :py:func:`ULA3.utils.as_array`.
+    :param DEM:
+        A DEM of the region. This must have the same dimensions as
+        zenith_angle plus a buffer of widths specified by buffer.
 
-    :param solar_zenith_data:
+    :param solar_zenith:
         The solar zenith angle data for the region.
 
-    :param view_zenith_data:
+    :param satellite_zenith:
         The satellite zenith angle data for the region.
 
-    :param solar_azimuth_data:
+    :param solar_azimuth:
         The solar azimuth angle data for the region.
 
-    :param view_azimuth_data:
+    :param satellite_azimuth:
         The satellite azimuth angle data for the region.
 
-    :param pix_buf
-        An object with members top, bottom, left and right giving the size of the buffer (in pixels) which
-        have been added to the corresponding sides of ``dem_data``.
+    :param buffer:
+        An object with members top, bottom, left and right giving the
+        size of the buffer (in pixels) which have been added to the
+        corresponding sides of DEM.
 
     :param is_utm:
-        Boolean specifying whether the data is in UTM coordinates. This is passed to the Fortran code which
-        uses it to determine whether the edge length of the pixels (if it is not true, then the resolution
-        is assumed to be in degrees, and the pixel size is calculated internally).
+        Boolean specifying whether the data is in UTM coordinates.
+        This is passed to the Fortran code which uses it to determine
+        whether the edge length of the pixels (if it is not true,
+        then the resolution is assumed to be in degrees, and the
+        pixel size is calculated internally).
 
     :param spheroid:
         A 4 element floating point array containing the Earth
@@ -224,51 +241,45 @@ def run_slope(
         Index 3 contains the Earth rotational angular velocity in
         radians/second.
 
-    :param output_type:
-        The output types for any datasets written to disk (see the following arguments).
+    :return:
+        A SlopeResultSet Class with the following NumPy 2D arrays:
+        mask_self
+        slope
+        aspect
+        incident
+        exiting
+        azi_incident
+        azi_exiting
+        rela_slope
 
-    :param slope_dataset:
-        Defines the output type of the slope results (see details below).
-
-    :param aspect_dataset:
-        Defines the output type of the aspect angle data to (see details below).
-
-    :param incident_dataset:
-        Defines the output type of the incident angle data (see details below).
-
-    :param exiting_dataset:
-        Defines the output of the exiting (zenith?) angle data (see details below).
-
-    :param azi_exiting_dataset:
-        The name of the file to write the exiting azimuth angle data to (see details below).
-
-    :param rela_slope_dataset:
-        The name of the file to write the relative slope data to (see details below).
-
-    :param _dataset: The name of the file to write the 'self mask' data to (see details below).
-
-    The parameters ``solar_zenith_data, view_zenith_data, solar_azimuth_data`` and ``view_azimuth_data``
-    must have the same dimensions as ``shape_dataset``. They argument are converted to
-    :py:class:`gdal.ndarray`s of type :py:class:`gdal.float32` using the function :py:func:`ULA3.utils.as_array`.
-
-    :todo: This documentation would benefit from having someone who understands the
-        concepts describe the outputs more meaningfully.
+    :notes:
+    The parameters ``solar_zenith, satellite_zenith, solar_azimuth``
+    and ``satellite_azimuth_data`` must have the same dimensions.
     """
-    bounds = get_bounds(shape_dataset)
-
-    nrow = bounds.RasterYSize + 2
-    ncol = bounds.RasterXSize + 2
-    dres = bounds.RasterCellSize # assumes that the x and y res are the same.
-    rlat = bounds.RasterYOrigin
-
-    # x & y pixel resolution (This should handle cases of non-square pixels.)
-    #dresx = abs(bounds.RasterXCellSize)
-    #dresy = abs(bounds.RasterYCellSize)
-
     # Perform datatype checks
     if DEM.dtype.name != 'float32':
         msg = 'DEM datatype must be float32! Datatype: {dtype}'
         msg = msg.format(dtype=DEM.dtype.name)
+        raise TypeError(msg)
+
+    if solar_zenith.dtype.name != 'float32':
+        msg = 'Solar zenith datatype must be float32! Datatype: {dtype}'
+        msg = msg.format(dtype=solar_zenith.dtype.name)
+        raise TypeError(msg)
+
+    if satelltite_zenith.dtype.name != 'float32':
+        msg = 'Satelltite zenith datatype must be float32! Datatype: {dtype}'
+        msg = msg.format(dtype=satelltite_zenith.dtype.name)
+        raise TypeError(msg)
+
+    if solar_azimuth.dtype.name != 'float32':
+        msg = 'Solar azimuth datatype must be float32! Datatype: {dtype}'
+        msg = msg.format(dtype=solar_azimuth.dtype.name)
+        raise TypeError(msg)
+
+    if satellite_azimuth.dtype.name != 'float32':
+        msg = 'Satellite azimuth datatype must be float32! Datatype: {dtype}'
+        msg = msg.format(dtype=satellite_azimuth.dtype.name)
         raise TypeError(msg)
 
     # Get the x and y pixel sizes
@@ -283,44 +294,36 @@ def run_slope(
     ncol = cols + 2
     nrow = rows + 2
 
-    dem_dat = as_array(dem_data, dtype=numpy.float32)[(pix_buf.top-1):-(pix_buf.bottom-1),(pix_buf.left-1):-(pix_buf.right-1)]
-    assert dem_dat.shape == (nrow, ncol), "dem_data not of correct shape " + str((nrow, ncol)) + " != " + str(dem_dat.shape)
+    dem_dat = DEM[(pix_buf.top-1):-(pix_buf.bottom-1),(pix_buf.left-1):-(pix_buf.right-1)]
+    # Check that the dimensions match
+    if dem_dat.shape != (nrow, ncol):
+        msg = ('DEM index not of correct shape ({row}, {col}) '
+              '!= ({drow}, {dcol})')
+        msg = msg.format(row=nrow, col=ncol, drow=dem_dat.shape[0],
+            dcol=dem_dat.shape[1])
+        raise IndexError(msg)
 
     # This will be ignored if is_utm == True
-    alat = numpy.array([y_origin-i*dresy for i in range(-1, nrow-1)], dtype=numpy.float64) # yes, I did mean float64.
+    alat = numpy.array([y_origin-i*dresy for i in range(-1, nrow-1)],
+        dtype=numpy.float64) # yes, I did mean float64.
 
-    mask, theta, phit, it, et, azi_it, azi_et, rela, ierr = slope_pixelsize_newpole(
+    (mask, theta, phit, it, et, azi_it,
+     azi_et, rela, ierr) = slope_pixelsize_newpole(
         dresx, dresy, spheroid, alat, is_utm,
         dem_dat,
-        as_array(solar_zenith_data, dtype=numpy.float32),
-        as_array(view_zenith_data, dtype=numpy.float32),
-        as_array(solar_azimuth_data, dtype=numpy.float32),
-        as_array(view_azimuth_data, dtype=numpy.float32))
+        solar_zenith,
+        satelltite_zenith,
+        solar_azimuth,
+        satellite_azimuth)
 
     if ierr:
         raise SlopeError(ierr)
 
-    driver = gdal.GetDriverByName(output_type)
+    slope_results_set = SlopeResultSet(mask_self=mask, slope=theta,
+        aspect=phit, incident=it, exiting=et, azi_incident=azi_it,
+        azi_exiting=azi_et, rela_slope=rela)
 
-    def make_dataset(dataset, data):
-        if type(dataset) == str:
-            dataset = driver.Create(dataset, ncol, nrow, 1, DTYPE_MAP[numpy.float32])
-            dataset.GetRasterBand(1).WriteArray(data)
-            dataset = None
-        return data
-
-    return SlopeResultSet(
-        mask_self = make_dataset(mask_self_dataset, mask),
-        slope = make_dataset(slope_dataset, theta),
-        aspect = make_dataset(aspect_dataset, phit),
-        incident = make_dataset(incident_dataset, it),
-        exiting = make_dataset(exiting_dataset, et),
-        azi_incident = make_dataset(azi_incident_dataset, azi_it),
-        azi_exiting = make_dataset(azi_exiting_dataset, azi_et),
-        rela_slope = make_dataset(rela_slope_dataset, rela))
-
-
-
+    return slope_results_set
 
 
 class CastShadowError(FortranError):
