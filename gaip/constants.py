@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 
-import re
-
-class pqaContants:
+class PQAConstants:
     """
     A Class object that contains the majority of constants used throughout the PQA process.
     Such constants include bands for specific tests, bit positions for various tests and thresholds used
     within various tests.
     """
     def __init__(self, sensor):
+        assert sensor is not None
         self.sensor = sensor
         # Initialise everything for immediate access
         self.setSaturationBands()
@@ -253,93 +252,3 @@ class pqaContants:
                    }
         self.band_num_sequence = sequence[self.sensor]
 
-
-def brdf_wavelength_lut(satellite_sensor):
-    """
-    Retrieves the BRDF wavelengths for a given satellite-sensor.
-
-    :param satellite_sensor:
-        A string containing a valid satellite-sensor combination.
-        Valid combinations are:
-        landsat5tm
-        landsat7etm
-        landsat8oli
-        landsat8olitirs
-
-    :return:
-        A dictionary containing the Band numbers of a sensor as the
-        keys, and the BRDF wavelengths as the values.
-    """
-
-    input_str = str(satellite_sensor)
-
-    BRDF_LUT = {
-        'landsat5tm' : { 1 : '0459_0479nm',
-                         2 : '0545_0565nm',
-                         3 : '0620_0670nm',
-                         4 : '0841_0876nm',
-                         5 : '1628_1652nm',
-                         7 : '2105_2155nm'
-                       },
-        'landsat7etm+' : { 1 : '0459_0479nm',
-                          2 : '0545_0565nm',
-                          3 : '0620_0670nm',
-                          4 : '0841_0876nm',
-                          5 : '1628_1652nm',
-                          7 : '2105_2155nm'
-                        },
-        'landsat8oli' : { 1 : '0459_0479nm',
-                          2 : '0459_0479nm',
-                          3 : '0545_0565nm',
-                          4 : '0620_0670nm',
-                          5 : '0841_0876nm',
-                          6 : '1628_1652nm',
-                          7 : '2105_2155nm'
-                        },
-        'landsat8olitirs' : { 1 : '0459_0479nm',
-                               2 : '0459_0479nm',
-                               3 : '0545_0565nm',
-                               4 : '0620_0670nm',
-                               5 : '0841_0876nm',
-                               6 : '1628_1652nm',
-                               7 : '2105_2155nm'
-                            }
-               }.get(input_str, 'Error')
-
-    return BRDF_LUT
-
-
-class NBARConstants:
-    """
-    
-    """
-
-    def __init__(self, satellite, sensor):
-        """
-        
-        """
-        self.satellite = satellite
-        self.sensor = sensor
-
-    def getBRDFlut(self):
-        """
-        
-        """
-        # NOTE: GA Landsat products use both '-' and '_' as a seperator
-        # Remove any occurences of - and _ then convert to lowercase
-        satellite_name = re.sub('[-_]', '', self.satellite).lower()
-        sensor_name = re.sub('[-_]', '', self.sensor).lower()
-        
-        sat_sensor = ''.join((satellite_name, sensor_name))
-        
-        brdf_wavelengths = brdf_wavelength_lut(sat_sensor)
-
-        return brdf_wavelengths
-
-    def getBRDFfactors(self):
-        """
-        
-        """
-        factors = ['geo', 'iso', 'vol']
-
-        return factors

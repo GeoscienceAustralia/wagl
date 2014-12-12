@@ -6,7 +6,7 @@ from scipy import ndimage
 from IDL_functions import histogram
 
 
-def calc_contiguity_mask(image_stack, satellite):
+def calc_contiguity_mask(image_stack, spacecraft_id):
     """
     Determines locations of null values.
 
@@ -45,7 +45,8 @@ def calc_contiguity_mask(image_stack, satellite):
     #mask = numexpr.evaluate('prod(image_stack, 0)') != 0 # ***This has the potential to overflow, roll back to array.all(0)***
 
     # The following is only valid for Landsat 5 images
-    if satellite.TAG == 'LS5':
+    logging.debug('calc_contiguity_mask: spacecraft_id=%s' % (spacecraft_id,))
+    if spacecraft_id == 'Landsat5':
         logging.debug('Finding thermal edge anomalies')
         # Apply thermal edge anomalies
         struct = numpy.ones((7,7), dtype='bool')
@@ -87,7 +88,7 @@ def calc_contiguity_mask(image_stack, satellite):
 
     return mask
 
-def setContiguityBit(l1t_data, satellite, pq_const, pqaResult):
-    mask = calc_contiguity_mask(l1t_data, satellite)
+def setContiguityBit(l1t_data, spacecraft_id, pq_const, pqaResult):
+    mask = calc_contiguity_mask(l1t_data, spacecraft_id)
     bit_index = pq_const.contiguity
     pqaResult.set_mask(mask, bit_index)
