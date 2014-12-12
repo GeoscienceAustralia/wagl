@@ -344,7 +344,13 @@
                         "resolution": 25.0,
                         "type_desc": "Atmosphere",
                         "wavelength": [1.360, 1.390]
-                    }
+                    },
+		    "quality": {
+                        "desc": "Quality",
+                        "resolution": 25.0,
+                        "type_desc": "Quality",
+                        "wavelength": []
+		    }
                 },
                 "description": "Landsat Data Continuity Mission",
                 "K1": 774.89,
