@@ -38,10 +38,16 @@ class Acquisition(object):
         return self.band_name == other.band_name
 
     def __lt__(self, other):
-        return self.band_name < other.band_name
+        return self._sortkey() < other._sortkey()
 
     def __repr__(self):
         return 'Acquisition(band_name=' + self.band_name + ')'
+
+    def _sortkey(self):
+        if isinstance(self.band_num, int):
+            return "%03d" % (self.band_num, )
+        else:
+            return self.band_name.split('_')[1]
 
     def data(self, out=None):
         """
@@ -210,6 +216,8 @@ class Landsat8Acquisition(LandsatAcquisition):
             return self.reflective_samples
         if self.band_type == PAN:
             return self.panchromatic_samples
+        if self.band_type == THM:
+            return self.thermal_samples
 
     @property
     def lines(self):
@@ -222,6 +230,8 @@ class Landsat8Acquisition(LandsatAcquisition):
             return self.reflective_lines
         if self.band_type == PAN:
             return self.panchromatic_lines
+        if self.band_type == THM:
+            return self.thermal_lines
 
     @property
     def grid_cell_size(self):
@@ -234,6 +244,8 @@ class Landsat8Acquisition(LandsatAcquisition):
             return self.grid_cell_size_reflective
         if self.band_type == PAN:
             return self.grid_cell_size_panchromatic
+        if self.band_type == THM:
+            return self.grid_cell_size_thermal
 
     @property
     def acquisition_date(self):
@@ -304,7 +316,8 @@ class Landsat8Acquisition(LandsatAcquisition):
 ACQUISITION_TYPE = {
     'Landsat5_TM': Landsat5Acquisition,
     'Landsat7_ETM+': Landsat7Acquisition,
-    'LANDSAT_8_OLI': Landsat8Acquisition
+    'LANDSAT_8_OLI': Landsat8Acquisition,
+    'LANDSAT_8_OLI_TIRS': Landsat8Acquisition
 }
 
 
@@ -427,7 +440,7 @@ def acquisitions_via_MTL(path):
         # remove unnecessary values
         for kv in new.values():
             for k in kv.keys():
-                if band in k:
+                if k.endswith(band):
                     # remove the values for the other bands
                     rm = [k.replace(band, b) for b in bands if b != band]
                     for r in rm:
@@ -437,6 +450,7 @@ def acquisitions_via_MTL(path):
                             pass
                     # rename old key to remove band information
                     newkey = k.replace(band, '').strip('_')
+                    # print "band=%s, k=%s, newkey=%s" % (band, k, newkey)
                     kv[newkey] = kv[k]
                     del kv[k]
 
