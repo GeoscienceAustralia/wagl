@@ -3,13 +3,14 @@ from acquisition import *
 from data import *
 from mtl import *
 from water import *
-from GriddedGeoBox import GriddedGeoBox
+from GriddedGeoBox import GriddedGeoBox #FIXME: PEP8
 from fast_cache import *
 from tle import *
 from brdf import *
 from get_brdf import *
 from calculate_lon_lat_arrays import *
 from land_sea_masking import *
+from modtran import *
 
 try:
     from calculate_angles import *
