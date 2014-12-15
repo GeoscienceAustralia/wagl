@@ -10,7 +10,6 @@ from brdf import *
 from get_brdf import *
 from calculate_lon_lat_arrays import *
 from land_sea_masking import *
-from binaries import *
 
 try:
     from calculate_angles import *
