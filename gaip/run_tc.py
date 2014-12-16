@@ -2,7 +2,10 @@
 Runs the terrain correction. This code runs the terrain correction algorithm.
 """
 
-import logging, os, numpy, gc
+import gc
+import os
+import pickle
+import numpy
 from osgeo import gdal
 from ULA3 import DataManager, DataGrid
 from ULA3.tc import clip_dsm, filter_dsm, run_slope, run_castshadow, run_brdfterrain # , run_brdfterrain_LS8
@@ -18,7 +21,6 @@ from gaip import write_img
 from gaip import find_file
 from gaip import read_img
 
-logger = logging.getLogger('root.' + __name__)
 
 
 
@@ -40,9 +42,10 @@ def write_tif_file(l1t_input_dataset, band_data, filename, file_type):
 
 
 def write_new_brdf_file(file_name, *args):
-    output = open(file_name, 'w')
-    output.write("%f\n%f %f %f\n%f %f %f %f\n%f\n" % args)
-    output.close()
+    with open(file_name, 'w') as src:
+        out_string = "{0}\n{1} {2} {3}\n{4} {5} {6} {7}\n{8}\n"
+        out_string = out_string.format(*args)
+        src.write(out_string)
 
 
 
@@ -57,10 +60,6 @@ shadow_sub_matrix_height = 500
 shadow_sub_matrix_width = 500
 # one of the parameters required for terrain correction - need to figure out how this is specified.
 rori = 0.52
-# these were copied from the files files in /g/data/v10/ULA3-TESTDATA/brdf_modis_band%i.txt,
-# they were contained in the last line of those files.
-ave_reflectance_values_LS5_7 = {10:0.0365, 20:0.0667, 30:0.0880, 40:0.2231, 50:0.2512, 70:0.1648}
-ave_reflectance_values_LS8   = {1:0.0365, 2:0.0365, 3:0.0667, 4:0.0880, 5:0.2231, 6:0.2512, 7:0.1648}
 
 
 
@@ -194,17 +193,25 @@ def process(subprocess_list=[], resume=False):
     # load the line starts and ends.
     rows, cols = geobox.shape
 
-    boo = DATA.get_item("bilinear_ortho_outputs", item_type=dict)
+    # load the pickled dict containing the bilinear outputs
+    boo_fname = os.path.join(work_path, '"bilinear_ortho_outputs')
+    with open(boo_fname) as boo_file:
+        boo = pickle.load(boo_file)
 
     # this process runs close to the wind on memory... get rid of everything for now.
-    DATA.clean()
     gc.collect()
 
-    if (l1t_input_dataset.satellite.NAME == 'Landsat-8'):
-        ave_reflectance_values = ave_reflectance_values_LS8
-    else:
-        ave_reflectance_values = ave_reflectance_values_LS5_7
+    # Retrieve the satellite and sensor for the acquisition
+    satellite = acquisition[0].spacecraft_id
+    sensor = acquisition[0].sensor_id
 
+    # Get the required nbar bands list for processing
+    nbar_constants = constants.NBARConstants(satellite, sensor)
+    bands_list = nbar_constants.getNBARlut()
+    ave_reflectance_values = nbar_constants.getAvgReflut()
+
+
+    # TODO get filename band numbers
     # We need a reverse lookup for the band file names, ie for LS_5/7: 10, 20, 30 etc
     # to correspond with the 1 based index order retrieved from scene_dataset_class.bands('REFLECTIVE')
     # Was unsure if there was already a lookup defined so this will suffice.
@@ -215,28 +222,40 @@ def process(subprocess_list=[], resume=False):
         band_fname_lookup[val] = key # Basically turn keys into values and vice versa. Only works for 1 to 1 mapping dicts.
 
     #for band_number in (2, 3, 4): #(1, 2, 3, 4, 5, 7):
-    for band_number in l1t_input_dataset.bands('REFLECTIVE'):
+    #for band_number in l1t_input_dataset.bands('REFLECTIVE'):
+    for acq in acquisitions:
+        band_number = acq.band_num
+        if band_number not in bands_list:
+            # skip
+            continue
+        # TODO get filename band numbers
         # Get the band file name, eg 10, 20, 30 etc, used in L1T. LS8 uses 1, 2, 3 etc
         out_bn_name = band_fname_lookup[band_number]
 
-        # not sure where these get created.
-        param_file = open(os.path.join(CONFIG.work_path, 'brdf_modis_band%i.txt' % band_number), 'r')
-        brdf0, brdf1, brdf2, bias, slope_ca, esun, dd = map(float, ' '.join(param_file.readlines()).split())
-        param_file.close()
+        # Read the BRDF modis file for a given band
+        brdf_modis_file = 'brdf_modis_band{0}.txt'.format(band_number)
+        brdf_modis_file = os.path.join(work_path, brdf_modis_file)
+        with open(brdf_modis_file, 'r') as param_file:
+            brdf0, brdf1, brdf2, bias, slope_ca, esun, dd = map(float,
+                ' '.join(param_file.readlines()).split())
 
-        if dump_path:
-            write_new_brdf_file(
-                os.path.join(dump_path, 'new_brdf_modis_band%i.txt' % band_number),
-                rori, brdf0, brdf1, brdf2, bias, slope_ca, esun, dd, ave_reflectance_values[out_bn_name])
+        write_new_brdf_file(os.path.join(tc_work_path,
+            'new_brdf_modis_band{band_num}.txt'.format(band_num=band_number)),
+            rori, brdf0, brdf1, brdf2, bias, slope_ca, esun, dd,
+            ave_reflectance_values[band_number])
 
-        # need to check that these are OK.
-        band_data = l1t_input_dataset.band_read_as_array(band_number)
+        # Read the data
+        band_data = acq.data()
+
+        # TODO
+        # Convert all the datatypes upfront and any array re-ordering to save
+        # on copies being made within the routine
 
 	ref_lm, ref_brdf, ref_terrain = run_brdfterrain(
 	    rori,
 	    brdf0, brdf1, brdf2,
 	    bias, slope_ca, esun, dd,
-	    ave_reflectance_values[out_bn_name],
+	    ave_reflectance_values[band_number],
 	    band_data,
 	    slope_results.mask_self,
 	    shadow_s,
