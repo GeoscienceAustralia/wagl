@@ -473,8 +473,8 @@ if __name__ == '__main__':
     parser.add_argument('--L1T_dir', required=True, help='A directory path of a L1T scene.')
     parser.add_argument('--nbar_work_dir', required=True, help='A directory path to the associated NBAR working directory.')
     parser.add_argument('--outdir', required=True, help='A directory path that will contain the output files.')
-    parser.add_argument('--dec_precision', default=4, help='The decimal precision used for array comparison')
-    parser.add_argument('--int_precision', default=1, help='The integer precision used for array comparison')
+    parser.add_argument('--dec_precision', default=4, type=int, help='The decimal precision used for array comparison')
+    parser.add_argument('--int_precision', default=1, type=int, help='The integer precision used for array comparison')
     parser.add_argument('--compute', action='store_true', help='If set then the solar and sateliite angles will be computed as will the CENTRELINE text file before running the unittests.')
 
     parsed_args = parser.parse_args()
