@@ -803,6 +803,8 @@ def run_brdfterrain(
         descriptions of the arguments provided.
 
     """
+    # TODO check for correct array datatypes
+    # We want to limit any potential copies
     return terrain_correction(
         rori,
         brdf0, brdf1, brdf2,
