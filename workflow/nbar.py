@@ -1,15 +1,27 @@
+"""
+NBAR Workflow
+-------------
+
+Workflow settings can be configured in `nbar.cfg` file.
+
+"""
+#pylint: disable=missing-docstring,no-init,too-many-function-args
+#pylint: disable=too-many-locals
+
 import luigi
 import gaip
-import os
 import cPickle as pickle
 
-from os.path import join as pjoin, dirname, exists
+from os.path import join as pjoin, dirname
 
 CONFIG = luigi.configuration.get_config()
 CONFIG.add_config_path(pjoin(dirname(__file__), 'nbar.cfg'))
 
 
 def save(target, value):
+    """Save `value` to `target` where `target` is a `luigi.Target` object. If
+    the target filename ends with `pkl` then pickle the data. Otherwise, save
+    as text."""
     with target.open('w') as outfile:
         if target.fn.endswith('pkl'):
             pickle.dump(value, outfile)
@@ -18,13 +30,15 @@ def save(target, value):
 
 
 def load(target):
+    """Load data from `target` where `target` is a `luigi.Target`."""
     if not target.fn.endswith('pkl'):
         raise IOError('Cannot load non-pickled object')
     with target.open('r') as infile:
         return pickle.load(infile)
 
 
-def load_value(target)
+def load_value(target):
+    """Load the value from `target`."""
     data = load(target)
     try:
         return data['value']
@@ -32,7 +46,9 @@ def load_value(target)
         return data
 
 
-class GetElevationAncillaryDataTask(luigi.Task):
+class GetElevationAncillaryData(luigi.Task):
+
+    """Get ancillary elevation data."""
 
     l1t_path = luigi.Parameter()
 
@@ -51,7 +67,9 @@ class GetElevationAncillaryDataTask(luigi.Task):
         save(self.output(), value)
 
 
-class GetOzoneAncillaryDataTask(luigi.Task):
+class GetOzoneAncillaryData(luigi.Task):
+
+    """Get ancillary ozone data."""
 
     l1t_path = luigi.Parameter()
 
@@ -72,7 +90,9 @@ class GetOzoneAncillaryDataTask(luigi.Task):
         save(self.output(), value)
 
 
-class GetSolarIrradianceAncillaryDataTask(luigi.Task):
+class GetSolarIrradianceAncillaryData(luigi.Task):
+
+    """Get ancillary solar irradiance data."""
 
     l1t_path = luigi.Parameter()
 
@@ -90,7 +110,9 @@ class GetSolarIrradianceAncillaryDataTask(luigi.Task):
         save(self.output(), value)
 
 
-class GetSolarDistanceAncillaryDataTask(luigi.Task):
+class GetSolarDistanceAncillaryData(luigi.Task):
+
+    """Get ancillary solar distance data."""
 
     l1t_path = luigi.Parameter()
 
@@ -108,7 +130,9 @@ class GetSolarDistanceAncillaryDataTask(luigi.Task):
         save(self.output(), value)
 
 
-class GetWaterVapourAncillaryDataTask(luigi.Task):
+class GetWaterVapourAncillaryData(luigi.Task):
+
+    """Get ancillary water vapour data."""
 
     l1t_path = luigi.Parameter()
 
@@ -126,7 +150,9 @@ class GetWaterVapourAncillaryDataTask(luigi.Task):
         save(self.output(), value)
 
 
-class GetAerosolAncillaryDataTask(luigi.Task):
+class GetAerosolAncillaryData(luigi.Task):
+
+    """Get ancillary aerosol data."""
 
     l1t_path = luigi.Parameter()
 
@@ -144,7 +170,9 @@ class GetAerosolAncillaryDataTask(luigi.Task):
         save(self.output(), value)
 
 
-class GetBrdfAncillaryDataTask(luigi.Task):
+class GetBrdfAncillaryData(luigi.Task):
+
+    """Get ancillary BRDF data."""
 
     l1t_path = luigi.Parameter()
 
@@ -167,21 +195,22 @@ class GetBrdfAncillaryDataTask(luigi.Task):
 
 class GetAncillaryData(luigi.Task):
 
+    """Get all ancillary data. This a helper task."""
+
     l1t_path = luigi.Parameter()
 
     def requires(self):
-        return [GetElevationAncillaryDataTask(self.l1t_path),
-                GetOzoneAncillaryDataTask(self.l1t_path),
-                GetSolarDistanceAncillaryDataTask(self.l1t_path),
-                GetWaterVapourAncillaryDataTask(self.l1t_path),
-                GetAerosolAncillaryDataTask(self.l1t_path),
-                GetBrdfAncillaryDataTask(self.l1t_path)]
-
-    def complete(self):
-        return all([d.complete() for d in self.requires()])
+        return [GetElevationAncillaryData(self.l1t_path),
+                GetOzoneAncillaryData(self.l1t_path),
+                GetSolarDistanceAncillaryData(self.l1t_path),
+                GetWaterVapourAncillaryData(self.l1t_path),
+                GetAerosolAncillaryData(self.l1t_path),
+                GetBrdfAncillaryData(self.l1t_path)]
 
 
 class CalculateLonGrid(luigi.Task):
+
+    """Calculate the longitude grid."""
 
     l1t_path = luigi.Parameter()
 
@@ -200,6 +229,8 @@ class CalculateLonGrid(luigi.Task):
 
 class CalculateLatGrid(luigi.Task):
 
+    """Calculate the latitude grid."""
+
     l1t_path = luigi.Parameter()
 
     def requires(self):
@@ -217,33 +248,41 @@ class CalculateLatGrid(luigi.Task):
 
 class CalculateLatLonGrids(luigi.Task):
 
+    """Calculate the longitude and latitude grids. This is a helper task."""
+
     l1t_path = luigi.Parameter()
 
     def requires(self):
         return [CalculateLatGrid(self.l1t_path),
                 CalculateLonGrid(self.l1t_path)]
-
-    def complete(self):
-        return all([d.complete() for d in self.requires()])
 
 
 class CalculateSatelliteAndSolarGrids(luigi.Task):
 
+    """Calculate the satellite and solar grids."""
+
     l1t_path = luigi.Parameter()
-    targets = None
 
     def requires(self):
         return [CalculateLatGrid(self.l1t_path),
                 CalculateLonGrid(self.l1t_path)]
 
+    def output(self):
+        targets = [CONFIG.get('work', 'sat_view_zenith_target'),
+                   CONFIG.get('work', 'sat_azimuth_target'),
+                   CONFIG.get('work', 'solar_zenith_target'),
+                   CONFIG.get('work', 'solar_azimuth_target'),
+                   CONFIG.get('work', 'relative_azimuth_target'),
+                   CONFIG.get('work', 'time_target')]
+        return [luigi.LocalTarget(t) for t in targets]
+
     def run(self):
-        self.targets = [
-            CONFIG.get('work', 'sat_view_zenith_target'),
-            CONFIG.get('work', 'sat_azimuth_target'),
-            CONFIG.get('work', 'solar_zenith_target'),
-            CONFIG.get('work', 'solar_azimuth_target'),
-            CONFIG.get('work', 'relative_azimuth_target'),
-            CONFIG.get('work', 'time_target')]
+        targets = [CONFIG.get('work', 'sat_view_zenith_target'),
+                   CONFIG.get('work', 'sat_azimuth_target'),
+                   CONFIG.get('work', 'solar_zenith_target'),
+                   CONFIG.get('work', 'solar_azimuth_target'),
+                   CONFIG.get('work', 'relative_azimuth_target'),
+                   CONFIG.get('work', 'time_target')]
         work_path = CONFIG.get('work', 'path')
         lon_target = CONFIG.get('work', 'lon_target')
         lat_target = CONFIG.get('work', 'lat_target')
@@ -252,24 +291,19 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
 
         geobox = acqs[0].gridded_geo_box()
         cols = acqs[0].samples
-        rows = acqs[0].lines
 
         (satellite_zenith, satellite_azimuth, solar_zenith, solar_azimuth,
-         relative_azimuth, time, Y_cent, X_cent, N_cent) = \
+         relative_azimuth, time, y_cent, x_cent, n_cent) = \
             gaip.calculate_angles(acqs[0], lon_target, lat_target,
-                                  npoints=12, to_disk=self.targets)
+                                  npoints=12, to_disk=targets)
 
-        gaip.create_centreline_file(geobox, Y_cent, X_cent, N_cent, cols,
+        gaip.create_centreline_file(geobox, y_cent, x_cent, n_cent, cols,
                                     view_max=9.0, outdir=work_path)
-
-    def complete(self):
-        if self.targets:
-            return all([exists(t) for t in self.targets])
-        else:
-            return False
 
 
 class CalculateGridsTask(luigi.Task):
+
+    """Calculate all the grids. This is a helper task."""
 
     l1t_path = luigi.Parameter()
 
@@ -277,50 +311,57 @@ class CalculateGridsTask(luigi.Task):
         return [CalculateLatLonGrids(self.l1t_path),
                 CalculateSatelliteAndSolarGrids(self.l1t_path)]
 
-    def complete(self):
-        return all([d.complete() for d in self.requires()])
-
 
 class CreateModtranDirectories(luigi.Task):
 
-    created = None
+    """Create the MODTRAN work directories and input driver files."""
+
+    def output(self):
+        input_format = CONFIG.get('modtran', 'input_format')
+        coords = CONFIG.get('modtran', 'coords').split(',')
+        albedos = CONFIG.get('modtran', 'albedos').split(',')
+        targets = []
+        for coord in coords:
+            for albedo in albedos:
+                targets.append(input_format.format(coord=coord,
+                                                   albedo=albedo))
+        return [luigi.LocalTarget(t) for t in targets]
 
     def run(self):
-        workpath = CONFIG.get('work', 'path')
-        modtran_root = CONFIG.get('modtran', 'root')
-        modtran_exe = CONFIG.get('modtran', 'exe')
-        self.created = gaip.create_modtran_dirs(workpath, modtran_root)
+        modtran_exe_root = CONFIG.get('modtran', 'root')
+        modtran_root = CONFIG.get('work', 'modtran_root')
+        input_format = CONFIG.get('modtran', 'input_format')
+        workpath_format = CONFIG.get('modtran', 'workpath_format')
+        coords = CONFIG.get('modtran', 'coords').split(',')
+        albedos = CONFIG.get('modtran', 'albedos').split(',')
 
-    def complete(self):
-        if self.created:
-            return all([exists(p) for p in self.created])
-        else:
-            return False
+        gaip.create_modtran_dirs(coords, albedos, modtran_root,
+                                 modtran_exe_root,
+                                 workpath_format,
+                                 input_format)
 
 
 class CreateSatelliteFilterFile(luigi.Task):
 
-    l1t_path = luigi.Parameter()
-    created = None
+    """Create the satellite filter file."""
 
-    def requires(self):
-        return []
+    l1t_path = luigi.Parameter()
+
+    def output(self):
+        target = CONFIG.get('work', 'sat_filter_target')
+        return luigi.LocalTarget(target)
 
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
-        workpath = CONFIG.get('work', 'path')
         satfilterpath = CONFIG.get('ancillary', 'satfilter_path')
-        self.created = gaip.create_satellite_filter_file(acqs, workpath,
-                                                         satfilterpath)
-
-    def complete(self):
-        if self.created:
-            return exists(self.created)
-        else:
-            return False
+        target = CONFIG.get('work', 'sat_filter_target')
+        gaip.create_satellite_filter_file(acqs, satfilterpath,
+                                          target)
 
 
 class WriteModtranInputFile(luigi.Task):
+
+    """Create the MODTRAN input file."""
 
     l1t_path = luigi.Parameter()
 
@@ -348,286 +389,415 @@ class WriteModtranInputFile(luigi.Task):
 
 class WriteModisBrdfFiles(luigi.Task):
 
-    l1t_path = luigi.Parameter()
+    """Write the Modis BRDF files."""
 
-    def requires():
-        return []
+    l1t_path = luigi.Parameter()
 
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
         modis_brdf_prefix = CONFIG.get('work', 'modis_brdf_prefix')
         brdf_target = CONFIG.get('work', 'brdf_target')
         brdf_data = load(brdf_target)
-        #TODO
-        gaip.write_modis_brdf_files(acqs, prefix, brdf_data)
+        # FIXME
+        gaip.write_modis_brdf_files(acqs, modis_brdf_prefix, brdf_data)
 
 
 class RunModtranCorOrtho(luigi.Task):
 
-    l1t_path = luigi.Parameter()
-    created = None
+    """Run `modtran_cor_ortho` binary."""
 
-    def requires():
+    l1t_path = luigi.Parameter()
+
+    def requires(self):
         return [CalculateSatelliteAndSolarGrids(self.l1t_path)]
+
+    def output(self):
+        targets = [CONFIG.get('work', 'coordinator_target'),
+                   CONFIG.get('work', 'boxline_target')]
+        return [luigi.LocalTarget(t) for t in targets]
 
     def run(self):
         # sources
         centreline_target = CONFIG.get('work', 'centreline_target')
-        sat_view_zenith_target = CONFIG.get('work', 'sat_view_zenith_target') 
+        sat_view_zenith_target = CONFIG.get('work', 'sat_view_zenith_target')
         # targets
         coordinator_target = CONFIG.get('work', 'coordinator_target')
         boxline_target = CONFIG.get('work', 'boxline_target')
 
         cwd = CONFIG.get('work', 'read_modtrancor_ortho_cwd')
-        gaip.run_read_modtrancor_ortho([centreline_target,
-                                        sat_view_zenith_target,
-                                        coordinator_target,
-                                        boxline_target],
-                                       cwd=cwd)
 
-        self.created = [coordinator_target, boxline_target]
-
-    def complete(self):
-        if self.created:
-            return all([exists(p) for p in self.created])
-        else:
-            return False
+        gaip.run_read_modtrancor_ortho(centreline_target,
+                                       sat_view_zenith_target,
+                                       coordinator_target,
+                                       boxline_target,
+                                       cwd)
 
 
-class RunInputModtranOrthoUla(luigi.task):
+class GenerateModtranInputFiles(luigi.task):
+
+    """Generate the MODTRAN input files by running the Fortran binary
+    `input_modtran_ortho_ula`."""
 
     l1t_path = luigi.Parameter()
-    created = None
 
-    def requires():
+    def requires(self):
         return [RunModtranCorOrtho(self.l1t_path),
                 CalculateSatelliteAndSolarGrids(self.l1t_path),
                 WriteModtranInputFile(self.l1t_path),
                 CalculateLatGrid(self.l1t_path),
                 CalculateLonGrid(self.l1t_path)]
 
+    def output(self):
+        coords = CONFIG.get('input_modtran', 'coords').split(',')
+        albedos = CONFIG.get('input_modtran', 'albedos').split(',')
+        output_format = CONFIG.get('input_modtran', 'output_format')
+        targets = []
+        for coord in coords:
+            for albedo in albedos:
+                targets.append(output_format.format(coord=coord,
+                                                    albedo=albedo))
+        return [luigi.LocalTarget(t) for t in targets]
+
     def run(self):
         # sources
         modtran_input_target = CONFIG.get('work', 'modtran_input_target')
         coordinator_target = CONFIG.get('work', 'coordinator_target')
-        sat_view_zenith_target = CONFIG.get('work', 'sat_view_zenith_target') 
+        sat_view_zenith_target = CONFIG.get('work', 'sat_view_zenith_target')
         sat_azimuth_target = CONFIG.get('work', 'sat_azimuth_target')
         lon_grid_target = CONFIG.get('work', 'lon_grid_target')
         lat_grid_target = CONFIG.get('work', 'lat_grid_target')
 
-        cwd = CONFIG.get('work', 'input_modtran_ortho_ula_cwd')
-        coordinators = CONFIG.get('modtran', 'coordinators').split(',')
-        albedos = CONFIG.get('modtran', 'albedos').split(',')
+        coords = CONFIG.get('input_modtran', 'coords').split(',')
+        albedos = CONFIG.get('input_modtran', 'albedos').split(',')
+        fname_format = CONFIG.get('input_modtran', 'output_format')
+        workdir = CONFIG.get('work', 'input_modtran_cwd')
 
-        targets = []
-        for coord in coordinators:
-            for albedo in albedos:
-                target = '%s_alb_%s.txt' % (coord, albedo)
-                targets.append(pjoin(cwd, target))
-
-        args = []
-        args.append(lon_grid_target)
-        args.append(lat_grid_target)
-
-        cwd = CONFIG.get('work', 'input_modtran_ortho_ula_cwd')
-        gaip.run_input_modtran_ortho_ula(targets + args, cwd=cwd)
-
-        self.created = targets
-
-    def complete(self):
-        if self.created:
-            return all([exists(p) for p in self.created])
-        else:
-            return False
+        gaip.generate_modtran_inputs(modtran_input_target,
+                                     coordinator_target,
+                                     sat_view_zenith_target,
+                                     sat_azimuth_target,
+                                     lon_grid_target,
+                                     lat_grid_target,
+                                     coords,
+                                     albedos,
+                                     fname_format,
+                                     workdir)
 
 
-class ReformatModtranInput(luigi.task):
+class ReformatAsTp5(luigi.task):
+
+    """Reformat the MODTRAN input files in `tp5` format. This runs the
+    Fortran binary `refort_tp5_ga` multiple times."""
 
     l1t_path = luigi.Parameter()
-    created = None
 
-    def requires():
-        return [RunModtranOrthoUla(self.l1t_path)]
+    def requires(self):
+        return [GenerateModtranInputFiles(self.l1t_path)]
+
+    def output(self):
+        coords = CONFIG.get('reformat_tp5', 'coords').split(',')
+        albedos = CONFIG.get('reformat_tp5', 'albedos').split(',')
+        output_format = CONFIG.get('reformat_tp5', 'output_format')
+        targets = []
+        for coord in coords:
+            for albedo in albedos:
+                targets.append(output_format.format(coord=coord,
+                                                    albedo=albedo))
+        return [luigi.LocalTarget(t) for t in targets]
 
     def run(self):
-        # sources
-        modtran_input_target = CONFIG.get('work', 'modtran_input_target')
-        coordinator_target = CONFIG.get('work', 'coordinator_target')
-        sat_view_zenith_target = CONFIG.get('work', 'sat_view_zenith_target') 
-        sat_azimuth_target = CONFIG.get('work', 'sat_azimuth_target')
-        lon_grid_target = CONFIG.get('work', 'lon_grid_target')
-        lat_grid_target = CONFIG.get('work', 'lat_grid_target')
+        modtran_profile_path = CONFIG.get('ancillary', 'modtran_profile_path')
+        profile_format = CONFIG.get('modtran', 'profile_format')
+        input_format = CONFIG.get('reformat_tp5', 'input_format')
+        output_format = CONFIG.get('reformat_tp5', 'output_format')
+        workdir = CONFIG.get('work', 'reformat_tp5_cwd')
+        coords = CONFIG.get('reformat_tp5', 'coords').split(',')
+        albedos = CONFIG.get('reformat_tp5', 'albedos').split(',')
 
-        cwd = CONFIG.get('work', 'refort_tp5_ga_cwd')
-        coordinators = CONFIG.get('modtran', 'coordinators').split(',')
-        albedos = CONFIG.get('modtran', 'albedos').split(',')
+        # determine modtran profile
+        acqs = gaip.acquisitions(self.l1t_path)
+        geobox = acqs[0].gridded_geo_box()
+        centre_lon, centre_lat = geobox.centre_lonlat
+        profile = 'tropical'
+        if centre_lat < -23.0:
+            profile = 'midlat_summer'
 
-        #TODO
+        profile = pjoin(modtran_profile_path,
+                        profile_format.format(profile=profile))
 
+        gaip.reformat_as_tp5(coords, albedos, profile,
+                             input_format, output_format,
+                             workdir)
+
+
+class ReformatAsTp5Trans(luigi.task):
+
+    """Reformat the MODTRAN input files in `tp5` format in the transmissive
+    case. This runs the Fortran binary `refort_tp5_ga_trans` multiple
+    times."""
+
+    l1t_path = luigi.Parameter()
+
+    def requires(self):
+        return [GenerateModtranInputFiles(self.l1t_path)]
+
+    def output(self):
+        coords = CONFIG.get('reformat_tp5_trans', 'coords').split(',')
+        albedos = CONFIG.get('reformat_tp5_trans', 'albedos').split(',')
+        output_format = CONFIG.get('reformat_tp5_trans', 'output_format')
         targets = []
-        for coord in coordinators:
+        for coord in coords:
             for albedo in albedos:
-                target = '%s_alb_%s.txt' % (coord, albedo)
-                targets.append(pjoin(cwd, target))
+                target = output_format.format(coord=coord, albedo=albedo)
+                targets.append(luigi.LocalTarget(target))
+        return targets
 
-        args = []
-        args.append(lon_grid_target)
-        args.append(lat_grid_target)
+    def run(self):
+        modtran_profile_path = CONFIG.get('ancillary', 'modtran_profile_path')
+        profile_format = CONFIG.get('modtran', 'profile_format')
+        input_format = CONFIG.get('reformat_tp5_trans', 'input_format')
+        output_format = CONFIG.get('reformat_tp5_trans', 'output_format')
+        workdir = CONFIG.get('work', 'reformat_tp5_trans_cwd')
+        coords = CONFIG.get('reformat_tp5_trans', 'coords').split(',')
 
-        cwd = CONFIG.get('work', 'input_modtran_ortho_ula_cwd')
-        gaip.run_input_modtran_ortho_ula(targets + args, cwd=cwd)
+        # determine modtran profile
+        acqs = gaip.acquisitions(self.l1t_path)
+        geobox = acqs[0].gridded_geo_box()
+        centre_lon, centre_lat = geobox.centre_lonlat
+        profile = 'tropical'
+        if centre_lat < -23.0:
+            profile = 'midlat_summer'
 
-        self.created = targets
+        profile = pjoin(modtran_profile_path,
+                        profile_format.format(profile=profile))
 
-    def complete(self):
-        if self.created:
-            return all([exists(p) for p in self.created])
-        else:
-            return False
-
-
+        gaip.reformat_as_tp5_trans(coords, profile,
+                                   input_format, output_format,
+                                   workdir)
 
 
 class PrepareModtranInput(luigi.Task):
+
+    """Prepare MODTRAN inputs. This is a helper task."""
 
     l1t_path = luigi.Parameter()
 
     def requires(self):
         return [CreateModtranDirectories(),
                 CreateSatelliteFilterFile(self.l1t_path),
-                WriteModtranInputFile(self.l1t_path)]
+                GenerateModtranInputFiles(self.l1t_path),
+                ReformatAsTp5(self.l1t_path),
+                ReformatAsTp5Trans(self.l1t_path)]
 
 
-class RunModtranTask(luigi.Task):
+class RunModtranCase(luigi.Task):
 
+    """Run MODTRAN for a specific `coord` and `albedo`. This task is
+    parameterised this way to allow parallel instances of MODTRAN to run."""
+
+    l1t_path = luigi.Parameter()
+    coord = luigi.Parameter()
     albedo = luigi.Parameter()
 
     def requires(self):
-        return []
+        return [PrepareModtranInput(self.l1t_path)]
 
     def output(self):
-        pass
+        flx_format = CONFIG.get('modtran', 'flx_output_format')
+        chn_format = CONFIG.get('modtran', 'chn_output_format')
+        flx_target = flux_format.format(coord=self.coord, albedo=self.albedo)
+        chn_target = coef_format.format(coord=self.coord, albedo=self.albedo)
+        return [luigi.LocalTarget(flx_target),
+                luigi.LocalTarget(chn_target)]
 
     def run(self):
-        pass
+        modtran_exe = CONFIG.get('modtran', 'exe')
+        workpath_format = CONFIG.get('modtran', 'workpath_format')
+        workpath = workdir_format.format(coord=self.coord, albedo=self.albedo)
+        gaip.run_modtran(modtran_exe, workpath)
 
 
-class RunFluxTask(luigi.Task):
+class RunModtran(luigi.Task):
 
-    albedo = luigi.Parameter()
+    """Run MODTRAN for all coords and albedos. This is a helper task."""
+
+    l1t_path = luigi.Parameter()
 
     def requires(self):
-        return []
-
-    def output(self):
-        pass
-
-    def run(self):
-        pass
-
-
-class RunCoefficientTask(luigi.Task):
-
-    coef = luigi.Parameter()
-    # TL, TM, TR, ML, MM, MR, BL, BM, BR
-
-    def requires(self):
-        return []
-
-    def output(self):
-        pass
-
-    def run(self):
-        pass
+        coords = CONFIG.get('modtran', 'coords').split(',')
+        albedos = CONFIG.get('modtran', 'albedos').split(',')
+        reqs = [PrepareModtranInput(self.l1t_path)]
+        for coord in coords:
+            for albedo in albedos:
+                reqs.append(RunModtranCase(self.l1t_path, coord, albedo))
+        return reqs
 
 
-class ReadModtranTask(luigi.Task):
+class ExtractFlux(luigi.Task):
+
+    """Extract the flux data from the MODTRAN outputs."""
+
+    l1t_path = luigi.Parameter()
 
     def requires(self):
-        return []
+        return [RunModtran(self.l1t_path)]
 
     def output(self):
-        pass
+        coords = CONFIG.get('extract_flux', 'coords').split(',')
+        albedos = CONFIG.get('extract_flux', 'albedos').split(',')
+        output_format = CONFIG.get('extract_flux', 'output_format')
+        targets = []
+        for coord in coords:
+            for albedo in albedos:
+                target = output_format.format(coord=coord, albedo=albedo)
+                targets.append(luigi.LocalTarget(target))
+        return targets
 
     def run(self):
-        pass
+        coords = CONFIG.get('extract_flux', 'coords').split(',')
+        albedos = CONFIG.get('extract_flux', 'albedos').split(',')
+        input_format = CONFIG.get('extract_flux', 'input_format')
+        output_format = CONFIG.get('extract_flux', 'output_format')
+        satfilter = CONFIG.get('work', 'satfilter_target')
+
+        gaip.extract_flux(coords, albedos, input_format, output_format,
+                          satfilter)
 
 
-class BilinearOrthoTask(luigi.Task):
+class ExtractFluxTrans(luigi.Task):
 
-    param = luigi.Parameter()  # fv, fs, b, s, a
+    """Extract the flux data from the MODTRAN output in the transmissive
+    case."""
+
+    l1t_path = luigi.Parameter()
 
     def requires(self):
-        return []
+        return [RunModtran(self.l1t_path)]
 
     def output(self):
-        pass
+        coords = CONFIG.get('extract_flux_trans', 'coords').split(',')
+        output_format = CONFIG.get('extract_flux_trans', 'output_format')
+        targets = []
+        for coord in coords:
+            target = output_format.format(coord=coord)
+            targets.append(luigi.LocalTarget(target))
+        return targets
 
     def run(self):
-        pass
+        coords = CONFIG.get('extract_flux_trans', 'coords').split(',')
+        input_format = CONFIG.get('extract_flux_trans', 'input_format')
+        output_format = CONFIG.get('extract_flux_trans', 'output_format')
+        satfilter = CONFIG.get('work', 'satfilter_target')
+
+        gaip.extract_flux_trans(coords, input_format, output_format,
+                                satfilter)
 
 
-class RadiativeTransferPrepTask(luigi.Task):
+class CalculateCoefficients(luigi.Task):
+
+    """Calculate the atmospheric parameters needed by BRDF and atmospheric
+    correction model."""
+
+    l1t_path = luigi.Parameter()
 
     def requires(self):
-        return []
+        return [ExtractFlux(self.l1t_path), ExtractFluxTrans(self.l1t_path)]
 
     def output(self):
-        pass
+        coords = CONFIG.get('coefficients', 'coords').split(',')
+        output_format = CONFIG.get('coefficients', 'output_format')
+        targets = []
+        for coord in coords:
+            target = output_format.format(coord=coord)
+            targets.append(luigi.LocalTarget(target))
+        return targets
 
     def run(self):
-        pass
+        coords = CONFIG.get('coefficients', 'coords').split(',')
+        chn_input_format = CONFIG.get('coefficients', 'chn_input_format')
+        dir_input_format = CONFIG.get('coefficients', 'dir_input_format')
+        output_format = CONFIG.get('coefficients', 'output_format')
+        satfilter = CONFIG.get('work', 'satfilter_target')
+        workpath = CONFIG.get('work', 'modtran_root')
+
+        gaip.calc_coefficients(coords, chn_input_format, dir_input_format,
+                               output_format, satfilter, workpath)
 
 
-class BrdfTask(luigi.Task):
+class ReformatAtmosphericParameters(luigi.Task):
+
+    """Reformat the atmospheric parameters produced by MODTRAN for four boxes.
+    These are needed to conduct bilinear interpolation. This runs the binary
+    `read_modtran`. """
+
+    l1t_path = luigi.Parameter()
 
     def requires(self):
-        return []
+        return [CalculateCoefficients(self.l1t_path)]
 
     def output(self):
-        pass
+        factors = CONFIG.get('read_modtran', 'factors').split(',')
+        output_format = CONFIG.get('read_modtran', 'output_format')
+        acqs = gaip.acquisitions(self.l1t_path)
+        bands = [str(a.band_num) for a in acqs]
+        targets = []
+        for factor in factors:
+            for band in bands:
+                target = output_format.format(factor=factor, band=band)
+                targets.append(luigi.LocalTarget(target))
+        return targets
 
     def run(self):
-        pass
+        coords = CONFIG.get('read_modtran', 'coords').split(',')
+        factors = CONFIG.get('read_modtran', 'factors').split(',')
+        input_format = CONFIG.get('read_modtran', 'input_format')
+        output_format = CONFIG.get('read_modtran', 'output_format')
+        workpath = CONFIG.get('work', 'modtran_root')
+
+        acqs = gaip.acquisitions(self.l1t_path)
+
+        gaip.reformat_atmo_params(acqs, coords, satfilter, factors,
+                                  input_format, output_format, workpath)
 
 
-class WriteTiffFilesTask(luigi.Task):
+class BilinearInterpolation(luigi.Task):
+
+    """Perform the bilinear interpolation."""
+
+    l1t_path = luigi.Parameter()
 
     def requires(self):
-        return []
+        return [ReformatAtmosphericParameters(self.l1t_path)]
 
     def output(self):
-        pass
+        factors = CONFIG.get('bilinear', 'factors').split(',')
+        output_format = CONFIG.get('bilinear', 'output_format')
+        acqs = gaip.acquisitions(self.l1t_path)
+        bands = [str(a.band_num) for a in acqs]
+        targets = []
+        for factor in factors:
+            for band in bands:
+                target = output_format.format(factor=factor, band=band)
+                targets.append(luigi.LocalTarget(target))
+        return targets
 
     def run(self):
-        pass
+        factors = CONFIG.get('bilinear', 'factors').split(',')
+        coordinator = CONFIG.get('work', 'coordinator_target')
+        boxline = CONFIG.get('work', 'boxline_target')
+        centreline = CONFIG.get('work', 'centreline_target')
+        input_format = CONFIG.get('bilinear', 'input_format')
+        output_format = CONFIG.get('bilinear', 'output_format')
+        workpath = CONFIG.get('work', 'modtran_root')
+
+        acqs = gaip.acquisitions(self.l1t_path)
+
+        gaip.bilinear_interpolate(acqs, factors, coordinator, boxline,
+                                  centreline, input_format, output_format,
+                                  workpath)
 
 
-class RadiativeTransferNbarTask(luigi.Task):
-
-    def requires(self):
-        return []
-
-    def output(self):
-        pass
-
-    def run(self):
-        pass
-
-
-class RadiativeTransferPostprocessingTask(luigi.Task):
-
-    def requires(self):
-        return []
-
-    def output(self):
-        pass
-
-    def run(self):
-        pass
-
-
-if __name__ == '__main__':
+if __name__ == '__main__': #FIXME
     l1t_path = '../gaip/tests/data/L1T/LS7_90-81_2009-04-15/UTM/LS7_ETM_OTH_P51_GALPGS01-002_090_081_20090415'
-    luigi.build([GetElevationAncillaryDataTask(l1t_path)],
+    luigi.build([BilinearInterpolation(l1t_path)],
                 local_scheduler=True)
