@@ -3,6 +3,7 @@ Data access functions.
 """
 
 import numpy as np
+import gdal
 import rasterio
 from rasterio import Affine
 from rasterio import crs
@@ -107,7 +108,7 @@ def stack_data(acqs_list, filter=(lambda acq: True)):
     return acqs, stack, geo_box
 
 
-def write_img(array, filename, format='ENVI', geobox=None):
+def write_img(array, filename, format='ENVI', geobox=None, nodata=None):
     """
     Writes a 2D/3D image to disk using rasterio.
 
@@ -123,6 +124,9 @@ def write_img(array, filename, format='ENVI', geobox=None):
 
     :param geobox:
         An instance of a GriddedGeoBox object.
+
+    :param nodata:
+        A value representing the no data value for the array.
     """
 
     dtype = array.dtype.name
@@ -163,7 +167,8 @@ def write_img(array, filename, format='ENVI', geobox=None):
               'crs': projection,
               'transform': transform,
               'dtype': dtype,
-              'driver': format
+              'driver': format,
+              'nodata': nodata
              }
 
     with rasterio.open(filename, 'w', **kwargs) as outds:
@@ -354,7 +359,8 @@ def reprojectFile2Array(src_filename, src_band=1, dst_geobox=None,
     return dst_arr
 
 
-def reprojectImg2Img(src_img, src_geobox, dst_geobox, resampling=RESAMPLING.nearest):
+def reprojectImg2Img(src_img, src_geobox, dst_geobox,
+    resampling=RESAMPLING.nearest):
     """
     Reprojects an image/array to the desired co-ordinate reference system.
 
@@ -398,10 +404,108 @@ def reprojectImg2Img(src_img, src_geobox, dst_geobox, resampling=RESAMPLING.near
     dst_trans = dst_geobox.affine
 
     # Define the output NumPy array
-    dst_arr = np.zeros(dst_geobox.shape, dtype=scr_img.dtype)
+    dst_arr = np.zeros(dst_geobox.shape, dtype=src_img.dtype)
 
     reproject(src_img, dst_arr, src_transform=src_trans,
         src_crs=src_prj, dst_transform=dst_trans, dst_crs=dst_prj,
         resampling=resampling)
 
     return dst_arr
+
+
+def load_2D_bin_file(filename, nrow, ncol, dtype):
+    """
+    Given a filename, row/column dimensions and a datatype,
+    read a flat binary file from disk andconstruct a 2D NumPy array.
+    Care must be taken with the dimensions and the datatype in order
+    for the correct shape to be returned.
+
+    :param filename:
+        The name of the file to load.
+
+    :param nrow:
+        The number of rows of data in the file.
+
+    :param ncol:
+        The number of columns of data in the file.
+
+    :param dtype:
+        The type of data contained in the file.
+
+    :type dtype:
+        A numpy data type (e.g. ``numpy.float32``).
+
+    :return:
+        A 2D NumPy array with dimensions (nrow, ncol) of type dtype.
+    """
+    # Create a dict to hold the datatype scale factors
+    type_dict = {np.bool:    1,
+                 np.int8:    1,
+                 np.uint8:   1,
+                 np.int16:   2,
+                 np.uint16:  2,
+                 np.int32:   4,
+                 np.uint32:  4,
+                 np.float32: 4,
+                 np.int64:   8,
+                 np.uint64:  8,
+                 np.float64: 8,
+                 np.float:   8}
+
+    sf = type_dict.get(dtype, 'Error')
+    if sf == 'Error':
+        msg = 'Incompatible datatype: {type}'.format(type=dtype)
+        raise TypeError(msg)
+
+    # Retrive the fileinfo and compute the filesize from the supplied
+    # dimensions and datatype
+    fileinfo = os.stat(filename)
+    filesize = nrow * ncol * sf
+
+    if filesize != fileinfo.st_size:
+        msg = ('Incompatible dimensions with datatype.\n'
+               'Filesize on disk: {disk}\n'
+               'Computed filesize: {computed}')
+        msg = msg.format(disk=fileinfo.st_size, computed=filesize)
+        raise IOError(msg)
+
+    array = np.fromfile(filename, dtype=dtype).reshape(nrow, ncol)
+
+    return array
+
+
+def as_array(array, dtype, transpose=False):
+    """
+    Given an array and dtype, array will be converted to dtype if
+    and only if array.dtype != dtype. If transpose is set to True
+    then array will be transposed before returning.
+
+    :param array:
+        A NumPy array.
+
+    :param dtype:
+        The type to return the array as.
+    :type dtype:
+        A NumPy data type (e.g. ``numpy.float32``).
+
+    :param transpose:
+        If set then array will be transposed before returning.
+        Useful for passing arrays into Fortran routiines. Default is
+        False.
+    :type transpose:
+        Bool.
+
+    :return:
+        A :py:class:`numpy.ndarry` of type ``dtype`` with the same
+        dimensions as array.
+    """
+    if array.dtype != dtype:
+        if transpose:
+            return array.astype(dtype).transpose()
+        else:
+            return array.astype(dtype)
+    else:
+        if transpose:
+           return array.transpose()
+        else:
+            return array
