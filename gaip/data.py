@@ -128,13 +128,14 @@ def write_img(array, filename, format='ENVI', geobox=None, nodata=None):
     :param nodata:
         A value representing the no data value for the array.
     """
-
+    # Get the datatype of the array
     dtype = array.dtype.name
-    # If we have an excluded datatype default to float64 which should cover
-    # most data values
+
+    # Check for excluded datatypes
     excluded_dtypes = ['int64', 'int8', 'uint64']
     if dtype in excluded_dtypes:
-        dtype = 'float64'
+        msg = "Datatype not supported: {dt}".format(dt=dtype)
+        raise TypeError(msg)
 
     ndims = array.ndim
     dims  = array.shape
@@ -433,24 +434,23 @@ def load_2D_bin_file(filename, nrow, ncol, dtype):
         The type of data contained in the file.
 
     :type dtype:
-        A numpy data type (e.g. ``numpy.float32``).
+        A string containing a valid Python datatype ``float32``).
 
     :return:
         A 2D NumPy array with dimensions (nrow, ncol) of type dtype.
     """
     # Create a dict to hold the datatype scale factors
-    type_dict = {np.bool:    1,
-                 np.int8:    1,
-                 np.uint8:   1,
-                 np.int16:   2,
-                 np.uint16:  2,
-                 np.int32:   4,
-                 np.uint32:  4,
-                 np.float32: 4,
-                 np.int64:   8,
-                 np.uint64:  8,
-                 np.float64: 8,
-                 np.float:   8}
+    type_dict = {'int8':    1,
+                 'uint8':   1,
+                 'int16':   2,
+                 'uint16':  2,
+                 'int32':   4,
+                 'uint32':  4,
+                 'float32': 4,
+                 'int64':   8,
+                 'uint64':  8,
+                 'float64': 8,
+                 'float':   8}
 
     sf = type_dict.get(dtype, 'Error')
     if sf == 'Error':
