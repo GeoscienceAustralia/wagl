@@ -168,6 +168,8 @@ def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
     with open(boo_fname) as boo_file:
         boo = pickle.load(boo_file)
 
+    boo_dtypes = 'float32'
+
     # this process runs close to the wind on memory... get rid of everything for now.
     gc.collect()
 
@@ -225,21 +227,21 @@ def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
 	    slope_results.exiting,
 	    slope_results.rela_slope,
 	    load_2D_bin_file(boo[(band_number, 'a')], rows, cols,
-                dtype=numpy.float32),
+                dtype=boo_dtype),
 	    load_2D_bin_file(boo[(band_number, 'b')], rows, cols,
-                dtype=numpy.float32),
+                dtype=boo_dtype),
 	    load_2D_bin_file(boo[(band_number, 's')], rows, cols,
-                dtype=numpy.float32),
+                dtype=boo_dtypes),
 	    load_2D_bin_file(boo[(band_number, 'fs')], rows, cols,
-                dtype=numpy.float32),
+                dtype=boo_dtypes),
 	    load_2D_bin_file(boo[(band_number, 'fv')], rows, cols,
-                dtype=numpy.float32),
+                dtype=boo_dtypes),
 	    load_2D_bin_file(boo[(band_number, 'ts')], rows, cols,
-                dtype=numpy.float32),
+                dtype=boo_dtypes),
 	    load_2D_bin_file(boo[(band_number, 'dir')], rows, cols,
-                dtype=numpy.float32),
+                dtype=boo_dtypes),
 	    load_2D_bin_file(boo[(band_number, 'dif')], rows, cols,
-                dtype=numpy.float32))
+                dtype=boo_dtypes))
 
 
         # Output filenames for lambertian, brdf and terrain corrected reflectance
