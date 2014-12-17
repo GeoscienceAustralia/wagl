@@ -4,39 +4,21 @@ Runs the terrain correction. This code runs the terrain correction algorithm.
 
 import gc
 import os
+from os.path import join as pjoin
 import pickle
 import numpy
+
 from osgeo import gdal
-from ULA3 import DataManager, DataGrid
-from ULA3.tc import clip_dsm, filter_dsm, run_slope, run_castshadow, run_brdfterrain # , run_brdfterrain_LS8
-from ULA3.utils import Buffers, dump_array, load_bin_file, as_array
-from ULA3.dataset import SceneDataset
-from ULA3.image_processor import ProcessorConfig
-
-from ULA3.geodesic import calculate_angles as ca
-from ULA3.tests import unittesting_tools as ut
-
 from rasterio.warp import RESAMPLING
+
 from gaip import write_img
 from gaip import find_file
 from gaip import read_img
-
-
-
-
-
-
-def write_tif_file(l1t_input_dataset, band_data, filename, file_type):
-    dump_array(
-        array=band_data,
-        output_path=filename,
-        template_dataset=l1t_input_dataset,
-        geoc=l1t_input_dataset.geotransform,
-        proj=l1t_input_dataset.spatial_ref.ExportToWkt(),
-        no_data_value=-999,
-        convert_to_byte=False,
-        file_format=file_type)
-
+from gaip import load_2D_bin_file
+from gaip import calculate_angles as ca
+from gaip import run_slope
+from gaip import run_castshadow
+from gaip import run_brdfterrain
 
 
 
@@ -48,53 +30,67 @@ def write_new_brdf_file(file_name, *args):
         src.write(out_string)
 
 
+def write_header_slope_file(file_name, bounds, geobox):
+    with open(file_name, 'w') as output:
+        # get dimensions, resolution and pixel origin
+        rows, cols = geobox.shape
+        res = geobox.res
+        origin = geobox.origin
+
+        # Now output the details
+        output.write("{nr} {nc}\n".format(nr=rows, nccols))
+        output.write("{0} {1}\n{2} {3}\n".format(bounds.left, bounds.right,
+            bounds.top, bounds.bottom))
+        output.write("{resy} {resx}\n".format(resx=res[0], resy=res[1]))
+        output.write("{yorigin} {xorigin}\n".format(xorigin=origin[0],
+            yorigin=origin[1]))
 
 
+def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
+    shadow_sub_matrix_width, rori, national_dsm, work_path):
+    """
+    The terrain correction workflow.
 
-# args to the command line
-# - image-buffer width (singular at moment, but may need to be multiple later). will be accessible as CONFIG.get_item('tc_dsm_buffer_width', int)
-dsm_buffer_width = 250
-# - width of submatrix used in run_castshadow. will be accessible as CONFIG.get_item('shadow_dsm_submatrix_width', int)
-shadow_sub_matrix_height = 500
-# - height of submatrix used in run_castshadow. will be accessible as CONFIG.get_item('shadow_dsm_submatrix_height', int)
-shadow_sub_matrix_width = 500
-# one of the parameters required for terrain correction - need to figure out how this is specified.
-rori = 0.52
+    :param acquisitions:
+        A list of acquisition class objects that will be run through
+        the terrain correction workflow.
 
+    :param dsm_buffer_width:
+        The buffer in pixels around the acquisition dimensions. Used
+        for the extracting a subset from the national digital surface
+        model.
 
+    :param shadow_sub_matrix_height:
+        The height (rows) of the window/submatrix used in the cast
+        shadow algorithm.
 
+    :param shadow_sub_matrix_width:
+        The width (rows) of the window/submatrix used in the cast
+        shadow algorithm.
 
+    :param rori:
+        Threshold for terrain correction.
 
-def process(subprocess_list=[], resume=False):
-    #logger.info('%s.process(%s, %s) called', __name__, subprocess_list, resume)
+    :param national_dsm:
+        A string containing the full file system path to the national
+        digital surface model image file.
 
-    #CONFIG = ProcessorConfig()
-    #DATA = DataManager()
+    :param work_path:
+        A full file system path to the working directory.
+        Intermediate files will be saved to
+        `work_path/tc_intermediates`.
 
-    dump_path = False
-    output_format = 'ENVI'
-    output_extension = '.img'
-    #l1t_input_dataset = DATA.get_item(CONFIG.input['l1t']['path'], SceneDataset)
-    #is_utm =  not l1t_input_dataset.IsGeographic()
-    output_path = DATA.get_item('nbar_temp_output.dat', str)
-    work_path = CONFIG.work_path
-    nbar_dataset_id = DATA.get_item('nbar_dataset_id.dat', str)
-
-    #dsm data
-    national_dsm_path = os.path.join(CONFIG.DIR_DEM_TC, 'dsm1sv1_0_Clean.img')
-    pixel_buf = Buffers(dsm_buffer_width)
-    output_dsm_path = os.path.join(work_path, 'region_dsm_image' + output_extension)
-
-    # TODO Rework the clip and filter to not use the SceneDataset    
-    dsm_data = filter_dsm(clip_dsm(l1t_input_dataset, national_dsm_path, output_dsm_path, pixel_buf, output_format))
-
-    pref = ''
-
-
-    ###################################################################
-
+    :return:
+        None.
+        The terrain correction algorithm will output 3 files for every
+        band.
+        ref_lm_{band_number}.img -> Lambertian reflectance.
+        ref_brdf_{band_number}.img -> BRDF corrected reflectance.
+        ref_terrain_{band_number}.img -> Terrain corrected
+            reflectance.
+    """
     # Terrain correction working path
-    tc_work_path = os.path.join(work_path, 'tc_intermediates')
+    tc_work_path = pjoin(work_path, 'tc_intermediates')
     try:
         os.mkdir(tc_work_path)
     except OSError:
@@ -114,11 +110,6 @@ def process(subprocess_list=[], resume=False):
     # Are we in projected or geographic space
     is_utm = not geobox.crs.IsGeographic()
 
-    # National DSM data path
-    # TODO get the location of the DEM path from the new config
-    national_dsm_path = os.path.join(CONFIG.DIR_DEM_TC, 'dsm1sv1_0_Clean.img')
-    pixel_buf = Buffers(dsm_buffer_width)
-
     # Define Top, Bottom, Left, Right pixel buffers
     pixel_buf = Buffers(dsm_buffer_width)
 
@@ -132,25 +123,24 @@ def process(subprocess_list=[], resume=False):
         pixelsize=geobox.pixelsize, crs=geobox.crs.ExportToWkt())
 
     # Retrive the DSM data
-    dsm_data = reprojectFile2Array(national_dsm_path, dst_geobox=dem_geobox,
+    dsm_data = reprojectFile2Array(national_dsm, dst_geobox=dem_geobox,
         resampling=RESAMPLING.bilinear)
 
     # Output the reprojected result
-    fname_DSM_subset = os.path.join(tc_work_path, 'region_dsm_image.img')
+    fname_DSM_subset = pjoin(tc_work_path, 'region_dsm_image.img')
     write_img(dsm_data, fname_DSM_subset, geobox=dem_geobox)
 
     # Smooth the DSM
     dsm_data = filter_dsm(dsm_data)
 
     # Output the smoothed DSM
-    fname_smDSM = os.path.join(tc_work_path, 'region_dsm_image_smoothed.img')
+    fname_smDSM = pjoin(tc_work_path, 'region_dsm_image_smoothed.img')
     write_img(dsm_data, fname_smDSM, geobox=dem_geobox)
 
 
-    if dump_path:
-        # write the equivalent input file for Fuqin.
-        l1_shape = l1t_input_dataset.bounds_getter(l1t_input_dataset)
-        l1_shape.write_header_slope_file(os.path.join(dump_path, 'SLOPE_ANGLE_INPUTS'), pixel_buf)
+    # write the equivalent input file for Fuqin.
+    write_header_slope_file(pjoin(dump_path, 'SLOPE_ANGLE_INPUTS'), pixel_buf,
+        geobox)
 
     # solar angle data
     fname = find_file(work_path, 'SOL_Z.bin')
@@ -185,16 +175,16 @@ def process(subprocess_list=[], resume=False):
         shadow_sub_matrix_width, spheroid)
 
     # Output the two shadow masks to disk
-    fname_shadow_s = os.path.join(tc_work_path, 'shadow_s.img')
-    fname_shadow_v = os.path.join(tc_work_path, 'shadow_v.img')
-    write_img(shadow_s, fname_shadow_s, geobox=geobox)
-    write_img(shadow_v, fname_shadow_v, geobox=geobox)
+    fname_shadow_s = pjoin(tc_work_path, 'shadow_s.img')
+    fname_shadow_v = pjoin(tc_work_path, 'shadow_v.img')
+    write_img(shadow_s, fname_shadow_s, geobox=geobox, nodata=-999)
+    write_img(shadow_v, fname_shadow_v, geobox=geobox, nodata=-999)
 
     # load the line starts and ends.
     rows, cols = geobox.shape
 
     # load the pickled dict containing the bilinear outputs
-    boo_fname = os.path.join(work_path, '"bilinear_ortho_outputs')
+    boo_fname = pjoin(work_path, '"bilinear_ortho_outputs')
     with open(boo_fname) as boo_file:
         boo = pickle.load(boo_file)
 
@@ -210,19 +200,6 @@ def process(subprocess_list=[], resume=False):
     bands_list = nbar_constants.getNBARlut()
     ave_reflectance_values = nbar_constants.getAvgReflut()
 
-
-    # TODO get filename band numbers
-    # We need a reverse lookup for the band file names, ie for LS_5/7: 10, 20, 30 etc
-    # to correspond with the 1 based index order retrieved from scene_dataset_class.bands('REFLECTIVE')
-    # Was unsure if there was already a lookup defined so this will suffice.
-    # This will be used for output filenames as well as average reflectance lookups.
-    band_fname_lookup = {}
-    for key in l1t_input_dataset._band_number_map.keys():
-        val = l1t_input_dataset._band_number_map[key]
-        band_fname_lookup[val] = key # Basically turn keys into values and vice versa. Only works for 1 to 1 mapping dicts.
-
-    #for band_number in (2, 3, 4): #(1, 2, 3, 4, 5, 7):
-    #for band_number in l1t_input_dataset.bands('REFLECTIVE'):
     for acq in acquisitions:
         band_number = acq.band_num
         if band_number not in bands_list:
@@ -234,22 +211,18 @@ def process(subprocess_list=[], resume=False):
 
         # Read the BRDF modis file for a given band
         brdf_modis_file = 'brdf_modis_band{0}.txt'.format(band_number)
-        brdf_modis_file = os.path.join(work_path, brdf_modis_file)
+        brdf_modis_file = pjoin(work_path, brdf_modis_file)
         with open(brdf_modis_file, 'r') as param_file:
             brdf0, brdf1, brdf2, bias, slope_ca, esun, dd = map(float,
                 ' '.join(param_file.readlines()).split())
 
-        write_new_brdf_file(os.path.join(tc_work_path,
+        write_new_brdf_file(pjoin(tc_work_path,
             'new_brdf_modis_band{band_num}.txt'.format(band_num=band_number)),
             rori, brdf0, brdf1, brdf2, bias, slope_ca, esun, dd,
             ave_reflectance_values[band_number])
 
         # Read the data
         band_data = acq.data()
-
-        # TODO
-        # Convert all the datatypes upfront and any array re-ordering to save
-        # on copies being made within the routine
 
 	ref_lm, ref_brdf, ref_terrain = run_brdfterrain(
 	    rori,
@@ -269,23 +242,33 @@ def process(subprocess_list=[], resume=False):
 	    slope_results.incident,
 	    slope_results.exiting,
 	    slope_results.rela_slope,
-	    load_bin_file(boo[(band_number, 'a')], rows, cols, dtype=numpy.float32),
-	    load_bin_file(boo[(band_number, 'b')], rows, cols, dtype=numpy.float32),
-	    load_bin_file(boo[(band_number, 's')], rows, cols, dtype=numpy.float32),
-	    load_bin_file(boo[(band_number, 'fs')], rows, cols, dtype=numpy.float32),
-	    load_bin_file(boo[(band_number, 'fv')], rows, cols, dtype=numpy.float32),
-	    load_bin_file(boo[(band_number, 'ts')], rows, cols, dtype=numpy.float32),
-	    load_bin_file(boo[(band_number, 'dir')], rows, cols, dtype=numpy.float32),
-	    load_bin_file(boo[(band_number, 'dif')], rows, cols, dtype=numpy.float32))
+	    load_2D_bin_file(boo[(band_number, 'a')], rows, cols,
+                dtype=numpy.float32),
+	    load_2D_bin_file(boo[(band_number, 'b')], rows, cols,
+                dtype=numpy.float32),
+	    load_2D_bin_file(boo[(band_number, 's')], rows, cols,
+                dtype=numpy.float32),
+	    load_2D_bin_file(boo[(band_number, 'fs')], rows, cols,
+                dtype=numpy.float32),
+	    load_2D_bin_file(boo[(band_number, 'fv')], rows, cols,
+                dtype=numpy.float32),
+	    load_2D_bin_file(boo[(band_number, 'ts')], rows, cols,
+                dtype=numpy.float32),
+	    load_2D_bin_file(boo[(band_number, 'dir')], rows, cols,
+                dtype=numpy.float32),
+	    load_2D_bin_file(boo[(band_number, 'dif')], rows, cols,
+                dtype=numpy.float32))
 
 
-        write_tif_file(l1t_input_dataset, ref_lm, os.path.join(work_path, pref + 'ref_lm_' + str(out_bn_name) + output_extension), file_type = output_format)
-        write_tif_file(l1t_input_dataset, ref_brdf, os.path.join(work_path, pref + 'ref_brdf_' + str(out_bn_name) + output_extension), file_type = output_format)
-        write_tif_file(l1t_input_dataset, ref_terrain, os.path.join(work_path, pref + 'ref_terrain_' + str(out_bn_name) + output_extension), file_type = output_format)
+        # Output filenames for lambertian, brdf and terrain corrected reflectance
+        lmbrt_fname = pjoin(work_path, 'ref_lm_{}.img'.format(band_number))
+        brdf_fname = pjoin(work_path, 'ref_brdf_{}.img'.format(band_number))
+        tc_fname = pjoin(work_path, 'ref_terrain_{}.img'.format(band_number))
 
-        outfname = os.path.join(output_path, 'scene01', '%s_B%d%s' % (nbar_dataset_id, out_bn_name, '.tif'))
-        write_tif_file(l1t_input_dataset, ref_terrain, outfname, file_type="GTiff")
-
+        # Output the files.
+        write_img(ref_lm, lmbrt_fname, geobox=geobox, nodata=-999)
+        write_img(ref_brdf, brdf_fname, geobox=geobox, nodata=-999)
+        write_img(ref_terrain, tc_fname, geobox=geobox, nodata=-999)
+        
         ref_lm = ref_brdf = ref_terrain = None
         gc.collect()
-
