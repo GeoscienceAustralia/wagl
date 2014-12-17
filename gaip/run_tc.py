@@ -168,7 +168,7 @@ def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
     with open(boo_fname) as boo_file:
         boo = pickle.load(boo_file)
 
-    boo_dtypes = 'float32'
+    boo_dtype = 'float32'
 
     # this process runs close to the wind on memory... get rid of everything for now.
     gc.collect()
