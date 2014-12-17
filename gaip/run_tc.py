@@ -140,8 +140,7 @@ def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
 
     # calculate the slope and angle
     slope_results = run_slope(acquisitions[0], dsm_data, solar_angle,
-                              view_angle, sazi_angle, azi_angle, pixel_buf,
-                              is_utm, spheroid)
+        view_angle, sazi_angle, azi_angle, pixel_buf, is_utm, spheroid)
 
     # Output slope results
     slope_results.write_arrays(tc_work_path, geobox, "ENVI", ".img")
@@ -190,6 +189,10 @@ def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
         # Read the BRDF modis file for a given band
         brdf_modis_file = 'brdf_modis_band{0}.txt'.format(band_number)
         brdf_modis_file = pjoin(work_path, brdf_modis_file)
+
+        # Read the BRDF modis file for a given band
+        brdf_modis_file = 'brdf_modis_band{0}.txt'.format(band_number)
+        brdf_modis_file = os.path.join(work_path, brdf_modis_file)
         with open(brdf_modis_file, 'r') as param_file:
             brdf0, brdf1, brdf2, bias, slope_ca, esun, dd = map(float,
                 ' '.join(param_file.readlines()).split())
@@ -202,6 +205,7 @@ def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
         # Read the data
         band_data = acq.data()
 
+        # Run terrain correction
 	ref_lm, ref_brdf, ref_terrain = run_brdfterrain(
 	    rori,
 	    brdf0, brdf1, brdf2,
