@@ -8,74 +8,14 @@ import unittest
 
 import numpy as np
 import numpy.testing as npt
-from osgeo import gdal
-from osgeo import gdalconst
 
 from gaip import acquisitions
+from gaip import filter_dsm
 from gaip import find_file
 from gaip import gridded_geo_box
 from gaip import read_img
 from gaip import write_img
 from gaip.tests.unittesting_tools import ParameterisedTestCase
-from ULA3.filtering import filter_float as filter
-from ULA3.filtering import read_array_float32 as read_array
-
-
-
-"""
-Since we are lacking a portable test harness, these tests are configured to run on the NCI.
-
-Hopefully, in the near future, we will have a test harness that can be more portable, and testing will be
-possible elsewhere.
-"""
-
-class FilterTestCase(unittest.TestCase):
-    """
-    Test case for running Fuquin's filter.
-    """
-    def setUp(self):
-        self.eps = 1e-4
-        pass
-
-    def tearDown(self):
-        pass
-
-    def runTest(self):
-        #input_dataset = gdal.Open(
-        #    join(dirname(__file__), "filter_data", "test_filter_input.img"),
-        #    gdalconst.GA_ReadOnly)
-        #filtered_data = filter(input_dataset.ReadAsArray().astype(np.float32))
-        #print '(' + str(input_dataset.RasterYSize), str(input_dataset.RasterXSize) + ')'
-        #input_dataset = None
-
-        nrow = 153
-        ncol = 131
-        input_data = read_array(join(dirname(__file__), "filter_data", "test_filter_input.img"), nrow, ncol)
-        filtered_data = filter(input_data)
-
-        comparison_dataset = gdal.Open(
-            join(dirname(__file__), "filter_data", "test_filter_target_output.img"),
-            gdalconst.GA_ReadOnly)
-        comparison_data = comparison_dataset.ReadAsArray().astype(np.float32)
-        print '(' + str(comparison_dataset.RasterYSize), str(comparison_dataset.RasterXSize) + ')'
-        comparison_dataset = None
-
-        differences = filtered_data - comparison_data
-
-        #for fd, cd in zip(filtered_data, comparison_data):
-        #    print ', '.join([':'.join([str(x) for x in x]) for x in zip(fd, cd)])
-
-        #for d in differences:
-        #    print ', '.join([str(x) for x in d])
-
-        self.assertTrue((differences < self.eps).all())
-
-
-
-
-
-def suite_old():
-    return unittest.TestSuite((FilterTestCase(),))
 
 
 def calculate_smoothed_dsm(geobox, ref_dir, outdir):
@@ -88,7 +28,7 @@ def calculate_smoothed_dsm(geobox, ref_dir, outdir):
 
     dsm = (read_img(find_file(ref_dir, fname_dsm))).astype('float32')
 
-    smoothed_dsm = filter(dsm)
+    smoothed_dsm = filter_dsm(dsm)
 
     # Write out the smoothed dsm file
     out_fname = os.path.join(outdir, 'region_dsm_image_smoothed.img')
@@ -160,8 +100,8 @@ if __name__ == '__main__':
     parser.add_argument('--L1T_dir', required=True, help='A directory path of a L1T scene.')
     parser.add_argument('--nbar_work_dir', required=True, help='A directory path to the associated NBAR working directory.')
     parser.add_argument('--outdir', required=True, help='A directory path that will contain the output files.')
-    parser.add_argument('--dec_precision', default=4, help='The decimal precision used for array comparison')
-    parser.add_argument('--int_precision', default=1, help='The integer precision used for array comparison')
+    parser.add_argument('--dec_precision', default=3, type=int, help='The decimal precision used for array comparison')
+    parser.add_argument('--int_precision', default=1, type=int, help='The integer precision used for array comparison')
     parser.add_argument('--compute', action='store_true', help='If set then a smoothed dsm image will be created.')
 
     parsed_args = parser.parse_args()

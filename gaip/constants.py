@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import re
+
 class PQAConstants:
     """
     A Class object that contains the majority of constants used throughout the PQA process.
@@ -252,3 +254,219 @@ class PQAConstants:
                    }
         self.band_num_sequence = sequence[self.sensor]
 
+
+def brdf_wavelength_lut(satellite_sensor):
+    """
+    Retrieves the BRDF wavelengths for a given satellite-sensor.
+
+    :param satellite_sensor:
+        A string containing a valid satellite-sensor combination.
+        Valid combinations are:
+        landsat5tm
+        landsat7etm
+        landsat8oli
+        landsat8olitirs
+
+    :return:
+        A dictionary containing the Band numbers of a sensor as the
+        keys, and the BRDF wavelengths as the values.
+    """
+
+    input_str = str(satellite_sensor)
+
+    BRDF_LUT = {
+        'landsat5tm' : { 1 : '0459_0479nm',
+                         2 : '0545_0565nm',
+                         3 : '0620_0670nm',
+                         4 : '0841_0876nm',
+                         5 : '1628_1652nm',
+                         7 : '2105_2155nm'
+                       },
+        'landsat7etm+' : { 1 : '0459_0479nm',
+                          2 : '0545_0565nm',
+                          3 : '0620_0670nm',
+                          4 : '0841_0876nm',
+                          5 : '1628_1652nm',
+                          7 : '2105_2155nm'
+                        },
+        'landsat8oli' : { 1 : '0459_0479nm',
+                          2 : '0459_0479nm',
+                          3 : '0545_0565nm',
+                          4 : '0620_0670nm',
+                          5 : '0841_0876nm',
+                          6 : '1628_1652nm',
+                          7 : '2105_2155nm'
+                        },
+        'landsat8olitirs' : { 1 : '0459_0479nm',
+                               2 : '0459_0479nm',
+                               3 : '0545_0565nm',
+                               4 : '0620_0670nm',
+                               5 : '0841_0876nm',
+                               6 : '1628_1652nm',
+                               7 : '2105_2155nm'
+                            }
+               }.get(input_str, 'Error')
+
+    return BRDF_LUT
+
+
+def nbar_bands_lut(satellite_sensor):
+    """
+    Given a satellite_sensor string, retrieve a list bands to
+    process through the NBAR algorithm.
+
+    :param satellite_sensor:
+        A string containing a valid satellite-sensor combination.
+        Valid combinations are:
+        landsat5tm
+        landsat7etm
+        landsat8oli
+        landsat8olitirs
+
+    :return:
+    """
+    NBAR_LUT = {
+        'landsat5tm' : [1,
+                        2,
+                        3,
+                        4,
+                        5,
+                        7],
+        'landsat7etm+' : [1,
+                          2,
+                          3,
+                          4,
+                          5,
+                          7],
+        'landsat8oli' : [1,
+                         2,
+                         3,
+                         4,
+                         5,
+                         6,
+                         7],
+        'landsat8olitirs' : [1,
+                             2,
+                             3,
+                             4,
+                             5,
+                             6,
+                             7]}.get(input_str, 'Error')
+
+    return NBAR_LUT
+
+
+def avg_reflectance_lut(satellite_sensor):
+    """
+    Retrieves the average reflectance values for a given
+    satellite-sensor.
+    Only those bands processed through NBAR will be returned.
+
+    :param satellite_sensor:
+        A string containing a valid satellite-sensor combination.
+        Valid combinations are:
+        landsat5tm
+        landsat7etm
+        landsat8oli
+        landsat8olitirs
+
+    :return:
+        A dictionary containing the Band numbers of a sensor as the
+        keys, and the average reflectance as the values.
+
+    :notes:
+        These were copied from the files files in
+        /g/data/v10/ULA3-TESTDATA/brdf_modis_band%i.txt. They were
+        contained in the last line of those files.
+    """
+
+    input_str = str(satellite_sensor)
+
+    AVG_reflectance_values = {
+        'landsat5tm' : { 1 : 0.0365,
+                         2 : 0.0667,
+                         3 : 0.0880,
+                         4 : 0.2231,
+                         5 : 0.2512,
+                         7 : 0.1648
+                       },
+        'landsat7etm+' : { 1 : 0.0365,
+                           2 : 0.0667,
+                           3 : 0.0880,
+                           4 : 0.2231,
+                           5 : 0.2512,
+                           7 : 0.1648
+                        },
+        'landsat8oli' : { 1 : 0.0365,
+                          2 : 0.0365,
+                          3 : 0.0667,
+                          4 : 0.0880,
+                          5 : 0.2231,
+                          6 : 0.2512,
+                          7 : 0.1648
+                        },
+        'landsat8olitirs' : { 1 : 0.0365,
+                              2 : 0.0365,
+                              3 : 0.0667,
+                              4 : 0.0880,
+                              5 : 0.2231,
+                              6 : 0.2512,
+                              7 : 0.1648
+                            }
+               }.get(input_str, 'Error')
+
+    return AVG_reflectance_values
+
+
+class NBARConstants:
+    """
+    
+    """
+
+    def __init__(self, satellite, sensor):
+        """
+        
+        """
+        self.satellite = satellite
+        self.sensor = sensor
+        # NOTE: GA Landsat products use both '-' and '_' as a seperator
+        # Remove any occurences of - and _ then convert to lowercase
+        satellite_name = re.sub('[-_]', '', self.satellite).lower()
+        sensor_name = re.sub('[-_]', '', self.sensor).lower()
+        
+        self.sat_sensor = ''.join((satellite_name, sensor_name))
+
+    def getBRDFlut(self):
+        """
+        
+        """
+        
+        brdf_wavelengths = brdf_wavelength_lut(self.sat_sensor)
+
+        return brdf_wavelengths
+
+    def getBRDFfactors(self):
+        """
+        
+        """
+        factors = ['geo', 'iso', 'vol']
+
+        return factors
+
+    def getNBARlut(self):
+        """
+        
+        """
+
+        nbar_lut = nbar_bands_lut(self.sat_sensor)
+
+        return nbar_lut
+
+    def getAvgReflut(self):
+        """
+        
+        """
+
+        avg_ref_lut = avg_reflectance_lut(self.sat_sensor)
+
+        return avg_ref_lut
