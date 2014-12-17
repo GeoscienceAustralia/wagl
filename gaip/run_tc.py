@@ -8,7 +8,6 @@ from os.path import join as pjoin
 import pickle
 import numpy
 
-from osgeo import gdal
 from rasterio.warp import RESAMPLING
 
 from gaip import write_img
@@ -19,31 +18,13 @@ from gaip import calculate_angles as ca
 from gaip import run_slope
 from gaip import run_castshadow
 from gaip import run_brdfterrain
-
-
-
-
-def write_new_brdf_file(file_name, *args):
-    with open(file_name, 'w') as src:
-        out_string = "{0}\n{1} {2} {3}\n{4} {5} {6} {7}\n{8}\n"
-        out_string = out_string.format(*args)
-        src.write(out_string)
-
-
-def write_header_slope_file(file_name, bounds, geobox):
-    with open(file_name, 'w') as output:
-        # get dimensions, resolution and pixel origin
-        rows, cols = geobox.shape
-        res = geobox.res
-        origin = geobox.origin
-
-        # Now output the details
-        output.write("{nr} {nc}\n".format(nr=rows, nccols))
-        output.write("{0} {1}\n{2} {3}\n".format(bounds.left, bounds.right,
-            bounds.top, bounds.bottom))
-        output.write("{resy} {resx}\n".format(resx=res[0], resy=res[1]))
-        output.write("{yorigin} {xorigin}\n".format(xorigin=origin[0],
-            yorigin=origin[1]))
+from gaip import GriddedGeoBox
+from gaip import reprojectFile2Array
+from gaip import constants
+from gaip import Buffers
+from gaip import filter_dsm
+from gaip import write_header_slope_file
+from gaip import write_new_brdf_file
 
 
 def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
@@ -101,7 +82,7 @@ def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
             raise
 
     # Use the 1st acquisition to setup the geobox
-    geobox = gridded_geo_box(aqcuistions[0])
+    geobox = acquisitions[0].gridded_geo_box()
 
     # Retrive the spheroid parameters
     # (used in calculating pixel size in metres per lat/lon)
@@ -139,8 +120,8 @@ def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
 
 
     # write the equivalent input file for Fuqin.
-    write_header_slope_file(pjoin(dump_path, 'SLOPE_ANGLE_INPUTS'), pixel_buf,
-        geobox)
+    write_header_slope_file(pjoin(tc_work_path, 'SLOPE_ANGLE_INPUTS'),
+        pixel_buf, geobox)
 
     # solar angle data
     fname = find_file(work_path, 'SOL_Z.bin')
@@ -158,7 +139,7 @@ def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
 
 
     # calculate the slope and angle
-    slope_results = run_slope(acquisition[0], dsm_data, solar_angle,
+    slope_results = run_slope(acquisitions[0], dsm_data, solar_angle,
                               view_angle, sazi_angle, azi_angle, pixel_buf,
                               is_utm, spheroid)
 
@@ -166,11 +147,11 @@ def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
     slope_results.write_arrays(tc_work_path, geobox, "ENVI", ".img")
 
     # TODO find out what shadow_s & shadow_v are
-    shadow_s = run_castshadow(acquisition[0], dsm_data, solar_angle,
+    shadow_s = run_castshadow(acquisitions[0], dsm_data, solar_angle,
         sazi_angle, pixel_buf, shadow_sub_matrix_height,
         shadow_sub_matrix_width, spheroid)
 
-    shadow_v = run_castshadow(acquisition[0], dsm_data, view_angle,
+    shadow_v = run_castshadow(acquisitions[0], dsm_data, view_angle,
         azi_angle, pixel_buf, shadow_sub_matrix_height,
         shadow_sub_matrix_width, spheroid)
 
@@ -192,8 +173,8 @@ def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
     gc.collect()
 
     # Retrieve the satellite and sensor for the acquisition
-    satellite = acquisition[0].spacecraft_id
-    sensor = acquisition[0].sensor_id
+    satellite = acquisitions[0].spacecraft_id
+    sensor = acquisitions[0].sensor_id
 
     # Get the required nbar bands list for processing
     nbar_constants = constants.NBARConstants(satellite, sensor)
@@ -205,9 +186,6 @@ def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
         if band_number not in bands_list:
             # skip
             continue
-        # TODO get filename band numbers
-        # Get the band file name, eg 10, 20, 30 etc, used in L1T. LS8 uses 1, 2, 3 etc
-        out_bn_name = band_fname_lookup[band_number]
 
         # Read the BRDF modis file for a given band
         brdf_modis_file = 'brdf_modis_band{0}.txt'.format(band_number)
