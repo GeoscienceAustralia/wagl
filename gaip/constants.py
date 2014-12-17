@@ -382,9 +382,6 @@ def avg_reflectance_lut(satellite_sensor):
 
     input_str = str(satellite_sensor)
 
-{10:0.0365, 20:0.0667, 30:0.0880, 40:0.2231, 50:0.2512, 70:0.1648}
-{1:0.0365, 2:0.0365, 3:0.0667, 4:0.0880, 5:0.2231, 6:0.2512, 7:0.1648}
-
     AVG_reflectance_values = {
         'landsat5tm' : { 1 : 0.0365,
                          2 : 0.0667,
