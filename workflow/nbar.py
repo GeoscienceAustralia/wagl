@@ -613,7 +613,7 @@ class RunModtranCase(luigi.Task):
     def run(self):
         modtran_exe = CONFIG.get('modtran', 'exe')
         workpath_format = CONFIG.get('modtran', 'workpath_format')
-        workpath = workdir_format.format(coord=self.coord, albedo=self.albedo)
+        workpath = workpath_format.format(coord=self.coord, albedo=self.albedo)
         gaip.run_modtran(modtran_exe, workpath)
 
 
@@ -739,10 +739,22 @@ class ReformatAtmosphericParameters(luigi.Task):
         factors = CONFIG.get('read_modtran', 'factors').split(',')
         output_format = CONFIG.get('read_modtran', 'output_format')
         acqs = gaip.acquisitions(self.l1t_path)
+
+        # Retrieve the satellite and sensor for the acquisition
+        satellite = acqs[0].spacecraft_id
+        sensor = acqs[0].sensor_id
+
+        # Get the required nbar bands list for processing
+        nbar_constants = gaip.constants.NBARConstants(satellite, sensor)
+        bands_to_process = nbar_constants.getNBARlut()
+
         bands = [str(a.band_num) for a in acqs]
         targets = []
         for factor in factors:
             for band in bands:
+                if int(band) not in bands_to_process:
+                  # Skip
+                  continue
                 target = output_format.format(factor=factor, band=band)
                 targets.append(luigi.LocalTarget(target))
         return targets
@@ -756,7 +768,22 @@ class ReformatAtmosphericParameters(luigi.Task):
 
         acqs = gaip.acquisitions(self.l1t_path)
 
-        gaip.reformat_atmo_params(acqs, coords, satfilter, factors,
+        # Retrieve the satellite and sensor for the acquisition
+        satellite = acqs[0].spacecraft_id
+        sensor = acqs[0].sensor_id
+
+        # Get the required nbar bands list for processing
+        nbar_constants = gaip.constants.NBARConstants(satellite, sensor)
+        bands_to_process = nbar_constants.getNBARlut()
+
+        # Initialise the list to contain the acquisitions we wish to process
+        acqs_to_process = []
+        for acq in acqs:
+            band_number = acq.band_num
+            if band_number in bands_to_process:
+                acqs_to_process.append(acq)
+
+        gaip.reformat_atmo_params(acqs_to_process, coords, satfilter, factors,
                                   input_format, output_format, workpath)
 
 
@@ -773,10 +800,24 @@ class BilinearInterpolation(luigi.Task):
         factors = CONFIG.get('bilinear', 'factors').split(',')
         output_format = CONFIG.get('bilinear', 'output_format')
         acqs = gaip.acquisitions(self.l1t_path)
+
+        # Retrieve the satellite and sensor for the acquisition
+        satellite = acqs[0].spacecraft_id
+        sensor = acqs[0].sensor_id
+
+        # Get the required nbar bands list for processing
+        nbar_constants = gaip.constants.NBARConstants(satellite, sensor)
+        bands_to_process = nbar_constants.getNBARlut()
+
         bands = [str(a.band_num) for a in acqs]
         targets = []
+        target = CONFIG.get('work', 'bilinear_outputs_target')
+        targets.append(luigi.LocalTarget(target))
         for factor in factors:
             for band in bands:
+                if int(band) not in bands_to_process:
+                  # Skip
+                  continue
                 target = output_format.format(factor=factor, band=band)
                 targets.append(luigi.LocalTarget(target))
         return targets
@@ -792,9 +833,110 @@ class BilinearInterpolation(luigi.Task):
 
         acqs = gaip.acquisitions(self.l1t_path)
 
-        gaip.bilinear_interpolate(acqs, factors, coordinator, boxline,
-                                  centreline, input_format, output_format,
-                                  workpath)
+        # Retrieve the satellite and sensor for the acquisition
+        satellite = acqs[0].spacecraft_id
+        sensor = acqs[0].sensor_id
+
+        # Get the required nbar bands list for processing
+        nbar_constants = gaip.constants.NBARConstants(satellite, sensor)
+        bands_to_process = nbar_constants.getNBARlut()
+
+        # Initialise the list to contain the acquisitions we wish to process
+        acqs_to_process = []
+        for acq in acqs:
+            band_number = acq.band_num
+            if band_number in bands_to_process:
+                acqs_to_process.append(acq)
+
+        bilinear_fnames = gaip.bilinear_interpolate(acqs_to_process, factors,
+                                                    coordinator, boxline,
+                                                    centreline, input_format,
+                                                    output_format, workpath)
+
+        save(self.output()[0], bilinear_fnames)
+
+
+class TerrainCorrection(luigi.Task):
+    """Perform the terrain correction."""
+
+    l1t_path = luigi.Parameter()
+
+    def requires(self):
+        return [BilinearInterpolation(self.l1t_path)]
+
+    def output(self):
+        acqs = gaip.acquisitions(self.l1t_path)
+        
+        # Retrieve the satellite and sensor for the acquisition
+        satellite = acqs[0].spacecraft_id
+        sensor = acqs[0].sensor_id
+
+        # Get the required nbar bands list for processing
+        nbar_constants = gaip.constants.NBARConstants(satellite, sensor)
+        bands_to_process = nbar_constants.getNBARlut()
+
+        # Get the reflectance levels and base output format
+        rfl_levels = CONFIG.get('terrain_correction', 'rfl_levels').split(',')
+        output_format = CONFIG.get('terrain_correction', 'output_format')
+
+        # Output directory
+        outdir = CONFIG.get('work', 'rfl_output_dir')
+
+        # Create the targets
+        targets = []
+        for level in rfl_levels:
+            for band in bands_to_process:
+                target = pjoin(outdir,
+                             output_format.format(level=level, band=band))
+                targets.append(luigi.LocalTarget(target))
+        return targets
+
+
+    def run(self):
+        acqs = gaip.acquisitions(self.l1t_path)
+
+        # Get the necessary config params
+        work_path = CONFIG.get('work', 'path')
+        outdir = CONFIG.get('work', 'rfl_output_dir')
+        bilinear_target = CONFIG.get('work', 'bilinear_outputs_target')
+        national_dsm = CONFIG.get('ancillary', 'dem_tc')
+        rori = CONFIG.get('terrain_correction', 'rori')
+        dsm_buffer_width = CONFIG.get('terrain_correction',
+            'dsm_buffer_width')
+        shadow_sub_matrix_height = CONFIG.get('terrain_correction',
+            'shadow_sub_matrix_height')
+        shadow_sub_matrix_width = CONFIG.get('terrain_correction',
+            'shadow_sub_matrix_width')
+
+        # Retrieve the satellite and sensor for the acquisition
+        satellite = acqs[0].spacecraft_id
+        sensor = acqs[0].sensor_id
+
+        # Get the required nbar bands list for processing
+        nbar_constants = gaip.constants.NBARConstants(satellite, sensor)
+        bands_to_process = nbar_constants.getNBARlut()
+
+        # Get the reflectance levels and base output format
+        rfl_levels = CONFIG.get('terrain_correction', 'rfl_levels').split(',')
+        output_format = CONFIG.get('terrain_correction', 'output_format')
+
+        # Initialise the list to contain the acquisitions we wish to process
+        acqs_to_process = []
+        for acq in acqs:
+            band_number = acq.band_num
+            if band_number in bands_to_process:
+                acqs_to_process.append(acq)
+
+        # Create a dict of filenames per reflectance level per band
+        rfl_lvl_fnames = {}
+        for level in rfl_levels:
+            for band in bands_to_process:
+                rfl_lvl_fnames[(band, level)] = output_format.format(level=
+                    level, band=band)
+
+        gaip.run_tc(acqs_to_process, bilinear_target, dsm_buffer_width,
+            shadow_sub_matrix_height, shadow_sub_matrix_width, rori,
+            national_dsm, work_path, outdir, rfl_lvl_fnames)
 
 
 if __name__ == '__main__': #FIXME
