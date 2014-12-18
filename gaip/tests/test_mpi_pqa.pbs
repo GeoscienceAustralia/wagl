@@ -1,0 +1,38 @@
+#!/bin/bash
+#PBS -P v10
+#PBS -q express
+#PBS -l walltime=01:30:00,ncpus=64,mem=124GB,jobfs=4GB
+#PBS -l wd
+#PBS -me
+##PBS -M 
+
+module load python/2.7.6
+module use /projects/u46/opt/modules/modulefiles
+# module load image_processor
+module load EOtools
+module load openmpi
+module load luigi-mpi
+module load rasterio
+module load mpi4py
+module load IDL_functions
+module load scikit-image
+
+
+cat $PBS_NODEFILE
+
+export OUTPUT_ROOT=/short/v10/$USER/PQA_luigi_mpi_testing
+rm -r ${OUTPUT_ROOT}
+mkdir -p ${OUTPUT_ROOT}/work
+mkdir -p ${OUTPUT_ROOT}/output
+mkdir -p ${OUTPUT_ROOT}/logs
+
+# override the image_processor so we get out code
+export PYTHONPATH=/home/547/smr547/ga-neo-landsat-processor:$PYTHONPATH
+
+# now run on all nodes
+mpirun -npernode 4 python ../run_pq.py \
+    --l1t_path /g/data1/v10/projects/Luigi_work_flow_test/L1T \
+    --nbar_path /g/data1/v10/projects/Luigi_work_flow_test/NBAR \
+    --land_sea_path /g/data/v10/eoancillarydata/Land_Sea_Rasters \
+    --out_path ${OUTPUT_ROOT}/output  \
+    --log_path ${OUTPUT_ROOT}/logs 
