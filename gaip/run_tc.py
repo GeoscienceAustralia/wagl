@@ -6,8 +6,8 @@ import gc
 import os
 from os.path import join as pjoin
 import pickle
-import numpy
 
+import numpy
 from rasterio.warp import RESAMPLING
 
 from gaip import write_img
@@ -81,6 +81,17 @@ def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
             print msg
             raise
 
+    # Terrain corrected image outputs directory
+    tc_outdir = pjoin(work_path, 'TC_Outputs')
+    try:
+        os.mkdir(tc_outdir)
+    except OSError:
+        if not os.path.exists(tc_outdir):
+            msg = ("Error creating directory for terrain corrected "
+                   "output files.")
+            print msg
+            raise
+
     # Use the 1st acquisition to setup the geobox
     geobox = acquisitions[0].gridded_geo_box()
 
@@ -145,7 +156,7 @@ def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
     # Output slope results
     slope_results.write_arrays(tc_work_path, geobox, "ENVI", ".img")
 
-    # TODO find out what shadow_s & shadow_v are
+    # Compute self shadow and view shadow
     shadow_s = run_castshadow(acquisitions[0], dsm_data, solar_angle,
         sazi_angle, pixel_buf, shadow_sub_matrix_height,
         shadow_sub_matrix_width, spheroid)
@@ -231,23 +242,23 @@ def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
 	    load_2D_bin_file(boo[(band_number, 'b')], rows, cols,
                 dtype=boo_dtype),
 	    load_2D_bin_file(boo[(band_number, 's')], rows, cols,
-                dtype=boo_dtypes),
+                dtype=boo_dtype),
 	    load_2D_bin_file(boo[(band_number, 'fs')], rows, cols,
-                dtype=boo_dtypes),
+                dtype=boo_dtype),
 	    load_2D_bin_file(boo[(band_number, 'fv')], rows, cols,
-                dtype=boo_dtypes),
+                dtype=boo_dtype),
 	    load_2D_bin_file(boo[(band_number, 'ts')], rows, cols,
-                dtype=boo_dtypes),
+                dtype=boo_dtype),
 	    load_2D_bin_file(boo[(band_number, 'dir')], rows, cols,
-                dtype=boo_dtypes),
+                dtype=boo_dtype),
 	    load_2D_bin_file(boo[(band_number, 'dif')], rows, cols,
-                dtype=boo_dtypes))
+                dtype=boo_dtype))
 
 
         # Output filenames for lambertian, brdf and terrain corrected reflectance
-        lmbrt_fname = pjoin(work_path, 'ref_lm_{}.img'.format(band_number))
-        brdf_fname = pjoin(work_path, 'ref_brdf_{}.img'.format(band_number))
-        tc_fname = pjoin(work_path, 'ref_terrain_{}.img'.format(band_number))
+        lmbrt_fname = pjoin(tc_outdir, 'ref_lm_{}.img'.format(band_number))
+        brdf_fname = pjoin(tc_outdir, 'ref_brdf_{}.img'.format(band_number))
+        tc_fname = pjoin(tc_outdir, 'ref_terrain_{}.img'.format(band_number))
 
         # Output the files.
         write_img(ref_lm, lmbrt_fname, geobox=geobox, nodata=-999)
