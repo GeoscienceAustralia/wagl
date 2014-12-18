@@ -80,7 +80,7 @@ class Landsat7AcquisitionTest(unittest.TestCase):
     def test_read_with_all_selected(self):
         try:
             acqs_subset, bands, geo_box = gaip.stack_data(self.acqs)
-            self.fail("Should have got ValueError exception ",
+            self.fail("Should have got ValueError exception "
                 "because Panchromatic band is wrong size" )
         except ValueError:
             pass
@@ -154,7 +154,7 @@ class Landsat8AcquisitionTest(unittest.TestCase):
     def test_read_with_all_selected(self):
         try:
             acqs_subset, bands, geo_box = gaip.stack_data(self.acqs)
-            self.fail("Should have got ValueError exception ",
+            self.fail("Should have got ValueError exception "
                 "because Panchromatic band is wrong size" )
         except ValueError:
             pass

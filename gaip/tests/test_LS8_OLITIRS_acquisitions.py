@@ -37,6 +37,16 @@ class Landsat8AcquisitionTest(unittest.TestCase):
             self.assertEqual(acq.scene_center_time,
                 datetime.time(2, 21, 25, 902494))
 
+    def test_read_with_all_selected(self):
+        try:
+            acqs_subset, bands, geo_box = gaip.stack_data(self.acqs)
+            print acqs_subset
+            print bands.shape
+            self.fail("Should have got ValueError exception "
+                "because Panchromatic band is wrong size" )
+        except ValueError:
+            pass
+
     def test_band_type(self):
         self.assertEqual(self.acqs[0].band_type, gaip.REF)
         self.assertEqual(self.acqs[1].band_type, gaip.REF)
