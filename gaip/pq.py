@@ -210,6 +210,7 @@ class PixelQualityTask(luigi.Task):
             sun_elev_deg = l1t_acqs[0].sun_elevation
             if pq_const.oli_tirs:
                 mask = Cloud_Shadow(nbar_data[1:,:,:], kelvin_band, cloud_mask, geo_box, \
+                    sun_az_deg, sun_elev_deg, pq_const, \
                     land_sea_mask=land_sea_mask, contiguity_mask=contiguity_mask, \
                     cloud_algorithm='ACCA', growregion=True, aux_data=aux_data)
             else: # TM or ETM
