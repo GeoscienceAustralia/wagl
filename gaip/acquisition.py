@@ -47,7 +47,7 @@ class Acquisition(object):
         if isinstance(self.band_num, int):
             return "%03d" % (self.band_num, )
         else:
-            return self.band_name.split('_')[1]
+            return self.band_name.replace('band', '')
 
     def data(self, out=None):
         """
@@ -186,6 +186,9 @@ class Landsat7Acquisition(LandsatAcquisition):
 
     def __init__(self, metadata):
         super(Landsat7Acquisition, self).__init__(metadata)
+
+    def _sortkey(self):
+        return self.band_name.replace('band', '')
 
     @property
     def scene_center_time(self):
@@ -433,14 +436,14 @@ def acquisitions_via_MTL(path):
 
     acqs = []
     for band in bands:
-
+        bandparts = set(band.split('_'))
         # create a new copy
         new = copy.deepcopy(data)
 
         # remove unnecessary values
         for kv in new.values():
             for k in kv.keys():
-                if k.endswith(band):
+                if bandparts.issubset(set(k.split('_'))): 
                     # remove the values for the other bands
                     rm = [k.replace(band, b) for b in bands if b != band]
                     for r in rm:
