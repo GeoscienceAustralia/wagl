@@ -249,7 +249,7 @@ def bilinear_interpolate(acqs, factors, coordinator, boxline, centreline,
             fname = output_fmt.format(factor=factor, band=band)
             bilinear_outputs[(band, factor)] = pjoin(workpath, fname)
             args = [cmd, coordinator,
-                    input_fmt.format(coord=coord, band=band),
+                    input_fmt.format(factor=factor, band=band),
                     boxline, centreline,
                     output_fmt.format(factor=factor, band=band)]
 
