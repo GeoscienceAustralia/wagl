@@ -5,9 +5,7 @@ Runs the terrain correction. This code runs the terrain correction algorithm.
 import gc
 import os
 from os.path import join as pjoin
-import pickle
 
-import numpy
 from rasterio.warp import RESAMPLING
 
 from gaip import write_img
@@ -27,14 +25,29 @@ from gaip import write_header_slope_file
 from gaip import write_new_brdf_file
 
 
-def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
-    shadow_sub_matrix_width, rori, national_dsm, work_path):
+def run_tc(acquisitions, bilinear_ortho_filenames, dsm_buffer_width,
+    shadow_sub_matrix_height, shadow_sub_matrix_width, rori, national_dsm,
+    work_path, outdir, reflectance_filenames):
     """
     The terrain correction workflow.
 
     :param acquisitions:
         A list of acquisition class objects that will be run through
         the terrain correction workflow.
+
+    :param bilinear_ortho_filenames:
+        A dictionary with keys specified via a tuple of
+        (band_number, factor) and the value corresponding to a full
+        file pathname to the bilinearly interpolated flaot32 array.
+        Valid factor strings are:
+            fv
+            fs
+            b
+            s
+            a
+            dir
+            dif
+            ts
 
     :param dsm_buffer_width:
         The buffer in pixels around the acquisition dimensions. Used
@@ -61,6 +74,20 @@ def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
         Intermediate files will be saved to
         `work_path/tc_intermediates`.
 
+    :param outdir:
+        A full file system path to the output directory that will
+        contain the various lambertian, brdf and terrain corrected
+        reflectance images.
+
+    :param reflectance_filenames:
+        A dictionary with keys specified via a tuple of
+        (band, reflectance_level) and the value corresponding to a
+        full file pathname.
+        Valid reflectance level string are:
+            ref_lm -> Lambertian reflectance
+            ref_brdf -> BRDF corrected reflectance
+            ref_terrain -> Terrain corrected reflectance
+
     :return:
         None.
         The terrain correction algorithm will output 3 files for every
@@ -82,7 +109,7 @@ def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
             raise
 
     # Terrain corrected image outputs directory
-    tc_outdir = pjoin(work_path, 'TC_Outputs')
+    tc_outdir = outdir
     try:
         os.mkdir(tc_outdir)
     except OSError:
@@ -174,12 +201,9 @@ def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
     # load the line starts and ends.
     rows, cols = geobox.shape
 
-    # load the pickled dict containing the bilinear outputs
-    boo_fname = pjoin(work_path, '"bilinear_ortho_outputs')
-    with open(boo_fname) as boo_file:
-        boo = pickle.load(boo_file)
-
-    boo_dtype = 'float32'
+    # Specify the biliner binary files datatype
+    boo = bilinear_ortho_filenames
+    bilinear_dtype = 'float32'
 
     # this process runs close to the wind on memory... get rid of everything for now.
     gc.collect()
@@ -188,16 +212,12 @@ def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
     satellite = acquisitions[0].spacecraft_id
     sensor = acquisitions[0].sensor_id
 
-    # Get the required nbar bands list for processing
+    # Get the r processing
     nbar_constants = constants.NBARConstants(satellite, sensor)
-    bands_list = nbar_constants.getNBARlut()
-    ave_reflectance_values = nbar_constants.getAvgReflut()
+    avg_reflectance_values = nbar_constants.getAvgReflut()
 
     for acq in acquisitions:
         band_number = acq.band_num
-        if band_number not in bands_list:
-            # skip
-            continue
 
         # Read the BRDF modis file for a given band
         brdf_modis_file = 'brdf_modis_band{0}.txt'.format(band_number)
@@ -213,7 +233,7 @@ def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
         write_new_brdf_file(pjoin(tc_work_path,
             'new_brdf_modis_band{band_num}.txt'.format(band_num=band_number)),
             rori, brdf0, brdf1, brdf2, bias, slope_ca, esun, dd,
-            ave_reflectance_values[band_number])
+            avg_reflectance_values[band_number])
 
         # Read the data
         band_data = acq.data()
@@ -223,7 +243,7 @@ def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
 	    rori,
 	    brdf0, brdf1, brdf2,
 	    bias, slope_ca, esun, dd,
-	    ave_reflectance_values[band_number],
+	    avg_reflectance_values[band_number],
 	    band_data,
 	    slope_results.mask_self,
 	    shadow_s,
@@ -238,27 +258,27 @@ def run_tc(acquisitions, dsm_buffer_width, shadow_sub_matrix_height,
 	    slope_results.exiting,
 	    slope_results.rela_slope,
 	    load_2D_bin_file(boo[(band_number, 'a')], rows, cols,
-                dtype=boo_dtype),
+                dtype=bilinear_dtype),
 	    load_2D_bin_file(boo[(band_number, 'b')], rows, cols,
-                dtype=boo_dtype),
+                dtype=bilinear_dtype),
 	    load_2D_bin_file(boo[(band_number, 's')], rows, cols,
-                dtype=boo_dtype),
+                dtype=bilinear_dtype),
 	    load_2D_bin_file(boo[(band_number, 'fs')], rows, cols,
-                dtype=boo_dtype),
+                dtype=bilinear_dtype),
 	    load_2D_bin_file(boo[(band_number, 'fv')], rows, cols,
-                dtype=boo_dtype),
+                dtype=bilinear_dtype),
 	    load_2D_bin_file(boo[(band_number, 'ts')], rows, cols,
-                dtype=boo_dtype),
+                dtype=bilinear_dtype),
 	    load_2D_bin_file(boo[(band_number, 'dir')], rows, cols,
-                dtype=boo_dtype),
+                dtype=bilinear_dtype),
 	    load_2D_bin_file(boo[(band_number, 'dif')], rows, cols,
-                dtype=boo_dtype))
+                dtype=bilinear_dtype))
 
 
         # Output filenames for lambertian, brdf and terrain corrected reflectance
-        lmbrt_fname = pjoin(tc_outdir, 'ref_lm_{}.img'.format(band_number))
-        brdf_fname = pjoin(tc_outdir, 'ref_brdf_{}.img'.format(band_number))
-        tc_fname = pjoin(tc_outdir, 'ref_terrain_{}.img'.format(band_number))
+        lmbrt_fname = reflectance_filenames[(band_number, 'ref_lm')]
+        brdf_fname = reflectance_filenames[(band_number, 'ref_brdf')]
+        tc_fname = reflectance_filenames[(band_number, 'ref_terrain')]
 
         # Output the files.
         write_img(ref_lm, lmbrt_fname, geobox=geobox, nodata=-999)
