@@ -103,7 +103,11 @@ def stack_data(acqs_list, filter=(lambda acq: True)):
     # read remaining aquisitions into it
 
     for i in range(1, stack_shape[0]):
-        acqs[i].data(out=stack[i])
+        # can't use this statement because it will cause data to be
+        # resampled. But we want an exception thrown if the user
+        # tries to stack irreqular aquisitions
+        # acqs[i].data(out=stack[i])  
+        stack[i] = acqs[i].data()
 
     return acqs, stack, geo_box
 
