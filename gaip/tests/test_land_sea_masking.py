@@ -12,6 +12,7 @@ class TestLandSea(unittest.TestCase):
         path = 'data/L1T/LS8_90_84_2013-10-11/UTM/LS8_OLITIRS_OTH_P51_GALPGS01-002_090_084_20131011'
         acqs = gaip.acquisitions(path)
         stack, geo_box = acqs[0].data_and_box()
+        print geo_box
         mask = gaip.calc_land_sea_mask(geo_box).astype('uint32')
 
         total_pixels = geo_box.shape[1]*geo_box.shape[0]
@@ -26,6 +27,26 @@ class TestLandSea(unittest.TestCase):
         print "land=%f%%, sea=%f%%" % (land_pct, sea_pct)
 
 #        gaip.write_img(mask.astype('uint8'), "./test.tif", format="GTiff", geobox=geo_box)
+ 
+    def test_l1t_scene(self):
+        p = '/g/data1/v10/projects/Luigi_work_flow_test/L1T/LS8_OLITIRS_OTH_P51_GALPGS01-002_115_075_20141014/scene01/LC81150752014287ASA00_B1.TIF'
+        with rio.open(p) as ds:
+            geo_box = gaip.GriddedGeoBox.from_dataset(ds)
+            print geo_box
+            mask = gaip.calc_land_sea_mask(geo_box).astype('uint32')
+
+            total_pixels = geo_box.shape[1]*geo_box.shape[0]
+            land_pixels = sum(sum(mask))
+            sea_pixels = total_pixels - land_pixels
+            sea_pct = 100.0 * sea_pixels / total_pixels
+            land_pct = 100.0 * land_pixels / total_pixels
+
+#            self.assertEqual(land_pixels, 75976737)
+#            self.assertEqual(sea_pixels, 9393744)
+#            self.assertEqual(total_pixels, 85370481)
+            print "land=%f%%, sea=%f%%" % (land_pct, sea_pct)
+
+
 
 if __name__ == '__main__':
     # need this hack until set_epsilon patch v1.0.5

@@ -47,7 +47,8 @@ class PQAResult(object):
         assert bit_index not in self.test_set, 'Bit %d already set' % bit_index
         self.test_set.add(bit_index)
 
-        logging.debug('Setting result for bit %d', bit_index)
+        c = sum(sum(mask))
+        logging.debug('Setting result for bit %d, masking %d pixels' % (bit_index, c))
         numpy.bitwise_or(self.array, (mask << bit_index), self.array) # Set any 1 bits
         if unset_bits:
             numpy.bitwise_and(self.array, ~(~mask << bit_index), self.array) # Clear any 0 bits
