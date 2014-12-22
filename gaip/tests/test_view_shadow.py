@@ -32,9 +32,9 @@ def calculate_view_shadow(geobox, ref_dir, outdir, pixel_buffer=250,
     pixel_buf = Buffers(pixel_buffer)
 
     # Check and load the required files from disk
-    fname_satellite_zenith  = 'SAT_V.bin'
-    fname_satellte_azimuth  = 'SAT_AZ.bin'
-    fname_smoothed_dsm      = 'region_dsm_image_smoothed.img'
+    fname_satellite_zenith  = 'SATELLITE_VIEW.bin'
+    fname_satellte_azimuth  = 'SATELLITE_AZIMUTH.bin'
+    fname_smoothed_dsm      = 'region_dsm_image_smoothed.bin'
 
     zen_angle = read_img(find_file(ref_dir, fname_satellite_zenith))
     azi_angle = read_img(find_file(ref_dir, fname_satellte_azimuth))
@@ -51,17 +51,17 @@ def calculate_view_shadow(geobox, ref_dir, outdir, pixel_buffer=250,
                                  is_utm, spheroid)
 
     # Write the self shadow result to disk
-    outfname = os.path.join(outdir, 'shadow_v.img')
+    outfname = os.path.join(outdir, 'shadow_view.bin')
     write_img(shadow_self, outfname, geobox=geobox)
 
 
 class TestViewShadowFileNames(ParameterisedTestCase):
     """
     Unittests will occur for the following files:
-    shadow_v.img
+    shadow_view.bin
     """
 
-    ParameterisedTestCase.fname_view_shadow = 'shadow_v.img'
+    ParameterisedTestCase.fname_view_shadow = 'shadow_view.bin'
 
     def test_view_shadow_ref(self):
         """
@@ -85,10 +85,10 @@ class TestViewShadowFileNames(ParameterisedTestCase):
 class TestViewShadowOutputs(ParameterisedTestCase):
     """
     Unittests will occur for the following files:
-    shadow_v.img
+    shadow_view.bin
     """
 
-    ParameterisedTestCase.fname_view_shadow = 'shadow_v.img'
+    ParameterisedTestCase.fname_view_shadow = 'shadow_view.bin'
 
     def test_view_shadow(self):
         """
