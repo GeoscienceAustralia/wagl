@@ -273,7 +273,9 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
                    CONFIG.get('work', 'solar_zenith_target'),
                    CONFIG.get('work', 'solar_azimuth_target'),
                    CONFIG.get('work', 'relative_azimuth_target'),
-                   CONFIG.get('work', 'time_target')]
+                   CONFIG.get('work', 'time_target'),
+                   CONFIG.get('work', 'centreline_target'),
+                   CONFIG.get('work', 'header_angle_target')]
         return [luigi.LocalTarget(t) for t in targets]
 
     def run(self):
@@ -283,7 +285,8 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
                    CONFIG.get('work', 'solar_azimuth_target'),
                    CONFIG.get('work', 'relative_azimuth_target'),
                    CONFIG.get('work', 'time_target')]
-        work_path = CONFIG.get('work', 'path')
+        centreline_target = CONFIG.get('work', 'centreline_target')
+        header_angle_target = CONFIG.get('work', 'header_angle_target')
         lon_target = CONFIG.get('work', 'lon_target')
         lat_target = CONFIG.get('work', 'lat_target')
 
@@ -298,7 +301,10 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
                                   npoints=12, to_disk=targets)
 
         gaip.create_centreline_file(geobox, y_cent, x_cent, n_cent, cols,
-                                    view_max=9.0, outdir=work_path)
+                                    view_max=9.0, outfname=centreline_target)
+
+        gaip.create_header_angle_file(acqs[0], view_max=9.0,
+                                      outfname=header_angle_target)
 
 
 class CalculateGridsTask(luigi.Task):
