@@ -55,16 +55,12 @@ def write_modtran_input(acquisitions, modtran_input_file, ozone, vapour,
     """Generate modtran input file."""
     acq = acquisitions[0]
     geobox = acq.gridded_geo_box()
-    ul_lon, ul_lat = geobox.ul_lonlat
-    pixel_degrees = acq.nominal_pixel_degrees
     filter_file = acq.spectral_filter_file
     cdate = acq.scene_centre_date
     altitude = acq.altitude / 1000.0  # in km
     dechour = acq.decimal_hour
 
     with open(modtran_input_file, 'w') as outfile:
-        outfile.write("%f %f\n" % (ul_lat, ul_lon))
-        outfile.write("%f\n" % pixel_degrees)
         outfile.write("%f\n" % ozone)
         outfile.write("%f\n" % vapour)
         outfile.write("DATA/%s\n" % filter_file)
