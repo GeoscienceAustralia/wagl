@@ -66,9 +66,11 @@ def sat_sol_grid_workflow(L1T_path, work_path, lonlat_path):
                            outdir=work_path)
 
 
-def create_centreline_file(geobox, y, x, n, cols, view_max, outdir,
+def create_centreline_file(geobox, y, x, n, cols, view_max,
         outfname='CENTRELINE'):
     """
+    Creates the centre line text file.
+
     :param geobox:
         An instance of a GriddedGeoBox object.
 
@@ -93,12 +95,11 @@ def create_centreline_file(geobox, y, x, n, cols, view_max, outdir,
         An float indicating the maximum view angle of the satellite
         used for determining the centreline.
 
-    :param outdir:
-        A string containing the output directory.
-
     :param outfname:
-        A string containing the output filename.
-        Default is CENTRELINE.
+        A string containing the full file system pathname of the
+        output file.
+        Default is CENTRELINE produced in the current working
+        directory.
     """
 
     rows = y.shape[0]
@@ -107,26 +108,82 @@ def create_centreline_file(geobox, y, x, n, cols, view_max, outdir,
     sr = osr.SpatialReference()
     sr.SetFromUserInput(CRS)
 
-    # I'm not sure of the formatting used by FORTRAN, nothing was specified
-    # but the outputs had spaces.
-    # It might be more ideal to create it as a csv???
-    fname = os.path.join(outdir, outfname)
-    outf  = open(fname, 'w')
+    with open(outfname, 'w') as outfile:
 
-    # Right justified with length of 14 per item
-    outf.write('{view_max:>14}\n'.format(view_max=view_max))
-    outf.write('{rows:>14}{cols:>14}\n'.format(rows=rows, cols=cols))
+        # Right justified with length of 14 per item
+        outfile.write('{view_max:>14}\n'.format(view_max=view_max))
+        outfile.write('{rows:>14}{cols:>14}\n'.format(rows=rows, cols=cols))
 
-    for r in range(rows):
-        # We offset by -1 to get the zero based col and row id
-        mapXY = geobox.convert_coordinates((x[r]-1, y[r]-1))
-        lon, lat = geobox.transform_coordinates(mapXY, to_crs=sr)
-        # Right justified at various lengths
-        msg = '{row:>14}{col:>14}{n:>14}{lat:>21}{lon:>21}\n'
-        msg = msg.format(row=y[r], col=x[r], n=n[r], lat=lat, lon=lon)
-        outf.write(msg)
+        for r in range(rows):
+            # We offset by -1 to get the zero based col and row id
+            mapXY = geobox.convert_coordinates((x[r]-1, y[r]-1))
+            lon, lat = geobox.transform_coordinates(mapXY, to_crs=sr)
+            # Right justified at various lengths
+            msg = '{row:>14}{col:>14}{n:>14}{lat:>21}{lon:>21}\n'
+            msg = msg.format(row=y[r], col=x[r], n=n[r], lat=lat, lon=lon)
+            outfile.write(msg)
 
-    outf.close()
+
+def create_header_angle_file(acquisition, view_max, outfname='HEADERANGLE'):
+    """
+    Creates the header angle text file.
+
+    :param acquisition:
+        An instance of an acquisitions object.
+
+    :param view_max:
+        An float indicating the maximum view angle of the satellite
+        used for determining the centreline.
+
+    :param outfname:
+        A string containing the full file system pathname of the
+        output file.
+        Default is HEADERANGLE produced in the current working
+        directory..
+    """
+    # Get the satellite orbital elements
+    sat_ephemeral = load_tle(acquisition, TLE_DIR)
+
+    # If we have None, then no suitable TLE was found, so use values gathered
+    # by the acquisition object
+    if sat_ephemeral is None:
+        # orbital inclination (degrees)
+        orb_incl = math.degrees(acquisition.inclination)
+        # semi_major radius (m)
+        orb_radius = acquisition.semi_major_axis
+        # angular velocity (rad sec-1)
+        omega = acquisition.omega
+        orbital_elements = numpy.array([orb_incl, orb_radius, omega],
+            dtype='float')
+    else:
+        orbital_elements = setup_orbital_elements(sat_ephemeral, Datetime)
+        orb_incl = orbital_elements[0]
+        orb_radius = orbital_elements[1]
+        omega = orbital_elements[2]
+
+    # Scene centre datetime info
+    year  = acquisition.scene_center_datetime.year
+    month = acquisition.scene_center_datetime.month
+    day   = acquisition.scene_center_datetime.day
+    hours = acquisition.decimal_hour
+
+    # Spatial info
+    geobox = acquisition.gridded_geo_box()
+    cx, cy = geobox.centre_lonlat
+    samples, lines = geobox.getShapeXY()
+
+    # Output to disk
+    with open(outfname, 'w') as outfile:
+        header_file = ("{year} {month} {day} {hours}\n"
+                       "{lines} {samples}\n"
+                       "{centre_lat} {centre_lon}\n"
+                       "{radius} {inclination} {velocity}\n"
+                       "{max_angle}")
+
+        outfile.write(header_file.format(year=year, month=month, day=day,
+            lines=lines, samples=samples, centre_lat=cy, centre_lon=cx,
+            radius=orb_radius, inclination=orb_incl, velocity=omega,
+            max_angle=view_max))
 
 
 def calculate_julian_century(datetime):
@@ -456,8 +513,7 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
         max(geobox.ll_lonlat[1], geobox.lr_lonlat[1]))
 
     # Scene centre in time stamp in decimal hours
-    hours = (Datetime.hour + (Datetime.minute +
-        (Datetime.second + Datetime.microsecond /1000000.0) / 60.0) /60.0)
+    hours = acquisition.decimal_hour
 
     # Calculate the julian century past JD2000
     century = calculate_julian_century(Datetime)
