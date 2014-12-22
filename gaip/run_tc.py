@@ -164,17 +164,17 @@ def run_tc(acquisitions, bilinear_ortho_filenames, dsm_buffer_width,
         pixel_buf, geobox)
 
     # solar angle data
-    fname = find_file(work_path, 'SOL_Z.bin')
+    fname = find_file(work_path, 'SOLAR_ZENITH.bin')
     solar_angle = read_img(fname)
-    fname = find_file(work_path, 'SOL_AZ.bin')
+    fname = find_file(work_path, 'SOLAR_AZIMUTH.bin')
     sazi_angle = read_img(fname)
     
     # satellite angle data
-    fname = find_file(work_path, 'SAT_V.bin')
+    fname = find_file(work_path, 'SATELLITE_VIEW.bin')
     view_angle = read_img(fname)
-    fname = find_file(work_path, 'SAT_AZ.bin')
+    fname = find_file(work_path, 'SATELLITE_AZIMUTH.bin')
     azi_angle = read_img(fname)
-    fname = find_file(work_path, 'REL_AZ.bin')
+    fname = find_file(work_path, 'RELATIVE_AZIMUTH.bin')
     rela_angle = read_img(fname)
 
 
@@ -185,7 +185,7 @@ def run_tc(acquisitions, bilinear_ortho_filenames, dsm_buffer_width,
     # Output slope results
     slope_results.write_arrays(tc_work_path, geobox, "ENVI", ".bin")
 
-    # Compute self shadow and view shadow
+    # Compute sun shadow and view (satellite) shadow
     shadow_s = run_castshadow(acquisitions[0], dsm_data, solar_angle,
         sazi_angle, pixel_buf, shadow_sub_matrix_height,
         shadow_sub_matrix_width, spheroid)
@@ -195,8 +195,8 @@ def run_tc(acquisitions, bilinear_ortho_filenames, dsm_buffer_width,
         shadow_sub_matrix_width, spheroid)
 
     # Output the two shadow masks to disk
-    fname_shadow_s = pjoin(tc_work_path, 'shadow_self.bin')
-    fname_shadow_v = pjoin(tc_work_path, 'shadow_view.bin')
+    fname_shadow_s = pjoin(tc_work_path, 'cast_shadow_sun.bin')
+    fname_shadow_v = pjoin(tc_work_path, 'cast_shadow_satellite.bin')
     write_img(shadow_s, fname_shadow_s, geobox=geobox, nodata=-999)
     write_img(shadow_v, fname_shadow_v, geobox=geobox, nodata=-999)
 
