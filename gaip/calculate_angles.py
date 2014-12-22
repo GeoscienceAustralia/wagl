@@ -35,8 +35,8 @@ def sat_sol_grid_workflow(L1T_path, work_path, lonlat_path):
     # Find and open the longitude and lattitude files
     # Avoiding DataManger here. find_file will be used sparingly until a proper
     # workflow is written.
-    lon_fname = find_file(lonlat_path, 'LON.tif')
-    lat_fname = find_file(lonlat_path, 'LAT.tif')
+    lon_fname = find_file(lonlat_path, 'LON.bin')
+    lat_fname = find_file(lonlat_path, 'LAT.bin')
 
     # Get the array dimensions from the first acquisistion
     # The dimensions should match for all bands except the panchromatic
