@@ -30,21 +30,21 @@ class TestAngleFilenames(ParameterisedTestCase):
     Tests to ensure we have all the correct files on disk before
     proceeding with array comparisons.
     Unittests will occur for the following files:
-    SAT_V.bin
-    SAT_AZ.bin
-    SOL_Z.bin
-    SOL_AZ.bin
-    REL_AZ.bin
+    SATELLITE_VIEW.bin
+    SATELLITE_AZIMUTH.bin
+    SOLAR_ZENITH.bin
+    SOLAR_AZIMUTH.bin
+    RELATIVE_AZIMUTH.bin
     TIME.bin
     CENTRELINE
     """
 
     # Files of interest
-    ParameterisedTestCase.fname_sat_v      = 'SAT_V.bin'
-    ParameterisedTestCase.fname_sat_az     = 'SAT_AZ.bin'
-    ParameterisedTestCase.fname_sol_z      = 'SOL_Z.bin'
-    ParameterisedTestCase.fname_sol_az     = 'SOL_AZ.bin'
-    ParameterisedTestCase.fname_rel_az     = 'REL_AZ.bin'
+    ParameterisedTestCase.fname_sat_v      = 'SATELLITE_VIEW.bin'
+    ParameterisedTestCase.fname_sat_az     = 'SATELLITE_AZIMUTH.bin'
+    ParameterisedTestCase.fname_sol_z      = 'SOLAR_ZENITH.bin'
+    ParameterisedTestCase.fname_sol_az     = 'SOLAR_AZIMUTH.bin'
+    ParameterisedTestCase.fname_rel_az     = 'RELATIVE_AZIMUTH.bin'
     ParameterisedTestCase.fname_time       = 'TIME.bin'
     ParameterisedTestCase.fname_centreline = 'CENTRELINE'
 
@@ -180,23 +180,24 @@ class TestSatSolAngles(ParameterisedTestCase):
     """
     Unittesting for the satellite and solar angle calculations.
     Unittests will occur for the following files:
-    SAT_V.bin
-    SAT_AZ.bin
-    SOL_Z.bin
-    SOL_AZ.bin
-    REL_AZ.bin
+    SATELLITE_VIEW.bin
+    SATELLITE_AZIMUTH.bin
+    SOLAR_ZENITH.bin
+    SOLAR_AZIMUTH.bin
+    RELATIVE_AZIMUTH.bin
     TIME.bin
     CENTRELINE
     """
 
     # Files of interest
-    ParameterisedTestCase.fname_sat_v      = 'SAT_V.bin'
-    ParameterisedTestCase.fname_sat_az     = 'SAT_AZ.bin'
-    ParameterisedTestCase.fname_sol_z      = 'SOL_Z.bin'
-    ParameterisedTestCase.fname_sol_az     = 'SOL_AZ.bin'
-    ParameterisedTestCase.fname_rel_az     = 'REL_AZ.bin'
+    ParameterisedTestCase.fname_sat_v      = 'SATELLITE_VIEW.bin'
+    ParameterisedTestCase.fname_sat_az     = 'SATELLITE_AZIMUTH.bin'
+    ParameterisedTestCase.fname_sol_z      = 'SOLAR_ZENITH.bin'
+    ParameterisedTestCase.fname_sol_az     = 'SOLAR_AZIMUTH.bin'
+    ParameterisedTestCase.fname_rel_az     = 'RELATIVE_AZIMUTH.bin'
     ParameterisedTestCase.fname_time       = 'TIME.bin'
     ParameterisedTestCase.fname_centreline = 'CENTRELINE'
+
 
     # Read and store the centreline data in memory
     ParameterisedTestCase.centreline_ref = None

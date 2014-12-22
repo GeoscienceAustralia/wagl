@@ -19,9 +19,6 @@ c       and view angle
      &<output_boxline_file>'
           stop 2
         endif
-c       open file
-c       set the angle threshold for Landsat is 7.69 degree
-c       this information can be built at input file.
 
 c       get centreline file
         call GETARG(1, fname)

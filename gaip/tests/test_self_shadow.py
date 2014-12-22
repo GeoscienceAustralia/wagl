@@ -32,9 +32,9 @@ def calculate_self_shadow(acquisition, ref_dir, outdir, pixel_buffer=250,
     pixel_buf = Buffers(pixel_buffer)
 
     # Check and load the required files from disk
-    fname_solar_zenith  = 'SOL_Z.bin'
-    fname_solar_azimuth = 'SOL_AZ.bin'
-    fname_smoothed_dsm  = 'region_dsm_image_smoothed.img'
+    fname_solar_zenith  = 'SOLAR_ZENITH.bin'
+    fname_solar_azimuth = 'SOLAR_AZIMUTH.bin'
+    fname_smoothed_dsm  = 'region_dsm_image_smoothed.bin'
 
     zen_angle = read_img(find_file(ref_dir, fname_solar_zenith))
     azi_angle = read_img(find_file(ref_dir, fname_solar_azimuth))
@@ -50,18 +50,18 @@ def calculate_self_shadow(acquisition, ref_dir, outdir, pixel_buffer=250,
                                  is_utm, spheroid)
 
     # Write the self shadow result to disk
-    outfname = os.path.join(outdir, 'shadow_s.img')
+    outfname = os.path.join(outdir, 'shadow_self.bin')
     write_img(shadow_self, outfname, geobox=geobox)
 
 
 class TestSelfShadowFileNames(ParameterisedTestCase):
     """
     Unittests will occur for the following files:
-    shadow_s.img
+    shadow_self.bin
     """
 
     # File of interest
-    ParameterisedTestCase.fname_self_shadow = 'shadow_s.img'
+    ParameterisedTestCase.fname_self_shadow = 'shadow_self.bin'
 
     def test_self_shadow_ref(self):
         """
@@ -85,11 +85,11 @@ class TestSelfShadowFileNames(ParameterisedTestCase):
 class TestSelfShadowOutputs(ParameterisedTestCase):
     """
     Unittests will occur for the following files:
-    shadow_s.img
+    shadow_self.bin
     """
 
     # File of interest
-    ParameterisedTestCase.fname_self_shadow = 'shadow_s.img'
+    ParameterisedTestCase.fname_self_shadow = 'shadow_self.bin'
 
     def test_self_shadow(self):
         """

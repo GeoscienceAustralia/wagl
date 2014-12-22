@@ -273,7 +273,9 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
                    CONFIG.get('work', 'solar_zenith_target'),
                    CONFIG.get('work', 'solar_azimuth_target'),
                    CONFIG.get('work', 'relative_azimuth_target'),
-                   CONFIG.get('work', 'time_target')]
+                   CONFIG.get('work', 'time_target'),
+                   CONFIG.get('work', 'centreline_target'),
+                   CONFIG.get('work', 'header_angle_target')]
         return [luigi.LocalTarget(t) for t in targets]
 
     def run(self):
@@ -283,7 +285,8 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
                    CONFIG.get('work', 'solar_azimuth_target'),
                    CONFIG.get('work', 'relative_azimuth_target'),
                    CONFIG.get('work', 'time_target')]
-        work_path = CONFIG.get('work', 'path')
+        centreline_target = CONFIG.get('work', 'centreline_target')
+        header_angle_target = CONFIG.get('work', 'header_angle_target')
         lon_target = CONFIG.get('work', 'lon_target')
         lat_target = CONFIG.get('work', 'lat_target')
 
@@ -298,7 +301,10 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
                                   npoints=12, to_disk=targets)
 
         gaip.create_centreline_file(geobox, y_cent, x_cent, n_cent, cols,
-                                    view_max=9.0, outdir=work_path)
+                                    view_max=9.0, outfname=centreline_target)
+
+        gaip.create_header_angle_file(acqs[0], view_max=9.0,
+                                      outfname=header_angle_target)
 
 
 class CalculateGridsTask(luigi.Task):
@@ -393,13 +399,22 @@ class WriteModisBrdfFiles(luigi.Task):
 
     l1t_path = luigi.Parameter()
 
+    def requires(self):
+        return [GetSolarIrradianceAncillaryData(self.l1t_path),
+                GetSolarDistanceAncillaryData(self.l1t_path)]
+
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
         modis_brdf_prefix = CONFIG.get('work', 'modis_brdf_prefix')
         brdf_target = CONFIG.get('work', 'brdf_target')
         brdf_data = load(brdf_target)
+        irrad_target = CONFIG.get('work', 'irrad_target')
+        irrad_data = load(irrad_target)
+        solar_dist_target = CONFIG.get('work', 'sundist_target')
+        solar_dist_data = load(solar_dist_target)
         # FIXME
-        gaip.write_modis_brdf_files(acqs, modis_brdf_prefix, brdf_data)
+        gaip.write_modis_brdf_files(acqs, modis_brdf_prefix, brdf_data,
+                                    solar_irrad_data, solar_dist_data)
 
 
 class RunModtranCorOrtho(luigi.Task):
@@ -733,7 +748,8 @@ class ReformatAtmosphericParameters(luigi.Task):
     l1t_path = luigi.Parameter()
 
     def requires(self):
-        return [CalculateCoefficients(self.l1t_path)]
+        return [CalculateCoefficients(self.l1t_path),
+                CreateSatelliteFilterFile(self.l1t_path)]
 
     def output(self):
         factors = CONFIG.get('read_modtran', 'factors').split(',')
@@ -765,6 +781,7 @@ class ReformatAtmosphericParameters(luigi.Task):
         input_format = CONFIG.get('read_modtran', 'input_format')
         output_format = CONFIG.get('read_modtran', 'output_format')
         workpath = CONFIG.get('work', 'modtran_root')
+        satfilter = CONFIG.get('work', 'sat_filter_target')
 
         acqs = gaip.acquisitions(self.l1t_path)
 
@@ -794,7 +811,8 @@ class BilinearInterpolation(luigi.Task):
     l1t_path = luigi.Parameter()
 
     def requires(self):
-        return [ReformatAtmosphericParameters(self.l1t_path)]
+        return [ReformatAtmosphericParameters(self.l1t_path),
+                CalculateSatelliteAndSolarGrids(self.l1t_path)]
 
     def output(self):
         factors = CONFIG.get('bilinear', 'factors').split(',')

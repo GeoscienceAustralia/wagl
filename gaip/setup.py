@@ -1,13 +1,7 @@
 from numpy.distutils.core import Extension, setup
 
-setup(name='ULA3',
+setup(name='gaip',
       ext_modules=[
-          Extension(name='filtering',
-                    sources=['read_array_int32.f90',
-                             'read_array_int16.f90',
-                             'read_array_int8.f90',
-                             'read_array_float32.f90',
-                             'filter_float.f90']),
            Extension(name='_shade_main_landsat_pixel',
                     sources=['shade_main_landsat_pixel.f90',
                              'set_borderf.f90',

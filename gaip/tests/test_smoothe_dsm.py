@@ -24,25 +24,25 @@ def calculate_smoothed_dsm(geobox, ref_dir, outdir):
     """
 
     # Check and load the required files from disk
-    fname_dsm = 'region_dsm_image.img'
+    fname_dsm = 'region_dsm_image.bin'
 
     dsm = (read_img(find_file(ref_dir, fname_dsm))).astype('float32')
 
     smoothed_dsm = filter_dsm(dsm)
 
     # Write out the smoothed dsm file
-    out_fname = os.path.join(outdir, 'region_dsm_image_smoothed.img')
+    out_fname = os.path.join(outdir, 'region_dsm_image_smoothed.bin')
     write_img(smoothed_dsm, out_fname, geobox=geobox)
 
 
 class TestFilterFileNames(ParameterisedTestCase):
     """
     Unittests will occur for the following files:
-    region_dsm_image_smoothed.img
+    region_dsm_image_smoothed.bin
     """
 
     # File of interest
-    ParameterisedTestCase.fname_smoothed_dsm = 'region_dsm_image_smoothed.img'
+    ParameterisedTestCase.fname_smoothed_dsm = 'region_dsm_image_smoothed.bin'
 
     def test_smoothed_dsm_ref(self):
         """
@@ -66,11 +66,11 @@ class TestFilterFileNames(ParameterisedTestCase):
 class TestFilterOutputs(ParameterisedTestCase):
     """
     Unittests will occur for the following files:
-    region_dsm_image_smoothed.img
+    region_dsm_image_smoothed.bin
     """
 
     # File of interest
-    ParameterisedTestCase.fname_smoothed_dsm = 'region_dsm_image_smoothed.img'
+    ParameterisedTestCase.fname_smoothed_dsm = 'region_dsm_image_smoothed.bin'
 
     def test_smoothed_dsm(self):
         """
