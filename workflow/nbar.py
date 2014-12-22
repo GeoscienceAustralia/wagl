@@ -802,7 +802,8 @@ class BilinearInterpolation(luigi.Task):
     l1t_path = luigi.Parameter()
 
     def requires(self):
-        return [ReformatAtmosphericParameters(self.l1t_path)]
+        return [ReformatAtmosphericParameters(self.l1t_path),
+                CalculateSatelliteAndSolarGrids(self.l1t_path)]
 
     def output(self):
         factors = CONFIG.get('bilinear', 'factors').split(',')
