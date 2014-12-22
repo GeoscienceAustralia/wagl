@@ -874,6 +874,41 @@ class BilinearInterpolation(luigi.Task):
         save(self.output()[0], bilinear_fnames)
 
 
+class DEMExctraction(luigi.Task):
+    """
+    Extract the DEM covering the acquisition extents plus an
+    arbitrary buffer. The subset is then smoothed with a gaussian
+    filter.
+    """
+
+    l1t_path = luigi.Parameter()
+
+    def requires(self):
+        return []
+
+    def output(self):
+        subset_target = CONFIG.get('terrain_correction', 'dsm_subset')
+        smoothed_target = CONFIG.get('terrain_correction',
+            'dsm_smooth_subset')
+        targets = [luigi.LocalTarget(subset_target),
+                   luigi.LocalTarget(smoothed_target)]
+        return targets
+
+    def run(self):
+        acqs = gaip.acquisitions(self.l1t_path)
+        work_path = CONFIG.get('work', 'path')
+        national_dsm = CONFIG.get('ancillary', 'dem_tc')
+        subset_target = CONFIG.get('terrain_correction', 'dsm_subset')
+        smoothed_target = CONFIG.get('terrain_correction',
+            'dsm_smooth_subset')
+        buffer = CONFIG.get('terrain_correction', 'dsm_buffer_width')
+        dsm_subset_fname = pjoin(work_path, subset_target)
+        dsm_subset_smooth_fname = pjoin(work_path, smoothed_target)
+
+        gaip.get_dsm(acqs[0], national_dsm, dsm_subset_fname,
+                     dsm_subset_smooth_fname)
+
+
 class TerrainCorrection(luigi.Task):
     """Perform the terrain correction."""
 
