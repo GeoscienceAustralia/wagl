@@ -92,9 +92,11 @@ def run_tc(acquisitions, bilinear_ortho_filenames, dsm_buffer_width,
         None.
         The terrain correction algorithm will output 3 files for every
         band.
-        ref_lm_{band_number}.img -> Lambertian reflectance.
-        ref_brdf_{band_number}.img -> BRDF corrected reflectance.
-        ref_terrain_{band_number}.img -> Terrain corrected
+        reflectance_lambertian_{band_number}.bin -> Lambertian
+            reflectance.
+        reflectance_brdf_{band_number}.bin -> BRDF corrected
+            reflectance.
+        reflectance_terrain_{band_number}.bin -> Terrain corrected
             reflectance.
     """
     # Terrain correction working path
@@ -146,14 +148,14 @@ def run_tc(acquisitions, bilinear_ortho_filenames, dsm_buffer_width,
         resampling=RESAMPLING.bilinear)
 
     # Output the reprojected result
-    fname_DSM_subset = pjoin(tc_work_path, 'region_dsm_image.img')
+    fname_DSM_subset = pjoin(tc_work_path, 'region_dsm_image.bin')
     write_img(dsm_data, fname_DSM_subset, geobox=dem_geobox)
 
     # Smooth the DSM
     dsm_data = filter_dsm(dsm_data)
 
     # Output the smoothed DSM
-    fname_smDSM = pjoin(tc_work_path, 'region_dsm_image_smoothed.img')
+    fname_smDSM = pjoin(tc_work_path, 'region_dsm_image_smoothed.bin')
     write_img(dsm_data, fname_smDSM, geobox=dem_geobox)
 
 
@@ -181,7 +183,7 @@ def run_tc(acquisitions, bilinear_ortho_filenames, dsm_buffer_width,
         view_angle, sazi_angle, azi_angle, pixel_buf, is_utm, spheroid)
 
     # Output slope results
-    slope_results.write_arrays(tc_work_path, geobox, "ENVI", ".img")
+    slope_results.write_arrays(tc_work_path, geobox, "ENVI", ".bin")
 
     # Compute self shadow and view shadow
     shadow_s = run_castshadow(acquisitions[0], dsm_data, solar_angle,
@@ -193,8 +195,8 @@ def run_tc(acquisitions, bilinear_ortho_filenames, dsm_buffer_width,
         shadow_sub_matrix_width, spheroid)
 
     # Output the two shadow masks to disk
-    fname_shadow_s = pjoin(tc_work_path, 'shadow_s.img')
-    fname_shadow_v = pjoin(tc_work_path, 'shadow_v.img')
+    fname_shadow_s = pjoin(tc_work_path, 'shadow_self.bin')
+    fname_shadow_v = pjoin(tc_work_path, 'shadow_view.bin')
     write_img(shadow_s, fname_shadow_s, geobox=geobox, nodata=-999)
     write_img(shadow_v, fname_shadow_v, geobox=geobox, nodata=-999)
 
@@ -275,10 +277,11 @@ def run_tc(acquisitions, bilinear_ortho_filenames, dsm_buffer_width,
                 dtype=bilinear_dtype))
 
 
-        # Output filenames for lambertian, brdf and terrain corrected reflectance
-        lmbrt_fname = reflectance_filenames[(band_number, 'ref_lm')]
-        brdf_fname = reflectance_filenames[(band_number, 'ref_brdf')]
-        tc_fname = reflectance_filenames[(band_number, 'ref_terrain')]
+        # Filenames for lambertian, brdf & terrain corrected reflectance
+        lmbrt_fname = reflectance_filenames[(band_number,
+            'reflectance_lambertian')]
+        brdf_fname = reflectance_filenames[(band_number, 'reflectance_brdf')]
+        tc_fname = reflectance_filenames[(band_number, 'reflectance_terrain')]
 
         # Output the files.
         write_img(ref_lm, lmbrt_fname, geobox=geobox, nodata=-999)
