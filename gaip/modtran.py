@@ -72,7 +72,8 @@ def write_modtran_input(acquisitions, modtran_input_file, ozone, vapour,
         outfile.write("%f\n" % dechour)
 
 
-def write_modis_brdf_files(acquisitions, prefix, brdf_data):
+def write_modis_brdf_files(acquisitions, prefix, brdf_data, solar_irrad_data,
+        solar_dist_data):
     """Generate brdf input file."""
     ref_acqs = [a for a in acquisitions if a.band_type == gaip.REF]
 
