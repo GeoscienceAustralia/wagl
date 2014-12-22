@@ -20,6 +20,7 @@ from gaip import set_satmod
 from gaip import set_times
 
 CRS = "EPSG:4326"
+TLE_DIR = '/g/data1/v10/eoancillarydata/sensor-specific'
 
 # To be used as a template while gaip is restructured
 def sat_sol_grid_workflow(L1T_path, work_path, lonlat_path):
@@ -431,8 +432,7 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
     spheroid = setup_spheroid(prj)
 
     # Get the satellite orbital elements
-    tle_dir = '/g/data1/v10/eoancillarydata/sensor-specific'
-    sat_ephemeral = load_tle(acquisition, tle_dir)
+    sat_ephemeral = load_tle(acquisition, TLE_DIR)
 
     # If we have None, then no suitable TLE was found, so use values gathered
     # by the acquisition object
