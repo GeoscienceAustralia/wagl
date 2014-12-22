@@ -399,13 +399,22 @@ class WriteModisBrdfFiles(luigi.Task):
 
     l1t_path = luigi.Parameter()
 
+    def requires(self):
+        return [GetSolarIrradianceAncillaryData(self.l1t_path),
+                GetSolarDistanceAncillaryData(self.l1t_path)]
+
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
         modis_brdf_prefix = CONFIG.get('work', 'modis_brdf_prefix')
         brdf_target = CONFIG.get('work', 'brdf_target')
         brdf_data = load(brdf_target)
+        irrad_target = CONFIG.get('work', 'irrad_target')
+        irrad_data = load(irrad_target)
+        solar_dist_target = CONFIG.get('work', 'sundist_target')
+        solar_dist_data = load(solar_dist_target)
         # FIXME
-        gaip.write_modis_brdf_files(acqs, modis_brdf_prefix, brdf_data)
+        gaip.write_modis_brdf_files(acqs, modis_brdf_prefix, brdf_data,
+                                    solar_irrad_data, solar_dist_data)
 
 
 class RunModtranCorOrtho(luigi.Task):
