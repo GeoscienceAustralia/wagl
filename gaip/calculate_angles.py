@@ -45,11 +45,11 @@ def sat_sol_grid_workflow(L1T_path, work_path, lonlat_path):
     rows = acqs[0].lines
 
     # Define the output file names
-    sat_view_zenith_fname  = os.path.join(work_path, 'SAT_V.bin')
-    sat_azimuth_fname      = os.path.join(work_path, 'SAT_AZ.bin')
-    solar_zenith_fname     = os.path.join(work_path, 'SOL_Z.bin')
-    solar_azimuth_fname    = os.path.join(work_path, 'SOL_AZ.bin')
-    relative_azimuth_fname = os.path.join(work_path, 'REL_AZ.bin')
+    sat_view_zenith_fname  = os.path.join(work_path, 'SATELLITE_VIEW.bin')
+    sat_azimuth_fname      = os.path.join(work_path, 'SATELLITE_AZIMUTH.bin')
+    solar_zenith_fname     = os.path.join(work_path, 'SOLAR_ZENITH.bin')
+    solar_azimuth_fname    = os.path.join(work_path, 'SOLAR_AZIMUTH.bin')
+    relative_azimuth_fname = os.path.join(work_path, 'RELATIVE_AZIMUTH.bin')
     time_fname             = os.path.join(work_path, 'TIME.bin')
 
     out_fnames = [sat_view_zenith_fname, sat_azimuth_fname, solar_zenith_fname,
@@ -81,7 +81,7 @@ def create_centreline_file(geobox, y, x, n, cols, view_max, outdir,
         Details the column number starting at 0.
 
     :param n:
-        A 1D NumPy array of type int with the same shaoe as y & x.
+        A 1D NumPy array of type int with the same shape as y & x.
         Details whether or not the track point coordinate is
         averaged.
 
