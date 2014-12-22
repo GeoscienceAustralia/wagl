@@ -89,7 +89,7 @@ def get_lat_coordinate(y, x, geobox, geo_crs=None, centre=False):
 
 
 def create_lon_lat_grids(acquisition, depth=7, dtype='float64',
-                         lon_fname='LON.tif', lat_fname='LAT.tif',
+                         lon_fname='LON.bin', lat_fname='LAT.bin',
                          work_dir='', to_disk=True):
     """
     Creates 2 by 2D NumPy arrays containing longitude and latitude
@@ -146,7 +146,7 @@ def create_lon_lat_grids(acquisition, depth=7, dtype='float64',
 
     if to_disk:
         lon_fname = os.path.join(work_dir, lon_fname)
-        write_img(lon_arr, lon_fname, format='GTiff', geobox=geobox)
+        write_img(lon_arr, lon_fname, geobox=geobox)
         lon_arr = None
 
     lat_arr = numpy.zeros(shape, dtype=dtype)
@@ -155,7 +155,7 @@ def create_lon_lat_grids(acquisition, depth=7, dtype='float64',
 
     if to_disk:
         lat_fname = os.path.join(work_dir, lat_fname)
-        write_img(lat_arr, lat_fname, format='GTiff', geobox=geobox)
+        write_img(lat_arr, lat_fname, geobox=geobox)
         lat_arr = None
         return
     else:
@@ -199,7 +199,7 @@ def create_grid(acquisition, coord_fn, fname=None, depth=7, dtype='float64'):
                      eval_func=func, grid=arr)
 
     if fname is not None:
-        write_img(arr, fname, format='GTiff', geobox=geobox)
+        write_img(arr, fname, geobox=geobox)
     else:
         return arr
 
