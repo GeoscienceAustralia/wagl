@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 
+from rasterio.warp import RESAMPLING
+
 from gaip import Buffers
 from gaip import filter_dsm
+from gaip import GriddedGeoBox
+from gaip import reprojectFile2Array
+from gaip import write_img
 
 def get_dsm(acquisition, national_dsm, buffer, fname_subset, fname_smoothed):
     """
