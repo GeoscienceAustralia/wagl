@@ -1,33 +1,20 @@
-"""
-Runs the terrain correction. This code runs the terrain correction algorithm.
-"""
+#!/usr/bin/env python
 
 import gc
-import os
-from os.path import join as pjoin
-
-from rasterio.warp import RESAMPLING
 
 from gaip import write_img
-from gaip import find_file
 from gaip import read_img
 from gaip import load_2D_bin_file
-from gaip import calculate_angles as ca
-from gaip import run_slope
-from gaip import run_castshadow
-from gaip import run_brdfterrain
-from gaip import GriddedGeoBox
-from gaip import reprojectFile2Array
 from gaip import constants
-from gaip import Buffers
-from gaip import filter_dsm
 from gaip import write_header_slope_file
 from gaip import write_new_brdf_file
 
 
-def run_tc(acquisitions, bilinear_ortho_filenames, dsm_buffer_width,
-    shadow_sub_matrix_height, shadow_sub_matrix_width, rori, national_dsm,
-    work_path, outdir, reflectance_filenames):
+def run_tc(acquisitions, bilinear_ortho_filenames, rori, self_shadow_fname,
+        cast_shadow_sun_fname, cast_shadow_satellite_fname,
+        solar_zenith_fname, solar_azimuth_fname, satellite_view_fname,
+        relative_angle_fname, slope_fname, aspect_fname, incident_angle_fname,
+        exiting_angle_fname, relative_slope_fname, reflectance_filenames):
     """
     The terrain correction workflow.
 
@@ -40,44 +27,65 @@ def run_tc(acquisitions, bilinear_ortho_filenames, dsm_buffer_width,
         (band_number, factor) and the value corresponding to a full
         file pathname to the bilinearly interpolated flaot32 array.
         Valid factor strings are:
-            fv
-            fs
-            b
-            s
-            a
-            dir
-            dif
-            ts
-
-    :param dsm_buffer_width:
-        The buffer in pixels around the acquisition dimensions. Used
-        for the extracting a subset from the national digital surface
-        model.
-
-    :param shadow_sub_matrix_height:
-        The height (rows) of the window/submatrix used in the cast
-        shadow algorithm.
-
-    :param shadow_sub_matrix_width:
-        The width (rows) of the window/submatrix used in the cast
-        shadow algorithm.
+            * fv: MODTRAN output (fv).
+            * fs: MODTRAN output (fs).
+            * b: MODTRAN output (b).
+            * s: MODTRAN output (s).
+            * a: MODTRAN output (a).
+            * dir: MODTRAN output (direct irradiance).
+            * dif: MODTRAN output (diffuse irradiance).
+            * ts: MODTRAN output (ts).
 
     :param rori:
         Threshold for terrain correction.
 
-    :param national_dsm:
-        A string containing the full file system path to the national
-        digital surface model image file.
+    :param self_shadow_fname:
+        A string containing the full file path name to the self
+        shadow mask image.
 
-    :param work_path:
-        A full file system path to the working directory.
-        Intermediate files will be saved to
-        `work_path/tc_intermediates`.
+    :param cast_shadow_sun_fname:
+        A string containing the full file path name to the sun cast
+        shadow mask image.
 
-    :param outdir:
-        A full file system path to the output directory that will
-        contain the various lambertian, brdf and terrain corrected
-        reflectance images.
+    :param cast_shadow_satellite_fname:
+        A string containing the full file path name to the satellite
+        cast shadow mask image.
+
+    :param solar_zenith_fname:
+        A string containing the full file path name to the solar
+        zenith angle image.
+
+    :param solar_azimuth_fname:
+        A string containing the full file path name to the solar
+        azimuth angle image.
+
+    :param satellite_view_fname:
+        A string containing the full file path name to the satellite
+        view angle image.
+
+    :param relative_angle_fname:
+        A string containing the full file path name to the relative
+        angle image.
+
+    :param slope_fname:
+        A string containing the full file path name to the slope
+        image.
+
+    :param aspect_fname:
+        A string containing the full file path name to the aspect
+        image.
+
+    :param incident_angle_fname:
+        A string containing the full file path name to the incident
+        angle image.
+
+    :param exiting_angle_fname:
+        A string containing the full file path name to the exiting
+        angle image.
+
+    :param relative_slope_fname:
+        A string containing the full file path name to the relative
+        slope image.
 
     :param reflectance_filenames:
         A dictionary with keys specified via a tuple of
@@ -91,133 +99,83 @@ def run_tc(acquisitions, bilinear_ortho_filenames, dsm_buffer_width,
     :return:
         None.
         The terrain correction algorithm will output 3 files for every
-        band.
+        band in the following format.
         reflectance_lambertian_{band_number}.bin -> Lambertian
             reflectance.
         reflectance_brdf_{band_number}.bin -> BRDF corrected
             reflectance.
         reflectance_terrain_{band_number}.bin -> Terrain corrected
             reflectance.
+
+    :notes:
+        Arrays will be converted to the required datatype and
+        transposed. The trnasposing should prevent array copies
+        being made by F2Py. The results are transposed back before
+        being written to disk.
+        All arrays should have the same dimensions.
+        Required datatypes are as follows:
+            * acquisitions: `numpy.int16`
+            * self_shadow: `numpy.int16`
+            * cast_shadow_sun: `numpy.int16`
+            * cast_shadow_satellite: `numpy.int16`
+            * solar_zenith: `numpy.float32`
+            * solar_azimuth: `numpy.float32`
+            * satellite_view: `numpy.float32`
+            * relative_angle: `numpy.float32`
+            * slope: `numpy.float32`
+            * aspect: `numpy.float32`
+            * incident_angle: `numpy.float32`
+            * exiting_angle: `numpy.float32`
+            * relative_slope: `numpy.float32`
+            * MODTRAN outputs: `numpy.float32`
+
+        The acquisitions will be converted internally to int32 on a
+        row by row basis.
     """
-    # Terrain correction working path
-    tc_work_path = pjoin(work_path, 'tc_intermediates')
-    try:
-        os.mkdir(tc_work_path)
-    except OSError:
-        if not os.path.exists(tc_work_path):
-            msg = ("Error creating directory for terrain correction "
-                   "intermediates.")
-            print msg
-            raise
-
-    # Terrain corrected image outputs directory
-    tc_outdir = outdir
-    try:
-        os.mkdir(tc_outdir)
-    except OSError:
-        if not os.path.exists(tc_outdir):
-            msg = ("Error creating directory for terrain corrected "
-                   "output files.")
-            print msg
-            raise
-
-    # Use the 1st acquisition to setup the geobox
-    geobox = acquisitions[0].gridded_geo_box()
-
-    # Retrive the spheroid parameters
-    # (used in calculating pixel size in metres per lat/lon)
-    spheroid = ca.setup_spheroid(geobox.crs.ExportToWkt())
-
-    # Are we in projected or geographic space
-    is_utm = not geobox.crs.IsGeographic()
-
-    # Define Top, Bottom, Left, Right pixel buffers
-    pixel_buf = Buffers(dsm_buffer_width)
-
-    # Get the dimensions and geobox of the new image
-    dem_cols = geobox.getShapeXY()[0] + pixel_buf.left + pixel_buf.right
-    dem_rows = geobox.getShapeXY()[1] + pixel_buf.top + pixel_buf.bottom
-    dem_shape = (dem_rows, dem_cols)
-    dem_origin = geobox.convert_coordinates((0 - pixel_buf.left,
-        0 - pixel_buf.top))
-    dem_geobox = GriddedGeoBox(dem_shape, origin=dem_origin,
-        pixelsize=geobox.pixelsize, crs=geobox.crs.ExportToWkt())
-
-    # Retrive the DSM data
-    dsm_data = reprojectFile2Array(national_dsm, dst_geobox=dem_geobox,
-        resampling=RESAMPLING.bilinear)
-
-    # Output the reprojected result
-    fname_DSM_subset = pjoin(tc_work_path, 'region_dsm_image.bin')
-    write_img(dsm_data, fname_DSM_subset, geobox=dem_geobox)
-
-    # Smooth the DSM
-    dsm_data = filter_dsm(dsm_data)
-
-    # Output the smoothed DSM
-    fname_smDSM = pjoin(tc_work_path, 'region_dsm_image_smoothed.bin')
-    write_img(dsm_data, fname_smDSM, geobox=dem_geobox)
-
-
-    # write the equivalent input file for Fuqin.
-    write_header_slope_file(pjoin(tc_work_path, 'SLOPE_ANGLE_INPUTS'),
-        pixel_buf, geobox)
-
-    # solar angle data
-    fname = find_file(work_path, 'SOLAR_ZENITH.bin')
-    solar_angle = read_img(fname)
-    fname = find_file(work_path, 'SOLAR_AZIMUTH.bin')
-    sazi_angle = read_img(fname)
-    
-    # satellite angle data
-    fname = find_file(work_path, 'SATELLITE_VIEW.bin')
-    view_angle = read_img(fname)
-    fname = find_file(work_path, 'SATELLITE_AZIMUTH.bin')
-    azi_angle = read_img(fname)
-    fname = find_file(work_path, 'RELATIVE_AZIMUTH.bin')
-    rela_angle = read_img(fname)
-
-
-    # calculate the slope and angle
-    slope_results = run_slope(acquisitions[0], dsm_data, solar_angle,
-        view_angle, sazi_angle, azi_angle, pixel_buf, is_utm, spheroid)
-
-    # Output slope results
-    slope_results.write_arrays(tc_work_path, geobox, "ENVI", ".bin")
-
-    # Compute sun shadow and view (satellite) shadow
-    shadow_s = run_castshadow(acquisitions[0], dsm_data, solar_angle,
-        sazi_angle, pixel_buf, shadow_sub_matrix_height,
-        shadow_sub_matrix_width, spheroid)
-
-    shadow_v = run_castshadow(acquisitions[0], dsm_data, view_angle,
-        azi_angle, pixel_buf, shadow_sub_matrix_height,
-        shadow_sub_matrix_width, spheroid)
-
-    # Output the two shadow masks to disk
-    fname_shadow_s = pjoin(tc_work_path, 'cast_shadow_sun.bin')
-    fname_shadow_v = pjoin(tc_work_path, 'cast_shadow_satellite.bin')
-    write_img(shadow_s, fname_shadow_s, geobox=geobox, nodata=-999)
-    write_img(shadow_v, fname_shadow_v, geobox=geobox, nodata=-999)
-
     # load the line starts and ends.
     rows, cols = geobox.shape
 
     # Specify the biliner binary files datatype
-    boo = bilinear_ortho_filenames
+    boo_fnames = bilinear_ortho_filenames
     bilinear_dtype = 'float32'
-
-    # this process runs close to the wind on memory... get rid of everything for now.
-    gc.collect()
 
     # Retrieve the satellite and sensor for the acquisition
     satellite = acquisitions[0].spacecraft_id
     sensor = acquisitions[0].sensor_id
 
-    # Get the r processing
+    # Get the average reflectance values per band
     nbar_constants = constants.NBARConstants(satellite, sensor)
     avg_reflectance_values = nbar_constants.getAvgReflut()
 
+    # Read arrays into memory
+    # Convert to the appropriate datatype and transpose the array to convert
+    # to Fortran contiguous memory. This should prevent any array copying
+    self_shadow = as_array(read_image(self_shadow_fname), dtype=numpy.int16,
+        transpose=True)
+    cast_shadow_sun = as_array(read_image(cast_shadow_sun_fname),
+        dtype=numpy.int16, transpose=True)
+    cast_shadow_satellite = as_array(read_image(cast_shadow_satellite_fname),
+        dtype=numpy.int16, transpose=True)
+    solar_zenith = as_array(read_image(solar_zenith_fname),
+        dtype=numpy.float32, transpose=True)
+    solar_azimuth = as_array(read_image(solar_azimuth_fname),
+        dtype=numpy.float32, transpose=True)
+    satellite_view = as_array(read_image(satellite_view_fname),
+        dtype=numpy.float32, transpose=True)
+    relative_angle = as_array(read_image(relative_angle_fname),
+        dtype=numpy.float32, transpose=True)
+    slope = as_array(read_image(slope_fname), dtype=numpy.float32,
+        transpose=True)
+    aspect = as_array(read_image(aspect_fname), dtype=numpy.float32,
+        transpose=True)
+    incident_angle = as_array(read_image(incident_angle_fname),
+        dtype=numpy.float32, transpose=True)
+    exiting_angle = as_array(read_image(exiting_angle_fname),
+        dtype=numpy.float32, transpose=True)
+    relative_slope = as_array(read_image(relative_slope_fname),
+        dtype=numpy.float32, transpose=True)
+
+    # Loop over each acquisition and compute various reflectance arrays
     for acq in acquisitions:
         band_number = acq.band_num
 
@@ -237,44 +195,44 @@ def run_tc(acquisitions, bilinear_ortho_filenames, dsm_buffer_width,
             rori, brdf0, brdf1, brdf2, bias, slope_ca, esun, dd,
             avg_reflectance_values[band_number])
 
-        # Read the data
-        band_data = acq.data()
+        # Read the data; convert to required dtype and transpose
+        band_data = make_array(acq.data(), dtype=numpy.int16, transpose=True)
 
         # Run terrain correction
-	ref_lm, ref_brdf, ref_terrain = run_brdfterrain(
+	ref_lm, ref_brdf, ref_terrain = terrain_correction(
 	    rori,
 	    brdf0, brdf1, brdf2,
 	    bias, slope_ca, esun, dd,
 	    avg_reflectance_values[band_number],
 	    band_data,
-	    slope_results.mask_self,
-	    shadow_s,
-	    shadow_v,
-	    solar_angle,
-	    sazi_angle,
-	    view_angle,
-	    rela_angle,
-	    slope_results.slope,
-	    slope_results.aspect,
-	    slope_results.incident,
-	    slope_results.exiting,
-	    slope_results.rela_slope,
-	    load_2D_bin_file(boo[(band_number, 'a')], rows, cols,
-                dtype=bilinear_dtype),
-	    load_2D_bin_file(boo[(band_number, 'b')], rows, cols,
-                dtype=bilinear_dtype),
-	    load_2D_bin_file(boo[(band_number, 's')], rows, cols,
-                dtype=bilinear_dtype),
-	    load_2D_bin_file(boo[(band_number, 'fs')], rows, cols,
-                dtype=bilinear_dtype),
-	    load_2D_bin_file(boo[(band_number, 'fv')], rows, cols,
-                dtype=bilinear_dtype),
-	    load_2D_bin_file(boo[(band_number, 'ts')], rows, cols,
-                dtype=bilinear_dtype),
-	    load_2D_bin_file(boo[(band_number, 'dir')], rows, cols,
-                dtype=bilinear_dtype),
-	    load_2D_bin_file(boo[(band_number, 'dif')], rows, cols,
-                dtype=bilinear_dtype))
+	    self_shadow,
+	    cast_shadow_sun,
+	    cast_shadow_satellite,
+	    solar_zenith,
+	    solar_azimuth,
+	    satellite_view,
+	    relative_angle,
+	    slope,
+	    aspect,
+	    incident_angle,
+	    exiting_angle,
+	    relative_slope,
+	    load_2D_bin_file(boo_fnames[(band_number, 'a')], rows, cols,
+                dtype=bilinear_dtype, transpose=True),
+	    load_2D_bin_file(boo_fnames[(band_number, 'b')], rows, cols,
+                dtype=bilinear_dtype, transpose=True),
+	    load_2D_bin_file(boo_fnames[(band_number, 's')], rows, cols,
+                dtype=bilinear_dtype, transpose=True),
+	    load_2D_bin_file(boo_fnames[(band_number, 'fs')], rows, cols,
+                dtype=bilinear_dtype, transpose=True),
+	    load_2D_bin_file(boo_fnames[(band_number, 'fv')], rows, cols,
+                dtype=bilinear_dtype, transpose=True),
+	    load_2D_bin_file(boo_fnames[(band_number, 'ts')], rows, cols,
+                dtype=bilinear_dtype, transpose=True),
+	    load_2D_bin_file(boo_fnames[(band_number, 'dir')], rows, cols,
+                dtype=bilinear_dtype, transpose=True),
+	    load_2D_bin_file(boo_fnames[(band_number, 'dif')], rows, cols,
+                dtype=bilinear_dtype, transpose=True))
 
 
         # Filenames for lambertian, brdf & terrain corrected reflectance
@@ -283,10 +241,11 @@ def run_tc(acquisitions, bilinear_ortho_filenames, dsm_buffer_width,
         brdf_fname = reflectance_filenames[(band_number, 'reflectance_brdf')]
         tc_fname = reflectance_filenames[(band_number, 'reflectance_terrain')]
 
-        # Output the files.
-        write_img(ref_lm, lmbrt_fname, geobox=geobox, nodata=-999)
-        write_img(ref_brdf, brdf_fname, geobox=geobox, nodata=-999)
-        write_img(ref_terrain, tc_fname, geobox=geobox, nodata=-999)
-        
+        # Output the files, remember to transpose back
+        write_img(ref_lm.transpose(), lmbrt_fname, geobox=geobox, nodata=-999)
+        write_img(ref_brdf.transpose(), brdf_fname, geobox=geobox, nodata=-999)
+        write_img(ref_terrain.transpose(), tc_fname, geobox=geobox, nodata=-999)
+
+        # Free the memory
         ref_lm = ref_brdf = ref_terrain = None
         gc.collect()
