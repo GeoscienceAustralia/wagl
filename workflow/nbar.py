@@ -268,7 +268,7 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
                 CalculateLonGrid(self.l1t_path)]
 
     def output(self):
-        targets = [CONFIG.get('work', 'sat_view_zenith_target'),
+        targets = [CONFIG.get('work', 'sat_view_target'),
                    CONFIG.get('work', 'sat_azimuth_target'),
                    CONFIG.get('work', 'solar_zenith_target'),
                    CONFIG.get('work', 'solar_azimuth_target'),
@@ -279,7 +279,7 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
         return [luigi.LocalTarget(t) for t in targets]
 
     def run(self):
-        targets = [CONFIG.get('work', 'sat_view_zenith_target'),
+        targets = [CONFIG.get('work', 'sat_view_target'),
                    CONFIG.get('work', 'sat_azimuth_target'),
                    CONFIG.get('work', 'solar_zenith_target'),
                    CONFIG.get('work', 'solar_azimuth_target'),
@@ -887,27 +887,109 @@ class DEMExctraction(luigi.Task):
         return []
 
     def output(self):
-        subset_target = CONFIG.get('terrain_correction', 'dsm_subset')
-        smoothed_target = CONFIG.get('terrain_correction',
-            'dsm_smooth_subset')
+        work_path = CONFIG.get('work', 'tc_intermediates')
+        subset_target = pjoin(work_path,
+            CONFIG.get('extract_dsm', 'dsm_subset'))
+        smoothed_target = pjoin(work_path,
+            CONFIG.get('extract_dsm', 'dsm_smooth_subset')
         targets = [luigi.LocalTarget(subset_target),
                    luigi.LocalTarget(smoothed_target)]
         return targets
 
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
-        work_path = CONFIG.get('work', 'path')
+        work_path = CONFIG.get('work', 'tc_intermediates')
         national_dsm = CONFIG.get('ancillary', 'dem_tc')
-        subset_target = CONFIG.get('terrain_correction', 'dsm_subset')
-        smoothed_target = CONFIG.get('terrain_correction',
-            'dsm_smooth_subset')
-        buffer = CONFIG.get('terrain_correction', 'dsm_buffer_width')
+        subset_target = CONFIG.get('extract_dsm', 'dsm_subset')
+        smoothed_target = CONFIG.get('extract_dsm', 'dsm_smooth_subset')
+        buffer = CONFIG.get('extract_dsm', 'dsm_buffer_width')
         dsm_subset_fname = pjoin(work_path, subset_target)
         dsm_subset_smooth_fname = pjoin(work_path, smoothed_target)
 
         gaip.get_dsm(acqs[0], national_dsm, dsm_subset_fname,
                      dsm_subset_smooth_fname)
 
+def SlopeAndSelfShadow(luigi.Task):
+    """
+    Compute the slope, aspect, incident, azimuth incident, exiting,
+    azimuth exiting, relative slope angles, and a self shadow mask.
+    """
+
+    l1t_path = luigi.Parameter()
+
+    def requires(self):
+        return [CalculateSatelliteAndSolarGrids(self.l1t_path),
+                DEMExctraction(self.l1t_path)]
+
+    def output(self):
+        work_path = CONFIG.get('work', 'tc_intermediates')
+        # These could've been under the work config, but i thought it might be
+        # an ok idea to separate these targets into their own section
+        slope_target = pjoin(work_path,
+            CONFIG.get('self_shadow', 'slope_target'))
+        aspect_target = pjoin(work_path,
+            CONFIG.get('self_shadow', 'aspect_target'))
+        incident_target = pjoin(work_path,
+            CONFIG.get('self_shadow', 'incident_target'))
+        azi_incident_target = pjoin(work_path,
+            CONFIG.get('self_shadow', 'azimuth_incident_target'))
+        exiting_target = pjoin(work_path,
+            CONFIG.get('self_shadow', 'exiting_target'))
+        azi_exiting_target = pjoin(work_path,
+            CONFIG.get('self_shadow', 'azimuth_exiting_target'))
+        relative_slope_target = pjoin(work_path,
+            CONFIG.get('self_shadow', 'relative_slope_target'))
+        self_shadow_target = pjoin(work_path,
+            CONFIG.get('self_shadow', 'self_shadow_target'))
+
+        targets = [luigi.LocalTarget(self_shadow_target),
+                   luigi.LocalTarget(slope_target),
+                   luigi.LocalTarget(aspect_target),
+                   luigi.LocalTarget(incident_target),
+                   luigi.LocalTarget(exiting_target),
+                   luigi.LocalTarget(azi_incident_target),
+                   luigi.LocalTarget(azi_exiting_target),
+                   luigi.LocalTarget(relative_slope_target)]
+        return targets
+
+    def run(self):
+        acqs = gaip.acquisitions(self.l1t_path)
+        work_path = CONFIG.get('work', 'tc_intermediates')
+
+        # Input targets
+        satellite_view_fname = CONFIG.get('work', 'sat_view_target')
+        satellite_azimuth_fname = CONFIG.get('work', 'sat_azimuth_target')
+        solar_zenith_fname = CONFIG.get('work', 'solar_zenith_target')
+        solar_azimuth_fname = CONFIG.get('work', 'solar_azimuth_target')
+        smoothed_dsm_fname = pjoin(work_path,
+            CONFIG.get('extract_dsm', 'dsm_smooth_subset')
+        buffer = CONFIG.get('extract_dsm', 'dsm_buffer_width')
+
+        # Output targets
+        self_shadow_target = pjoin(work_path,
+            CONFIG.get('self_shadow', 'self_shadow_target'))
+        slope_target = pjoin(work_path,
+            CONFIG.get('self_shadow', 'slope_target'))
+        aspect_target = pjoin(work_path,
+            CONFIG.get('self_shadow', 'aspect_target'))
+        incident_target = pjoin(work_path,
+            CONFIG.get('self_shadow', 'incident_target'))
+        exiting_target = pjoin(work_path,
+            CONFIG.get('self_shadow', 'exiting_target'))
+        azi_incident_target = pjoin(work_path,
+            CONFIG.get('self_shadow', 'azimuth_incident_target'))
+        azi_exiting_target = pjoin(work_path,
+            CONFIG.get('self_shadow', 'azimuth_exiting_target'))
+        relative_slope_target = pjoin(work_path,
+            CONFIG.get('self_shadow', 'relative_slope_target'))
+
+        out_targets = [self_shadow_target, slope_target, aspect_target,
+                       incident_target, exiting_target, azi_incident_target,
+                       azi_exiting_target, relative_slope_target]
+
+        gaip.calculate_self_shadow(acqs[0], smoothed_dsm_fname, buffer, 
+            solar_zenith_fname, solar_azimuth_fname,
+            satellite_view_fname, satellite_azimuth_fname, out_targets)
 
 class TerrainCorrection(luigi.Task):
     """Perform the terrain correction."""
