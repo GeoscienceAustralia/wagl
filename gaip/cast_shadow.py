@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from gaip import Buffers
 from gaip import calculate_angles as ca
 from gaip import read_img
 from gaip import run_castshadow
@@ -21,10 +22,12 @@ def calculate_cast_shadow(acquisition, DSM_fname, buffer, block_height,
         corresponding sides of DSM.
 
     :param block_height:
-        The height of the sub-array to be embedded (see notes above).
+        The height (rows) of the window/submatrix used in the cast
+        shadow algorithm.
 
     :param block_width:
-        The width of the sub-array to be embedded (see notes above).
+        The width (rows) of the window/submatrix used in the cast
+        shadow algorithm.
 
     :param view_angle_fname:
         A string containing the full file path name to the view
