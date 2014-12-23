@@ -991,6 +991,109 @@ def SlopeAndSelfShadow(luigi.Task):
             solar_zenith_fname, solar_azimuth_fname,
             satellite_view_fname, satellite_azimuth_fname, out_targets)
 
+
+class CalculateCastShadow(luigi.Task):
+    """Calculate cast shadow masks. This is a helper task."""
+
+    l1t_path = luigi.Parameter()
+
+    def requires(self):
+        return [CalculateCastShadowSun(self.l1t_path),
+                CalculateCastShadowSatellite(self.l1t_path)]
+
+
+class CalculateCastShadowSun(luigi.Task):
+    """
+    Calculates the Cast shadow mask in the direction back to the
+    sun.
+    """
+
+    l1t_path = luigi.Parameter()
+
+    def requires(self):
+        return [CalculateSatelliteAndSolarGrids(self.l1t_path),
+                DEMExctraction(self.l1t_path)]
+
+    def output(self):
+        work_path = CONFIG.get('work', 'tc_intermediates')
+        sun_target = pjoin(work_path,
+            CONFIG.get('cast_shadow', 'sun_direction_target'))
+
+        target = luigi.LocalTarget(sun_target)
+
+        return target 
+
+    def run(self):
+        acqs = gaip.acquisitions(self.l1t_path)
+        work_path = CONFIG.get('work', 'tc_intermediates')
+
+        # Input targets
+        smoothed_dsm_fname = pjoin(work_path,
+            CONFIG.get('extract_dsm', 'dsm_smooth_subset')
+        solar_zenith_fname = CONFIG.get('work', 'solar_zenith_target')
+        solar_azimuth_fname = CONFIG.get('work', 'solar_azimuth_target')
+        buffer = CONFIG.get('extract_dsm', 'dsm_buffer_width')
+        window_height = CONFIG.get('terrain_correction',
+            'shadow_sub_matrix_height')
+        window_width = CONFIG.get('terrain_correction',
+            'shadow_sub_matrix_width')
+
+        # Output targets
+        sun_target = pjoin(work_path,
+            CONFIG.get('cast_shadow', 'sun_direction_target'))
+
+        gaip.calculate_cast_shadow(acqs[0], smoothed_dsm_fname, buffer,
+                                   window_height, window_width,
+                                   solar_zenith_fname, solar_azimuth_fname,
+                                   sun_target)
+
+
+class CalculateCastShadowSatellite(luigi.Task):
+    """
+    Calculates the Cast shadow mask in the direction back to the
+    sun.
+    """
+
+    l1t_path = luigi.Parameter()
+
+    def requires(self):
+        return [CalculateSatelliteAndSolarGrids(self.l1t_path),
+                DEMExctraction(self.l1t_path)]
+
+    def output(self):
+        work_path = CONFIG.get('work', 'tc_intermediates')
+        satellite_target = pjoin(work_path,
+            CONFIG.get('cast_shadow', 'satellite_direction_target'))
+
+        target = luigi.LocalTarget(satellite_target)
+
+        return target
+
+    def run(self):
+        acqs = gaip.acquisitions(self.l1t_path)
+        work_path = CONFIG.get('work', 'tc_intermediates')
+
+        # Input targets
+        smoothed_dsm_fname = pjoin(work_path,
+            CONFIG.get('extract_dsm', 'dsm_smooth_subset')
+        satellite_view_fname = CONFIG.get('work', 'sat_view_target')
+        satellite_azimuth_fname = CONFIG.get('work', 'sat_azimuth_target')
+        buffer = CONFIG.get('extract_dsm', 'dsm_buffer_width')
+        window_height = CONFIG.get('terrain_correction',
+            'shadow_sub_matrix_height')
+        window_width = CONFIG.get('terrain_correction',
+            'shadow_sub_matrix_width')
+
+        # Output targets
+        satellite_target = pjoin(work_path,
+            CONFIG.get('cast_shadow', 'satellite_sirection_target'))
+
+        gaip.calculate_cast_shadow(acqs[0], smoothed_dsm_fname, buffer,
+                                   window_height, window_width,
+                                   satellite_view_fname,
+                                   satellite_azimuth_fname, satellite_target)
+
+
 class TerrainCorrection(luigi.Task):
     """Perform the terrain correction."""
 
