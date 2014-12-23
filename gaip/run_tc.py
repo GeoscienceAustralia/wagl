@@ -8,6 +8,7 @@ from gaip import load_2D_bin_file
 from gaip import constants
 from gaip import write_header_slope_file
 from gaip import write_new_brdf_file
+from gaip import terrain_correction
 
 
 def run_tc(acquisitions, bilinear_ortho_filenames, rori, self_shadow_fname,
