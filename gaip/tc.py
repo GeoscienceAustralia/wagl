@@ -1,9 +1,11 @@
 import os
+
 import numpy
 from scipy import ndimage
+
+from gaip import as_array
 from gaip import shade_main_landsat_pixel
 from gaip import slope_pixelsize_newpole
-from gaip import as_array
 from gaip import write_img
 
 
