@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import os
 from os.path import join as pjoin
 from os.path import exists as pexists
 import unittest
@@ -14,16 +15,14 @@ from gaip.tests.unittesting_tools import ParameterisedTestCase
 
 #TODO Filename to be determined from the nbar.cfg file
 
-def calculate_cast_shadow_sun(acquisition, ref_dir, outdir, pixel_buffer=250,
-                          block_height=500, block_width=500):
+def calculate_cast_shadow_sun(acquisition, ref_dir, outdir, buffer=250,
+        block_height=500, block_width=500):
     """
     Calculates the cast shadow from the direction of the sun.
     """
-    # Define the pixel buffer
-    buffer = 250
-
     # TC_Intermediates directory
     tc_dir = pjoin(ref_dir, 'TC_Intermediates')
+    tc_outdir = pjoin(outdir, 'TC_Intermediates')
 
     # Check and load the required files from disk
     fname_solar_zenith  = find_file(ref_dir, 'SOLAR_ZENITH.bin')
@@ -31,7 +30,7 @@ def calculate_cast_shadow_sun(acquisition, ref_dir, outdir, pixel_buffer=250,
     fname_smoothed_dsm  = find_file(tc_dir, 'dsm_subset_smoothed.bin')
 
     # Define the output filename
-    outfname = pjoin(outdir, 'cast_shadow_sun.bin')
+    outfname = pjoin(tc_outdir, 'cast_shadow_sun.bin')
 
     # Compute the satellite view cast shadow mask
     calculate_cast_shadow(acquisition, fname_smoothed_dsm, buffer,

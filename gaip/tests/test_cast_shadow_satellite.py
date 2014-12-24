@@ -16,17 +16,15 @@ from gaip.tests.unittesting_tools import ParameterisedTestCase
 
 #TODO Filename to be determined from the nbar.cfg file
 
-def calculate_cast_shadow_satellite(geobox, ref_dir, outdir, pixel_buffer=250,
-                          block_height=500, block_width=500):
+def calculate_cast_shadow_satellite(acquisition, ref_dir, outdir, buffer=250,
+        block_height=500, block_width=500):
     """
     Calculates the cast shadow mask from the vantage point of the
     satellite.
     """
-    # Define the pixel buffer
-    buffer = 250
-
     # TC_Intermediates directory
     tc_dir = pjoin(ref_dir, 'TC_Intermediates')
+    tc_outdir = pjoin(outdir, 'TC_Intermediates')
 
     # Check and load the required files from disk
     fname_satellite_view   = find_file(ref_dir, 'SATELLITE_VIEW.bin')
@@ -34,7 +32,7 @@ def calculate_cast_shadow_satellite(geobox, ref_dir, outdir, pixel_buffer=250,
     fname_smoothed_dsm     = find_file(tc_dir, 'dsm_subset_smoothed.bin')
 
     # Define the output filename
-    outfname = pjoin(outdir, 'cast_shadow_satellite.bin')
+    outfname = pjoin(tc_outdir, 'cast_shadow_satellite.bin')
 
     # Compute the satellite view cast shadow mask
     calculate_cast_shadow(acquisition, fname_smoothed_dsm, buffer,
