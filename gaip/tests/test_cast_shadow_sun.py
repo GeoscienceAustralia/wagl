@@ -2,102 +2,96 @@
 
 import argparse
 import os
+from os.path import join as pjoin
+from os.path import exists as pexists
 import unittest
 
 import numpy.testing as npt
 
 from gaip import acquisitions
-from gaip import calculate_angles as ca
 from gaip import find_file
-from gaip import gridded_geo_box
 from gaip import read_img
-from gaip import write_img
 from gaip.tests.unittesting_tools import ParameterisedTestCase
-from ULA3._gdal_tools import Buffers
-from ULA3.tc import run_castshadow
 
-def calculate_view_shadow(geobox, ref_dir, outdir, pixel_buffer=250,
-                          block_height=500, block_width=500):
+#TODO Filename to be determined from the nbar.cfg file
+
+def calculate_cast_shadow_sun(acquisition, ref_dir, outdir, buffer=250,
+        block_height=500, block_width=500):
     """
-    Calculates the view shadow array.
+    Calculates the cast shadow from the direction of the sun.
     """
-    # Compute the geobox
-    geobox = gridded_geo_box(acquisition)
-
-    # Image projection, UTM(True/False)
-    prj    = geobox.crs.ExportToWkt()
-    is_utm = not geobox.crs.IsGeographic()
-
-    # Define the pixel buffering object
-    pixel_buf = Buffers(pixel_buffer)
+    # TC_Intermediates directory
+    tc_dir = pjoin(ref_dir, 'TC_Intermediates')
+    tc_outdir = pjoin(outdir, 'TC_Intermediates')
 
     # Check and load the required files from disk
-    fname_satellite_zenith  = 'SATELLITE_VIEW.bin'
-    fname_satellte_azimuth  = 'SATELLITE_AZIMUTH.bin'
-    fname_smoothed_dsm      = 'region_dsm_image_smoothed.bin'
+    fname_solar_zenith  = find_file(ref_dir, 'SOLAR_ZENITH.bin')
+    fname_solar_azimuth = find_file(ref_dir, 'SOLAR_AZIMUTH.bin')
+    fname_smoothed_dsm  = find_file(tc_dir, 'dsm_subset_smoothed.bin')
 
-    zen_angle = read_img(find_file(ref_dir, fname_satellite_zenith))
-    azi_angle = read_img(find_file(ref_dir, fname_satellte_azimuth))
+    # Define the output filename
+    outfname = pjoin(tc_outdir, 'cast_shadow_sun.bin')
 
-    dsm = (read_img(find_file(ref_dir, fname_smoothed_dsm))).astype('float32')
-
-    # Retrive the spheroid parameters
-    # (used in calculating pixel size in metres per lat/lon)
-    spheroid = ca.setup_spheroid(prj)
-
-    # Compute the self shadow
-    shadow_self = run_castshadow(geobox, dsm, zen_angle, azi_angle,
-                                 pixel_buf, block_height, block_width,
-                                 is_utm, spheroid)
-
-    # Write the self shadow result to disk
-    outfname = os.path.join(outdir, 'shadow_view.bin')
-    write_img(shadow_self, outfname, geobox=geobox)
+    # Compute the satellite view cast shadow mask
+    calculate_cast_shadow(acquisition, fname_smoothed_dsm, buffer,
+        block_height, block_width, fname_solar_zenith,
+        fname_solar_azimuth, outfname)
 
 
-class TestViewShadowFileNames(ParameterisedTestCase):
+class TestCasthadowSunFileNames(ParameterisedTestCase):
     """
     Unittests will occur for the following files:
-    shadow_view.bin
+    cast_shadow_sun.bin
     """
 
-    ParameterisedTestCase.fname_view_shadow = 'shadow_view.bin'
+    # File of interest
+    ParameterisedTestCase.fname_cast_shadow_sun = 'cast_shadow_sun.bin'
 
-    def test_view_shadow_ref(self):
+    def test_cast_shadow_sun_ref(self):
         """
-        Check that the view shadow reference file exists.
+        Check that the cast shadow sun reference file exists.
         """
+        # TC_Intermediates directory
+        tc_dir = pjoin(self.reference_dir, 'TC_Intermediates')
 
-        fname = os.path.join(self.reference_dir, self.fname_view_shadow)
-        self.assertIs(os.path.exists(fname), True,
+        fname = pjoin(tc_dir, self.fname_cast_shadow_sun)
+        msg = 'Reference file does not exist: {fname}'.format(fname=fname)
+        self.assertIs(pexists(fname), True,
                       'Reference file does not exist: %s'%fname)
 
-    def test_view_shadow_tst(self):
+    def test_cast_shadow_sun_tst(self):
         """
-        Check that the view shadow test file exists.
+        Check that the cast shadow test file exists.
         """
+        # TC_Intermediates directory
+        tc_dir = pjoin(self.test_dir, 'TC_Intermediates')
 
-        fname = os.path.join(self.test_dir, self.fname_view_shadow)
-        self.assertIs(os.path.exists(fname), True,
+        fname = pjoin(tc_dir, self.fname_cast_shadow_sun)
+        msg = 'Test file does not exist: {fname}'.format(fname=fname)
+        self.assertIs(pexists(fname), True,
                       'Test file does not exist: %s'%fname)
 
 
-class TestViewShadowOutputs(ParameterisedTestCase):
+class TestCastShadowSunOutputs(ParameterisedTestCase):
     """
     Unittests will occur for the following files:
-    shadow_view.bin
+    cast_shadow_sun.bin
     """
 
-    ParameterisedTestCase.fname_view_shadow = 'shadow_view.bin'
+    # File of interest
+    ParameterisedTestCase.fname_cast_shadow_sun = 'cast_shadow_sun.bin'
 
-    def test_view_shadow(self):
+    def test_cast_shadow_sun(self):
         """
-        Test the view shadow image against the reference image.
+        Test the cast shadow sun mask against the reference mask.
         """
+        # TC_Intermediates directory (reference and test)
+        tc_ref_dir = pjoin(self.reference_dir, 'TC_Intermediates')
+        tc_tst_dir = pjoin(self.test_dir, 'TC_Intermediates')
 
         # Get the filenames for both the reference and test files
-        ref_fname  = find_file(self.reference_dir, self.fname_view_shadow)
-        test_fname = find_file(self.test_dir, self.fname_view_shadow)
+        ref_fname  = find_file(tc_ref_dir, self.fname_cast_shadow_sun)
+        test_fname = find_file(tc_tst_dir, self.fname_cast_shadow_sun)
 
         # Get the image data
         ref_img  = read_img(ref_fname)
@@ -113,15 +107,15 @@ class TestViewShadowOutputs(ParameterisedTestCase):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser = argparse.ArgumentParser(description='Perform unittesting for the view shadow array and optionaly calculates the view shadow array.')
+    parser = argparse.ArgumentParser(description='Perform unittesting for the cast shadow sun mask and optionaly calculates the cast shadow sun mask.')
 
     parser.add_argument('--L1T_dir', required=True, help='A directory path of a L1T scene.')
     parser.add_argument('--nbar_work_dir', required=True, help='A directory path to the associated NBAR working directory.')
     parser.add_argument('--outdir', required=True, help='A directory path that will contain the output files.')
     parser.add_argument('--dec_precision', default=4, type=int, help='The decimal precision used for array comparison')
     parser.add_argument('--int_precision', default=1, type=int, help='The integer precision used for array comparison')
-    parser.add_argument('--compute', action='store_true', help='If set then the view shadow array will be computed before running the unittests.')
-    parser.add_argument('--buffer', default=250, help='The buffer in pixels to be used in calculating the view shadow.')
+    parser.add_argument('--compute', action='store_true', help='If set then the self shadow array will be computed before running the unittests.')
+    parser.add_argument('--buffer', default=250, help='The buffer in pixels to be used in calculating the cast shadow sun mask.')
     parser.add_argument('--block_x', default=500, help='The x block size in pixels (Twice the buffer).')
     parser.add_argument('--block_y', default=500, help='The y block size in pixels (Twice the buffer)..')
 
@@ -139,7 +133,7 @@ if __name__ == '__main__':
 
     if compute:
         # Check the output directory
-        if not os.path.exists(outdir):
+        if not pexists(outdir):
             os.makedirs(outdir)
 
         # Get the current directory
@@ -152,7 +146,7 @@ if __name__ == '__main__':
         acqs = acquisitions(L1T_dir)
 
         # Compute the angles
-        calculate_view_shadow(acqs[0], nbar_work_dir, outdir, buffer,
+        calculate_self_shadow(acqs[0], nbar_work_dir, outdir, buffer,
                               block_y, block_x)
 
         # Close the L1T dataset
@@ -163,15 +157,16 @@ if __name__ == '__main__':
 
     print "Checking that we have all the reference and test data files neccessary."
     suite = unittest.TestSuite()
-    suite.addTest(ParameterisedTestCase.parameterise(TestViewShadowFileNames,
+    suite.addTest(ParameterisedTestCase.parameterise(
+                  TestCasthadowSunFileNames,
                   reference_dir=nbar_work_dir, test_dir=outdir,
                   decimal_precision=dec_precision,
                   integer_precision=int_precision))
     unittest.TextTestRunner(verbosity=2).run(suite)
 
-    print "Comparing the reference and test view shadow output files."
+    print "Comparing the reference and test cast shadow sun masks."
     suite = unittest.TestSuite()
-    suite.addTest(ParameterisedTestCase.parameterise(TestViewShadowOutputs,
+    suite.addTest(ParameterisedTestCase.parameterise(TestCastShadowSunOutputs,
                   reference_dir=nbar_work_dir, test_dir=outdir,
                   decimal_precision=dec_precision,
                   integer_precision=int_precision))

@@ -1,10 +1,11 @@
 import os
+
 import numpy
 from scipy import ndimage
+
+from gaip import as_array
 from gaip import shade_main_landsat_pixel
 from gaip import slope_pixelsize_newpole
-from gaip import terrain_correction
-from gaip import as_array
 from gaip import write_img
 
 
@@ -130,23 +131,27 @@ class SlopeResultSet(object):
         self.azi_exiting = azi_exiting
         self.rela_slope = rela_slope
 
-    def write_arrays(self, output_path, geobox, file_type='ENVI',
-        file_extension='.img'):
-
+    def write_arrays(self, geobox, out_fnames=None, file_type='ENVI',
+            file_extension='.bin'):
         # Filenames
-        fname_mask_self = os.path.join(output_path, 'mask_self' +
-            file_extension)
-        fname_slope = os.path.join(output_path, 'slope' + file_extension)
-        fname_aspect = os.path.join(output_path, 'aspect' + file_extension)
-        fname_incident = os.path.join(output_path, 'incident' +
-            file_extension)
-        fname_exiting = os.path.join(output_path, 'exiting' + file_extension)
-        fname_azimuth_incident = os.path.join(output_path, 'azi_incident' +
-            file_extension)
-        fname_azimuth_exiting = os.path.join(output_path, 'azi_exiting' +
-            file_extension)
-        fname_relative_slope = os.path.join(output_path, 'rela_slope' +
-            file_extension)
+        if (out_fnames is None) or (len(out_fnames) != 8):
+            fname_mask_self = 'self_shadow_mask' + file_extension
+            fname_slope = 'slope' + file_extension
+            fname_aspect = 'aspect' + file_extension
+            fname_incident = 'incident_angle' + file_extension
+            fname_exiting = 'exiting_angle' + file_extension
+            fname_azimuth_incident = 'azimuth_incident_angle' + file_extension
+            fname_azimuth_exiting = 'azimuth_exiting_angle' + file_extension
+            fname_relative_slope = 'relative_slope' + file_extension
+        else:
+            fname_mask_self = out_fnames[0]
+            fname_slope = out_fnames[1]
+            fname_aspect = out_fnames[2]
+            fname_incident = out_fnames[3]
+            fname_exiting = out_fnames[4]
+            fname_azimuth_incident = out_fnames[5]
+            fname_azimuth_exiting = out_fnames[6]
+            fname_relative_slope = out_fnames[7]
 
         # Write
         write_img(self.mask_self, fname_mask_self, format=file_type,
@@ -191,21 +196,12 @@ def run_slope(
     acquisition,
     DEM,
     solar_zenith,
-    satellite_zenith,
+    satellite_view,
     solar_azimuth,
     satellite_azimuth,
     buffer,
     is_utm,
-    spheroid,
-    output_type = "ENVI",
-    slope_dataset = None,
-    aspect_dataset = None,
-    incident_dataset = None,
-    azi_incident_dataset = None,
-    exiting_dataset = None,
-    azi_exiting_dataset = None,
-    rela_slope_dataset = None,
-    mask_self_dataset = None):
+    spheroid):
     """
     Calculate the slope and angles for a region. This code is an
     interface to the fortran code slope_pixel_newpole.f90 written by
@@ -230,8 +226,8 @@ def run_slope(
     :param solar_zenith:
         The solar zenith angle data for the region.
 
-    :param satellite_zenith:
-        The satellite zenith angle data for the region.
+    :param satellite_view:
+        The satellite view angle data for the region.
 
     :param solar_azimuth:
         The solar azimuth angle data for the region.
@@ -286,8 +282,8 @@ def run_slope(
         msg = msg.format(dtype=solar_zenith.dtype.name)
         raise TypeError(msg)
 
-    if satellite_zenith.dtype.name != 'float32':
-        msg = 'Satellite zenith datatype must be float32! Datatype: {dtype}'
+    if satellite_view.dtype.name != 'float32':
+        msg = 'Satellite view datatype must be float32! Datatype: {dtype}'
         msg = msg.format(dtype=satellite_zenith.dtype.name)
 
     if solar_azimuth.dtype.name != 'float32':
@@ -332,7 +328,7 @@ def run_slope(
         dresx, dresy, spheroid, alat, is_utm,
         dem_dat,
         solar_zenith,
-        satellite_zenith,
+        satellite_view,
         solar_azimuth,
         satellite_azimuth)
 
@@ -582,310 +578,3 @@ def run_castshadow(
         raise CastShadowError(ierr)
 
     return mask
-
-
-
-
-
-
-
-
-def run_brdfterrain(
-    rori, # threshold for terrain correction
-    brdf0, brdf1, brdf2, # BRDF parameters
-    bias, slope_ca, esun, dd, # satellite calibration coefficients
-    ref_adj, # average reflectance for terrain correction
-    dn_1, # raw image
-    mask_self, # mask
-    mask_castsun, # self shadow mask
-    mask_castview, # cast shadow mask
-    solar_angle, # solar zenith angle
-    sazi_angle, # solar azimuth angle
-    view_angle, # view angle (for flat surface)
-    rela_angle, # relative azimuth angle (for flat surface)
-    slope_angle, # slop angle
-    aspect_angle, # aspect angle
-    it_angle, # incident angle (for inclined surface)
-    et_angle, # exiting angle (for inclined surface)
-    rela_slope, # relative angle (for inclined surface)
-    a_mod, # MODTRAN output (a)
-    b_mod, # MODTRAN output (b)
-    s_mod, # MODTRAN output (s)
-    fs, # MODTRAN output (fs)
-    fv, # MODTRAN output (fv)
-    ts, # MODTRAN output (ts)
-    edir_h, # MODTRAN output (direct irradiance)
-    edif_h # MODTRAN output (diffuse irradiance)
-    ):
-    """
-    BRDF correction including terrain correction. This code is an
-    interface to the fortran code brdf_terrain_newdiff_LS8.f90
-    (which is compiled to a Python module using F2py).
-    The parameters have the same names as those used in that code...
-    so please see Fuqin for information on what they mean!
-
-    :param rori:
-        (type: float) Threshold for terrain correction.
-    :type rori:
-        float
-
-    :param brdf0:
-        (type: float) BRDF parameter.
-    :type brdf0:
-        float
-
-    :param brdf1:
-        (type: float) BRDF parameter.
-    :type brdf1:
-        float
-
-    :param brdf2:
-        (type: float) BRDF parameter.
-    :type brdf2:
-        float
-
-    :param bias:
-        (type: float) Satellite calibration coefficient.
-    :type bias:
-        float
-
-    :param slope_ca:
-        (type: float) Satellite calibration coefficient.
-    :type slope_cs:
-        float
-
-    :param esun:
-        (type: float) Satellite calibration coefficient.
-    :param esun:
-        float
-
-    :param dd:
-        (type: float) Satellite calibration coefficients.
-    :type dd:
-        float
-
-    :param ref_adj:
-        (type: float) Average reflectance for terrain correction.
-    :type ref_adj:
-        float
-
-    :param dn_1:
-        Raw image data.
-    :type dn_1:
-        Two dimensional :py:class:`numpy.ndarray` of type
-        :py:const:`numpy.int16`.
-
-    :param mask_self:
-        Mask of pixels where the incident angle is greater than 90
-        degrees. These pixels are excluded as there is no illumination
-        of the scene at these locations.
-    :type mask_self:
-        Array with the same dimensions as ``dn_1`` of type
-        :py:const:`numpy.int16`.
-        If not of the required datatype, then the input will be cast
-        to the required datatype.
-
-    :param mask_castsun:
-        Mask of pixels which are shaded by other objects. These pixels
-        are excluded as there is no illumination of the scene at these
-        locations.
-    :type mask_castsun:
-        Array with the same dimensions as ``dn_1`` of type
-        :py:const:`numpy.int16`.
-        If not of the required datatype, then the input will be cast
-        to the required datatype.
-
-    :param mask_castview:
-        Mask of pixels which are not visible to the satelite.
-    :type mask_castview:
-        Array with the same dimensions as ``dn_1`` of type
-        :py:const:`numpy.int16`.
-        If not of the required datatype, then the input will be cast
-        to the required datatype.
-
-    :param solar_angle:
-        The solar zenith angle.
-    :type solar_angle:
-        Array with the same dimensions as ``dn_1``of type
-        :py:const:`numpy.float32`.
-        If not of the required datatype, then the input will be cast
-        to the required datatype.
-
-    :param sazi_angle:
-        solar azimuth angle.
-    :type sazi_angle:
-        Array with the same dimensions as ``dn_1`` of type
-        :py:const:`numpy.float32`.
-        If not of the required datatype, then the input will be cast
-        to the required datatype.
-
-    :param view_angle:
-        view angle (for flat surface).
-    :type view_angle:
-        Array with the same dimensions as ``dn_1`` of type
-        :py:const:`numpy.float32`.
-        If not of the required datatype, then the input will be cast
-        to the required datatype.
-
-    :param rela_angle:
-        relative azimuth angle (for flat surface).
-    :type rela_angle:
-        Array with the same dimensions as ``dn_1`` of type
-        :py:const:`numpy.float32`.
-        If not of the required datatype, then the input will be cast
-        to the required datatype.
-
-    :param slope_angle:
-        slope angle.
-    :type slope_angle:
-        Array with the same dimensions as ``dn_1`` of type
-        :py:const:`numpy.float32`.
-        If not of the required datatype, then the input will be cast
-        to the required datatype.
-
-    :param aspect_angle:
-        aspect angle.
-    :type aspect_angle:
-        Array with the same dimensions as ``dn_1`` of type
-        :py:const:`numpy.float32`.
-        If not of the required datatype, then the input will be cast
-        to the required datatype.
-
-    :param it_angle:
-        incident angle (for inclined surface).
-    :type it_angle:
-        Array with the same dimensions as ``dn_1`` of type
-        :py:const:`numpy.float32`.
-        If not of the required datatype, then the input will be cast
-        to the required datatype.
-
-    :param et_angle:
-        exiting angle (for inclined surface).
-    :type et_angle:
-        Array with the same dimensions as ``dn_1`` of type
-        :py:const:`numpy.float32`.
-        If not of the required datatype, then the input will be cast
-        to the required datatype.
-
-    :param rela_slope:
-        relative angle (for inclined surface).
-    :type rela_slope:
-        Array with the same dimensions as ``dn_1`` of type
-        :py:const:`numpy.float32`.
-        If not of the required datatype, then the input will be cast
-        to the required datatype.
-
-    :param a_mod:
-        MODTRAN output (a).
-    :type a_mod:
-        Array with the same dimensions as ``dn_1`` of type
-        :py:const:`numpy.float32`.
-        If not of the required datatype, then the input will be cast
-        to the required datatype.
-
-    :param b_mod:
-        MODTRAN output (b).
-    :type b_mod:
-        Array with the same dimensions as ``dn_1`` of type
-        :py:const:`numpy.float32`.
-        If not of the required datatype, then the input will be cast
-        to the required datatype.
-
-    :param s_mod:
-        MODTRAN output (s).
-    :type s_mod:
-        Array with the same dimensions as ``dn_1`` of type
-        :py:const:`numpy.float32`.
-        If not of the required datatype, then the input will be cast
-        to the required datatype.
-
-    :param fs:
-        MODTRAN output (fs).
-    :type fs:
-        Array with the same dimensions as ``dn_1`` of type
-        :py:const:`numpy.float32`.
-        If not of the required datatype, then the input will be cast
-        to the required datatype.
-
-    :param fv:
-        MODTRAN output (fv).
-    :type fv:
-        Array with the same dimensions as ``dn_1`` of type
-        :py:const:`numpy.float32`.
-        If not of the required datatype, then the input will be cast
-        to the required datatype.
-
-    :param ts:
-        MODTRAN output (ts).
-    :type ts:
-        Array with the same dimensions as ``dn_1`` of type
-        :py:const:`numpy.float32`.
-        If not of the required datatype, then the input will be cast
-        to the required datatype.
-
-    :param edir_h:
-        MODTRAN output (direct irradiance).
-    :type edir_h:
-        Array with the same dimensions as ``dn_1`` of type
-        :py:const:`numpy.float32`.
-        If not of the required datatype, then the input will be cast
-        to the required datatype.
-
-    :param edif_h:
-        MODTRAN output (diffuse irradiance).
-    :type edif_h:
-        Array with the same dimensions as ``dn_1`` of type
-        :py:const:`numpy.float32`.
-        If not of the required datatype, then the input will be cast
-        to the required datatype.
-
-    Parameters: ``mask_self``, ``mask_castsun``, ``mask_castview``
-        can be generated using :py:func:`run_castshadow`.
-
-    Parameters ``mask_self``, ``slope_angle``, ``aspect_angle``,
-         ``it_angle``, ``et_angle``, and ``rela_slope`` can be
-         generated using the function :py:func:`run_slope`.
-
-    :notes:
-        All parameters after ``ref_adj`` will be transposed to FORTRAN
-        ordering. The same parameters will also be cast to the
-        required datatype if necessary.
-
-    :return:
-        A tuple of three :py:class:`numpy.ndarray`s:
-
-        - (index 0) Atmospheric corrected lambertial reflectance,
-
-        - (index 1) Atmospheric and brdf corrected reflectance, and
-
-        - (index 2) Atmospheric and brdf and terrain corrected
-          reflectance
-    """
-    # TODO check for correct array datatypes
-    # We want to limit any potential copies
-    return terrain_correction(
-        rori,
-        brdf0, brdf1, brdf2,
-        bias, slope_ca, esun, dd,
-        ref_adj,
-        as_array(dn_1, dtype=numpy.int16, transpose=True),
-        as_array(mask_self, dtype=numpy.int16, transpose=True),
-        as_array(mask_castsun, dtype=numpy.int16, transpose=True),
-        as_array(mask_castview, dtype=numpy.int16, transpose=True),
-        as_array(solar_angle, dtype=numpy.float32, transpose=True),
-        as_array(sazi_angle, dtype=numpy.float32, transpose=True),
-        as_array(view_angle, dtype=numpy.float32, transpose=True),
-        as_array(rela_angle, dtype=numpy.float32, transpose=True),
-        as_array(slope_angle, dtype=numpy.float32, transpose=True),
-        as_array(aspect_angle, dtype=numpy.float32, transpose=True),
-        as_array(it_angle, dtype=numpy.float32, transpose=True),
-        as_array(et_angle, dtype=numpy.float32, transpose=True),
-        as_array(rela_slope, dtype=numpy.float32, transpose=True),
-        as_array(a_mod, dtype=numpy.float32, transpose=True),
-        as_array(b_mod, dtype=numpy.float32, transpose=True),
-        as_array(s_mod, dtype=numpy.float32, transpose=True),
-        as_array(fs, dtype=numpy.float32, transpose=True),
-        as_array(fv, dtype=numpy.float32, transpose=True),
-        as_array(ts, dtype=numpy.float32, transpose=True),
-        as_array(edir_h, dtype=numpy.float32, transpose=True),
-        as_array(edif_h, dtype=numpy.float32, transpose=True))

@@ -16,6 +16,7 @@ from gaip import read_img
 from gaip import sat_sol_grid_workflow
 from gaip.tests.unittesting_tools import ParameterisedTestCase
 
+#TODO Filename to be determined from the nbar.cfg file
 
 def compute_angles(L1T_path, work_path, lonlat_path):
     """
@@ -54,8 +55,8 @@ class TestAngleFilenames(ParameterisedTestCase):
         """
 
         fname = os.path.join(self.reference_dir, self.fname_centreline)
-        self.assertIs(os.path.exists(fname), True,
-                      'Reference file does not exist: %s'%fname)
+        msg = 'Reference file does not exist: {fname}'.format(fname=fname)
+        self.assertIs(os.path.exists(fname), True, msg)
 
     def test_centreline_tst(self):
         """
@@ -63,98 +64,100 @@ class TestAngleFilenames(ParameterisedTestCase):
         """
 
         fname = os.path.join(self.test_dir, self.fname_centreline)
-        self.assertIs(os.path.exists(fname), True, 
-                      'Test file does not exist: %s'%fname)
+        msg = 'Test file does not exist: {fname}'.format(fname=fname)
+        self.assertIs(os.path.exists(fname), True, msg)
 
     def test_sat_zenith_ref(self):
         """
-        Check that the reference SAT_V.bin image file exists.
+        Check that the reference SATELLITE_VIEW.bin image file exists.
         """
 
         fname = os.path.join(self.reference_dir, self.fname_sat_v)
-        self.assertIs(os.path.exists(fname), True,
-                      'Reference file does not exist: %s'%fname)
+        msg = 'Reference file does not exist: {fname}'.format(fname=fname)
+        self.assertIs(os.path.exists(fname), True, msg)
 
     def test_sat_zenith_tst(self):
         """
-        Check that the test SAT_V.bin image file exists.
+        Check that the test SATELLITE_VIEW.bin image file exists.
         """
 
         fname = os.path.join(self.test_dir, self.fname_sat_v)
-        self.assertIs(os.path.exists(fname), True,
-                      'Test file does not exist: %s'%fname)
+        msg = 'Test file does not exist: {fname}'.format(fname=fname)
+        self.assertIs(os.path.exists(fname), True, msg)
 
     def test_sat_azimuth_ref(self):
         """
-        Check that the reference SAT_AZ.bin image file exists.
+        Check that the reference SATELLITE_AZIMUTH.bin image file
+        exists.
         """
 
         fname = os.path.join(self.reference_dir, self.fname_sat_az)
-        self.assertIs(os.path.exists(fname), True,
-                      'Reference file does not exist: %s'%fname)
+        msg = 'Reference file does not exist: {fname}'.format(fname=fname)
+        self.assertIs(os.path.exists(fname), True, msg)
 
     def test_sat_azimuth_tst(self):
         """
-        Check that the test SAT_AZ.bin image file exists.
+        Check that the test SATELLITE_AZIMUTH.bin image file exists.
         """
 
         fname = os.path.join(self.test_dir, self.fname_sat_az)
-        self.assertIs(os.path.exists(fname), True,
-                      'Test file does not exist: %s'%fname)
+        msg = 'Test file does not exist: {fname}'.format(fname=fname)
+        self.assertIs(os.path.exists(fname), True, msg)
 
     def test_sol_zenith_ref(self):
         """
-        Check that the reference SOL_Z.bin image file exists.
+        Check that the reference SOLAR_ZENITH.bin image file exists.
         """
 
         fname = os.path.join(self.reference_dir, self.fname_sol_z)
-        self.assertIs(os.path.exists(fname), True,
-                      'Reference file does not exist: %s'%fname)
+        msg = 'Reference file does not exist: {fname}'.format(fname=fname)
+        self.assertIs(os.path.exists(fname), True, msg)
 
     def test_sol_zenith_tst(self):
         """
-        Check that the test SOL_Z.bin image file exists.
+        Check that the test SOLAR_ZENITH.bin image file exists.
         """
 
         fname = os.path.join(self.test_dir, self.fname_sol_z)
-        self.assertIs(os.path.exists(fname), True,
-                      'Test file does not exist: %s'%fname)
+        msg = 'Test file does not exist: {fname}'.format(fname=fname)
+        self.assertIs(os.path.exists(fname), True, msg)
 
     def test_sol_azimuth_ref(self):
         """
-        Check that the reference SOL_AZ.bin image file exists.
+        Check that the reference SOLAR_AZIMUTH.bin image file exists.
         """
 
         fname = os.path.join(self.reference_dir, self.fname_sol_az)
-        self.assertIs(os.path.exists(fname), True,
-                      'Reference file does not exist: %s'%fname)
+        msg = 'Reference file does not exist: {fname}'.format(fname=fname)
+        self.assertIs(os.path.exists(fname), True, msg)
 
     def test_sol_azimuth_tst(self):
         """
-        Check that the test SOL_AZ.bin image file exists.
+        Check that the test SOLAR_AZIMUTH.bin image file exists.
         """
 
         fname = os.path.join(self.test_dir, self.fname_sol_az)
-        self.assertIs(os.path.exists(fname), True,
-                      'Test file does not exist: %s'%fname)
+        msg = 'Test file does not exist: {fname}'.format(fname=fname)
+        self.assertIs(os.path.exists(fname), True, msg)
 
     def test_rel_azimuth_ref(self):
         """
-        Check that the reference REL_AZ.bin image file exists.
+        Check that the reference RELATIVE_AZIMUTH.bin image file
+        exists.
         """
 
         fname = os.path.join(self.reference_dir, self.fname_rel_az)
-        self.assertIs(os.path.exists(fname), True,
-                      'Reference file does not exist: %s'%fname)
+        msg = 'Reference file does not exist: {fname}'.format(fname=fname)
+        self.assertIs(os.path.exists(fname), True, msg)
 
     def test_rel_azimuth_tst(self):
         """
-        Check that the test REL_AZ.bin image file exists.
+        Check that the test RELATIVE_AZIMUTH.bin image file exists.
         """
 
         fname = os.path.join(self.test_dir, self.fname_rel_az)
-        self.assertIs(os.path.exists(fname), True,
-                      'Test file does not exist: %s'%fname)
+        msg = 'Test file does not exist: {fname}'.format(fname=fname)
+        self.assertIs(os.path.exists(fname), True, msg)
 
     def test_time_ref(self):
         """
@@ -162,8 +165,8 @@ class TestAngleFilenames(ParameterisedTestCase):
         """
 
         fname = os.path.join(self.reference_dir, self.fname_time)
-        self.assertIs(os.path.exists(fname), True,
-                      'Reference file does not exist: %s'%fname)
+        msg = 'Reference file does not exist: {fname}'.format(fname=fname)
+        self.assertIs(os.path.exists(fname), True, msg)
 
     def test_time_tst(self):
         """
@@ -171,8 +174,8 @@ class TestAngleFilenames(ParameterisedTestCase):
         """
 
         fname = os.path.join(self.test_dir, self.fname_time)
-        self.assertIs(os.path.exists(fname), True,
-                      'Test file does not exist: %s'%fname)
+        msg = 'Test file does not exist: {fname}'.format(fname=fname)
+        self.assertIs(os.path.exists(fname), True, msg)
 
 
 #class AnglesOutputsTester(unittest.TestCase):

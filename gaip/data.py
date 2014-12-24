@@ -418,7 +418,7 @@ def reprojectImg2Img(src_img, src_geobox, dst_geobox,
     return dst_arr
 
 
-def load_2D_bin_file(filename, nrow, ncol, dtype):
+def load_2D_bin_file(filename, nrow, ncol, dtype, transpose=False):
     """
     Given a filename, row/column dimensions and a datatype,
     read a flat binary file from disk andconstruct a 2D NumPy array.
@@ -439,6 +439,10 @@ def load_2D_bin_file(filename, nrow, ncol, dtype):
 
     :type dtype:
         A string containing a valid Python datatype ``float32``).
+
+    :param transpose:
+        A boolean indicating whether or not to transpose the array
+        before returning.
 
     :return:
         A 2D NumPy array with dimensions (nrow, ncol) of type dtype.
@@ -475,7 +479,10 @@ def load_2D_bin_file(filename, nrow, ncol, dtype):
 
     array = np.fromfile(filename, dtype=dtype).reshape(nrow, ncol)
 
-    return array
+    if transpose:
+        return array.transpose()
+    else:
+        return array
 
 
 def as_array(array, dtype, transpose=False):
