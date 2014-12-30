@@ -29,22 +29,6 @@ class TestGriddedGeoBox(unittest.TestCase):
         self.assertEqual(origin, ggb.origin)
         self.assertEqual(corner, ggb.corner)
  
-
-    def test_create_small_offset_using_corners(self):
-        # create small GGB centred on (150.00025,-34.00025)
-        expectedShape = (2,2)
-        scale = 0.00025
-        delta = 0.00012
-        origin = (150.0+delta, -34.0-delta)
-        corner = (150.0+2*scale-delta, -34.0-2*scale+delta)
-        # the grid should "pixel align"
-        expectedOrigin = (150.0, -34.0)
-        expectedCorner = (150.0+expectedShape[1]*scale, -34.0-expectedShape[0]*scale)
-        ggb = GriddedGeoBox.from_corners(origin, corner)
-        self.assertEqual(expectedShape, ggb.shape)
-        self.assertEqual(expectedOrigin, ggb.origin)
-        self.assertEqual(expectedCorner, ggb.corner)
-
     def test_create_unit_GGB_using_corners(self):
         # create small GGB centred on (150.00025,-34.00025)
         expectedShape = (1,1)
@@ -55,26 +39,40 @@ class TestGriddedGeoBox(unittest.TestCase):
         self.assertEqual(expectedShape, ggb.shape)
         self.assertEqual(corner, ggb.corner)
 
-    def test_grid_alignment(self):
+    def test_agdc_copy(self):
         scale = 0.00025
-        shape = (20,30)
-        origin = (150.00012, -34.00014)
-        originShouldBe = (150.0, -34.0)
+        shape = (4000,4000)
+        origin = (150.0, -34.0)
        
         corner = (shape[1]*scale+150, -34-shape[0]*scale)
-        ggb = GriddedGeoBox(shape, origin)
+        ggb = GriddedGeoBox(shape, origin, pixelsize=(scale, scale))
+        # print "ggb=%s" % str(ggb)
         assert ggb is not None
         self.assertEqual(shape, ggb.shape)
-        self.assertEqual(originShouldBe, ggb.origin)
         self.assertEqual(corner, ggb.corner)
+
+        # now get UTM equilavent
+
+        utm_ggb = ggb.copy(crs="EPSG:32756")
+        # print "utm_ggb=%s" % str(utm_ggb)
+
+        self.assertAlmostEqual(utm_ggb.origin[0], 222908.70452156663)
+        self.assertAlmostEqual(utm_ggb.origin[1], 6233785.283900621)
+        self.assertAlmostEqual(utm_ggb.corner[0], 317483.90638409054)
+        self.assertAlmostEqual(utm_ggb.corner[1], 6125129.365269075)
+        self.assertAlmostEqual(utm_ggb.pixelsize[0], 23.643800465630978)
+        self.assertAlmostEqual(utm_ggb.pixelsize[1], 27.16397965788655)
+
+        
 
     def test_real_world(self):
         # Flinders Islet, NSW
         flindersOrigin = (150.927659, -34.453309)
         flindersCorner = (150.931697, -34.457915)
-        originShouldBe = (150.9275, -34.45325)
-        cornerShouldBe = (150.93175, -34.45800)
+        originShouldBe = flindersOrigin
         shapeShouldBe = (19, 17)
+        cornerShouldBe = (flindersOrigin[0]+shapeShouldBe[1]*0.00025, \
+            flindersOrigin[1]-shapeShouldBe[0]*0.00025)
        
         ggb = GriddedGeoBox.from_corners(flindersOrigin, flindersCorner)
         assert ggb is not None
@@ -147,7 +145,7 @@ class TestGriddedGeoBox(unittest.TestCase):
             self.assertEqual(corner, ggb.corner)
 
 
-    def test_ggb_copy_and_rereference(self):
+    def no_test_ggb_copy_and_rereference(self):
         # get Land/Sea data file for this bounding box
         utmZone = 56
         utmDataPath = '/g/data/v10/eoancillarydata/Land_Sea_Rasters/WORLDzone%d.tif' % (utmZone,)
@@ -157,6 +155,7 @@ class TestGriddedGeoBox(unittest.TestCase):
 
             # get the gridded box for the full data extent
             datasetGGB = GriddedGeoBox.from_dataset(ds)
+     
 
             # dataset will be UTM
 
