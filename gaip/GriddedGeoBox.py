@@ -172,8 +172,8 @@ class GriddedGeoBox(object):
         newOrigin = self.transformPoint(old2New, self.origin)
         newCorner = self.transformPoint(old2New, self.corner)
         newPixelSize = tuple([
-            abs((self.origin[0]-newCorner[0])/self.shape[0]),
-            abs((self.origin[1]-newCorner[1])/self.shape[0])
+            abs((newOrigin[0]-newCorner[0])/self.getShapeXY()[0]),
+            abs((newOrigin[1]-newCorner[1])/self.getShapeXY()[1])
             ])
 
         return GriddedGeoBox(self.shape, newOrigin, newPixelSize, crs=crs)
