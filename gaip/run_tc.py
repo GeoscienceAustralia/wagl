@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import gc
-from os.path import join as pjoin
 
 import numpy
 
@@ -196,7 +195,6 @@ def run_tc(acquisitions, bilinear_ortho_filenames, rori, self_shadow_fname,
 
         # Read the BRDF modis file for a given band
         brdf_modis_file = brdf_fname_format.format(band_num=acq.band_num)
-        brdf_modis_file = pjoin(brdf_work_path, brdf_modis_file)
         with open(brdf_modis_file, 'r') as param_file:
             brdf0, brdf1, brdf2, bias, slope_ca, esun, dd = map(float,
                 ' '.join(param_file.readlines()).split())
