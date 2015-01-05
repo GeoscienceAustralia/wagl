@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 
 import gc
+from os.path import join as pjoin
 
+import numpy
+
+from gaip import as_array
 from gaip import constants
 from gaip import load_2D_bin_file
 from gaip import read_img
@@ -132,9 +136,6 @@ def run_tc(acquisitions, bilinear_ortho_filenames, rori, self_shadow_fname,
         The acquisitions will be converted internally to int32 on a
         row by row basis.
     """
-    # load the line starts and ends.
-    rows, cols = geobox.shape
-
     # Specify the biliner binary files datatype
     boo_fnames = bilinear_ortho_filenames
     bilinear_dtype = 'float32'
@@ -150,42 +151,41 @@ def run_tc(acquisitions, bilinear_ortho_filenames, rori, self_shadow_fname,
     # Read arrays into memory
     # Convert to the appropriate datatype and transpose the array to convert
     # to Fortran contiguous memory. This should prevent any array copying
-    self_shadow = as_array(read_image(self_shadow_fname), dtype=numpy.int16,
+    self_shadow = as_array(read_img(self_shadow_fname), dtype=numpy.int16,
         transpose=True)
-    cast_shadow_sun = as_array(read_image(cast_shadow_sun_fname),
+    cast_shadow_sun = as_array(read_img(cast_shadow_sun_fname),
         dtype=numpy.int16, transpose=True)
-    cast_shadow_satellite = as_array(read_image(cast_shadow_satellite_fname),
+    cast_shadow_satellite = as_array(read_img(cast_shadow_satellite_fname),
         dtype=numpy.int16, transpose=True)
-    solar_zenith = as_array(read_image(solar_zenith_fname),
+    solar_zenith = as_array(read_img(solar_zenith_fname),
         dtype=numpy.float32, transpose=True)
-    solar_azimuth = as_array(read_image(solar_azimuth_fname),
+    solar_azimuth = as_array(read_img(solar_azimuth_fname),
         dtype=numpy.float32, transpose=True)
-    satellite_view = as_array(read_image(satellite_view_fname),
+    satellite_view = as_array(read_img(satellite_view_fname),
         dtype=numpy.float32, transpose=True)
-    relative_angle = as_array(read_image(relative_angle_fname),
+    relative_angle = as_array(read_img(relative_angle_fname),
         dtype=numpy.float32, transpose=True)
-    slope = as_array(read_image(slope_fname), dtype=numpy.float32,
+    slope = as_array(read_img(slope_fname), dtype=numpy.float32,
         transpose=True)
-    aspect = as_array(read_image(aspect_fname), dtype=numpy.float32,
+    aspect = as_array(read_img(aspect_fname), dtype=numpy.float32,
         transpose=True)
-    incident_angle = as_array(read_image(incident_angle_fname),
+    incident_angle = as_array(read_img(incident_angle_fname),
         dtype=numpy.float32, transpose=True)
-    exiting_angle = as_array(read_image(exiting_angle_fname),
+    exiting_angle = as_array(read_img(exiting_angle_fname),
         dtype=numpy.float32, transpose=True)
-    relative_slope = as_array(read_image(relative_slope_fname),
+    relative_slope = as_array(read_img(relative_slope_fname),
         dtype=numpy.float32, transpose=True)
 
     # Loop over each acquisition and compute various reflectance arrays
     for acq in acquisitions:
+        rows = acq.lines
+        cols = acq.samples
         band_number = acq.band_num
+        geobox = acq.gridded_geo_box()
 
         # Read the BRDF modis file for a given band
         brdf_modis_file = 'brdf_modis_band{0}.txt'.format(band_number)
         brdf_modis_file = pjoin(work_path, brdf_modis_file)
-
-        # Read the BRDF modis file for a given band
-        brdf_modis_file = 'brdf_modis_band{0}.txt'.format(band_number)
-        brdf_modis_file = os.path.join(work_path, brdf_modis_file)
         with open(brdf_modis_file, 'r') as param_file:
             brdf0, brdf1, brdf2, bias, slope_ca, esun, dd = map(float,
                 ' '.join(param_file.readlines()).split())
@@ -196,7 +196,7 @@ def run_tc(acquisitions, bilinear_ortho_filenames, rori, self_shadow_fname,
             avg_reflectance_values[band_number])
 
         # Read the data; convert to required dtype and transpose
-        band_data = make_array(acq.data(), dtype=numpy.int16, transpose=True)
+        band_data = as_array(acq.data(), dtype=numpy.int16, transpose=True)
 
         # Run terrain correction
 	ref_lm, ref_brdf, ref_terrain = terrain_correction(
