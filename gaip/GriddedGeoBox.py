@@ -142,9 +142,12 @@ class GriddedGeoBox(object):
         self.pixelsize = pixelsize
         self.shape = tuple([int(v) for v in shape])
         self.origin = origin
-        self.crs = osr.SpatialReference()
-        if self.crs == self.crs.SetFromUserInput(crs):
-            raise ValueError("Invalid crs: %s" % (crs, ))
+        if isinstance(crs, osr.SpatialReference):
+            self.crs = crs
+        else:
+            self.crs = osr.SpatialReference()
+            if self.crs == self.crs.SetFromUserInput(crs):
+                raise ValueError("Invalid crs: %s" % (crs, ))
         self.affine = Affine(self.pixelsize[0], 0, self.origin[0], 0,
                              -self.pixelsize[1], self.origin[1])
         self.corner = self.affine * self.getShapeXY()

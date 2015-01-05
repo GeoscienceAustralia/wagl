@@ -10,8 +10,10 @@ from brdf import *
 from get_brdf import *
 from calculate_lon_lat_arrays import *
 from land_sea_masking import *
+from land_sea import get_land_sea_mask 
 from modtran import *
 from tc import *
+from dsm import get_dsm
 from dsm import get_dsm
 
 try:
