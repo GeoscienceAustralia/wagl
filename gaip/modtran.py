@@ -78,7 +78,8 @@ def write_modis_brdf_files(acquisitions, fname_format, brdf_data,
     ref_acqs = [a for a in acquisitions if a.band_type == gaip.REF]
 
     for acq in ref_acqs:
-        modis_brdf_filename = fname_format.format(band_num=acq.band_num)
+        band = acq.band_num
+        modis_brdf_filename = fname_format.format(band_num=band)
         with open(modis_brdf_filename, 'w') as outfile:
             outfile.write("%f %f %f\n" %
                           (brdf_data[(band, 'iso')]['value'],
@@ -87,7 +88,7 @@ def write_modis_brdf_files(acquisitions, fname_format, brdf_data,
 
             outfile.write(str(acq.bias) + " " +
                           str(acq.gain) + " " +
-                          str(solar_irrad_data[band_number]['value']) + " " +
+                          str(solar_irrad_data[band]['value']) + " " +
                           str(solar_dist_data['value']) + "\n")
 
 
