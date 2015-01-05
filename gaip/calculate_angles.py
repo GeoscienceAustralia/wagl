@@ -11,13 +11,16 @@ import rasterio
 
 from EOtools import tiling
 from gaip import acquisitions
-from gaip import angle
 from gaip import find_file
 from gaip import gridded_geo_box
 from gaip import load_tle
 from gaip import read_img
-from gaip import set_satmod
-from gaip import set_times
+try:
+    from gaip import angle
+    from gaip import set_satmod
+    from gaip import set_times
+except ImportError:
+    print 'Run Makefile to build the Fortran modules.'
 
 CRS = "EPSG:4326"
 TLE_DIR = '/g/data1/v10/eoancillarydata/sensor-specific'
