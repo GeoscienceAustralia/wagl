@@ -23,20 +23,22 @@ def filter_dsm(array):
     """
     # Define the kernel
     kernel = [0.009511, 0.078501, 0.009511, 0.078501, 0.647954, 0.078501,
-        0.009511, 0.078501, 0.009511]
-    kernel = numpy.array(kernel).reshape((3,3))
+              0.009511, 0.078501, 0.009511]
+    kernel = numpy.array(kernel).reshape((3, 3))
 
     filtered = ndimage.convolve(array, kernel)
     return filtered
 
 
 class Buffers(object):
+
     """
     Holds some value for each side of an image. This was initially
     created to hold buffer widths (in pixels) for a scene, but does
     not care about the type of the values passed to the constructer
     and can hence be used for any type.
     """
+
     def __init__(self, left, right=None, top=None, bottom=None):
         """
         Constructor.
@@ -65,7 +67,7 @@ class Buffers(object):
     def __str__(self):
         msg = "Buffers({left}, {right}, {top}, {bottom})"
         msg = msg.format(left=self.left, right=self.right, top=self.top,
-            bottom=self.bottom)
+                         bottom=self.bottom)
         return msg
 
 
@@ -76,30 +78,16 @@ def write_new_brdf_file(file_name, *args):
         src.write(out_string)
 
 
-def write_header_slope_file(file_name, bounds, geobox):
-    with open(file_name, 'w') as output:
-        # get dimensions, resolution and pixel origin
-        rows, cols = geobox.shape
-        res = geobox.res
-        origin = geobox.origin
-
-        # Now output the details
-        output.write("{nr} {nc}\n".format(nr=rows, nc=cols))
-        output.write("{0} {1}\n{2} {3}\n".format(bounds.left, bounds.right,
-            bounds.top, bounds.bottom))
-        output.write("{resy} {resx}\n".format(resx=res[0], resy=res[1]))
-        output.write("{yorigin} {xorigin}\n".format(xorigin=origin[0],
-            yorigin=origin[1]))
-
-
 class FortranError(Exception):
+
     """
     Base class for errors thrown from the Fortran code used in this module.
     """
+
     def __init__(self, function_name, code, msg):
         # The name of the Fortran function called.
         self.function_name = function_name
-        self.code = code # The error code produced by the Fortran code.
+        self.code = code  # The error code produced by the Fortran code.
         # The Message corresponding to ``code``.
         self.msg = msg or "Unknown error"
 
@@ -113,11 +101,13 @@ class FortranError(Exception):
 
 
 class SlopeResultSet(object):
+
     """
     Holds the results of a call to :py:func:`run_slope`.
     """
+
     def __init__(self, mask_self, slope, aspect, incident, exiting,
-        azi_incident, azi_exiting, rela_slope):
+                 azi_incident, azi_exiting, rela_slope):
         """
         All arguments are :py:class:`numpy.ndarray`s. These
         correspond to the arguments I have no idea what these
@@ -134,7 +124,7 @@ class SlopeResultSet(object):
         self.rela_slope = rela_slope
 
     def write_arrays(self, geobox, out_fnames=None, file_type='ENVI',
-            file_extension='.bin'):
+                     file_extension='.bin'):
         # Filenames
         if (out_fnames is None) or (len(out_fnames) != 8):
             fname_mask_self = 'self_shadow_mask' + file_extension
@@ -157,30 +147,32 @@ class SlopeResultSet(object):
 
         # Write
         write_img(self.mask_self, fname_mask_self, format=file_type,
-            geobox=geobox, nodata=-999)
+                  geobox=geobox, nodata=-999)
         write_img(self.slope, fname_slope, format=file_type, geobox=geobox,
-            nodata=-999)
+                  nodata=-999)
         write_img(self.aspect, fname_aspect, format=file_type, geobox=geobox,
-            nodata=-999)
+                  nodata=-999)
         write_img(self.incident, fname_incident, format=file_type,
-            geobox=geobox, nodata=-999)
+                  geobox=geobox, nodata=-999)
         write_img(self.exiting, fname_exiting, format=file_type,
-            geobox=geobox, nodata=-999)
+                  geobox=geobox, nodata=-999)
         write_img(self.azi_incident, fname_azimuth_incident, format=file_type,
-            geobox=geobox, nodata=-999)
+                  geobox=geobox, nodata=-999)
         write_img(self.azi_exiting, fname_azimuth_exiting, format=file_type,
-            geobox=geobox, nodata=-999)
+                  geobox=geobox, nodata=-999)
         write_img(self.rela_slope, fname_relative_slope, format=file_type,
-            geobox=geobox, nodata=-999)
+                  geobox=geobox, nodata=-999)
 
 
 class SlopeError(FortranError):
+
     """
     Class that deals with errors from :py:func:`run_slope`.
     """
+
     def __init__(self, code):
         super(SlopeError, self).__init__("slope_pixelsize_newpole", code,
-            SlopeError.get_error_message(code))
+                                         SlopeError.get_error_message(code))
 
     @staticmethod
     def get_error_message(code):
@@ -195,15 +187,15 @@ class SlopeError(FortranError):
 
 
 def run_slope(
-    acquisition,
-    DEM,
-    solar_zenith,
-    satellite_view,
-    solar_azimuth,
-    satellite_azimuth,
-    buffer,
-    is_utm,
-    spheroid):
+        acquisition,
+        DEM,
+        solar_zenith,
+        satellite_view,
+        solar_azimuth,
+        satellite_azimuth,
+        buffer,
+        is_utm,
+        spheroid):
     """
     Calculate the slope and angles for a region. This code is an
     interface to the fortran code slope_pixel_newpole.f90 written by
@@ -310,20 +302,20 @@ def run_slope(
     ncol = cols + 2
     nrow = rows + 2
 
-    dem_dat = DEM[(buffer.top-1):-(buffer.bottom-1),(buffer.left-1):
-        -(buffer.right-1)]
+    dem_dat = DEM[(buffer.top - 1):-(buffer.bottom - 1), (buffer.left - 1):
+                  -(buffer.right - 1)]
 
     # Check that the dimensions match
     if dem_dat.shape != (nrow, ncol):
         msg = ('DEM index not of correct shape ({row}, {col}) '
-              '!= ({drow}, {dcol})')
+               '!= ({drow}, {dcol})')
         msg = msg.format(row=nrow, col=ncol, drow=dem_dat.shape[0],
-            dcol=dem_dat.shape[1])
+                         dcol=dem_dat.shape[1])
         raise IndexError(msg)
 
     # This will be ignored if is_utm == True
-    alat = numpy.array([y_origin-i*dresy for i in range(-1, nrow-1)],
-        dtype=numpy.float64) # yes, I did mean float64.
+    alat = numpy.array([y_origin - i * dresy for i in range(-1, nrow - 1)],
+                       dtype=numpy.float64)  # yes, I did mean float64.
 
     (mask, theta, phit, it, et, azi_it,
      azi_et, rela, ierr) = slope_pixelsize_newpole(
@@ -338,19 +330,23 @@ def run_slope(
         raise SlopeError(ierr)
 
     slope_results_set = SlopeResultSet(mask_self=mask, slope=theta,
-        aspect=phit, incident=it, exiting=et, azi_incident=azi_it,
-        azi_exiting=azi_et, rela_slope=rela)
+                                       aspect=phit, incident=it, exiting=et,
+                                       azi_incident=azi_it,
+                                       azi_exiting=azi_et, rela_slope=rela)
 
     return slope_results_set
 
 
 class CastShadowError(FortranError):
+
     """
     Class that deals with errors from :py:func:`run_castshadow`.
     """
+
     def __init__(self, code):
         super(CastShadowError, self).__init__("shade_main_landsat_pixel",
-            code, CastShadowError.get_error_message(code))
+                                              code,
+                                              CastShadowError.get_error_message(code))
 
     @staticmethod
     def get_error_message(code):
@@ -451,18 +447,8 @@ class CastShadowError(FortranError):
             return "matrix A does not have sufficient x buffer"
 
 
-
-
-
-def run_castshadow(
-    acquisition,
-    DEM,
-    zenith_angle,
-    azimuth_angle,
-    buffer,
-    block_height,
-    block_width,
-    spheroid):
+def run_castshadow(acquisition, DEM, zenith_angle, azimuth_angle, buffer,
+                   block_height, block_width, spheroid):
     """
     This code is an interface to the fortran code
     shade_main_landsat_pixel.f90 written by Fuqin (and modified to
@@ -573,8 +559,10 @@ def run_castshadow(
         raise TypeError(msg)
 
     ierr, mask = shade_main_landsat_pixel(DEM, zenith_angle, azimuth_angle,
-        x_res, y_res, spheroid, y_origin, x_origin, buffer.left, buffer.right,
-        buffer.top, buffer.bottom, block_height, block_width, is_utm)
+                                          x_res, y_res, spheroid, y_origin,
+                                          x_origin, buffer.left, buffer.right,
+                                          buffer.top, buffer.bottom,
+                                          block_height, block_width, is_utm)
 
     if ierr:
         raise CastShadowError(ierr)

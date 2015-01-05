@@ -6,7 +6,6 @@ from gaip import constants
 from gaip import load_2D_bin_file
 from gaip import read_img
 from gaip import terrain_correction
-from gaip import write_header_slope_file
 from gaip import write_img
 from gaip import write_new_brdf_file
 
