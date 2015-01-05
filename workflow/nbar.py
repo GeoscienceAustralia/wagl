@@ -409,7 +409,7 @@ class WriteModisBrdfFiles(luigi.Task):
         brdf_target = CONFIG.get('work', 'brdf_target')
         brdf_data = load(brdf_target)
         irrad_target = CONFIG.get('work', 'irrad_target')
-        irrad_data = load(irrad_target)
+        solar_irrad_data = load(irrad_target)
         solar_dist_target = CONFIG.get('work', 'sundist_target')
         solar_dist_data = load(solar_dist_target)
         # FIXME
@@ -618,8 +618,8 @@ class RunModtranCase(luigi.Task):
         return [PrepareModtranInput(self.l1t_path)]
 
     def output(self):
-        flx_format = CONFIG.get('modtran', 'flx_output_format')
-        chn_format = CONFIG.get('modtran', 'chn_output_format')
+        flux_format = CONFIG.get('modtran', 'flx_output_format')
+        coef_format = CONFIG.get('modtran', 'chn_output_format')
         flx_target = flux_format.format(coord=self.coord, albedo=self.albedo)
         chn_target = coef_format.format(coord=self.coord, albedo=self.albedo)
         return [luigi.LocalTarget(flx_target),
@@ -892,7 +892,7 @@ class DEMExctraction(luigi.Task):
         subset_target = pjoin(work_path,
             CONFIG.get('extract_dsm', 'dsm_subset'))
         smoothed_target = pjoin(work_path,
-            CONFIG.get('extract_dsm', 'dsm_smooth_subset')
+            CONFIG.get('extract_dsm', 'dsm_smooth_subset'))
         targets = [luigi.LocalTarget(subset_target),
                    luigi.LocalTarget(smoothed_target)]
         return targets
@@ -907,10 +907,11 @@ class DEMExctraction(luigi.Task):
         dsm_subset_fname = pjoin(work_path, subset_target)
         dsm_subset_smooth_fname = pjoin(work_path, smoothed_target)
 
-        gaip.get_dsm(acqs[0], national_dsm, dsm_subset_fname,
+        gaip.get_dsm(acqs[0], national_dsm, buffer, dsm_subset_fname,
                      dsm_subset_smooth_fname)
 
-def SlopeAndSelfShadow(luigi.Task):
+
+class SlopeAndSelfShadow(luigi.Task):
 
     """
     Compute the slope, aspect, incident, azimuth incident, exiting,
@@ -964,7 +965,7 @@ def SlopeAndSelfShadow(luigi.Task):
         solar_zenith_fname = CONFIG.get('work', 'solar_zenith_target')
         solar_azimuth_fname = CONFIG.get('work', 'solar_azimuth_target')
         smoothed_dsm_fname = pjoin(work_path,
-            CONFIG.get('extract_dsm', 'dsm_smooth_subset')
+            CONFIG.get('extract_dsm', 'dsm_smooth_subset'))
         buffer = CONFIG.get('extract_dsm', 'dsm_buffer_width')
 
         # Output targets
@@ -1033,7 +1034,7 @@ class CalculateCastShadowSun(luigi.Task):
 
         # Input targets
         smoothed_dsm_fname = pjoin(work_path,
-            CONFIG.get('extract_dsm', 'dsm_smooth_subset')
+            CONFIG.get('extract_dsm', 'dsm_smooth_subset'))
         solar_zenith_target = CONFIG.get('work', 'solar_zenith_target')
         solar_azimuth_target = CONFIG.get('work', 'solar_azimuth_target')
         buffer = CONFIG.get('extract_dsm', 'dsm_buffer_width')
@@ -1080,7 +1081,7 @@ class CalculateCastShadowSatellite(luigi.Task):
 
         # Input targets
         smoothed_dsm_fname = pjoin(work_path,
-            CONFIG.get('extract_dsm', 'dsm_smooth_subset')
+            CONFIG.get('extract_dsm', 'dsm_smooth_subset'))
         satellite_view_target = CONFIG.get('work', 'sat_view_target')
         satellite_azimuth_target = CONFIG.get('work', 'sat_azimuth_target')
         buffer = CONFIG.get('extract_dsm', 'dsm_buffer_width')
@@ -1195,8 +1196,8 @@ class TerrainCorrection(luigi.Task):
         rfl_lvl_fnames = {}
         for level in rfl_levels:
             for band in bands_to_process:
-                rfl_lvl_fnames[(band, level)] = output_format.format(level=
-                    level, band=band)
+                rfl_lvl_fnames[(band, level)] = pjoin(outdir,
+                    output_format.format(level=level, band=band))
 
         gaip.run_tc(acqs_to_process, bilinear_target, rori,
                     self_shadow_target, sun_target, satellite_target,
