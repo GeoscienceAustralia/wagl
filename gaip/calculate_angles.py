@@ -14,7 +14,6 @@ from gaip import acquisitions
 from gaip import find_file
 from gaip import gridded_geo_box
 from gaip import load_tle
-from gaip import read_img
 try:
     from gaip import angle
     from gaip import set_satmod
@@ -159,7 +158,8 @@ def create_header_angle_file(acquisition, view_max, outfname='HEADERANGLE'):
         orbital_elements = numpy.array([orb_incl, orb_radius, omega],
             dtype='float')
     else:
-        orbital_elements = setup_orbital_elements(sat_ephemeral, Datetime)
+        orbital_elements = setup_orbital_elements(sat_ephemeral,
+            acquisition.scene_center_datetime)
         orb_incl = orbital_elements[0]
         orb_radius = orbital_elements[1]
         omega = orbital_elements[2]
@@ -184,9 +184,9 @@ def create_header_angle_file(acquisition, view_max, outfname='HEADERANGLE'):
                        "{max_angle}")
 
         outfile.write(header_file.format(year=year, month=month, day=day,
-            lines=lines, samples=samples, centre_lat=cy, centre_lon=cx,
-            radius=orb_radius, inclination=orb_incl, velocity=omega,
-            max_angle=view_max))
+            hours=hours, lines=lines, samples=samples, centre_lat=cy,
+            centre_lon=cx, radius=orb_radius, inclination=orb_incl,
+            velocity=omega, max_angle=view_max))
 
 
 def calculate_julian_century(datetime):
