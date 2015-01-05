@@ -4,6 +4,7 @@ import gaip
 
 f1 = sys.argv[1]
 f2 = sys.argv[2]
+f3 = sys.argv[3]
 
 print "files are %s and %s" % (f1, f2)
 
@@ -18,5 +19,5 @@ with rio.open(f1) as ds1:
             diff = sum(sum(d1-d2))
             print "band=%d, diff=%d" % (band, diff)
 
-            gaip.write_img((d1-d2), 'diff.tif', format='GTiff')
+            gaip.write_img((d1-d2), f3, format='GTiff')
             

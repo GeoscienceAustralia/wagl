@@ -5,7 +5,7 @@
 import rasterio as rio
 from rasterio.crs import from_string
 import osr
-from gaip import GriddedGeoBox
+from gaip import GriddedGeoBox, write_img
 import numpy
 from affine import Affine
 from rasterio.warp import reproject, RESAMPLING
@@ -35,8 +35,8 @@ def get_land_sea_mask(gridded_geo_box, \
     supplied ancillary_path.
 
     If the specified gridded_geo_box has a non-UTM CRS or a non-native
-    sample frequency, the data will be reprojected into the the 
-    gridded_geo_box grid.
+    sample frequency, the data will be reprojected/resampled into the the 
+    gridded_geo_box.
     """
 
     # get lat/long of geo_box origin
@@ -44,53 +44,27 @@ def get_land_sea_mask(gridded_geo_box, \
     to_crs = osr.SpatialReference()
     to_crs.SetFromUserInput('EPSG:4326')
     origin_longlat = gridded_geo_box.transform_coordinates(gridded_geo_box.origin, to_crs)
-    print "origin_lonlat=%s" % (origin_longlat,)
+#    print "origin_lonlat=%s" % (origin_longlat,)
 
     # get Land/Sea data file for this bounding box
     utmZone = abs(getUtmZone(origin_longlat))
     utmDataPath = '%s/WORLDzone%d.tif' % (ancillary_path, utmZone)
 
-    # read the data for the Flinders islet region
+    # read the land/sea data 
     with rio.open(utmDataPath) as ds:
 
-        # get the gridded box for the full data extent
+        # get the gridded box for the full dataset extent
         landSeaDataGGB = GriddedGeoBox.from_dataset(ds)
-        print "land/sea geo_box=%s" % (str(landSeaDataGGB))
-        print "land/ses affine=\n%s" % (str(landSeaDataGGB.affine))
+#        print "land/sea geo_box=%s" % (str(landSeaDataGGB))
+#        print "land/ses affine=\n%s" % (str(landSeaDataGGB.affine))
 
         # read the subset relating to Flinders Islet
         window = landSeaDataGGB.window(gridded_geo_box)
-        print "window=%s" % (str(window))
-        mask = ds.read(1, window=window)
+#        print "window=%s" % (str(window))
+        out = numpy.zeros(gridded_geo_box.shape, dtype=numpy.uint8)
+        ds.read(1, window=window, out=out)
 
-        # check if we need to resample
-        if mask.shape == gridded_geo_box.shape:
-            return mask  # no reprojection
-
-        # reprojection required
-        print "result shape is %s, expecting shape %s, reprojecting!!!!!!!!!!" \
-            % (mask.shape, gridded_geo_box.shape)
-        reprojected_mask = numpy.zeros(gridded_geo_box.shape, mask.dtype)
-        a = landSeaDataGGB.affine
-
-        (x, y) = ~a * window[0]
-        src_affine = Affine(a.a, a.b, x, a.d, a.e, y)
-        print "src_geo_box=\n%s" % (str(landSeaDataGGB))
-        print "src_affine=\n%s" % (str(src_affine))
-        print "dst_geo_box=\n%s" % (str(gridded_geo_box))
-        print "dst_affine=\n%s" % (str(gridded_geo_box.affine))
-        print "mask="
-        print mask
-        reproject(
-            mask,
-            reprojected_mask,
-            src_transform=src_affine,
-            src_crs=from_string(landSeaDataGGB.crs.ExportToProj4()),
-            dst_transform=gridded_geo_box.affine,
-            dst_crs=from_string(gridded_geo_box.crs.ExportToProj4()),
-            resampling=RESAMPLING.nearest)
-
-        return reprojected_mask
+        return out
 
 
 if __name__ == "__main__":
@@ -106,4 +80,46 @@ if __name__ == "__main__":
 
     flindersGGB = GriddedGeoBox.from_corners(flindersOrigin, flindersCorner)
     mask = get_land_sea_mask(flindersGGB)
+    print "geobox_shape=%s" % str(flindersGGB.shape)
+    print "mask_shape=%s" % str(mask.shape)
     print mask
+
+    # same test for AGDC cell around  Darwin area
+
+    scale = 0.00025
+    shape = (4000,4000)
+    origin = (130.0, -12.0)
+
+    corner = (shape[1]*scale+origin[0], origin[1]-shape[0]*scale)
+    ggb = GriddedGeoBox(shape, origin, pixelsize=(scale, scale))
+    print ggb
+
+    # now get UTM equilavent
+
+    geo_box = ggb.copy(crs="EPSG:32752")
+    print geo_box
+
+
+    # and get the mask
+
+    mask = get_land_sea_mask(geo_box)
+
+    total_pixels = geo_box.shape[1]*geo_box.shape[0]
+    land_pixels = sum(sum(mask.astype('uint32')))
+    sea_pixels = total_pixels - land_pixels
+    sea_pct = 100.0 * sea_pixels / total_pixels
+    land_pct = 100.0 * land_pixels / total_pixels
+
+    print "ggb_shape=%s" % str(ggb.shape)
+    print "geobox_shape=%s" % str(geo_box.shape)
+    print "mask_shape=%s" % str(mask.shape)
+    print "total_pixels=%d" % total_pixels
+    print "land_pixels=%d" % land_pixels
+    print "sea_pixels=%d" % sea_pixels
+    # self.assertEqual(land_pixels, 14554858)
+    # self.assertEqual(sea_pixels, 1445142)
+    # self.assertEqual(total_pixels, 16000000)
+
+    print "land=%f%%, sea=%f%%" % (land_pct, sea_pct)
+#    write_img(mask.astype('uint8'), 'mask.tif', format="GTiff", geobox=ggb)
+    write_img(mask, 'mask.tif', format="GTiff", geobox=ggb)
