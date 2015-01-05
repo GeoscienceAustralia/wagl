@@ -2,6 +2,7 @@
 
 import math
 import os
+import sys
 
 import ephem
 import numpy
@@ -19,7 +20,9 @@ try:
     from gaip import set_satmod
     from gaip import set_times
 except ImportError:
-    print 'Run Makefile to build the Fortran modules.'
+    msg = ('Run Makefile to build the Fortran modules.\n'
+           'Some functionality in library is disabled')
+    print sys.stderr, msg
 
 CRS = "EPSG:4326"
 TLE_DIR = '/g/data1/v10/eoancillarydata/sensor-specific'

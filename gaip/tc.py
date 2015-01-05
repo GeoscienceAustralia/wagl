@@ -1,4 +1,5 @@
 import os
+import sys
 
 import numpy
 from scipy import ndimage
@@ -7,7 +8,9 @@ try:
     from gaip import shade_main_landsat_pixel
     from gaip import slope_pixelsize_newpole
 except ImportError:
-    print 'Run Makefile to build the Fortran modules.'
+    msg = ('Run Makefile to build the Fortran modules.\n'
+           'Some functionality in library is disabled')
+    print sys.stderr, msg
 from gaip import write_img
 
 
