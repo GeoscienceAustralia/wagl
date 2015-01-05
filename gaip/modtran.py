@@ -87,9 +87,8 @@ def write_modis_brdf_files(acquisitions, prefix, brdf_data, solar_irrad_data,
                            brdf_data[(band, 'vol')]['value'],
                            brdf_data[(band, 'geo')]['value']))
 
-            #FIXME: Waiting for Stephen Ring's code
-            outfile.write(str(l1t_input_dataset.bias[band_number]) + " " +
-                          str(l1t_input_dataset.gain[band_number]) + " " +
+            outfile.write(str(acq.bias) + " " +
+                          str(acq.gain) + " " +
                           str(solar_irrad_data[band_number]['value']) + " " +
                           str(solar_dist_data['value']) + "\n")
 
