@@ -1,14 +1,13 @@
-#!/usr/bin/env python
-
 from gaip import Buffers
 from gaip import calculate_angles as ca
 from gaip import read_img
 from gaip import run_slope
 
+
 def calculate_self_shadow(acquisition, DSM_fname, buffer,
-        solar_zenith_fname, solar_azimuth_fname,
-        satellite_view_fname, satellite_azimuth_fname,
-        out_fnames=None):
+                          solar_zenith_fname, solar_azimuth_fname,
+                          satellite_view_fname, satellite_azimuth_fname,
+                          out_fnames=None, header_slope_fname=None):
     """
     Computes the self shadow mask, slope, aspect, incident, exiting,
     azimuth incident, azimuth exiting and relative slope angles.
@@ -81,7 +80,27 @@ def calculate_self_shadow(acquisition, DSM_fname, buffer,
 
     # Compute self shadow, slope and various other angles
     slope_results = run_slope(acquisition, DSM, solar_zenith, satellite_view,
-        solar_azimuth, satellite_azimuth, pixel_buf, is_utm, spheroid)
+                              solar_azimuth, satellite_azimuth, pixel_buf,
+                              is_utm, spheroid)
 
     # Output the results
     slope_results.write_arrays(out_fnames=out_fnames, geo_box=geobox)
+
+    if header_slope_fname:
+        write_header_slope_file(header_slope_fname, pixel_buf, geobox)
+
+
+def write_header_slope_file(file_name, margins, geobox):
+    with open(file_name, 'w') as output:
+        # get dimensions, resolution and pixel origin
+        rows, cols = geobox.shape
+        res = geobox.res
+        origin = geobox.origin
+
+        # Now output the details
+        output.write("{nr} {nc}\n".format(nr=rows, nc=cols))
+        output.write("{0} {1}\n{2} {3}\n".format(margins.left, margins.right,
+                                                 margins.top, margins.bottom))
+        output.write("{resy} {resx}\n".format(resx=res[0], resy=res[1]))
+        output.write("{yorigin} {xorigin}\n".format(xorigin=origin[0],
+                                                    yorigin=origin[1]))
