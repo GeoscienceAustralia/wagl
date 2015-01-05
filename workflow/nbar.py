@@ -365,7 +365,7 @@ class CreateSatelliteFilterFile(luigi.Task):
                                           target)
 
 
-class WriteModtranInputFile(luigi.Task):
+class CreateModtranInputFile(luigi.Task):
 
     """Create the MODTRAN input file."""
 
@@ -393,9 +393,9 @@ class WriteModtranInputFile(luigi.Task):
                                  elevation)
 
 
-class WriteModisBrdfFiles(luigi.Task):
+class CreateModisBrdfFiles(luigi.Task):
 
-    """Write the Modis BRDF files."""
+    """Create the Modis BRDF files."""
 
     l1t_path = luigi.Parameter()
 
@@ -459,7 +459,7 @@ class GenerateModtranInputFiles(luigi.task):
     def requires(self):
         return [RunModtranCorOrtho(self.l1t_path),
                 CalculateSatelliteAndSolarGrids(self.l1t_path),
-                WriteModtranInputFile(self.l1t_path),
+                CreateModtranInputFile(self.l1t_path),
                 CalculateLatGrid(self.l1t_path),
                 CalculateLonGrid(self.l1t_path)]
 

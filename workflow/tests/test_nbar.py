@@ -178,10 +178,200 @@ class CalculateLonGridTest(unittest.TestCase):
         self.assertTrue(self.task.complete())
 
 
-class CalculateLonLatGridsTest(unittest.TestCase):
+class CalculateLatLonGridsTest(unittest.TestCase):
 
     def setUp(self):
         self.task = workflow.CalculateLatLonGrids(LS7_PATH)
+
+    def test_invoke(self):
+        luigi.build([self.task], local_scheduler=True)
+        self.assertTrue(self.task.complete())
+
+
+class CalculateSatelliteAndSolarGridsTest(unittest.TestCase):
+
+    def setUp(self):
+        self.task = workflow.CalculateSatelliteAndSolarGrids(LS7_PATH)
+
+    def test_invoke(self):
+        luigi.build([self.task], local_scheduler=True)
+        self.assertTrue(self.task.complete())
+
+
+class CalculateGridsTaskTest(unittest.TestCase):
+
+    def setUp(self):
+        self.task = workflow.CalculateGridsTask(LS7_PATH)
+
+    def test_invoke(self):
+        luigi.build([self.task], local_scheduler=True)
+        self.assertTrue(self.task.complete())
+
+
+class CreateModtranDirectoriesTest(unittest.TestCase):
+
+    def setUp(self):
+        self.task = workflow.CreateModtranDirectories()
+
+    def test_invoke(self):
+        luigi.build([self.task], local_scheduler=True)
+        self.assertTrue(self.task.complete())
+
+
+class CreateSatelliteFilterFileTest(unittest.TestCase):
+
+    def setUp(self):
+        self.task = workflow.CreateSatelliteFilterFile(LS7_PATH)
+
+    def test_invoke(self):
+        luigi.build([self.task], local_scheduler=True)
+        self.assertTrue(self.task.complete())
+
+
+class WriteModtranInputFileTest(unittest.TestCase):
+
+    def setUp(self):
+        self.task = workflow.WriteModtranInputFile(LS7_PATH)
+
+    def test_invoke(self):
+        luigi.build([self.task], local_scheduler=True)
+        self.assertTrue(self.task.complete())
+
+
+class CreateModtranInputFileTest(unittest.TestCase):
+
+    def setUp(self):
+        self.task = workflow.CreateModtranInputFile(LS7_PATH)
+
+    def test_invoke(self):
+        luigi.build([self.task], local_scheduler=True)
+        self.assertTrue(self.task.complete())
+
+
+class CreateModisBrdfFilesTest(unittest.TestCase):
+
+    def setUp(self):
+        self.task = workflow.CreateModisBrdfFiles(LS7_PATH)
+
+    def test_invoke(self):
+        luigi.build([self.task], local_scheduler=True)
+        self.assertTrue(self.task.complete())
+
+
+class RunModtranCorOrthoTest(unittest.TestCase):
+
+    def setUp(self):
+        self.task = workflow.RunModtranCorOrtho(LS7_PATH)
+
+    def test_invoke(self):
+        luigi.build([self.task], local_scheduler=True)
+        self.assertTrue(self.task.complete())
+
+
+class GenerateModtranInputFilesTest(unittest.TestCase):
+
+    def setUp(self):
+        self.task = workflow.GenerateModtranInputFiles(LS7_PATH)
+
+    def test_invoke(self):
+        luigi.build([self.task], local_scheduler=True)
+        self.assertTrue(self.task.complete())
+
+
+class GenerateModtranInputFilesTest(unittest.TestCase):
+
+    def setUp(self):
+        self.task = workflow.GenerateModtranInputFiles(LS7_PATH)
+
+    def test_invoke(self):
+        luigi.build([self.task], local_scheduler=True)
+        self.assertTrue(self.task.complete())
+
+
+class ReformatAsTp5Test(unittest.TestCase):
+
+    def setUp(self):
+        self.task = workflow.ReformatAsTp5(LS7_PATH)
+
+    def test_invoke(self):
+        luigi.build([self.task], local_scheduler=True)
+        self.assertTrue(self.task.complete())
+
+
+class ReformatAsTp5TransTest(unittest.TestCase):
+
+    def setUp(self):
+        self.task = workflow.ReformatAsTp5Trans(LS7_PATH)
+
+    def test_invoke(self):
+        luigi.build([self.task], local_scheduler=True)
+        self.assertTrue(self.task.complete())
+
+
+class PrepareModtranInputTest(unittest.TestCase):
+
+    def setUp(self):
+        self.task = workflow.PrepareModtranInput(LS7_PATH)
+
+    def test_invoke(self):
+        luigi.build([self.task], local_scheduler=True)
+        self.assertTrue(self.task.complete())
+
+
+class RunModtranTest(unittest.TestCase):
+
+    def setUp(self):
+        self.task = workflow.RunModtran(LS7_PATH)
+
+    def test_invoke(self):
+        luigi.build([self.task], local_scheduler=True)
+        self.assertTrue(self.task.complete())
+
+
+class ExtractFluxTest(unittest.TestCase):
+
+    def setUp(self):
+        self.task = workflow.ExtractFlux(LS7_PATH)
+
+    def test_invoke(self):
+        luigi.build([self.task], local_scheduler=True)
+        self.assertTrue(self.task.complete())
+
+
+class ExtractFluxTransTest(unittest.TestCase):
+
+    def setUp(self):
+        self.task = workflow.ExtractFluxTrans(LS7_PATH)
+
+    def test_invoke(self):
+        luigi.build([self.task], local_scheduler=True)
+        self.assertTrue(self.task.complete())
+
+
+class CalculateCoefficientsTest(unittest.TestCase):
+
+    def setUp(self):
+        self.task = workflow.CalculateCoefficients(LS7_PATH)
+
+    def test_invoke(self):
+        luigi.build([self.task], local_scheduler=True)
+        self.assertTrue(self.task.complete())
+
+
+class ReformatAtmosphericParametersTest(unittest.TestCase):
+
+    def setUp(self):
+        self.task = workflow.ReformatAtmosphericParameters(LS7_PATH)
+
+    def test_invoke(self):
+        luigi.build([self.task], local_scheduler=True)
+        self.assertTrue(self.task.complete())
+
+
+class BilinearInterpolationTest(unittest.TestCase):
+
+    def setUp(self):
+        self.task = workflow.BilinearInterpolation(LS7_PATH)
 
     def test_invoke(self):
         luigi.build([self.task], local_scheduler=True)
