@@ -1,3 +1,5 @@
+import sys
+
 from ancillary import *
 from acquisition import *
 from data import *
@@ -25,5 +27,6 @@ try:
     from _slope_pixelsize_newpole import slope_pixelsize_newpole # F2Py
     from _brdf_terrain_newdiff_all import terrain_correction # F2Py
 except ImportError:
-    print 'Run Makefile to build the Fortran modules.'
-    print 'Some functionality in library is disabled'
+    msg = ('Run Makefile to build the Fortran modules.\n'
+           'Some functionality in library is disabled')
+    print sys.stderr, msg
