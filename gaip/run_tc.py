@@ -18,7 +18,8 @@ def run_tc(acquisitions, bilinear_ortho_filenames, rori, self_shadow_fname,
         cast_shadow_sun_fname, cast_shadow_satellite_fname,
         solar_zenith_fname, solar_azimuth_fname, satellite_view_fname,
         relative_angle_fname, slope_fname, aspect_fname, incident_angle_fname,
-        exiting_angle_fname, relative_slope_fname, reflectance_filenames):
+        exiting_angle_fname, relative_slope_fname, reflectance_filenames,
+        brdf_fname_format, new_brdf_fname_format):
     """
     The terrain correction workflow.
 
@@ -99,6 +100,16 @@ def run_tc(acquisitions, bilinear_ortho_filenames, rori, self_shadow_fname,
             ref_lm -> Lambertian reflectance
             ref_brdf -> BRDF corrected reflectance
             ref_terrain -> Terrain corrected reflectance
+
+    :param brdf_fname_format:
+        A string containing the brdf filename format eg:
+        brdf_modis_band_{band_num}.txt, where {band_num} will be
+        substituted for the current band number.
+
+    :param new_brdf_fname_format:
+        A string containing the new brdf filename format eg:
+        new_brdf_modis_band_{band_num}.txt, where {band_num} will be
+        substituted for the current band number.
 
     :return:
         None.
@@ -184,14 +195,14 @@ def run_tc(acquisitions, bilinear_ortho_filenames, rori, self_shadow_fname,
         geobox = acq.gridded_geo_box()
 
         # Read the BRDF modis file for a given band
-        brdf_modis_file = 'brdf_modis_band{0}.txt'.format(band_number)
-        brdf_modis_file = pjoin(work_path, brdf_modis_file)
+        brdf_modis_file = brdf_fname_format.format(band_num=acq.band_num)
+        brdf_modis_file = pjoin(brdf_work_path, brdf_modis_file)
         with open(brdf_modis_file, 'r') as param_file:
             brdf0, brdf1, brdf2, bias, slope_ca, esun, dd = map(float,
                 ' '.join(param_file.readlines()).split())
 
-        write_new_brdf_file(pjoin(tc_work_path,
-            'new_brdf_modis_band{band_num}.txt'.format(band_num=band_number)),
+        write_new_brdf_file(
+            new_brdf_fname_format.format(band_num=band_number),
             rori, brdf0, brdf1, brdf2, bias, slope_ca, esun, dd,
             avg_reflectance_values[band_number])
 
