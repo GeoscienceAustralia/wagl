@@ -405,15 +405,16 @@ class WriteModisBrdfFiles(luigi.Task):
 
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
-        modis_brdf_prefix = CONFIG.get('work', 'modis_brdf_prefix')
+        outdir = CONFIG.get('work', 'path')
+        modis_brdf_format = pjoin(outdir,
+            CONFIG.get('brdf', 'modis_brdf_format'))
         brdf_target = CONFIG.get('work', 'brdf_target')
         brdf_data = load(brdf_target)
         irrad_target = CONFIG.get('work', 'irrad_target')
         solar_irrad_data = load(irrad_target)
         solar_dist_target = CONFIG.get('work', 'sundist_target')
         solar_dist_data = load(solar_dist_target)
-        # FIXME
-        gaip.write_modis_brdf_files(acqs, modis_brdf_prefix, brdf_data,
+        gaip.write_modis_brdf_files(acqs, modis_brdf_format, brdf_data,
                                     solar_irrad_data, solar_dist_data)
 
 
@@ -1146,10 +1147,15 @@ class TerrainCorrection(luigi.Task):
         acqs = gaip.acquisitions(self.l1t_path)
 
         # Get the necessary config params
+        tc_path = CONFIG.get('work', 'tc_intermediates')
         work_path = CONFIG.get('work', 'path')
         outdir = CONFIG.get('work', 'rfl_output_dir')
         bilinear_target = CONFIG.get('work', 'bilinear_outputs_target')
         rori = CONFIG.get('terrain_correction', 'rori')
+        modis_brdf_format = pjoin(work_path,
+            CONFIG.get('brdf', 'modis_brdf_format'))
+        new_modis_brdf_format = pjoin(tc_path,
+            CONFIG.get('brdf', 'new_modis_brdf_format'))
 
         # Get the reflectance levels and base output format
         rfl_levels = CONFIG.get('terrain_correction', 'rfl_levels').split(',')
@@ -1205,7 +1211,8 @@ class TerrainCorrection(luigi.Task):
                     solar_zenith_target, solar_azimuth_target,
                     satellite_view_target, relative_angle_target,
                     slope_target, aspect_target, incident_target,
-                    exiting_target, relative_slope_target, rfl_lvl_fnames)
+                    exiting_target, relative_slope_target, rfl_lvl_fnames,
+                    modis_brdf_format, new_modis_brdf_format)
 
 
 if __name__ == '__main__':  # FIXME
