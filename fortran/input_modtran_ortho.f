@@ -2,7 +2,8 @@
 c     program to generate files needed MODTRAn input files
 c     written by Fuqin Li in 2009 and update in 2010 
 c     command line  input_modtran_ortho <input_modtraninput> 
-c                <coordinator> <view_angle> <azi_angle> 
+c               <coordinator> <view_angle> <azi_angle>
+c               <latitude_array>   <longitude_array>
 c               <output_TL_alb_0>  <output_TL_alb_1>
 c               <output_TM_alb_0>  <output_TM_alb_1>
 c               <output_TR_alb_0>  <output_TR_alb_1>
