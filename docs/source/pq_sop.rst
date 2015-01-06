@@ -59,11 +59,11 @@ Procedure
 ---------
 To run the Pixel Quality job, follow these steps:
 
-# Specify inputs and outputs
-# Set job resources
-# Submit and monitor job
-# Review results
-# Handling errors
+1. Specify inputs and outputs
+2. Set job resources
+3. Submit and monitor job
+4. Review results
+5. Handling errors
 
 Specify inputs and outputs
 --------------------------
@@ -144,8 +144,8 @@ resources that should be allocated.
 
 Key constraints to note:
 
-# A maximum of 4 Luigi workers per node is allowed (4 workers X 8GB per worker = 32GB = max memory available per node)
-# For any production workload, NCPUS (number of CPUs) should always be a multiple of 16 (so that whole Nodes will be allocated to the PBS job)
+1. A maximum of 4 Luigi workers per node is allowed (4 workers X 8GB per worker = 32GB = max memory available per node)
+2. For any production workload, NCPUS (number of CPUs) should always be a multiple of 16 (so that whole Nodes will be allocated to the PBS job)
 
 Specify scale of job
 --------------------
@@ -262,5 +262,54 @@ It is impossible to predict the various types of error that may occur during PQ 
 As a general rule, Pixel Quality jobs are completely re-runnable. So once errors have been fixed (and offending data files have been fixed or deleted), simply re-submit the Pixel Quality job and allow it to re-run.
 
 When a Pixel Quality job is re-run, Luigi ensures that steps that previously completed without error will not be re-run. This property allows a strategy of “run, fix and rerun” to be employed until the workload has been fully processed.
+
+
+
+Appendix A - Scene input file formats
+-------------------------------------
+
+Scene data (both L1T and NBAR) used by the Pixel Quality job are stored in directories, one scene per directory. The directory names subscribe to the following convention demonstrated here by example.
+
+:: code:
+ 
+ Directory name: LS5_TM_NBAR_P54_GANBAR01-002_092_086_20090115
+
+The name is broken into fields using the underscore “_” character as a field delimiter. The following table describes the fields:
+
+
++---------------------------+--------------------+------------------------------------------------+
+| Field                     | Example            |  Comment                                       |
++===========================+====================+================================================+
+| Satellite                 | LS5                |                                                |
++---------------------------+--------------------+------------------------------------------------+
+| Sensor                    | TM                 |                                                |
++---------------------------+--------------------+------------------------------------------------+
+| Product                   | NBAR               |  "OTH" for                                     |
++---------------------------+--------------------+------------------------------------------------+
+| Product ID                | P54                |                                                |
++---------------------------+--------------------+------------------------------------------------+
+| Product code and version  | GANBAR01           |                                                |
++---------------------------+--------------------+------------------------------------------------+
+| Station ID                | 002                |                                                |
++---------------------------+--------------------+------------------------------------------------+
+| Path                      | 092                |                                                |
++---------------------------+--------------------+------------------------------------------------+
+| Row                       | 086                |                                                |
++---------------------------+--------------------+------------------------------------------------+
+| Acquisition Date          | 20090205           |                                                |
++---------------------------+--------------------+------------------------------------------------+
+
+
+
+
+Appendix B - Land/Sea data files
+--------------------------------
+
+Land sea raster files are currently stored in /g/data1/v10/eoancillarydata/Land_Sea_Rasters
+
+and have a filename format like WORLDzone57.tif, where, in this case, 57 is the UTM zone.
+
+
+
 
 
