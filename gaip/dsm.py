@@ -15,6 +15,30 @@ def get_dsm(acquisition, national_dsm, margins, fname_subset, fname_smoothed):
     plus an x & y margins. The subset is then smoothed with a 3x3
     gaussian filter.
     A square margins is applied to the extents.
+
+    :param acquisition:
+        An instance of an acquisition object.
+
+    :param national_dsm:
+        A string containing the full filepath name to an image on
+        disk containing national digital surface model.
+
+    :param buffer:
+        An integer indictaing the number of pixels to buffer around
+        the aqcuisition. Eg, a value of 250 indicates that 250 pixels
+        to the top, bottom, left and right will be added to the
+        acquisition border.
+
+    :param fname_subset:
+        A string containing the full filepath name to a location on
+        disk that will contain the subsetted dsm.
+
+    :param fname_smoothed:
+        A string containing the full filepath name to a location on
+        disk that will contain the subsetted and smoothed dsm.
+
+    :return:
+        None, the results will be written to disk.
     """
 
     # Use the 1st acquisition to setup the geobox
