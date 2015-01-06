@@ -15,14 +15,9 @@ from gaip import acquisitions
 from gaip import find_file
 from gaip import gridded_geo_box
 from gaip import load_tle
-try:
-    from gaip import angle
-    from gaip import set_satmod
-    from gaip import set_times
-except ImportError:
-    msg = ('Run Makefile to build the Fortran modules.\n'
-           'Some functionality in library is disabled')
-    print sys.stderr, msg
+from gaip import angle
+from gaip import set_satmod
+from gaip import set_times
 
 CRS = "EPSG:4326"
 TLE_DIR = '/g/data1/v10/eoancillarydata/sensor-specific'
@@ -125,7 +120,8 @@ def create_centreline_file(geobox, y, x, n, cols, view_max,
             lon, lat = geobox.transform_coordinates(mapXY, to_crs=sr)
             # Right justified at various lengths
             msg = '{row:>14}{col:>14}{n:>14}{lat:>21}{lon:>21}\n'
-            msg = msg.format(row=y[r], col=x[r], n=n[r], lat=lat, lon=lon)
+            msg = msg.format(row=int(y[r]), col=int(x[r]), n=n[r], lat=lat,
+                             lon=lon)
             outfile.write(msg)
 
 

@@ -14,18 +14,18 @@ from calculate_lon_lat_arrays import *
 from land_sea_masking import *
 from land_sea import get_land_sea_mask 
 from modtran import *
-from tc import *
-from dsm import get_dsm
-from dsm import get_dsm
+from margins import *
 
 try:
-    from calculate_angles import *
     from set_satmod import set_satmod # F2Py
     from set_times import set_times # F2Py
     from angle_all import angle # F2Py
     from _shade_main_landsat_pixel import shade_main_landsat_pixel # F2Py
     from _slope_pixelsize_newpole import slope_pixelsize_newpole # F2Py
     from _brdf_terrain_newdiff_all import terrain_correction # F2Py
+    from calculate_angles import *
+    from tc import *
+    from dsm import get_dsm
 except ImportError:
     msg = ('Run Makefile to build the Fortran modules.\n'
            'Some functionality in library is disabled')

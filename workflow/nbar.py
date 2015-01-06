@@ -39,6 +39,8 @@ def load(target):
 
 def load_value(target):
     """Load the value from `target`."""
+    if isinstance(target, str):
+        target = luigi.LocalTarget(target)
     data = load(target)
     try:
         return data['value']
@@ -207,6 +209,9 @@ class GetAncillaryData(luigi.Task):
                 GetAerosolAncillaryData(self.l1t_path),
                 GetBrdfAncillaryData(self.l1t_path)]
 
+    def complete(self):
+        return all([t.complete() for t in self.requires()])
+
 
 class CalculateLonGrid(luigi.Task):
 
@@ -287,8 +292,8 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
                    CONFIG.get('work', 'time_target')]
         centreline_target = CONFIG.get('work', 'centreline_target')
         header_angle_target = CONFIG.get('work', 'header_angle_target')
-        lon_target = CONFIG.get('work', 'lon_target')
-        lat_target = CONFIG.get('work', 'lat_target')
+        lon_target = CONFIG.get('work', 'lon_grid_target')
+        lat_target = CONFIG.get('work', 'lat_grid_target')
 
         acqs = gaip.acquisitions(self.l1t_path)
 
@@ -382,7 +387,7 @@ class CreateModtranInputFile(luigi.Task):
         ozone_target = CONFIG.get('work', 'ozone_target')
         vapour_target = CONFIG.get('work', 'vapour_target')
         aerosol_target = CONFIG.get('work', 'aerosol_target')
-        elevation_target = CONFIG.get('work', 'elevation_target')
+        elevation_target = CONFIG.get('work', 'dem_target')
         acqs = gaip.acquisitions(self.l1t_path)
         target = self.output().fn
         ozone = load_value(ozone_target)
@@ -435,7 +440,7 @@ class RunModtranCorOrtho(luigi.Task):
     def run(self):
         # sources
         centreline_target = CONFIG.get('work', 'centreline_target')
-        sat_view_zenith_target = CONFIG.get('work', 'sat_view_zenith_target')
+        sat_view_zenith_target = CONFIG.get('work', 'sat_view_target')
         # targets
         coordinator_target = CONFIG.get('work', 'coordinator_target')
         boxline_target = CONFIG.get('work', 'boxline_target')
@@ -467,6 +472,9 @@ class GenerateModtranInputFiles(luigi.Task):
         coords = CONFIG.get('input_modtran', 'coords').split(',')
         albedos = CONFIG.get('input_modtran', 'albedos').split(',')
         output_format = CONFIG.get('input_modtran', 'output_format')
+        workdir = CONFIG.get('work', 'input_modtran_cwd')
+        output_format = pjoin(workdir, output_format)
+
         targets = []
         for coord in coords:
             for albedo in albedos:
@@ -478,7 +486,7 @@ class GenerateModtranInputFiles(luigi.Task):
         # sources
         modtran_input_target = CONFIG.get('work', 'modtran_input_target')
         coordinator_target = CONFIG.get('work', 'coordinator_target')
-        sat_view_zenith_target = CONFIG.get('work', 'sat_view_zenith_target')
+        sat_view_zenith_target = CONFIG.get('work', 'sat_view_target')
         sat_azimuth_target = CONFIG.get('work', 'sat_azimuth_target')
         lon_grid_target = CONFIG.get('work', 'lon_grid_target')
         lat_grid_target = CONFIG.get('work', 'lat_grid_target')
@@ -575,6 +583,7 @@ class ReformatAsTp5Trans(luigi.Task):
         output_format = CONFIG.get('reformat_tp5_trans', 'output_format')
         workdir = CONFIG.get('work', 'reformat_tp5_trans_cwd')
         coords = CONFIG.get('reformat_tp5_trans', 'coords').split(',')
+        albedos = CONFIG.get('reformat_tp5_trans', 'albedos').split(',')
 
         # determine modtran profile
         acqs = gaip.acquisitions(self.l1t_path)
@@ -587,7 +596,7 @@ class ReformatAsTp5Trans(luigi.Task):
         profile = pjoin(modtran_profile_path,
                         profile_format.format(profile=profile))
 
-        gaip.reformat_as_tp5_trans(coords, profile,
+        gaip.reformat_as_tp5_trans(coords, albedos, profile,
                                    input_format, output_format,
                                    workdir)
 
@@ -604,6 +613,9 @@ class PrepareModtranInput(luigi.Task):
                 GenerateModtranInputFiles(self.l1t_path),
                 ReformatAsTp5(self.l1t_path),
                 ReformatAsTp5Trans(self.l1t_path)]
+
+    def complete(self):
+        return all([t.complete() for t in self.requires()])
 
 
 class RunModtranCase(luigi.Task):
@@ -647,6 +659,9 @@ class RunModtran(luigi.Task):
             for albedo in albedos:
                 reqs.append(RunModtranCase(self.l1t_path, coord, albedo))
         return reqs
+
+    def complete(self):
+        return all([t.complete() for t in self.requires()])
 
 
 class ExtractFlux(luigi.Task):
