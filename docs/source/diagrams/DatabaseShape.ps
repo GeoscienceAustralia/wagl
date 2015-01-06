@@ -1,0 +1,63 @@
+/xdef {exch def} bind def
+
+/DatabaseShape {
+    10 dict begin
+    /fflag xdef
+    /sides xdef
+
+    aload pop
+    /y1 xdef /x1 xdef
+    pop pop
+    /y0 xdef /x0 xdef
+    pop pop pop pop
+
+    x1 x0 sub 2 div /xr xdef
+    y1 y0 sub 8 div /yr xdef
+    x0 xr add /xm xdef
+    y1 yr add /ym xdef
+
+    x0 y0 moveto
+    x0 ym lineto
+
+    x0 ym yr 0.551784 mul add
+    xm xr 0.551784 mul sub ym yr add
+    xm ym yr add
+    curveto
+
+    xm xr 0.551784 mul add ym yr add
+    x1 ym yr 0.551784 mul add
+    x1 ym
+    curveto
+
+    x1 y0 lineto
+
+    x1 y0 yr 0.551784 mul sub
+    xm xr 0.551784 mul add y0 yr sub
+    xm y0 yr sub
+    curveto
+
+    xm xr 0.551784 mul sub y0 yr sub
+    x0 y0 yr 0.551784 mul sub
+    x0 y0
+    curveto
+
+    fflag { fill } { stroke } ifelse
+
+    fflag not {
+        x0 ym moveto
+
+        x0 ym yr 0.551784 mul sub
+        xm xr 0.551784 mul sub y1
+        xm y1
+        curveto
+
+        xm xr 0.551784 mul add y1
+        x1 ym yr 0.551784 mul sub
+        x1 ym
+        curveto
+
+        stroke
+    } if
+
+    end
+} bind def
