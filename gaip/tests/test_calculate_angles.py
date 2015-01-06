@@ -8,7 +8,6 @@ import numpy
 import numpy.testing as npt
 
 from gaip import acquisitions
-from gaip import calculate_angles as ca
 from gaip import create_centreline_file 
 from gaip import find_file
 from gaip import gridded_geo_box
