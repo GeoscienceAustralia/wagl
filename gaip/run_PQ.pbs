@@ -22,9 +22,8 @@
 #PBS -l walltime=01:30:00,ncpus=64,mem=124GB,jobfs=4GB
 #PBS -l wd
 #PBS -me
-##PBS -M 
 #===============================================================
-
+umask 003
 # CHECK PARAMS
 # ============
 echoerr() { echo "$@" 1>&2; }
@@ -49,11 +48,10 @@ checkExists LOG_PATH $LOG_PATH
 
 module load python/2.7.6
 module use /projects/u46/opt/modules/modulefiles
+# module load gaip   # GA Image Processor
 module load EOtools
-module load openmpi
 module load luigi-mpi
 module load rasterio
-module load mpi4py
 module load IDL_functions
 module load scikit-image
 
@@ -64,6 +62,7 @@ echo "CPUS: "
 cat $PBS_NODEFILE | wc -l 
 
 # override the image_processor so we get out code
+# TODO: replace this with module load
 export PYTHONPATH=/home/547/smr547/ga-neo-landsat-processor:$PYTHONPATH
 
 # now run on all nodes
