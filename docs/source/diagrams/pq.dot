@@ -1,0 +1,36 @@
+digraph pq {
+
+        rankdir = LR;
+# Luigi tasks
+
+
+# scripts
+
+    { rank=same
+        submit_sh[shape=box, label="submit_PQ.sh"]
+        run_PQ_pbs[shape=box, label="run_PQ_pbs"]
+    }
+
+# Targets
+
+
+	L1T_ProductDataset [shape=DatabaseShape, peripheries=0, label="L1T Directory"]
+	NBAR_ProductDataset [shape=DatabaseShape, peripheries=0, label="NBAR Directory"]
+	PQ_ProductDataset [shape=DatabaseShape, peripheries=0, label="PQ Directory"]
+	Ancillary_data [shape=DatabaseShape, peripheries=0, label="Ancillary data"]
+	logs [shape=DatabaseShape, peripheries=0, label="logs"]
+
+# Outputs
+	run_PQ_pbs -> PQ_ProductDataset [style=dotted, label="outputs"]
+	run_PQ_pbs -> logs [style=dotted, label="outputs"]
+
+# Requires
+
+	L1T_ProductDataset -> run_PQ_pbs [label="requires"]
+	NBAR_ProductDataset -> run_PQ_pbs [label="requires"]
+	Ancillary_data  -> run_PQ_pbs[label="requires"]
+
+# Submissions
+
+        submit_sh -> run_PQ_pbs [style=dotted, label="submits", dir=back]
+}
