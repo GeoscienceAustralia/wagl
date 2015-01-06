@@ -1,7 +1,8 @@
 
 
-pq.png:	pq.dot
-	dot -Tpng -l DatabaseShape.ps pq.dot -o pq.png
+pq.png:	pq.ps
+	convert pq.ps pq.png
+
 pq.ps:	pq.dot
 	dot -Tps -l DatabaseShape.ps pq.dot -o pq.ps
 
