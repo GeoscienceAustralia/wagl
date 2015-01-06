@@ -14,18 +14,25 @@ BIN_DIR = abspath(pjoin(dirname(__file__), '..', 'bin'))
 def create_modtran_dirs(coords, albedos, modtran_root, modtran_exe_root,
                         workpath_format, input_format):
     """Create all modtran subdirectories. and input files."""
+
+    if not exists(modtran_root):
+        os.makedirs(modtran_root)
+
+    data_dir = pjoin(modtran_exe_root, 'DATA')
+    if not exists(data_dir):
+        raise OSError('Cannot find MODTRAN')
+
     for coord in coords:
         for albedo in albedos:
             modtran_work = workpath_format.format(coord=coord, albedo=albedo)
+            modtran_work = pjoin(modtran_root, modtran_work)
             mod5root_in = input_format.format(coord=coord, albedo=albedo)
-            data_dir = pjoin(modtran_exe_root, 'DATA')
             symlink_dir = pjoin(modtran_work, 'DATA')
 
             if not exists(modtran_work):
                 os.makedirs(modtran_work)
 
-            if exists(symlink_dir):
-                os.unlink(symlink_dir)
+            os.remove(symlink_dir)
             os.symlink(data_dir, symlink_dir)
 
             with open(mod5root_in, 'w') as outfile:
@@ -34,6 +41,7 @@ def create_modtran_dirs(coords, albedos, modtran_root, modtran_exe_root,
             symlink_dir = pjoin(modtran_work, 'DATA')
             if exists(symlink_dir):
                 os.unlink(symlink_dir)
+
             os.symlink(data_dir, symlink_dir)
 
 
@@ -68,7 +76,7 @@ def write_modtran_input(acquisitions, modtran_input_file, ozone, vapour,
         outfile.write("%f\n" % elevation)
         outfile.write("Annotation, %s\n" % cdate.strftime('%Y-%m-%d'))
         outfile.write("%d\n" % altitude)
-        outfile.write("%d\n" % cdate.strftime('%j'))
+        outfile.write("%d\n" % int(cdate.strftime('%j')))
         outfile.write("%f\n" % dechour)
 
 
@@ -99,7 +107,7 @@ def run_read_modtrancor_ortho(centreline, sat_view_zenith, coordinator,
 
     args = [cmd, centreline, sat_view_zenith, coordinator, boxline]
 
-    subprocess.check_call(args, cwd=cwd)
+    subprocess.check_call(args)
 
 
 def generate_modtran_inputs(modtran_input, coordinator, sat_view_zenith,
@@ -108,7 +116,8 @@ def generate_modtran_inputs(modtran_input, coordinator, sat_view_zenith,
     """Generate MODTRAN input files."""
     cmd = pjoin(BIN_DIR, 'input_modtran_ortho')
 
-    args = [cmd, modtran_input, coordinator, sat_view_zenith, sat_azimuth]
+    args = [cmd, modtran_input, coordinator, sat_view_zenith, sat_azimuth,
+            lon_grid, lat_grid]
 
     targets = []
     for coord in coords:
@@ -117,8 +126,6 @@ def generate_modtran_inputs(modtran_input, coordinator, sat_view_zenith,
             targets.append(pjoin(workdir, target))
 
     args.extend(targets)
-    args.append(lon_grid)
-    args.append(lat_grid)
 
     subprocess.check_call(args)
 
@@ -126,9 +133,8 @@ def generate_modtran_inputs(modtran_input, coordinator, sat_view_zenith,
 
 
 def reformat_as_tp5(coords, albedos, profile, input_format, output_format,
-                    workdir):
+                    workdir, cmd = pjoin(BIN_DIR, 'refort_tp5_ga')):
     """Reformat the MODTRAN input files in `tp5` format."""
-    cmd = pjoin(BIN_DIR, 'refort_tp5_ga')
 
     targets = []
     for coord in coords:
@@ -139,6 +145,8 @@ def reformat_as_tp5(coords, albedos, profile, input_format, output_format,
 
             args = [cmd, pjoin(workdir, src), profile, pjoin(workdir, dst)]
 
+            print ' '.join(args)
+
             subprocess.check_call(args)
 
     return targets
@@ -148,18 +156,8 @@ def reformat_as_tp5_trans(coords, albedos, profile, input_format,
                           output_format, workdir):
     """Reformat the MODTRAN input files in `tp5` format in the trans case."""
     cmd = pjoin(BIN_DIR, 'refort_tp5_ga_trans')
-
-    targets = []
-    for coord in coords:
-        src = input_format.format(coord=coord)
-        dst = output_format.format(coord=coord)
-        targets.append(pjoin(workdir, dst))
-
-        args = [cmd, pjoin(workdir, src), profile, pjoin(workdir, dst)]
-
-        subprocess.check_call(args)
-
-    return targets
+    return reformat_as_tp5(coords, albedos, profile, input_format,
+                           output_format, workdir, cmd)
 
 
 def run_modtran(modtran_exe, workpath):
