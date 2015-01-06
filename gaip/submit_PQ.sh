@@ -36,6 +36,11 @@ let MEM_GB=32*$NODES    # don't touch
 let NCPUS=16*$NODES     # don't touch
 let JOBFS_MB=100*$NODES # don't touch
 
+# JOB SPECS
+# =========
+
+MAIL_LIST="steven.ring@ga.gov.au,smr@southsky.com.au"
+
 # Create ouput directory
 
 rm -r ${OUTPUT_ROOT}
@@ -48,7 +53,11 @@ HOSTNAME=`hostname`
 PID=$$
 LSPEC="walltime=${WALLCLOCK},ncpus=${NCPUS},mem=${MEM_GB}GB,jobfs=${JOBFS_MB}MB"
 echo $LSPEC
+
+# Submit the job
+
 qsub -v L1T_PATH=$L1T_PATH,NBAR_PATH=$NBAR_PATH,LAND_SEA_PATH=$LAND_SEA_PATH,OUTPUT_PATH=$OUTPUT_PATH,LOG_PATH=$LOG_PATH \
+ -M $MAIL_LIST \
  -e $LOG_PATH/run_PQ_${HOSTNAME}_${PID}.stderr \
  -o $LOG_PATH/run_PQ_${HOSTNAME}_${PID}.stdout \
  -l $LSPEC \
