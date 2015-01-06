@@ -23,11 +23,12 @@ def get_dsm(acquisition, national_dsm, margins, fname_subset, fname_smoothed):
         A string containing the full filepath name to an image on
         disk containing national digital surface model.
 
-    :param buffer:
-        An integer indictaing the number of pixels to buffer around
-        the aqcuisition. Eg, a value of 250 indicates that 250 pixels
-        to the top, bottom, left and right will be added to the
-        acquisition border.
+    :param margin:
+        An integer indictaing the number of pixels to be used as a
+        margin around the aqcuisition.
+        Eg, a value of 250 indicates that 250 pixels to the top,
+        bottom, left and right will be added to the acquisition
+        margin/border.
 
     :param fname_subset:
         A string containing the full filepath name to a location on
