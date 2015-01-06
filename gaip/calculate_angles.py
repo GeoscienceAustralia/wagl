@@ -427,7 +427,7 @@ def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, npoints=12):
 def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
         to_disk=None):
     """
-    Calcualte the satellite view, satellite azimuth, solar zenith,
+    Calculate the satellite view, satellite azimuth, solar zenith,
     solar azimuth, and relative aziumth angle grids, as well as the
     time grid. All grids are output as float32 ENVI files.
     A wrapper routine for the ``angle_all`` Fortran module built via
@@ -468,19 +468,22 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
         6 float32 NumPy arrays of the same shape as lon_array unless
         the outfilenames is set in which case 6 filepath
         names will be returned:
-        Satellite zenith angle.
-        Satellite azimuth angle.
-        Solar zenith angle.
-        Solar azimuth angle.
-        Relative azimuth angle.
-        Time.
+
+        1. Satellite zenith angle.
+        2. Satellite azimuth angle.
+        3. Solar zenith angle.
+        4. Solar azimuth angle.
+        5. Relative azimuth angle.
+        6. Time.
+
         3 float32 NumPy arrays with the same shape as
         lon_array.shape[0] containing the array coodinates of the
-        satellite track line and N_Cent(??):
-        Y_coordinates (Starting at 1)
-        X_coordinates
-        N_cent (Value 2 if centre x coordinate was averaged and
-                1 if centre x coordinate was not averaged)
+        satellite track line and N_Cent:
+
+        4. Y_coordinates (Starting at 1)
+        5. X_coordinates
+        6. N_cent (Value 2 if centre x coordinate was averaged and
+           1 if centre x coordinate was not averaged)
     """
     # Get the Datetime of the acquisition
     Datetime = acquisition.scene_center_datetime
