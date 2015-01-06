@@ -1,7 +1,7 @@
-Invoking the Image Processor
+Invoking the Geoscience Australia Image Processor
 ============================
 
-The ULA Image Processor is invoked as "process.py". Note that you will have to add the full path to your "common" subdirectory to your PYTHONPATH environment variable for process.py to work. The script should accept all of the same command line arguments as the production and old ULA NBAR scripts.
+The Geoscience Australia Image Processor is invoked as ...TODO 
 
 .. raw:: html
 

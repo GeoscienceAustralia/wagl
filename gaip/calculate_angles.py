@@ -26,6 +26,9 @@ TLE_DIR = '/g/data1/v10/eoancillarydata/sensor-specific'
 def sat_sol_grid_workflow(L1T_path, work_path, lonlat_path):
     """
     Workflow to generate the satellite and solar grids.
+
+    :note:
+        This routine is only utilised by the unittesting framework.
     """
     # Retrieve an acquisitions object
     acqs = acquisitions(L1T_path)
@@ -308,6 +311,8 @@ def setup_orbital_elements(ephemeral, datetime):
 def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements):
     """
     Setup the satellite model.
+    A wrapper routine for the `set_satmod` Fortran module built via
+    ``F2Py``.
 
     :param centre_lon:
         The longitude of the scene centre.
@@ -356,6 +361,8 @@ def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements):
 def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, npoints=12):
     """
     Setup the satellite track times.
+    A wrapper routine for the ``set_times`` Fortran module built via
+    ``F2Py``.
 
     :param ymin:
         The minimum lattitude in the array extent.
@@ -423,7 +430,8 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
     Calcualte the satellite view, satellite azimuth, solar zenith,
     solar azimuth, and relative aziumth angle grids, as well as the
     time grid. All grids are output as float32 ENVI files.
-    The CENTRELINE is also calculated and output to disk.
+    A wrapper routine for the ``angle_all`` Fortran module built via
+    ``F2Py``.
 
     :param acquisition:
         An instance of an acquisitions object.

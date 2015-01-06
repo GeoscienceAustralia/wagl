@@ -74,13 +74,14 @@ def stack_data(acqs_list, filter=(lambda acq: True)):
         acquisition is to be selected for inclusion in the output
 
     :return:
-        A 3-tuple containing
-            1: the list of selected acquisitions (possibly empty)
-            2: a 3D numpy array (or None) containing the corresponding
-               acquisition data. (None if no data)
-            3: A GriddedGeoBox instance specifying the spatial context
-               or the 3D numpy array. Note: All Acquisitions share the
-               same GriddedGeoBox
+        A 3-tuple containing:
+
+        1. The list of selected acquisitions (possibly empty).
+        2. A 3D numpy array (or None) containing the corresponding
+           acquisition data. (None if no data).
+        3. A GriddedGeoBox instance specifying the spatial context
+           or the 3D numpy array. Note: All Acquisitions share the
+           same GriddedGeoBox.
     """
 
     # get the subset of acquisitions required
@@ -224,10 +225,11 @@ def read_subset(fname, ULxy, URxy, LRxy, LLxy, bands=1):
 
     :return:
         A tuple of 3 elements:
-            [0] 2D or 3D NumPy array containing the image subset.
-            [1] A list of length 6 containing the GDAL geotransform.
-            [2] A WKT formatted string representing the co-ordinate
-                reference system (projection).
+
+        1. 2D or 3D NumPy array containing the image subset.
+        2. A list of length 6 containing the GDAL geotransform.
+        3. A WKT formatted string representing the co-ordinate
+           reference system (projection).
 
     :additional notes:
         The ending array co-ordinates are increased by +1,
@@ -290,6 +292,14 @@ def read_img(fname):
     This is only intended for reading the raw file into a NumPy memory
     variable.
     Largely used in the unittesting suite.
+
+    :param fname:
+        A string containing the full file pathname to an image on
+        disk.
+
+    :return:
+        A NumPy array containing the full dimensions and specific
+        datatype of the image represented on disk.
     """
 
     ds = gdal.Open(fname)
@@ -306,6 +316,18 @@ def find_file(dir, file):
     A simple routine for checking existance of files on disk.
     No error catching, it'll bail out of the main level program
     as it is designed for the unittests.
+
+    :param dir:
+        A string containing the directory to search.
+
+    :param file:
+        A string containing the name of the file to search within the
+        given directory.
+
+    :return:
+        If the file exists, then a full filepath name for the file of
+        interest will be returned. If the file is not found then an
+        IOError will be raised.
     """
     fname = os.path.join(dir, file)
     if os.path.isfile(fname):
