@@ -6,7 +6,7 @@ Algorithms implemented in ULA3
 Nadir BRDF-adjusted reflectance (NBAR)
 --------------------------------------
 
-An image taken by a satellie is affected by a range of factors, including:
+An image taken by a satellite is affected by a range of factors, including:
 
 * the angle at which a satellite views a pixel (view angle),
 * illumination (determined largely by the solar angle),
@@ -56,13 +56,15 @@ The Fractional Cover algorithm utilises spectral bands 2,3,4,5,7 for either of t
                     
 Individual band information:
 
-* PV: Green Cover Fraction. Fraction of green cover including green groundcover and green leaf material over all strata, within the Landsat pixel. Expressed as a percent * 1000.
+* PV: Green Cover Fraction. Fraction of green cover including green groundcover and green leaf material over all strata, within the Landsat pixel. A DN of 10000 is 100%.
 
-* NPV: Non-green cover fraction. Fraction of non green cover including litter, dead leaf and branches over all strata, within the Landsat pixel. Expressed as a percent * 1000.
+* NPV: Non-green cover fraction. Fraction of non green cover including litter, dead leaf and branches over all strata, within the Landsat pixel. A DN of 10
+000 is 100%.
 
-* BS: Bare ground fraction. Fraction of bare ground including rock, bare and disturbed soil, within the Landsat pixel. Expressed as a percent * 1000.
+* BS: Bare ground fraction. Fraction of bare ground including rock, bare and disturbed soil, within the Landsat pixel. A DN of 10
+000 is 100%.
 
-* UE: Unmixing Error. The residual error, defined as the Eclidean Norm of the Residual Vector. High values express less confidence in the fractional components.
+* UE: Unmixing Error. The residual error, defined as the Euclidean Norm of the Residual Vector. High values express less confidence in the fractional components.
 
 Landcover fractions representing the proportions of green, non-green and bare cover retrieved by inverting multiple linear regression estimates and using synthetic endmembers in a constrained non-negative least squares unmixing model.
 

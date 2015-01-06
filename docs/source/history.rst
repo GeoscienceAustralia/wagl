@@ -1,7 +1,8 @@
-A Brief History of ULA
+A Brief History of Geoscience Australia's Image Processor
 ======================
 
-The ULA code base has evolved through 3 major iterations evolving from a system starting as a system that was essentially a set of shell scripts that ran Fortran 77 executables (ULA1) to a job runner framework written in Python (ULA3).
+The gaip code base has evolved through 4 major iterations evolving from a system starting as a system that was essentially a set of shell scripts that ran Fortran 77 executables to a job runner framework that utilises Luigi.  As part of the 4th iteration, a large portion of the Fortran 77 and C code has been re-written in Python, to take advantage of the larger codebase available through NumPy, SciPy, and GDAL.
+Original implementations came about as part of the Unlocking the Landsat Archive (ULA) project.
 
 ULA1
 ----
@@ -54,3 +55,21 @@ The new system uses exactly the same algorithms as the previous ULA NBAR process
 * `Joshua Sixsmith <mailto:joshua.sixsmith@ga.gov.au>`_ (scientist/developer),
 * `Fuqin Li <mailto:fuqin.li@ga.gov.au>`_ (scientist), and
 * `Simon Knapp <mailto:simon.knapp@ga.gov.au>`_.
+
+gaip
+----
+
+The gaip module was re--architected to make use of F2Py for some of the Fortran 77 routines, make use of existing 3rd party libraries, reduce the overall memory footprint, modularise the code to make a simpler interface and encorages portability, as well as simplify the workflow using Luigi as the framework. Positive outcomes was a more simplified and maintainable codebase.  The Pixel Quality (PQ) and Fractional Cover (FC) modules were refactored into the Luigi framework as well as reductions in overall memory use.
+The NBAR framework now outputs 3 different reflectance products:
+1. Lambertian
+2. BRDF corrected
+3. BRDF and Terrain corrected
+The BRDF correction also differs from the ULA3 BRDF correction, in that the calculations use a more accurate computation.
+
+**The people involved with gaip were:**
+
+* `Lan-Wei Wang <mailto:lan-wei.wang@ga.gov.au>`_ (Stream Lead),
+* `Dale Roberts <mailto:dale.roberts@ga.gov.au>`_ (Developer),
+* `Steven Ring <mailto:steven.ring@ga.gov.au>`_ (Developer),
+* `Josh Sixsmith <mailto:joshua.sixsmith@ga.gov.au>`_ (Developer), and
+* `Fuqin Li <mailto:fuqin.li@ga.gov.au>`_ (Scientist).
