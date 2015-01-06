@@ -1,4 +1,4 @@
-Algorithms implemented in ULA3
+Products produced by gaip
 ==============================
 
 .. _nbar-algorithm-label:
@@ -27,7 +27,7 @@ Terrain Correction (TC)
 
 Another major factor which affects the appearance of remotely sensed imagery is terrain. This changes the angle of incidence and introduces shadows. The TC algorithm extends the NBAR algorithm to take account of these effects.
 
-The algorithm is described in :download:`A physics-based atmospheric and BRDF correction for Landsat data over mountainous terrain <auxiliary/1-s2.0-S0034425712002544-main.pdf>`. The document :download:`terrain process <auxiliary/terrain_process.doc>` was provided by `Fuqin Li <mailto:fuqin.li@ga.gov.au>`_ describing the (Fortran) executables and scripts used in running the Terrain Correction algorithm (I think this is an updated version of a similar document which described the original NBAR processing). At the time of writing, the code could be found in various directories under :file:`\\win-satsan\TERRAIN_op`.
+The algorithm is described in :download:`A physics-based atmospheric and BRDF correction for Landsat data over mountainous terrain <auxiliary/1-s2.0-S0034425712002544-main.pdf>`. The document :download:`terrain process <auxiliary/terrain_process.doc>` was provided by `Fuqin Li <mailto:fuqin.li@ga.gov.au>`_ describing the (Fortran) executables and scripts used in running the Terrain Correction algorithm.
 
 
 

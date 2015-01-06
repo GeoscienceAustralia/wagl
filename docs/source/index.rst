@@ -32,5 +32,4 @@ gaip uses several Fortran programs, C programs and modules built using `F2py <ht
 gaip testing
 ============
 
-Unit tests written using :py:mod:`unittest` for some modules can be found in :py:mod:`gaip.tests`. Some of these tests also depend on existing data computed from an earlier run in order to do comparisons. Please see the :py:mod:`unittest` documentation on how to run these.
-
+Unit tests written using :py:mod:`unittest` for some modules can be found in :py:mod:`gaip.tests`. Some of these tests also depend on existing data computed from an earlier run in order to do comparisons. Please see the :py:mod:`unittest` documentation and the individual tests under gaip.tests on how to run these.
