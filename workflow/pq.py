@@ -1,23 +1,20 @@
 #!/bin/env python
+# 
+# Runs Pixel Quality workflow against specified input data
+#
+#
 
+import argparse
+import luigi.contrib.mpi as mpi
 import luigi
+import logging
 import os
+import sys
 import gc
 import re
-# from EOtools.DatasetDrivers import SceneDataset
-import logging
-from memuseFilter import MemuseFilter
-from constants import PQAConstants
-from pqa_result import PQAResult
-from saturation_masking import setSaturationBits
-from contiguity_masking import setContiguityBit
-from thermal_conversion import get_landsat_temperature
-from acca_cloud_masking import calc_acca_cloud_mask
-from fmask_cloud_masking_wrapper import FMaskCloudMask
-from cloud_shadow_masking import Cloud_Shadow
 import gaip
 
-#TODO: remove soon
+
 from glob import glob
 
 
@@ -64,7 +61,6 @@ def pqa_name_from_l1t(l1t_fname):
 
 class PixelQualityTask(luigi.Task):
 
-    # TODO: review each of these parameters, some could qualify as "Requires"
     l1t_path = luigi.Parameter()
     nbar_path = luigi.Parameter()
     land_sea_path = luigi.Parameter()
@@ -101,22 +97,22 @@ class PixelQualityTask(luigi.Task):
         # constants to be use for this PQA computation 
 
         logging.debug("setting constants for sensor=%s" % (sensor, ))
-        pq_const = PQAConstants(sensor)
+        pq_const = gaip.PQAConstants(sensor)
 
         # the PQAResult object for this run
 
-        pqaResult = PQAResult(l1t_data[0].shape, geo_box)
+        pqaResult = gaip.PQAResult(l1t_data[0].shape, geo_box)
 
         # Saturation
 
         logging.debug("setting saturation bits")
-        setSaturationBits(l1t_data, pq_const, pqaResult)
+        gaip.setSaturationBits(l1t_data, pq_const, pqaResult)
         logging.debug("done setting saturation bits")
 
         # contiguity
 
         logging.debug("setting contiguity bit")
-        setContiguityBit(l1t_data, spacecraft_id, pq_const, pqaResult)
+        gaip.setContiguityBit(l1t_data, spacecraft_id, pq_const, pqaResult)
         logging.debug("done setting contiguity bit")
 
         # land/sea
@@ -129,7 +125,7 @@ class PixelQualityTask(luigi.Task):
         # get temperature data from thermal band in prepartion for cloud detection
 
         logging.debug("calculating kelvin band")
-        kelvin_band = get_landsat_temperature(l1t_data, l1t_acqs, pq_const)
+        kelvin_band = gaip.get_landsat_temperature(l1t_data, l1t_acqs, pq_const)
   
         contiguity_mask = (pqaResult.array & (1 << pq_const.contiguity)) > 0
 
@@ -148,7 +144,7 @@ class PixelQualityTask(luigi.Task):
             # TODO: pass in scene metadata via Dale's new MTL reader
             mtl = glob(os.path.join(self.l1t_path, \
                 'scene01/*_MTL.txt'))[0] # Crude but effective
-            mask = FMaskCloudMask(mtl, null_mask=contiguity_mask, sat_tag=spacecraft_id, \
+            mask = gaip.FMaskCloudMask(mtl, null_mask=contiguity_mask, sat_tag=spacecraft_id, \
                 aux_data=aux_data)
 
             # set the result
@@ -180,10 +176,10 @@ class PixelQualityTask(luigi.Task):
             mask = None
             aux_data = {}   # for collecting result metadata
             if pq_const.oli_tirs:
-                mask = calc_acca_cloud_mask(nbar_data[1:,:,:], kelvin_band, pq_const, \
+                mask = gaip.calc_acca_cloud_mask(nbar_data[1:,:,:], kelvin_band, pq_const, \
                     contiguity_mask, aux_data)
             else: # TM or ETM
-                mask = calc_acca_cloud_mask(nbar_data, kelvin_band, pq_const, \
+                mask = gaip.calc_acca_cloud_mask(nbar_data, kelvin_band, pq_const, \
                     contiguity_mask, aux_data)
 
             # set the result
@@ -209,12 +205,12 @@ class PixelQualityTask(luigi.Task):
             sun_az_deg = l1t_acqs[0].sun_azimuth
             sun_elev_deg = l1t_acqs[0].sun_elevation
             if pq_const.oli_tirs:
-                mask = Cloud_Shadow(nbar_data[1:,:,:], kelvin_band, cloud_mask, geo_box, \
+                mask = gaip.Cloud_Shadow(nbar_data[1:,:,:], kelvin_band, cloud_mask, geo_box, \
                     sun_az_deg, sun_elev_deg, pq_const, \
                     land_sea_mask=land_sea_mask, contiguity_mask=contiguity_mask, \
                     cloud_algorithm='ACCA', growregion=True, aux_data=aux_data)
             else: # TM or ETM
-                mask = Cloud_Shadow(nbar_data, kelvin_band, cloud_mask, geo_box, \
+                mask = gaip.Cloud_Shadow(nbar_data, kelvin_band, cloud_mask, geo_box, \
                     sun_az_deg, sun_elev_deg, pq_const, \
                     land_sea_mask=land_sea_mask, contiguity_mask=contiguity_mask, \
                     cloud_algorithm='ACCA', growregion=True, aux_data=aux_data)
@@ -239,12 +235,12 @@ class PixelQualityTask(luigi.Task):
             sun_az_deg = l1t_acqs[0].sun_azimuth
             sun_elev_deg = l1t_acqs[0].sun_elevation
             if pq_const.oli_tirs:
-                mask = Cloud_Shadow(nbar_data[1:,:,:], kelvin_band, cloud_mask, geo_box, \
+                mask = gaip.Cloud_Shadow(nbar_data[1:,:,:], kelvin_band, cloud_mask, geo_box, \
                     sun_az_deg, sun_elev_deg, pq_const, \
                     land_sea_mask=land_sea_mask, contiguity_mask=contiguity_mask,
                     cloud_algorithm='FMASK', growregion=True, aux_data=aux_data)
             else: # TM or ETM
-                mask = Cloud_Shadow(nbar_data, kelvin_band, cloud_mask, geo_box, \
+                mask = gaip.Cloud_Shadow(nbar_data, kelvin_band, cloud_mask, geo_box, \
                     sun_az_deg, sun_elev_deg, pq_const, \
                     land_sea_mask=land_sea_mask, contiguity_mask=contiguity_mask,
                     cloud_algorithm='FMASK', growregion=True, aux_data=aux_data)
@@ -290,13 +286,75 @@ class NBARdataset(luigi.Target):
     def exists(self):
         return os.path.exists(self.nbar_path)
 
+def is_valid_directory(parser, arg):
+    """Used by argparse"""
+    if not os.path.exists(arg):
+        parser.error("%s does not exist" % (arg, ))
+    else:
+        return arg
+
+def nbar_name_from(l1t_fname):
+    """
+    Return an NBAR file name given a L1T file name
+    """
 
 if __name__ == '__main__':
-    logging.config.fileConfig('logging.conf') # Get basic config
-    log = logging.getLogger('')               # Get root logger
-    f = MemuseFilter()                        # Create filter
-    log.handlers[0].addFilter(f)         # The ugly part:adding filter to handler
-    logging.info("PQA started")
-    luigi.run()
-    logging.info("PQA done")
+
+    # command line arguments
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--l1t_path", help="path to directory containing OTH datasets", \
+        required=True, type=lambda x: is_valid_directory(parser, x))
+    parser.add_argument("--nbar_path", help="path to directory containing NBAR datasets", \
+        required=True, type=lambda x: is_valid_directory(parser, x))
+    parser.add_argument("--land_sea_path", help="path to directory containing Land/Sea datasets", \
+        default='/g/data/v10/eoancillarydata/Land_Sea_Rasters', \
+        type=lambda x: is_valid_directory(parser, x))
+    parser.add_argument("--out_path", help="path to directory where PQA dataset is to be written", \
+        required=True, type=lambda x: is_valid_directory(parser, x))
+    parser.add_argument("--log_path", help="path to directory where where log files will be written", \
+        default='.', type=lambda x: is_valid_directory(parser, x))
+    parser.add_argument("--debug", help="selects more detail logging (default is INFO)", \
+        default=False, action='store_true')
+
+    args = parser.parse_args()
+
+    # setup logging
+    
+    logfile = "%s/run_pq_%s_%d.log" % (args.log_path, os.uname()[1], os.getpid())
+    logging_level = logging.INFO
+    if args.debug:
+        logging_level = logging.DEBUG
+    logging.basicConfig(filename=logfile, level=logging_level, \
+        format= '[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s',
+        datefmt='%H:%M:%S')
+    logging.info("run_pq started")
+
+
+    logging.info('l1t_path=%s' % (args.l1t_path, ))
+    logging.info('nbar_path=%s' % (args.nbar_path, ))
+    logging.info('land_sea_path=%s' % (args.land_sea_path, ))
+    logging.info('out_path=%s' % (args.out_path, ))
+    logging.info('log_path=%s' % (args.log_path, ))
+
+    # create the task list based on L1T files to processa
+
+    tasks = []
+    for l1t_file in [f for f in os.listdir(args.l1t_path) if '_OTH_' in f]:
+        l1t_dataset_path = os.path.join(args.l1t_path, l1t_file)
+        nbar_dataset_path = os.path.join(args.nbar_path, nbar_name_from_l1t(l1t_file))
+        pqa_dataset_path = os.path.join(args.out_path, pqa_name_from_l1t(l1t_file))
+
+        tasks.append( \
+            PixelQualityTask( \
+                l1t_dataset_path,
+                nbar_dataset_path,
+                args.land_sea_path,
+                pqa_dataset_path \
+            ) \
+        )
+        
+        print nbar_dataset_path
+
+    mpi.run(tasks)
 

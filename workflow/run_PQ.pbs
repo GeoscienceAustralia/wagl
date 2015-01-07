@@ -69,7 +69,7 @@ export PYTHONPATH=/home/547/smr547/ga-neo-landsat-processor:$PYTHONPATH
 
 WORKERS_PER_NODE=4     # <--- Don't change, >4 will result in "PBS: job killed: mem"
 mpirun -npernode $WORKERS_PER_NODE \
-    python run_pq.py \
+    python pq.py \
     --l1t_path ${L1T_PATH} \
     --nbar_path ${NBAR_PATH} \
     --land_sea_path ${LAND_SEA_PATH} \

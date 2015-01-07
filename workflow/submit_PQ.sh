@@ -20,7 +20,7 @@ LAND_SEA_PATH=/g/data1/v10/eoancillarydata/Land_Sea_Rasters
 # OUTPUTS (change any of these)
 # =======
 
-OUTPUT_ROOT=/short/v10/$USER/PQA_luigi_new_testing
+OUTPUT_ROOT=/short/v10/$USER/PQA_luigi_new_workflow_testing
 OUTPUT_PATH=$OUTPUT_ROOT/output
 LOG_PATH=$OUTPUT_ROOT/logs
 
