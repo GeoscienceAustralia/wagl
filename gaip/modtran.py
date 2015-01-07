@@ -27,6 +27,7 @@ def create_modtran_dirs(coords, albedos, modtran_root, modtran_exe_root,
             modtran_work = workpath_format.format(coord=coord, albedo=albedo)
             modtran_work = pjoin(modtran_root, modtran_work)
             mod5root_in = input_format.format(coord=coord, albedo=albedo)
+            mod5root_in = pjoin(modtran_root, mod5root_in)
             symlink_dir = pjoin(modtran_work, 'DATA')
 
             if not exists(modtran_work):
@@ -117,7 +118,7 @@ def generate_modtran_inputs(modtran_input, coordinator, sat_view_zenith,
     cmd = pjoin(BIN_DIR, 'input_modtran_ortho')
 
     args = [cmd, modtran_input, coordinator, sat_view_zenith, sat_azimuth,
-            lon_grid, lat_grid]
+            lat_grid, lon_grid]
 
     targets = []
     for coord in coords:
@@ -223,7 +224,7 @@ def reformat_atmo_params(acqs, coords, satfilter, factors, input_fmt,
         for factor in factors:
             args.append(output_fmt.format(factor=factor, band=band))
 
-            subprocess.check_call(args, cwd=workpath)
+    subprocess.check_call(args, cwd=workpath)
 
 
 def bilinear_interpolate(acqs, factors, coordinator, boxline, centreline,
