@@ -178,10 +178,10 @@ Review Results
 --------------
 Reviewing the results involves:
 
-# Checking output files
-# Reviewing exit code of PBS job
-# Check PBS standard error file
-# Checking Luigi Worker Logs
+1. Checking output files
+2. Reviewing exit code of PBS job
+3. Check PBS standard error file
+4. Checking Luigi Worker Logs
 
 Checking output files
 ---------------------
@@ -271,10 +271,8 @@ Appendix A - Scene input file formats
 -------------------------------------
 
 Scene data (both L1T and NBAR) used by the Pixel Quality job are stored in directories, one scene per directory. The directory names subscribe to the following convention demonstrated here by example.
-
-:: code:
  
- Directory name: LS5_TM_NBAR_P54_GANBAR01-002_092_086_20090115
+ Directory name: ``LS5_TM_NBAR_P54_GANBAR01-002_092_086_20090115``
 
 The name is broken into fields using the underscore “_” character as a field delimiter. The following table describes the fields:
 
@@ -286,7 +284,7 @@ The name is broken into fields using the underscore “_” character as a field
 +---------------------------+--------------------+------------------------------------------------+
 | Sensor                    | TM                 |                                                |
 +---------------------------+--------------------+------------------------------------------------+
-| Product                   | NBAR               |  "OTH" for                                     |
+| Product                   | NBAR               |  "OTH" for L1T scenes                          |
 +---------------------------+--------------------+------------------------------------------------+
 | Product ID                | P54                |                                                |
 +---------------------------+--------------------+------------------------------------------------+
@@ -307,9 +305,9 @@ The name is broken into fields using the underscore “_” character as a field
 Appendix B - Land/Sea data files
 --------------------------------
 
-Land sea raster files are currently stored in /g/data1/v10/eoancillarydata/Land_Sea_Rasters
+Land sea raster files are currently stored in ``/g/data1/v10/eoancillarydata/Land_Sea_Rasters``
 
-and have a filename format like WORLDzone57.tif, where, in this case, 57 is the UTM zone.
+and have a filename format like ``WORLDzone57.tif``, where, in this case, 57 is the UTM zone.
 
 
 
