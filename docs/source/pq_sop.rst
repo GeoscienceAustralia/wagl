@@ -49,9 +49,11 @@ PBS Scripts
 -----------
 Two scripts are used to run Pixel Quality processing
 
-* submit_PQ.sh – a convenience script to bootstrap the PBS job
-* run_PQ.pbs – main PBS job scipt
-* `Python <http://www.python.org/>`_
+* submit_PQ.sh_ – a convenience script to bootstrap the PBS job
+* run_PQ.pbs_ – main PBS job scipt
+
+.. _submit_PQ.sh: https://github.com/smr547/ga-neo-landsat-processor/blob/develop/workflow/submit_PQ.sh
+.. _run_PQ.pbs: https://github.com/smr547/ga-neo-landsat-processor/blob/develop/workflow/run_PQ.pbs
 
 You can view these scripts by clicking on the links above.
 
