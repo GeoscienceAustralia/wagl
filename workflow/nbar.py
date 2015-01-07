@@ -331,12 +331,13 @@ class CreateModtranDirectories(luigi.Task):
         input_format = CONFIG.get('modtran', 'input_format')
         coords = CONFIG.get('modtran', 'coords').split(',')
         albedos = CONFIG.get('modtran', 'albedos').split(',')
+        modtran_root = CONFIG.get('work', 'modtran_root')
         targets = []
         for coord in coords:
             for albedo in albedos:
                 targets.append(input_format.format(coord=coord,
                                                    albedo=albedo))
-        return [luigi.LocalTarget(t) for t in targets]
+        return [luigi.LocalTarget(pjoin(modtran_root, t)) for t in targets]
 
     def run(self):
         modtran_exe_root = CONFIG.get('modtran', 'root')
@@ -522,12 +523,13 @@ class ReformatAsTp5(luigi.Task):
         coords = CONFIG.get('reformat_tp5', 'coords').split(',')
         albedos = CONFIG.get('reformat_tp5', 'albedos').split(',')
         output_format = CONFIG.get('reformat_tp5', 'output_format')
+        workdir = CONFIG.get('work', 'reformat_tp5_cwd')
         targets = []
         for coord in coords:
             for albedo in albedos:
                 targets.append(output_format.format(coord=coord,
                                                     albedo=albedo))
-        return [luigi.LocalTarget(t) for t in targets]
+        return [luigi.LocalTarget(pjoin(workdir, t)) for t in targets]
 
     def run(self):
         modtran_profile_path = CONFIG.get('ancillary', 'modtran_profile_path')
@@ -568,7 +570,9 @@ class ReformatAsTp5Trans(luigi.Task):
     def output(self):
         coords = CONFIG.get('reformat_tp5_trans', 'coords').split(',')
         albedos = CONFIG.get('reformat_tp5_trans', 'albedos').split(',')
+        workdir = CONFIG.get('work', 'reformat_tp5_trans_cwd')
         output_format = CONFIG.get('reformat_tp5_trans', 'output_format')
+        output_format = pjoin(workdir, output_format)
         targets = []
         for coord in coords:
             for albedo in albedos:
@@ -631,8 +635,11 @@ class RunModtranCase(luigi.Task):
         return [PrepareModtranInput(self.l1t_path)]
 
     def output(self):
+        modtran_root = CONFIG.get('work', 'modtran_root')
         flux_format = CONFIG.get('modtran', 'flx_output_format')
+        flux_format = pjoin(modtran_root, flux_format)
         coef_format = CONFIG.get('modtran', 'chn_output_format')
+        coef_format = pjoin(modtran_root, coef_format)
         flx_target = flux_format.format(coord=self.coord, albedo=self.albedo)
         chn_target = coef_format.format(coord=self.coord, albedo=self.albedo)
         return [luigi.LocalTarget(flx_target),
@@ -641,8 +648,9 @@ class RunModtranCase(luigi.Task):
     def run(self):
         modtran_exe = CONFIG.get('modtran', 'exe')
         workpath_format = CONFIG.get('modtran', 'workpath_format')
+        modtran_root = CONFIG.get('work', 'modtran_root')
         workpath = workpath_format.format(coord=self.coord, albedo=self.albedo)
-        gaip.run_modtran(modtran_exe, workpath)
+        gaip.run_modtran(modtran_exe, pjoin(modtran_root, workpath))
 
 
 class RunModtran(luigi.Task):
@@ -676,7 +684,9 @@ class ExtractFlux(luigi.Task):
     def output(self):
         coords = CONFIG.get('extract_flux', 'coords').split(',')
         albedos = CONFIG.get('extract_flux', 'albedos').split(',')
+        modtran_root = CONFIG.get('work', 'modtran_root')
         output_format = CONFIG.get('extract_flux', 'output_format')
+        output_format = pjoin(modtran_root, output_format)
         targets = []
         for coord in coords:
             for albedo in albedos:
@@ -687,9 +697,12 @@ class ExtractFlux(luigi.Task):
     def run(self):
         coords = CONFIG.get('extract_flux', 'coords').split(',')
         albedos = CONFIG.get('extract_flux', 'albedos').split(',')
+        modtran_root = CONFIG.get('work', 'modtran_root')
         input_format = CONFIG.get('extract_flux', 'input_format')
+        input_format = pjoin(modtran_root, input_format)
         output_format = CONFIG.get('extract_flux', 'output_format')
-        satfilter = CONFIG.get('work', 'satfilter_target')
+        output_format = pjoin(modtran_root, output_format)
+        satfilter = CONFIG.get('work', 'sat_filter_target')
 
         gaip.extract_flux(coords, albedos, input_format, output_format,
                           satfilter)
@@ -707,7 +720,9 @@ class ExtractFluxTrans(luigi.Task):
 
     def output(self):
         coords = CONFIG.get('extract_flux_trans', 'coords').split(',')
+        modtran_root = CONFIG.get('work', 'modtran_root')
         output_format = CONFIG.get('extract_flux_trans', 'output_format')
+        output_format = pjoin(modtran_root, output_format)
         targets = []
         for coord in coords:
             target = output_format.format(coord=coord)
@@ -716,9 +731,12 @@ class ExtractFluxTrans(luigi.Task):
 
     def run(self):
         coords = CONFIG.get('extract_flux_trans', 'coords').split(',')
+        modtran_root = CONFIG.get('work', 'modtran_root')
         input_format = CONFIG.get('extract_flux_trans', 'input_format')
+        input_format = pjoin(modtran_root, input_format)
         output_format = CONFIG.get('extract_flux_trans', 'output_format')
-        satfilter = CONFIG.get('work', 'satfilter_target')
+        output_format = pjoin(modtran_root, output_format)
+        satfilter = CONFIG.get('work', 'sat_filter_target')
 
         gaip.extract_flux_trans(coords, input_format, output_format,
                                 satfilter)
@@ -736,7 +754,9 @@ class CalculateCoefficients(luigi.Task):
 
     def output(self):
         coords = CONFIG.get('coefficients', 'coords').split(',')
+        modtran_root = CONFIG.get('work', 'modtran_root')
         output_format = CONFIG.get('coefficients', 'output_format')
+        output_format = pjoin(modtran_root, output_format)
         targets = []
         for coord in coords:
             target = output_format.format(coord=coord)
@@ -748,7 +768,7 @@ class CalculateCoefficients(luigi.Task):
         chn_input_format = CONFIG.get('coefficients', 'chn_input_format')
         dir_input_format = CONFIG.get('coefficients', 'dir_input_format')
         output_format = CONFIG.get('coefficients', 'output_format')
-        satfilter = CONFIG.get('work', 'satfilter_target')
+        satfilter = CONFIG.get('work', 'sat_filter_target')
         workpath = CONFIG.get('work', 'modtran_root')
 
         gaip.calc_coefficients(coords, chn_input_format, dir_input_format,
@@ -769,7 +789,9 @@ class ReformatAtmosphericParameters(luigi.Task):
 
     def output(self):
         factors = CONFIG.get('read_modtran', 'factors').split(',')
+        modtran_root = CONFIG.get('work', 'modtran_root')
         output_format = CONFIG.get('read_modtran', 'output_format')
+        output_format = pjoin(workpath, output_format)
         acqs = gaip.acquisitions(self.l1t_path)
 
         # Retrieve the satellite and sensor for the acquisition
@@ -794,9 +816,11 @@ class ReformatAtmosphericParameters(luigi.Task):
     def run(self):
         coords = CONFIG.get('read_modtran', 'coords').split(',')
         factors = CONFIG.get('read_modtran', 'factors').split(',')
-        input_format = CONFIG.get('read_modtran', 'input_format')
-        output_format = CONFIG.get('read_modtran', 'output_format')
         workpath = CONFIG.get('work', 'modtran_root')
+        input_format = CONFIG.get('read_modtran', 'input_format')
+        input_format = pjoin(workpath, input_format)
+        output_format = CONFIG.get('read_modtran', 'output_format')
+        output_format = pjoin(workpath, output_format)
         satfilter = CONFIG.get('work', 'sat_filter_target')
 
         acqs = gaip.acquisitions(self.l1t_path)
