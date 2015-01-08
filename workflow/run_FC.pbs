@@ -1,0 +1,74 @@
+#!/bin/bash
+#
+# Fractional Cover processing job. 
+#
+# Usage:
+#
+# qsub \
+#  -v NBAR_PATH=...,OUTPUT_PATH=...,LOG_PATH=... \
+#  -e <some_file_path>.stderr \
+#  -o <some_file_path>.stdout \
+#  -l walltime=...,ncpus=...,mem=...,jobfs=...\
+#  run_FC.pbs
+#
+# Alternatively (and much easier), use
+#
+# ./submit_FC.sh
+#
+#=============================================================
+# 
+#PBS -P v10
+#PBS -q express
+#PBS -l walltime=01:30:00,ncpus=64,mem=124GB,jobfs=4GB
+#PBS -l wd
+#PBS -me
+#===============================================================
+umask 003
+# CHECK PARAMS
+# ============
+echoerr() { echo "$@" 1>&2; }
+checkExists() {
+    if [[ -z "$2" ]]; then
+       echoerr $1 not defined
+       exit 1
+    fi
+    if [ ! -d $2 ]; then
+       echoerr $1 $2 does not exist
+       exit 1
+    fi
+}
+
+checkExists NBAR_PATH $NBAR_PATH
+checkExists OUTPUT_PATH $OUTPUT_PATH
+checkExists LOG_PATH $LOG_PATH
+
+# Modules
+
+module load python/2.7.6
+module use /projects/u46/opt/modules/modulefiles
+# module load gaip   # GA Image Processor
+module load EOtools
+module load luigi-mpi
+module load rasterio
+module load IDL_functions
+module load scikit-image
+
+# Debug resources
+echo "NODES:"
+cat $PBS_NODEFILE | uniq 
+echo "CPUS: "
+cat $PBS_NODEFILE | wc -l 
+
+# override the image_processor so we get out code
+# TODO: replace this with module load
+export PYTHONPATH=/home/547/smr547/ga-neo-landsat-processor:$PYTHONPATH
+
+# now run on all nodes
+
+WORKERS_PER_NODE=4     # <--- Don't change, >4 will result in "PBS: job killed: mem"
+mpirun -npernode $WORKERS_PER_NODE \
+    python fc.py \
+    --nbar_path ${NBAR_PATH} \
+    --out_path ${OUTPUT_PATH}  \
+    --log_path ${LOG_PATH} \
+    --debug
