@@ -177,6 +177,25 @@ class LandsatAcquisition(Acquisition):
         """Sensor bias"""
         return self.lmax - (self.gain * self.qcalmax)
 
+    @property
+    def wavelength(self):
+        return gaip.SENSORS[self.spacecraft_id]['sensors'][self.sensor_id]['bands']\
+            [str(self.band_num)]['wavelength']
+
+    @property
+    def band_desc(self):
+        return gaip.SENSORS[self.spacecraft_id]['sensors'][self.sensor_id]['bands']\
+            [str(self.band_num)]['desc']
+
+    @property
+    def resolution(self):
+        return gaip.SENSORS[self.spacecraft_id]['sensors'][self.sensor_id]['bands']\
+            [str(self.band_num)]['resolution']
+
+    @property
+    def band_type_desc(self):
+        return gaip.SENSORS[self.spacecraft_id]['sensors'][self.sensor_id]['bands']\
+            [str(self.band_num)]['type_desc']
 
 class Landsat5Acquisition(LandsatAcquisition):
 
@@ -399,6 +418,13 @@ def acquisitions_via_geotiff(path):
             match_obj = p.match(file_name)
             if match_obj is not None:
                 md = match_obj.groupdict()
+
+                # map spacecraft_id for consistency with SENSOR keys
+                md['spacecraft_id'] = 'Landsat' + md['spacecraft_id'][-1:]
+
+                # map sensor_id for consistency with SENSOR keys
+                if md['sensor_id'] == 'ETM':
+                    md['sensor_id'] = 'ETM+'
  
                 # normalise the band number
 
@@ -406,6 +432,12 @@ def acquisitions_via_geotiff(path):
                 if bn % 10 == 0:
                     bn = bn / 10
                 md['band_num'] = bn
+
+                # derive band type
+
+                type_desc = SENSORS[md['spacecraft_id']]['sensors'][md['sensor_id']] \
+                    ['bands'][str(bn)]['type_desc']
+                md['band_type'] = BAND_TYPE[type_desc]
 
                 # convert acquisition_date to a datetime
 
@@ -423,7 +455,7 @@ def acquisitions_via_geotiff(path):
                 md['file_name'] = file_name
 
                 # create the Acquisition
-                acqs.append(Acquisition({'md':md}))
+                acqs.append(LandsatAcquisition({'md':md}))
 
     return sorted(acqs)
 
