@@ -36,6 +36,9 @@ try:
     from calculate_angles import *
     from tc import *
     from dsm import get_dsm
+    from self_shadow import calculate_self_shadow
+    from cast_shadow import calculate_cast_shadow
+    from run_tc import run_tc
 except ImportError:
     msg = ('Run Makefile to build the Fortran modules.\n'
            'Some functionality in library is disabled')
