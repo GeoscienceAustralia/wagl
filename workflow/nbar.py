@@ -11,8 +11,9 @@ Workflow settings can be configured in `nbar.cfg` file.
 import luigi
 import gaip
 import cPickle as pickle
+import os
 
-from os.path import join as pjoin, dirname
+from os.path import join as pjoin, dirname, exists
 
 CONFIG = luigi.configuration.get_config()
 CONFIG.add_config_path(pjoin(dirname(__file__), 'nbar.cfg'))
@@ -409,17 +410,41 @@ class CreateModisBrdfFiles(luigi.Task):
         return [GetSolarIrradianceAncillaryData(self.l1t_path),
                 GetSolarDistanceAncillaryData(self.l1t_path)]
 
+    def output(self):
+        acqs = gaip.acquisitions(self.l1t_path)
+        outdir = CONFIG.get('work', 'path')
+        modis_brdf_format = pjoin(outdir,
+            CONFIG.get('brdf', 'modis_brdf_format'))
+
+        # Retrieve the satellite and sensor for the acquisition
+        satellite = acqs[0].spacecraft_id
+        sensor = acqs[0].sensor_id
+
+        # Get the required nbar bands list for processing
+        nbar_constants = gaip.constants.NBARConstants(satellite, sensor)
+        bands_to_process = nbar_constants.getNBARlut()
+
+        targets = []
+        for acq in acqs:
+            band = acq.band_num
+            if band not in bands_to_process:
+                continue
+            modis_brdf_filename = modis_brdf_format.format(band_num=band)
+            target = pjoin(outdir, modis_brdf_filename)
+            targets.append(luigi.LocalTarget(target))
+        return targets
+
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
         outdir = CONFIG.get('work', 'path')
         modis_brdf_format = pjoin(outdir,
             CONFIG.get('brdf', 'modis_brdf_format'))
         brdf_target = CONFIG.get('work', 'brdf_target')
-        brdf_data = load(brdf_target)
+        brdf_data = load_value(brdf_target)
         irrad_target = CONFIG.get('work', 'irrad_target')
-        solar_irrad_data = load(irrad_target)
+        solar_irrad_data = load_value(irrad_target)
         solar_dist_target = CONFIG.get('work', 'sundist_target')
-        solar_dist_data = load(solar_dist_target)
+        solar_dist_data = load_value(solar_dist_target)
         gaip.write_modis_brdf_files(acqs, modis_brdf_format, brdf_data,
                                     solar_irrad_data, solar_dist_data)
 
@@ -458,12 +483,13 @@ class RunModtranCorOrtho(luigi.Task):
 class GenerateModtranInputFiles(luigi.Task):
 
     """Generate the MODTRAN input files by running the Fortran binary
-    `input_modtran_ortho_ula`."""
+    `input_modtran_ortho`."""
 
     l1t_path = luigi.Parameter()
 
     def requires(self):
         return [RunModtranCorOrtho(self.l1t_path),
+                CreateModtranDirectories(),
                 CalculateSatelliteAndSolarGrids(self.l1t_path),
                 CreateModtranInputFile(self.l1t_path),
                 CalculateLatGrid(self.l1t_path),
@@ -791,7 +817,7 @@ class ReformatAtmosphericParameters(luigi.Task):
         factors = CONFIG.get('read_modtran', 'factors').split(',')
         modtran_root = CONFIG.get('work', 'modtran_root')
         output_format = CONFIG.get('read_modtran', 'output_format')
-        output_format = pjoin(workpath, output_format)
+        output_format = pjoin(modtran_root, output_format)
         acqs = gaip.acquisitions(self.l1t_path)
 
         # Retrieve the satellite and sensor for the acquisition
@@ -802,11 +828,11 @@ class ReformatAtmosphericParameters(luigi.Task):
         nbar_constants = gaip.constants.NBARConstants(satellite, sensor)
         bands_to_process = nbar_constants.getNBARlut()
 
-        bands = [str(a.band_num) for a in acqs]
+        bands = [a.band_num for a in acqs]
         targets = []
         for factor in factors:
             for band in bands:
-                if int(band) not in bands_to_process:
+                if band not in bands_to_process:
                     # Skip
                     continue
                 target = output_format.format(factor=factor, band=band)
@@ -855,8 +881,10 @@ class BilinearInterpolation(luigi.Task):
                 CalculateSatelliteAndSolarGrids(self.l1t_path)]
 
     def output(self):
+        modtran_root = CONFIG.get('work', 'modtran_root')
         factors = CONFIG.get('bilinear', 'factors').split(',')
         output_format = CONFIG.get('bilinear', 'output_format')
+        output_format = pjoin(modtran_root, output_format)
         acqs = gaip.acquisitions(self.l1t_path)
 
         # Retrieve the satellite and sensor for the acquisition
@@ -867,13 +895,13 @@ class BilinearInterpolation(luigi.Task):
         nbar_constants = gaip.constants.NBARConstants(satellite, sensor)
         bands_to_process = nbar_constants.getNBARlut()
 
-        bands = [str(a.band_num) for a in acqs]
+        bands = [a.band_num for a in acqs]
         targets = []
         target = CONFIG.get('work', 'bilinear_outputs_target')
         targets.append(luigi.LocalTarget(target))
         for factor in factors:
             for band in bands:
-                if int(band) not in bands_to_process:
+                if band not in bands_to_process:
                     # Skip
                     continue
                 target = output_format.format(factor=factor, band=band)
@@ -914,6 +942,30 @@ class BilinearInterpolation(luigi.Task):
         save(self.output()[0], bilinear_fnames)
 
 
+class CreateTCRflDirs(luigi.Task):
+    """
+    Setup the directories to contain the Intermediate files
+    produced for terrain corection.
+    """
+
+    def requires(self):
+        return []
+
+    def output(self):
+        tc_path = CONFIG.get('work', 'tc_intermediates')
+        rfl_path = CONFIG.get('work', 'rfl_output_dir')
+
+        targets = [luigi.LocalTarget(tc_path), luigi.LocalTarget(rfl_path)]
+        return targets
+
+    def run(self):
+        tc_path = CONFIG.get('work', 'tc_intermediates')
+        rfl_path = CONFIG.get('work', 'rfl_output_dir')
+        if not exists(tc_path):
+            os.makedirs(tc_path)
+        if not exists(rfl_path):
+            os.makedirs(rfl_path)
+
 class DEMExctraction(luigi.Task):
 
     """
@@ -925,7 +977,7 @@ class DEMExctraction(luigi.Task):
     l1t_path = luigi.Parameter()
 
     def requires(self):
-        return []
+        return [CreateTCRflDirs()]
 
     def output(self):
         work_path = CONFIG.get('work', 'tc_intermediates')
@@ -943,7 +995,7 @@ class DEMExctraction(luigi.Task):
         national_dsm = CONFIG.get('ancillary', 'dem_tc')
         subset_target = CONFIG.get('extract_dsm', 'dsm_subset')
         smoothed_target = CONFIG.get('extract_dsm', 'dsm_smooth_subset')
-        buffer = CONFIG.get('extract_dsm', 'dsm_buffer_width')
+        buffer = int(CONFIG.get('extract_dsm', 'dsm_buffer_width'))
         dsm_subset_fname = pjoin(work_path, subset_target)
         dsm_subset_smooth_fname = pjoin(work_path, smoothed_target)
 
@@ -1006,7 +1058,7 @@ class SlopeAndSelfShadow(luigi.Task):
         solar_azimuth_fname = CONFIG.get('work', 'solar_azimuth_target')
         smoothed_dsm_fname = pjoin(work_path, CONFIG.get('extract_dsm',
                                                          'dsm_smooth_subset'))
-        buffer = CONFIG.get('extract_dsm', 'dsm_buffer_width')
+        buffer = int(CONFIG.get('extract_dsm', 'dsm_buffer_width'))
 
         # Output targets
         self_shadow_target = pjoin(work_path,
@@ -1048,6 +1100,8 @@ class CalculateCastShadow(luigi.Task):
         return [CalculateCastShadowSun(self.l1t_path),
                 CalculateCastShadowSatellite(self.l1t_path)]
 
+    def complete(self):
+        return all([t.complete() for t in self.requires()])
 
 class CalculateCastShadowSun(luigi.Task):
 
@@ -1080,11 +1134,11 @@ class CalculateCastShadowSun(luigi.Task):
                                    CONFIG.get('extract_dsm', 'dsm_smooth_subset'))
         solar_zenith_target = CONFIG.get('work', 'solar_zenith_target')
         solar_azimuth_target = CONFIG.get('work', 'solar_azimuth_target')
-        buffer = CONFIG.get('extract_dsm', 'dsm_buffer_width')
-        window_height = CONFIG.get('terrain_correction',
-                                   'shadow_sub_matrix_height')
-        window_width = CONFIG.get('terrain_correction',
-                                  'shadow_sub_matrix_width')
+        buffer = int(CONFIG.get('extract_dsm', 'dsm_buffer_width'))
+        window_height = int(CONFIG.get('terrain_correction',
+                                       'shadow_sub_matrix_height'))
+        window_width = int(CONFIG.get('terrain_correction',
+                                      'shadow_sub_matrix_width'))
 
         # Output targets
         sun_target = pjoin(work_path,
@@ -1127,11 +1181,11 @@ class CalculateCastShadowSatellite(luigi.Task):
                                    CONFIG.get('extract_dsm', 'dsm_smooth_subset'))
         satellite_view_target = CONFIG.get('work', 'sat_view_target')
         satellite_azimuth_target = CONFIG.get('work', 'sat_azimuth_target')
-        buffer = CONFIG.get('extract_dsm', 'dsm_buffer_width')
-        window_height = CONFIG.get('terrain_correction',
-                                   'shadow_sub_matrix_height')
-        window_width = CONFIG.get('terrain_correction',
-                                  'shadow_sub_matrix_width')
+        buffer = int(CONFIG.get('extract_dsm', 'dsm_buffer_width'))
+        window_height = int(CONFIG.get('terrain_correction',
+                                       'shadow_sub_matrix_height'))
+        window_width = int(CONFIG.get('terrain_correction',
+                                      'shadow_sub_matrix_width'))
 
         # Output targets
         satellite_target = pjoin(work_path,
@@ -1153,7 +1207,8 @@ class TerrainCorrection(luigi.Task):
         return [BilinearInterpolation(self.l1t_path),
                 DEMExctraction(self.l1t_path),
                 SlopeAndSelfShadow(self.l1t_path),
-                CalculateCastShadow(self.l1t_path)]
+                CalculateCastShadow(self.l1t_path),
+                CreateModisBrdfFiles(self.l1t_path)]
 
     def output(self):
         acqs = gaip.acquisitions(self.l1t_path)
@@ -1189,8 +1244,8 @@ class TerrainCorrection(luigi.Task):
         tc_path = CONFIG.get('work', 'tc_intermediates')
         work_path = CONFIG.get('work', 'path')
         outdir = CONFIG.get('work', 'rfl_output_dir')
-        bilinear_target = CONFIG.get('work', 'bilinear_outputs_target')
-        rori = CONFIG.get('terrain_correction', 'rori')
+        bilinear_target = load_value(CONFIG.get('work', 'bilinear_outputs_target'))
+        rori = float(CONFIG.get('terrain_correction', 'rori'))
         modis_brdf_format = pjoin(work_path,
             CONFIG.get('brdf', 'modis_brdf_format'))
         new_modis_brdf_format = pjoin(tc_path,
@@ -1201,21 +1256,21 @@ class TerrainCorrection(luigi.Task):
         output_format = CONFIG.get('terrain_correction', 'output_format')
 
         # Input targets (images)
-        self_shadow_target = pjoin(work_path,
+        self_shadow_target = pjoin(tc_path,
                                    CONFIG.get('self_shadow', 'self_shadow_target'))
-        slope_target = pjoin(work_path,
+        slope_target = pjoin(tc_path,
                              CONFIG.get('self_shadow', 'slope_target'))
-        aspect_target = pjoin(work_path,
+        aspect_target = pjoin(tc_path,
                               CONFIG.get('self_shadow', 'aspect_target'))
-        incident_target = pjoin(work_path,
+        incident_target = pjoin(tc_path,
                                 CONFIG.get('self_shadow', 'incident_target'))
-        exiting_target = pjoin(work_path,
+        exiting_target = pjoin(tc_path,
                                CONFIG.get('self_shadow', 'exiting_target'))
-        relative_slope_target = pjoin(work_path,
+        relative_slope_target = pjoin(tc_path,
                                       CONFIG.get('self_shadow', 'relative_slope_target'))
-        sun_target = pjoin(work_path,
+        sun_target = pjoin(tc_path,
                            CONFIG.get('cast_shadow', 'sun_direction_target'))
-        satellite_target = pjoin(work_path,
+        satellite_target = pjoin(tc_path,
                                  CONFIG.get('cast_shadow', 'satellite_direction_target'))
         solar_zenith_target = CONFIG.get('work', 'solar_zenith_target')
         solar_azimuth_target = CONFIG.get('work', 'solar_azimuth_target')
@@ -1255,6 +1310,6 @@ class TerrainCorrection(luigi.Task):
 
 
 if __name__ == '__main__':  # FIXME
-    l1t_path = '../gaip/tests/data/L1T/LS7_90-81_2009-04-15/UTM/LS7_ETM_OTH_P51_GALPGS01-002_090_081_20090415'
-    luigi.build([BilinearInterpolation(l1t_path)],
+    l1t_path = '/g/data1/v10/NBAR_validation_reference/Nov2013/L1T_Input/LS7_90-84_2000-09-13/UTM/LS7_ETM_OTH_P51_GALPGS01-002_090_084_20000913'
+    luigi.build([TerrainCorrection(l1t_path)],
                 local_scheduler=True)
