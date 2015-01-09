@@ -191,6 +191,8 @@ def get_solar_dist(acquisition, sundist_path):
             index, dist = line.strip().split()
             index = int(index)
             if index == doy:
-                return float(dist)
+                return {'data_source': 'Solar Distance',
+                        'data_file': sundist_path,
+                        'distance': float(dist)}
 
     raise IOError('Cannot load Earth-Sun distance')
