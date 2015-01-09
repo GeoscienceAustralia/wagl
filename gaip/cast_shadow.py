@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from gaip import ImageMargins
-from gaip import calculate_angles as ca
+from gaip import setup_spheroid
 from gaip import read_img
 from gaip import run_castshadow
 from gaip import write_img
@@ -51,7 +51,7 @@ def calculate_cast_shadow(acquisition, DSM_fname, margins, block_height,
 
     # Retrive the spheroid parameters
     # (used in calculating pixel size in metres per lat/lon)
-    spheroid = ca.setup_spheroid(geobox.crs.ExportToWkt())
+    spheroid = setup_spheroid(geobox.crs.ExportToWkt())
 
     # Read the DSM and angle arrays into memory
     DSM = read_img(DSM_fname)

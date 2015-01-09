@@ -64,7 +64,7 @@ The NBAR framework now outputs 3 different reflectance products:
 1. Lambertian
 2. BRDF corrected
 3. BRDF and Terrain corrected
-The BRDF correction also differs from the ULA3 BRDF correction, in that the calculations use a more accurate computation.
+The BRDF correction also differs from the ULA3 BRDF correction, in that a more accurate model is used.
 
 **The people involved with gaip were:**
 

@@ -169,7 +169,7 @@ def create_grid(acquisition, coord_fn, fname=None, depth=7, dtype='float64'):
     :param acquisition:
         An instance of an acquisitions object.
 
-    :param coord_fn
+    :param coord_fn:
         A function that maps coordinates.
 
     :param fname:
