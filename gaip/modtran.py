@@ -90,15 +90,17 @@ def write_modis_brdf_files(acquisitions, fname_format, brdf_data,
         band = acq.band_num
         modis_brdf_filename = fname_format.format(band_num=band)
         with open(modis_brdf_filename, 'w') as outfile:
-            outfile.write("%f %f %f\n" %
-                          (brdf_data[(band, 'iso')]['value'],
-                           brdf_data[(band, 'vol')]['value'],
-                           brdf_data[(band, 'geo')]['value']))
+            msg = "{iso} {vol} {geo}\n"
+            msg = msg.format(iso=brdf_data[(band, 'iso')]['value'],
+                             vol=brdf_data[(band, 'vol')]['value'],
+                             geo=brdf_data[(band, 'geo')]['value'])
+            outfile.write(msg)
 
-            outfile.write(str(acq.bias) + " " +
-                          str(acq.gain) + " " +
-                          str(solar_irrad_data[band]['value']) + " " +
-                          str(solar_dist_data['value']) + "\n")
+            msg = "{bias} {gain} {irrad} {dist}\n"
+            msg = msg.format(bias=acq.bias, gain=acq.gain,
+                             irrad=solar_irrad_data[band],
+                             dist=solar_dist_data['distance'])
+            outfile.write(msg)
 
 
 def run_read_modtrancor_ortho(centreline, sat_view_zenith, coordinator,
@@ -233,7 +235,7 @@ def bilinear_interpolate(acqs, factors, coordinator, boxline, centreline,
 
     cmd = pjoin(BIN_DIR, 'binear_ortho')
 
-    bands = [str(a.band_num) for a in acqs]
+    bands = [a.band_num for a in acqs]
 
     # Initialise the dict to store the locations of the bilinear outputs
     bilinear_outputs = {}
@@ -241,11 +243,12 @@ def bilinear_interpolate(acqs, factors, coordinator, boxline, centreline,
     for band in bands:
         for factor in factors:
             fname = output_fmt.format(factor=factor, band=band)
-            bilinear_outputs[(band, factor)] = pjoin(workpath, fname)
+            fname = pjoin(workpath, fname)
+            bilinear_outputs[(band, factor)] = fname
             args = [cmd, coordinator,
                     input_fmt.format(factor=factor, band=band),
                     boxline, centreline,
-                    output_fmt.format(factor=factor, band=band)]
+                    fname]
 
             subprocess.check_call(args, cwd=workpath)
 
