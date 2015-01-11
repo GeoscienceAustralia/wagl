@@ -59,6 +59,21 @@ FORTRAN packages
 * `MODTRAN <http://www.ontar.com/software/productdetails.aspx?item=modtran/>`_.
 
 
+Ancillary
+---------
+
+* Aerosol; `AATSR <http://www.leos.le.ac.uk/aatsr/howto/index.html>`_,
+* Ozone; In the form <month>.tif eg jan.tif,
+* Water Vapour; In the form pr_wtr.eatm.<year>.tif eg pr_wtr.eatm.2009.tif. Each band in the image represents an 8 day period,
+* Earth to Sun Distance in AU; A text file with a Julian day look-up,
+* Solar Irradiance; Satellite-Sensor named text files of the form solar_irrad_<satellite-sensor>.txt eg solar_irrad_landsat8.txt,
+* Satellite filter function; Satellite-spectral cover named text file of the form <satellite>_<spectral>.flt eg landsat8_vsir.flt,
+* TLE (Two Line Element set) `TLE <http://en.wikipedia.org/wiki/Two-line_element_set>`_. Directory structure in the form /Satellite/TLE/Satellite_YEAR eg LANDSAT7/TLE/LS7_YEAR,
+* BRDF; CSIRO Mosaics in the form 2005.02.02/MCD43A1.2005.033.aust.005.b01.500m_<wavelength>nm_brdf_par_f<factor>.hdf.gz eg 2005.02.02/MCD43A1.2005.033.aust.005.b01.500m_0620_0670nm_brdf_par_fiso.hdf.gz,
+* Pre-MODIS BRDF can be obtained by producing decadal averages for a given 8 day peroid. The directory structure is a Julian day eg 001, 009, 017 for the first 2 8 day periods,
+* DSM; A National scale Digital Surface Model, or at least one covering the area of interest,
+
+
 Documentation
 -------------
 
