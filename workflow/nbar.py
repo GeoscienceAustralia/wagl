@@ -407,8 +407,7 @@ class CreateModisBrdfFiles(luigi.Task):
     l1t_path = luigi.Parameter()
 
     def requires(self):
-        return [GetSolarIrradianceAncillaryData(self.l1t_path),
-                GetSolarDistanceAncillaryData(self.l1t_path)]
+        return [GetAncillaryData(l1t_path)]
 
     def output(self):
         acqs = gaip.acquisitions(self.l1t_path)
