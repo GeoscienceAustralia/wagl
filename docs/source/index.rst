@@ -16,6 +16,7 @@ Contents:
    directories
    history
    algorithms
+   pq_sop
 
 Indices and tables
 ==================
