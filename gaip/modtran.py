@@ -28,13 +28,9 @@ def create_modtran_dirs(coords, albedos, modtran_root, modtran_exe_root,
             modtran_work = pjoin(modtran_root, modtran_work)
             mod5root_in = input_format.format(coord=coord, albedo=albedo)
             mod5root_in = pjoin(modtran_root, mod5root_in)
-            symlink_dir = pjoin(modtran_work, 'DATA')
 
             if not exists(modtran_work):
                 os.makedirs(modtran_work)
-
-            os.remove(symlink_dir)
-            os.symlink(data_dir, symlink_dir)
 
             with open(mod5root_in, 'w') as outfile:
                 outfile.write(coord + '_alb_' + albedo + '\n')
