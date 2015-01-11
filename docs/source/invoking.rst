@@ -48,3 +48,5 @@ The Geoscience Australia Image Processor is invoked as ...TODO
                         Full dataset ID
 	</pre>
 
+
+To invoke the Pixel Quality workflow see :doc:`pq_sop </pq_sop>`.
