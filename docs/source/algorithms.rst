@@ -1,6 +1,15 @@
 Products produced by gaip
 ==============================
 
+.. _lambertian-algorithm-label:
+
+Lambertian Reflectance
+----------------------
+
+Similar to the NBAR product without the BRDF correction.
+
+
+
 .. _nbar-algorithm-label:
 
 Nadir BRDF-adjusted reflectance (NBAR)
