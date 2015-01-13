@@ -1,63 +1,42 @@
 SHELL := /bin/bash
+CC := gcc
+FC := gfortran
+FCFLAGS := -Wall -O3 -fbounds-check
+CFLAGS := -O3
 
-include ../Makefile.platform
+EXES := binear_ortho \
+        brdf_sim_bin \
+        brdf_sim_bin_slc \
+        brdf_sim_bin_LS8 \
+        coefficient \
+        read_flx_ga \
+        read_modtrancor_ortho \
+        input_modtran_ortho \
+        refort_tp5_ga \
+        refort_tp5_ga_trans \
+        read_modtran \
+        read_flx_ga_trans \
+	aot_loader
 
-
-CC      := gcc
-CFLAGS  := -O3
-
-# DEPRECATED (hdf_extractor)
-#LDFLAGS := -ldf -lmfhdf -ltiff -ljpeg -lz -lm
-
-# The PLATFORM variable is required to accommodate minor differences
-# in HDF4 configuration at NCI. For NEO/VCLOUD use PLATFORM=DCC.
-# TODO: refactor conditional compilation mechanism in source code
-
-### OLD (without modules) ###
-#CFLAGS   := $(CFLAGS) -DPLATFORM_$(PLATFORM) -I$(HDF_ROOT)/include
-#LDFLAGS  := $(LDFLAGS) -L$(HDF_ROOT)/lib
-
-### NEW (with modules) ###
-CFLAGS := $(CFLAGS) -DPLATFORM_$(PLATFORM)
-
-EXES := aot_loader
 OBJS := $(addsuffix .o,$(EXES))
 
 BINDIR         := ../bin
 INSTALLED_EXES := $(addprefix $(BINDIR)/,$(EXES))
 
 all: $(EXES)
+
 install: $(EXES) $(INSTALLED_EXES)
 
 $(INSTALLED_EXES): $(BINDIR)/%: %
 	cp -p $< $@
 
-$(OBJS): %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+%: %.c
+	$$(module load gcc)
+	$(CC) $(CFLAGS) $< -o $@
 
-$(EXES): %: %.o
-	$(CC) $(LDFLAGS) $< -o $@
+%: %.f
+	$$(module load gcc)
+	$(FC) $(FCFLAGS) $< -o $@
 
 clean:
 	-rm -f $(OBJS) $(EXES)
-
-
-
-
-# HDF test program
-
-#DEVOPT    := /data/nbar/dev/optbuild/__rel__
-DEVOPT    := /data/nbar/opt
-DEVOPTINC := $(DEVOPT)/include
-DEVOPTLIB := $(DEVOPT)/lib
-
-hdfx: hdfx.o
-	$(CC) $< -o $@ -L$(DEVOPTLIB) -lmfhdf -ldf
-
-hdfx.o: hdfx.c
-	$(CC) -c $< -o $@ -O2 -Wall -I$(DEVOPTINC)
-
-hclean:
-	-rm hdf_test hdf_test_l hdf_test.o hdf_test_l.o
-
-
