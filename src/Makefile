@@ -5,9 +5,6 @@ FCFLAGS := -Wall -O3 -fbounds-check
 CFLAGS := -O3
 
 EXES := binear_ortho \
-        brdf_sim_bin \
-        brdf_sim_bin_slc \
-        brdf_sim_bin_LS8 \
         coefficient \
         read_flx_ga \
         read_modtrancor_ortho \
@@ -31,11 +28,11 @@ $(INSTALLED_EXES): $(BINDIR)/%: %
 	cp -p $< $@
 
 %: %.c
-	$$(module load gcc)
+	$$(module load gcc/4.9.0)
 	$(CC) $(CFLAGS) $< -o $@
 
 %: %.f
-	$$(module load gcc)
+	$$(module load gcc/4.9.0)
 	$(FC) $(FCFLAGS) $< -o $@
 
 clean:

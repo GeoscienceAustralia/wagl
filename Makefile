@@ -6,8 +6,12 @@ gaip:
 bin:
 	$(MAKE) --directory=src install
 
+docs:
+	$(MAKE) --directory=docs html
+
 clean:
 	$(MAKE) --directory=src clean
 	$(MAKE) --directory=gaip clean
+	$(MAKE) --directory=docs clean
 	-rm -f ./bin/*
 	-find . -name "*.pyc" -delete

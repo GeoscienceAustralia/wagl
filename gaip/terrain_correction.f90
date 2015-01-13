@@ -70,13 +70,19 @@ SUBROUTINE terrain_correction( &
     real*4 ref_lm(nrow)
     real*4 ref_brdf(nrow)
     real*4 ref_terrain(nrow)
-!f2py integer intent(hide),depend(dn_1) :: nrow=shape(dn_1,1), ncol=shape(dn_1,0)
+!f2py depend(nrow), ref_lm, ref_brdf, ref_terrain, dn
+!f2py depend(nrow, ncol), dn_1, mask_self, mask_castsun, mask_castview
+!f2py depend(nrow, ncol), solar_angle, sazi_angle, view_angle, rela_angle
+!f2py depend(nrow, ncol), slope_angle,, aspect_angle, it_angle, et_angle
+!f2py depend(nrow, ncol), rela_slope, a_mod, b_mod, s_mod, fv, fs, ts
+!f2py depend(nrow, ncol), edir_h, edif_h
+!f2py depend(nrow, ncol), iref_lm, iref_brdf, iref_terrain
 !f2py intent(in) rori, brdf0, brdf1, brdf2, bias, slop_ca, esun, dd, ref_adj
 !f2py intent(in) dn_1, mask_self, mask_castsun, mask_castview, solar_angle,
 !f2py intent(in) sazi_angle, view_angle, rela_angle, slope_angle, aspect_angle
 !f2py intent(in) it_angle, et_angle, rela_slope, a_mod, b_mod, s_mod, fv, fs, ts, edir_h, edif_h
-!f2py intent(hide) ref_lm, ref_brdf, ref_terrain, dn
-!f2py intent(out) iref_lm, iref_brdf, iref_terrain
+!f2py intent(in) ref_lm, ref_brdf, ref_terrain, dn
+!f2py intent(inout) iref_lm, iref_brdf, iref_terrain
 
 ! equivalent to the following must be done in Python.
 !----------------------------------------------------------------------
@@ -124,7 +130,6 @@ SUBROUTINE terrain_correction( &
 
     norm_1=brdf1/brdf0
     norm_2=brdf2/brdf0
-    print*,rori
 
 !   calculate white sky albedo
     aa_white=white_sky(1.0,norm_1,norm_2)
