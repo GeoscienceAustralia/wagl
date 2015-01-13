@@ -1,6 +1,0 @@
-# Default process list for pqa module
-[
-write_pqa_metadata,
-calc_pqa_checksums,
-move_pqa_output_to_destination
-]
