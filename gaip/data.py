@@ -1,19 +1,18 @@
 """
-Data access functions.
+Data access functions
+---------------------
 """
 
+import subprocess
 import numpy as np
-from osgeo import gdal
 import rasterio
-from rasterio import Affine
+import gaip
+import os
+
+from osgeo import gdal
 from rasterio import crs
 from rasterio.warp import reproject
 from rasterio.warp import RESAMPLING
-import logging
-import os
-import gaip
-from GriddedGeoBox import GriddedGeoBox
-
 from os.path import join as pjoin
 
 
@@ -36,6 +35,7 @@ def data(acq, out=None):
     with rasterio.open(pjoin(dirname, filename), 'r') as fo:
         return fo.read_band(1, out=out)
 
+
 def data_and_box(acq, out=None):
     """
     Return a tuple comprising the `numpy.array` containing the data of
@@ -51,6 +51,7 @@ def data_and_box(acq, out=None):
         box = gaip.GriddedGeoBox.from_dataset(fo)
         return (fo.read_band(1, out=out), box)
 
+
 def gridded_geo_box(acq):
     """Return a GriddedGeoBox instance representing the spatial extent and 
     grid associated with the acquisition `acq`. 
@@ -60,16 +61,17 @@ def gridded_geo_box(acq):
     with rasterio.open(pjoin(dirname, filename), 'r') as fo:
         return gaip.GriddedGeoBox.from_dataset(fo)
 
-def stack_data(acqs_list, filter=(lambda acq: True)):
+
+def stack_data(acqs_list, fn=(lambda acq: True)):
     """
-    Given a list of acquisitions, apply the supplied filter to select the
+    Given a list of acquisitions, apply the supplied fn to select the
     desired acquisitions and return the data from each acquisition
     collected in a 3D numpy array (first index is the acquisition number).
 
     :param acqs_list:
         The list of acquisitions to consider
 
-    :param filter:
+    :param fn:
         A function that takes a single acquisition and returns True if the
         acquisition is to be selected for inclusion in the output
 
@@ -86,9 +88,9 @@ def stack_data(acqs_list, filter=(lambda acq: True)):
 
     # get the subset of acquisitions required
 
-    acqs = [acq for acq in acqs_list if filter(acq)]
+    acqs = [acq for acq in acqs_list if fn(acq)]
     if len(acqs) == 0:
-       return acqs, None, None
+        return acqs, None, None
 
     # determine data type and dimensions by reading the first band
 
@@ -107,13 +109,13 @@ def stack_data(acqs_list, filter=(lambda acq: True)):
         # can't use this statement because it will cause data to be
         # resampled. But we want an exception thrown if the user
         # tries to stack irreqular aquisitions
-        # acqs[i].data(out=stack[i])  
+        # acqs[i].data(out=stack[i])
         stack[i] = acqs[i].data()
 
     return acqs, stack, geo_box
 
 
-def write_img(array, filename, format='ENVI', geobox=None, nodata=None):
+def write_img(array, filename, fmt='ENVI', geobox=None, nodata=None):
     """
     Writes a 2D/3D image to disk using rasterio.
 
@@ -123,8 +125,8 @@ def write_img(array, filename, format='ENVI', geobox=None, nodata=None):
     :param filename:
         A string containing the output file name.
 
-    :param format:
-        A string containing a GDAL compliant image format. Default is
+    :param fmt:
+        A string containing a GDAL compliant image fmt. Default is
         'ENVI'.
 
     :param geobox:
@@ -143,17 +145,17 @@ def write_img(array, filename, format='ENVI', geobox=None, nodata=None):
         raise TypeError(msg)
 
     ndims = array.ndim
-    dims  = array.shape
+    dims = array.shape
 
     # Get the (z, y, x) dimensions (assuming BSQ interleave)
     if ndims == 2:
         samples = dims[1]
-        lines   = dims[0]
-        bands   = 1
+        lines = dims[0]
+        bands = 1
     elif ndims == 3:
         samples = dims[2]
-        lines   = dims[1]
-        bands   = dims[0]
+        lines = dims[1]
+        bands = dims[0]
     else:
         print 'Input array is not of 2 or 3 dimensions!!!'
         err = 'Array dimensions: {dims}'.format(dims=ndims)
@@ -161,7 +163,7 @@ def write_img(array, filename, format='ENVI', geobox=None, nodata=None):
 
     # If we have a geobox, then retrieve the geotransform and projection
     if geobox is not None:
-        transform  = geobox.affine
+        transform = geobox.affine
         projection = bytes(geobox.crs.ExportToWkt())
     else:
         transform = None
@@ -173,19 +175,18 @@ def write_img(array, filename, format='ENVI', geobox=None, nodata=None):
               'crs': projection,
               'transform': transform,
               'dtype': dtype,
-              'driver': format,
-              'nodata': nodata
-             }
+              'driver': fmt,
+              'nodata': nodata}
 
     with rasterio.open(filename, 'w', **kwargs) as outds:
         if bands == 1:
             outds.write_band(1, array)
         else:
             for i in range(bands):
-                outds.write_band(i+1, array[i])
+                outds.write_band(i + 1, array[i])
 
 
-def read_subset(fname, ULxy, URxy, LRxy, LLxy, bands=1):
+def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, bands=1):
     """
     Return a 2D or 3D NumPy array subsetted to the given bounding
     extents.
@@ -194,25 +195,25 @@ def read_subset(fname, ULxy, URxy, LRxy, LLxy, bands=1):
         A string containing the full file pathname to an image on
         disk.
 
-    :param ULxy:
+    :param ul_xy:
         A tuple containing the Upper Left (x,y) co-ordinate pair
         in real world (map) co-ordinates.  Co-ordinate pairs can be
         (longitude, latitude) or (eastings, northings), but they must
         be of the same reference as the image of interest.
 
-    :param URxy:
+    :param ur_xy:
         A tuple containing the Upper Right (x,y) co-ordinate pair
         in real world (map) co-ordinates.  Co-ordinate pairs can be
         (longitude, latitude) or (eastings, northings), but they must
         be of the same reference as the image of interest.
 
-    :param LRxy:
+    :param lr_xy:
         A tuple containing the Lower Right (x,y) co-ordinate pair
         in real world (map) co-ordinates.  Co-ordinate pairs can be
         (longitude, latitude) or (eastings, northings), but they must
         be of the same reference as the image of interest.
 
-    :param LLxy:
+    :param ll_xy:
         A tuple containing the Lower Left (x,y) co-ordinate pair
         in real world (map) co-ordinates.  Co-ordinate pairs can be
         (longitude, latitude) or (eastings, northings), but they must
@@ -248,18 +249,18 @@ def read_subset(fname, ULxy, URxy, LRxy, LLxy, bands=1):
         rows = src.height
 
         # Convert each map co-ordinate to image/array co-ordinates
-        imgULx, imgULy = [int(v) for v in inv*ULxy]
-        imgURx, imgURy = [int(v) for v in inv*URxy]
-        imgLRx, imgLRy = [int(v) for v in inv*LRxy]
-        imgLLx, imgLLy = [int(v) for v in inv*LLxy]
+        img_ul_x, img_ul_y = [int(v) for v in inv * ul_xy]
+        img_ur_x, img_ur_y = [int(v) for v in inv * ur_xy]
+        img_lr_x, img_lr_y = [int(v) for v in inv * lr_xy]
+        img_ll_x, img_ll_y = [int(v) for v in inv * ll_xy]
 
         # Calculate the min and max array extents
         # The ending array extents have +1 to account for Python's
         # [inclusive, exclusive) index notation.
-        xstart = min(imgULx, imgLLx)
-        ystart = min(imgULy, imgURy)
-        xend = max(imgURx, imgLRx) + 1
-        yend = max(imgLLy, imgLRy) + 1
+        xstart = min(img_ul_x, img_ll_x)
+        ystart = min(img_ul_y, img_ur_y)
+        xend = max(img_ur_x, img_lr_x) + 1
+        yend = max(img_ll_y, img_lr_y) + 1
 
         # Check for out of bounds
         if ((xstart < 0) or (ystart < 0)) or ((xend > cols) or (yend > rows)):
@@ -269,19 +270,19 @@ def read_subset(fname, ULxy, URxy, LRxy, LLxy, bands=1):
             raise IndexError(msg)
 
         # Read the subset
-        subs =  src.read(bands, window=((ystart, yend), (xstart, xend)))
+        subs = src.read(bands, window=((ystart, yend), (xstart, xend)))
 
         # Get the projection as WKT
-        prj = bytes(src.crs_wkt) # rasterio returns a unicode
+        prj = bytes(src.crs_wkt)  # rasterio returns a unicode
 
         # Get the new UL co-ordinates of the array
-        ULx, ULy = src.affine * (xstart, ystart)
+        ul_x, ul_y = src.affine * (xstart, ystart)
 
         # Get the x & y pixel resolution
         res = src.res
 
-        geobox = GriddedGeoBox(shape=subs.shape, origin=(ULx, ULy),
-            pixelsize=res, crs=prj)
+        geobox = gaip.GriddedGeoBox(shape=subs.shape, origin=(ul_x, ul_y),
+                                    pixelsize=res, crs=prj)
 
     return (subs, geobox)
 
@@ -311,16 +312,16 @@ def read_img(fname):
     return img
 
 
-def find_file(dir, file):
+def find_file(path, filename):
     """
     A simple routine for checking existance of files on disk.
     No error catching, it'll bail out of the main level program
     as it is designed for the unittests.
 
-    :param dir:
+    :param path:
         A string containing the directory to search.
 
-    :param file:
+    :param filename:
         A string containing the name of the file to search within the
         given directory.
 
@@ -329,7 +330,7 @@ def find_file(dir, file):
         interest will be returned. If the file is not found then an
         IOError will be raised.
     """
-    fname = os.path.join(dir, file)
+    fname = os.path.join(path, filename)
     if os.path.isfile(fname):
         return fname
     else:
@@ -337,8 +338,8 @@ def find_file(dir, file):
         raise IOError(err)
 
 
-def reprojectFile2Array(src_filename, src_band=1, dst_geobox=None,
-        resampling=RESAMPLING.nearest):
+def reproject_file_to_array(src_filename, src_band=1, dst_geobox=None,
+                            resampling=RESAMPLING.nearest):
     """
     Given an image on file, reproject to the desired coordinate
     reference system.
@@ -365,7 +366,7 @@ def reprojectFile2Array(src_filename, src_band=1, dst_geobox=None,
         A NumPy array containing the reprojected result.
     """
 
-    if not isinstance(dst_geobox, GriddedGeoBox):
+    if not isinstance(dst_geobox, gaip.GriddedGeoBox):
         msg = 'dst_geobox must be an instance of a GriddedGeoBox! Type: {}'
         msg = msg.format(type(dst_geobox))
         raise TypeError(msg)
@@ -381,13 +382,13 @@ def reprojectFile2Array(src_filename, src_band=1, dst_geobox=None,
         prj = crs.from_string(dst_geobox.crs.ExportToProj4())
 
         reproject(rio_band, dst_arr, dst_transform=dst_geobox.affine,
-            dst_crs=prj, resampling=resampling)
+                  dst_crs=prj, resampling=resampling)
 
     return dst_arr
 
 
-def reprojectImg2Img(src_img, src_geobox, dst_geobox,
-    resampling=RESAMPLING.nearest):
+def reproject_img_to_img(src_img, src_geobox, dst_geobox,
+                         resampling=RESAMPLING.nearest):
     """
     Reprojects an image/array to the desired co-ordinate reference system.
 
@@ -412,12 +413,12 @@ def reprojectImg2Img(src_img, src_geobox, dst_geobox,
         A NumPy array containing the reprojected result.
     """
 
-    if not isinstance(dst_geobox, GriddedGeoBox):
+    if not isinstance(dst_geobox, gaip.GriddedGeoBox):
         msg = 'dst_geobox must be an instance of a GriddedGeoBox! Type: {}'
         msg = msg.format(type(dst_geobox))
         raise TypeError(msg)
 
-    if not isinstance(src_geobox, GriddedGeoBox):
+    if not isinstance(src_geobox, gaip.GriddedGeoBox):
         msg = 'src_geobox must be an instance of a GriddedGeoBox! Type: {}'
         msg = msg.format(type(src_geobox))
         raise TypeError(msg)
@@ -434,13 +435,13 @@ def reprojectImg2Img(src_img, src_geobox, dst_geobox,
     dst_arr = np.zeros(dst_geobox.shape, dtype=src_img.dtype)
 
     reproject(src_img, dst_arr, src_transform=src_trans,
-        src_crs=src_prj, dst_transform=dst_trans, dst_crs=dst_prj,
-        resampling=resampling)
+              src_crs=src_prj, dst_transform=dst_trans, dst_crs=dst_prj,
+              resampling=resampling)
 
     return dst_arr
 
 
-def load_2D_bin_file(filename, nrow, ncol, dtype, transpose=False):
+def load_2d_bin_file(filename, nrow, ncol, dtype, transpose=False):
     """
     Given a filename, row/column dimensions and a datatype,
     read a flat binary file from disk andconstruct a 2D NumPy array.
@@ -539,6 +540,80 @@ def as_array(array, dtype, transpose=False):
             return array.astype(dtype)
     else:
         if transpose:
-           return array.transpose()
+            return array.transpose()
         else:
             return array
+
+
+def fast_read(origin_path, ssd_env_var='PBS_JOBFS', cache_scope=os.getpid()):
+    """
+    Provide fast, read-only access to the specified a file or directory
+    (origin_path) by first copying data to solid state drive defined
+    by the supplied enviroment variable PBS_JOBFS
+
+    Copy contents of origin_path to temporary directory on SSD
+    and return the path to the ssd_path. Copy is only performed once
+    and subsequent calls simply return the ssd_path.
+
+    If no SSD device is available (PBS_JOBSFS not defined) then
+    no copy is performed and ssd_path == origin_path
+
+    The cached copy of the data is shared within the specified scope which 
+    defaults to the current process. Use:
+
+        path = fast_read(some_path, cache_scope=os.environ['PBS_JOBID'])
+
+    for a cache which operates across the current PBS job.
+    """
+
+    # origin must exist, if not then NO-OP and let the caller handle it
+    if not os.path.exists(origin_path):
+        return origin_path
+
+    # PBS_JOBFS must be defined, otherwise NO-OP as we have no SSD
+    if ssd_env_var not in os.environ:
+        return origin_path
+
+    # compute the path to the root of the cache on SSD
+    cache_root = os.path.join(os.environ[ssd_env_var], 'fast_read_cache',
+                              str(cache_scope))
+    if not os.path.exists(cache_root):
+        os.makedirs(cache_root)
+
+    # calcuate the ssd_path
+    ssd_path = "%s/%s" % (cache_root, origin_path)
+    ssd_path = os.path.abspath(ssd_path)
+
+    # return it if already in cache
+    if os.path.exists(ssd_path):
+        return ssd_path
+
+    # not there so copy it into the cache
+
+    # first make the target directory
+    target_dir = os.path.dirname(ssd_path)
+
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+
+    # now copy the data to the cache
+    recurse = ''
+    if os.path.isdir(origin_path):
+        recurse = '-r'
+
+    cmd = "cp %s %s %s" % (recurse, origin_path, target_dir)
+
+    # execute the copy in a child process
+    p = subprocess.Popen(
+        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    for _ in p.stdout.readlines():
+        pass
+    retval = p.wait()
+
+    # If we can't copy for ANY reason then use original file/dir in-situ
+    if retval != 0:
+        return origin_path
+
+    # got this far, then return the path to the SSD cache copy
+
+    return ssd_path

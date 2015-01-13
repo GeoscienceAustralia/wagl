@@ -1,12 +1,14 @@
-#!/usr/bin/env python
-
-from rasterio.warp import RESAMPLING
+"""
+Digital Surface Model Data
+"""
 
 from gaip import ImageMargins
 from gaip import filter_dsm
 from gaip import GriddedGeoBox
-from gaip import reprojectFile2Array
+from gaip import reproject_file_to_array
 from gaip import write_img
+from rasterio.warp import RESAMPLING
+
 
 def get_dsm(acquisition, national_dsm, margins, fname_subset, fname_smoothed):
     """
@@ -53,13 +55,14 @@ def get_dsm(acquisition, national_dsm, margins, fname_subset, fname_smoothed):
     dem_rows = geobox.getShapeXY()[1] + pixel_buf.top + pixel_buf.bottom
     dem_shape = (dem_rows, dem_cols)
     dem_origin = geobox.convert_coordinates((0 - pixel_buf.left,
-        0 - pixel_buf.top))
+                                             0 - pixel_buf.top))
     dem_geobox = GriddedGeoBox(dem_shape, origin=dem_origin,
-        pixelsize=geobox.pixelsize, crs=geobox.crs.ExportToWkt())
+                               pixelsize=geobox.pixelsize,
+                               crs=geobox.crs.ExportToWkt())
 
     # Retrive the DSM data
-    dsm_data = reprojectFile2Array(national_dsm, dst_geobox=dem_geobox,
-        resampling=RESAMPLING.bilinear)
+    dsm_data = reproject_file_to_array(national_dsm, dst_geobox=dem_geobox,
+                                       resampling=RESAMPLING.bilinear)
 
     # Output the reprojected result
     write_img(dsm_data, fname_subset, geobox=dem_geobox)

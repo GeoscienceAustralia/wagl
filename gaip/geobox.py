@@ -5,19 +5,20 @@ import gdal
 import rasterio as rio
 import math
 import osr
+import affine
 
-#======================================================
 from affine import Affine
+
 # Landsat tranforms have very small determinants
 # the following setting is required, and there is a
 # bug in rasterio.set_epsilon() ver < 1.0.5
-import affine; 
-affine.EPSILON=1e-9; affine.EPSILON2=1e-18
-# affine.set_epsilon(1e-9)    # works for rasterio ver >= 1.0.5
+affine.EPSILON = 1e-9
+affine.EPSILON2 = 1e-18
 
 
 # WGS84
 CRS = "EPSG:4326"
+
 
 class GriddedGeoBox(object):
 
@@ -41,8 +42,6 @@ class GriddedGeoBox(object):
 
     All pixels are grid-aligned. Origin and corner will always be 
     located on grid corners
-
-    :author: Steven Ring, Oct 2014
     """
 
     @staticmethod
@@ -63,8 +62,9 @@ class GriddedGeoBox(object):
         elif isinstance(dataset, rio._base.DatasetReader):
             return GriddedGeoBox.from_rio_dataset(dataset)
         else:
-            raise ValueError("GriddedGeoBox.from_dataset() expects"\
-                " GDAL or rasterio dataset, not %s" % (type(dataset))) 
+            raise ValueError("GriddedGeoBox.from_dataset() expects"
+                             " GDAL or rasterio dataset, not %s" %
+                             type(dataset))
 
     @staticmethod
     def from_rio_dataset(dataset):
@@ -105,10 +105,11 @@ class GriddedGeoBox(object):
         pixelsize = (abs(transform[1]), abs(transform[5]))
         crsString = str(dataset.GetProjection())
 
-	return GriddedGeoBox(bbshape, origin, pixelsize, crsString)
+        return GriddedGeoBox(bbshape, origin, pixelsize, crsString)
 
     @staticmethod
-    def from_corners(origin, corner,  pixelsize=(0.00025,0.00025), crs='EPSG:4326'):
+    def from_corners(origin, corner, pixelsize=(0.00025, 0.00025),
+                     crs='EPSG:4326'):
         """
         Return a GriddedGeoBox defined by the the two supplied corners
 
@@ -126,8 +127,8 @@ class GriddedGeoBox(object):
         shapeYX = (shapeXY[1], shapeXY[0])
         return GriddedGeoBox(shapeYX, origin, pixelsize, crs)
 
-    def __init__(self, shape=(1, 1), origin=(0.0, 0.0), pixelsize=(0.00025,0.00025),
-                 crs='EPSG:4326'):
+    def __init__(self, shape=(1, 1), origin=(0.0, 0.0),
+                 pixelsize=(0.00025, 0.00025), crs='EPSG:4326'):
         """
         Create a new GriddedGeoBox
 
@@ -152,14 +153,14 @@ class GriddedGeoBox(object):
                              -self.pixelsize[1], self.origin[1])
         self.corner = self.affine * self.getShapeXY()
 
-    def getShapeXY(self):
+    def get_shape_xy(self):
         return (self.shape[1], self.shape[0])
 
-    def getShapeYX(self):
+    def get_shape_yx(self):
         return self.shape
 
-    def transformPoint(self, transformation, point):
-        (x, y, z) = transformation.TransformPoint(point[0], point[1])
+    def transform_point(self, transformation, point):
+        (x, y, _) = transformation.TransformPoint(point[0], point[1])
         return (x, y)
 
     def copy(self, crs='EPSG:4326'):
@@ -175,16 +176,16 @@ class GriddedGeoBox(object):
         newOrigin = self.transformPoint(old2New, self.origin)
         newCorner = self.transformPoint(old2New, self.corner)
         newPixelSize = tuple([
-            abs((newOrigin[0]-newCorner[0])/self.getShapeXY()[0]),
-            abs((newOrigin[1]-newCorner[1])/self.getShapeXY()[1])
-            ])
+            abs((newOrigin[0] - newCorner[0]) / self.getShapeXY()[0]),
+            abs((newOrigin[1] - newCorner[1]) / self.getShapeXY()[1])
+        ])
 
         return GriddedGeoBox(self.shape, newOrigin, newPixelSize, crs=crs)
 
     def __str__(self):
-        return 'GriddedGeoBox(origin=%s,shape=%s,pixelsize=%s,crs: %s)' % (
-                    self.origin, self.shape, str(self.pixelsize),
-                    self.crs.ExportToProj4())
+        return 'GriddedGeoBox(origin=%s,shape=%s,pixelsize=%s,crs: %s)' % \
+            (self.origin, self.shape, str(self.pixelsize),
+             self.crs.ExportToProj4())
 
     def window(self, enclosedGGB):
         """
@@ -254,10 +255,10 @@ class GriddedGeoBox(object):
         if to_map:
             if centre:
                 xy = tuple(v + 0.5 for v in xy)
-            x, y = xy*self.affine
+            x, y = xy * self.affine
         else:
             inv = ~self.affine
-            x, y = [int(v) for v in inv*xy]
+            x, y = [int(v) for v in inv * xy]
 
         return (x, y)
 
@@ -302,7 +303,7 @@ class GriddedGeoBox(object):
         Return the upper right corner co-ordinate in the units
         defined by the geobox's co-ordinate reference frame.
         """
-        ur  = self.convert_coordinates((self.shape[1], 0))
+        ur = self.convert_coordinates((self.shape[1], 0))
         return ur
 
     @property
@@ -351,7 +352,7 @@ class GriddedGeoBox(object):
         """
         sr = osr.SpatialReference()
         sr.SetFromUserInput(CRS)
-        ur  = self.transform_coordinates(self.ur, sr)
+        ur = self.transform_coordinates(self.ur, sr)
         return ur
 
     @property
@@ -362,7 +363,7 @@ class GriddedGeoBox(object):
         """
         sr = osr.SpatialReference()
         sr.SetFromUserInput(CRS)
-        lr  = self.transform_coordinates(self.corner, sr)
+        lr = self.transform_coordinates(self.corner, sr)
         return lr
 
     @property

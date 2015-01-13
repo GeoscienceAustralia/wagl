@@ -11,6 +11,7 @@ from os.path import join as pjoin, exists, abspath, dirname
 
 BIN_DIR = abspath(pjoin(dirname(__file__), '..', 'bin'))
 
+
 def create_modtran_dirs(coords, albedos, modtran_root, modtran_exe_root,
                         workpath_format, input_format):
     """Create all modtran subdirectories. and input files."""
@@ -78,7 +79,7 @@ def write_modtran_input(acquisitions, modtran_input_file, ozone, vapour,
 
 
 def write_modis_brdf_files(acquisitions, fname_format, brdf_data,
-        solar_irrad_data, solar_dist_data):
+                           solar_irrad_data, solar_dist_data):
     """Generate brdf input file."""
     ref_acqs = [a for a in acquisitions if a.band_type == gaip.REF]
 
@@ -132,7 +133,7 @@ def generate_modtran_inputs(modtran_input, coordinator, sat_view_zenith,
 
 
 def reformat_as_tp5(coords, albedos, profile, input_format, output_format,
-                    workdir, cmd = pjoin(BIN_DIR, 'refort_tp5_ga')):
+                    workdir, cmd=pjoin(BIN_DIR, 'refort_tp5_ga')):
     """Reformat the MODTRAN input files in `tp5` format."""
 
     targets = []
@@ -165,6 +166,7 @@ def run_modtran(modtran_exe, workpath):
 
 
 def extract_flux(coords, albedos, input_format, output_format, satfilter):
+    """Extract the flux data."""
     cmd = pjoin(BIN_DIR, 'read_flx_ga')
 
     for coord in coords:

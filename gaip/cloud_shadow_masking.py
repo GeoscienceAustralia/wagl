@@ -1,17 +1,20 @@
-#! /usr/bin/env python
-
-
-import os, datetime, gc, logging
-import numpy
+"""
+Cloud Shadow Masking
+--------------------
+"""
+import datetime
+import logging
+import numpy as np
 import numexpr
+import gc
+
 from scipy import ndimage
-from osgeo import gdal
-import osr
 from IDL_functions import histogram
 
 
-def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun_elev_deg, pq_const, \
-                 land_sea_mask=None, contiguity_mask=None, cloud_algorithm='ACCA', 
+def cloud_shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg,
+                 sun_elev_deg, pq_const, land_sea_mask=None,
+                 contiguity_mask=None, cloud_algorithm='ACCA',
                  growregion=False, aux_data={}):
     """
     Identifies cloud shadow and creates a mask.
@@ -20,13 +23,13 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun
     cloud height to project a cloud shadows location.
 
     :param image_stack:
-        An ordered array of all bands. The image co-ordinate system needs to be
-        in metres.
+        An ordered array of all bands. The image co-ordinate system needs to
+        be in metres.
 
     :param cloud_mask:
-        A 2D Numpy array where 0 = Cloud and 1 = Not Cloud. A boolean of
+        A 2D np array where 0 = Cloud and 1 = Not Cloud. A boolean of
         False = Cloud and True = Not Cloud is also accepted.
-    
+
     :param geo_box:
         An instance of GriddedGeoBox representing the spatial context of
         the required shadow mask
@@ -38,13 +41,14 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun
         the elevation of the sun in degrees
 
     :param pq_const:
-        An instance of PQAConstants applicable to the reflectance stack supplied
+        An instance of PQAConstants applicable to the reflectance stack
+        supplied
 
     :param land_sea_mask:
-        A 2D Numpy array where 0 = Sea and 1 = Land.
+        A 2D np array where 0 = Sea and 1 = Land.
 
     :param contiguity_mask:
-        A 2D Numpy array where 0 = Non-contiguous and 1 = Contiguous.
+        A 2D np array where 0 = Non-contiguous and 1 = Contiguous.
 
     :param cloud_algorithm:
         String indicating which cloud algorithm was used as the input:
@@ -59,26 +63,26 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun
         code for details
 
     :return:
-        An 2D Numpy array mask with 0 for Shadow and the relevant bit specified
-        in bitpos for Not Shadow.
+        An 2D np array mask with 0 for Shadow and the relevant bit
+        specified in bitpos for Not Shadow.
 
     :author:
        Josh Sixsmith, joshua.sixsmith@ga.gov.au
     """
 
-    # Distinguish between potentially concurrent executions for different cloud masks
+    # Distinguish between potentially concurrent executions for different
+    # cloud masks
 
-    if len(image_stack) == 0: return None
-    if type(image_stack[0]) != numpy.ndarray: raise Exception('Array input is not valid')
-    if cloud_mask == None: raise Exception('Cloud Layer input is not valid')
+    if len(image_stack) == 0:
+        return None
+    if type(image_stack[0]) != np.ndarray:
+        raise Exception('Array input is not valid')
+    if cloud_mask == None:
+        raise Exception('Cloud Layer input is not valid')
 
-    # geoTransform = input_dataset.GetGeoTransform()
     geoTransform = geo_box.affine.to_gdal()
-    # projection = input_dataset.GetProjection()
 
-#-------------------------Filter Thresholds-----------------------------------
-
-    #===========================================================================
+    # Filter Thresholds:
     # wt_ndvi = 0.1
     # wt_b4   = 0.04
     # wt_b5   = 0.05
@@ -88,32 +92,30 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun
     # rt_b4   = 0.6
     # srt_low = 0.9
     # srt_hi  = 1.3
-    #===========================================================================
 
-    wt_ndvi        = pq_const.cshadow_wt_ndvi
-    wt_b4          = pq_const.cshadow_wt_b4
-    wt_b5          = pq_const.cshadow_wt_b5
-    vrat_th        = pq_const.cshadow_vrat_th
-    btt_th         = pq_const.cshadow_btt_th
-    rt_b3          = pq_const.cshadow_rt_b3
-    rt_b4          = pq_const.cshadow_rt_b4
-    srt_low        = pq_const.cshadow_srt_low
-    srt_hi         = pq_const.cshadow_srt_hi
-    lapse_wet      = pq_const.cshadow_lapse_wet
+    wt_ndvi = pq_const.cshadow_wt_ndvi
+    wt_b4 = pq_const.cshadow_wt_b4
+    wt_b5 = pq_const.cshadow_wt_b5
+    vrat_th = pq_const.cshadow_vrat_th
+    btt_th = pq_const.cshadow_btt_th
+    rt_b3 = pq_const.cshadow_rt_b3
+    rt_b4 = pq_const.cshadow_rt_b4
+    srt_low = pq_const.cshadow_srt_low
+    srt_hi = pq_const.cshadow_srt_hi
+    lapse_wet = pq_const.cshadow_lapse_wet
     lapse_standard = pq_const.cshadow_lapse_standard
-    lapse_dry      = pq_const.cshadow_lapse_dry
-    stdv_bush      = pq_const.cshadow_stdv_native_bush
-    stdv_wt        = pq_const.cshadow_stdv_spectral_flat_water
-    mndwi_thresh   = pq_const.cshadow_mndwi_thresh
-    dense_veg      = pq_const.cshadow_dense_veg
-    slope_b34      = pq_const.cshadow_slope_b34
-    slope_b45      = pq_const.cshadow_slope_b45
-    slope_b47a     = pq_const.cshadow_slope_b47a
-    slope_b47b     = pq_const.cshadow_slope_b47b
-    stdv_mltp      = pq_const.cshadow_stdv_multiplier
+    lapse_dry = pq_const.cshadow_lapse_dry
+    stdv_bush = pq_const.cshadow_stdv_native_bush
+    stdv_wt = pq_const.cshadow_stdv_spectral_flat_water
+    mndwi_thresh = pq_const.cshadow_mndwi_thresh
+    dense_veg = pq_const.cshadow_dense_veg
+    slope_b34 = pq_const.cshadow_slope_b34
+    slope_b45 = pq_const.cshadow_slope_b45
+    slope_b47a = pq_const.cshadow_slope_b47a
+    slope_b47b = pq_const.cshadow_slope_b47b
+    stdv_mltp = pq_const.cshadow_stdv_multiplier
 
-    # Returns the required line from a list of strings
-    def linefinder(string_list, string = ""):
+    def linefinder(string_list, string=""):
         """
         Searches a list for the specified string.
 
@@ -131,43 +133,6 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun
             if string in str(line):
                 return line
 
-
-#===============================================================================
-#    # Reads the metadata file in order to extract the needed parameters
-#    def read_metafile(metafile):
-#        '''Opens the metadata file and extracs relevant parameters.
-#
-#           Args:
-#               metafile: A full string path name to the metadata file.
-#
-#           Returns:
-#               Dictionary containing the parameters.
-#        '''
-#
-#        f         = open(metafile, 'r')
-#        met_array = f.readlines()
-#        f.close()
-#
-#        sfind   = linefinder(met_array, 'SUN_AZIMUTH')
-#        s_azi   = float(sfind.split()[2])
-#        sfind   = linefinder(met_array, 'SUN_ELEVATION')
-#        s_elev  = float(sfind.split()[2])
-#
-#
-#
-#        params = {
-#                     'Sun_Azimuth'      : s_azi,
-#                     'Sun_Elevation'    : s_elev,
-#                 }
-#
-#        print params
-#
-#        return params
-#===============================================================================
-
-
-
-    # Convert the origin pixel co-ordinates to map units
     def origin_map(geoTransform, cindex):
         """
         Converts the origin pixel co-ordinates to map units.
@@ -184,12 +149,18 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun
             for the x and y positions.
         """
 
-        omapx = numexpr.evaluate("a*b + c", {'a': cindex[1], 'b': numpy.float32(geoTransform[1]), 'c': numpy.float32(geoTransform[0]) })
-        omapy = numexpr.evaluate("a - (b*abs(c))", { 'a': numpy.float32(geoTransform[3]), 'b': cindex[0], 'c': numpy.float32(geoTransform[5]) })
+        omapx = numexpr.evaluate("a*b + c",
+                                 {'a': cindex[1],
+                                  'b': np.float32(geoTransform[1]),
+                                  'c': np.float32(geoTransform[0])})
+
+        omapy = numexpr.evaluate("a - (b*abs(c))",
+                                 {'a': np.float32(geoTransform[3]),
+                                  'b': cindex[0],
+                                  'c': np.float32(geoTransform[5])})
         return omapx, omapy
 
-    # Determine the cloud height
-    def cloud_height(ctherm, surface_temp, lapse_rate=numpy.float32(6.4)):
+    def cloud_height(ctherm, surface_temp, lapse_rate=np.float32(6.4)):
         """
         Determines the height of the cloud.
 
@@ -209,10 +180,10 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun
             An array of cloud heights.
         """
 
-        result = numexpr.evaluate("((surface_temp - ctherm)/lapse_rate)*thou", { 'thou': numpy.float32(1000) }, locals())
+        result = numexpr.evaluate("((surface_temp - ctherm)/lapse_rate)*thou",
+                                  {'thou': np.float32(1000)}, locals())
         return result
 
-    # Determine the length of the shadow
     def shadow_length(cheight, rad_elev):
         """
         Determines the length of the shadow cast by the cloud.
@@ -227,9 +198,8 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun
             An array of shadow lengths.
         """
 
-        return cheight/numpy.tan(rad_elev)
+        return cheight / np.tan(rad_elev)
 
-    # Retrieve the x and y location in terms of metres from origin
     def rect_xy(shad_length, rad_cor_az):
         """
         Retrieve the x and y distances of projected shadow.
@@ -246,21 +216,12 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun
             A complex array containing the x and y distances from the
             originating cloud pixel.
         """
-        rectxy = numpy.empty(shad_length.shape, dtype='complex64')
-        # Could be done w/ numexpr in a single parallel statement
-        # for i in xrange(len(shad_length)):
-        #    rectxy[i] = cmath.rect(shad_length[i], rad_cor_az)
-
-        #et = datetime.datetime.now()
-        #print 'rect_xy time taken: ', et - st
-        #'''OR
+        rectxy = np.empty(shad_length.shape, dtype='complex64')
         rectxy.real = numexpr.evaluate("shad_length * cos(rad_cor_az)")
         rectxy.imag = numexpr.evaluate("shad_length * sin(rad_cor_az)")
-        #'''
 
         return rectxy
 
-    # Convert the rectangular xy locations into map co-ordinates
     def mapxy(rect_xy, omapx, omapy):
         """
         Convert the x and y locations into map co-ordinates.
@@ -283,7 +244,6 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun
         new_mapy = numexpr.evaluate("omapy + imag(rect_xy)").astype('float32')
         return new_mapx, new_mapy
 
-    # Convert the new mapxy locations to image co-ordinates
     def map2img(new_mapx, new_mapy, geoTransform, dims):
         """
         Converts the x and y map locations in image co-ordinates.
@@ -302,13 +262,20 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun
              A tuple containing the indices of the shadow locations.
         """
 
-        dct = { 'a': numpy.float32(geoTransform[0]), 'b': numpy.float32(geoTransform[1]) }
-        imgx = numpy.round(numexpr.evaluate("(new_mapx - a)/b", dct, locals())).astype('int32')
+        dct = {'a': np.float32(geoTransform[0]),
+               'b': np.float32(geoTransform[1])}
 
-        dct = { 'a': numpy.float32(geoTransform[3]), 'b': numpy.float32(abs(geoTransform[5])) }
-        imgy = numpy.round(numexpr.evaluate("(a - new_mapy)/b", dct, locals())).astype('int32')
+        imgx = np.round(numexpr.evaluate("(new_mapx - a)/b",
+                                         dct, locals())).astype('int32')
 
-        mask = numexpr.evaluate("(imgx>=0) & (imgy>=0) & (imgx<d1) & (imgy<d0)", { 'd1': dims[1], 'd0': dims[0] }, locals())
+        dct = {'a': np.float32(geoTransform[3]),
+               'b': np.float32(abs(geoTransform[5]))}
+        imgy = np.round(numexpr.evaluate("(a - new_mapy)/b",
+                                         dct, locals())).astype('int32')
+
+        mask = numexpr.evaluate("(imgx>=0) & (imgy>=0) &"
+                                "(imgx<d1) & (imgy<d0)",
+                                {'d1': dims[1], 'd0': dims[0]}, locals())
 
         imgx = imgx[mask]
         imgy = imgy[mask]
@@ -318,7 +285,8 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun
 
     def ndvi(red, nir):
         """
-        The NDVI function calculates the Normalised Differenced Vegetation Index.
+        The NDVI function calculates the Normalised Differenced Vegetation
+        Index.
 
         :param red:
             Band 3 of Landsat TM/ETM+.
@@ -333,9 +301,9 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun
         ndvi = numexpr.evaluate("(nir - red) / (nir + red)")
         return ndvi
 
-    def WATER_TEST(ndvi, band5):
+    def water_test(ndvi, band5):
         """
-        The WATER_TEST function is used to identify water pixels.
+        The water_test function is used to identify water pixels.
 
         :param ndvi:
              Normalised Differenced Vegetation Index.
@@ -347,7 +315,10 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun
              An 2D array of type 'bool'.
         """
 
-        wt = numexpr.evaluate("((ndvi < wt_ndvi) & (band5 < wt_b5))", {'wt_b5' : wt_b5, 'wt_ndvi' : wt_ndvi}, locals())
+        wt = numexpr.evaluate("((ndvi < wt_ndvi) &"
+                              "(band5 < wt_b5))",
+                              {'wt_b5': wt_b5,
+                               'wt_ndvi': wt_ndvi}, locals())
 
         return wt
 
@@ -367,8 +338,9 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun
             An 2D array of type 'bool'.
         """
 
-        wt = numexpr.evaluate("((1 - (band5 / red)) / (1 + (band5 / red))) > mndwi_thresh", {'mndwi_thresh' : mndwi_thresh}, locals())
-        #wt = numexpr.evaluate("((1 - (band5 / red)) / (1 + (band5 / red)))")
+        wt = numexpr.evaluate("((1 - (band5 / red)) / (1 + (band5 / red))) >"
+                              "mndwi_thresh",
+                              {'mndwi_thresh': mndwi_thresh}, locals())
 
         return wt
 
@@ -401,35 +373,34 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun
         """
 
         xbar = numexpr.evaluate("(b1 + b2 + b3 + b4 + b5 + b7) / 6")
-        #stdv = numexpr.evaluate("(sqrt(((b1 - xbar)**2 + (b2 - xbar)**2 + (b3 - xbar)**2 + (b4 - xbar)**2 + (b5 - xbar)**2 + (b7 - xbar)**2) / 5)) < stdev_thresh", {'stdev_thresh' : stdev_thresh}, locals())
-        stdv = numexpr.evaluate("(sqrt(((b1 - xbar)**2 + (b2 - xbar)**2 + (b3 - xbar)**2 + (b4 - xbar)**2 + (b5 - xbar)**2 + (b7 - xbar)**2) / 5))")
-
+        stdv = numexpr.evaluate("(sqrt(((b1 - xbar)**2 + (b2 - xbar)**2 +"
+                                "(b3 - xbar)**2 + (b4 - xbar)**2 + "
+                                "(b5 - xbar)**2 + (b7 - xbar)**2) / 5))")
 
         return stdv
 
     def majority_filter(array, iterations=1):
-        weights_array = [[1,1,1],[1,1,1],[1,1,1]]
-        for i in range(iterations):
+        """Majority filter."""
+        weights_array = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
+        for _ in range(iterations):
             array = ndimage.convolve(array, weights_array)
             array = numexpr.evaluate("array > 4")
         return array
 
 
-#---------------------------------------Processing Here------------------------
-
     start_time = datetime.datetime.now()
 
     # Get the indices of cloud
     # need the actual indices rather than a boolean array
-    cindex = numpy.where(cloud_mask == False)
+    cindex = np.where(cloud_mask == False)
 
     # Return mask with all true there is no cloud
     if len(cindex[0]) == 0:
         aux_data['%s_cloud_shadow_percent' % (cloud_algorithm, )] = 0.0
         logging.info('Cloud Shadow Percent: 0.0')
-        cshadow = numpy.ones(cloud_mask.shape, dtype='bool')
-        end_time   = datetime.datetime.now()
-        time       = end_time - start_time
+        cshadow = np.ones(cloud_mask.shape, dtype='bool')
+        end_time = datetime.datetime.now()
+        time = end_time - start_time
         aux_data['%s_cloud_shadow_runtime' % (cloud_algorithm, )] = time
         return cshadow
 
@@ -438,124 +409,92 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun
     # sr.ImportFromWkt(projection)
     sr = geo_box.crs
 
-#===========================================================================
-#    if (type(metafile) != dict): # Is an actual file in which case read it.
-#        parameters = read_metafile(metafile)
-#        rad_elev     = numpy.radians(input_dataset.sun_elevation)
-#
-#        if input_dataset.sun_azimuth >= 180:
-#            corrected_az = input_dataset.sun_azimuth - 180
-#            if (sr.IsGeographic() == 0):
-#                # azimuth is dealt in polar form
-#                corrected_az = 360 - corrected_az + 90
-#        else:
-#            # azimuth < 180
-#            corrected_az = input_dataset.sun_azimuth + 180
-#            if (sr.IsGeographic() == 0):
-#                # azimuth is dealt in polar form
-#                corrected_az = 360 - corrected_az + 90
-#
-#    else: # The metafile is a dictionary
-#        rad_elev     = numpy.radians(metafile['Sun_Elevation'])
-#
-#        if metafile['Sun_Azimuth'] >= 180:
-#            corrected_az = metafile['Sun_Azimuth'] - 180
-#            if (sr.IsGeographic() == 0):
-#                # azimuth is dealt in polar form
-#                corrected_az = 360 - corrected_az + 90
-#        else:
-#            # azimuth < 180
-#            corrected_az = metafile['Sun_Azimuth'] + 180
-#            if (sr.IsGeographic() == 0):
-#                # azimuth is dealt in polar form
-#                corrected_az = 360 - corrected_az + 90
-#===========================================================================
-
-    rad_elev     = numpy.radians(sun_elev_deg)
+    rad_elev = np.radians(sun_elev_deg)
     if sun_az_deg >= 180:
         corrected_az = sun_az_deg - 180
-    else: # azimuth < 180
+    else:  # azimuth < 180
         corrected_az = sun_az_deg + 180
 
-    if (sr.IsGeographic() == 0):
+    if sr.IsGeographic() == 0:
         # azimuth is dealt in polar form
         corrected_az = 360 - corrected_az + 90
 
-    rad_cor_az = numpy.radians(corrected_az)
+    rad_cor_az = np.radians(corrected_az)
 
     # Account for any cloud pixels that are non-contiguous
     if contiguity_mask is not None:
         #cloud_mask[(cloud_mask == 0) & (contiguity_mask == 0)] = 1
-        _temp_array = numexpr.evaluate("(cloud_mask | contiguity_mask) == False")
+        _temp_array = numexpr.evaluate(
+            "(cloud_mask | contiguity_mask) == False")
         cloud_mask[_temp_array] = False
-        del _temp_array; gc.collect()
+        del _temp_array
+        gc.collect()
 
     # Expecting surface reflectance with a scale factor of 10000
     #dim = image_stack.shape
-    scaling_factor = numpy.float32(0.0001)
-    reflectance_stack = image_stack.astype(numpy.float32)
-#        reflectance_stack *= (scaling_factor * null_nan_array)
+    scaling_factor = np.float32(0.0001)
+    reflectance_stack = image_stack.astype(np.float32)
     reflectance_stack = numexpr.evaluate("reflectance_stack * scaling_factor")
 
     # Get the indices of cloud
     # need the actual indices rather than a boolean array
-#        cindex = numpy.where(cloud_mask == False)
     ctherm = kelvin_array[cindex]
     #dims_index   = ctherm.shape
-    dims   = kelvin_array.shape
+    dims = kelvin_array.shape
 
-    ndvi      = ndvi(red=reflectance_stack[2], nir=reflectance_stack[3])
-    #ni        = ndvi > 0.5 # What if none satisfy?
-    #ni        = numexpr.evaluate("ndvi > 0.5") # What if none satisfy?
-    ni        = numexpr.evaluate("ndvi > dense_veg") # What if none satisfy?
-    if (ni.sum() == 0):
+    ndvi = ndvi(red=reflectance_stack[2], nir=reflectance_stack[3])
+    ni = numexpr.evaluate("ndvi > dense_veg")  # What if none satisfy?
+    if ni.sum() == 0:
         # Then just take non-cloud pixels
         ni = numexpr.evaluate("cloud_mask == True")
     non_cloud = numexpr.evaluate("cloud_mask == True")
 
     # General water test
-    wt   = WATER_TEST(ndvi=ndvi, band5=reflectance_stack[4])
+    wt = water_test(ndvi=ndvi, band5=reflectance_stack[4])
     #wt = numexpr.evaluate("((ndvi < wt_ndvi) & (band5 < wt_b5))")
 
-
     if contiguity_mask is not None:
-        null = numexpr.evaluate("contiguity_mask == False") # Non-contiguous pixels
+        # Non-contiguous pixels
+        null = numexpr.evaluate("contiguity_mask == False")
         th_copy = kelvin_array.copy()
         th_copy[null] = 0
         gr_zero = numexpr.evaluate("th_copy > 0")
-        survivors   = numexpr.evaluate("non_cloud & ni & gr_zero")
-        del null, th_copy, gr_zero; gc.collect()
+        survivors = numexpr.evaluate("non_cloud & ni & gr_zero")
+        del null, th_copy, gr_zero
+        gc.collect()
     else:
-        survivors   = numexpr.evaluate("non_cloud & ni")
+        survivors = numexpr.evaluate("non_cloud & ni")
 
-    del ni; gc.collect()
+    del ni
+    gc.collect()
 
-
-    surfaceTemp = numpy.mean(kelvin_array[survivors], dtype='float64') # What if too low?
+    surfaceTemp = np.mean(
+        kelvin_array[survivors], dtype='float64')  # What if too low?
 
     print 'Surface Temperature (Survivors): ', surfaceTemp
 
     del ndvi, non_cloud
 
-    cshadow = numpy.zeros(dims, dtype='byte')
+    cshadow = np.zeros(dims, dtype='byte')
     # wet, standard and dry
-    lapse_rates = numpy.array([lapse_wet,
-                               lapse_standard,
-                               lapse_dry], dtype='float32')
+    lapse_rates = np.array([lapse_wet,
+                            lapse_standard,
+                            lapse_dry], dtype='float32')
 
-    if (sr.IsGeographic() == 1):
+    if sr.IsGeographic() == 1:
         R = sr.GetSemiMajor()
 
         print 'Calculating Cloud Map Origin Coordinates'
         rlon, rlat = origin_map(geoTransform, cindex)
-        rlon = numpy.radians(rlon)
-        rlat = numpy.radians(rlat)
+        rlon = np.radians(rlon)
+        rlat = np.radians(rlat)
 
         i = 1
         for lr in lapse_rates:
 
             print 'Calculating Cloud Height'
-            cheight = cloud_height(ctherm, surface_temp=surfaceTemp, lapse_rate=lr)
+            cheight = cloud_height(
+                ctherm, surface_temp=surfaceTemp, lapse_rate=lr)
             #del ctherm; gc.collect()
 
             print 'Calculating Cloud Shadow Length'
@@ -563,124 +502,75 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun
             #del cheight; gc.collect()
 
             print 'Calculating Cloud Shadow Map Coordinates'
-            rlat2 = numpy.arcsin(numpy.sin(rlat)*numpy.cos(d/R) + numpy.cos(rlat)*numpy.sin(d/R)*numpy.cos(rad_cor_az))
+            rlat2 = np.arcsin(np.sin(rlat) * np.cos(d / R) +
+                              np.cos(rlat) * np.sin(d / R) *
+                              np.cos(rad_cor_az))
 
-            rlon2 = rlon + numpy.arctan2(numpy.sin(rad_cor_az)*numpy.sin(d/R)*numpy.cos(rlat),numpy.cos(d/R)-numpy.sin(rlat)*numpy.sin(rlat))
+            rlon2 = rlon + np.arctan2(np.sin(rad_cor_az) * np.sin(d / R)
+                                      * np.cos(rlat), np.cos(d / R) -
+                                      np.sin(rlat) * np.sin(rlat))
 
-            rlat2 = numpy.rad2deg(rlat2)
-            rlon2 = numpy.rad2deg(rlon2)
-            #del rlon, rlat, d; gc.collect()
-            #del d; gc.collect()
+            rlat2 = np.rad2deg(rlat2)
+            rlon2 = np.rad2deg(rlon2)
 
             print 'Calculating Cloud Shadow Image Coordinates'
-            sindex = map2img(new_mapx=rlon2, new_mapy=rlat2, geoTransform=geoTransform, dims=dims)
-            #del rlon2, rlat2; gc.collect()
+            sindex = map2img(new_mapx=rlon2, new_mapy=rlat2,
+                             geoTransform=geoTransform, dims=dims)
 
             cshadow[sindex] = i
             i += 1
 
-        del cheight, d, rlon, rlat, rlon2, rlat2, ctherm; gc.collect()
+        del cheight, d, rlon, rlat, rlon2, rlat2, ctherm
+        gc.collect()
         s_index = numexpr.evaluate("cshadow == True")
 
-        '''
-        # Testing projected pixels
-        cshadow = numpy.zeros(dims, dtype='byte')
-        cshadow[sindex] = 1
-        driver = gdal.GetDriverByName("GTiff")
-        outfile = driver.Create("geographics_prj_clouds.tif", dims[1], dims[0], 1, gdal.GDT_Byte)
-        outband = outfile.GetRasterBand(1)
-        outband.WriteArray(cshadow)
-        outfile.SetGeoTransform(geoTransform)
-        outfile.SetProjection(projection)
-        outfile = None
-        del cshadow
-        '''
     else:
         print 'Calculating Cloud Map Origin Coordinates'
         omapx, omapy = origin_map(geoTransform, cindex)
 
-        i=1
+        i = 1
         for lr in lapse_rates:
 
             print 'Calculating Cloud Height'
-            cheight = cloud_height(ctherm, surface_temp=surfaceTemp, lapse_rate=lr)
+            cheight = cloud_height(
+                ctherm, surface_temp=surfaceTemp, lapse_rate=lr)
             #del ctherm; gc.collect()
 
             print 'Calculating Cloud Shadow Length'
             shad_length = shadow_length(cheight, rad_elev)
-            del cheight; gc.collect()
+            del cheight
+            gc.collect()
 
             print 'Converting Polar to Rectangular Coordinates'
             rectxy = rect_xy(shad_length, rad_cor_az)
-            del shad_length; gc.collect()
+            del shad_length
+            gc.collect()
 
             print 'Calculating Cloud Shadow Map Coordinates'
             new_mapx, new_mapy = mapxy(rectxy, omapx, omapy)
             #del rectxy, omapx, omapy; gc.collect()
-            del rectxy; gc.collect()
-            #print 'len new_mapx: ', new_mapx.shape
+            del rectxy
+            gc.collect()
+            # print 'len new_mapx: ', new_mapx.shape
 
             print 'Calculating Cloud Shadow Image Coordinates'
             sindex = map2img(new_mapx, new_mapy, geoTransform, dims)
-            del new_mapx, new_mapy; gc.collect()
+            del new_mapx, new_mapy
+            gc.collect()
 
             cshadow[sindex] = i
             i += 1
 
-        #sindex = numpy.where(cshadow == 1)
-        #sindex = numpy.where(cshadow >= 1)
-        #sindex = numexpr.evaluate("where(cshadow >= 1)")
-        # or as a bool array
         s_index = numexpr.evaluate("cshadow >= 1")
 
-        # Testing projected pixels
-        del cshadow, ctherm, omapx, omapy; gc.collect()
-
-
+        del cshadow, ctherm, omapx, omapy
+        gc.collect()
 
     # Only apply spectral tests when growing a region
     # May need to add or change spectral tests to eliminate some landcovers.
     if growregion:
         print 'Applying Region Growing'
         stng = datetime.datetime.now()
-
-        '''
-        # Threshold tests
-        #q1 = reflectance_stack[3][sindex] < 0.12 # NIR threshold
-        #q2 = reflectance_stack[1][sindex] < 0.045 # Green threshold
-        q3 = cloud_mask[sindex] >= 1
-        if contiguity_mask != None:
-            q4 = contiguity_mask[sindex] >= 1
-            if land_sea_mask != None:
-                q5 = land_sea_mask[sindex] >= 1
-                #q6 = q1 & q2 & q3 & q4 & q5
-                q6 = q3 & q4 & q5
-                #del q1, q2, q3, q4, q5
-                del q3, q4, q5
-            else:
-                #q6 = q1 & q2 & q3 & q4
-                q6 = q3 & q4
-                #del q1, q2, q3, q4
-                del q3, q4
-        elif land_sea_mask != None:
-            q5 = land_sea_mask[sindex] >= 1
-            #q6 = q1 & q2 & q3 & q5
-            q6 = q3 & q5
-            #del q1, q2, q3, q5
-            del q3, q5
-        else:
-            #q6 = q1 & q2 & q3
-            q6 = q2 & q3
-            #del q1, q2, q3
-            del q3
-
-        qf = numpy.where(q6 == False)
-        cy = numpy.delete(sindex[0], qf, 0)
-        cx = numpy.delete(sindex[1], qf, 0)
-        sindex = (cy,cx)
-
-        del qf, cy, cx; gc.collect()
-        '''
 
         q1 = numexpr.evaluate("(cloud_mask >= 1) & s_index")
         if contiguity_mask != None:
@@ -698,44 +588,37 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun
 
         sindex = q4
 
-
-        s = [[1,1,1],[1,1,1],[1,1,1]]
+        s = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
 
         # Additional weights generation
         # Will create weights based on the 'slope' of the spectral curve
         # occurring between bands.
         # Using a unit length of 1 for distance between bands
-        weights = numpy.ones(dims, dtype='int8')
+        weights = np.ones(dims, dtype='int8')
 
         # band 3 -> 4 slope
-        #slope = reflectance_stack[3] - reflectance_stack[2]
-        slope = numexpr.evaluate("(b4 - b3) >= slope_b34", {'b4':reflectance_stack[3], 'b3':reflectance_stack[2]}, locals())
-        #weights[slope >= 0.1] += 1
-        #weights[slope >= 0.11] += 1
+        slope = numexpr.evaluate("(b4 - b3) >= slope_b34",
+                                 {'b4': reflectance_stack[3],
+                                  'b3': reflectance_stack[2]}, locals())
         weights[slope] += 1
 
         # band 4 -> 5 slope
-        #slope = numpy.abs(reflectance_stack[4] - reflectance_stack[3])
-        slope = numexpr.evaluate("abs(b5 - b4) >= slope_b45", {'b5':reflectance_stack[4], 'b4':reflectance_stack[3]}, locals())
-        #weights[slope >= 0.05] += 1
-        #weights[slope >= 0.055] += 1
+        slope = numexpr.evaluate("abs(b5 - b4) >= slope_b45",
+                                 {'b5': reflectance_stack[4],
+                                  'b4': reflectance_stack[3]}, locals())
         weights[slope] += 1
 
         # band 4 -> 7 slope
-        #slope = (reflectance_stack[6] - reflectance_stack[3])/2
-        #slope = numexpr.evaluate("((b7 - b4) / 2) > 0.01", {'b7':reflectance_stack[6], 'b4':reflectance_stack[3]})
-        slope = numexpr.evaluate("((b7 - b4) / 2) > slope_b47a", {'b7':reflectance_stack[5], 'b4':reflectance_stack[3]}, locals())
-        #weights[slope > 0.01] += 1
+        slope = numexpr.evaluate("((b7 - b4) / 2) > slope_b47a",
+                                 {'b7': reflectance_stack[5],
+                                  'b4': reflectance_stack[3]}, locals())
         weights[slope] += 1
-        #slope = numexpr.evaluate("abs((b7 - b4) / 2) > 0.05", {'b7':reflectance_stack[6], 'b4':reflectance_stack[3]})
-        slope = numexpr.evaluate("abs((b7 - b4) / 2) > slope_b47b", {'b7':reflectance_stack[5], 'b4':reflectance_stack[3]}, locals())
-        #weights[numpy.abs(slope) >= 0.05] += 1
+        slope = numexpr.evaluate("abs((b7 - b4) / 2) > slope_b47b",
+                                 {'b7': reflectance_stack[5],
+                                  'b4': reflectance_stack[3]}, locals())
         weights[slope] += 1
 
         # General water test (calculated earlier)
-        #ndvi = ndvi(red=reflectance_stack[2], nir=reflectance_stack[3])
-        #wt   = WATER_TEST(ndvi=ndvi, band5=reflectance_stack[4])
-        # like shadow, water is pretty low, so set weight very high
         weights[wt] += 9
 
         # Modified normalised difference water index
@@ -743,66 +626,56 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun
         weights[wt] += 9
 
         # standard deviation thruogh spectral space
-        #stdv = stdev(b1=reflectance_stack[0], b2=reflectance_stack[1], b3=reflectance_stack[2], b4=reflectance_stack[3], b5=reflectance_stack[4], b7=reflectance_stack[6])
-        stdv = stdev(b1=reflectance_stack[0], b2=reflectance_stack[1], b3=reflectance_stack[2], b4=reflectance_stack[3], b5=reflectance_stack[4], b7=reflectance_stack[5])
+        stdv = stdev(b1=reflectance_stack[0], b2=reflectance_stack[1],
+                     b3=reflectance_stack[2], b4=reflectance_stack[3],
+                     b5=reflectance_stack[4], b7=reflectance_stack[5])
+
         # This is for water that is spectrally very flat and near zero
-        BOOL = numexpr.evaluate("stdv < stdv_wt")
+        above = numexpr.evaluate("stdv < stdv_wt")
         # dilate to get water edges; tends to help with river systems
-        ndimage.binary_dilation(BOOL, s, output=wt)
+        ndimage.binary_dilation(above, s, output=wt)
         weights[wt] += 15
 
-        # some aussie native bushland is still picked up. Its stdv is generally
-        # higher than shadow though. More testing needed!
-        BOOL = numexpr.evaluate("stdv > stdv_bush")
-        weights[BOOL] += 1
+        # some aussie native bushland is still picked up. Its stdv is
+        # generally higher than shadow though. More testing needed!
+        above = numexpr.evaluate("stdv > stdv_bush")
+        weights[above] += 1
 
-        del slope, wt, BOOL, stdv; gc.collect()
-
-        # could implement another weight; avg of bands 1 -> 3 > 450? which
-        # would minimise turbid water
-        #avg_bands = (reflectance_stack[0] + reflectance_stack[1] + reflectance_stack[2]) / 3
-        #weights[avg_bands > 0.045] += 1
-
-        # another for deep water could be avg b4 -> b7 (exclude thermal) <100
-        #avg_bands = (reflectance_stack[3] + reflectance_stack[4] + reflectance_stack[6]) / 3
-        #weights[avg_bands < 0.01] -= 10
-
-        #weight_sum = ((reflectance_stack[0] + reflectance_stack[1] + reflectance_stack[2] + reflectance_stack[3]) +
-        #                2*(reflectance_stack[4] + reflectance_stack[6]))
-        #weight_sum = (weights * (reflectance_stack[0] + reflectance_stack[1] + reflectance_stack[2] + reflectance_stack[3]) +
-        #                2*(weights * (reflectance_stack[4] + reflectance_stack[6])))
+        del slope, wt, above, stdv
+        gc.collect()
 
         b1 = reflectance_stack[0]
         b2 = reflectance_stack[1]
         b3 = reflectance_stack[2]
         b4 = reflectance_stack[3]
         b5 = reflectance_stack[4]
-        #b7 = reflectance_stack[6]
         b7 = reflectance_stack[5]
-        weight_sum = numexpr.evaluate("weights *(b1 + b2 + b3 + b4) + 2*(weights * (b5 + b7))")
+        weight_sum = numexpr.evaluate("weights *(b1 + b2 + b3 + b4)"
+                                      "+ 2*(weights * (b5 + b7))")
 
-        del b1, b2, b3, b4, b5, b7; gc.collect()
+        del b1, b2, b3, b4, b5, b7
+        gc.collect()
 
-        del weights; gc.collect()
-
+        del weights
+        gc.collect()
 
         flatwsum = weight_sum.flatten()
 
-
-        h = histogram(flatwsum, min=0, max=1.0, binsize=0.1, reverse_indices='ri', locations='loc') # may not need loc
+        h = histogram(flatwsum, min=0, max=1.0, binsize=0.1,
+                      reverse_indices='ri', locations='loc')
 
         # This might be the only need for the bin locations i.e. loc
-        binmean = numpy.zeros(h['loc'].shape[0])
-        binstdv = numpy.zeros(h['loc'].shape[0])
+        binmean = np.zeros(h['loc'].shape[0])
+        binstdv = np.zeros(h['loc'].shape[0])
 
         ri = h['ri']
         hist = h['histogram']
 
-        for i in numpy.arange(h['loc'].shape[0]):
-            if ri[i+1] > ri[i]:
-                temp_array = flatwsum[ri[ri[i]:ri[i+1]]]
-                binmean[i] = numpy.mean(temp_array)
-                binstdv[i] = numpy.std(temp_array)
+        for i in np.arange(h['loc'].shape[0]):
+            if ri[i + 1] > ri[i]:
+                temp_array = flatwsum[ri[ri[i]:ri[i + 1]]]
+                binmean[i] = np.mean(temp_array)
+                binstdv[i] = np.std(temp_array)
 
         # Define a fuzzy limit
         limit = binstdv * stdv_mltp
@@ -813,54 +686,44 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun
         print 'lower: ', lower
 
         #del binmean, binstdv, weight_sum; gc.collect()
-        del binmean, binstdv, flatwsum, temp_array; gc.collect()
+        del binmean, binstdv, flatwsum, temp_array
+        gc.collect()
 
-        grown_regions = numpy.zeros(dims, dtype='bool').flatten()
+        grown_regions = np.zeros(dims, dtype='bool').flatten()
 
         # Global stats/masking method
         lmin = lower.min()
         umax = upper.max()
-        #flatmask = (flatwsum >= lower.min()) & (flatwsum <= upper.max())
-        #flatmask = numexpr.evaluate("(flatwsum >= lmin) & (flatwsum <= umax)")
         mask = numexpr.evaluate("(weight_sum >= lmin) & (weight_sum <= umax)")
-        #mask = flatmask.reshape(dims)
         label_array, num_labels = ndimage.label(mask, structure=s)
         flat_label = label_array.flatten()
         labels = label_array[sindex]
-        ulabels = numpy.unique(labels[labels > 0])
+        ulabels = np.unique(labels[labels > 0])
 
-        if (ulabels.size > 0): # only apply if labels are identified
-            max = numpy.max(ulabels) # this will fail if there are no labels
-            h = histogram(flat_label, min=0, max=max, reverse_indices='ri')
+        if ulabels.size > 0:  # only apply if labels are identified
+            maxval = np.max(ulabels)  # this will fail if there are no labels
+            h = histogram(flat_label, min=0, max=maxval, reverse_indices='ri')
 
-            # assign other variable names, makes it more readable when indexing
+            # assign other variable names, makes it more readable
+            # when indexing
             hist = h['histogram']
             ri = h['ri']
 
-            for i in numpy.arange(ulabels.shape[0]):
+            for i in np.arange(ulabels.shape[0]):
                 if hist[ulabels[i]] == 0:
                     continue
-                grown_regions[ri[ri[ulabels[i]]:ri[ulabels[i]+1]]] = 1
+                grown_regions[ri[ri[ulabels[i]]:ri[ulabels[i] + 1]]] = 1
 
             cshadow = grown_regions.reshape(dims)
 
-        else: # if no labels then output no shadow
-            cshadow = numpy.zeros(dims, dtype='byte')
-
+        else:  # if no labels then output no shadow
+            cshadow = np.zeros(dims, dtype='byte')
 
     else:
-        cshadow = numpy.zeros(dims, dtype='byte')
+        cshadow = np.zeros(dims, dtype='byte')
         cshadow[sindex] = 1
 
-    # Majority filtering; applying twice, makes a cleaner result
-    #s = [[1,1,1],[1,1,1],[1,1,1]]
-    #shadfilt = ndimage.convolve(cshadow, s)
-    #cshadow = numexpr.evaluate("shadfilt > 4")
-    #ndimage.convolve(cshadow, s, output=shadfilt)
-    #cshadow = numexpr.evaluate("shadfilt > 4")
     cshadow = majority_filter(array=cshadow, iterations=2)
-
-    #del shadfilt; gc.collect()
 
     # Where a shadow pixel is a cloud pixel, change to no shadow
     cshadow[cindex] = False
@@ -877,16 +740,15 @@ def Cloud_Shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg, sun
         cshadow[null] = False
         del null
 
-    Shadow_Percent = (float(cshadow.sum())/cshadow.size) * 100
-    aux_data['%s_cloud_shadow_percent' % (cloud_algorithm, )] = Shadow_Percent
-    logging.info('%s_cloud_shadow_percent: %f' % (cloud_algorithm, Shadow_Percent))
+    shadow_percent = (float(cshadow.sum()) / cshadow.size) * 100
+    aux_data['%s_cloud_shadow_percent' % (cloud_algorithm, )] = shadow_percent
+    logging.info('%s_cloud_shadow_percent: %f',
+                 cloud_algorithm, shadow_percent)
 
-
-    end_time   = datetime.datetime.now()
-    time       = end_time - start_time
+    end_time = datetime.datetime.now()
+    time = end_time - start_time
 
     aux_data['%s_cloud_shadow_runtime' % (cloud_algorithm, )] = time
 
     # Invert array from 1 == "Cloud" to True = "No Cloud"
-    return (~cshadow).astype(numpy.bool)
-
+    return (~cshadow).astype(np.bool)

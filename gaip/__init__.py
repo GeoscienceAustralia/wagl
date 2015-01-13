@@ -1,12 +1,10 @@
-import sys
 
 from ancillary import *
 from acquisition import *
 from data import *
 from mtl import *
 from water import *
-from GriddedGeoBox import GriddedGeoBox #FIXME: PEP8
-from fast_cache import *
+from geobox import GriddedGeoBox
 from tle import *
 from brdf import *
 from get_brdf import *
@@ -17,8 +15,6 @@ from modtran import *
 from margins import *
 from constants import PQAConstants
 from pqa_result import PQAResult
-
-
 from saturation_masking import setSaturationBits
 from contiguity_masking import setContiguityBit
 from thermal_conversion import get_landsat_temperature
@@ -42,4 +38,5 @@ try:
 except ImportError:
     msg = ('Run Makefile to build the Fortran modules.\n'
            'Some functionality in library is disabled')
+    import sys
     print sys.stderr, msg
