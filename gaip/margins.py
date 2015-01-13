@@ -1,3 +1,6 @@
+"""
+Image Margins
+"""
 class ImageMargins(object):
 
     """
@@ -37,4 +40,3 @@ class ImageMargins(object):
         msg = msg.format(left=self.left, right=self.right, top=self.top,
                          bottom=self.bottom)
         return msg
-

@@ -1,7 +1,10 @@
-import os
+"""
+Contiguity Mask
+---------------
+"""
 import numpy
 import logging
-import numexpr
+
 from scipy import ndimage
 from IDL_functions import histogram
 
@@ -37,20 +40,20 @@ def calc_contiguity_mask(image_stack, spacecraft_id):
         return None
 
     assert type(image_stack[0]) == numpy.ndarray, 'Input is not valid'
-    assert len(image_stack.shape) == 3, 'Input array must contain 3 dimensions!'
+    assert len(image_stack.shape) == 3, 'Input array must contain 3 dims!'
 
     logging.debug('Determining pixel contiguity')
-    # Create mask array with True for all pixels which are non-zero in all bands
+    # Create mask array with True for all pixels which are non-zero in all
+    # bands
     mask = image_stack.all(0)
-    #mask = numexpr.evaluate('prod(image_stack, 0)') != 0 # ***This has the potential to overflow, roll back to array.all(0)***
 
     # The following is only valid for Landsat 5 images
-    logging.debug('calc_contiguity_mask: spacecraft_id=%s' % (spacecraft_id,))
+    logging.debug('calc_contiguity_mask: spacecraft_id=%s', spacecraft_id)
     if spacecraft_id == 'Landsat5':
         logging.debug('Finding thermal edge anomalies')
         # Apply thermal edge anomalies
-        struct = numpy.ones((7,7), dtype='bool')
-        erode  = ndimage.binary_erosion(mask, structure=struct)
+        struct = numpy.ones((7, 7), dtype='bool')
+        erode = ndimage.binary_erosion(mask, structure=struct)
 
         dims = mask.shape
         th_anom = numpy.zeros(dims, dtype='bool').flatten()
@@ -59,10 +62,10 @@ def calc_contiguity_mask(image_stack, spacecraft_id):
         pix_3buff_mask[pix_3buff_mask > 0] = 1
         edge = pix_3buff_mask == 1
 
-        low_sat = image_stack[5,:,:] == 1
+        low_sat = image_stack[5, :, :] == 1
         low_sat_buff = ndimage.binary_dilation(low_sat, structure=struct)
 
-        s = [[1,1,1],[1,1,1],[1,1,1]]
+        s = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
         low_sat, num_labels = ndimage.label(low_sat_buff, structure=s)
 
         labels = low_sat[edge]
@@ -81,14 +84,16 @@ def calc_contiguity_mask(image_stack, spacecraft_id):
         for i in numpy.arange(ulabels.shape[0]):
             if hist[ulabels[i]] == 0:
                 continue
-            th_anom[ri[ri[ulabels[i]]:ri[ulabels[i]+1]]] = True
+            th_anom[ri[ri[ulabels[i]]:ri[ulabels[i] + 1]]] = True
 
         th_anom = ~(th_anom.reshape(dims))
         mask &= th_anom
 
     return mask
 
-def setContiguityBit(l1t_data, spacecraft_id, pq_const, pqaResult):
+
+def set_contiguity_bit(l1t_data, spacecraft_id, pq_const, pqa_result):
+    """Set the contiguity bit."""
     mask = calc_contiguity_mask(l1t_data, spacecraft_id)
     bit_index = pq_const.contiguity
-    pqaResult.set_mask(mask, bit_index)
+    pqa_result.set_mask(mask, bit_index)

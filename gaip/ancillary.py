@@ -3,14 +3,11 @@
 import logging
 import subprocess
 import gaip
-import os
 import re
 
-from datetime import datetime
 from os.path import join as pjoin, exists, splitext, abspath, dirname, pardir
 
 log = logging.getLogger()
-
 
 def get_aerosol_data(acquisition, aerosol_path, aot_loader_path=None):
     """Extract the aerosol value for an acquisition.
@@ -104,13 +101,10 @@ def run_aot_loader(filename, dt, ll_lat, ll_lon, ur_lat, ur_lon,
     cmd = pjoin(aot_loader_path, 'aot_loader')
     if not exists(cmd):
         log.error('%s not found.', cmd)
-    task = [cmd, '--' + filetype, filename,
-                 '--west', str(ll_lon),
-                 '--east', str(ur_lon),
-                 '--south', str(ll_lat),
-                 '--north', str(ur_lat),
-                 '--date', dt.strftime('%Y-%m-%d'),
-                 '--t', dt.strftime('%H:%M:%S')]
+    task = [cmd, '--' + filetype, filename, '--west', str(ll_lon),
+            '--east', str(ur_lon), '--south', str(ll_lat),
+            '--north', str(ur_lat), '--date', dt.strftime('%Y-%m-%d'),
+            '--t', dt.strftime('%H:%M:%S')]
     task = ' '.join(task)
     result = subprocess.check_output(task, shell=True)
 

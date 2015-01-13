@@ -5,7 +5,7 @@ persistent=no
 load-plugins=
 
 [MESSAGES CONTROL]
-disable=bare-except,no-self-use,unused-argument,duplicate-code,trailing-whitespace,abstract-class-little-used,star-args
+disable=bare-except,no-self-use,unused-argument,duplicate-code,trailing-whitespace,abstract-class-little-used,star-args,too-many-locals,no-member
 
 [REPORTS]
 msg-template={path}:{line}: [{msg_id}({symbol}), {obj}] {msg}
@@ -27,7 +27,7 @@ argument-rgx=[a-z_][a-zA-Z0-9_]{0,50}$
 variable-rgx=[a-z_][a-zA-Z0-9_]{0,50}$
 class-attribute-rgx=([A-Za-z_][A-Za-z0-9_]{2,50}|(__.*__))$
 inlinevar-rgx=[A-Za-z_][A-Za-z0-9_]*$
-good-names=i,j,k,ex,Run,_
+good-names=i,j,k,ex,Run,_,log
 bad-names=foo,bar,baz,toto,tutu,tata
 no-docstring-rgx=__.*__
 docstring-min-length=-1
