@@ -5,3 +5,4 @@ numexpr>=2.2
 proj>=4.8.0
 scikit-image>=0.8.2
 GDAL>=1.9.2
+rasterio
