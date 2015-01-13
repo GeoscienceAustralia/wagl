@@ -1,5 +1,0 @@
-# Default process list for image_processor module
-[
-get_input_datasets,
-nbar
-]

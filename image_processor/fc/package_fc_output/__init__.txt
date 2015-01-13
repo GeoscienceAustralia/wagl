@@ -1,7 +1,0 @@
-# Default process list for pqa module
-[
-write_fc_metadata,
-create_fc_thumbnail_image,
-calc_fc_checksums,
-move_fc_output_to_destination
-]

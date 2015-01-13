@@ -1,5 +1,0 @@
-# Default process list for nbar processing
-[
-get_input_datasets,
-nbar
-]

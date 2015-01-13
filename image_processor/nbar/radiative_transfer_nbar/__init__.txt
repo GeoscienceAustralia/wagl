@@ -1,5 +1,0 @@
-# Default process list for radiative_transfer_nbar module
-[
-    run_brdf_sim_bin,
-    write_tif_files
-]

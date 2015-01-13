@@ -1,5 +1,0 @@
-# Default process list for fractional cover processing
-[
-fc
-]
-

@@ -1,8 +1,0 @@
-# Default process list for pqa module
-[
-check_pqa_output,
-image_reader,
-thermal_conversion,
-calc_pqa_masks,
-package_pqa_output
-]

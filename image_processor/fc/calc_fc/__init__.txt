@@ -1,4 +1,0 @@
-# Default process list for calc_fc module
-[
-  fc
-]

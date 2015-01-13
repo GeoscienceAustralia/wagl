@@ -1,4 +1,0 @@
-# Default process list for radiative_transfer_tc module
-[
-run_tc
-]
