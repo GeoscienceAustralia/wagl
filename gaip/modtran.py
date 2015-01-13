@@ -145,8 +145,6 @@ def reformat_as_tp5(coords, albedos, profile, input_format, output_format,
 
             args = [cmd, pjoin(workdir, src), profile, pjoin(workdir, dst)]
 
-            print ' '.join(args)
-
             subprocess.check_call(args)
 
     return targets
