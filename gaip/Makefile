@@ -8,12 +8,7 @@ filter.so _shade_main_landsat_pixel.so _slope_pixelsize_newpole.so _brdf_terrain
 	#python setup.py config_fc --f90flags="-assume byterecl" build_ext -i
 	python setup.py build_ext -i
 
-clean: rootclean fcclean
-
-rootclean:
+clean:
 	-rm *.so
 	-rm *.o
 	-rm *.mod
-
-fcclean:
-	$(MAKE) --directory=fc clean
