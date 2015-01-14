@@ -14,11 +14,11 @@ from gaip import write_new_brdf_file
 
 
 def run_tc(acquisitions, bilinear_ortho_filenames, rori, self_shadow_fname,
-        cast_shadow_sun_fname, cast_shadow_satellite_fname,
-        solar_zenith_fname, solar_azimuth_fname, satellite_view_fname,
-        relative_angle_fname, slope_fname, aspect_fname, incident_angle_fname,
-        exiting_angle_fname, relative_slope_fname, reflectance_filenames,
-        brdf_fname_format, new_brdf_fname_format):
+           cast_shadow_sun_fname, cast_shadow_satellite_fname,
+           solar_zenith_fname, solar_azimuth_fname, satellite_view_fname,
+           relative_angle_fname, slope_fname, aspect_fname,
+           incident_angle_fname, exiting_angle_fname, relative_slope_fname,
+           reflectance_filenames, brdf_fname_format, new_brdf_fname_format):
     """
     The terrain correction workflow.
 
@@ -160,33 +160,33 @@ def run_tc(acquisitions, bilinear_ortho_filenames, rori, self_shadow_fname,
     nbar_constants = constants.NBARConstants(satellite, sensor)
     avg_reflectance_values = nbar_constants.getAvgReflut()
 
-    # Read arrays into memory
+    # Read all required arrays into memory
     # Convert to the appropriate datatype and transpose the array to convert
     # to Fortran contiguous memory. This should prevent any array copying
     self_shadow = as_array(read_img(self_shadow_fname), dtype=numpy.int16,
-        transpose=True)
+                           transpose=True)
     cast_shadow_sun = as_array(read_img(cast_shadow_sun_fname),
-        dtype=numpy.int16, transpose=True)
+                               dtype=numpy.int16, transpose=True)
     cast_shadow_satellite = as_array(read_img(cast_shadow_satellite_fname),
-        dtype=numpy.int16, transpose=True)
+                                     dtype=numpy.int16, transpose=True)
     solar_zenith = as_array(read_img(solar_zenith_fname),
-        dtype=numpy.float32, transpose=True)
+                            dtype=numpy.float32, transpose=True)
     solar_azimuth = as_array(read_img(solar_azimuth_fname),
-        dtype=numpy.float32, transpose=True)
+                             dtype=numpy.float32, transpose=True)
     satellite_view = as_array(read_img(satellite_view_fname),
-        dtype=numpy.float32, transpose=True)
+                              dtype=numpy.float32, transpose=True)
     relative_angle = as_array(read_img(relative_angle_fname),
-        dtype=numpy.float32, transpose=True)
+                              dtype=numpy.float32, transpose=True)
     slope = as_array(read_img(slope_fname), dtype=numpy.float32,
-        transpose=True)
+                     transpose=True)
     aspect = as_array(read_img(aspect_fname), dtype=numpy.float32,
-        transpose=True)
+                      transpose=True)
     incident_angle = as_array(read_img(incident_angle_fname),
-        dtype=numpy.float32, transpose=True)
+                              dtype=numpy.float32, transpose=True)
     exiting_angle = as_array(read_img(exiting_angle_fname),
-        dtype=numpy.float32, transpose=True)
+                             dtype=numpy.float32, transpose=True)
     relative_slope = as_array(read_img(relative_slope_fname),
-        dtype=numpy.float32, transpose=True)
+                              dtype=numpy.float32, transpose=True)
 
     # Loop over each acquisition and compute various reflectance arrays
     for acq in acquisitions:
@@ -198,9 +198,10 @@ def run_tc(acquisitions, bilinear_ortho_filenames, rori, self_shadow_fname,
         # Read the BRDF modis file for a given band
         brdf_modis_file = brdf_fname_format.format(band_num=acq.band_num)
         with open(brdf_modis_file, 'r') as param_file:
-            brdf0, brdf1, brdf2, bias, slope_ca, esun, dd = map(float,
-                ' '.join(param_file.readlines()).split())
+            (brdf0, brdf1, brdf2, bias, slope_ca,
+             esun, dd) = map(float,' '.join(param_file.readlines()).split())
 
+        # Output the new format of the brdf file (QA/QC)
         write_new_brdf_file(
             new_brdf_fname_format.format(band_num=band_number),
             rori, brdf0, brdf1, brdf2, bias, slope_ca, esun, dd,
@@ -226,63 +227,39 @@ def run_tc(acquisitions, bilinear_ortho_filenames, rori, self_shadow_fname,
 
         # Read the bilinear ortho files for the current band
         a_mod = load_2D_bin_file(boo_fnames[(band_number, 'a')], rows, cols,
-            dtype=bilinear_dtype, transpose=True)
+                                 dtype=bilinear_dtype, transpose=True)
         b_mod = load_2D_bin_file(boo_fnames[(band_number, 'b')], rows, cols,
-            dtype=bilinear_dtype, transpose=True)
+                                 dtype=bilinear_dtype, transpose=True)
         s_mod = load_2D_bin_file(boo_fnames[(band_number, 's')], rows, cols,
-            dtype=bilinear_dtype, transpose=True)
+                                 dtype=bilinear_dtype, transpose=True)
         fv = load_2D_bin_file(boo_fnames[(band_number, 'fs')], rows, cols,
-            dtype=bilinear_dtype, transpose=True)
+                              dtype=bilinear_dtype, transpose=True)
         fs = load_2D_bin_file(boo_fnames[(band_number, 'fv')], rows, cols,
-            dtype=bilinear_dtype, transpose=True)
+                              dtype=bilinear_dtype, transpose=True)
         ts = load_2D_bin_file(boo_fnames[(band_number, 'ts')], rows, cols,
-            dtype=bilinear_dtype, transpose=True)
+                              dtype=bilinear_dtype, transpose=True)
         edir_h = load_2D_bin_file(boo_fnames[(band_number, 'dir')], rows, cols,
-            dtype=bilinear_dtype, transpose=True)
+                                  dtype=bilinear_dtype, transpose=True)
         edif_h = load_2D_bin_file(boo_fnames[(band_number, 'dif')], rows, cols,
-            dtype=bilinear_dtype, transpose=True)
+                                  dtype=bilinear_dtype, transpose=True)
 
         # Run terrain correction
         # We use transposed arrays; rows become cols and cols become rows
-        terrain_correction(
-            cols,
-            rows,
-            rori,
-            brdf0, brdf1, brdf2,
-            bias, slope_ca, esun, dd,
-            avg_reflectance_values[band_number],
-            band_data,
-            self_shadow,
-            cast_shadow_sun,
-            cast_shadow_satellite,
-            solar_zenith,
-            solar_azimuth,
-            satellite_view,
-            relative_angle,
-            slope,
-            aspect,
-            incident_angle,
-            exiting_angle,
-            relative_slope,
-            a_mod,
-            b_mod,
-            s_mod,
-            fv,
-            fs,
-            ts,
-            edir_h,
-            edif_h,
-            band_work,
-            ref_lm_work,
-            ref_brdf_work,
-            ref_terrain_work,
-            ref_lm.transpose(),
-            ref_brdf.transpose(),
-            ref_terrain.transpose())
+        terrain_correction(cols, rows, rori, brdf0, brdf1, brdf2,
+                           bias, slope_ca, esun, dd,
+                           avg_reflectance_values[band_number],
+                           band_data, self_shadow, cast_shadow_sun,
+                           cast_shadow_satellite, solar_zenith, solar_azimuth,
+                           satellite_view, relative_angle, slope, aspect,
+                           incident_angle, exiting_angle, relative_slope,
+                           a_mod, b_mod, s_mod, fv, fs, ts, edir_h, edif_h,
+                           band_work, ref_lm_work, ref_brdf_work,
+                           ref_terrain_work, ref_lm.transpose(),
+                           ref_brdf.transpose(), ref_terrain.transpose())
 
         # Filenames for lambertian, brdf & terrain corrected reflectance
         lmbrt_fname = reflectance_filenames[(band_number,
-            'reflectance_lambertian')]
+                                             'reflectance_lambertian')]
         brdf_fname = reflectance_filenames[(band_number, 'reflectance_brdf')]
         tc_fname = reflectance_filenames[(band_number, 'reflectance_terrain')]
 
