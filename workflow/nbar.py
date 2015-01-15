@@ -1212,10 +1212,11 @@ class CalculateCastShadow(luigi.Task):
     """Calculate cast shadow masks. This is a helper task."""
 
     l1t_path = luigi.Parameter()
+    out_path = luigi.Parameter()
 
     def requires(self):
-        return [CalculateCastShadowSun(self.l1t_path),
-                CalculateCastShadowSatellite(self.l1t_path)]
+        return [CalculateCastShadowSun(self.l1t_path, self.out_path),
+                CalculateCastShadowSatellite(self.l1t_path, self.out_path)]
 
     def complete(self):
         return all([t.complete() for t in self.requires()])
@@ -1228,14 +1229,15 @@ class CalculateCastShadowSun(luigi.Task):
     """
 
     l1t_path = luigi.Parameter()
+    out_path = luigi.Parameter()
 
     def requires(self):
-        return [CalculateSatelliteAndSolarGrids(self.l1t_path),
-                DEMExctraction(self.l1t_path)]
+        return [CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path),
+                DEMExctraction(self.l1t_path, self.out_path)]
 
     def output(self):
-        work_path = CONFIG.get('work', 'tc_intermediates')
-        sun_target = pjoin(work_path,
+        out_path = self.out_path.value()
+        sun_target = pjoin(out_path,
                            CONFIG.get('cast_shadow', 'sun_direction_target'))
 
         target = luigi.LocalTarget(sun_target)
@@ -1244,13 +1246,17 @@ class CalculateCastShadowSun(luigi.Task):
 
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
-        work_path = CONFIG.get('work', 'tc_intermediates')
+        out_path = self.out_path.value()
 
         # Input targets
-        smoothed_dsm_fname = pjoin(work_path,
-                                   CONFIG.get('extract_dsm', 'dsm_smooth_subset'))
-        solar_zenith_target = CONFIG.get('work', 'solar_zenith_target')
-        solar_azimuth_target = CONFIG.get('work', 'solar_azimuth_target')
+        smoothed_dsm_fname = pjoin(out_path,
+                                   CONFIG.get('extract_dsm',
+                                              'dsm_smooth_subset'))
+        solar_zenith_target = pjoin(out_path,
+                                    CONFIG.get('work', 'solar_zenith_target'))
+        solar_azimuth_target = pjoin(out_path,
+                                     CONFIG.get('work',
+                                                'solar_azimuth_target'))
         buffer = int(CONFIG.get('extract_dsm', 'dsm_buffer_width'))
         window_height = int(CONFIG.get('terrain_correction',
                                        'shadow_sub_matrix_height'))
@@ -1258,7 +1264,7 @@ class CalculateCastShadowSun(luigi.Task):
                                       'shadow_sub_matrix_width'))
 
         # Output targets
-        sun_target = pjoin(work_path,
+        sun_target = pjoin(out_path,
                            CONFIG.get('cast_shadow', 'sun_direction_target'))
 
         gaip.calculate_cast_shadow(acqs[0], smoothed_dsm_fname, buffer,
@@ -1275,29 +1281,34 @@ class CalculateCastShadowSatellite(luigi.Task):
     """
 
     l1t_path = luigi.Parameter()
+    out_path = luigi.Parameter()
 
     def requires(self):
-        return [CalculateSatelliteAndSolarGrids(self.l1t_path),
-                DEMExctraction(self.l1t_path)]
+        return [CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path),
+                DEMExctraction(self.l1t_path, self.out_path)]
 
     def output(self):
-        work_path = CONFIG.get('work', 'tc_intermediates')
-        satellite_target = pjoin(work_path,
-                                 CONFIG.get('cast_shadow', 'satellite_direction_target'))
-
+        out_path = self.out_path.value()
+        satellite_target = pjoin(out_path,
+                                 CONFIG.get('cast_shadow',
+                                            'satellite_direction_target'))
         target = luigi.LocalTarget(satellite_target)
 
         return target
 
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
-        work_path = CONFIG.get('work', 'tc_intermediates')
+        out_path = self.out_path.value()
 
         # Input targets
-        smoothed_dsm_fname = pjoin(work_path,
-                                   CONFIG.get('extract_dsm', 'dsm_smooth_subset'))
-        satellite_view_target = CONFIG.get('work', 'sat_view_target')
-        satellite_azimuth_target = CONFIG.get('work', 'sat_azimuth_target')
+        smoothed_dsm_fname = pjoin(out_path,
+                                   CONFIG.get('extract_dsm',
+                                              'dsm_smooth_subset'))
+        satellite_view_target = pjoin(out_path,
+                                      CONFIG.get('work', 'sat_view_target'))
+        satellite_azimuth_target = pjoin(out_path,
+                                         CONFIG.get('work',
+                                                    'sat_azimuth_target'))
         buffer = int(CONFIG.get('extract_dsm', 'dsm_buffer_width'))
         window_height = int(CONFIG.get('terrain_correction',
                                        'shadow_sub_matrix_height'))
@@ -1305,8 +1316,9 @@ class CalculateCastShadowSatellite(luigi.Task):
                                       'shadow_sub_matrix_width'))
 
         # Output targets
-        satellite_target = pjoin(work_path,
-                                 CONFIG.get('cast_shadow', 'satellite_direction_target'))
+        satellite_target = pjoin(out_path,
+                                 CONFIG.get('cast_shadow',
+                                            'satellite_direction_target'))
 
         gaip.calculate_cast_shadow(acqs[0], smoothed_dsm_fname, buffer,
                                    window_height, window_width,
@@ -1319,13 +1331,14 @@ class TerrainCorrection(luigi.Task):
     """Perform the terrain correction."""
 
     l1t_path = luigi.Parameter()
+    out_path = luigi.Parameter()
 
     def requires(self):
-        return [BilinearInterpolation(self.l1t_path),
-                DEMExctraction(self.l1t_path),
-                SlopeAndSelfShadow(self.l1t_path),
-                CalculateCastShadow(self.l1t_path),
-                CreateModisBrdfFiles(self.l1t_path)]
+        return [BilinearInterpolation(self.l1t_path, self.out_path),
+                DEMExctraction(self.l1t_path, self.out_path),
+                SlopeAndSelfShadow(self.l1t_path, self.out_path),
+                CalculateCastShadow(self.l1t_path, self.out_path),
+                CreateModisBrdfFiles(self.l1t_path, self.out_path)]
 
     def output(self):
         acqs = gaip.acquisitions(self.l1t_path)
@@ -1343,30 +1356,32 @@ class TerrainCorrection(luigi.Task):
         output_format = CONFIG.get('terrain_correction', 'output_format')
 
         # Output directory
-        outdir = CONFIG.get('work', 'rfl_output_dir')
+        out_path = self.out_path.value()
 
         # Create the targets
         targets = []
         for level in rfl_levels:
             for band in bands_to_process:
-                target = pjoin(outdir,
+                target = pjoin(out_path,
                                output_format.format(level=level, band=band))
                 targets.append(luigi.LocalTarget(target))
         return targets
 
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
+        out_path = self.out_path.value()
 
         # Get the necessary config params
-        tc_path = CONFIG.get('work', 'tc_intermediates')
-        work_path = CONFIG.get('work', 'path')
-        outdir = CONFIG.get('work', 'rfl_output_dir')
-        bilinear_target = load_value(CONFIG.get('work', 'bilinear_outputs_target'))
+        tc_path = pjoin(out_path, CONFIG.get('work', 'tc_intermediates'))
+        outdir = pjoin(out_path, CONFIG.get('work', 'rfl_output_dir'))
+        bilinear_target = pjoin(CONFIG.get('work', 'bilinear_outputs_target')))
+        bilinear_target = load_value(bilinear_target)
         rori = float(CONFIG.get('terrain_correction', 'rori'))
-        modis_brdf_format = pjoin(work_path,
-            CONFIG.get('brdf', 'modis_brdf_format'))
+        modis_brdf_format = pjoin(out_path,
+                                  CONFIG.get('brdf', 'modis_brdf_format'))
         new_modis_brdf_format = pjoin(tc_path,
-            CONFIG.get('brdf', 'new_modis_brdf_format'))
+                                      CONFIG.get('brdf',
+                                                 'new_modis_brdf_format'))
 
         # Get the reflectance levels and base output format
         rfl_levels = CONFIG.get('terrain_correction', 'rfl_levels').split(',')
@@ -1374,7 +1389,8 @@ class TerrainCorrection(luigi.Task):
 
         # Input targets (images)
         self_shadow_target = pjoin(tc_path,
-                                   CONFIG.get('self_shadow', 'self_shadow_target'))
+                                   CONFIG.get('self_shadow',
+                                              'self_shadow_target'))
         slope_target = pjoin(tc_path,
                              CONFIG.get('self_shadow', 'slope_target'))
         aspect_target = pjoin(tc_path,
@@ -1384,15 +1400,23 @@ class TerrainCorrection(luigi.Task):
         exiting_target = pjoin(tc_path,
                                CONFIG.get('self_shadow', 'exiting_target'))
         relative_slope_target = pjoin(tc_path,
-                                      CONFIG.get('self_shadow', 'relative_slope_target'))
+                                      CONFIG.get('self_shadow',
+                                                 'relative_slope_target'))
         sun_target = pjoin(tc_path,
                            CONFIG.get('cast_shadow', 'sun_direction_target'))
         satellite_target = pjoin(tc_path,
-                                 CONFIG.get('cast_shadow', 'satellite_direction_target'))
-        solar_zenith_target = CONFIG.get('work', 'solar_zenith_target')
-        solar_azimuth_target = CONFIG.get('work', 'solar_azimuth_target')
-        satellite_view_target = CONFIG.get('work', 'sat_view_target')
-        relative_angle_target = CONFIG.get('work', 'relative_azimuth_target')
+                                 CONFIG.get('cast_shadow',
+                                            'satellite_direction_target'))
+        solar_zenith_target = pjoin(out_path,
+                                    CONFIG.get('work', 'solar_zenith_target'))
+        solar_azimuth_target = pjoin(out_path,
+                                     CONFIG.get('work',
+                                                'solar_azimuth_target'))
+        satellite_view_target = pjoin(out_path,
+                                      CONFIG.get('work', 'sat_view_target'))
+        relative_angle_target = pjoin(out_path,
+                                      CONFIG.get('work',
+                                                 'relative_azimuth_target'))
 
         # Retrieve the satellite and sensor for the acquisition
         satellite = acqs[0].spacecraft_id
@@ -1414,8 +1438,8 @@ class TerrainCorrection(luigi.Task):
         rfl_lvl_fnames = {}
         for level in rfl_levels:
             for band in bands_to_process:
-                rfl_lvl_fnames[(band, level)] = pjoin(outdir,
-                                                      output_format.format(level=level, band=band))
+                outfname = output_format.format(level=level, band=band)
+                rfl_lvl_fnames[(band, level)] = pjoin(outdir, outfname)
 
         gaip.run_tc(acqs_to_process, bilinear_target, rori,
                     self_shadow_target, sun_target, satellite_target,
