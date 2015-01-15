@@ -1,5 +1,5 @@
 Invoking the Geoscience Australia Image Processor
-============================
+=================================================
 
 The Geoscience Australia Image Processor is invoked as ...TODO 
 
