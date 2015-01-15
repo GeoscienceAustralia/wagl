@@ -8,7 +8,9 @@ Pixel Quality
 
 Purpose
 -------
-A pixel quality program (run_pq.py) takes Landsat L1T and NBAR scene pairs and produces a Pixel Quality scene mask as output. 
+A pixel quality program (pq.py_) takes Landsat L1T and NBAR scene pairs and produces a Pixel Quality scene mask as output. 
+
+.. _fq.py: https://github.com/GeoscienceAustralia/ga-neo-landsat-processor/blob/master/workflow/pq.py
 
 This document describes how to run the Pixel Quality job via PBS script to process production data. 
 
