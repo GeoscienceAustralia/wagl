@@ -1,4 +1,4 @@
-SUBROUTINE shade_main_landsat_pixel( &
+SUBROUTINE cast_shadow_main( &
     dem_data, solar_data, sazi_data, &
     dresx, dresy, spheroid, alat1, alon1, &
     Aoff_x1, Aoff_x2, Aoff_y1, Aoff_y2, &
@@ -558,4 +558,4 @@ SUBROUTINE shade_main_landsat_pixel( &
 !write(*,*)"kkx = ",kkx
 
 !write(*,*)"end of shade_main_landsat_pixel"
-END SUBROUTINE shade_main_landsat_pixel
+END SUBROUTINE cast_shadow_main
