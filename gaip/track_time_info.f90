@@ -2,7 +2,7 @@
 subroutine set_times(ymin,ymax,ntpoints,spheroid,orb_elements, &
              smodel,track,istat)
 
-!   Calculate satellite track info
+!   Calculate satellite track times and other info
 
 !   Re-written an indepentent subroutine by JS, Aug 2014
 
