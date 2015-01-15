@@ -1,4 +1,5 @@
 real function RL_brdf (solar,view,ra,hb,br,brdf0,brdf1,brdf2)
+!   calculate the normalised BRDF shape function
     real pi
     real solar, view, ra, hb, br
     real brdf0,brdf1,brdf2
