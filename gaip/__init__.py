@@ -23,18 +23,18 @@ from fmask_cloud_masking_wrapper import FMaskCloudMask
 from cloud_shadow_masking import Cloud_Shadow
 
 try:
-    from set_satmod import set_satmod # F2Py
-    from set_times import set_times # F2Py
-    from angle_all import angle # F2Py
-    from _shade_main_landsat_pixel import shade_main_landsat_pixel # F2Py
-    from _slope_pixelsize_newpole import slope_pixelsize_newpole # F2Py
-    from _brdf_terrain_newdiff_all import terrain_correction # F2Py
+    from _satellite_model import set_satmod # F2Py
+    from _track_time_info import set_times # F2Py
+    from _sat_sol_angles import angle # F2Py
+    from _cast_shadow_mask import cast_shadow_main # F2Py
+    from _slope_self_shadow import slope_self_shadow # F2Py
+    from _surface_reflectance import reflectance # F2Py
     from calculate_angles import *
     from tc import *
     from dsm import get_dsm
     from self_shadow import calculate_self_shadow
     from cast_shadow import calculate_cast_shadow
-    from run_tc import run_tc
+    from calculate_reflectance import calculate_reflectance
 except ImportError:
     msg = ('Run Makefile to build the Fortran modules.\n'
            'Some functionality in library is disabled')
