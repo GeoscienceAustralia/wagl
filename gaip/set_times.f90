@@ -2,7 +2,7 @@
 subroutine set_times(ymin,ymax,ntpoints,spheroid,orb_elements, &
              smodel,track,istat)
 
-!   Calculate times for satellite track?? Fuqin needs to document this
+!   Calculate satellite track info
 
 !   Re-written an indepentent subroutine by JS, Aug 2014
 
