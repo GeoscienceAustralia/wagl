@@ -8,19 +8,22 @@ from gaip import as_array
 from gaip import constants
 from gaip import load_2D_bin_file
 from gaip import read_img
-from gaip import terrain_correction
+from gaip import reflectance
 from gaip import write_img
 from gaip import write_new_brdf_file
 
 
-def run_tc(acquisitions, bilinear_ortho_filenames, rori, self_shadow_fname,
-           cast_shadow_sun_fname, cast_shadow_satellite_fname,
-           solar_zenith_fname, solar_azimuth_fname, satellite_view_fname,
-           relative_angle_fname, slope_fname, aspect_fname,
-           incident_angle_fname, exiting_angle_fname, relative_slope_fname,
-           reflectance_filenames, brdf_fname_format, new_brdf_fname_format):
+def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
+                          self_shadow_fname, cast_shadow_sun_fname,
+                          cast_shadow_satellite_fname, solar_zenith_fname,
+                          solar_azimuth_fname, satellite_view_fname,
+                          relative_angle_fname, slope_fname, aspect_fname,
+                          incident_angle_fname, exiting_angle_fname,
+                          relative_slope_fname, reflectance_filenames,
+                          brdf_fname_format, new_brdf_fname_format):
     """
-    The terrain correction workflow.
+    The workflow used to calculate lambertian, BRDF corrected and
+    terrain corrected surface reflectance.
 
     :param acquisitions:
         A list of acquisition class objects that will be run through
@@ -245,17 +248,15 @@ def run_tc(acquisitions, bilinear_ortho_filenames, rori, self_shadow_fname,
 
         # Run terrain correction
         # We use transposed arrays; rows become cols and cols become rows
-        terrain_correction(cols, rows, rori, brdf0, brdf1, brdf2,
-                           bias, slope_ca, esun, dd,
-                           avg_reflectance_values[band_number],
-                           band_data, self_shadow, cast_shadow_sun,
-                           cast_shadow_satellite, solar_zenith, solar_azimuth,
-                           satellite_view, relative_angle, slope, aspect,
-                           incident_angle, exiting_angle, relative_slope,
-                           a_mod, b_mod, s_mod, fv, fs, ts, edir_h, edif_h,
-                           band_work, ref_lm_work, ref_brdf_work,
-                           ref_terrain_work, ref_lm.transpose(),
-                           ref_brdf.transpose(), ref_terrain.transpose())
+        reflectance(cols, rows, rori, brdf0, brdf1, brdf2, bias, slope_ca,
+                    esun, dd, avg_reflectance_values[band_number], band_data,
+                    self_shadow, cast_shadow_sun, cast_shadow_satellite,
+                    solar_zenith, solar_azimuth, satellite_view,
+                    relative_angle, slope, aspect, incident_angle,
+                    exiting_angle, relative_slope, a_mod, b_mod, s_mod, fv, fs,
+                    ts, edir_h, edif_h, band_work, ref_lm_work, ref_brdf_work,
+                    ref_terrain_work, ref_lm.transpose(), ref_brdf.transpose(),
+                    ref_terrain.transpose())
 
         # Filenames for lambertian, brdf & terrain corrected reflectance
         lmbrt_fname = reflectance_filenames[(band_number,
