@@ -6,7 +6,10 @@ gaip:
 bin:
 	$(MAKE) --directory=src install
 
-docs:
+gen-doc:
+	docs/build-sphinx.sh
+
+docs: gen-doc
 	$(MAKE) --directory=docs html
 
 clean:

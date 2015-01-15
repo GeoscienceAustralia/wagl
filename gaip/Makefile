@@ -1,22 +1,20 @@
-all: gaip bin
+FC := gfortran
+F2PY:= f2py
 
-gaip:
-	$(MAKE) --directory=gaip
+all: _cast_shadow_mask.so _slope_self_shadow.so _surface_reflectance.so sys_variables.o sys_variables.mod _sat_sol_angles.so _satellite_model.so _track_time_info.so unmiximage.pyf unmiximage.so
 
-bin:
-	$(MAKE) --directory=src install
+_cast_shadow_mask.so _slope_self_shadow.so _surface_reflectance.so sys_variables.o sys_variables.mod _sat_sol_angles.so _satellite_model.so _track_time_info.so:
+	$$(module load gcc/4.9.0)
+	$(FC) -c sys_variables.f90
+	python setup.py build_ext -i
 
-gen-doc:
-	docs/build-sphinx.sh
-
-docs: gen-doc
-	$(MAKE) --directory=docs html
+unmiximage.pyf unmiximage.so:
+	$(F2PY) -h unmiximage.pyf -m unmiximage unmiximage.f90
+	$(F2PY) -c -m unmiximage unmiximage.pyf constants_NSWC.f90 nnls.f90 unmiximage.f90
 
 clean:
-	$(MAKE) --directory=src clean
-	$(MAKE) --directory=gaip clean
-	$(MAKE) --directory=docs clean
-	-rm -f ./bin/*
-	-find . -name "*.pyc" -delete
+	 -rm *.so
+	-rm *.o
+	-rm *.mod
+	-rm *.pyf
 
-.PHONY: all clean gaip bin docs
