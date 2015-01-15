@@ -1,7 +1,7 @@
 """
+A group of functions associated with:
 Terrain Correction
 ------------------
-
 """
 import os
 import sys
@@ -150,11 +150,11 @@ def run_slope(acquisition, DEM, solar_zenith, satellite_view, solar_azimuth,
         satellite_azimuth, margin, is_utm, spheroid):
     """
     Calculate the slope and angles for a region. This code is an
-    interface to the fortran code slope_pixel_newpole.f90 written by
+    interface to the fortran code slope_self_shadow.f90 written by
     Fuqin (which was modified to work with F2py).
 
     The following was taken from the top of the Fotran program:
-    "slope_pixelsize_newpole.f90:
+    "slope_self_shadow.f90":
     This program is used to calculate slope and aspect angles
     using Sobel filter and then calculate incident and
     exiting angles as well as their azimuth angles.
@@ -270,13 +270,10 @@ def run_slope(acquisition, DEM, solar_zenith, satellite_view, solar_azimuth,
                        dtype=numpy.float64)  # yes, I did mean float64.
 
     (mask, theta, phit, it, et, azi_it,
-     azi_et, rela, ierr) = slope_self_shadow(
-        dresx, dresy, spheroid, alat, is_utm,
-        dem_dat,
-        solar_zenith,
-        satellite_view,
-        solar_azimuth,
-        satellite_azimuth)
+     azi_et, rela, ierr) = slope_self_shadow(dresx, dresy, spheroid, alat,
+                                             is_utm, dem_dat, solar_zenith,
+                                             satellite_view, solar_azimuth,
+                                             satellite_azimuth)
 
     if ierr:
         raise SlopeError(ierr)
@@ -296,7 +293,7 @@ class CastShadowError(FortranError):
     """
 
     def __init__(self, code):
-        super(CastShadowError, self).__init__("shade_main_landsat_pixel",
+        super(CastShadowError, self).__init__("cast_shadow_main",
                                               code,
                                               CastShadowError.get_error_message(code))
 
@@ -403,11 +400,11 @@ def run_castshadow(acquisition, DEM, zenith_angle, azimuth_angle, margin,
                    block_height, block_width, spheroid):
     """
     This code is an interface to the fortran code
-    shade_main_landsat_pixel.f90 written by Fuqin (and modified to
+    cast_shadow_main.f90 written by Fuqin (and modified to
     work with F2py).
 
     The following was taken from the top of the Fotran program:
-    "shade_main_landsat_pixel.f90":
+    "cast_shadow_main.f90":
 
     Creates a shadow mask for a standard Landsat scene
     the program was originally written by DLB Jupp in Oct. 2010
@@ -510,11 +507,11 @@ def run_castshadow(acquisition, DEM, zenith_angle, azimuth_angle, margin,
         msg = msg.format(dtype=azimuth_angle.dtype.name)
         raise TypeError(msg)
 
-    ierr, mask = cast_shadow_main(DEM, zenith_angle, azimuth_angle,
-                                          x_res, y_res, spheroid, y_origin,
-                                          x_origin, margin.left, margin.right,
-                                          margin.top, margin.bottom,
-                                          block_height, block_width, is_utm)
+    ierr, mask = cast_shadow_main(DEM, zenith_angle, azimuth_angle, x_res,
+                                  y_res, spheroid, y_origin, x_origin,
+                                  margin.left, margin.right, margin.top,
+                                  margin.bottom, block_height, block_width,
+                                  is_utm)
 
     if ierr:
         raise CastShadowError(ierr)
