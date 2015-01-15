@@ -13,7 +13,7 @@ unmiximage.pyf unmiximage.so:
 	$(F2PY) -c -m unmiximage unmiximage.pyf constants_NSWC.f90 nnls.f90 unmiximage.f90
 
 clean:
-	 -rm *.so
+	-rm *.so
 	-rm *.o
 	-rm *.mod
 	-rm *.pyf
