@@ -31,5 +31,9 @@ setup(name='gaip',
                              'geod2geo.f90',
                              'q_cal.f90',
                              'cal_angles.f90',
-                             'angle_all.f90'])
+                             'angle_all.f90']),
+          Extension(name='unmiximage',
+                    sources=['constants_NSWC.f90',
+                             'nnls.f90',
+                             'unmiximage.f90'])
       ])
