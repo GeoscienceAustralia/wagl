@@ -1441,13 +1441,15 @@ class TerrainCorrection(luigi.Task):
                 outfname = output_format.format(level=level, band=band)
                 rfl_lvl_fnames[(band, level)] = pjoin(outdir, outfname)
 
-        gaip.run_tc(acqs_to_process, bilinear_target, rori,
-                    self_shadow_target, sun_target, satellite_target,
-                    solar_zenith_target, solar_azimuth_target,
-                    satellite_view_target, relative_angle_target,
-                    slope_target, aspect_target, incident_target,
-                    exiting_target, relative_slope_target, rfl_lvl_fnames,
-                    modis_brdf_format, new_modis_brdf_format)
+        gaip.calculate_reflectance(acqs_to_process, bilinear_target, rori,
+                                   self_shadow_target, sun_target,
+                                   satellite_target, solar_zenith_target,
+                                   solar_azimuth_target, satellite_view_target,
+                                   relative_angle_target, slope_target,
+                                   aspect_target, incident_target,
+                                   exiting_target, relative_slope_target,
+                                   rfl_lvl_fnames, modis_brdf_format,
+                                   new_modis_brdf_format)
 
 
 if __name__ == '__main__':  # FIXME
