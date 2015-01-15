@@ -50,6 +50,7 @@ class Acquisition(object):
         else:
             return self.band_name.replace('band', '')
 
+
     def data(self, out=None):
         """
         Return `numpy.array` of the data for this acquisition.
@@ -71,6 +72,13 @@ class Acquisition(object):
     def gridded_geo_box(self):
         """Return the `GriddedGeoBox` for this acquisition."""
         return gaip.gridded_geo_box(self)
+
+    @property
+    def no_data(self):
+        """
+        Return the no_data value for this acquisition.
+        """
+        return gaip.no_data(self)
 
 
 class LandsatAcquisition(Acquisition):
@@ -418,17 +426,47 @@ def acquisitions_via_geotiff(path):
     if isdir(path):
         p = re.compile(name_pattern)
         for tif_path in find_all_in(path, 'tif'):
+    
+            new = {}
+ 
             dir_name, file_name = os.path.split(tif_path)
             match_obj = p.match(file_name)
             if match_obj is not None:
                 md = match_obj.groupdict()
+                new['FILENAME_FIELDS'] = md
 
-                # map spacecraft_id for consistency with SENSOR keys
-                md['spacecraft_id'] = 'Landsat' + md['spacecraft_id'][-1:]
+                # find the spacecraft based on the tag
+                tag = md['spacecraft_id']
+                for k, v in SENSORS.iteritems():
+                    if v['tag'] == tag:
+                        md['spacecraft_id'] = k
+                        break
 
+                # get spacecraft info from SENSORS
+               
+                spacecraft = md['spacecraft_id']
+                new['SPACECRAFT'] = {}
+                db = SENSORS[spacecraft]
+                for k, v in db.iteritems():
+                    if k is not 'sensors':
+                        try:
+                            new['SPACECRAFT'][k.encode('ascii')] = v.encode('ascii')
+                        except AttributeError:
+                            new['SPACECRAFT'][k.encode('ascii')] = v
+
+            
                 # map sensor_id for consistency with SENSOR keys
                 if md['sensor_id'] == 'ETM':
                     md['sensor_id'] = 'ETM+'
+
+                # get sensor info from SENSORS
+
+                new['SENSOR_INFO'] = {}
+                sensor =  md['sensor_id']
+                db = db['sensors'][sensor]
+                for k, v in db.iteritems():
+                    if k is not 'bands':
+                        new['SENSOR_INFO'][k.encode('ascii')] = v
  
                 # normalise the band number
 
@@ -437,11 +475,16 @@ def acquisitions_via_geotiff(path):
                     bn = bn / 10
                 md['band_num'] = bn
 
-                # derive band type
+                # get band info from SENSORS
 
-                type_desc = SENSORS[md['spacecraft_id']]['sensors'][md['sensor_id']] \
-                    ['bands'][str(bn)]['type_desc']
-                md['band_type'] = BAND_TYPE[type_desc]
+
+                bandname = str(bn)
+                new['BAND_INFO'] = {}
+                db = db['bands'][bandname]
+                for k, v in db.iteritems():
+                    new['BAND_INFO'][k.encode('ascii')] = v
+                band_type = db['type_desc']
+                new['BAND_INFO']['band_type'] = BAND_TYPE[band_type]
 
                 # convert acquisition_date to a datetime
 
@@ -459,8 +502,14 @@ def acquisitions_via_geotiff(path):
                 md['dir_name'] = dir_name
                 md['file_name'] = file_name
 
+                try:
+                    acqtype = ACQUISITION_TYPE[spacecraft + '_' + sensor]
+                except KeyError:
+                    acqtype = LandsatAcquisition
+
+
                 # create the Acquisition
-                acqs.append(LandsatAcquisition({'md':md}))
+                acqs.append(acqtype(new))
 
     return sorted(acqs)
 
