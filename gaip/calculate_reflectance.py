@@ -6,7 +6,7 @@ import numpy
 
 from gaip import as_array
 from gaip import constants
-from gaip import load_2D_bin_file
+from gaip import load_2d_bin_file
 from gaip import read_img
 from gaip import reflectance
 from gaip import write_img
@@ -229,21 +229,21 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
         ref_terrain_work = numpy.zeros(cols, dtype='float32')
 
         # Read the bilinear ortho files for the current band
-        a_mod = load_2D_bin_file(boo_fnames[(band_number, 'a')], rows, cols,
+        a_mod = load_2d_bin_file(boo_fnames[(band_number, 'a')], rows, cols,
                                  dtype=bilinear_dtype, transpose=True)
-        b_mod = load_2D_bin_file(boo_fnames[(band_number, 'b')], rows, cols,
+        b_mod = load_2d_bin_file(boo_fnames[(band_number, 'b')], rows, cols,
                                  dtype=bilinear_dtype, transpose=True)
-        s_mod = load_2D_bin_file(boo_fnames[(band_number, 's')], rows, cols,
+        s_mod = load_2d_bin_file(boo_fnames[(band_number, 's')], rows, cols,
                                  dtype=bilinear_dtype, transpose=True)
-        fv = load_2D_bin_file(boo_fnames[(band_number, 'fs')], rows, cols,
+        fv = load_2d_bin_file(boo_fnames[(band_number, 'fs')], rows, cols,
                               dtype=bilinear_dtype, transpose=True)
-        fs = load_2D_bin_file(boo_fnames[(band_number, 'fv')], rows, cols,
+        fs = load_2d_bin_file(boo_fnames[(band_number, 'fv')], rows, cols,
                               dtype=bilinear_dtype, transpose=True)
-        ts = load_2D_bin_file(boo_fnames[(band_number, 'ts')], rows, cols,
+        ts = load_2d_bin_file(boo_fnames[(band_number, 'ts')], rows, cols,
                               dtype=bilinear_dtype, transpose=True)
-        edir_h = load_2D_bin_file(boo_fnames[(band_number, 'dir')], rows, cols,
+        edir_h = load_2d_bin_file(boo_fnames[(band_number, 'dir')], rows, cols,
                                   dtype=bilinear_dtype, transpose=True)
-        edif_h = load_2D_bin_file(boo_fnames[(band_number, 'dif')], rows, cols,
+        edif_h = load_2d_bin_file(boo_fnames[(band_number, 'dif')], rows, cols,
                                   dtype=bilinear_dtype, transpose=True)
 
         # Run terrain correction
