@@ -16,11 +16,11 @@ from margins import *
 from constants import PQAConstants
 from pqa_result import PQAResult
 from saturation_masking import setSaturationBits
-from contiguity_masking import setContiguityBit
+from contiguity_masking import set_contiguity_bit
 from thermal_conversion import get_landsat_temperature
 from acca_cloud_masking import calc_acca_cloud_mask
-from fmask_cloud_masking_wrapper import FMaskCloudMask
-from cloud_shadow_masking import Cloud_Shadow
+from fmask_cloud_masking_wrapper import fmask_cloud_mask
+from cloud_shadow_masking import cloud_shadow
 
 try:
     from _satellite_model import set_satmod # F2Py
