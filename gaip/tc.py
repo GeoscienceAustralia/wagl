@@ -7,8 +7,8 @@ import os
 import sys
 import numpy
 from scipy import ndimage
-from gaip import shade_main_landsat_pixel
-from gaip import slope_pixelsize_newpole
+from gaip import cast_shadow_main
+from gaip import slope_self_shadow
 from gaip import write_img
 
 
@@ -270,7 +270,7 @@ def run_slope(acquisition, DEM, solar_zenith, satellite_view, solar_azimuth,
                        dtype=numpy.float64)  # yes, I did mean float64.
 
     (mask, theta, phit, it, et, azi_it,
-     azi_et, rela, ierr) = slope_pixelsize_newpole(
+     azi_et, rela, ierr) = slope_self_shadow(
         dresx, dresy, spheroid, alat, is_utm,
         dem_dat,
         solar_zenith,
@@ -510,7 +510,7 @@ def run_castshadow(acquisition, DEM, zenith_angle, azimuth_angle, margin,
         msg = msg.format(dtype=azimuth_angle.dtype.name)
         raise TypeError(msg)
 
-    ierr, mask = shade_main_landsat_pixel(DEM, zenith_angle, azimuth_angle,
+    ierr, mask = cast_shadow_main(DEM, zenith_angle, azimuth_angle,
                                           x_res, y_res, spheroid, y_origin,
                                           x_origin, margin.left, margin.right,
                                           margin.top, margin.bottom,
