@@ -15,3 +15,5 @@ clean:
 	$(MAKE) --directory=docs clean
 	-rm -f ./bin/*
 	-find . -name "*.pyc" -delete
+
+.PHONY: all clean gaip bin docs
