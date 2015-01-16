@@ -11,6 +11,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   release_notes
    invoking
    dependencies
    directories
