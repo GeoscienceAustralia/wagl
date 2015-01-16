@@ -1236,7 +1236,8 @@ class CalculateCastShadowSun(luigi.Task):
                 DEMExctraction(self.l1t_path, self.out_path)]
 
     def output(self):
-        out_path = self.out_path
+        out_path = pjoin(self.out_path,
+                         CONFIG.get('work', 'tc_intermediates'))
         sun_target = pjoin(out_path,
                            CONFIG.get('cast_shadow', 'sun_direction_target'))
 
@@ -1247,9 +1248,10 @@ class CalculateCastShadowSun(luigi.Task):
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
         out_path = self.out_path
+        tc_work_path = pjoin(out_path, CONFIG.get('work', 'tc_intermediates'))
 
         # Input targets
-        smoothed_dsm_fname = pjoin(out_path,
+        smoothed_dsm_fname = pjoin(tc_work_path,
                                    CONFIG.get('extract_dsm',
                                               'dsm_smooth_subset'))
         solar_zenith_target = pjoin(out_path,
@@ -1264,7 +1266,7 @@ class CalculateCastShadowSun(luigi.Task):
                                       'shadow_sub_matrix_width'))
 
         # Output targets
-        sun_target = pjoin(out_path,
+        sun_target = pjoin(tc_work_path,
                            CONFIG.get('cast_shadow', 'sun_direction_target'))
 
         gaip.calculate_cast_shadow(acqs[0], smoothed_dsm_fname, buffer,
@@ -1288,7 +1290,8 @@ class CalculateCastShadowSatellite(luigi.Task):
                 DEMExctraction(self.l1t_path, self.out_path)]
 
     def output(self):
-        out_path = self.out_path
+        out_path = pjoin(self.out_path,
+                         CONFIG.get('work', 'tc_intermediates'))
         satellite_target = pjoin(out_path,
                                  CONFIG.get('cast_shadow',
                                             'satellite_direction_target'))
@@ -1299,9 +1302,10 @@ class CalculateCastShadowSatellite(luigi.Task):
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
         out_path = self.out_path
+        tc_work_path = pjoin(out_path, CONFIG.get('work', 'tc_intermediates'))
 
         # Input targets
-        smoothed_dsm_fname = pjoin(out_path,
+        smoothed_dsm_fname = pjoin(tc_work_path,
                                    CONFIG.get('extract_dsm',
                                               'dsm_smooth_subset'))
         satellite_view_target = pjoin(out_path,
@@ -1356,7 +1360,8 @@ class TerrainCorrection(luigi.Task):
         output_format = CONFIG.get('terrain_correction', 'output_format')
 
         # Output directory
-        out_path = self.out_path
+        out_path = pjoin(self.out_path,
+                         CONFIG.get('work', 'rfl_output_dir'))
 
         # Create the targets
         targets = []
