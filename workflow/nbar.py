@@ -202,11 +202,11 @@ class GetBrdfAncillaryData(luigi.Task):
 
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
+        out_path = self.out_path
         brdf_path = CONFIG.get('ancillary', 'brdf_path')
         brdf_premodis_path = CONFIG.get('ancillary', 'brdf_premodis_path')
-        work_path = CONFIG.get('work', 'path')
         value = gaip.get_brdf_data(acqs[0], brdf_path, brdf_premodis_path,
-                                   work_path)
+                                   out_path)
         save(self.output(), value)
 
 
@@ -477,11 +477,11 @@ class CreateModisBrdfFiles(luigi.Task):
         outdir = self.out_path
         modis_brdf_format = pjoin(outdir,
             CONFIG.get('brdf', 'modis_brdf_format'))
-        brdf_target = CONFIG.get('work', 'brdf_target')
+        brdf_target = pjoin(outdir, CONFIG.get('work', 'brdf_target'))
         brdf_data = load_value(brdf_target)
-        irrad_target = CONFIG.get('work', 'irrad_target')
+        irrad_target = pjoin(outdir, CONFIG.get('work', 'irrad_target'))
         solar_irrad_data = load_value(irrad_target)
-        solar_dist_target = CONFIG.get('work', 'sundist_target')
+        solar_dist_target = pjoin(outdir, CONFIG.get('work', 'sundist_target'))
         solar_dist_data = load_value(solar_dist_target)
         gaip.write_modis_brdf_files(acqs, modis_brdf_format, brdf_data,
                                     solar_irrad_data, solar_dist_data)
@@ -799,7 +799,7 @@ class ExtractFlux(luigi.Task):
         input_format = pjoin(modtran_root, input_format)
         output_format = CONFIG.get('extract_flux', 'output_format')
         output_format = pjoin(modtran_root, output_format)
-        satfilter = CONFIG.get('work', 'sat_filter_target')
+        satfilter = pjoin(out_path, CONFIG.get('work', 'sat_filter_target'))
 
         gaip.extract_flux(coords, albedos, input_format, output_format,
                           satfilter)
@@ -836,7 +836,7 @@ class ExtractFluxTrans(luigi.Task):
         input_format = pjoin(modtran_root, input_format)
         output_format = CONFIG.get('extract_flux_trans', 'output_format')
         output_format = pjoin(modtran_root, output_format)
-        satfilter = CONFIG.get('work', 'sat_filter_target')
+        satfilter = pjoin(out_path, CONFIG.get('work', 'sat_filter_target'))
 
         gaip.extract_flux_trans(coords, input_format, output_format,
                                 satfilter)
@@ -928,7 +928,7 @@ class ReformatAtmosphericParameters(luigi.Task):
         input_format = pjoin(workpath, input_format)
         output_format = CONFIG.get('read_modtran', 'output_format')
         output_format = pjoin(workpath, output_format)
-        satfilter = CONFIG.get('work', 'sat_filter_target')
+        satfilter = pjoin(out_path, CONFIG.get('work', 'sat_filter_target'))
 
         acqs = gaip.acquisitions(self.l1t_path)
 
