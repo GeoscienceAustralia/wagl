@@ -161,7 +161,7 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
 
     # Get the average reflectance values per band
     nbar_constants = constants.NBARConstants(satellite, sensor)
-    avg_reflectance_values = nbar_constants.getAvgReflut()
+    avg_reflectance_values = nbar_constants.get_avg_ref_lut()
 
     # Read all required arrays into memory
     # Convert to the appropriate datatype and transpose the array to convert

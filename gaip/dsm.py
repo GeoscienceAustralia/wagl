@@ -51,8 +51,8 @@ def get_dsm(acquisition, national_dsm, margins, fname_subset, fname_smoothed):
     pixel_buf = ImageMargins(margins)
 
     # Get the dimensions and geobox of the new image
-    dem_cols = geobox.getShapeXY()[0] + pixel_buf.left + pixel_buf.right
-    dem_rows = geobox.getShapeXY()[1] + pixel_buf.top + pixel_buf.bottom
+    dem_cols = geobox.get_shape_xy()[0] + pixel_buf.left + pixel_buf.right
+    dem_rows = geobox.get_shape_xy()[1] + pixel_buf.top + pixel_buf.bottom
     dem_shape = (dem_rows, dem_cols)
     dem_origin = geobox.convert_coordinates((0 - pixel_buf.left,
                                              0 - pixel_buf.top))
