@@ -26,7 +26,7 @@ class TestLandSea(unittest.TestCase):
         self.assertEqual(total_pixels, 85370481)
         print "land=%f%%, sea=%f%%" % (land_pct, sea_pct)
 
-#        gaip.write_img(mask.astype('uint8'), "./test.tif", format="GTiff", geobox=geo_box)
+#        gaip.write_img(mask.astype('uint8'), "./test.tif", fmt="GTiff", geobox=geo_box)
  
     def no_test_l1t_scene(self):
         p = '/g/data1/v10/projects/Luigi_work_flow_test/L1T/LS8_OLITIRS_OTH_P51_GALPGS01-002_115_075_20141014/scene01/LC81150752014287ASA00_B1.TIF'

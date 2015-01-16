@@ -598,14 +598,25 @@ def acca(reflectance_stack, thermal_array, potential_cloud_array, pq_const,
         return numpy.zeros((dims[1], dims[2]), dtype='uint8')
 
 
-def majority_filter(cloud, iterations=1):
+def majority_filter(array, iterations=1):
     """
-    Majority filter.
+    Applies a majority filter to the input array.
+
+    :param array:
+        A 2D np array on which to perform majority filtering.
+
+    :param iterations:
+        The number of iterations to apply against the input array.
+        Default is 1.
+
+    :return:
+        A 2D np array of type bool.
     """
     weights_array = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
     for _ in range(iterations):
-        cloud = ndimage.convolve(cloud, weights_array)
-        cloud = numexpr.evaluate("cloud > 4")
+        array = ndimage.convolve(array, weights_array)
+        array = numexpr.evaluate("array > 4")
+    return array
 
 
 def calc_acca_cloud_mask(nbar_array, kelvin_array, pq_const, contiguity_mask,
@@ -662,7 +673,7 @@ def calc_acca_cloud_mask(nbar_array, kelvin_array, pq_const, contiguity_mask,
     # Apply filtering; gets rid of isolated pixels, and holes.
     if cloud.sum() > 0:
         # Majority filtering
-        majority_filter(cloud, iterations=2)
+        cloud = majority_filter(cloud, iterations=2)
 
     # Note this is percent of the array, not just contiguous areas.
     cloud_percent = (float(cloud.sum()) / cloud.size) * 100

@@ -10,6 +10,7 @@ import gc
 
 from scipy import ndimage
 from IDL_functions import histogram
+from gaip import majority_filter
 
 
 def cloud_shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg,
@@ -378,14 +379,6 @@ def cloud_shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg,
                                 "(b5 - xbar)**2 + (b7 - xbar)**2) / 5))")
 
         return stdv
-
-    def majority_filter(array, iterations=1):
-        """Majority filter."""
-        weights_array = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
-        for _ in range(iterations):
-            array = ndimage.convolve(array, weights_array)
-            array = numexpr.evaluate("array > 4")
-        return array
 
 
     start_time = datetime.datetime.now()

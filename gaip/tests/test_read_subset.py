@@ -56,7 +56,7 @@ class TestReadSubset(unittest.TestCase):
         """
         img, geobox = ut.createTestImage()
     
-        cols, rows = geobox.getShapeXY()
+        cols, rows = geobox.get_shape_xy()
     
         # Temporarily write the image to disk
         temp_dir = tempfile.mkdtemp()
@@ -122,7 +122,7 @@ class TestReadSubset(unittest.TestCase):
         """
         img, geobox = ut.createTestImage()
     
-        cols, rows = geobox.getShapeXY()
+        cols, rows = geobox.get_shape_xy()
     
         # Temporarily write the image to disk
         temp_dir = tempfile.mkdtemp()
@@ -154,7 +154,7 @@ class TestReadSubset(unittest.TestCase):
         """
         img, geobox = ut.createTestImage()
     
-        cols, rows = geobox.getShapeXY()
+        cols, rows = geobox.get_shape_xy()
     
         # Temporarily write the image to disk
         temp_dir = tempfile.mkdtemp()

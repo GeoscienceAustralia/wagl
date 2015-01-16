@@ -1,5 +1,5 @@
-!program terrain_correction
-SUBROUTINE terrain_correction( &
+!program reflectance
+SUBROUTINE reflectance( &
     nrow, ncol, &
     rori, &
     brdf0, brdf1, brdf2, &
@@ -34,6 +34,9 @@ SUBROUTINE terrain_correction( &
     iref_brdf, &
     iref_terrain &
 )
+!   Calculates lambertian, brdf corrected and terrain corrected surface
+!   reflectance.
+
 !   input parameters
     integer nrow, ncol
     real*4 rori ! threshold for terrain correction
@@ -347,4 +350,4 @@ SUBROUTINE terrain_correction( &
         !write(56,rec=i)(iref_brdf(i, j),j=1,ncol)
         !write(57,rec=i)(iref_terrain(i, j),j=1,ncol)
     enddo
-END SUBROUTINE terrain_correction
+END SUBROUTINE reflectance

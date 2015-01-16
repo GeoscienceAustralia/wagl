@@ -6,21 +6,24 @@ import numpy
 
 from gaip import as_array
 from gaip import constants
-from gaip import load_2D_bin_file
+from gaip import load_2d_bin_file
 from gaip import read_img
-from gaip import terrain_correction
+from gaip import reflectance
 from gaip import write_img
 from gaip import write_new_brdf_file
 
 
-def run_tc(acquisitions, bilinear_ortho_filenames, rori, self_shadow_fname,
-           cast_shadow_sun_fname, cast_shadow_satellite_fname,
-           solar_zenith_fname, solar_azimuth_fname, satellite_view_fname,
-           relative_angle_fname, slope_fname, aspect_fname,
-           incident_angle_fname, exiting_angle_fname, relative_slope_fname,
-           reflectance_filenames, brdf_fname_format, new_brdf_fname_format):
+def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
+                          self_shadow_fname, cast_shadow_sun_fname,
+                          cast_shadow_satellite_fname, solar_zenith_fname,
+                          solar_azimuth_fname, satellite_view_fname,
+                          relative_angle_fname, slope_fname, aspect_fname,
+                          incident_angle_fname, exiting_angle_fname,
+                          relative_slope_fname, reflectance_filenames,
+                          brdf_fname_format, new_brdf_fname_format):
     """
-    The terrain correction workflow.
+    The workflow used to calculate lambertian, BRDF corrected and
+    terrain corrected surface reflectance.
 
     :param acquisitions:
         A list of acquisition class objects that will be run through
@@ -158,7 +161,7 @@ def run_tc(acquisitions, bilinear_ortho_filenames, rori, self_shadow_fname,
 
     # Get the average reflectance values per band
     nbar_constants = constants.NBARConstants(satellite, sensor)
-    avg_reflectance_values = nbar_constants.getAvgReflut()
+    avg_reflectance_values = nbar_constants.get_avg_ref_lut()
 
     # Read all required arrays into memory
     # Convert to the appropriate datatype and transpose the array to convert
@@ -226,36 +229,34 @@ def run_tc(acquisitions, bilinear_ortho_filenames, rori, self_shadow_fname,
         ref_terrain_work = numpy.zeros(cols, dtype='float32')
 
         # Read the bilinear ortho files for the current band
-        a_mod = load_2D_bin_file(boo_fnames[(band_number, 'a')], rows, cols,
+        a_mod = load_2d_bin_file(boo_fnames[(band_number, 'a')], rows, cols,
                                  dtype=bilinear_dtype, transpose=True)
-        b_mod = load_2D_bin_file(boo_fnames[(band_number, 'b')], rows, cols,
+        b_mod = load_2d_bin_file(boo_fnames[(band_number, 'b')], rows, cols,
                                  dtype=bilinear_dtype, transpose=True)
-        s_mod = load_2D_bin_file(boo_fnames[(band_number, 's')], rows, cols,
+        s_mod = load_2d_bin_file(boo_fnames[(band_number, 's')], rows, cols,
                                  dtype=bilinear_dtype, transpose=True)
-        fv = load_2D_bin_file(boo_fnames[(band_number, 'fs')], rows, cols,
+        fv = load_2d_bin_file(boo_fnames[(band_number, 'fs')], rows, cols,
                               dtype=bilinear_dtype, transpose=True)
-        fs = load_2D_bin_file(boo_fnames[(band_number, 'fv')], rows, cols,
+        fs = load_2d_bin_file(boo_fnames[(band_number, 'fv')], rows, cols,
                               dtype=bilinear_dtype, transpose=True)
-        ts = load_2D_bin_file(boo_fnames[(band_number, 'ts')], rows, cols,
+        ts = load_2d_bin_file(boo_fnames[(band_number, 'ts')], rows, cols,
                               dtype=bilinear_dtype, transpose=True)
-        edir_h = load_2D_bin_file(boo_fnames[(band_number, 'dir')], rows, cols,
+        edir_h = load_2d_bin_file(boo_fnames[(band_number, 'dir')], rows, cols,
                                   dtype=bilinear_dtype, transpose=True)
-        edif_h = load_2D_bin_file(boo_fnames[(band_number, 'dif')], rows, cols,
+        edif_h = load_2d_bin_file(boo_fnames[(band_number, 'dif')], rows, cols,
                                   dtype=bilinear_dtype, transpose=True)
 
         # Run terrain correction
         # We use transposed arrays; rows become cols and cols become rows
-        terrain_correction(cols, rows, rori, brdf0, brdf1, brdf2,
-                           bias, slope_ca, esun, dd,
-                           avg_reflectance_values[band_number],
-                           band_data, self_shadow, cast_shadow_sun,
-                           cast_shadow_satellite, solar_zenith, solar_azimuth,
-                           satellite_view, relative_angle, slope, aspect,
-                           incident_angle, exiting_angle, relative_slope,
-                           a_mod, b_mod, s_mod, fv, fs, ts, edir_h, edif_h,
-                           band_work, ref_lm_work, ref_brdf_work,
-                           ref_terrain_work, ref_lm.transpose(),
-                           ref_brdf.transpose(), ref_terrain.transpose())
+        reflectance(cols, rows, rori, brdf0, brdf1, brdf2, bias, slope_ca,
+                    esun, dd, avg_reflectance_values[band_number], band_data,
+                    self_shadow, cast_shadow_sun, cast_shadow_satellite,
+                    solar_zenith, solar_azimuth, satellite_view,
+                    relative_angle, slope, aspect, incident_angle,
+                    exiting_angle, relative_slope, a_mod, b_mod, s_mod, fv, fs,
+                    ts, edir_h, edif_h, band_work, ref_lm_work, ref_brdf_work,
+                    ref_terrain_work, ref_lm.transpose(), ref_brdf.transpose(),
+                    ref_terrain.transpose())
 
         # Filenames for lambertian, brdf & terrain corrected reflectance
         lmbrt_fname = reflectance_filenames[(band_number,

@@ -1,5 +1,5 @@
 Geoscience Australia Image Processor Directory Structure
-========================
+========================================================
 
 * bin
 	* Contains both Fortran and C executables.

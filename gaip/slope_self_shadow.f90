@@ -1,4 +1,4 @@
-SUBROUTINE slope_pixelsize_newpole( &
+SUBROUTINE slope_self_shadow( &
     dresx, dresy, spheroid, alat, is_utm, &
     dem, solar, view, sazi, azi, &
     mask, theta, phit, it, et, azi_it, azi_et, rela, &
@@ -124,4 +124,4 @@ SUBROUTINE slope_pixelsize_newpole( &
         enddo
     enddo
     return
-END SUBROUTINE slope_pixelsize_newpole
+END SUBROUTINE slope_self_shadow

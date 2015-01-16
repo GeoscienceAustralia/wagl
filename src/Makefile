@@ -4,15 +4,15 @@ FC := gfortran
 FCFLAGS := -Wall -O3 -fbounds-check
 CFLAGS := -O3
 
-EXES := binear_ortho \
-        coefficient \
-        read_flx_ga \
-        read_modtrancor_ortho \
-        input_modtran_ortho \
-        refort_tp5_ga \
-        refort_tp5_ga_trans \
-        read_modtran \
-        read_flx_ga_trans \
+EXES := bilinear_interpolation \
+        calculate_coefficients \
+        read_flux_albedo \
+        box_line_coordinates \
+        generate_modtran_input \
+        reformat_tp5_albedo \
+        reformat_tp5_transmittance \
+        reformat_modtran_output \
+        read_flux_transmittance \
 	aot_loader
 
 OBJS := $(addsuffix .o,$(EXES))

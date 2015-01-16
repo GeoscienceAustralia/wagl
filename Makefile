@@ -6,7 +6,10 @@ gaip:
 bin:
 	$(MAKE) --directory=src install
 
-docs:
+gen-doc:
+	docs/build-sphinx.sh
+
+docs: gen-doc
 	$(MAKE) --directory=docs html
 
 clean:
@@ -15,3 +18,5 @@ clean:
 	$(MAKE) --directory=docs clean
 	-rm -f ./bin/*
 	-find . -name "*.pyc" -delete
+
+.PHONY: all clean gaip bin docs

@@ -178,7 +178,7 @@ def create_header_angle_file(acquisition, view_max, outfname='HEADERANGLE'):
     # Spatial info
     geobox = acquisition.gridded_geo_box()
     cx, cy = geobox.centre_lonlat
-    samples, lines = geobox.getShapeXY()
+    samples, lines = geobox.get_shape_xy()
 
     # Output to disk
     with open(outfname, 'w') as outfile:

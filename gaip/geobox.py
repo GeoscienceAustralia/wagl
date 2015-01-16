@@ -134,7 +134,7 @@ class GriddedGeoBox(object):
 
         Arguments:
             shape: (ySize, xSize) 2-tuple defining the shape of the GGB
-                   Note: Use getShapeXY() to get (xSize, ySize)
+                   Note: Use get_shape_xy() to get (xSize, ySize)
             origin: (xPos, yPos) 2-tuple difining the upper left GGB corner
             pixelsize: pixel (xSize, ySize) in CRS units
             crs: the SpatialReferenceSystem in which both origin and
@@ -151,7 +151,7 @@ class GriddedGeoBox(object):
                 raise ValueError("Invalid crs: %s" % (crs, ))
         self.affine = Affine(self.pixelsize[0], 0, self.origin[0], 0,
                              -self.pixelsize[1], self.origin[1])
-        self.corner = self.affine * self.getShapeXY()
+        self.corner = self.affine * self.get_shape_xy()
 
     def get_shape_xy(self):
         return (self.shape[1], self.shape[0])
@@ -173,11 +173,11 @@ class GriddedGeoBox(object):
         newCrs = osr.SpatialReference()
         newCrs.SetFromUserInput(crs)
         old2New = osr.CoordinateTransformation(self.crs, newCrs)
-        newOrigin = self.transformPoint(old2New, self.origin)
-        newCorner = self.transformPoint(old2New, self.corner)
+        newOrigin = self.transform_point(old2New, self.origin)
+        newCorner = self.transform_point(old2New, self.corner)
         newPixelSize = tuple([
-            abs((newOrigin[0] - newCorner[0]) / self.getShapeXY()[0]),
-            abs((newOrigin[1] - newCorner[1]) / self.getShapeXY()[1])
+            abs((newOrigin[0] - newCorner[0]) / self.get_shape_xy()[0]),
+            abs((newOrigin[1] - newCorner[1]) / self.get_shape_xy()[1])
         ])
 
         return GriddedGeoBox(self.shape, newOrigin, newPixelSize, crs=crs)
@@ -285,7 +285,7 @@ class GriddedGeoBox(object):
         # Define the transform we are transforming to
         transform = osr.CoordinateTransformation(self.crs, to_crs)
 
-        x, y = self.transformPoint(transform, xy)
+        x, y = self.transform_point(transform, xy)
 
         return (x, y)
 

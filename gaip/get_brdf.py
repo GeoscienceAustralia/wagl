@@ -59,8 +59,8 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
     # Get the required BRDF LUT & factors list
     nbar_constants = constants.NBARConstants(satellite, sensor)
 
-    brdf_lut = nbar_constants.getBRDFlut()
-    brdf_factors = nbar_constants.getBRDFfactors()
+    brdf_lut = nbar_constants.get_brdf_lut()
+    brdf_factors = nbar_constants.get_brdf_factors()
 
     # Compute the geobox
     geobox = acquisition.gridded_geo_box()

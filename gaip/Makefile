@@ -1,9 +1,9 @@
 FC := gfortran
 F2PY:= f2py
 
-all: _shade_main_landsat_pixel.so _slope_pixelsize_newpole.so _brdf_terrain_newdiff_all.so sys_variables.o sys_variables.mod angle_all.so set_satmod.so set_times.so unmiximage.pyf unmiximage.so
+all: _cast_shadow_mask.so _slope_self_shadow.so _surface_reflectance.so sys_variables.o sys_variables.mod _sat_sol_angles.so _satellite_model.so _track_time_info.so unmiximage.pyf unmiximage.so
 
-_shade_main_landsat_pixel.so _slope_pixelsize_newpole.so _brdf_terrain_newdiff_all.so sys_variables.o sys_variables.mod angle_all.so set_satmod.so set_times.so:
+_cast_shadow_mask.so _slope_self_shadow.so _surface_reflectance.so sys_variables.o sys_variables.mod _sat_sol_angles.so _satellite_model.so _track_time_info.so:
 	$$(module load gcc/4.9.0)
 	$(FC) -c sys_variables.f90
 	python setup.py build_ext -i
@@ -17,3 +17,4 @@ clean:
 	-rm *.o
 	-rm *.mod
 	-rm *.pyf
+
