@@ -1320,7 +1320,7 @@ class CalculateCastShadowSatellite(luigi.Task):
                                       'shadow_sub_matrix_width'))
 
         # Output targets
-        satellite_target = pjoin(out_path,
+        satellite_target = pjoin(tc_work_path,
                                  CONFIG.get('cast_shadow',
                                             'satellite_direction_target'))
 
