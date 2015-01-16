@@ -100,10 +100,10 @@ def write_modis_brdf_files(acquisitions, fname_format, brdf_data,
             outfile.write(msg)
 
 
-def run_read_modtrancor_ortho(centreline, sat_view_zenith, coordinator,
-                              boxline, cwd):
-    """run read_modtrancor_ortho executable."""
-    cmd = pjoin(BIN_DIR, 'read_modtrancor_ortho')
+def run_box_line_coordinates(centreline, sat_view_zenith, coordinator,
+                             boxline, cwd):
+    """run box_line_coordinates executable."""
+    cmd = pjoin(BIN_DIR, 'box_line_coordinates')
 
     args = [cmd, centreline, sat_view_zenith, coordinator, boxline]
 
@@ -114,7 +114,7 @@ def generate_modtran_inputs(modtran_input, coordinator, sat_view_zenith,
                             sat_azimuth, lon_grid, lat_grid, coords, albedos,
                             fname_format, workdir):
     """Generate MODTRAN input files."""
-    cmd = pjoin(BIN_DIR, 'input_modtran_ortho')
+    cmd = pjoin(BIN_DIR, 'generate_modtran_input')
 
     args = [cmd, modtran_input, coordinator, sat_view_zenith, sat_azimuth,
             lat_grid, lon_grid]
@@ -133,7 +133,7 @@ def generate_modtran_inputs(modtran_input, coordinator, sat_view_zenith,
 
 
 def reformat_as_tp5(coords, albedos, profile, input_format, output_format,
-                    workdir, cmd=pjoin(BIN_DIR, 'refort_tp5_ga')):
+                    workdir, cmd=pjoin(BIN_DIR, 'reformat_tp5_albedo')):
     """Reformat the MODTRAN input files in `tp5` format."""
 
     targets = []
@@ -153,7 +153,7 @@ def reformat_as_tp5(coords, albedos, profile, input_format, output_format,
 def reformat_as_tp5_trans(coords, albedos, profile, input_format,
                           output_format, workdir):
     """Reformat the MODTRAN input files in `tp5` format in the trans case."""
-    cmd = pjoin(BIN_DIR, 'refort_tp5_ga_trans')
+    cmd = pjoin(BIN_DIR, 'reformat_tp5_transmittance')
     return reformat_as_tp5(coords, albedos, profile, input_format,
                            output_format, workdir, cmd)
 
@@ -165,7 +165,7 @@ def run_modtran(modtran_exe, workpath):
 
 def extract_flux(coords, albedos, input_format, output_format, satfilter):
     """Extract the flux data."""
-    cmd = pjoin(BIN_DIR, 'read_flx_ga')
+    cmd = pjoin(BIN_DIR, 'read_flux_albedo')
 
     for coord in coords:
         for albedo in albedos:
@@ -178,7 +178,7 @@ def extract_flux(coords, albedos, input_format, output_format, satfilter):
 
 def extract_flux_trans(coords, input_format, output_format, satfilter):
     """Extract the flux data in the transmissive case."""
-    cmd = pjoin(BIN_DIR, 'read_flx_ga_trans')
+    cmd = pjoin(BIN_DIR, 'read_flux_transmittance')
 
     for coord in coords:
         src = input_format.format(coord=coord)
@@ -192,7 +192,7 @@ def calc_coefficients(coords, chn_input_fmt, dir_input_fmt,
                       output_fmt, satfilter, cwd):
     """Calculate the coefficients from the MODTRAN output."""
 
-    cmd = pjoin(BIN_DIR, 'coefficient')
+    cmd = pjoin(BIN_DIR, 'calculate_coefficients')
 
     for coord in coords:
         args = [cmd, satfilter,
@@ -210,7 +210,7 @@ def reformat_atmo_params(acqs, coords, satfilter, factors, input_fmt,
                          output_fmt, workpath):
     """Reformat atmospheric parameters."""
 
-    cmd = pjoin(BIN_DIR, 'read_modtran')
+    cmd = pjoin(BIN_DIR, 'reformat_modtran_output')
 
     bands = [str(a.band_num) for a in acqs]
 
@@ -229,7 +229,7 @@ def bilinear_interpolate(acqs, factors, coordinator, boxline, centreline,
                          input_fmt, output_fmt, workpath):
     """Perform bilinear interpolation."""
 
-    cmd = pjoin(BIN_DIR, 'binear_ortho')
+    cmd = pjoin(BIN_DIR, 'bilinear_interpolation')
 
     bands = [a.band_num for a in acqs]
 
