@@ -121,5 +121,5 @@ if __name__ == "__main__":
     # self.assertEqual(total_pixels, 16000000)
 
     print "land=%f%%, sea=%f%%" % (land_pct, sea_pct)
-#    write_img(mask.astype('uint8'), 'mask.tif', format="GTiff", geobox=ggb)
-    write_img(mask, 'mask.tif', format="GTiff", geobox=ggb)
+#    write_img(mask.astype('uint8'), 'mask.tif', fmt="GTiff", geobox=ggb)
+    write_img(mask, 'mask.tif', fmt="GTiff", geobox=ggb)

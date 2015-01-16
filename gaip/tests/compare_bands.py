@@ -19,5 +19,5 @@ with rio.open(f1) as ds1:
             diff = sum(sum(d1-d2))
             print "band=%d, diff=%d" % (band, diff)
 
-            gaip.write_img((d1-d2), f3, format='GTiff')
+            gaip.write_img((d1-d2), f3, fmt='GTiff')
             
