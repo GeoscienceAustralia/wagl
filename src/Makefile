@@ -25,7 +25,7 @@ all: $(EXES)
 install: $(EXES) $(INSTALLED_EXES)
 
 $(INSTALLED_EXES): $(BINDIR)/%: %
-	cp -p $< $@
+	@cp -p $< $@
 
 %: %.c
 	$$(module load gcc/4.9.0)
@@ -36,4 +36,4 @@ $(INSTALLED_EXES): $(BINDIR)/%: %
 	$(FC) $(FCFLAGS) $< -o $@
 
 clean:
-	-rm -f $(OBJS) $(EXES)
+	@rm -f $(OBJS) $(EXES)
