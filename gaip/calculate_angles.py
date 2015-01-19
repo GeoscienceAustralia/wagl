@@ -68,8 +68,7 @@ def sat_sol_grid_workflow(l1t_path, work_path, lonlat_path):
                                                 to_disk=out_fnames)
 
     # Write out the CENTRELINE file
-    create_centreline_file(geobox, y_cent, x_cent, n_cent, cols,
-                           view_max=9.0)
+    create_centreline_file(geobox, y_cent, x_cent, n_cent, cols, view_max=9.0)
 
 
 def create_centreline_file(geobox, y, x, n, cols, view_max,
@@ -358,9 +357,7 @@ def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements):
         Index 11 contains th_ratio0.
     """
 
-    smodel, istat = set_satmod(centre_lon, centre_lat, spheroid,
-                               orbital_elements)
-
+    smodel, _ = set_satmod(centre_lon, centre_lat, spheroid, orbital_elements)
     return smodel
 
 
@@ -425,9 +422,8 @@ def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, npoints=12):
         Index 7 skew
     """
 
-    track, istat = set_times(ymin, ymax, npoints, spheroid, orbital_elements,
-                             smodel)
-
+    track, _ = set_times(ymin, ymax, npoints, spheroid, orbital_elements,
+                         smodel)
     return track
 
 
@@ -540,7 +536,7 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
 
     # Need something to determine max satellite view angle
     # Currently not even used in Fuqin's code
-    view_max = 9.0
+    # view_max = 9.0
 
     # Get the satellite model paramaters
     smodel = setup_smodel(
@@ -632,11 +628,11 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
                 lon_array = lon.read_band(1, window=tile)
                 lat_array = lat.read_band(1, window=tile)
 
-                istat = angle(cols, rows, i + 1, lat_array, lon_array,
-                              spheroid, orbital_elements, hours, century,
-                              npoints, smodel, track, view[i], azi[i],
-                              asol[i], soazi[i], rela_angle[i], time[i],
-                              x_cent, n_cent)
+                angle(cols, rows, i + 1, lat_array, lon_array,
+                      spheroid, orbital_elements, hours, century,
+                      npoints, smodel, track, view[i], azi[i],
+                      asol[i], soazi[i], rela_angle[i], time[i],
+                      x_cent, n_cent)
     else:
         with rasterio.open(lon_fname) as lon, rasterio.open(lat_fname) as lat:
             # Loop over each row
@@ -658,11 +654,11 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
                 rela_angle[:] = -999
                 time[:] = -999
 
-                istat = angle(cols, rows, i + 1, lat_array, lon_array,
-                              spheroid, orbital_elements, hours, century,
-                              npoints, smodel, track, view[0], azi[0],
-                              asol[0], soazi[0], rela_angle[0], time[0],
-                              x_cent, n_cent)
+                angle(cols, rows, i + 1, lat_array, lon_array,
+                      spheroid, orbital_elements, hours, century,
+                      npoints, smodel, track, view[0], azi[0],
+                      asol[0], soazi[0], rela_angle[0], time[0],
+                      x_cent, n_cent)
 
                 # Output to disk
                 out_SAT_V_bnd.WriteArray(view, xstart, ystart)

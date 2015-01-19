@@ -1,7 +1,8 @@
-#!/usr/bin/env python
-
+"""
+Reflectance Calculations
+------------------------
+"""
 import gc
-
 import numpy
 
 from gaip import as_array
@@ -202,7 +203,7 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
         brdf_modis_file = brdf_fname_format.format(band_num=acq.band_num)
         with open(brdf_modis_file, 'r') as param_file:
             (brdf0, brdf1, brdf2, bias, slope_ca,
-             esun, dd) = map(float,' '.join(param_file.readlines()).split())
+             esun, dd) = map(float, ' '.join(param_file.readlines()).split())
 
         # Output the new format of the brdf file (QA/QC)
         write_new_brdf_file(

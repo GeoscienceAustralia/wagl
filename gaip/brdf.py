@@ -18,6 +18,7 @@ estimates is required.
 
 """
 
+import subprocess
 import datetime
 import logging
 import numpy as np
@@ -30,6 +31,8 @@ from osgeo import gdalconst
 from osgeo import osr
 from gaip import GriddedGeoBox
 from gaip import write_img
+from gaip import constants
+from gaip import read_subset
 
 log = logging.getLogger('root.' + __name__)
 
@@ -71,23 +74,23 @@ class BRDFLoader(object):
         'add_offset': 0.0,
     }
 
-    def __init__(self, filename, UL=None, LR=None):
+    def __init__(self, filename, ul=None, lr=None):
         """Initialise a BRDFLoader instance.
 
         Arguments:
             filename: data file name
-            UL: (lon, lat) of ROI upper left corner [2-tuple, floats]
-            LR: (lon, lat) of ROI lower right corner [2-tuple, floats]
+            ul: (lon, lat) of ROI upper left corner [2-tuple, floats]
+            lr: (lon, lat) of ROI lower right corner [2-tuple, floats]
 
         """
 
         self.filename = filename
-        self.roi = {'UL': UL, 'LR': LR}
+        self.roi = {'UL': ul, 'LR': lr}
 
-        log.info('%s: filename=%s, roi=%s'
-                 % (self.__class__.__name__, self.filename, str(self.roi)))
+        log.info('%s: filename=%s, roi=%s', self.__class__.__name__,
+                 self.filename, str(self.roi))
 
-        if UL is None or LR is None:
+        if ul is None or lr is None:
             raise BRDFLoaderError('%s: UL and/or LR not defined'
                                   % (self.__class__.__name__,))
 
@@ -109,14 +112,14 @@ class BRDFLoader(object):
 
         # The region-of-interest (scene) should lie within the HDF extents.
 
-        if self.roi['UL'][0] < self.UL[0] or \
-           self.roi['LR'][0] > self.LR[0] or \
-           self.roi['UL'][1] > self.UL[1] or \
-           self.roi['LR'][1] < self.LR[1]:
+        if self.roi['UL'][0] < self.ul[0] or \
+           self.roi['LR'][0] > self.lr[0] or \
+           self.roi['UL'][1] > self.ul[1] or \
+           self.roi['LR'][1] < self.lr[1]:
             raise BRDFLoaderError(('%s: Region of interest %s extends beyond '
                                    'HDF domain {UL: %s, LR: %s}')
                                   % (self.__class__.__name__, str(self.roi),
-                                     str(self.UL), str(self.LR)))
+                                     str(self.ul), str(self.lr)))
 
     def load(self):
         """
@@ -145,9 +148,9 @@ class BRDFLoader(object):
             self.data[k] = fd.GetRasterBand(1).ReadAsArray()
             _type = type(self.data[k][0, 0])
 
-            log.debug('%s: loaded sds=%d, type=%s, shape=%s'
-                      % (self.__class__.__name__, k, str(_type),
-                         str(self.data[k].shape)))
+            log.debug('%s: loaded sds=%d, type=%s, shape=%s',
+                      self.__class__.__name__, k, str(_type),
+                      str(self.data[k].shape))
 
             # Populate metadata entries after reading the BRDF data
             # array (SDS 0).
@@ -168,9 +171,9 @@ class BRDFLoader(object):
 
             fd = None
 
-        log.debug('%s: fill_value=%s, scale_factor=%s, add_offset=%s'
-                  % (self.__class__.__name__, str(self.fill_value),
-                     str(self.scale_factor), str(self.add_offset)))
+        log.debug('%s: fill_value=%s, scale_factor=%s, add_offset=%s',
+                  self.__class__.__name__, str(self.fill_value),
+                  str(self.scale_factor), str(self.add_offset))
 
     @property
     def delta_lon(self):
@@ -197,7 +200,7 @@ class BRDFLoader(object):
         return (self.data[1][0, 1] - self.data[1][0, 0])
 
     @property
-    def UL(self):
+    def ul(self):
         """
         Get the upper-left (NW) corner-of-pixel coordinates of the data.
 
@@ -210,7 +213,7 @@ class BRDFLoader(object):
                 self.data[1][0, 0] - self.delta_lat / 2)
 
     @property
-    def LR(self):
+    def lr(self):
         """
         Get the lower-right (SE) corner-of-pixel coordinates of the data.
 
@@ -234,14 +237,14 @@ class BRDFLoader(object):
         # Index calculation matches what happens in hdf_extractor.c.
         # TODO: verify correctness
 
-        xmin = (self.roi['UL'][0] - self.UL[0]) / self.delta_lon
-        xmax = (self.roi['LR'][0] - self.UL[0]) / self.delta_lon
+        xmin = (self.roi['UL'][0] - self.ul[0]) / self.delta_lon
+        xmax = (self.roi['LR'][0] - self.ul[0]) / self.delta_lon
 
         imin = max([0, int(math.ceil(xmin))])
         imax = min([self.data[0].shape[1], int(math.ceil(xmax))])
 
-        ymin = (self.roi['UL'][1] - self.UL[1]) / self.delta_lat
-        ymax = (self.roi['LR'][1] - self.UL[1]) / self.delta_lat
+        ymin = (self.roi['UL'][1] - self.ul[1]) / self.delta_lat
+        ymax = (self.roi['LR'][1] - self.ul[1]) / self.delta_lat
 
         jmin = max([0, int(math.ceil(ymin))])
         jmax = min([self.data[0].shape[0], int(math.ceil(ymax))])
@@ -257,12 +260,11 @@ class BRDFLoader(object):
 
         result = self.scale_factor * (dmean - self.add_offset)
 
-        log.debug(('%s: ROI=%s, imin=%d, imax=%d, xmin=%f, xmax=%f, '
-                   'jmin=%d, jmax=%d, ymin=%f, ymax=%f, dmean=%.12f, '
-                   'result=%.12f')
-                  % (self.__class__.__name__, str(self.roi),
-                     imin, imax, xmin, xmax,
-                     jmin, jmax, ymin, ymax, dmean, result))
+        log.debug('%s: ROI=%s, imin=%d, imax=%d, xmin=%f, xmax=%f, '
+                  'jmin=%d, jmax=%d, ymin=%f, ymax=%f, dmean=%.12f, '
+                  'result=%.12f',
+                  self.__class__.__name__, str(self.roi), imin, imax, xmin,
+                  xmax, jmin, jmax, ymin, ymax, dmean, result)
 
         return result
 
@@ -275,8 +277,8 @@ class BRDFLoader(object):
         """
 
         # Get the UL corner of the UL pixel co-ordinate
-        ul_lon = self.UL[0]
-        ul_lat = self.UL[1]
+        ul_lon = self.ul[0]
+        ul_lat = self.ul[1]
 
         # pixel size x & y
         pixsz_x = self.delta_lon
@@ -414,3 +416,181 @@ def get_brdf_dirs_pre_modis(brdf_root, scene_date):
     result = delta_map[sorted(delta_map)[0]]
 
     return result
+
+
+def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
+                  work_path):
+    """
+    Calculates the mean BRDF value for each band wavelength of your
+    sensor, for each BRDF factor ['geo', 'iso', 'vol'] that covers
+    your image extents.
+
+    :param acquisition:
+        An instance of an acquisitions object.
+
+    :param brdf_primary_path:
+        A string containing the full file system path to your directory
+        containing the source BRDF files.  The BRDF directories are
+        assumed to be yyyy.mm.dd naming convention.
+
+    :param brdf_secondary_path:
+        A string containing the full file system path to your directory
+        containing the Jupp-Li backup BRDF data.  To be used for
+        pre-MODIS and potentially post-MODIS acquisitions.
+
+    :param work_path:
+        A string containing the full file system path to your NBAR
+        working directory. Intermediate BRDF files will be saved to
+        work_path/brdf_intermediates/.
+
+    :return:
+        A dictionary with tuple (band, factor) as the keys. Each key
+        represents the band of your satllite/sensor and brdf factor.
+        Each key contains a dictionary with the following keys:
+        data_source -> BRDF
+        data_file -> File system path to the location of the selected
+            BRDF wavelength and factor combination.
+        value -> The mean BRDF value covering your image extents.
+    """
+    # Retrieve the satellite and sensor for the acquisition
+    satellite = acquisition.spacecraft_id
+    sensor = acquisition.sensor_id
+
+    # Get the required BRDF LUT & factors list
+    nbar_constants = constants.NBARConstants(satellite, sensor)
+
+    brdf_lut = nbar_constants.get_brdf_lut()
+    brdf_factors = nbar_constants.get_brdf_factors()
+
+    # Compute the geobox
+    geobox = acquisition.gridded_geo_box()
+
+    # Get the date of acquisition
+    dt = acquisition.scene_center_datetime.date()
+
+    # Get the boundary extents of the image
+    # Each is a co-ordinate pair of (x, y)
+    ul_lon = geobox.ul_lonlat[0]
+    ul_lat = geobox.ul_lonlat[1]
+    ur_lon = geobox.ur_lonlat[0]
+    ur_lat = geobox.ur_lonlat[1]
+    lr_lon = geobox.lr_lonlat[0]
+    lr_lat = geobox.lr_lonlat[1]
+    ll_lon = geobox.ll_lonlat[0]
+    ll_lat = geobox.ll_lonlat[1]
+
+    # Use maximal axis-aligned extents for BRDF mean value calculation.
+    # Note that latitude min-max logic is valid for the Southern
+    # hemisphere only.
+    nw = (min(ul_lon, ll_lon), max(ul_lat, ur_lat))
+    se = (max(lr_lon, ur_lon), min(ll_lat, lr_lat))
+
+    # Compare the scene date and MODIS BRDF start date to select the
+    # BRDF data root directory.
+    # Scene dates outside the range of the CSIRO mosaic data
+    # (currently 2000-02-18 through 2013-01-09) should use the pre-MODIS,
+    # Jupp-Li BRDF.
+    brdf_dir_list = sorted(os.listdir(brdf_primary_path))
+    brdf_dir_range = [brdf_dir_list[0], brdf_dir_list[-1]]
+    brdf_range = [datetime.date(*[int(x) for x in y.split('.')])
+                  for y in brdf_dir_range]
+
+    use_JuppLi_brdf = (dt < brdf_range[0] or dt > brdf_range[1])
+
+    if use_JuppLi_brdf:
+        brdf_base_dir = brdf_secondary_path
+        brdf_dirs = get_brdf_dirs_pre_modis(brdf_base_dir, dt)
+    else:
+        brdf_base_dir = brdf_primary_path
+        brdf_dirs = get_brdf_dirs_modis(brdf_base_dir, dt)
+
+    # The following hdfList code was resurrected from the old SVN repo. JS
+    # get all HDF files in the input dir
+    dbDir = os.path.join(brdf_base_dir, brdf_dirs)
+    three_tup = os.walk(dbDir)
+    hdfList = []
+    for (hdfHome, _, filelist) in three_tup:
+        for f in filelist:
+            if f.endswith(".hdf.gz") or f.endswith(".hdf"):
+                hdfList.append(f)
+
+    # Initialise the brdf dictionary to store the results
+    brdf_dict = {}
+
+    # Create a BRDF directory in the work path to store the intermediate
+    # files such as format conversion and subsets.
+    brdf_out_path = os.path.join(work_path, 'brdf_intermediates')
+    if not os.path.exists(brdf_out_path):
+        os.makedirs(brdf_out_path)
+
+    def find_file(files, band_wl, factor):
+        """Find file with a specific name."""
+        for f in files:
+            if f.find(band_wl) != -1 and f.find(factor) != -1:
+                return f
+        return None
+
+    # Loop over each defined band and each BRDF factor
+    for band in brdf_lut.keys():
+        bandwl = brdf_lut[band]  # Band wavelength
+        for factor in brdf_factors:
+            hdfFileName = find_file(hdfList, bandwl, factor)
+
+            hdfFile = os.path.join(hdfHome, hdfFileName) #FIXME: hdfHome
+
+            # Test if the file exists and has correct permissions
+            try:
+                with open(hdfFile, 'rb') as f:
+                    pass
+            except IOError:
+                print "Unable to open file %s" % hdfFile
+
+            # Unzip if we need to
+            if hdfFile.endswith(".hdf.gz"):
+                hdf_file = os.path.join(
+                    work_path,
+                    re.sub(".hdf.gz", ".hdf",
+                           os.path.basename(hdfFile)))
+                cmd = "gunzip -c %s > %s" % (hdfFile, hdf_file)
+                subprocess.check_call(cmd, shell=True)
+            else:
+                hdf_file = hdfFile
+
+            # the following now converts the file format and outputs a subset.
+            # this should proove useful for debugging and testing.
+
+            # Load the file
+            brdf_object = BRDFLoader(hdf_file, ul=nw, lr=se)
+
+            # setup the output filename
+            out_fname = '_'.join(['Band', str(band), bandwl, factor])
+            out_fname = os.path.join(brdf_out_path, out_fname)
+
+            # Convert the file format
+            brdf_object.convert_format(out_fname)
+
+            # Read the subset and geotransform that corresponds to the subset
+            subset, geobox_subset = read_subset(out_fname,
+                                                (ul_lon, ul_lat),
+                                                (ur_lon, ur_lat),
+                                                (lr_lon, lr_lat),
+                                                (ll_lon, ll_lat))
+
+            # The brdf_object has the scale and offsets so calculate the mean
+            # through the brdf_object
+            brdf_mean_value = brdf_object.get_mean(subset)
+
+            # Output the brdf subset
+            out_fname_subset = out_fname + '_subset'
+            write_img(subset, out_fname_subset, geobox=geobox_subset)
+
+            # Remove temporary unzipped file
+            if hdf_file.find(work_path) == 0:
+                os.remove(hdf_file)
+
+            # Add the brdf filename and mean value to brdf_dict
+            brdf_dict[(band, factor)] = {'data_source': 'BRDF',
+                                         'data_file': hdfFile,
+                                         'value': brdf_mean_value}
+
+    return brdf_dict

@@ -1,10 +1,7 @@
 """
-A group of functions associated with:
 Terrain Correction
 ------------------
 """
-import os
-import sys
 import numpy
 from scipy import ndimage
 from gaip import cast_shadow_main
@@ -32,6 +29,7 @@ def filter_dsm(array):
 
 
 def write_new_brdf_file(file_name, *args):
+    """Write a BRDF file."""
     with open(file_name, 'w') as src:
         out_string = "{0}\n{1} {2} {3}\n{4} {5} {6} {7}\n{8}\n"
         out_string = out_string.format(*args)
@@ -45,10 +43,8 @@ class FortranError(Exception):
     """
 
     def __init__(self, function_name, code, msg):
-        # The name of the Fortran function called.
         self.function_name = function_name
-        self.code = code  # The error code produced by the Fortran code.
-        # The Message corresponding to ``code``.
+        self.code = code
         self.msg = msg or "Unknown error"
 
     def __str__(self):
@@ -85,7 +81,7 @@ class SlopeResultSet(object):
 
     def write_arrays(self, geobox, out_fnames=None, file_type='ENVI',
                      file_extension='.bin'):
-        # Filenames
+        """Write the arrays to disk."""
         if (out_fnames is None) or (len(out_fnames) != 8):
             fname_mask_self = 'self_shadow_mask' + file_extension
             fname_slope = 'slope' + file_extension
@@ -146,8 +142,8 @@ class SlopeError(FortranError):
             return "Y dimensions of scene and DEM not correct."
 
 
-def run_slope(acquisition, DEM, solar_zenith, satellite_view, solar_azimuth,
-        satellite_azimuth, margin, is_utm, spheroid):
+def run_slope(acquisition, dem, solar_zenith, satellite_view, solar_azimuth,
+              satellite_azimuth, margin, is_utm, spheroid):
     """
     Calculate the slope and angles for a region. This code is an
     interface to the fortran code slope_self_shadow.f90 written by
@@ -165,7 +161,7 @@ def run_slope(acquisition, DEM, solar_zenith, satellite_view, solar_azimuth,
     :param acquisition:
         An instance of an acquisition object.
 
-    :param DEM:
+    :param dem:
         A DEM of the region. This must have the same dimensions as
         zenith_angle plus a margin of widths specified by margin.
 
@@ -218,9 +214,9 @@ def run_slope(acquisition, DEM, solar_zenith, satellite_view, solar_azimuth,
     and ``satellite_azimuth_data`` must have the same dimensions.
     """
     # Perform datatype checks
-    if DEM.dtype.name != 'float32':
+    if dem.dtype.name != 'float32':
         msg = 'DEM datatype must be float32! Datatype: {dtype}'
-        msg = msg.format(dtype=DEM.dtype.name)
+        msg = msg.format(dtype=dem.dtype.name)
         raise TypeError(msg)
 
     if solar_zenith.dtype.name != 'float32':
@@ -230,7 +226,7 @@ def run_slope(acquisition, DEM, solar_zenith, satellite_view, solar_azimuth,
 
     if satellite_view.dtype.name != 'float32':
         msg = 'Satellite view datatype must be float32! Datatype: {dtype}'
-        msg = msg.format(dtype=satellite_zenith.dtype.name)
+        msg = msg.format(dtype=satellite_view.dtype.name)
 
     if solar_azimuth.dtype.name != 'float32':
         msg = 'Solar azimuth datatype must be float32! Datatype: {dtype}'
@@ -244,7 +240,7 @@ def run_slope(acquisition, DEM, solar_zenith, satellite_view, solar_azimuth,
 
     # Get the x and y pixel sizes
     geobox = acquisition.gridded_geo_box()
-    x_origin, y_origin = geobox.origin
+    _, y_origin = geobox.origin
     x_res, y_res = geobox.pixelsize
     dresx = x_res + 2
     dresy = y_res + 2
@@ -254,7 +250,7 @@ def run_slope(acquisition, DEM, solar_zenith, satellite_view, solar_azimuth,
     ncol = cols + 2
     nrow = rows + 2
 
-    dem_dat = DEM[(margin.top - 1):-(margin.bottom - 1), (margin.left - 1):
+    dem_dat = dem[(margin.top - 1):-(margin.bottom - 1), (margin.left - 1):
                   -(margin.right - 1)]
 
     # Check that the dimensions match
@@ -293,9 +289,10 @@ class CastShadowError(FortranError):
     """
 
     def __init__(self, code):
-        super(CastShadowError, self).__init__("cast_shadow_main",
-                                              code,
-                                              CastShadowError.get_error_message(code))
+        super(CastShadowError,
+              self).__init__("cast_shadow_main",
+                             code,
+                             CastShadowError.get_error_message(code))
 
     @staticmethod
     def get_error_message(code):
@@ -305,6 +302,7 @@ class CastShadowError(FortranError):
         is handled in the super class.
         """
         def tmpt(d, n):
+            """Generate message."""
             err = "attempt to access invalid {0} of {1}".format(d, n)
             return err
 
@@ -396,7 +394,7 @@ class CastShadowError(FortranError):
             return "matrix A does not have sufficient x margin"
 
 
-def run_castshadow(acquisition, DEM, zenith_angle, azimuth_angle, margin,
+def run_castshadow(acquisition, dem, zenith_angle, azimuth_angle, margin,
                    block_height, block_width, spheroid):
     """
     This code is an interface to the fortran code
@@ -433,7 +431,7 @@ def run_castshadow(acquisition, DEM, zenith_angle, azimuth_angle, margin,
     :type acquisition:
         Class, Acquisition
 
-    :param DEM:
+    :param dem:
         A DEM of the region. This must have the same dimensions as
         zenith_angle plus a margin of widths specified by margin.
     :type DEM:
@@ -492,9 +490,9 @@ def run_castshadow(acquisition, DEM, zenith_angle, azimuth_angle, margin,
     is_utm = not geobox.crs.IsGeographic()
 
     # Perform datatype checks
-    if DEM.dtype.name != 'float32':
+    if dem.dtype.name != 'float32':
         msg = 'DEM datatype must be float32! Datatype: {dtype}'
-        msg = msg.format(dtype=DEM.dtype.name)
+        msg = msg.format(dtype=dem.dtype.name)
         raise TypeError(msg)
 
     if zenith_angle.dtype.name != 'float32':
@@ -507,7 +505,7 @@ def run_castshadow(acquisition, DEM, zenith_angle, azimuth_angle, margin,
         msg = msg.format(dtype=azimuth_angle.dtype.name)
         raise TypeError(msg)
 
-    ierr, mask = cast_shadow_main(DEM, zenith_angle, azimuth_angle, x_res,
+    ierr, mask = cast_shadow_main(dem, zenith_angle, azimuth_angle, x_res,
                                   y_res, spheroid, y_origin, x_origin,
                                   margin.left, margin.right, margin.top,
                                   margin.bottom, block_height, block_width,
