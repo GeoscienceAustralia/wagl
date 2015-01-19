@@ -6,7 +6,6 @@ from mtl import *
 from geobox import GriddedGeoBox
 from tle import *
 from brdf import *
-from get_brdf import *
 from calculate_lon_lat_arrays import *
 from land_sea_masking import *
 from land_sea import get_land_sea_mask 

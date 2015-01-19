@@ -1,3 +1,7 @@
+"""
+Satellite TLE (two-line element) Loading
+----------------------------------------
+"""
 import datetime
 import ephem
 import re
@@ -46,7 +50,7 @@ def load_tle_from_archive(acquisition, data_root, day_radius=45):
     tds = [datetime.timedelta(days=d) for d in offsets]
     yyddd_list = [(center_datetime + d).strftime('%02y%03j') for d in tds]
 
-    name = acquisition.satellite_name.replace('-','').upper()
+    name = acquisition.satellite_name.replace('-', '').upper()
 
     tle_archive_path = os.path.join(data_root, name,
                                     'TLE', '%s_ARCHIVE.txt' % acquisition.tag)
@@ -60,7 +64,6 @@ def load_tle_from_archive(acquisition, data_root, day_radius=45):
         'CLASSIFICATION': acquisition.classification,
         'INTL_DESIGNATOR': acquisition.intl_designator}
 
-    tle_entry = None
     for yyddd in yyddd_list:
         re_params['YYDDD'] = yyddd
         match = re.search(TLE_ENTRY_RE % re_params, text, re.MULTILINE)
@@ -85,9 +88,10 @@ def load_tle_from_files(acquisition, data_root, day_range=45):
         ephem EarthSatellite instance
     """
 
-    name = acquisition.satellite_name.replace('-','').upper()
+    name = acquisition.satellite_name.replace('-', '').upper()
 
     def open_tle(tle_path, center_datetime):
+        """Open the TLE file and read."""
         with open(tle_path, 'r') as fd:
             tle_text = fd.readlines()
             if acquisition.tag == 'LS5':
@@ -115,10 +119,10 @@ def load_tle_from_files(acquisition, data_root, day_range=45):
             pass
 
     for d in range(1, day_range):
-        ddelta = timedelta(days=d)
+        ddelta = datetime.timedelta(days=d)
         for s in [-1, 1]:
             dt = center_datetime + (ddelta * s)
-            tle_dir = os.path.join(data_root, data_subdir,
+            tle_dir = os.path.join(data_root, name,
                                    'TLE',
                                    '%s_YEAR' % acquisition.tag,
                                    '%4d' % dt.year)

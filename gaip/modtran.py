@@ -60,7 +60,6 @@ def write_modtran_input(acquisitions, modtran_input_file, ozone, vapour,
                         aerosol, elevation):
     """Generate modtran input file."""
     acq = acquisitions[0]
-    geobox = acq.gridded_geo_box()
     filter_file = acq.spectral_filter_file
     cdate = acq.scene_centre_date
     altitude = acq.altitude / 1000.0  # in km

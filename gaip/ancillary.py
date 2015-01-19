@@ -5,6 +5,7 @@ import rasterio
 import subprocess
 import gaip
 import re
+import os
 
 from os.path import join as pjoin, exists, splitext, abspath, dirname, pardir
 

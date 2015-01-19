@@ -27,7 +27,7 @@ argument-rgx=[a-z_][a-zA-Z0-9_]{0,50}$
 variable-rgx=[a-z_][a-zA-Z0-9_]{0,50}$
 class-attribute-rgx=([A-Za-z_][A-Za-z0-9_]{2,50}|(__.*__))$
 inlinevar-rgx=[A-Za-z_][A-Za-z0-9_]*$
-good-names=i,j,k,ex,Run,_,log
+good-names=i,j,k,ex,Run,_,log,ul,ur,ll,lr
 bad-names=foo,bar,baz,toto,tutu,tata
 no-docstring-rgx=__.*__
 docstring-min-length=-1
@@ -70,7 +70,7 @@ valid-metaclass-classmethod-first-arg=mcs
 [DESIGN]
 max-args=10
 ignored-argument-names=_.*
-max-locals=30
+max-locals=40
 max-returns=6
 max-branches=20
 max-statements=60
