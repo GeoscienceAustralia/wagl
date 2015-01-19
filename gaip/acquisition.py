@@ -38,12 +38,13 @@ class Acquisition(object):
         return self.band_name == other.band_name
 
     def __lt__(self, other):
-        return self._sortkey() < other._sortkey()
+        return self.sortkey() < other.sortkey()
 
     def __repr__(self):
         return 'Acquisition(band_name=' + self.band_name + ')'
 
-    def _sortkey(self):
+    def sortkey(self):
+        """Representation used for sorting objects."""
         if isinstance(self.band_num, int):
             return "%03d" % (self.band_num, )
         else:
@@ -162,10 +163,11 @@ class LandsatAcquisition(Acquisition):
 
     @property
     def decimal_hour(self):
-        return (self.scene_centre_time.hour + (self.scene_centre_time.minute
-                + (self.scene_centre_time.second 
-                   + self.scene_centre_time.microsecond / 1000000.0) / 60.0)
-                / 60.0)
+        """The time in decimal."""
+        time = self.scene_centre_time
+        return (time.hour + (time.minute + (time.second
+                                            + time.microsecond / 1000000.0)
+                             / 60.0) / 60.0)
 
     @property
     def gain(self):
@@ -202,7 +204,7 @@ class Landsat7Acquisition(LandsatAcquisition):
     def __init__(self, metadata):
         super(Landsat7Acquisition, self).__init__(metadata)
 
-    def _sortkey(self):
+    def sortkey(self):
         return self.band_name.replace('band', '')
 
     @property
@@ -351,7 +353,8 @@ def find_in(path, s, suffix='txt'):
 def find_all_in(path, s):
     """
     Search through `path` and its children for all occurances of 
-    files with `s` in their name. Returns the (possibly empty) list of file paths
+    files with `s` in their name. Returns the (possibly empty) list
+    of file paths
     """
     result = []
     for root, _, files in os.walk(path):
@@ -374,7 +377,7 @@ def acquisitions(path):
     """
 
     try:
-        acqs = acquisitions_via_MTL(path)
+        acqs = acquisitions_via_mtl(path)
     except OSError:
         acqs = acquisitions_via_geotiff(path)
 
@@ -386,14 +389,15 @@ def acquisitions_via_geotiff(path):
     a list of Acquisitions. Acquisition properties are extracted from the
     filename.
     """
-    NAME_PATTERN = '(?P<spacecraft_id>LS\d)_(?P<sensor_id>\w+)_(?P<product_type>\w+)' \
-        '_(?P<product_id>P\d+)_GA(?P<product_code>.*)-(?P<station_id>\d+)_' \
-        '(?P<wrs_path>\d+)_(?P<wrs_row>\d+)_(?P<acquisition_date>\d{8})_' \
-        'B(?P<band_num>\d+)\.tif'
+    name_pattern = r'(?P<spacecraft_id>LS\d)_(?P<sensor_id>\w+)_' \
+                   r'(?P<product_type>\w+)_(?P<product_id>P\d+)_' \
+                   r'GA(?P<product_code>.*)-(?P<station_id>\d+)_' \
+                   r'(?P<wrs_path>\d+)_(?P<wrs_row>\d+)_(?P<acqu' \
+                   r'isition_date>\d{8})_B(?P<band_num>\d+)\.tif' 
 
     acqs = []
     if isdir(path):
-        p = re.compile(NAME_PATTERN)
+        p = re.compile(name_pattern)
         for tif_path in find_all_in(path, 'tif'):
             dir_name, file_name = os.path.split(tif_path)
             match_obj = p.match(file_name)
@@ -410,8 +414,9 @@ def acquisitions_via_geotiff(path):
                 # convert acquisition_date to a datetime
 
                 ad = md['acquisition_date']
-                md['acquisition_date'] = datetime.datetime(int(ad[0:4]), int(ad[4:6]), \
-                    int(ad[6:8]))
+                md['acquisition_date'] = datetime.datetime(int(ad[0:4]),
+                                                           int(ad[4:6]),
+                                                           int(ad[6:8]))
 
                 # band_name is required
 
@@ -427,7 +432,7 @@ def acquisitions_via_geotiff(path):
 
     return sorted(acqs)
 
-def acquisitions_via_MTL(path):
+def acquisitions_via_mtl(path):
     """Obtain a list of Acquisition objects from `path`. The argument `path`
     can be a MTL file or a directory name. If `path` is a directory then the 
     MTL file will be search for in the directory and its children."""

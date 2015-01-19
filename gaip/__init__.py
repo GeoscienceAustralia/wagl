@@ -3,7 +3,6 @@ from ancillary import *
 from acquisition import *
 from data import *
 from mtl import *
-from water import *
 from geobox import GriddedGeoBox
 from tle import *
 from brdf import *

@@ -5,7 +5,7 @@ persistent=no
 load-plugins=
 
 [MESSAGES CONTROL]
-disable=bare-except,no-self-use,unused-argument,duplicate-code,trailing-whitespace,abstract-class-little-used,star-args,too-many-locals,no-member
+disable=bare-except,no-self-use,unused-argument,duplicate-code,trailing-whitespace,abstract-class-little-used,star-args,no-member
 
 [REPORTS]
 msg-template={path}:{line}: [{msg_id}({symbol}), {obj}] {msg}
@@ -70,14 +70,14 @@ valid-metaclass-classmethod-first-arg=mcs
 [DESIGN]
 max-args=10
 ignored-argument-names=_.*
-max-locals=15
+max-locals=30
 max-returns=6
-max-branches=12
-max-statements=50
+max-branches=20
+max-statements=60
 max-parents=7
 max-attributes=14
 min-public-methods=0
-max-public-methods=20
+max-public-methods=30
 
 [EXCEPTIONS]
 
