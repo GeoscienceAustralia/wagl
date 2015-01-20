@@ -8,7 +8,6 @@ import logging
 import gaip
 import numpy
 import numexpr
-from fc_utils import create_dir, unmix
 from memuseFilter import MemuseFilter
 
 
@@ -28,10 +27,10 @@ class FractionalCoverTask(luigi.Task):
         # get acquisition stack 
 
         logging.debug("reading acquistions")
-        acqs = gaip.acquisitions(nbar_data_path)
+        acqs = gaip.acquisitions(self.nbar_path)
         logging.debug("stacking data")
         (acqs, stack, geo_box) = gaip.stack_data(acqs, \
-            filter=(lambda acq: acq.band_type == gaip.REF and \
+            fn=(lambda acq: acq.band_type == gaip.REF and \
             acq.wavelength[1] > 0.52))
 
         logging.debug("read %d NBAR bands, coverage: %s" % (len(acqs), str(geo_box)))
@@ -48,7 +47,7 @@ class FractionalCoverTask(luigi.Task):
         # call the fortran routiine
 
         logging.debug("calling the unmix() function")
-        (green, dead1, dead2, bare, err) = unmix(stack)
+        (green, dead1, dead2, bare, err) = gaip.unmix(stack)
 
         # change zero values back to no_data value
 
@@ -75,7 +74,7 @@ class FractionalCoverTask(luigi.Task):
         # create the output directory
 
         logging.debug("creating output directory %s" % (self.fc_path, ))
-        create_dir(self.fc_path)
+        gaip.create_dir(self.fc_path)
 
         # output bands (one per GeoTiff file)
 
@@ -85,8 +84,8 @@ class FractionalCoverTask(luigi.Task):
         for band_no in  range(len(new_stack)):
             logging.debug("writing band %s" % (ids[band_no], ))
             file_path = "%s/fc_%s.tif" % (self.fc_path, ids[band_no])
-            gaip.write_img(new_stack[band_no], file_path, \
-                format="GTiff", nodata=no_data)
+            gaip.write_img(new_stack[band_no], file_path, fmt="GTiff", \
+                nodata=no_data)
 
         logging.info("Done processing")
 
@@ -120,16 +119,17 @@ def is_valid_directory(parser, arg):
     else:
         return arg
 
-def fc_name_from(nbar_fname):
+def fc_name_from_nbar(nbar_fname):
     """
     Return an NBAR file name given a L1T file name
     """
-    return nbar_fname('NBAR', 'FC')
+    return nbar_fname.replace('NBAR', 'FC')
 
 if __name__ == '__main__':
-    log.info("FC started")
-    luigi.run()
-    sys.exit(0)
+#     logging.info("FC started")
+#     luigi.run()
+#     import sys
+#     sys.exit(0)
 
     # command line arguments
 

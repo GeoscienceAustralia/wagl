@@ -16,6 +16,7 @@ from pqa_result import PQAResult
 from saturation_masking import set_saturation_bits
 from contiguity_masking import set_contiguity_bit
 from fc_utils import *
+from endmembers import *
 
 from thermal_conversion import get_landsat_temperature
 from acca_cloud_masking import calc_acca_cloud_mask
