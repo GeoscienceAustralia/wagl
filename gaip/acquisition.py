@@ -509,6 +509,7 @@ def acquisitions_via_geotiff(path):
 
 
                 # create the Acquisition
+
                 acqs.append(acqtype(new))
 
     return sorted(acqs)

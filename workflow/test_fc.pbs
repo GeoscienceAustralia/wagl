@@ -7,6 +7,7 @@
 ##PBS -M 
 
 module load python/2.7.6
+<<<<<<< HEAD
 module load gcc/4.9.0
 module use /projects/u46/opt/modules/modulefiles
 module load luigi-mpi
@@ -15,7 +16,6 @@ module load rasterio
 module load EOtools
 module load IDL_functions
 module load scikit-image
-
 
 export OUTPUT_ROOT=/short/v10/$USER/FC_luigi_testing
 rm -r ${OUTPUT_ROOT}
