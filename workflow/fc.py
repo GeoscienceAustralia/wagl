@@ -1,6 +1,5 @@
 #!/bin/env python
 
-<<<<<<< HEAD
 import luigi.contrib.mpi as mpi
 import luigi
 import argparse
