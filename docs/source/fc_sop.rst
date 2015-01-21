@@ -20,7 +20,7 @@ Schematic
 ---------
 The diagram below shows the basic operation of the Fractional Cover Job
 
-.. image:: https://raw.githubusercontent.com/smr547/ga-neo-landsat-processor/smr_fc_memory_analysis/docs/source/diagrams/fc.png?token=AEIJ1-cUcdL_nCXzymVdk7WmQ55ACzRHks5UtxSxwA%3D%3D
+.. image:: https://raw.githubusercontent.com/smr547/ga-neo-landsat-processor/sops/docs/source/diagrams/fc.png?token=AEIJ11jN6k2ZXyfnuUsB-t4istyJLvmTks5UyXO_wA%3D%3D
 
 Key elements are:
 
@@ -126,8 +126,8 @@ resources that should be allocated.
 +---------+----+----+-----+-------+--------+---------+---------+
 | Nodes   | 1  | 1  |  2  |   16  |  64    |   256   |   256   |
 +---------+----+----+-----+-------+--------+---------+---------+
-| Wall    | 30 | 30 |  1  | 8 hrs | 10 hrs | 24 hrs  | 24 hrs  |
-| clock   |    |    | hr  |       |        |         |         |
+| Wall    | 30 | 30 | 60  | 8 hrs | 10 hrs | 24 hrs  | 24 hrs  |
+| clock   |    |    |     |       |        |         |         |
 +---------+----+----+-----+-------+--------+---------+---------+
 | Memory  | 8  | 32 | 64  |  512  |  2048  |  8192   |  8192   |
 | (GB)    |    |    |     |       |        |         |         |
@@ -246,7 +246,8 @@ Each Luigi Work (up to 8 per Node) will produce a log file recording all events 
  run_fc_r2942_11495.log  run_fc_r2944_31465.log  run_fc_r2945_27587.log
  run_fc_r2942_11497.log  run_fc_r2944_31467.log
 
-Each log file includes the host name of the Node on which the job ran (e.g. “r82”) as will as the process ID of the worker on that host (e.g. “15108”)
+Each log file includes the host name of the Node on which the job ran (e.g. “r2393”)
+as will as the process ID of the worker on that host (e.g. “2777”)
 
 Check for error messages in these file by:
 
