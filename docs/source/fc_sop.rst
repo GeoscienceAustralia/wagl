@@ -3,31 +3,31 @@
 Standard Operating Procedure
 ============================
 
-Pixel Quality
--------------
+Fractional Cover
+----------------
 
 Purpose
 -------
-A pixel quality program (pq.py_) takes Landsat L1T and NBAR scene pairs and produces a Pixel Quality scene mask as output. 
+The fractional cover program (fc.py_) takes NBAR scene  and produces a Fractional Cover scene as output. 
 
-.. _fq.py: https://github.com/GeoscienceAustralia/ga-neo-landsat-processor/blob/master/workflow/pq.py
+.. _fc.py: https://github.com/GeoscienceAustralia/ga-neo-landsat-processor/blob/master/workflow/fc.py
 
-This document describes how to run the Pixel Quality job via PBS script to process production data. 
+This document describes how to run the Fractional Cover job via PBS script to process production data. 
 
-The Pixel Quality PBS job uses Luigi to run multiple instances of the pixel quality program in parallel. By adjusting the system resources used by the PBS job, hundreds (or thousands) of L1T input files may be processed in a short period of time.
+The Fractional Cover PBS job uses Luigi to run multiple instances of the fractional cover program in parallel. By adjusting the system resources used by the PBS job, hundreds (or thousands) of NBAR input files may be processed in a short period of time.
 
 Schematic
 ---------
-The diagram below shows the basic operation of the Pixel Quality Job
+The diagram below shows the basic operation of the Fractional Cover Job
 
-.. image:: https://raw.githubusercontent.com/smr547/ga-neo-landsat-processor/sops/docs/source/diagrams/pq.png?token=AEIJ1yV9RFDWooW_7muuFban7sdT91G9ks5UtXyJwA%3D%3D
+.. image:: https://raw.githubusercontent.com/smr547/ga-neo-landsat-processor/smr_fc_memory_analysis/docs/source/diagrams/fc.png?token=AEIJ1-cUcdL_nCXzymVdk7WmQ55ACzRHks5UtxSxwA%3D%3D
 
 Key elements are:
 
-* shell script submit_PQ.sh is used to submit the run_PQ.pbs script to the PBS job queue
-* run_PQ.pbs reads scene data from the L1T (product code “OTH”) and * NBAR input directories (product code “NBAR”)
-* data are also read from the ancillary data directory
-* output scenes (Pixel Quality scenes) are written to the PQ Output Directory
+* shell script submit_FC.sh is used to submit the run_FC.pbs script to the PBS job queue
+* run_FC.pbs reads scene data from the NBAR input directory
+* End Member data are maintained in code (changes are applied through revision control)
+* output scenes (Fraction Cover scenes) are written to the FC Output Directory
 * log files are written to the logs directory
 
 Obtaining the code
@@ -51,17 +51,17 @@ PBS Scripts
 -----------
 Two scripts are used to run Pixel Quality processing
 
-* submit_PQ.sh_ – a convenience script to bootstrap the PBS job
-* run_PQ.pbs_ – main PBS job scipt
+* submit_FC.sh_ – a convenience script to bootstrap the PBS job
+* run_FC.pbs_ – main PBS job scipt
 
-.. _submit_PQ.sh: https://github.com/smr547/ga-neo-landsat-processor/blob/develop/workflow/submit_PQ.sh
-.. _run_PQ.pbs: https://github.com/smr547/ga-neo-landsat-processor/blob/develop/workflow/run_PQ.pbs
+.. _submit_FC.sh: https://github.com/smr547/ga-neo-landsat-processor/blob/develop/workflow/submit_FC.sh
+.. _run_FC.pbs: https://github.com/smr547/ga-neo-landsat-processor/blob/develop/workflow/run_FC.pbs
 
 You can view these scripts by clicking on the links above.
 
 Procedure
 ---------
-To run the Pixel Quality job, follow these steps:
+To run the Fractional Cover job, follow these steps:
 
 1. Specify inputs and outputs
 2. Set job resources
@@ -71,24 +71,18 @@ To run the Pixel Quality job, follow these steps:
 
 Specify inputs and outputs
 --------------------------
-Edit the submit_PQ.sh script file and specify the following paths
+Edit the submit_FC.sh script file and specify the following paths
 
 +---------------+----------------------------------------------------------------------------+
 | Variable      | Description                                                                |
 +===============+============================================================================+
-| L1T_PATH      | Path to directory containing L1T files. Files in this directory must       |
-|               | comply with the file naming standards described in Appendix A              |
-+---------------+----------------------------------------------------------------------------+
 | NBAR_PATH     | Path to directory containing NBAR files. Files in this directory must      |
 |               | comply with the file naming standards described in Appendix A              |
 +---------------+----------------------------------------------------------------------------+
-| LAND_SEA_PATH | Path to directory containing the LAND/SEA mask Geotiff files. Refer to     |
-|               | Appendix B                                                                 |
-+---------------+----------------------------------------------------------------------------+
-| OUTPUT_PATH   | Path to the directory where output files are to be placed. The PQA files   |
+| OUTPUT_PATH   | Path to the directory where output files are to be placed. The FC files    |
 |               | output by this job will have a filename compliant with the standard        |
-|               | described in Appendix A. The product code will be “PQA”. The remaining     |
-|               | components of the filename will be those of the L1T input filename.        |
+|               | described in Appendix A. The product code will be “FC”. The remaining     |
+|               | components of the filename will be those of the NBAR input filename.        |
 +---------------+----------------------------------------------------------------------------+
 | LOG_PATH      | Path to the directory where log files will be placed.                      |
 +---------------+----------------------------------------------------------------------------+

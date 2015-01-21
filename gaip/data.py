@@ -24,6 +24,21 @@ def get_pixel(filename, lonlat, band=1):
         return src.read_band(band, window=((y, y + 1), (x, x + 1))).flat[0]
 
 
+def no_data(acq):
+    """
+    Read the supplied acquisition's no data value and return to caller.
+    The parameter `acq` should behave like a `gaip.Acquisition` object.
+    """
+    dirname = acq.dir_name
+    filename = acq.file_name
+    with rasterio.open(pjoin(dirname, filename), 'r') as fo:
+        nodata_list = fo.nodatavals
+        # currently we don't support multi-band GeoTiffs
+        # idx = acq.band_num-1
+        #
+        idx = 0
+        return nodata_list[idx]
+
 def data(acq, out=None):
     """
     Read the supplied acquisition's data into the `out` array if provided,

@@ -1,0 +1,34 @@
+digraph fc {
+
+        rankdir = LR;
+# Luigi tasks
+
+
+# scripts
+
+    { rank=same
+        submit_sh[shape=box, label="submit_FC.sh"]
+        run_pbs[shape=box, label="run_FC_pbs"]
+    }
+
+# Targets
+
+
+	NBAR_ProductDataset [shape=DatabaseShape, peripheries=0, label="NBAR Directory"]
+	FC_ProductDataset [shape=DatabaseShape, peripheries=0, label="FC Directory"]
+	End_Members [shape=box, label="End Members"]
+	logs [shape=DatabaseShape, peripheries=0, label="logs"]
+
+# Outputs
+	run_pbs -> FC_ProductDataset [style=dotted, label="outputs"]
+	run_pbs -> logs [style=dotted, label="outputs"]
+
+# Requires
+
+	NBAR_ProductDataset -> run_pbs [label="requires"]
+	End_Members  -> run_pbs[label="requires"]
+
+# Submissions
+
+        submit_sh -> run_pbs [style=dotted, label="submits", dir=back]
+}
