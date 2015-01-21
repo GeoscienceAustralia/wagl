@@ -24,8 +24,8 @@ The diagram below shows the basic operation of the Fractional Cover Job
 
 Key elements are:
 
-* shell script submit_FC.sh is used to submit the run_FC.pbs script to the PBS job queue
-* run_FC.pbs reads scene data from the NBAR input directory
+* shell script submit_FC.sh_ is used to submit the run_FC.pbs_ script to the PBS job queue
+* run_FC.pbs_ reads scene data from the NBAR input directory
 * End Member data are maintained in code (changes are applied through revision control)
 * output scenes (Fraction Cover scenes) are written to the FC Output Directory
 * log files are written to the logs directory
