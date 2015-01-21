@@ -89,14 +89,14 @@ Edit the submit_FC.sh script file and specify the following paths
 
 Set job resources
 -----------------
-The current version of the Pixel Quality program requires the following resources to process one input scene:
+The current version of the Fraction Cover program requires the following resources to process one input scene:
 
 +------------------------+---------------------------+
 | Resource               | Quantity                  |
 +========================+===========================+
 | CPUs                   + 1                         |
 +------------------------+---------------------------+
-| Wallclock time         | 4 minutes                 |
+| Wallclock time         | 27 minutes                 |
 +------------------------+---------------------------+
 | Memory                 | 8 GBytes                  |
 +------------------------+---------------------------+
