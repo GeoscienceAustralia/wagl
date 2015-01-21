@@ -65,7 +65,7 @@ export PYTHONPATH=/home/547/smr547/ga-neo-landsat-processor:$PYTHONPATH
 
 # now run on all nodes
 
-WORKERS_PER_NODE=4     # <--- Don't change, >4 will result in "PBS: job killed: mem"
+WORKERS_PER_NODE=8     # <--- Don't change, >8 will result in "PBS: job killed: mem"
 mpirun -npernode $WORKERS_PER_NODE \
     python fc.py \
     --nbar_path ${NBAR_PATH} \
