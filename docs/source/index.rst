@@ -18,6 +18,8 @@ Contents:
    history
    algorithms
    pq_sop
+   fc_sop
+   modules
 
 Indices and tables
 ==================
