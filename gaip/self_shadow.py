@@ -47,6 +47,7 @@ def calculate_self_shadow(acquisition, dsm_fname, margins,
     :param out_fnames:
         A list of length 8 containing full file path names for each
         of the outputs in the following order:
+
             * Self shadow mask
             * Slope
             * Aspect
@@ -55,6 +56,7 @@ def calculate_self_shadow(acquisition, dsm_fname, margins,
             * Azimuth incident angle
             * Azimuth exiting angle
             * Relative slope
+
         Default is None, in which case default filenames will be
         used and the results written to the current working
         directory.

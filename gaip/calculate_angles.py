@@ -238,11 +238,12 @@ def setup_spheroid(proj_wkt):
     :return:
         A floating point np array of 4 elements containing
         spheroidal paramaters.
-        Index 0 contains the spheroid Major Axis.
-        Index 1 contains the spheroid Inverse Flattening.
-        Index 2 contains the spheroid Squared Eccentricity.
-        Index 3 contains the Earth rotational angular velocity in
-        radians/second.
+
+            * Index 0 contains the spheroid Major Axis.
+            * Index 1 contains the spheroid Inverse Flattening.
+            * Index 2 contains the spheroid Squared Eccentricity.
+            * Index 3 contains the Earth rotational angular velocity in
+              radians/second.
     """
 
     # Initialise the spheroid array
@@ -286,9 +287,10 @@ def setup_orbital_elements(ephemeral, datetime):
     :return:
         A floating point np array of 3 elements containing the
         satellite ephemeral bodies orbital paramaters.
-        Index 0 contains the obrital inclination in degrees.
-        Index 1 contains the semi major raidus in metres.
-        Index 2 contains the angular velocity in radians/sec^1.
+
+            * Index 0 contains the obrital inclination in degrees.
+            * Index 1 contains the semi major raidus in metres.
+            * Index 2 contains the angular velocity in radians/sec^1.
     """
 
     ephemeral.compute(datetime)
@@ -327,34 +329,37 @@ def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements):
     :param spheroid:
         A 4 element floating point array containing the Earth
         spheroidal paramaters.
-        Index 0 contains the spheroid Major Axis.
-        Index 1 contains the spheroid Inverse Flattening.
-        Index 2 contains the spheroid Squared Eccentricity.
-        Index 3 contains the Earth rotational angular velocity in
-        radians/second.
+
+            * Index 0 contains the spheroid Major Axis.
+            * Index 1 contains the spheroid Inverse Flattening.
+            * Index 2 contains the spheroid Squared Eccentricity.
+            * Index 3 contains the Earth rotational angular velocity in
+              radians/second.
 
     :param orbital_elements:
         A 3 element floating point array containing the satellite
         orbital elements.
-        Index 0 contains the obrital inclination in degrees.
-        Index 1 contains the semi major raidus in metres.
-        Index 2 contains the angular velocity in radians/sec^1.
+
+            * Index 0 contains the obrital inclination in degrees.
+            * Index 1 contains the semi major raidus in metres.
+            * Index 2 contains the angular velocity in radians/sec^1.
 
     :return:
         A floating point np array of 12 elements containing the
         satellite model paramaters.
-        Index 0 contains phi0.
-        Index 1 contains phi0_p.
-        Index 2 contains rho0.
-        Index 3 contains t0.
-        Index 4 contains lam0.
-        Index 5 contains gamm0.
-        Index 6 contains beta0.
-        Index 7 contains rotn0.
-        Index 8 contains hxy0.
-        Index 9 contains N0.
-        Index 10 contains H0.
-        Index 11 contains th_ratio0.
+
+            * Index 0 contains phi0.
+            * Index 1 contains phi0_p.
+            * Index 2 contains rho0.
+            * Index 3 contains t0.
+            * Index 4 contains lam0.
+            * Index 5 contains gamm0.
+            * Index 6 contains beta0.
+            * Index 7 contains rotn0.
+            * Index 8 contains hxy0.
+            * Index 9 contains N0.
+            * Index 10 contains H0.
+            * Index 11 contains th_ratio0.
     """
 
     smodel, _ = set_satmod(centre_lon, centre_lat, spheroid, orbital_elements)
@@ -376,50 +381,54 @@ def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, npoints=12):
     :param spheroid:
         A 4 element floating point array containing the Earth
         spheroidal paramaters.
-        Index 0 contains the spheroid Major Axis.
-        Index 1 contains the spheroid Inverse Flattening.
-        Index 2 contains the spheroid Squared Eccentricity.
-        Index 3 contains the Earth rotational angular velocity in
-        radians/second.
+
+            * Index 0 contains the spheroid Major Axis.
+            * Index 1 contains the spheroid Inverse Flattening.
+            * Index 2 contains the spheroid Squared Eccentricity.
+            * Index 3 contains the Earth rotational angular velocity in
+              radians/second.
 
     :param orbital_elements:
         A 3 element floating point array containing the satellite
         orbital elements.
-        Index 0 contains the obrital inclination in degrees.
-        Index 1 contains the semi major raidus in metres.
-        Index 2 contains the angular velocity in radians/sec^1.
+
+            * Index 0 contains the obrital inclination in degrees.
+            * Index 1 contains the semi major raidus in metres.
+            * Index 2 contains the angular velocity in radians/sec^1.
 
     :param smodel:
         A floating point np array of 12 elements containing the
-        satellite model paramaters.
-        Index 0 contains phi0.
-        Index 1 contains phi0_p.
-        Index 2 contains rho0.
-        Index 3 contains t0.
-        Index 4 contains lam0.
-        Index 5 contains gamm0.
-        Index 6 contains beta0.
-        Index 7 contains rotn0.
-        Index 8 contains hxy0.
-        Index 9 contains N0.
-        Index 10 contains H0.
-        Index 11 contains th_ratio0.
+        satellite model paramaters:
+
+            * Index 0 contains phi0.
+            * Index 1 contains phi0_p.
+            * Index 2 contains rho0.
+            * Index 3 contains t0.
+            * Index 4 contains lam0.
+            * Index 5 contains gamm0.
+            * Index 6 contains beta0.
+            * Index 7 contains rotn0.
+            * Index 8 contains hxy0.
+            * Index 9 contains N0.
+            * Index 10 contains H0.
+            * Index 11 contains th_ratio0.
 
     :param npoints:
         The number of time sample points to be calculated along the
-        satellite track. Default is 12
+        satellite track. Default is 12.
 
     :return:
         A floating point np array of [npoints,8] containing the
         satellite track times and other information.
-        Index 0 t
-        Index 1 rho
-        Index 2 phi_p
-        Index 3 lam
-        Index 4 beta
-        Index 5 hxy
-        Index 6 mj
-        Index 7 skew
+
+            * Index 0 t.
+            * Index 1 rho.
+            * Index 2 phi_p.
+            * Index 3 lam.
+            * Index 4 beta.
+            * Index 5 hxy.
+            * Index 6 mj.
+            * Index 7 skew.
     """
 
     track, _ = set_times(ymin, ymax, npoints, spheroid, orbital_elements,
@@ -460,33 +469,34 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
         memory consumption. When set, then 6 filepathnames will
         be returned instead of np arrays.
         The order is important, and is given as follows:
-        Satellite zenith angle.
-        Satellite azimuth angle.
-        Solar zenith angle.
-        Solar azimuth angle.
-        Relative azimuth angle.
-        Time.
+
+            * Satellite zenith angle.
+            * Satellite azimuth angle.
+            * Solar zenith angle.
+            * Solar azimuth angle.
+            * Relative azimuth angle.
+            * Time.
 
     :return:
         6 float32 np arrays of the same shape as lon_array unless
         the outfilenames is set in which case 6 filepath
         names will be returned:
 
-        1. Satellite zenith angle.
-        2. Satellite azimuth angle.
-        3. Solar zenith angle.
-        4. Solar azimuth angle.
-        5. Relative azimuth angle.
-        6. Time.
+            * 1. Satellite zenith angle.
+            * 2. Satellite azimuth angle.
+            * 3. Solar zenith angle.
+            * 4. Solar azimuth angle.
+            * 5. Relative azimuth angle.
+            * 6. Time.
 
         3 float32 np arrays with the same shape as
         lon_array.shape[0] containing the array coodinates of the
         satellite track line and N_Cent:
 
-        4. Y_coordinates (Starting at 1)
-        5. X_coordinates
-        6. n_cent (Value 2 if centre x coordinate was averaged and
-           1 if centre x coordinate was not averaged)
+            * 4. Y_coordinates (Starting at 1)
+            * 5. X_coordinates
+            * 6. n_cent (Value 2 if centre x coordinate was averaged and
+                 1 if centre x coordinate was not averaged)
     """
     # Get the datetime of the acquisition
     dt = acquisition.scene_center_datetime

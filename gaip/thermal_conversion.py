@@ -14,19 +14,19 @@ def radiance_conversion(band_array, gain, bias):
     Two methods could be used; the gain and bias or the spectral
     radiance scaling. Defined to use the gain and bias method.
 
-    Gain and bias method:
-    B6_gain = (LMAX_BAND6 - LMIN_BAND6) / (QCALMAX_Band6 - QCALMIN_Band6)
-    B6_bias = LMIN_BAND6 - (B6_gain * QCALMIN_Band6)
-    rad = gain * image + bias
+    :gain and bias method:
+        * B6_gain = (LMAX_BAND6 - LMIN_BAND6) / (QCALMAX_Band6 - QCALMIN_Band6)
+        * B6_bias = LMIN_BAND6 - (B6_gain * QCALMIN_Band6)
+        * rad = gain * image + bias
 
-    Spectral Radiance Scaling method
-    rad = ((LMAX - LMIN)/(QCALMAX - QCALMIN)) * (image - QCALMIN) + LMIN
+    :spectral radiance scaling method:
+        * rad = ((LMAX - LMIN)/(QCALMAX - QCALMIN)) * (image - QCALMIN) + LMIN
 
     :param band_array:
         The Thermal band to be converted to radiance, requires DN.
 
     :param gain:
-    Floating point value.
+        Floating point value.
 
     :param bias:
         Floating point value.
@@ -49,8 +49,11 @@ def temperature_conversion(band_array, k1, k2):
         A 2D Numpy array containing the thermal band converted to
         radiance.
 
-    :param met_data:
-        A dictionary containg the metadata of the input image.
+    :param k1:
+        Conversion constant 1.
+
+    :param k2:
+        Conversion constant 2.
 
     :return:
         A 2D Numpy array of the thermal band coverted to at-sensor
@@ -67,8 +70,14 @@ def get_landsat_temperature(l1t_stack, acquisitions, pq_const):
     Converts a Landsat TM/ETM+ thermal band into degrees Kelvin.
     Required input is the image to be in byte scaled DN form (0-255).
 
-    :param band_array:
-        A 2D Numpy array containing the thermal band.
+    :param l1t_stack:
+        A 3D `numpy.ndarray` containing the thermal band.
+
+    :param acquisitions:
+        A list of acquisition instances.
+
+    :param pq_const:
+        An instance of the PQ constants.
 
     :return:
         A 2D Numpy array containing degrees Kelvin.

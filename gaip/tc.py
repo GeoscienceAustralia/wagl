@@ -192,26 +192,29 @@ def run_slope(acquisition, dem, solar_zenith, satellite_view, solar_azimuth,
     :param spheroid:
         A 4 element floating point array containing the Earth
         spheroidal paramaters.
-        Index 0 contains the spheroid Major Axis.
-        Index 1 contains the spheroid Inverse Flattening.
-        Index 2 contains the spheroid Squared Eccentricity.
-        Index 3 contains the Earth rotational angular velocity in
-        radians/second.
+
+            * Index 0 contains the spheroid Major Axis.
+            * Index 1 contains the spheroid Inverse Flattening.
+            * Index 2 contains the spheroid Squared Eccentricity.
+            * Index 3 contains the Earth rotational angular velocity in
+              radians/second.
 
     :return:
         A SlopeResultSet Class with the following NumPy 2D arrays:
-        mask_self
-        slope
-        aspect
-        incident
-        exiting
-        azi_incident
-        azi_exiting
-        rela_slope
+
+            * mask_self
+            * slope
+            * aspect
+            * incident
+            * exiting
+            * azi_incident
+            * azi_exiting
+            * rela_slope
 
     :notes:
-    The parameters ``solar_zenith, satellite_zenith, solar_azimuth``
-    and ``satellite_azimuth_data`` must have the same dimensions.
+        The parameters ``solar_zenith, satellite_zenith,
+        solar_azimuth`` and ``satellite_azimuth_data``
+        must have the same dimensions.
     """
     # Perform datatype checks
     if dem.dtype.name != 'float32':

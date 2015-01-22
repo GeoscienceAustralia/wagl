@@ -447,10 +447,11 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
         A dictionary with tuple (band, factor) as the keys. Each key
         represents the band of your satllite/sensor and brdf factor.
         Each key contains a dictionary with the following keys:
-        data_source -> BRDF
-        data_file -> File system path to the location of the selected
-            BRDF wavelength and factor combination.
-        value -> The mean BRDF value covering your image extents.
+
+            * data_source -> BRDF
+            * data_file -> File system path to the location of the selected
+              BRDF wavelength and factor combination.
+            * value -> The mean BRDF value covering your image extents.
     """
     # Retrieve the satellite and sensor for the acquisition
     satellite = acquisition.spacecraft_id
