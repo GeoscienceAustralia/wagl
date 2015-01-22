@@ -10,7 +10,7 @@ Purpose
 -------
 The fractional cover program (fc.py_) takes NBAR scene  and produces a Fractional Cover scene as output. 
 
-.. _fc.py: https://github.com/GeoscienceAustralia/ga-neo-landsat-processor/blob/master/workflow/fc.py
+.. _fc.py: https://github.com/smr547/ga-neo-landsat-processor/blob/sops/workflow/fc.py
 
 This document describes how to run the Fractional Cover job via PBS script to process production data. 
 
@@ -26,9 +26,11 @@ Key elements are:
 
 * shell script submit_FC.sh_ is used to submit the run_FC.pbs_ script to the PBS job queue
 * run_FC.pbs_ reads scene data from the NBAR input directory
-* End Member data are maintained in code (changes are applied through revision control)
+* `End Members`_ data are maintained in code (changes are applied through revision control)
 * output scenes (Fraction Cover scenes) are written to the FC Output Directory
 * log files are written to the logs directory
+
+.. _End Members: https://github.com/smr547/ga-neo-landsat-processor/blob/sops/gaip/endmembers.py
 
 Obtaining the code
 ------------------
@@ -54,8 +56,8 @@ Two scripts are used to run Fractional Cover processing
 * submit_FC.sh_ – a convenience script to bootstrap the PBS job
 * run_FC.pbs_ – main PBS job scipt
 
-.. _submit_FC.sh: https://github.com/smr547/ga-neo-landsat-processor/blob/develop/workflow/submit_FC.sh
-.. _run_FC.pbs: https://github.com/smr547/ga-neo-landsat-processor/blob/develop/workflow/run_FC.pbs
+.. _submit_FC.sh: https://github.com/smr547/ga-neo-landsat-processor/blob/sops/workflow/submit_FC.sh
+.. _run_FC.pbs: https://github.com/smr547/ga-neo-landsat-processor/blob/sops/workflow/run_FC.pbs
 
 You can view these scripts by clicking on the links above.
 
