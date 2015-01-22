@@ -1,7 +1,7 @@
 
-============================
-Standard Operating Procedure
-============================
+===========================================
+Standard Operating Procedure (Pixel Quality)
+===========================================
 
 Pixel Quality
 -------------
@@ -10,7 +10,7 @@ Purpose
 -------
 A pixel quality program (pq.py_) takes Landsat L1T and NBAR scene pairs and produces a Pixel Quality scene mask as output. 
 
-.. _fq.py: https://github.com/GeoscienceAustralia/ga-neo-landsat-processor/blob/master/workflow/pq.py
+.. _pq.py: https://github.com/GeoscienceAustralia/ga-neo-landsat-processor/blob/develop/workflow/pq.py
 
 This document describes how to run the Pixel Quality job via PBS script to process production data. 
 
@@ -54,8 +54,8 @@ Two scripts are used to run Pixel Quality processing
 * submit_PQ.sh_ – a convenience script to bootstrap the PBS job
 * run_PQ.pbs_ – main PBS job scipt
 
-.. _submit_PQ.sh: https://github.com/smr547/ga-neo-landsat-processor/blob/develop/workflow/submit_PQ.sh
-.. _run_PQ.pbs: https://github.com/smr547/ga-neo-landsat-processor/blob/develop/workflow/run_PQ.pbs
+.. _submit_PQ.sh: https://github.com/GeoscienceAustralia/ga-neo-landsat-processor/blob/develop/workflow/submit_PQ.sh
+.. _run_PQ.pbs: https://github.com/GeoscienceAustralia/ga-neo-landsat-processor/blob/develop/workflow/run_PQ.pbs
 
 You can view these scripts by clicking on the links above.
 
