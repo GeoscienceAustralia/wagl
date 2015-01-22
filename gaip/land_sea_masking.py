@@ -8,24 +8,29 @@ def calc_land_sea_mask(geo_box, \
         ancillary_path='/g/data/v10/eoancillarydata/Land_Sea_Rasters'):
     """
     Creates a Land/Sea mask.
+
     :param geo_box:
         An instance of GriddedGeoBox defining the region for which the
         land/sea mask is required.
 
-        WARNING: geo_box.crs must be UTM!!!
+            * WARNING: geo_box.crs must be UTM!!!
 
     :param ancillary_mask:
         The path to the directory containing the land/sea data files.
+
     :return:
         A 2D Numpy Boolean array. True = Land, False = Sea.
+
     :author:
         Josh Sixsmith, joshua.sixsmith@ga.gov.au
 
-    Note: The function does not currently support reprojections. The 
-    GriddedGeoBox must have CRS and Pixelsize matching the 
-    ancillary data GeoTiffs. 
+    :note:
+        The function does not currently support reprojections. The 
+        GriddedGeoBox must have CRS and Pixelsize matching the 
+        ancillary data GeoTiffs. 
 
-    TODO: support reprojection to any arbitrary GriddedGeoBox
+    :TODO:
+        Support reprojection to any arbitrary GriddedGeoBox.
     """
 
     def img2map(geoTransform, pixel):
@@ -33,9 +38,11 @@ def calc_land_sea_mask(geo_box, \
         Converts a pixel (image) co-ordinate into a map co-ordinate.
         :param geoTransform:
             The Image co-ordinate information (upper left coords, offset
-            and pixel sizes)
+            and pixel sizes).
+
         :param pixel:
             A tuple containg the y and x image co-ordinates.
+
         :return:
             A tuple containg the x and y map co-ordinates.
         """
@@ -48,17 +55,22 @@ def calc_land_sea_mask(geo_box, \
     def map2img(geoTransform, location):
         """
         Converts a map co-ordinate into a pixel (image) co-ordinate.
+
         :param geoTransform:
             The Image co-ordinate information (upper left coords, offset
-            and pixel sizes)
+            and pixel sizes).
+
         :param location:
             A tuple containg the x and y map co-ordinates.
+
         :return:
             A tuple containg the y and x image co-ordinates.
         """
 
-        imgx = int(numpy.round((location[0] - geoTransform[0])/geoTransform[1]))
-        imgy = int(numpy.round((geoTransform[3] - location[1])/numpy.abs(geoTransform[5])))
+        imgx = int(numpy.round((location[0] - geoTransform[0]) /
+                               geoTransform[1]))
+        imgy = int(numpy.round((geoTransform[3] - location[1]) /
+                               numpy.abs(geoTransform[5])))
         return (imgy,imgx)
 
     # get lat/long of geo_box origin

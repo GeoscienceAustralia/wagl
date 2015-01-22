@@ -93,12 +93,12 @@ def stack_data(acqs_list, fn=(lambda acq: True)):
     :return:
         A 3-tuple containing:
 
-        1. The list of selected acquisitions (possibly empty).
-        2. A 3D numpy array (or None) containing the corresponding
-           acquisition data. (None if no data).
-        3. A GriddedGeoBox instance specifying the spatial context
-           or the 3D numpy array. Note: All Acquisitions share the
-           same GriddedGeoBox.
+            * 1. The list of selected acquisitions (possibly empty).
+            * 2. A 3D numpy array (or None) containing the corresponding
+                 acquisition data. (None if no data).
+            * 3. A GriddedGeoBox instance specifying the spatial context
+                 or the 3D numpy array. Note: All Acquisitions share the
+                 same GriddedGeoBox.
     """
 
     # get the subset of acquisitions required
@@ -242,10 +242,10 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, bands=1):
     :return:
         A tuple of 3 elements:
 
-        1. 2D or 3D NumPy array containing the image subset.
-        2. A list of length 6 containing the GDAL geotransform.
-        3. A WKT formatted string representing the co-ordinate
-           reference system (projection).
+            * 1. 2D or 3D NumPy array containing the image subset.
+            * 2. A list of length 6 containing the GDAL geotransform.
+            * 3. A WKT formatted string representing the co-ordinate
+                 reference system (projection).
 
     :additional notes:
         The ending array co-ordinates are increased by +1,
