@@ -20,7 +20,7 @@ Schematic
 ---------
 The diagram below shows the basic operation of the Pixel Quality Job
 
-.. image:: https://raw.githubusercontent.com/smr547/ga-neo-landsat-processor/sops/docs/source/diagrams/pq.png?token=AEIJ1yV9RFDWooW_7muuFban7sdT91G9ks5UtXyJwA%3D%3D
+.. image:: https://github.com/GeoscienceAustralia/ga-neo-landsat-processor/blob/develop/docs/source/diagrams/pq.png
 
 Key elements are:
 
