@@ -12,14 +12,16 @@ Contents:
    :maxdepth: 2
 
    release_notes
-   invoking
-   dependencies
-   directories
    history
    algorithms
+   dependencies
+   directories
+   modules
+   invoking
+   nbar_sop
    pq_sop
    fc_sop
-   modules
+   memory_logging
 
 Indices and tables
 ==================
