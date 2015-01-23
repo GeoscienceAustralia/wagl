@@ -12,6 +12,9 @@ import luigi
 import gaip
 import cPickle as pickle
 import os
+import luigi.contrib.mpi as mpi
+import argparse
+import logging
 
 from os.path import join as pjoin, dirname, exists
 
@@ -1460,8 +1463,62 @@ class TerrainCorrection(luigi.Task):
                                    new_modis_brdf_format)
 
 
+def is_valid_directory(parser, arg):
+    """Used by argparse"""
+    if not exists(arg):
+        parser.error("{path} does not exist".format(path=arg))
+    else:
+        return arg
+
 if __name__ == '__main__':  # FIXME
-    l1t_path = '/g/data1/v10/NBAR_validation_reference/Nov2013/L1T_Input/LS7_90-84_2000-09-13/UTM/LS7_ETM_OTH_P51_GALPGS01-002_090_084_20000913'
-    out_path = '/g/data1/v10/testing_ground/jps547/test_gaip/test_build'
-    luigi.build([TerrainCorrection(l1t_path, out_path)],
-                local_scheduler=True)
+    #l1t_path = '/g/data1/v10/NBAR_validation_reference/Nov2013/L1T_Input/LS7_90-84_2000-09-13/UTM/LS7_ETM_OTH_P51_GALPGS01-002_090_084_20000913'
+    #out_path = '/g/data1/v10/testing_ground/jps547/test_gaip/test_build'
+    #luigi.build([TerrainCorrection(l1t_path, out_path)],
+    #            local_scheduler=True)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--l1t_path", help=("Path to directory containing L1T "
+                        "datasets"), required=True,
+                        type=lambda x: is_valid_directory(parser, x))
+    parser.add_argument("--out_path", help=("Path to directory where NBAR "
+                        "dataset are to be written"), required=True,
+                        type=lambda x: is_valid_directory(parser, x))
+    parser.add_argument("--log_path", help=("Path to directory where where log"
+                        " files will be written"), default='.',
+                        type=lambda x: is_valid_directory(parser, x))
+    parser.add_argument("--debug", help=("Selects more detail logging (default"
+                        " is INFO)"), default=False, action='store_true')
+
+    args = parser.parse_args()
+
+    # setup logging
+    
+    logfile = "{log_path}/run_nbar_{uname}_{pid}.log"
+    logfile = logfile.format(log_path=args.log_path, uname=os.uname()[1],
+                             pid=os.getpid())
+    logging_level = logging.INFO
+    if args.debug:
+        logging_level = logging.DEBUG
+    logging.basicConfig(filename=logfile, level=logging_level,
+        format=('[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - '
+                '%(message)s', datefmt='%H:%M:%S')
+    logging.info("nbar.py started")
+
+
+    logging.info('l1t_path={path}'.format(path=args.l1t_path))
+    logging.info('out_path={path}'.format(path=args.out_path))
+    logging.info('log_path={path}'.format(path=args.log_path))
+
+    # create the task list based on L1T files to process
+
+    tasks = []
+    for l1t_file in [f for f in os.listdir(args.l1t_path) if '_OTH_' in f]:
+        l1t_dataset_path = pjoin(args.nbar_path, l1t_file)
+        nbar_dataset_path = pjoin(args.out_path,
+                                  l1t_file.replace('OTH', 'NBAR'))
+
+        tasks.append(TerrainCorrection(l1t_dataset_path, nbar_dataset_path))
+        
+        print l1t_dataset_path
+
+    mpi.run(tasks)
