@@ -21,7 +21,7 @@ Schematic
 ---------
 The diagram below shows the basic operation of the NBAR Job
 
-.. image:: https://github.com/GeoscienceAustralia/ga-neo-landsat-processor/blob/develop/docs/source/diagrams/nbar.png
+.. image:: diagrams/nbar.png
 
 Key elements are:
 

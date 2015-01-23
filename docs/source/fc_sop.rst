@@ -20,7 +20,7 @@ Schematic
 ---------
 The diagram below shows the basic operation of the Fractional Cover Job
 
-.. image:: https://github.com/GeoscienceAustralia/ga-neo-landsat-processor/blob/develop/docs/source/diagrams/fc.png
+.. image:: diagrams/fc.png
 
 Key elements are:
 

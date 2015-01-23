@@ -1,7 +1,7 @@
 
-===========================================
+============================================
 Standard Operating Procedure (Pixel Quality)
-===========================================
+============================================
 
 Pixel Quality
 -------------
@@ -20,7 +20,7 @@ Schematic
 ---------
 The diagram below shows the basic operation of the Pixel Quality Job
 
-.. image:: https://github.com/GeoscienceAustralia/ga-neo-landsat-processor/blob/develop/docs/source/diagrams/pq.png
+.. image:: diagrams/pq.png
 
 Key elements are:
 
