@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 NBAR Workflow
 -------------
@@ -449,7 +450,7 @@ class CreateModisBrdfFiles(luigi.Task):
     out_path = luigi.Parameter()
 
     def requires(self):
-        return [GetAncillaryData(l1t_path, self.out_path)]
+        return [GetAncillaryData(self.l1t_path, self.out_path)]
 
     def output(self):
         acqs = gaip.acquisitions(self.l1t_path)
@@ -1500,8 +1501,9 @@ if __name__ == '__main__':  # FIXME
     if args.debug:
         logging_level = logging.DEBUG
     logging.basicConfig(filename=logfile, level=logging_level,
-        format=('[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - '
-                '%(message)s', datefmt='%H:%M:%S')
+                        format=('[%(asctime)s] {%(pathname)s:%(lineno)d} '
+                                '%(levelname)s - %(message)s'),
+                        datefmt='%H:%M:%S')
     logging.info("nbar.py started")
 
 
