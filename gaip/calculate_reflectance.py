@@ -232,22 +232,22 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
         ref_terrain_work = numpy.zeros(cols, dtype='float32')
 
         # Read the bilinear ortho files for the current band
-        a_mod = load_2d_bin_file(boo_fnames[(band_number, 'a')], rows, cols,
-                                 dtype=bilinear_dtype, transpose=True)
-        b_mod = load_2d_bin_file(boo_fnames[(band_number, 'b')], rows, cols,
-                                 dtype=bilinear_dtype, transpose=True)
-        s_mod = load_2d_bin_file(boo_fnames[(band_number, 's')], rows, cols,
-                                 dtype=bilinear_dtype, transpose=True)
-        fv = load_2d_bin_file(boo_fnames[(band_number, 'fs')], rows, cols,
-                              dtype=bilinear_dtype, transpose=True)
-        fs = load_2d_bin_file(boo_fnames[(band_number, 'fv')], rows, cols,
-                              dtype=bilinear_dtype, transpose=True)
-        ts = load_2d_bin_file(boo_fnames[(band_number, 'ts')], rows, cols,
-                              dtype=bilinear_dtype, transpose=True)
-        edir_h = load_2d_bin_file(boo_fnames[(band_number, 'dir')], rows, cols,
-                                  dtype=bilinear_dtype, transpose=True)
-        edif_h = load_2d_bin_file(boo_fnames[(band_number, 'dif')], rows, cols,
-                                  dtype=bilinear_dtype, transpose=True)
+        a_mod = as_array(read_img(boo_fnames[(band_number, 'a')]),
+                         dtype=numpy.float32, transpose=True)
+        b_mod = as_array(read_img(boo_fnames[(band_number, 'b')]),
+                         dtype=numpy.float32, transpose=True)
+        s_mod = as_array(read_img(boo_fnames[(band_number, 's')]),
+                         dtype=numpy.float32, transpose=True)
+        fs = as_array(read_img(boo_fnames[(band_number, 'fs')]),
+                      dtype=numpy.float32, transpose=True)
+        fv = as_array(read_img(boo_fnames[(band_number, 'fv')]),
+                      dtype=numpy.float32, transpose=True)
+        ts = as_array(read_img(boo_fnames[(band_number, 'ts')]),
+                      dtype=numpy.float32, transpose=True)
+        edir_h = as_array(read_img(boo_fnames[(band_number, 'dir')]),
+                          dtype=numpy.float32, transpose=True)
+        edif_h = as_array(read_img(boo_fnames[(band_number, 'dif')]),
+                          dtype=numpy.float32, transpose=True)
 
         # Run terrain correction
         # We use transposed arrays; rows become cols and cols become rows
@@ -256,7 +256,7 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
                     self_shadow, cast_shadow_sun, cast_shadow_satellite,
                     solar_zenith, solar_azimuth, satellite_view,
                     relative_angle, slope, aspect, incident_angle,
-                    exiting_angle, relative_slope, a_mod, b_mod, s_mod, fv, fs,
+                    exiting_angle, relative_slope, a_mod, b_mod, s_mod, fs, fv,
                     ts, edir_h, edif_h, band_work, ref_lm_work, ref_brdf_work,
                     ref_terrain_work, ref_lm.transpose(), ref_brdf.transpose(),
                     ref_terrain.transpose())
