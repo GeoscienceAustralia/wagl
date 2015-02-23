@@ -68,7 +68,7 @@ c       for first box
             a1(i,3)=(yy(i)-iy01)
             a1(i,4)=(xx(i)-ix01)*(yy(i)-iy01)
           enddo
-          write(12,*)(a1(i,j),j=1,nl)
+c          write(12,*)(a1(i,j),j=1,nl)
         enddo
 
 c       for the second box
@@ -89,7 +89,7 @@ c       for the second box
             a2(i,3)=(yy(i)-iy02)
             a2(i,4)=(xx(i)-ix02)*(yy(i)-iy02)
           enddo
-          write(12,*)(a2(i,j),j=1,nl)
+c          write(12,*)(a2(i,j),j=1,nl)
         enddo
 
 c       for the third box
@@ -110,7 +110,7 @@ c       for the third box
             a3(i,3)=(yy(i)-iy03)
             a3(i,4)=(xx(i)-ix03)*(yy(i)-iy03)
           enddo
-          write(12,*)(a3(i,j),j=1,nl)
+c          write(12,*)(a3(i,j),j=1,nl)
         enddo
 
 c       for the fourth box
@@ -131,7 +131,7 @@ c       for the fourth box
             a4(i,3)=(yy(i)-iy04)
             a4(i,4)=(xx(i)-ix04)*(yy(i)-iy04)
           enddo
-          write(12,*)(a4(i,j),j=1,nl)
+c          write(12,*)(a4(i,j),j=1,nl)
         enddo
 
 c       input the four coordinator data
@@ -154,26 +154,26 @@ c       open output file
         read(2,*)(s4(i),i=1,nr)
 
         call gauss(a1,nr,nl,s1,cof1,solut)
-        if (solut) then
-          write(11,*)(cof1(i),i=1,nr)
-        endif
+c        if (solut) then
+c          write(11,*)(cof1(i),i=1,nr)
+c        endif
 
         call gauss(a2,nr,nl,s2,cof2,solut)
 
-        if (solut) then
-          write(11,*)(cof2(i),i=1,nr)
-        endif
+c        if (solut) then
+c          write(11,*)(cof2(i),i=1,nr)
+c        endif
 
         call gauss(a3,nr,nl,s3,cof3,solut)
 
-        if (solut) then
-        write(11,*)(cof3(i),i=1,nr)
-        endif
+c        if (solut) then
+c        write(11,*)(cof3(i),i=1,nr)
+c        endif
 
         call gauss(a4,nr,nl,s4,cof4,solut)
-        if (solut) then
-          write(11,*)(cof4(i),i=1,nr)
-        endif
+c        if (solut) then
+c          write(11,*)(cof4(i),i=1,nr)
+c        endif
 c       read header of center line
         read(4,*)angle
         read(4,*)mm,mn
