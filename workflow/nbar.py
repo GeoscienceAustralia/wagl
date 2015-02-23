@@ -13,9 +13,9 @@ import luigi
 import gaip
 import cPickle as pickle
 import os
-import luigi.contrib.mpi as mpi
 import argparse
 import logging
+from gaip import MemuseFilter
 
 from os.path import join as pjoin, dirname, exists
 
@@ -1011,6 +1011,7 @@ class BilinearInterpolation(luigi.Task):
         output_format = CONFIG.get('bilinear', 'output_format')
         workpath = pjoin(out_path,
                          CONFIG.get('work', 'modtran_root'))
+        input_format = pjoin(workpath, input_format)
 
         acqs = gaip.acquisitions(self.l1t_path)
 
@@ -1471,12 +1472,32 @@ def is_valid_directory(parser, arg):
     else:
         return arg
 
-if __name__ == '__main__':  # FIXME
-    #l1t_path = '/g/data1/v10/NBAR_validation_reference/Nov2013/L1T_Input/LS7_90-84_2000-09-13/UTM/LS7_ETM_OTH_P51_GALPGS01-002_090_084_20000913'
-    #out_path = '/g/data1/v10/testing_ground/jps547/test_gaip/test_build'
-    #luigi.build([TerrainCorrection(l1t_path, out_path)],
-    #            local_scheduler=True)
 
+def scatter(iterable, P=1, p=1):
+    """
+    Scatter an iterator across `P` processors where `p` is the index
+    of the current processor. This partitions the work evenly across
+    processors.
+    """
+    import itertools
+    return itertools.islice(iterable, p-1, None, P)
+ 
+ 
+def main(inpath, outpath, nnodes=1, nodenum=1):
+    l1t_files = sorted([pjoin(inpath, f) for f in os.listdir(inpath) if
+                        '_OTH_' in f])
+    l1t_files = [f for f in scatter(l1t_files, nnodes, nodenum)]
+    print l1t_files
+    nbar_files = [pjoin(outpath, os.path.basename(f).replace('OTH', 'NBAR'))
+                  for f in l1t_files]
+    tasks = [TerrainCorrection(l1t, nbar) for l1t, nbar in
+             zip(l1t_files, nbar_files)]
+    ncpus = int(os.getenv('PBS_NCPUS', '1'))
+    #luigi.build(tasks, local_scheduler=True, workers=ncpus / nnodes)
+    luigi.build(tasks, local_scheduler=True, workers=2)
+
+
+if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--l1t_path", help=("Path to directory containing L1T "
                         "datasets"), required=True,
@@ -1493,7 +1514,6 @@ if __name__ == '__main__':  # FIXME
     args = parser.parse_args()
 
     # setup logging
-    
     logfile = "{log_path}/run_nbar_{uname}_{pid}.log"
     logfile = logfile.format(log_path=args.log_path, uname=os.uname()[1],
                              pid=os.getpid())
@@ -1501,26 +1521,18 @@ if __name__ == '__main__':  # FIXME
     if args.debug:
         logging_level = logging.DEBUG
     logging.basicConfig(filename=logfile, level=logging_level,
-                        format=('[%(asctime)s] {%(pathname)s:%(lineno)d} '
-                                '%(levelname)s - %(message)s'),
-                        datefmt='%H:%M:%S')
+                        format=("%(asctime)s: [%(name)s] (%(levelname)s) "
+                                "%(message)s "
+                                "{RSS=%(rss_MB).1fMB,SWAP=%(swap_MB).1fMB}"))
+
+    memuse_filter = MemuseFilter()
+    logging.root.handlers[0].addFilter(memuse_filter)
+
     logging.info("nbar.py started")
-
-
     logging.info('l1t_path={path}'.format(path=args.l1t_path))
     logging.info('out_path={path}'.format(path=args.out_path))
     logging.info('log_path={path}'.format(path=args.log_path))
 
-    # create the task list based on L1T files to process
-
-    tasks = []
-    for l1t_file in [f for f in os.listdir(args.l1t_path) if '_OTH_' in f]:
-        l1t_dataset_path = pjoin(args.nbar_path, l1t_file)
-        nbar_dataset_path = pjoin(args.out_path,
-                                  l1t_file.replace('OTH', 'NBAR'))
-
-        tasks.append(TerrainCorrection(l1t_dataset_path, nbar_dataset_path))
-        
-        print l1t_dataset_path
-
-    mpi.run(tasks)
+    size = int(os.getenv('PBS_NNODES', '1'))
+    rank = int(os.getenv('PBS_VNODENUM', '1'))
+    main(args.l1t_path, args.out_path, size, rank)
