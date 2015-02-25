@@ -13,6 +13,9 @@ from gaip import read_img
 from gaip import run_slope
 
 
+X_TILE = None
+Y_TILE = 20
+
 def calculate_self_shadow(acquisition, dsm_fname, margins,
                           solar_zenith_fname, solar_azimuth_fname,
                           satellite_view_fname, satellite_azimuth_fname,
@@ -118,10 +121,24 @@ def write_header_slope_file(file_name, margins, geobox):
                                                     yorigin=origin[1]))
 
 
-def self_shadow(incident_fname, exiting_fname, self_shadow_out_fname,
-                header_slope_fname=None):
+def self_shadow(incident_fname, exiting_fname, self_shadow_out_fname):
     """
-    
+    Computes the self shadow mask.
+
+    :param incident_fname:
+        A string containing the full file path name to the incident
+        angle image.
+
+    :param exiting_fname:
+        A string containing the full file path name to the exiting
+        angle image.
+
+    :param self_shadow_out_fname:
+        A string containing the full file path name to be used for
+        writing the self shadow mask on disk.
+
+    :return:
+        None. Output is written to disk.
     """
 
     with rasterio.open(incident_fname) as inc_ds,\
@@ -179,6 +196,3 @@ def self_shadow(incident_fname, exiting_fname, self_shadow_out_fname,
         # Close the file
         outband = None
         outds = None
-
-    if header_slope_fname:
-        write_header_slope_file(header_slope_fname, pixel_buf, geobox)
