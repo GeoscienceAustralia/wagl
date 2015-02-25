@@ -1,17 +1,13 @@
 #!/usr/bin/env
 
-import gdal
 import numpy
 import rasterio
 
-from EOtools import tiling
+from gaip import as_array
 from gaip import ImageMargins
 from gaip import setup_spheroid
 from gaip import _slope_aspect
 from gaip import write_img
-
-X_TILE = None
-Y_TILE = 100
 
 
 def write_header_slope_file(file_name, margins, geobox):
@@ -89,7 +85,7 @@ def slope_aspect(acquisition, dsm_fname, margins, slope_out_fname,
     nrow = rows + 2
 
     # Define the index to read the DEM subset
-    idx = ((pixel_margin.top - 1, -(margin.bottom - 1)),
+    idx = ((pixel_margin.top - 1, -(pixel_margin.bottom - 1)),
            (pixel_margin.left - 1, -(pixel_margin.right - 1)))
 
     with rasterio.open(dsm_fname) as dsm_ds:

@@ -7,11 +7,8 @@ import gdal
 import numpy
 import rasterio
 
-from gaip import ImageMargins
-from gaip import setup_spheroid
-from gaip import read_img
-from gaip import run_slope
-
+from EOtools import tiling
+from gaip import GriddedGeoBox
 
 X_TILE = None
 Y_TILE = 100
@@ -66,15 +63,9 @@ def self_shadow(incident_fname, exiting_fname, self_shadow_out_fname):
 
         # Loop over each tile
         for tile in tiles:
-            # Row and column start and end locations
+            # Row and column start locations
             ystart = tile[0][0]
             xstart = tile[1][0]
-            yend = tile[0][1]
-            xend = tile[1[0]
-
-            # Tile size
-            ysize = yend - ystart
-            xsize = xend - xstart
 
             # Read the data for the current tile
             inc = numpy.radians(inc_ds.read_band(1, window=tile, masked=False))

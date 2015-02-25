@@ -5,6 +5,7 @@ import numpy
 import rasterio
 
 from EOtools import tiling
+from gaip import as_array
 from gaip import GriddedGeoBox
 from gaip import _exiting_angle
 from gaip import _incident_angle
@@ -48,6 +49,7 @@ def incident_angle(solar_zenith_fname, solar_azimuth_fname, slope_fname,
     # Retrieve a geobox
     with rasterio.open(solar_zenith_fname) as ds:
         geobox = GriddedGeoBox.from_rio_dataset(ds)
+        cols, rows = geobox.get_shape_xy()
 
     # Initialise the output files
     output_fnames = {'incident': incident_out_fname,
@@ -81,45 +83,47 @@ def incident_angle(solar_zenith_fname, solar_azimuth_fname, slope_fname,
         tiles = tiling.generate_tiles(cols, rows, X_TILE, Y_TILE,
                                       Generator=False)
 
-       # Loop over each tile
-       for tile in tiles:
-           # Row and column start and end locations
-           ystart = tile[0][0]
-           xstart = tile[1][0]
-           yend = tile[0][1]
-           xend = tile[1[0]
+        # Loop over each tile
+        for tile in tiles:
+            # Row and column start and end locations
+            ystart = tile[0][0]
+            xstart = tile[1][0]
+            yend = tile[0][1]
+            xend = tile[1][0]
 
-           # Tile size
-           ysize = yend - ystart
-           xsize = xend - xstart
+            # Tile size
+            ysize = yend - ystart
+            xsize = xend - xstart
 
-           # Read the data for the current tile
-           # Convert to required datatype and transpose
-           sol_zen = as_array(sol_z_ds.read_band(1, window=tile, masked=False),
-                              dtype=numpy.float32, transpose=True)
-           sol_azi = as_array(sol_azi_ds.read_band(1, window=tile,
-                                                   masked=False),
-                              dtype=numpy.float32, transpose=True)
-           slope = as_array(slope_ds.read_band(1, window=tile, masked=False),
-                            dtype=numpy.float32, transpose=True)
-           aspect = as_array(aspect_ds.read_band(1, window=tile, masked=False),
+            # Read the data for the current tile
+            # Convert to required datatype and transpose
+            sol_zen = as_array(sol_z_ds.read_band(1, window=tile,
+                                                  masked=False),
+                               dtype=numpy.float32, transpose=True)
+            sol_azi = as_array(sol_azi_ds.read_band(1, window=tile,
+                                                    masked=False),
+                               dtype=numpy.float32, transpose=True)
+            slope = as_array(slope_ds.read_band(1, window=tile, masked=False),
                              dtype=numpy.float32, transpose=True)
+            aspect = as_array(aspect_ds.read_band(1, window=tile,
+                                                  masked=False),
+                              dtype=numpy.float32, transpose=True)
 
-           # Initialise the work arrays
-           incident = numpy.zeros((ysize, xsize), dtype='float32').transpose()
-           azi_incident = numpy.zeros((ysize, xsize),
-                                      dtype='float32').transpose()
+            # Initialise the work arrays
+            incident = numpy.zeros((ysize, xsize), dtype='float32').transpose()
+            azi_incident = numpy.zeros((ysize, xsize),
+                                       dtype='float32').transpose()
 
-           # Process the current tile
-           _incident_angle(xsize, ysize, sol_zen, sol_azi, slope, aspect,
-                           incident, azi_incident)
+            # Process the current tile
+            _incident_angle(xsize, ysize, sol_zen, sol_azi, slope, aspect,
+                            incident, azi_incident)
 
-           # Write the current tile to disk
-           out_bands['incident'].WriteArray(incident, xstart, ystart)
-           out_bands['incident'].FlushCache()
-           out_bands['azimuth_incident'].WriteArray(azi_incident, xstart,
-                                                    ystart)
-           out_bands['azimuth_incident'].FlushCache()
+            # Write the current tile to disk
+            out_bands['incident'].WriteArray(incident, xstart, ystart)
+            out_bands['incident'].FlushCache()
+            out_bands['azimuth_incident'].WriteArray(azi_incident, xstart,
+                                                     ystart)
+            out_bands['azimuth_incident'].FlushCache()
 
     # Close the files to complete the writing
     for key in output_fnames:
@@ -164,6 +168,7 @@ def exiting_angle(satellite_view_fname, satellite_azimuth_fname, slope_fname,
     # Retrieve a geobox
     with rasterio.open(satellite_view_fname) as ds:
         geobox = GriddedGeoBox.from_rio_dataset(ds)
+        cols, rows = geobox.get_shape_xy()
 
     # Initialise the output files
     output_fnames = {'exiting': exiting_out_fname,
@@ -197,46 +202,47 @@ def exiting_angle(satellite_view_fname, satellite_azimuth_fname, slope_fname,
         tiles = tiling.generate_tiles(cols, rows, X_TILE, Y_TILE,
                                       Generator=False)
 
-       # Loop over each tile
-       for tile in tiles:
-           # Row and column start and end locations
-           ystart = tile[0][0]
-           xstart = tile[1][0]
-           yend = tile[0][1]
-           xend = tile[1[0]
+        # Loop over each tile
+        for tile in tiles:
+            # Row and column start and end locations
+            ystart = tile[0][0]
+            xstart = tile[1][0]
+            yend = tile[0][1]
+            xend = tile[1][0]
 
-           # Tile size
-           ysize = yend - ystart
-           xsize = xend - xstart
+            # Tile size
+            ysize = yend - ystart
+            xsize = xend - xstart
 
-           # Read the data for the current tile
-           # Convert to required datatype and transpose
-           sat_view = as_array(sat_view_ds.read_band(1, window=tile,
-                                                     masked=False),
+            # Read the data for the current tile
+            # Convert to required datatype and transpose
+            sat_view = as_array(sat_view_ds.read_band(1, window=tile,
+                                                      masked=False),
+                                dtype=numpy.float32, transpose=True)
+            sat_azi = as_array(sat_azi_ds.read_band(1, window=tile,
+                                                    masked=False),
                                dtype=numpy.float32, transpose=True)
-           sat_azi = as_array(sat_azi_ds.read_band(1, window=tile,
-                                                   masked=False),
-                              dtype=numpy.float32, transpose=True)
-           slope = as_array(slope_ds.read_band(1, window=tile, masked=False),
-                            dtype=numpy.float32, transpose=True)
-           aspect = as_array(aspect_ds.read_band(1, window=tile, masked=False),
+            slope = as_array(slope_ds.read_band(1, window=tile, masked=False),
                              dtype=numpy.float32, transpose=True)
+            aspect = as_array(aspect_ds.read_band(1, window=tile,
+                                                  masked=False),
+                              dtype=numpy.float32, transpose=True)
 
-           # Initialise the work arrays
-           exiting = numpy.zeros((ysize, xsize), dtype='float32').transpose()
-           azi_exiting = numpy.zeros((ysize, xsize),
-                                     dtype='float32').transpose()
+            # Initialise the work arrays
+            exiting = numpy.zeros((ysize, xsize), dtype='float32').transpose()
+            azi_exiting = numpy.zeros((ysize, xsize),
+                                      dtype='float32').transpose()
 
-           # Process the current tile
-           _exiting_angle(xsize, ysize, sol_zen, sol_azi, slope, aspect,
-                           exiting, azi_exiting)
+            # Process the current tile
+            _exiting_angle(xsize, ysize, sat_view, sat_azi, slope, aspect,
+                            exiting, azi_exiting)
 
-           # Write the current to disk
-           out_bands['exiting'].WriteArray(exiting, xstart, ystart)
-           out_bands['exiting'].FlushCache()
-           out_bands['azimuth_exiting'].WriteArray(azi_exiting, xstart,
-                                                    ystart)
-           out_bands['azimuth_exiting'].FlushCache()
+            # Write the current to disk
+            out_bands['exiting'].WriteArray(exiting, xstart, ystart)
+            out_bands['exiting'].FlushCache()
+            out_bands['azimuth_exiting'].WriteArray(azi_exiting, xstart,
+                                                     ystart)
+            out_bands['azimuth_exiting'].FlushCache()
 
     # Close the files to complete the writing
     for key in output_fnames:
@@ -278,7 +284,7 @@ def relative_azimuth(azimuth_incident_fname, azimuth_exiting_fname,
         drv = gdal.GetDriverByName("ENVI")
         out_dtype = gdal.GDT_Float32
         nbands = 1
-        outds = drv.Create(relative_azimuth_fname, cols, rows, nbands,
+        outds = drv.Create(relative_azimuth_out_fname, cols, rows, nbands,
                            out_dtype)
         outds.SetProjection(prj)
         outds.SetGeoTransform(geoT)
@@ -295,15 +301,9 @@ def relative_azimuth(azimuth_incident_fname, azimuth_exiting_fname,
 
         # Loop over each tile
         for tile in tiles:
-            # Row and column start and end locations
+            # Row and column start locations
             ystart = tile[0][0]
             xstart = tile[1][0]
-            yend = tile[0][1]
-            xend = tile[1[0]
-
-            # Tile size
-            ysize = yend - ystart
-            xsize = xend - xstart
 
             # Read the data for the current tile
             azi_inc = azi_inc_ds.read_band(1, window=tile, masked=False)

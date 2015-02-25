@@ -255,7 +255,7 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
                 ystart = tile[0][0]
                 xstart = tile[1][0]
                 yend = tile[0][1]
-                xend = tile[1[0]
+                xend = tile[1][0]
 
                 # Tile size
                 ysize = yend - ystart
