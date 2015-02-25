@@ -220,10 +220,14 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
         # Initialise the tiling scheme for processing
         # Process 1 row of data at a time
         if X_TILE is None:
-            X_TILE = cols
+            x_tile = cols
+        else:
+            x_tile = X_TILE
         if Y_TILE is None:
-            Y_TILE = 1
-        tiles = tiling.generate_tiles(cols, rows, X_TILE, Y_TILE,
+            y_tile = 1
+        else:
+            y_tile = Y_TILE
+        tiles = tiling.generate_tiles(cols, rows, x_tile, y_tile,
                                       Generator=False)
 
         # Read the BRDF modis file for a given band
@@ -255,7 +259,7 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
                 ystart = tile[0][0]
                 xstart = tile[1][0]
                 yend = tile[0][1]
-                xend = tile[1][0]
+                xend = tile[1][1]
 
                 # Tile size
                 ysize = yend - ystart
@@ -300,7 +304,7 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
                                                       masked=False),
                                   dtype=numpy.float32, transpose=True)
                 incident_angle = as_array(incident_angle_ds.read_band(1,
-                                          window=tile, msked=False),
+                                          window=tile, masked=False),
                                           dtype=numpy.float32,
                                           transpose=True)
                 exiting_angle = as_array(exiting_angle_ds.read_band(1,

@@ -1,4 +1,4 @@
-SUBROUTINE _exiting_angle(nrow, ncol, &
+SUBROUTINE exiting_angle(nrow, ncol, &
     view, azi, theta, phit, et, azi_et)
 
 ! calculates incident angles
@@ -11,8 +11,7 @@ SUBROUTINE _exiting_angle(nrow, ncol, &
     real azi_c
     integer col, row
 
-!f2py depend(ncol), view, azi, theta, phit, et, azi_et
-!f2py depend(nrow), view, azi, theta, phit, et, azi_et
+!f2py depend(nrow, ncol), view, azi, theta, phit, et, azi_et
 
 !---------------------------------------------------------------------
 
@@ -31,4 +30,4 @@ SUBROUTINE _exiting_angle(nrow, ncol, &
         enddo
     enddo
     return
-END SUBROUTINE _exiting_angle
+END SUBROUTINE exiting_angle

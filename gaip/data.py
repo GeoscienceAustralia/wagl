@@ -39,7 +39,7 @@ def no_data(acq):
         idx = 0
         return nodata_list[idx]
 
-def data(acq, out=None, window=None):
+def data(acq, out=None, window=None, masked=False):
     """
     Read the supplied acquisition's data into the `out` array if provided,
     otherwise return a new `numpy.array` containing the data.
@@ -48,7 +48,7 @@ def data(acq, out=None, window=None):
     dirname = acq.dir_name
     filename = acq.file_name
     with rasterio.open(pjoin(dirname, filename), 'r') as fo:
-        return fo.read_band(1, out=out, window=window)
+        return fo.read_band(1, out=out, window=window, masked=masked)
 
 
 def data_and_box(acq, out=None):

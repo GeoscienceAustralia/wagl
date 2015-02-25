@@ -6,7 +6,7 @@ import rasterio
 from gaip import as_array
 from gaip import ImageMargins
 from gaip import setup_spheroid
-from gaip import _slope_aspect
+from gaip import slope_aspect
 from gaip import write_img
 
 
@@ -27,8 +27,8 @@ def write_header_slope_file(file_name, margins, geobox):
                                                     yorigin=origin[1]))
 
 
-def slope_aspect(acquisition, dsm_fname, margins, slope_out_fname,
-                 aspect_out_fname, header_slope_fname=None):
+def slope_aspect_arrays(acquisition, dsm_fname, margins, slope_out_fname,
+                        aspect_out_fname, header_slope_fname=None):
     """
     Calculates slope and aspect.
 
@@ -98,11 +98,11 @@ def slope_aspect(acquisition, dsm_fname, margins, slope_out_fname,
                        dtype=numpy.float64)  # yes, I did mean float64.
 
     # Define the output arrays. These will be transposed upon input
-    slope = numpy.zeros((rows, cols), dtype='float32').transpose()
-    aspect = numpy.zeros((rows, cols), dtype='float32').transpose()
+    slope = numpy.zeros((rows, cols), dtype='float32')
+    aspect = numpy.zeros((rows, cols), dtype='float32')
 
-    _slope_aspect(ncol, nrow, cols, rows, dresx, dresy, spheroid, alat, is_utm,
-                  dsm_subset, slope.transpose(), aspect.transpose())
+    slope_aspect(ncol, nrow, cols, rows, dresx, dresy, spheroid, alat, is_utm,
+                 dsm_subset, slope.transpose(), aspect.transpose())
 
     # Output the results
     write_img(slope, slope_out_fname, geobox=geobox, nodata=-999)

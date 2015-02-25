@@ -1,4 +1,4 @@
-SUBROUTINE _incident_angle(nrow, ncol, &
+SUBROUTINE incident_angle(nrow, ncol, &
     solar, sazi, theta, phit, it, azi_it)
 
 ! calculates incident angles
@@ -11,8 +11,7 @@ SUBROUTINE _incident_angle(nrow, ncol, &
     real sazi_c
     integer col, row
 
-!f2py depend(ncol), solar, sazi, theta, phit, it, azi_it
-!f2py depend(nrow), solar, sazi, theta, phit, it, azi_it
+!f2py depend(nrow, ncol), solar, sazi, theta, phit, it, azi_it
 
 !---------------------------------------------------------------------
 
@@ -31,4 +30,4 @@ SUBROUTINE _incident_angle(nrow, ncol, &
         enddo
     enddo
     return
-END SUBROUTINE _incident_angle
+END SUBROUTINE incident_angle

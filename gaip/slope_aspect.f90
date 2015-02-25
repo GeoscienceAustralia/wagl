@@ -1,4 +1,4 @@
-SUBROUTINE _slope_aspect(nrow, ncol, nrow_alloc, ncol_alloc, &
+SUBROUTINE slope_aspect(nrow, ncol, nrow_alloc, ncol_alloc, &
     dresx, dresy, spheroid, alat, is_utm, dem, &
     theta, phit, ierr)
 ! this program is used to calculate slope and aspect angles
@@ -41,10 +41,8 @@ SUBROUTINE _slope_aspect(nrow, ncol, nrow_alloc, ncol_alloc, &
     integer istat
     integer*4 n_row, n_col, row, col
 
-!f2py depend(ncol), dem
-!f2py depend(nrow), dem
-!f2py depend(ncol_alloc), theta, phit
-!f2py depend(nrow_alloc), theta, phit
+!f2py depend(nrow, ncol), dem
+!f2py depend(nrow_alloc, ncol_alloc), theta, phit
 
 !feff2py intent(in) dresx, dresy, spheroid, alat, dem, is_utm
 !feff2py intent(inout) theta, phit
@@ -104,4 +102,4 @@ SUBROUTINE _slope_aspect(nrow, ncol, nrow_alloc, ncol_alloc, &
         enddo
     enddo
     return
-END SUBROUTINE _slope_aspect
+END SUBROUTINE slope_aspect

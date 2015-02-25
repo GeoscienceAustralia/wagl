@@ -1153,8 +1153,9 @@ class SlopeAndAspect(luigi.Task):
         header_slope_target = pjoin(work_path,
                                     CONFIG.get('work', 'header_slope_target'))
 
-        gaip.slope_aspect(acqs[0], smoothed_dsm_fname, margins, slope_target,
-                          aspect_target, header_slope_target)
+        gaip.slope_aspect_arrays(acqs[0], smoothed_dsm_fname, margins,
+                                 slope_target, aspect_target,
+                                 header_slope_target)
 
 
 class IncidentAngles(luigi.Task):
@@ -1207,9 +1208,9 @@ class IncidentAngles(luigi.Task):
                                     CONFIG.get('self_shadow',
                                                'azimuth_incident_target'))
 
-        gaip.incident_angle(solar_zenith_fname, solar_azimuth_fname,
-                            slope_target, aspect_target,
-                            incident_target, azi_incident_target)
+        gaip.incident_angles(solar_zenith_fname, solar_azimuth_fname,
+                             slope_target, aspect_target,
+                             incident_target, azi_incident_target)
 
 
 class ExitingAngles(luigi.Task):
@@ -1264,9 +1265,9 @@ class ExitingAngles(luigi.Task):
                                    CONFIG.get('self_shadow',
                                               'azimuth_exiting_target'))
 
-        gaip.exiting_angle(satellite_view_fname, satellite_azimuth_fname,
-                           slope_target, aspect_target,
-                           exiting_target, azi_exiting_target)
+        gaip.exiting_angles(satellite_view_fname, satellite_azimuth_fname,
+                            slope_target, aspect_target,
+                            exiting_target, azi_exiting_target)
 
 
 class RelativeAzimuth(luigi.Task):

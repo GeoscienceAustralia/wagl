@@ -7,14 +7,14 @@ import rasterio
 from EOtools import tiling
 from gaip import as_array
 from gaip import GriddedGeoBox
-from gaip import _exiting_angle
-from gaip import _incident_angle
+from gaip import exiting_angle
+from gaip import incident_angle
 
 
 X_TILE = None
 Y_TILE = 100
 
-def incident_angle(solar_zenith_fname, solar_azimuth_fname, slope_fname,
+def incident_angles(solar_zenith_fname, solar_azimuth_fname, slope_fname,
                    aspect_fname, incident_out_fname,
                    azimuth_incident_out_fname):
     """
@@ -77,10 +77,14 @@ def incident_angle(solar_zenith_fname, solar_azimuth_fname, slope_fname,
 
         # Initialise the tiling scheme for processing
         if X_TILE is None:
-            X_TILE = cols
+            x_tile = cols
+        else:
+            x_tile = X_TILE
         if Y_TILE is None:
-            Y_TILE = 1
-        tiles = tiling.generate_tiles(cols, rows, X_TILE, Y_TILE,
+            y_tile = 1
+        else:
+            y_tile = Y_TILE
+        tiles = tiling.generate_tiles(cols, rows, x_tile, y_tile,
                                       Generator=False)
 
         # Loop over each tile
@@ -89,7 +93,7 @@ def incident_angle(solar_zenith_fname, solar_azimuth_fname, slope_fname,
             ystart = tile[0][0]
             xstart = tile[1][0]
             yend = tile[0][1]
-            xend = tile[1][0]
+            xend = tile[1][1]
 
             # Tile size
             ysize = yend - ystart
@@ -110,13 +114,12 @@ def incident_angle(solar_zenith_fname, solar_azimuth_fname, slope_fname,
                               dtype=numpy.float32, transpose=True)
 
             # Initialise the work arrays
-            incident = numpy.zeros((ysize, xsize), dtype='float32').transpose()
-            azi_incident = numpy.zeros((ysize, xsize),
-                                       dtype='float32').transpose()
+            incident = numpy.zeros((ysize, xsize), dtype='float32')
+            azi_incident = numpy.zeros((ysize, xsize), dtype='float32')
 
             # Process the current tile
-            _incident_angle(xsize, ysize, sol_zen, sol_azi, slope, aspect,
-                            incident, azi_incident)
+            incident_angle(xsize, ysize, sol_zen, sol_azi, slope, aspect,
+                           incident.transpose(), azi_incident.transpose())
 
             # Write the current tile to disk
             out_bands['incident'].WriteArray(incident, xstart, ystart)
@@ -134,7 +137,7 @@ def incident_angle(solar_zenith_fname, solar_azimuth_fname, slope_fname,
     output_files = None
 
 
-def exiting_angle(satellite_view_fname, satellite_azimuth_fname, slope_fname,
+def exiting_angles(satellite_view_fname, satellite_azimuth_fname, slope_fname,
                   aspect_fname, exiting_out_fname, azimuth_exiting_out_fname):
     """
     Calculates the exiting angle and the azimuthal exiting angle.
@@ -196,10 +199,14 @@ def exiting_angle(satellite_view_fname, satellite_azimuth_fname, slope_fname,
 
         # Initialise the tiling scheme for processing
         if X_TILE is None:
-            X_TILE = cols
+            x_tile = cols
+        else:
+            x_tile = X_TILE
         if Y_TILE is None:
-            Y_TILE = 1
-        tiles = tiling.generate_tiles(cols, rows, X_TILE, Y_TILE,
+            y_tile = 1
+        else:
+            y_tile = Y_TILE
+        tiles = tiling.generate_tiles(cols, rows, x_tile, y_tile,
                                       Generator=False)
 
         # Loop over each tile
@@ -208,7 +215,7 @@ def exiting_angle(satellite_view_fname, satellite_azimuth_fname, slope_fname,
             ystart = tile[0][0]
             xstart = tile[1][0]
             yend = tile[0][1]
-            xend = tile[1][0]
+            xend = tile[1][1]
 
             # Tile size
             ysize = yend - ystart
@@ -229,13 +236,12 @@ def exiting_angle(satellite_view_fname, satellite_azimuth_fname, slope_fname,
                               dtype=numpy.float32, transpose=True)
 
             # Initialise the work arrays
-            exiting = numpy.zeros((ysize, xsize), dtype='float32').transpose()
-            azi_exiting = numpy.zeros((ysize, xsize),
-                                      dtype='float32').transpose()
+            exiting = numpy.zeros((ysize, xsize), dtype='float32')
+            azi_exiting = numpy.zeros((ysize, xsize), dtype='float32')
 
             # Process the current tile
-            _exiting_angle(xsize, ysize, sat_view, sat_azi, slope, aspect,
-                            exiting, azi_exiting)
+            exiting_angle(xsize, ysize, sat_view, sat_azi, slope, aspect,
+                          exiting.transpose(), azi_exiting.transpose())
 
             # Write the current to disk
             out_bands['exiting'].WriteArray(exiting, xstart, ystart)
@@ -293,10 +299,14 @@ def relative_azimuth(azimuth_incident_fname, azimuth_exiting_fname,
 
         # Initialise the tiling scheme for processing
         if X_TILE is None:
-            X_TILE = cols
+            x_tile = cols
+        else:
+            x_tile = X_TILE
         if Y_TILE is None:
-            Y_TILE = 1
-        tiles = tiling.generate_tiles(cols, rows, X_TILE, Y_TILE,
+            y_tile = 1
+        else:
+            y_tile = Y_TILE
+        tiles = tiling.generate_tiles(cols, rows, x_tile, y_tile,
                                       Generator=False)
 
         # Loop over each tile
