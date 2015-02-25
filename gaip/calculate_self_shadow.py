@@ -14,7 +14,7 @@ from gaip import run_slope
 
 
 X_TILE = None
-Y_TILE = 20
+Y_TILE = 100
 
 
 def self_shadow(incident_fname, exiting_fname, self_shadow_out_fname):

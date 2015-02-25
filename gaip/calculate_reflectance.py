@@ -13,7 +13,7 @@ from gaip import write_new_brdf_file
 from EOtools import tiling
 
 X_TILE = None
-Y_TILE = 20
+Y_TILE = 100
 
 def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
                           self_shadow_fname, cast_shadow_sun_fname,

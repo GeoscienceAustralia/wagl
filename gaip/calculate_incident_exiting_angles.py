@@ -11,7 +11,7 @@ from gaip import _incident_angle
 
 
 X_TILE = None
-Y_TILE = 20
+Y_TILE = 100
 
 def incident_angle(solar_zenith_fname, solar_azimuth_fname, slope_fname,
                    aspect_fname, incident_out_fname,

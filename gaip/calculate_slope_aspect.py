@@ -11,7 +11,7 @@ from gaip import _slope_aspect
 from gaip import write_img
 
 X_TILE = None
-Y_TILE = 20
+Y_TILE = 100
 
 
 def write_header_slope_file(file_name, margins, geobox):
