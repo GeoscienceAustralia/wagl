@@ -1747,8 +1747,8 @@ def main(inpath, outpath, nnodes=1, nodenum=1):
     tasks = [TerrainCorrection(l1t, nbar) for l1t, nbar in
              zip(l1t_files, nbar_files)]
     ncpus = int(os.getenv('PBS_NCPUS', '1'))
-    #luigi.build(tasks, local_scheduler=True, workers=ncpus / nnodes)
-    luigi.build(tasks, local_scheduler=True, workers=2)
+    luigi.build(tasks, local_scheduler=True, workers=ncpus / nnodes)
+    #luigi.build(tasks, local_scheduler=True, workers=2)
 
 
 if __name__ == '__main__':
