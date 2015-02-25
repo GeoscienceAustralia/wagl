@@ -32,12 +32,15 @@ try:
     from _cast_shadow_mask import cast_shadow_main # F2Py
     from _slope_self_shadow import slope_self_shadow # F2Py
     from _surface_reflectance import reflectance # F2Py
+    from _calculate_exiting_angle import _exiting_angle # F2Py
+    from _calculate_incident_angle import _incident_angle # F2Py
     from calculate_angles import *
     from tc import *
     from dsm import get_dsm
     from self_shadow import calculate_self_shadow
     from cast_shadow import calculate_cast_shadow
     from calculate_reflectance import calculate_reflectance
+    from incident_exiting_angles import *
 except ImportError:
     msg = ('Run Makefile to build the Fortran modules.\n'
            'Some functionality in library is disabled')
