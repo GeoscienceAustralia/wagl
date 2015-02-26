@@ -1201,6 +1201,12 @@ class IncidentAngles(luigi.Task):
         aspect_target = pjoin(work_path,
                               CONFIG.get('self_shadow', 'aspect_target'))
 
+        # Get the processing tile sizes
+        x_tile = int(CONFIG.get('work', 'x_tile_size'))
+        y_tile = int(CONFIG.get('work', 'y_tile_size'))
+        x_tile = None if x_tile <= 0 else x_tile
+        y_tile = None if y_tile <= 0 else y_tile
+
         # Output targets
         incident_target = pjoin(work_path,
                                 CONFIG.get('self_shadow', 'incident_target'))
@@ -1210,7 +1216,8 @@ class IncidentAngles(luigi.Task):
 
         gaip.incident_angles(solar_zenith_fname, solar_azimuth_fname,
                              slope_target, aspect_target,
-                             incident_target, azi_incident_target)
+                             incident_target, azi_incident_target,
+                             x_tile, y_tile)
 
 
 class ExitingAngles(luigi.Task):
@@ -1257,6 +1264,12 @@ class ExitingAngles(luigi.Task):
         aspect_target = pjoin(work_path,
                               CONFIG.get('self_shadow', 'aspect_target'))
 
+        # Get the processing tile sizes
+        x_tile = int(CONFIG.get('work', 'x_tile_size'))
+        y_tile = int(CONFIG.get('work', 'y_tile_size'))
+        x_tile = None if x_tile <= 0 else x_tile
+        y_tile = None if y_tile <= 0 else y_tile
+
         # Output targets
         exiting_target = pjoin(work_path,
                                CONFIG.get('self_shadow',
@@ -1267,7 +1280,7 @@ class ExitingAngles(luigi.Task):
 
         gaip.exiting_angles(satellite_view_fname, satellite_azimuth_fname,
                             slope_target, aspect_target,
-                            exiting_target, azi_exiting_target)
+                            exiting_target, azi_exiting_target, x_tile, y_tile)
 
 
 class RelativeAzimuth(luigi.Task):
@@ -1306,13 +1319,19 @@ class RelativeAzimuth(luigi.Task):
                                    CONFIG.get('self_shadow',
                                               'azimuth_exiting_target'))
 
+        # Get the processing tile sizes
+        x_tile = int(CONFIG.get('work', 'x_tile_size'))
+        y_tile = int(CONFIG.get('work', 'y_tile_size'))
+        x_tile = None if x_tile <= 0 else x_tile
+        y_tile = None if y_tile <= 0 else y_tile
+
         # Output target
         relative_aximuth_target = pjoin(work_path,
                                         CONFIG.get('self_shadow',
                                                    'relative_slope_target'))
 
         gaip.relative_azimuth(azi_incident_target, azi_exiting_target,
-                              relative_aximuth_target)
+                              relative_aximuth_target, x_tile, y_tile)
 
 class SelfShadow(luigi.Task):
 
@@ -1347,12 +1366,19 @@ class SelfShadow(luigi.Task):
         exiting_target = pjoin(work_path,
                                CONFIG.get('self_shadow', 'exiting_target'))
 
+        # Get the processing tile sizes
+        x_tile = int(CONFIG.get('work', 'x_tile_size'))
+        y_tile = int(CONFIG.get('work', 'y_tile_size'))
+        x_tile = None if x_tile <= 0 else x_tile
+        y_tile = None if y_tile <= 0 else y_tile
+
         # Output target
         self_shadow_target = pjoin(work_path,
                                    CONFIG.get('self_shadow',
                                               'self_shadow_target'))
 
-        gaip.self_shadow(incident_target, exiting_target, self_shadow_target)
+        gaip.self_shadow(incident_target, exiting_target, self_shadow_target,
+                         x_tile, y_tile)
 
 
 #class SlopeAndSelfShadow(luigi.Task):
@@ -1701,6 +1727,12 @@ class TerrainCorrection(luigi.Task):
             if band_number in bands_to_process:
                 acqs_to_process.append(acq)
 
+        # Get the processing tile sizes
+        x_tile = int(CONFIG.get('work', 'x_tile_size'))
+        y_tile = int(CONFIG.get('work', 'y_tile_size'))
+        x_tile = None if x_tile <= 0 else x_tile
+        y_tile = None if y_tile <= 0 else y_tile
+
         # Output targets
         # Create a dict of filenames per reflectance level per band
         rfl_lvl_fnames = {}
@@ -1717,7 +1749,7 @@ class TerrainCorrection(luigi.Task):
                                    aspect_target, incident_target,
                                    exiting_target, relative_slope_target,
                                    rfl_lvl_fnames, modis_brdf_format,
-                                   new_modis_brdf_format)
+                                   new_modis_brdf_format, x_tile, y_tile)
 
 
 def is_valid_directory(parser, arg):

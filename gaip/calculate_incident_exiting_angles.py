@@ -11,12 +11,9 @@ from gaip import exiting_angle
 from gaip import incident_angle
 
 
-X_TILE = None
-Y_TILE = 100
-
 def incident_angles(solar_zenith_fname, solar_azimuth_fname, slope_fname,
                    aspect_fname, incident_out_fname,
-                   azimuth_incident_out_fname):
+                   azimuth_incident_out_fname, x_tile=None, y_tile=None):
     """
     Calculates the incident angle and the azimuthal incident angle.
 
@@ -41,6 +38,14 @@ def incident_angles(solar_zenith_fname, solar_azimuth_fname, slope_fname,
     :param azimuth_incident_out_fname:
         A string containing the full file path name to be used for
         writing the azimuth incident angle image on disk.
+
+    :param x_tile:
+        Defines the tile size along the x-axis. Default is None which
+        equates to all elements along the x-axis.
+
+    :param y_tile:
+        Defines the tile size along the y-axis. Default is None which
+        equates to all elements along the y-axis.
 
     :return:
         None. Outputs are written to disk.
@@ -76,14 +81,10 @@ def incident_angles(solar_zenith_fname, solar_azimuth_fname, slope_fname,
         rasterio.open(aspect_fname) as aspect_ds:
 
         # Initialise the tiling scheme for processing
-        if X_TILE is None:
+        if x_tile is None:
             x_tile = cols
-        else:
-            x_tile = X_TILE
-        if Y_TILE is None:
-            y_tile = 1
-        else:
-            y_tile = Y_TILE
+        if y_tile is None:
+            y_tile = rows
         tiles = tiling.generate_tiles(cols, rows, x_tile, y_tile,
                                       Generator=False)
 
@@ -138,7 +139,8 @@ def incident_angles(solar_zenith_fname, solar_azimuth_fname, slope_fname,
 
 
 def exiting_angles(satellite_view_fname, satellite_azimuth_fname, slope_fname,
-                  aspect_fname, exiting_out_fname, azimuth_exiting_out_fname):
+                  aspect_fname, exiting_out_fname, azimuth_exiting_out_fname,
+                  x_tile=None, y_tile=None):
     """
     Calculates the exiting angle and the azimuthal exiting angle.
 
@@ -163,6 +165,14 @@ def exiting_angles(satellite_view_fname, satellite_azimuth_fname, slope_fname,
     :param azimuth_exiting_out_fname:
         A string containing the full file path name to be used for
         writing the azimuth exiting angle image on disk.
+
+    :param x_tile:
+        Defines the tile size along the x-axis. Default is None which
+        equates to all elements along the x-axis.
+
+    :param y_tile:
+        Defines the tile size along the y-axis. Default is None which
+        equates to all elements along the y-axis.
 
     :return:
         None. Outputs are written to disk.
@@ -198,14 +208,10 @@ def exiting_angles(satellite_view_fname, satellite_azimuth_fname, slope_fname,
         rasterio.open(aspect_fname) as aspect_ds:
 
         # Initialise the tiling scheme for processing
-        if X_TILE is None:
+        if x_tile is None:
             x_tile = cols
-        else:
-            x_tile = X_TILE
-        if Y_TILE is None:
-            y_tile = 1
-        else:
-            y_tile = Y_TILE
+        if y_tile is None:
+            y_tile = rows
         tiles = tiling.generate_tiles(cols, rows, x_tile, y_tile,
                                       Generator=False)
 
@@ -260,7 +266,7 @@ def exiting_angles(satellite_view_fname, satellite_azimuth_fname, slope_fname,
 
 
 def relative_azimuth(azimuth_incident_fname, azimuth_exiting_fname,
-                     relative_azimuth_out_fname):
+                     relative_azimuth_out_fname, x_tile=None, y_tile=None):
     """
     Calculates the relative azimuth angle on the slope surface.
 
@@ -275,6 +281,17 @@ def relative_azimuth(azimuth_incident_fname, azimuth_exiting_fname,
     :param relative_slope_out_fname:
         A string containing the full file path name to be used for
         writing the relative azimuth angle image on disk.
+
+    :param x_tile:
+        Defines the tile size along the x-axis. Default is None which
+        equates to all elements along the x-axis.
+
+    :param y_tile:
+        Defines the tile size along the y-axis. Default is None which
+        equates to all elements along the y-axis.
+
+    :return:
+        None. Output is written to disk.
     """
 
     with rasterio.open(azimuth_incident_fname) as azi_inc_ds,\
@@ -298,14 +315,10 @@ def relative_azimuth(azimuth_incident_fname, azimuth_exiting_fname,
         outband.SetNoDataValue(-999)
 
         # Initialise the tiling scheme for processing
-        if X_TILE is None:
+        if x_tile is None:
             x_tile = cols
-        else:
-            x_tile = X_TILE
-        if Y_TILE is None:
-            y_tile = 1
-        else:
-            y_tile = Y_TILE
+        if y_tile is None:
+            y_tile = rows
         tiles = tiling.generate_tiles(cols, rows, x_tile, y_tile,
                                       Generator=False)
 

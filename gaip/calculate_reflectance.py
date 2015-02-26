@@ -12,8 +12,6 @@ from gaip import reflectance
 from gaip import write_new_brdf_file
 from EOtools import tiling
 
-X_TILE = None
-Y_TILE = 100
 
 def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
                           self_shadow_fname, cast_shadow_sun_fname,
@@ -22,7 +20,8 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
                           relative_angle_fname, slope_fname, aspect_fname,
                           incident_angle_fname, exiting_angle_fname,
                           relative_slope_fname, reflectance_filenames,
-                          brdf_fname_format, new_brdf_fname_format):
+                          brdf_fname_format, new_brdf_fname_format,
+                          x_tile=None, y_tile=None):
     """
     The workflow used to calculate lambertian, BRDF corrected and
     terrain corrected surface reflectance.
@@ -116,6 +115,14 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
         A string containing the new brdf filename format eg:
         new_brdf_modis_band_{band_num}.txt, where {band_num} will be
         substituted for the current band number.
+
+    :param x_tile:
+        Defines the tile size along the x-axis. Default is None which
+        equates to all elements along the x-axis.
+
+    :param y_tile:
+        Defines the tile size along the y-axis. Default is None which
+        equates to all elements along the y-axis.
 
     :return:
         None.
@@ -218,15 +225,10 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
             out_bands[key].SetNoDataValue(-999)
 
         # Initialise the tiling scheme for processing
-        # Process 1 row of data at a time
-        if X_TILE is None:
+        if x_tile is None:
             x_tile = cols
-        else:
-            x_tile = X_TILE
-        if Y_TILE is None:
-            y_tile = 1
-        else:
-            y_tile = Y_TILE
+        if y_tile is None:
+            y_tile = rows
         tiles = tiling.generate_tiles(cols, rows, x_tile, y_tile,
                                       Generator=False)
 

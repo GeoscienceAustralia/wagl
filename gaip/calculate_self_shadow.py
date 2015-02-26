@@ -14,7 +14,8 @@ X_TILE = None
 Y_TILE = 100
 
 
-def self_shadow(incident_fname, exiting_fname, self_shadow_out_fname):
+def self_shadow(incident_fname, exiting_fname, self_shadow_out_fname,
+                x_tile=None, y_tile=None):
     """
     Computes the self shadow mask.
 
@@ -29,6 +30,14 @@ def self_shadow(incident_fname, exiting_fname, self_shadow_out_fname):
     :param self_shadow_out_fname:
         A string containing the full file path name to be used for
         writing the self shadow mask on disk.
+
+    :param x_tile:
+        Defines the tile size along the x-axis. Default is None which
+        equates to all elements along the x-axis.
+
+    :param y_tile:
+        Defines the tile size along the y-axis. Default is None which
+        equates to all elements along the y-axis.
 
     :return:
         None. Output is written to disk.
@@ -54,14 +63,10 @@ def self_shadow(incident_fname, exiting_fname, self_shadow_out_fname):
         outband = outds.GetRasterBand(1)
 
         # Initialise the tiling scheme for processing
-        if X_TILE is None:
+        if x_tile is None:
             x_tile = cols
-        else:
-            x_tile = X_TILE
-        if Y_TILE is None:
-            y_tile = 1
-        else:
-            y_tile = Y_TILE
+        if y_tile is None:
+            y_tile = rows
         tiles = tiling.generate_tiles(cols, rows, x_tile, y_tile,
                                       Generator=False)
 
