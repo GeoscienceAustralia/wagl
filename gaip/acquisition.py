@@ -51,13 +51,13 @@ class Acquisition(object):
             return self.band_name.replace('band', '')
 
 
-    def data(self, out=None):
+    def data(self, out=None, window=None, masked=False):
         """
         Return `numpy.array` of the data for this acquisition.
         If `out` is supplied, it must be a numpy.array into which
         the Acquisition's data will be read.
         """
-        return gaip.data(self, out=out)
+        return gaip.data(self, out=out, window=window, masked=masked)
 
     def data_and_box(self, out=None):
         """

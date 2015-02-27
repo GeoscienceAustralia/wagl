@@ -5,7 +5,6 @@ Terrain Correction
 import numpy
 from scipy import ndimage
 from gaip import cast_shadow_main
-from gaip import slope_self_shadow
 from gaip import write_img
 
 
