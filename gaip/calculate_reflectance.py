@@ -202,27 +202,16 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
         tc_fname = reflectance_filenames[(band_number,
                                           'reflectance_terrain')]
 
-        fnames = {}
-        fnames['lambertian'] = lmbrt_fname
-        fnames['brdf'] = brdf_fname
-        fnames['terrain'] = tc_fname
-
         # Initialise the output files
-        output_files = {}
-        out_bands = {}
-        drv = gdal.GetDriverByName("ENVI")
         out_dtype = gdal.GDT_Int16
-        nbands = 1
-        prj = geobox.crs.ExportToWkt()
-        geoT = geobox.affine.to_gdal()
-        for key in fnames:
-            fname = fnames[key]
-            output_files[key] = drv.Create(fname, cols, rows, nbands,
-                                           out_dtype)
-            output_files[key].SetProjection(prj)
-            output_files[key].SetGeoTransform(geoT)
-            out_bands[key] = output_files[key].GetRasterBand(1)
-            out_bands[key].SetNoDataValue(-999)
+        no_data = -999
+        outds_lmbrt = tiling.TiledOutput(lmbrt_fname, cols, rows,
+                                         geobox=geobox, dtype=out_dtype,
+                                         nodata=no_data)
+        outds_brdf = tiling.TiledOutput(brdf_fname, cols, rows, geobox=geobox,
+                                        dtype=out_dtype, nodata=no_data)
+        outds_tc = tiling.TiledOutput(tc_fname, cols, rows, geobox=geobox,
+                                      dtype=out_dtype, nodata=no_data)
 
         # Initialise the tiling scheme for processing
         if x_tile is None:
@@ -230,7 +219,7 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
         if y_tile is None:
             y_tile = rows
         tiles = tiling.generate_tiles(cols, rows, x_tile, y_tile,
-                                      Generator=False)
+                                      generator=False)
 
         # Read the BRDF modis file for a given band
         brdf_modis_file = brdf_fname_format.format(band_num=acq.band_num)
@@ -368,21 +357,14 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
 
 
                 # Write the current tile to disk
-                out_bands['lambertian'].WriteArray(ref_lm, xstart, ystart)
-                out_bands['lambertian'].FlushCache()
-                out_bands['brdf'].WriteArray(ref_brdf, xstart, ystart)
-                out_bands['brdf'].FlushCache()
-                out_bands['terrain'].WriteArray(ref_terrain, xstart,
-                                                ystart)
-                out_bands['terrain'].FlushCache()
+                outds_lmbrt.write_tile(ref_lm, tile)
+                outds_brdf.write_tile(ref_brdf, tile)
+                outds_tc.write_tile(ref_terrain, tile)
 
         # Close the files to complete the writing
-        for key in fnames:
-            out_bands[key] = None
-            output_files[key] = None
-
-        out_bands = None
-        output_files = None
+        outds_lmbrt.close()
+        outds_brdf.close()
+        outds_tc.close()
 
     # close all the opened image files
     self_shadow_ds.close()
