@@ -1130,7 +1130,7 @@ class SlopeAndAspect(luigi.Task):
 
         targets = [luigi.LocalTarget(slope_target),
                    luigi.LocalTarget(aspect_target),
-                   luigi.LocalTairget(header_slope_target)]
+                   luigi.LocalTarget(header_slope_target)]
 
         return targets
 
