@@ -59,7 +59,7 @@ class Acquisition(object):
         """
         return gaip.data(self, out=out, window=window, masked=masked)
 
-    def data_and_box(self, out=None):
+    def data_and_box(self, out=None, window=None, masked=False):
         """
         Return a tuple comprising the `numpy.array` of the data for this
         Acquisition and the `GriddedGeoBox` describing the spatial extent.
