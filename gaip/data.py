@@ -47,7 +47,7 @@ def data(acq, out=None, window=None, masked=False):
     The parameter `window` defines a subset ((ystart, yend), (xstart, xend))
     in array co-ordinates. Default is None.
     The parameter `masked` indicates whether or not to return a masked array.
-    Default is None.
+    Default is False.
     """
     dirname = acq.dir_name
     filename = acq.file_name
@@ -55,7 +55,7 @@ def data(acq, out=None, window=None, masked=False):
         return fo.read_band(1, out=out, window=window, masked=masked)
 
 
-def data_and_box(acq, out=None, window=None, masked=None):
+def data_and_box(acq, out=None, window=None, masked=Flase):
     """
     Return a tuple comprising the `numpy.array` containing the data of
     the acquisition `acq` together with the associated GriddedGeoBox describing
@@ -66,7 +66,7 @@ def data_and_box(acq, out=None, window=None, masked=None):
     The parameter `window` defines a subset ((ystart, yend), (xstart, xend))
     in array co-ordinates. Default is None.
     The parameter `masked` indicates whether or not to return a masked array.
-    Default is None.
+    Default is False.
     """
     dirname = acq.dir_name
     filename = acq.file_name
@@ -112,7 +112,7 @@ def stack_data(acqs_list, fn=(lambda acq: True), window=None, masked=False):
         co-ordinates. Default is None.
 
     :param masked:
-        Indicates whether or not to return a masked array. Default is None.
+        Indicates whether or not to return a masked array. Default is False.
 
     :return:
         A 3-tuple containing:
