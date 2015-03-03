@@ -55,7 +55,7 @@ def data(acq, out=None, window=None, masked=False):
         return fo.read_band(1, out=out, window=window, masked=masked)
 
 
-def data_and_box(acq, out=None, window=None, masked=Flase):
+def data_and_box(acq, out=None, window=None, masked=False):
     """
     Return a tuple comprising the `numpy.array` containing the data of
     the acquisition `acq` together with the associated GriddedGeoBox describing
@@ -94,18 +94,25 @@ def gridded_geo_box(acq):
         return gaip.GriddedGeoBox.from_dataset(fo)
 
 
-def stack_data(acqs_list, fn=(lambda acq: True), window=None, masked=False):
+def select_acquisitions(acqs_list, fn=(lambda acq: True)):
     """
     Given a list of acquisitions, apply the supplied fn to select the
-    desired acquisitions and return the data from each acquisition
+    desired acquisitions.
+    """
+    acqs = [acq for acq in acqs_list if fn(acq)]
+    return acqs
+
+
+def stack_data(acqs_list, fn=(lambda acq: True), window=None, masked=False):
+    """
+    Given a list of acquisitions, return the data from each acquisition
     collected in a 3D numpy array (first index is the acquisition number).
+    If window is defined, then the subset contained within the window is
+    returned along with a GriddedGeoBox instance detailing the 
+    spatial information associated with that subset.
 
     :param acqs_list:
-        The list of acquisitions to consider
-
-    :param fn:
-        A function that takes a single acquisition and returns True if the
-        acquisition is to be selected for inclusion in the output
+        The list of acquisitions from which to generate a stack of data.
 
     :param window:
         Defines a subset ((ystart, yend), (xstart, xend)) in array
@@ -115,23 +122,16 @@ def stack_data(acqs_list, fn=(lambda acq: True), window=None, masked=False):
         Indicates whether or not to return a masked array. Default is False.
 
     :return:
-        A 3-tuple containing:
+        A 2-tuple containing:
 
-            * 1. The list of selected acquisitions (possibly empty).
-            * 2. A 3D numpy array (or None) containing the corresponding
+            * 1. A 3D numpy array (or None) containing the corresponding
                  acquisition data. (None if no data).
-            * 3. A GriddedGeoBox instance specifying the spatial context
-                 or the 3D numpy array. Note: All Acquisitions share the
+            * 2. A GriddedGeoBox instance specifying the spatial context
+                 of the 3D numpy array. Note: All Acquisitions share the
                  same GriddedGeoBox.
     """
-
-    # get the subset of acquisitions required
-
-    acqs = [acq for acq in acqs_list if fn(acq)]
-    if len(acqs) == 0:
-        return acqs, None, None
-
     # determine data type and dimensions by reading the first band
+    acqs = acqs_list
     a, geo_box = acqs[0].data_and_box(window=window, masked=masked)
 
     # create the result array, setting datatype based on source type
@@ -148,9 +148,9 @@ def stack_data(acqs_list, fn=(lambda acq: True), window=None, masked=False):
         # resampled. But we want an exception thrown if the user
         # tries to stack irreqular aquisitions
         # acqs[i].data(out=stack[i])
-        stack[i] = acqs[i].data()
+        stack[i] = acqs[i].data(window=window, masked=masked)
 
-    return acqs, stack, geo_box
+    return stack, geo_box
 
 
 def write_img(array, filename, fmt='ENVI', geobox=None, nodata=None):
