@@ -44,14 +44,8 @@ checkExists LOG_PATH $LOG_PATH
 
 # Modules
 
-module load python/2.7.6
 module use /projects/u46/opt/modules/modulefiles
-# module load gaip   # GA Image Processor
-module load EOtools
-module load luigi-mpi
-module load rasterio
-module load IDL_functions
-module load scikit-image
+module load gaip   # GA Image Processor
 
 # Debug resources
 echo "NODES:"
@@ -59,14 +53,11 @@ cat $PBS_NODEFILE | uniq
 echo "CPUS: "
 cat $PBS_NODEFILE | wc -l 
 
-# override the image_processor so we get out code
-# TODO: replace this with module load
-export PYTHONPATH=/home/547/smr547/ga-neo-landsat-processor:$PYTHONPATH
-
 # now run on all nodes
 
-WORKERS_PER_NODE=8     # <--- Don't change, >8 will result in "PBS: job killed: mem"
+WORKERS_PER_NODE=16     # <--- Don't change, >16 will result in "PBS: job killed: mem"
 mpirun -npernode $WORKERS_PER_NODE \
+    --mca mpi_warn_on_fork 0 \
     python fc.py \
     --nbar_path ${NBAR_PATH} \
     --out_path ${OUTPUT_PATH}  \
