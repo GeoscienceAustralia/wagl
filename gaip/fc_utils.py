@@ -6,7 +6,6 @@ import gdal
 
 from EOtools import tiling
 from gaip import endmembers
-from gaip import gridded_geo_box
 from gaip import stack_data
 from gaip import unmiximage
 
@@ -96,9 +95,8 @@ def fractional_cover(acquisitions, x_tile, y_tile, out_fnames):
     """
     # Compute the geobox and get the array dimensions from the 1st
     # acquisition
-    geobox = gridded_geo_box(acquisitions[0])
-    cols = acquisitions[0].samples
-    rows = acquisitions[0].lines
+    geobox = acquisitions[0].gridded_geo_box()
+    cols, rows = geobox.get_shape_xy()
 
 
     # Initialise the tiling scheme for processing
@@ -134,19 +132,20 @@ def fractional_cover(acquisitions, x_tile, y_tile, out_fnames):
 
     # Initialise the output files
     out_dtype = gdal.GDT_Int16
+    fmt = "GTiff"
     outds_pv = tiling.TiledOutput(out_fnames[0], cols, rows, geobox=geobox,
-                                  dtype=out_dtype, nodata=no_data)
+                                  dtype=out_dtype, nodata=no_data, fmt=fmt)
     outds_npv = tiling.TiledOutput(out_fnames[1], cols, rows, geobox=geobox,
-                                   dtype=out_dtype, nodata=no_data)
+                                   dtype=out_dtype, nodata=no_data, fmt=fmt)
     outds_bs = tiling.TiledOutput(out_fnames[2], cols, rows, geobox=geobox,
-                                  dtype=out_dtype, nodata=no_data)
+                                  dtype=out_dtype, nodata=no_data, fmt=fmt)
     outds_ue = tiling.TiledOutput(out_fnames[3], cols, rows, geobox=geobox,
-                                  dtype=out_dtype, nodata=no_data)
+                                  dtype=out_dtype, nodata=no_data, fmt=fmt)
 
     # Loop over each tile
     for tile in tiles:
         # Read the data for the current tile from acquisitions
-        stack, _, geo_box = stack_data(acquisitions, window=tile)
+        stack, _ = stack_data(acquisitions, window=tile)
 
         # set no data values to zero
         numpy.maximum(stack, zero, out=stack)
