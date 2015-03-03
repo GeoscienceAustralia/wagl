@@ -4,7 +4,7 @@ import luigi.contrib.mpi as mpi
 import luigi
 import argparse
 import os
-from os.path import join as pjoin
+from os.path import join as pjoin, dirname
 import logging
 import gaip
 import numpy
