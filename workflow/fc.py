@@ -8,8 +8,6 @@ from os.path import join as pjoin, dirname
 import logging
 import gaip
 import numpy
-import numexpr
-from memuseFilter import MemuseFilter
 
 CONFIG = luigi.configuration.get_config()
 CONFIG.add_config_path(pjoin(dirname(__file__), 'fc.cfg'))
@@ -25,10 +23,12 @@ class FractionalCoverTask(luigi.Task):
         return NBARTask(self.nbar_path)
 
     def run(self):
-        logging.info("In FractionalCoverTask.run method, NBAR=%s, output=%s" % (self.input().nbar_path, self.output().path))
+        logging.info("In FractionalCoverTask.run method, NBAR={}, "
+                     "output={}".format(self.input().nbar_path,
+                                          self.output().path))
 
         # create the output directory
-        logging.debug("creating output directory %s" % (self.fc_path, ))
+        logging.debug("creating output directory {}".format(self.fc_path))
         gaip.create_dir(self.fc_path)
 
         # Get the processing tile sizes
@@ -89,7 +89,7 @@ class NBARdataset(luigi.Target):
 def is_valid_directory(parser, arg):
     """Used by argparse"""
     if not os.path.exists(arg):
-        parser.error("%s does not exist" % (arg, ))
+        parser.error("{} does not exist".format(arg))
     else:
         return arg
 
@@ -100,11 +100,6 @@ def fc_name_from_nbar(nbar_fname):
     return nbar_fname.replace('NBAR', 'FC')
 
 if __name__ == '__main__':
-#     logging.info("FC started")
-#     luigi.run()
-#     import sys
-#     sys.exit(0)
-
     # command line arguments
 
     parser = argparse.ArgumentParser()
@@ -121,7 +116,8 @@ if __name__ == '__main__':
 
     # setup logging
     
-    logfile = "%s/run_fc_%s_%d.log" % (args.log_path, os.uname()[1], os.getpid())
+    logfile = "run_fc_{}_{}.log".format(os.uname()[1], os.getpid())
+    logfile = os.path.join(args.log_path, logfile)
     logging_level = logging.INFO
     if args.debug:
         logging_level = logging.DEBUG
@@ -131,33 +127,20 @@ if __name__ == '__main__':
     logging.info("fc.py started")
 
 
-    logging.info('nbar_path=%s' % (args.nbar_path, ))
-    logging.info('out_path=%s' % (args.out_path, ))
-    logging.info('log_path=%s' % (args.log_path, ))
+    logging.info('nbar_path={}'.format(args.nbar_path))
+    logging.info('out_path={}'.format(args.out_path))
+    logging.info('log_path={}'.format(args.log_path))
 
     # create the task list based on L1T files to process
 
     tasks = []
     for nbar_file in [f for f in os.listdir(args.nbar_path) if '_NBAR_' in f]:
         nbar_dataset_path = os.path.join(args.nbar_path, nbar_file)
-        fc_dataset_path = os.path.join(args.out_path, fc_name_from_nbar(nbar_file))
+        fc_dataset_path = os.path.join(args.out_path,
+                                       fc_name_from_nbar(nbar_file))
 
-        tasks.append( \
-            FractionalCoverTask( \
-                nbar_dataset_path,
-                fc_dataset_path \
-            ) \
-        )
+        tasks.append(FractionalCoverTask(nbar_dataset_path, fc_dataset_path))
         
         print nbar_dataset_path
 
     mpi.run(tasks)
-
-
-# if __name__ == '__main__':
-#    logging.config.fileConfig('logging.conf') # Get basic config
-#     log = logging.getLogger('')               # Get root logger
-#     f = MemuseFilter()                        # Create filter
-#     log.handlers[0].addFilter(f)         # The ugly part:adding filter to handler
-#     log.info("FC started")
-#     luigi.run()
