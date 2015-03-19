@@ -7,7 +7,7 @@
 *.project
 *.flt
 *.git*
-*.pyc
+*.py[cod]
 *.pydev*
 *_prog.f90
 docs/build/
@@ -26,3 +26,13 @@ src/reformat_modtran_output
 src/reformat_tp5_albedo
 src/reformat_tp5_transmittance
 bin/
+pip-log.txt
+.coverage
+.tox
+nosetests.xml
+.DS_Store
+*.egg
+*.egg-info
+.idea
+*.iml
+*.ipr
