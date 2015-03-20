@@ -59,4 +59,5 @@ qsub -v NBAR_PATH=$NBAR_PATH,OUTPUT_PATH=$OUTPUT_PATH,LOG_PATH=$LOG_PATH \
  -e $LOG_PATH/run_FC_${HOSTNAME}_${PID}.stderr \
  -o $LOG_PATH/run_FC_${HOSTNAME}_${PID}.stdout \
  -l $LSPEC \
+ -q $QUEUE \
  run_FC.pbs

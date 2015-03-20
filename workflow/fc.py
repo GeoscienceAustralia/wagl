@@ -4,12 +4,13 @@ import luigi.contrib.mpi as mpi
 import luigi
 import argparse
 import os
+from os.path import join as pjoin, dirname
 import logging
 import gaip
 import numpy
-import numexpr
-from memuseFilter import MemuseFilter
 
+CONFIG = luigi.configuration.get_config()
+CONFIG.add_config_path(pjoin(dirname(__file__), 'fc.cfg'))
 
 class FractionalCoverTask(luigi.Task):
     nbar_path = luigi.Parameter()
@@ -22,70 +23,43 @@ class FractionalCoverTask(luigi.Task):
         return NBARTask(self.nbar_path)
 
     def run(self):
-        logging.info("In FractionalCoverTask.run method, NBAR=%s, output=%s" % (self.input().nbar_path, self.output().path))
-
-        # get acquisition stack 
-
-        logging.debug("reading acquistions")
-        acqs = gaip.acquisitions(self.nbar_path)
-        logging.debug("stacking data")
-        (acqs, stack, geo_box) = gaip.stack_data(acqs, \
-            fn=(lambda acq: acq.band_type == gaip.REF and \
-            acq.wavelength[1] > 0.52))
-
-        logging.debug("read %d NBAR bands, coverage: %s" % (len(acqs), str(geo_box)))
-
-        # set no data values to zero
-
-        logging.debug("converting no_data to zeros")
-        zero = numpy.int16(0)
-        no_data = acqs[0].no_data 
-        if no_data is None:
-            no_data = -999
-        numpy.maximum(stack, zero, out=stack)
-
-        # call the fortran routiine
-
-        logging.debug("calling the unmix() function")
-        (green, dead1, dead2, bare, err) = gaip.unmix(stack)
-
-        # change zero values back to no_data value
-
-        logging.debug("unmix() done, setting no_data_values")
-        wh_any = numpy.any(numexpr.evaluate("stack == zero"), axis=0)
-
-        # scale factors
-
-        sf2 = numpy.float32(0.01)
-        sf3 = 10000
-
-        # compute results
-
-        logging.debug("computing the result bands")
-        green = numexpr.evaluate("green * sf3").astype('int16')
-        green[wh_any] = no_data
-        dead = numexpr.evaluate("(dead1 + dead2) * sf3").astype('int16')
-        dead[wh_any] = no_data
-        bare = numexpr.evaluate("bare * sf3").astype('int16')
-        bare[wh_any] = no_data
-        unmix_err = numexpr.evaluate("err * sf2 * sf3").astype('int16')
-        unmix_err[wh_any] = no_data
+        logging.info("In FractionalCoverTask.run method, NBAR={}, "
+                     "output={}".format(self.input().nbar_path,
+                                          self.output().path))
 
         # create the output directory
-
-        logging.debug("creating output directory %s" % (self.fc_path, ))
+        logging.debug("creating output directory {}".format(self.fc_path))
         gaip.create_dir(self.fc_path)
 
-        # output bands (one per GeoTiff file)
+        # Get the processing tile sizes
+        x_tile = int(CONFIG.get('work', 'x_tile_size'))
+        y_tile = int(CONFIG.get('work', 'y_tile_size'))
+        x_tile = None if x_tile <= 0 else x_tile
+        y_tile = None if y_tile <= 0 else y_tile
 
-        ids = ['PV', 'NPV', 'BS', 'UE']
-        new_stack = [green, dead, bare, unmix_err]
+        # Get the fractional component short names and base output format
+        fraction_names = CONFIG.get('work', 'fractions').split(',')
+        output_format = CONFIG.get('work', 'output_format')
 
-        for band_no in  range(len(new_stack)):
-            logging.debug("writing band %s" % (ids[band_no], ))
-            file_path = "%s/fc_%s.tif" % (self.fc_path, ids[band_no])
-            gaip.write_img(new_stack[band_no], file_path, fmt="GTiff", \
-                nodata=no_data)
+        # Get the wavelengths to filter by
+        min_lambda = float(CONFIG.get('work', 'min_lambda'))
+        max_lambda = float(CONFIG.get('work', 'max_lambda'))
+
+        # Define the output targets
+        out_fnames = []
+        for component in fraction_names:
+            out_fname = output_format.format(fraction=component)
+            out_fnames.append(pjoin(self.fc_path, out_fname))
+
+        # Get the acquisitions and filter by wavelength
+        # Using the centre of wavelength range would be more ideal
+        acqs = gaip.acquisitions(self.nbar_path)
+        acqs = [acq for acq in acqs if (acq.band_type == gaip.REF and
+                                        acq.wavelength[1] > min_lambda and 
+                                        acq.wavelength[1] <= max_lambda)]
+
+        # Run
+        gaip.fractional_cover(acqs, x_tile, y_tile, out_fnames)
 
         logging.info("Done processing")
 
@@ -115,7 +89,7 @@ class NBARdataset(luigi.Target):
 def is_valid_directory(parser, arg):
     """Used by argparse"""
     if not os.path.exists(arg):
-        parser.error("%s does not exist" % (arg, ))
+        parser.error("{} does not exist".format(arg))
     else:
         return arg
 
@@ -126,11 +100,6 @@ def fc_name_from_nbar(nbar_fname):
     return nbar_fname.replace('NBAR', 'FC')
 
 if __name__ == '__main__':
-#     logging.info("FC started")
-#     luigi.run()
-#     import sys
-#     sys.exit(0)
-
     # command line arguments
 
     parser = argparse.ArgumentParser()
@@ -147,7 +116,8 @@ if __name__ == '__main__':
 
     # setup logging
     
-    logfile = "%s/run_fc_%s_%d.log" % (args.log_path, os.uname()[1], os.getpid())
+    logfile = "run_fc_{}_{}.log".format(os.uname()[1], os.getpid())
+    logfile = os.path.join(args.log_path, logfile)
     logging_level = logging.INFO
     if args.debug:
         logging_level = logging.DEBUG
@@ -157,33 +127,20 @@ if __name__ == '__main__':
     logging.info("fc.py started")
 
 
-    logging.info('nbar_path=%s' % (args.nbar_path, ))
-    logging.info('out_path=%s' % (args.out_path, ))
-    logging.info('log_path=%s' % (args.log_path, ))
+    logging.info('nbar_path={}'.format(args.nbar_path))
+    logging.info('out_path={}'.format(args.out_path))
+    logging.info('log_path={}'.format(args.log_path))
 
     # create the task list based on L1T files to process
 
     tasks = []
     for nbar_file in [f for f in os.listdir(args.nbar_path) if '_NBAR_' in f]:
         nbar_dataset_path = os.path.join(args.nbar_path, nbar_file)
-        fc_dataset_path = os.path.join(args.out_path, fc_name_from_nbar(nbar_file))
+        fc_dataset_path = os.path.join(args.out_path,
+                                       fc_name_from_nbar(nbar_file))
 
-        tasks.append( \
-            FractionalCoverTask( \
-                nbar_dataset_path,
-                fc_dataset_path \
-            ) \
-        )
+        tasks.append(FractionalCoverTask(nbar_dataset_path, fc_dataset_path))
         
         print nbar_dataset_path
 
     mpi.run(tasks)
-
-
-# if __name__ == '__main__':
-#    logging.config.fileConfig('logging.conf') # Get basic config
-#     log = logging.getLogger('')               # Get root logger
-#     f = MemuseFilter()                        # Create filter
-#     log.handlers[0].addFilter(f)         # The ugly part:adding filter to handler
-#     log.info("FC started")
-#     luigi.run()

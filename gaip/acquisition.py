@@ -59,7 +59,7 @@ class Acquisition(object):
         """
         return gaip.data(self, out=out, window=window, masked=masked)
 
-    def data_and_box(self, out=None):
+    def data_and_box(self, out=None, window=None, masked=False):
         """
         Return a tuple comprising the `numpy.array` of the data for this
         Acquisition and the `GriddedGeoBox` describing the spatial extent.
@@ -67,7 +67,7 @@ class Acquisition(object):
         the Acquisition's data will be read.
         for this acquisition.
         """
-        return gaip.data_and_box(self, out=out)
+        return gaip.data_and_box(self, out=out, window=window, masked=masked)
 
     def gridded_geo_box(self):
         """Return the `GriddedGeoBox` for this acquisition."""
@@ -90,7 +90,7 @@ class LandsatAcquisition(Acquisition):
 
     @property
     def samples(self):
-        """The number of samples (aka. `height`)."""
+        """The number of samples (aka. `width`)."""
         if self.band_type == REF:
             return self.product_samples_ref
         if self.band_type == THM:
@@ -100,7 +100,7 @@ class LandsatAcquisition(Acquisition):
 
     @property
     def lines(self):
-        """The number of lines."""
+        """The number of lines (aka. `height`)."""
         if self.band_type == REF:
             return self.product_lines_ref
         if self.band_type == THM:
@@ -120,13 +120,13 @@ class LandsatAcquisition(Acquisition):
 
     @property
     def height(self):
-        """The height of the acquisition (aka. `samples`)."""
-        return self.samples
+        """The height of the acquisition (aka. `lines`)."""
+        return self.lines
 
     @property
     def width(self):
-        """The width of the acquisition (aka. `lines`)."""
-        return self.lines
+        """The width of the acquisition (aka. `samples`)."""
+        return self.samples
 
     @property
     def resolution(self):
@@ -224,6 +224,16 @@ class Landsat5Acquisition(LandsatAcquisition):
         """The acquisition time."""
         return self.acquisition_date
 
+    @property
+    def path(self):
+        """The acquisitions path."""
+        return self.wrs_path
+
+    @property
+    def row(self):
+        """The acquisition row."""
+        return self.starting_row
+
 class Landsat7Acquisition(LandsatAcquisition):
 
     """ Landsat 7 acquisition. """
@@ -244,6 +254,15 @@ class Landsat7Acquisition(LandsatAcquisition):
         """The acquisition time."""
         return self.acquisition_date
 
+    @property
+    def path(self):
+        """The acquisitions path."""
+        return self.wrs_path
+
+    @property
+    def row(self):
+        """The acquisition row."""
+        return self.starting_row
 
 class Landsat8Acquisition(LandsatAcquisition):
 
@@ -254,7 +273,7 @@ class Landsat8Acquisition(LandsatAcquisition):
 
     @property
     def samples(self):
-        """The number of samples (aka. `height`)."""
+        """The number of samples (aka. `width`)."""
         if self.band_type == REF:
             return self.reflective_samples
         if self.band_type == ATM:
@@ -268,7 +287,7 @@ class Landsat8Acquisition(LandsatAcquisition):
 
     @property
     def lines(self):
-        """The number of lines (aka. `width`)."""
+        """The number of lines (aka. `height`)."""
         if self.band_type == REF:
             return self.reflective_lines
         if self.band_type == ATM:
@@ -358,6 +377,16 @@ class Landsat8Acquisition(LandsatAcquisition):
         Use value from MTL file for consistency with SceneDataset code
         """
         return self.radiance_add
+
+    @property
+    def path(self):
+        """The acquisitions path."""
+        return self.wrs_path
+
+    @property
+    def row(self):
+        """The acquisition row."""
+        return self.wrs_row
 
 
 ACQUISITION_TYPE = {
