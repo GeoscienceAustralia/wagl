@@ -57,7 +57,7 @@ cat $PBS_NODEFILE | wc -l
 NNODES=$(cat $PBS_NODEFILE | uniq | wc -l)
 
 for i in $(seq 1 $NNODES); do
-  pbsdsh -n $i -- bash -l -c "module use /projects/u46/opt/modules/modulefiles; module load gaip; PBS_NNODES=$NNODES PBS_VNODENUM=$i nbar.py \
+  pbsdsh -n $((16 *$i)) -- bash -l -c "module use /projects/u46/opt/modules/modulefiles; module load gaip; PBS_NNODES=$NNODES PBS_VNODENUM=$i nbar.py \
   --l1t_path ${L1T_PATH} \
   --out_path ${OUTPUT_PATH}  \
   --log_path ${LOG_PATH} \
