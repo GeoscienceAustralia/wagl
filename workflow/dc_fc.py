@@ -35,6 +35,14 @@ class CreateDirs(luigi.Task):
         if not exists(out_path):
             os.makedirs(out_path)
 
+class FCFile(luigi.Target):
+
+    def __init__(self, path):
+        self.path = path
+
+    def exists(self):
+        return os.path.exists(self.path)
+
 
 class FractionalCoverTask(luigi.Task):
     nbar_ds = luigi.Parameter()
@@ -48,7 +56,9 @@ class FractionalCoverTask(luigi.Task):
         base_name = splitext(basename(self.nbar_ds.path))[0]
         base_name = base_name.replace('NBAR', 'FC') + '.tif'
         out_fname = pjoin(self.out_dir, base_name)
+        print "Output func out_fname: {}".format(out_fname)
         return luigi.LocalTarget(out_fname)
+        #return FCFile(out_fname)
 
     def run(self):
         base_name = splitext(basename(self.nbar_ds.path))[0]
@@ -62,6 +72,7 @@ class FractionalCoverTask(luigi.Task):
         y_tile = None if y_tile <= 0 else y_tile
 
         # Run
+        print "out_fname: {}".format(out_fname)
         gaip.fractional_cover(self.nbar_ds, x_tile, y_tile, out_fname)
 
 
@@ -76,20 +87,24 @@ if __name__ == '__main__':
 
     # setup logging
     
-    logfile = "run_fc_{}_{}.log".format(os.uname()[1], os.getpid())
-    logfile = os.path.join(args.log_path, logfile)
-    logging_level = logging.INFO
-    if args.debug:
-        logging_level = logging.DEBUG
-    logging.basicConfig(filename=logfile, level=logging_level, \
-        format= '[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s',
-        datefmt='%H:%M:%S')
-    logging.info("dc_fc.py started")
+    config = Config()
+    out_dir = CONFIG.get('work', 'output_directory')
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+    #logfile = "run_fc_{}_{}.log".format(os.uname()[1], os.getpid())
+    #logfile = os.path.join(out_dir, logfile)
+    #logging_level = logging.INFO
+    #if args.debug:
+    #    logging_level = logging.DEBUG
+    #logging.basicConfig(filename=logfile, level=logging_level, \
+    #    format= '[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s',
+    #    datefmt='%H:%M:%S')
+    #logging.info("dc_fc.py started")
 
     # Define the database config, dataset type and satellites
-    config = Config()
     ds_type = DatasetType.ARG25
     satellites = [Satellite.LS7, Satellite.LS5, Satellite.LS8]
+    print "Executing DB query!"
     tiles = list_tiles_as_list(x=[140], y=[-35], acq_min=date(2000, 1, 1),
                                acq_max=date(2010, 12, 31),
                                satellites=satellites, datasets=ds_type,
@@ -102,15 +117,19 @@ if __name__ == '__main__':
     cell_out_dir = '{cell_x}_{cell_y}'.format(cell_x=tiles[0].x,
                                               cell_y=tiles[0].y)
 
-    out_dir = CONFIG.get('work', 'output_directory')
     out_dir = pjoin(out_dir, cell_out_dir)
-    if not os.path.exists(out_dir):
+    if not exists(out_dir):
         os.makedirs(out_dir)
+
+    #import pdb
+    #pdb.set_trace()
 
     # Create the task list
     tasks = []
-    for ds in tiles:
-        reflectance_ds = ds[ds_type]
+    #for ds in tiles:
+    for i in range(32):
+        ds = tiles[i]
+        reflectance_ds = ds.datasets[ds_type]
         tasks.append(FractionalCoverTask(reflectance_ds, out_dir))
 
     mpi.run(tasks)
