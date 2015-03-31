@@ -127,10 +127,12 @@ def fractional_cover(acquisitions, x_tile, y_tile, out_fnames):
         geobox = GriddedGeoBox.from_dataset(gdal.Open(acquisitions.path))
         cols, rows = geobox.get_shape_xy()
         no_data = -999
+        zero = numpy.int16(0)
 
         # Define the output file
         outds = tiling.TiledOutput(out_fnames, cols, rows, geobox=geobox,
-                                   dtype=out_dtype, nodata=no_data, fmt=fmt)
+                                   dtype=out_dtype, nodata=no_data, fmt=fmt,
+                                   bands=4)
 
     # Initialise the tiling scheme for processing
     if x_tile is None:
@@ -286,7 +288,7 @@ def unmix(green, red, nir, swir1, swir2, sum_to_one_weight, endmembers_array):
     band3 = numexpr.evaluate("(1.0 + red) * 0.0001")
     band4 = numexpr.evaluate("(1.0 + nir) * 0.0001")
     band5 = numexpr.evaluate("(1.0 + swir1) * 0.0001")
-    band7 = numexpr.evaluate("(1.0 + siwr2) * 0.0001")
+    band7 = numexpr.evaluate("(1.0 + swir2) * 0.0001")
 
     #b_logs = numexpr.evaluate("log(subset)")
     logb2 = numexpr.evaluate("log(band2)")
