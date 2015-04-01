@@ -16,6 +16,45 @@ from datetime import date
 CONFIG = luigi.configuration.get_config()
 CONFIG.add_config_path(pjoin(dirname(__file__), 'fc.cfg'))
 
+class TileQuery(luigi.Task):
+    """
+    
+    """
+    out_dir = luigi.Parameter()
+    satellites = luigi.Parameter()
+    ds_dtypes = luigi.Parameter()
+    min_date =  luigi.Parameter()
+    max_date = luigi.Parameter()
+    config = Config()
+
+    def requires(self):
+        print "Executing DB query!"
+        tiles = list_tiles_as_list(x=[140], y=[-35], acq_min=self.min_date,
+                                   acq_max=self.max_date
+                                   satellites=self.satellites,
+                                   datasets=self.ds_types,
+                                   database=self.config.get_db_database(),
+                                   user=self.config.get_db_username(),
+                                   password=self.config.get_db_password(),
+                                   host=self.config.get_db_host(),
+                                   port=self.config.get_db_port())
+
+        cell_out_dir = '{cell_x}_{cell_y}'.format(cell_x=tiles[0].x,
+                                                  cell_y=tiles[0].y)
+
+        # TODO dynamically create the dirs within the task
+        out_dir = pjoin(self.out_dir, cell_out_dir)
+        if not exists(out_dir):
+            os.makedirs(out_dir)
+
+        tasks = []
+        #for tile in tiles:
+        for i in range(32):
+            ds = tiles[i]
+            reflectance_ds = ds.datasets[self.ds_types]
+            tasks.append(FractionalCoverTask(reflectance_ds, self.out_dir))
+
+
 class CreateDirs(luigi.Task):
     """
     Create the output directory.
@@ -87,10 +126,9 @@ if __name__ == '__main__':
 
     # setup logging
     
-    config = Config()
     out_dir = CONFIG.get('work', 'output_directory')
-    if not os.path.exists(out_dir):
-        os.makedirs(out_dir)
+    #if not os.path.exists(out_dir):
+    #    os.makedirs(out_dir)
     #logfile = "run_fc_{}_{}.log".format(os.uname()[1], os.getpid())
     #logfile = os.path.join(out_dir, logfile)
     #logging_level = logging.INFO
@@ -104,32 +142,35 @@ if __name__ == '__main__':
     # Define the database config, dataset type and satellites
     ds_type = DatasetType.ARG25
     satellites = [Satellite.LS7, Satellite.LS5, Satellite.LS8]
-    print "Executing DB query!"
-    tiles = list_tiles_as_list(x=[140], y=[-35], acq_min=date(2000, 1, 1),
-                               acq_max=date(2010, 12, 31),
-                               satellites=satellites, datasets=ds_type,
-                               database=config.get_db_database(),
-                               user=config.get_db_username(),
-                               password=config.get_db_password(),
-                               host=config.get_db_host(),
-                               port=config.get_db_port())
+    min_date = date(2000, 1, 1)
+    max_date = date(2010, 12, 31)
+    #print "Executing DB query!"
+    #tiles = list_tiles_as_list(x=[140], y=[-35], acq_min=date(2000, 1, 1),
+    #                           acq_max=date(2010, 12, 31),
+    #                           satellites=satellites, datasets=ds_type,
+    #                           database=config.get_db_database(),
+    #                           user=config.get_db_username(),
+    #                           password=config.get_db_password(),
+    #                           host=config.get_db_host(),
+    #                           port=config.get_db_port())
 
-    cell_out_dir = '{cell_x}_{cell_y}'.format(cell_x=tiles[0].x,
-                                              cell_y=tiles[0].y)
+    #cell_out_dir = '{cell_x}_{cell_y}'.format(cell_x=tiles[0].x,
+    #                                          cell_y=tiles[0].y)
 
-    out_dir = pjoin(out_dir, cell_out_dir)
-    if not exists(out_dir):
-        os.makedirs(out_dir)
+    #out_dir = pjoin(out_dir, cell_out_dir)
+    #if not exists(out_dir):
+    #    os.makedirs(out_dir)
 
     #import pdb
     #pdb.set_trace()
 
     # Create the task list
-    tasks = []
+    #tasks = []
     #for ds in tiles:
-    for i in range(32):
-        ds = tiles[i]
-        reflectance_ds = ds.datasets[ds_type]
-        tasks.append(FractionalCoverTask(reflectance_ds, out_dir))
+    #for i in range(32):
+    #    ds = tiles[i]
+    #    reflectance_ds = ds.datasets[ds_type]
+    #    tasks.append(FractionalCoverTask(reflectance_ds, out_dir))
 
+    tasks = TileQuery(out_dir, satellites, ds_dtypes, min_date, max_date) 
     mpi.run(tasks)
