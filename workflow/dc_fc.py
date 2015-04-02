@@ -20,40 +20,62 @@ class TileQuery(luigi.Task):
     """
     
     """
-    out_dir = luigi.Parameter()
+    out_path = luigi.Parameter()
     satellites = luigi.Parameter()
-    ds_dtypes = luigi.Parameter()
-    min_date =  luigi.Parameter()
+    ds_types = luigi.Parameter()
+    min_date = luigi.Parameter()
     max_date = luigi.Parameter()
     config = Config()
 
     def requires(self):
         print "Executing DB query!"
-        tiles = list_tiles_as_list(x=[140], y=[-35], acq_min=self.min_date,
-                                   acq_max=self.max_date
+        # !!!!! Version 1!!!!!!
+        #tiles = list_tiles_as_list(x=[140], y=[-35], acq_min=self.min_date,
+        #                           acq_max=self.max_date,
+        #                           satellites=self.satellites,
+        #                           datasets=self.ds_types,
+        #                           database=self.config.get_db_database(),
+        #                           user=self.config.get_db_username(),
+        #                           password=self.config.get_db_password(),
+        #                           host=self.config.get_db_host(),
+        #                           port=self.config.get_db_port())
+
+        #cell_out_dir = '{cell_x}_{cell_y}'.format(cell_x=tiles[0].x,
+        #                                          cell_y=tiles[0].y)
+
+        # TODO dynamically create the dirs within the task
+        #out_dir = pjoin(self.out_path, cell_out_dir)
+        #if not exists(out_dir):
+        #    os.makedirs(out_dir)
+
+        #tasks = []
+        ##for tile in tiles:
+        #for i in range(32):
+        #    ds = tiles[i]
+        #    reflectance_ds = ds.datasets[self.ds_types]
+        #    tasks.append(FractionalCoverTask(reflectance_ds, out_dir))
+        #    #yield FractionalCoverTask(reflectance_ds, out_dir)
+
+        #return tasks
+
+        # !!!!!! Version 2!!!!!! Follows Simons eg
+        for tile in list_tiles_as_list(x=[140], y=[-35], acq_min=self.min_date,
+                                   acq_max=self.max_date,
                                    satellites=self.satellites,
                                    datasets=self.ds_types,
                                    database=self.config.get_db_database(),
                                    user=self.config.get_db_username(),
                                    password=self.config.get_db_password(),
                                    host=self.config.get_db_host(),
-                                   port=self.config.get_db_port())
-
-        cell_out_dir = '{cell_x}_{cell_y}'.format(cell_x=tiles[0].x,
-                                                  cell_y=tiles[0].y)
-
-        # TODO dynamically create the dirs within the task
-        out_dir = pjoin(self.out_dir, cell_out_dir)
-        if not exists(out_dir):
-            os.makedirs(out_dir)
-
-        tasks = []
-        #for tile in tiles:
-        for i in range(32):
-            ds = tiles[i]
+                                   port=self.config.get_db_port()):
+            ds = tile
             reflectance_ds = ds.datasets[self.ds_types]
-            tasks.append(FractionalCoverTask(reflectance_ds, self.out_dir))
-
+            cell_out_dir = '{cell_x}_{cell_y}'.format(cell_x=tile.x,
+                                                  cell_y=tile.y)
+            out_dir = pjoin(self.out_path, cell_out_dir)
+            if not exists(out_dir):
+                os.makedirs(out_dir)
+            yield FractionalCoverTask(reflectance_ds, out_dir)
 
 class CreateDirs(luigi.Task):
     """
@@ -143,7 +165,8 @@ if __name__ == '__main__':
     ds_type = DatasetType.ARG25
     satellites = [Satellite.LS7, Satellite.LS5, Satellite.LS8]
     min_date = date(2000, 1, 1)
-    max_date = date(2010, 12, 31)
+    #max_date = date(2010, 12, 31)
+    max_date = date(2000, 10, 2)
     #print "Executing DB query!"
     #tiles = list_tiles_as_list(x=[140], y=[-35], acq_min=date(2000, 1, 1),
     #                           acq_max=date(2010, 12, 31),
@@ -170,7 +193,7 @@ if __name__ == '__main__':
     #for i in range(32):
     #    ds = tiles[i]
     #    reflectance_ds = ds.datasets[ds_type]
-    #    tasks.append(FractionalCoverTask(reflectance_ds, out_dir))
+    #    tasks.append(FractionalCoverTask(reflectance_ds, out_diy)
 
-    tasks = TileQuery(out_dir, satellites, ds_dtypes, min_date, max_date) 
+    tasks= [TileQuery(out_dir, satellites, ds_type, min_date, max_date)]
     mpi.run(tasks)
