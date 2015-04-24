@@ -11,7 +11,8 @@ from gaip import LandsatAcquisition
 from gaip import stack_data
 from gaip import unmiximage
 
-from datacube.api.utils import get_dataset_data
+from datacube.api.model import BANDS
+from datacube.api.model import DatasetType, Satellite
 
 """
 Utility functions used in fractional cover. These should not be used outside of this package as they
@@ -124,10 +125,17 @@ def fractional_cover(acquisitions, x_tile, y_tile, out_fnames):
         outds_ue = tiling.TiledOutput(out_fnames[3], cols, rows, geobox=geobox,
                                       dtype=out_dtype, nodata=no_data, fmt=fmt)
     else:
-        geobox = GriddedGeoBox.from_dataset(gdal.Open(acquisitions.path))
-        cols, rows = geobox.get_shape_xy()
-        no_data = -999
+        # To avoid confusion between the Acquisition and StackedDataset
+        # objects we'll alias acquisitions to sd (StackedDataset)
+        sd = acquisitions
+
+        geobox = GriddedGeoBox.from_gdal_dataset(gdal.Open(sd.fname))
+        cols = sd.samples
+        rows = sd.lines
         zero = numpy.int16(0)
+        no_data = sd.no_data
+        if no_data is None:
+            no_data = -999
 
         # Define the output file
         outds = tiling.TiledOutput(out_fnames, cols, rows, geobox=geobox,
@@ -195,59 +203,42 @@ def fractional_cover(acquisitions, x_tile, y_tile, out_fnames):
             outds_bs.write_tile(bare, tile)
             outds_ue.write_tile(unmix_err, tile)
     else:
+        # Get the sensor and construct a Satellite object
+        satellite = Satellite[os.path.basename(sd.fname).split('_')[0]]
+
         # Get the required bands for the unmixing algorithm
-        bands = [acquisitions.bands.GREEN, acquisitions.bands.RED,
-                 acquisitions.bands.NEAR_INFRARED,
-                 acquisitions.bands.SHORT_WAVE_INFRARED_1,
-                 acquisitions.bands.SHORT_WAVE_INFRARED_2]
+        bands = BANDS[DatasetType.ARG25, satellite]
+        bands = [bands.GREEN.value, bands.RED.value,
+                 bands.NEAR_INFRARED.value,
+                 bands.SHORT_WAVE_INFRARED_1.value,
+                 bands.SHORT_WAVE_INFRARED_2.value]
 
         # Loop over each tile
         for tile in tiles:
-            # Get the starting and ending indices
-            xs = tile[1][0]
-            xe = tile[1][1]
-            ys = tile[0][0]
-            ye = tile[0][1]
-
-            # tile/chunk size
-            ysize = ye - ys
-            xsize = xe - xs
-
             # Read the data for the current tile from acquisitions
-            img_d = get_dataset_data(acquisitions, bands, xs, ys,
-                                     xsize, ysize)
+            stack = sd.read_tile(tile, raster_bands=bands)
 
-            green = img_d[bands[0]]
-            red = img_d[bands[1]]
-            nir = img_d[bands[2]]
-            swir1 = img_d[bands[3]]
-            swir2 = img_d[bands[4]]
+            # For some reason we might get an un-writeable array
+            stack.flags['WRITEABLE'] = True
 
             # set no data values to zero
-            numpy.maximum(green, zero, out=green)
-            numpy.maximum(red, zero, out=red)
-            numpy.maximum(nir, zero, out=nir)
-            numpy.maximum(swir1, zero, out=swir1)
-            numpy.maximum(swir2, zero, out=swir2)
+            numpy.maximum(stack, zero, out=stack)
 
             # Compute the fractions
-            (grn, dead1, dead2, bare,
-             err) = unmix(green, red, nir, swir1, swir2, sum_to_one_weight,
-                          endmembers_array)
+            (green, dead1, dead2, bare,
+             err) = unmix(stack[0], stack[1], stack[2], stack[3], stack[4],
+                          sum_to_one_weight, endmembers_array)
 
             # change zero values back to no_data value
-            exp = ("(green == zero) | (red == zero) | "
-                   "(nir == zero) | (swir1 == zero) | "
-                   "(swir2 == zero)")
-            wh_any = numexpr.evaluate(exp)
+            wh_any = numpy.any(numexpr.evaluate("stack == zero"), axis=0)
 
             # scale factors
             sf2 = numpy.float32(0.01)
             sf3 = 10000
 
             # scale the results
-            grn = numexpr.evaluate("grn * sf3").astype('int16')
-            grn[wh_any] = no_data
+            green = numexpr.evaluate("green * sf3").astype('int16')
+            green[wh_any] = no_data
             dead = numexpr.evaluate("(dead1 + dead2) * sf3").astype('int16')
             dead[wh_any] = no_data
             bare = numexpr.evaluate("bare * sf3").astype('int16')
@@ -257,7 +248,7 @@ def fractional_cover(acquisitions, x_tile, y_tile, out_fnames):
 
             # Output to disk
             outds.write_tile(bare, tile, raster_band=1)
-            outds.write_tile(grn, tile, raster_band=2)
+            outds.write_tile(green, tile, raster_band=2)
             outds.write_tile(dead, tile, raster_band=3)
             outds.write_tile(unmix_err, tile, raster_band=4)
 
@@ -295,7 +286,7 @@ def unmix(green, red, nir, swir1, swir2, sum_to_one_weight, endmembers_array):
     logb3 = numexpr.evaluate("log(band3)")
     logb4 = numexpr.evaluate("log(band4)")
     logb5 = numexpr.evaluate("log(band5)")
-    logb7 = numexpr.evaluate("log(band2)")
+    logb7 = numexpr.evaluate("log(band7)")
 
     b2b3  = numexpr.evaluate("band2 * band3")
     b2b4  = numexpr.evaluate("band2 * band4")
@@ -371,7 +362,7 @@ def unmix(green, red, nir, swir1, swir2, sum_to_one_weight, endmembers_array):
                                      b7lb2, b7lb3, b7lb4, b7lb5, b7lb7, lb2lb3,
                                      lb2lb4, lb2lb5, lb2lb7, lb3lb4, lb3lb5,
                                      lb3lb7, lb4lb5, lb4lb7, lb5lb7, band2,
-                                     band3, band4 ,band5, band7, logb2, logb3,
+                                     band3, band4, band5, band7, logb2, logb3,
                                      logb4, logb5, logb7, band_ratio1,
                                      band_ratio2, band_ratio3])
 
