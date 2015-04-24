@@ -7,14 +7,52 @@ import os
 from os.path import join as pjoin, dirname, exists, splitext, basename
 import logging
 import gaip
+import cPickle as pickle
 
 from datacube.api.model import DatasetType, Satellite
 from datacube.api.query import list_tiles_as_list
 from datacube.config import Config
 from datetime import date
+from EOtools.DatasetDrivers.stacked_dataset import StackedDataset
 
 CONFIG = luigi.configuration.get_config()
 CONFIG.add_config_path(pjoin(dirname(__file__), 'fc.cfg'))
+
+class TileQuery2(luigi.Task):
+    """
+    
+    """
+    out_path = luigi.Parameter()
+    satellites = luigi.Parameter()
+    min_date = luigi.DateParameter()
+    max_date = luigi.DateParameter()
+
+    config = Config()
+    ds_type = DatasetType.ARG25
+
+    def requires(self):
+        return []
+
+    def output(self):
+        out_file = pjoin(self.out_path, CONFIG.get('work', 'query_result'))
+        return luigi.LocalTarget(out_file)
+
+    def run(self):
+        print "Executing DB query!"
+        satellites = [Satellite(i) for i in self.satellites.split(',')]
+        tiles = list_tiles_as_list(x=[140], y=[-35], acq_min=self.min_date,
+                                   acq_max=self.max_date,
+                                   satellites=satellites,
+                                   datasets=self.ds_type,
+                                   database=self.config.get_db_database(),
+                                   user=self.config.get_db_username(),
+                                   password=self.config.get_db_password(),
+                                   host=self.config.get_db_host(),
+                                   port=self.config.get_db_port())
+
+        with self.output().open('w') as outf:
+            pickle.dump(tiles, outf)
+
 
 class TileQuery(luigi.Task):
     """
@@ -22,10 +60,13 @@ class TileQuery(luigi.Task):
     """
     out_path = luigi.Parameter()
     satellites = luigi.Parameter()
-    ds_types = luigi.Parameter()
     min_date = luigi.Parameter()
+    #min_date = date(min_date[0], min_date[1], min_date[2])
     max_date = luigi.Parameter()
+    #max_date = date(max_date[0], max_date[1], max_date[2])
+
     config = Config()
+    ds_type = DatasetType.ARG25
 
     def requires(self):
         print "Executing DB query!"
@@ -57,74 +98,58 @@ class TileQuery(luigi.Task):
         #    #yield FractionalCoverTask(reflectance_ds, out_dir)
 
         #return tasks
+        satellites = [Satellite(i) for i in self.satellites.split(',')]
+        min_date = [int(i) for i in self.min_date.split('_')]
+        min_date = date(min_date[0], min_date[1], min_date[2])
+        max_date = [int(i) for i in self.max_date.split('_')]
+        max_date = date(max_date[0], max_date[1], max_date[2])
 
         # !!!!!! Version 2!!!!!! Follows Simons eg
         for tile in list_tiles_as_list(x=[140], y=[-35], acq_min=self.min_date,
                                    acq_max=self.max_date,
                                    satellites=self.satellites,
-                                   datasets=self.ds_types,
+                                   datasets=self.ds_type,
                                    database=self.config.get_db_database(),
                                    user=self.config.get_db_username(),
                                    password=self.config.get_db_password(),
                                    host=self.config.get_db_host(),
                                    port=self.config.get_db_port()):
             ds = tile
-            reflectance_ds = ds.datasets[self.ds_types]
+            reflectance_ds = ds.datasets[self.ds_type]
+            fname = reflectance_ds.path
+
             cell_out_dir = '{cell_x}_{cell_y}'.format(cell_x=tile.x,
                                                   cell_y=tile.y)
+
             out_dir = pjoin(self.out_path, cell_out_dir)
             if not exists(out_dir):
                 os.makedirs(out_dir)
-            yield FractionalCoverTask(reflectance_ds, out_dir)
 
-class CreateDirs(luigi.Task):
-    """
-    Create the output directory.
-    """
+            yield FractionalCoverTask(fname, out_dir)
 
-    out_path = luigi.Parameter()
-
-    def requires(self):
-        return []
-
-    def output(self):
-        out_path = self.out_path
-        return luigi.LocalTarget(out_path)
-
-    def run(self):
-        out_path = self.out_path
-        if not exists(out_path):
-            os.makedirs(out_path)
-
-class FCFile(luigi.Target):
-
-    def __init__(self, path):
-        self.path = path
-
-    def exists(self):
-        return os.path.exists(self.path)
+    def complete(self):
+        return all([t.complete() for t in self.requires()])
 
 
 class FractionalCoverTask(luigi.Task):
-    nbar_ds = luigi.Parameter()
+    fname = luigi.Parameter()
     out_dir = luigi.Parameter()
 
     def requires(self):
-        #return [CreateDirs(self.out_dir)]
         return []
 
     def output(self):
-        base_name = splitext(basename(self.nbar_ds.path))[0]
+        base_name = splitext(basename(self.fname))[0]
         base_name = base_name.replace('NBAR', 'FC') + '.tif'
         out_fname = pjoin(self.out_dir, base_name)
         print "Output func out_fname: {}".format(out_fname)
         return luigi.LocalTarget(out_fname)
-        #return FCFile(out_fname)
 
     def run(self):
-        base_name = splitext(basename(self.nbar_ds.path))[0]
-        base_name = base_name.replace('NBAR', 'FC') + '.tif'
-        out_fname = pjoin(self.out_dir, base_name)
+        #base_name = splitext(basename(self.fname))[0]
+        #base_name = base_name.replace('NBAR', 'FC') + '.tif'
+        #out_fname = pjoin(self.out_dir, base_name)
+        out_fname = self.output().path
 
         # Get the processing tile sizes
         x_tile = int(CONFIG.get('work', 'x_tile_size'))
@@ -134,7 +159,45 @@ class FractionalCoverTask(luigi.Task):
 
         # Run
         print "out_fname: {}".format(out_fname)
-        gaip.fractional_cover(self.nbar_ds, x_tile, y_tile, out_fname)
+        sd = StackedDataset(self.fname)
+        gaip.fractional_cover(sd, x_tile, y_tile, out_fname)
+
+
+class ProcessFC(luigi.Task):
+    """
+    
+    """
+    out_path = luigi.Parameter()
+
+    ds_type = DatasetType.ARG25
+
+    def requires(self):
+        query_result = pjoin(self.out_path, CONFIG.get('work', 'query_result'))
+        with open(query_result, 'r') as f:
+            query = pickle.load(f)
+
+        tasks = []
+        for ds in query:
+            fname = ds.datasets[self.ds_type].path
+
+            cell_out_dir = '{cell_x}_{cell_y}'.format(cell_x=ds.x,
+                                                      cell_y=ds.y)
+
+            out_dir = pjoin(self.out_path, cell_out_dir)
+            if not exists(out_dir):
+                os.makedirs(out_dir)
+
+            tasks.append(FractionalCoverTask(fname, out_dir))
+
+        return tasks
+
+    def output(self):
+        out_fname = pjoin(self.out_path, 'ProcessFC.completed')
+        return luigi.LocalTarget(out_fname)
+
+    def run(self):
+        with self.output().open('w') as outf:
+            outf.write('Completed')
 
 
 if __name__ == '__main__':
@@ -162,11 +225,21 @@ if __name__ == '__main__':
     #logging.info("dc_fc.py started")
 
     # Define the database config, dataset type and satellites
-    ds_type = DatasetType.ARG25
-    satellites = [Satellite.LS7, Satellite.LS5, Satellite.LS8]
-    min_date = date(2000, 1, 1)
+    #ds_type = DatasetType.ARG25
+    #satellites = [Satellite.LS7, Satellite.LS5, Satellite.LS8]
+    satellites = CONFIG.get('work', 'satellites')
+
+    #min_date = date(2000, 1, 1)
+    min_date = CONFIG.get('work', 'min_date')
+    min_date = [int(i) for i in min_date.split('_')]
+    min_date = date(min_date[0], min_date[1], min_date[2])
+
     #max_date = date(2010, 12, 31)
-    max_date = date(2000, 10, 2)
+    #max_date = date(2000, 10, 2)
+    max_date = CONFIG.get('work', 'max_date')
+    max_date = [int(i) for i in max_date.split('_')]
+    max_date = date(max_date[0], max_date[1], max_date[2])
+
     #print "Executing DB query!"
     #tiles = list_tiles_as_list(x=[140], y=[-35], acq_min=date(2000, 1, 1),
     #                           acq_max=date(2010, 12, 31),
@@ -195,5 +268,8 @@ if __name__ == '__main__':
     #    reflectance_ds = ds.datasets[ds_type]
     #    tasks.append(FractionalCoverTask(reflectance_ds, out_diy)
 
-    tasks= [TileQuery(out_dir, satellites, ds_type, min_date, max_date)]
+    tasks = [TileQuery2(out_dir, satellites, min_date, max_date)]
     mpi.run(tasks)
+    tasks = [ProcessFC(out_dir)]
+    mpi.run(tasks)
+    #luigi.build(tasks, local_scheduler=True, workers=32)
