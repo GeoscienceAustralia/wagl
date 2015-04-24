@@ -86,14 +86,24 @@ SUBROUTINE slope_aspect(nrow, ncol, nrow_alloc, ncol_alloc, &
         endif
 
         do row=2,n_row+1
-            p = &
-                      (dble(dem(row-1, col+1))-dble(dem(row-1, col-1)) + &
-                2.0d0*(dble(dem(row  , col+1))-dble(dem(row  , col-1))) + &
-                       dble(dem(row+1, col+1))-dble(dem(row+1, col-1))) / (8.0d0*dx)
-            q = &
-                      (dble(dem(row-1, col-1))-dble(dem(row+1, col-1)) + &
-                2.0d0*(dble(dem(row-1, col  ))-dble(dem(row+1, col  ))) + &
-                       dble(dem(row-1, col+1))-dble(dem(row+1, col+1))) / (8.0d0*dy)
+!            We are taking as input Transposed arrays, as such we need to
+!            reorder the convolution window operator.
+!            p = &
+!                      (dble(dem(row-1, col+1))-dble(dem(row-1, col-1)) + &
+!                2.0d0*(dble(dem(row  , col+1))-dble(dem(row  , col-1))) + &
+!                       dble(dem(row+1, col+1))-dble(dem(row+1, col-1))) / (8.0d0*dx)
+!            q = &
+!                      (dble(dem(row-1, col-1))-dble(dem(row+1, col-1)) + &
+!                2.0d0*(dble(dem(row-1, col  ))-dble(dem(row+1, col  ))) + &
+!                       dble(dem(row-1, col+1))-dble(dem(row+1, col+1))) / (8.0d0*dy)
+             p = &
+                      ((dble(dem(row+1, col-1)) - dble(dem(row-1, col-1))) + &
+                 2.0d0*(dble(dem(row+1, col)) - dble(dem(row-1, col))) + &
+                       (dble(dem(row+1, col+1)) - dble(dem(row-1, col+1)))) / (8.0*dx)
+             q = &
+                      ((dble(dem(row-1, col-1)) - dble(dem(row-1, col+1))) + &
+                 2.0d0*(dble(dem(row, col-1)) - dble(dem(row, col+1))) + &
+                       (dble(dem(row+1, col-1)) - dble(dem(row+1, col+1)))) / (8.0*dy)
     !----------------------------------------------------------------
             theta(row-1, col-1) = sngl(atan(sqrt(p**2 + q**2)) * pib)
             phit(row-1, col-1) = sngl(atan2(-p, -q) * pib)
