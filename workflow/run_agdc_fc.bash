@@ -10,8 +10,8 @@ module load python/2.7.6
 
 module use /projects/u46/opt/modules/modulefiles
 module load gdal
-module load gaip
+module load gaip/test_aspect
 module load agdc-api
 
 
-mpirun -n 16 python dc_fc.py
+mpirun -n 16 python agdc_fc.py
