@@ -126,7 +126,7 @@ class ProcessFC(luigi.Task):
 
 
 if __name__ == '__main__':
-    out_dir = CONFIG.get('work', 'output_directory')
+    out_dir = CONFIG.get('agdc', 'output_directory')
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
