@@ -35,6 +35,10 @@ class TileQuery(luigi.Task):
 
     def run(self):
         print "Executing DB query!"
+
+        if not os.path.exists(self.out_path):
+            os.makedirs(self.out_path)
+
         satellites = CONFIG.get('agdc', 'satellites')
         satellites = [Satellite(i) for i in satellites.split(',')]
 
@@ -80,6 +84,8 @@ class FractionalCoverTask(luigi.Task):
 
     def output(self):
         base_name = splitext(basename(self.fname))[0]
+
+        # Comment out the next line if QDERM test is to run
         base_name = base_name.replace('NBAR', 'FC') + '.tif'
 
         # QDERM TEST
@@ -142,8 +148,6 @@ class ProcessFC(luigi.Task):
 
 if __name__ == '__main__':
     out_dir = CONFIG.get('agdc', 'output_directory')
-    if not os.path.exists(out_dir):
-        os.makedirs(out_dir)
 
     tasks = [TileQuery(out_dir)]
     mpi.run(tasks)
@@ -152,8 +156,10 @@ if __name__ == '__main__':
 
 
 
-
     # *********************** QDERM TEST ******************************
+    # For the QDERM test to run, a few lines need to be commented and
+    # uncommented both here in agdc_fc.py and fc_utils.py
+
     #task = [FractionalCoverTask('/g/data1/v10/testing_ground/jps547/FC/QDERM_test_data/l5tmre_p095r084_20090411/l5tmre_p095r084_20090411_dbgm4.img',
     #                            '/g/data1/v10/testing_ground/jps547/FC/QDERM_test_data/l5tmre_p095r084_20090411')]
     #mpi.run(task)
