@@ -13,7 +13,7 @@ umask 007
 PROJECT='v10'           # <---- Change this as required
 QUEUE='normal'          # <---- Change this as required
 WALLCLOCK='01:30:00'    # <---- Change this depending on workload (see SOP)
-NODES=2                 # <---- Change this depending on workload (see SOP)
+NODES=1                 # <---- Change this depending on workload (see SOP)
 
 let MEM_GB=32*$NODES    # don't touch
 let NCPUS=16*$NODES     # don't touch
