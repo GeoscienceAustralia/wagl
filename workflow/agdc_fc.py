@@ -22,9 +22,6 @@ class TileQuery(luigi.Task):
     Queries the database based on the input parameters.
     """
     out_path = luigi.Parameter()
-    satellites = luigi.Parameter()
-    min_date = luigi.DateParameter()
-    max_date = luigi.DateParameter()
 
     config = Config()
     ds_type = DatasetType.ARG25
@@ -38,9 +35,27 @@ class TileQuery(luigi.Task):
 
     def run(self):
         print "Executing DB query!"
-        satellites = [Satellite(i) for i in self.satellites.split(',')]
-        tiles = list_tiles_as_list(x=[140], y=[-35], acq_min=self.min_date,
-                                   acq_max=self.max_date,
+        satellites = CONFIG.get('agdc', 'satellites')
+        satellites = [Satellite(i) for i in satellites.split(',')]
+
+        min_date = CONFIG.get('agdc', 'min_date')
+        min_date = [int(i) for i in min_date.split('_')]
+        min_date = date(min_date[0], min_date[1], min_date[2])
+
+        max_date = CONFIG.get('agdc', 'max_date')
+        max_date = [int(i) for i in max_date.split('_')]
+        max_date = date(max_date[0], max_date[1], max_date[2])
+
+        cell_xmin = int(CONFIG.get('agdc', 'cell_xmin'))
+        cell_ymin = int(CONFIG.get('agdc', 'cell_ymin'))
+        cell_xmax = int(CONFIG.get('agdc', 'cell_xmax'))
+        cell_ymax = int(CONFIG.get('agdc', 'cell_ymax'))
+
+        xcells = range(cell_xmin, cell_xmax, 1)
+        ycells = range(cell_ymin, cell_ymax, 1)
+
+        tiles = list_tiles_as_list(x=xcells, y=ycells, acq_min=min_date,
+                                   acq_max=max_date,
                                    satellites=satellites,
                                    datasets=self.ds_type,
                                    database=self.config.get_db_database(),
@@ -130,17 +145,7 @@ if __name__ == '__main__':
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    satellites = CONFIG.get('agdc', 'satellites')
-
-    min_date = CONFIG.get('agdc', 'min_date')
-    min_date = [int(i) for i in min_date.split('_')]
-    min_date = date(min_date[0], min_date[1], min_date[2])
-
-    max_date = CONFIG.get('agdc', 'max_date')
-    max_date = [int(i) for i in max_date.split('_')]
-    max_date = date(max_date[0], max_date[1], max_date[2])
-
-    tasks = [TileQuery(out_dir, satellites, min_date, max_date)]
+    tasks = [TileQuery(out_dir)]
     mpi.run(tasks)
     tasks = [ProcessFC(out_dir)]
     mpi.run(tasks)
