@@ -20,50 +20,6 @@ may be moved, renamed or deleted in the future. If you need to add more function
 use, this is the place to put them.
 """
 
-
-
-
-
-def datatype(dtype):
-    """
-    Maps a gdal datatype to a numpy datatype.
-
-    :param dtype:
-        The gdal datatype to get the numpy datatype for.
-
-    :return:
-        The numpy datatype corresponding to ``gdal_data_type``.
-    """
-    instr = str(dtype)
-    return {
-        '1' : 'uint8',
-        '2' : 'uint16',
-        '3' : 'int16',
-        '4' : 'uint32',
-        '5' : 'int32',
-        '6' : 'float32',
-        '7' : 'float64',
-        '8' : 'complex64',
-        '9' : 'complex64',
-        '10': 'complex64',
-        '11': 'complex128',
-        }.get(instr, 'float64')
-
-
-
-
-
-def create_dir(path):
-    """
-    Create a directory.
-    """
-    try:
-        os.makedirs(path)
-    except OSError, e:
-        if e.errno != errno.EEXIST:
-            raise
-
-
 def fractional_cover(acquisitions, x_tile, y_tile, out_fnames):
     """
     Given a list of spectral acquisitions compute the fractional
@@ -99,8 +55,9 @@ def fractional_cover(acquisitions, x_tile, y_tile, out_fnames):
         component can change with the algorithm used.
     """
     # Define the output datatype and format
-    out_dtype = gdal.GDT_Int16
+    out_dtype = gdal.GDT_Byte
     fmt = "GTiff"
+    out_no_data = 0
 
     # Compute the geobox and get the array dimensions from the 1st
     # acquisition
@@ -155,7 +112,7 @@ def fractional_cover(acquisitions, x_tile, y_tile, out_fnames):
     # This value determined how well the resulting fractions will sum to 100%
     # I typically determine this by running the unmixing against field data for
     # a number of values, picking the best one
-    sum_to_one_weight = endmembers.sum_weight('2013_01_08')
+    sum_to_one_weight = endmembers.sum_weight('2014_07_23')
 
 
     # Scarth 20090810 14:06:35 CEST
@@ -163,7 +120,7 @@ def fractional_cover(acquisitions, x_tile, y_tile, out_fnames):
     # 2012v gives green, dead, bare1 and bare2
     # 2013v gives green, dead1, dead2 and bare fractions
     # Note the last row is the sum to one constraint value
-    endmembers_array = endmembers.endmember_version('2013_01_08')
+    endmembers_array = endmembers.endmember_version('2014_07_23')
 
     # Define separate loops for the different data sources
     if isinstance(acquisitions, LandsatAcquisition):
@@ -173,35 +130,49 @@ def fractional_cover(acquisitions, x_tile, y_tile, out_fnames):
             stack, _ = stack_data(acquisitions, window=tile)
 
             # set no data values to zero
-            numpy.maximum(stack, zero, out=stack)
+            #numpy.maximum(stack, zero, out=stack) # Only works if negative
+            wh_any = numpy.any(numexpr.evaluate("stack == no_data"), axis=0)
+            stack[:, wh_any] = zero
 
             # Compute the fractions
             (green, dead1, dead2, bare,
              err) = unmix(stack[0], stack[1], stack[2], stack[3], stack[4],
                           sum_to_one_weight, endmembers_array)
 
-            # change zero values back to no_data value
-            wh_any = numpy.any(numexpr.evaluate("stack == zero"), axis=0)
+            # Find any occurences of an unmixing error
+            # If an pixel is in error then all pixels for that location are
+            # counted as an error
+            wh_unmix_err = numexpr.evaluate("(green == -10) |"
+                                            "(dead1 == -10) |"
+                                            "(dead2 == -10) |"
+                                            "(bare == -10)")
 
-            # scale factors
-            sf2 = numpy.float32(0.01)
-            sf3 = 10000
+            # scale the results and clip the range to (0, 255)
+            green = numexpr.evaluate("green / 0.01 + 100")
+            green[wh_any] = out_no_data
+            green[wh_unmix_err] = out_no_data
+            numpy.clip(green, a_min=0, a_max=255, out=green)
 
-            # scale the results
-            green = numexpr.evaluate("green * sf3").astype('int16')
-            green[wh_any] = no_data
-            dead = numexpr.evaluate("(dead1 + dead2) * sf3").astype('int16')
-            dead[wh_any] = no_data
-            bare = numexpr.evaluate("bare * sf3").astype('int16')
-            bare[wh_any] = no_data
-            unmix_err = numexpr.evaluate("err * sf2 * sf3").astype('int16')
-            unmix_err[wh_any] = no_data
+            dead = numexpr.evaluate("(dead1 + dead2) / 0.01 + 100")
+            dead[wh_any] = out_no_data
+            dead[wh_unmix_err] = out_no_data
+            numpy.clip(dead, a_min=0, a_max=255, out=dead)
+
+            bare = numexpr.evaluate("bare / 0.01 + 100")
+            bare[wh_any] = out_no_data
+            bare[wh_unmix_err] = out_no_data
+            numpy.clip(bare, a_min=0, a_max=255, out=bare)
+
+            err = numexpr.evaluate("err + 100")
+            err[wh_any] = out_no_data
+            err[wh_unmix_err] = out_no_data
+            numpy.clip(err, a_min=0, a_max=255, out=err)
 
             # Output to disk
-            outds_pv.write_tile(green, tile)
-            outds_npv.write_tile(dead, tile)
-            outds_bs.write_tile(bare, tile)
-            outds_ue.write_tile(unmix_err, tile)
+            outds_pv.write_tile(green.astype('uint8'), tile)
+            outds_npv.write_tile(dead.astype('uint8'), tile)
+            outds_bs.write_tile(bare.astype('uint8'), tile)
+            outds_ue.write_tile(err.astype('uint8'), tile)
     else:
         # Get the sensor and construct a Satellite object
         satellite = Satellite[os.path.basename(sd.fname).split('_')[0]]
@@ -213,6 +184,9 @@ def fractional_cover(acquisitions, x_tile, y_tile, out_fnames):
                  bands.SHORT_WAVE_INFRARED_1.value,
                  bands.SHORT_WAVE_INFRARED_2.value]
 
+        # ******* QDERM TEST **********
+        #bands = [2,3,4,5,6]
+
         # Loop over each tile
         for tile in tiles:
             # Read the data for the current tile from acquisitions
@@ -222,35 +196,49 @@ def fractional_cover(acquisitions, x_tile, y_tile, out_fnames):
             stack.flags['WRITEABLE'] = True
 
             # set no data values to zero
-            numpy.maximum(stack, zero, out=stack)
+            #numpy.maximum(stack, zero, out=stack)
+            wh_any = numpy.any(numexpr.evaluate("stack == no_data"), axis=0)
+            stack[:, wh_any] = zero
 
             # Compute the fractions
             (green, dead1, dead2, bare,
              err) = unmix(stack[0], stack[1], stack[2], stack[3], stack[4],
                           sum_to_one_weight, endmembers_array)
 
-            # change zero values back to no_data value
-            wh_any = numpy.any(numexpr.evaluate("stack == zero"), axis=0)
+            # Find any occurences of an unmixing error
+            # If an pixel is in error then all pixels for that location are
+            # counted as an error
+            wh_unmix_err = numexpr.evaluate("(green == -10) |"
+                                            "(dead1 == -10) |"
+                                            "(dead2 == -10) |"
+                                            "(bare == -10)")
 
-            # scale factors
-            sf2 = numpy.float32(0.01)
-            sf3 = 10000
+            # scale the results and clip the range to (0, 255)
+            green = numexpr.evaluate("green / 0.01 + 100")
+            green[wh_any] = out_no_data
+            green[wh_unmix_err] = out_no_data
+            numpy.clip(green, a_min=0, a_max=255, out=green)
 
-            # scale the results
-            green = numexpr.evaluate("green * sf3").astype('int16')
-            green[wh_any] = no_data
-            dead = numexpr.evaluate("(dead1 + dead2) * sf3").astype('int16')
-            dead[wh_any] = no_data
-            bare = numexpr.evaluate("bare * sf3").astype('int16')
-            bare[wh_any] = no_data
-            unmix_err = numexpr.evaluate("err * sf2 * sf3").astype('int16')
-            unmix_err[wh_any] = no_data
+            dead = numexpr.evaluate("(dead1 + dead2) / 0.01 + 100")
+            dead[wh_any] = out_no_data
+            dead[wh_unmix_err] = out_no_data
+            numpy.clip(dead, a_min=0, a_max=255, out=dead)
+
+            bare = numexpr.evaluate("bare / 0.01 + 100")
+            bare[wh_any] = out_no_data
+            bare[wh_unmix_err] = out_no_data
+            numpy.clip(bare, a_min=0, a_max=255, out=bare)
+
+            err = numexpr.evaluate("err + 100")
+            err[wh_any] = out_no_data
+            err[wh_unmix_err] = out_no_data
+            numpy.clip(err, a_min=0, a_max=255, out=err)
 
             # Output to disk
-            outds.write_tile(bare, tile, raster_band=1)
-            outds.write_tile(green, tile, raster_band=2)
-            outds.write_tile(dead, tile, raster_band=3)
-            outds.write_tile(unmix_err, tile, raster_band=4)
+            outds.write_tile(bare.astype('uint8'), tile, raster_band=1)
+            outds.write_tile(green.astype('uint8'), tile, raster_band=2)
+            outds.write_tile(dead.astype('uint8'), tile, raster_band=3)
+            outds.write_tile(err.astype('uint8'), tile, raster_band=4)
 
     # Close the files to complete the writing
     if isinstance(acquisitions, LandsatAcquisition):
@@ -270,10 +258,6 @@ def unmix(green, red, nir, swir1, swir2, sum_to_one_weight, endmembers_array):
     # terms produced from the original and log-transformed landsat bands
 
     # GA wrapped and modified version of Scarth 20090810 14:06:35 CEST
-
-    # Calculate the [55,y,x] array to feed into the unmixing algorithm
-    # [58,y,x] array is calculated for 2013_01_08 version
-    #subset = numexpr.evaluate("(1.0 + reflectance) * 0.0001")
 
     band2 = numexpr.evaluate("(1.0 + green) * 0.0001")
     band3 = numexpr.evaluate("(1.0 + red) * 0.0001")
@@ -343,14 +327,16 @@ def unmix(green, red, nir, swir1, swir2, sum_to_one_weight, endmembers_array):
     lb5lb7 = numexpr.evaluate("logb5 * logb7")
 
     band_ratio1 = numexpr.evaluate("(band4 - band3) / (band4 + band3)")
-    band_ratio2 = numexpr.evaluate("(band4 - band5) / (band4 + band3)")
+    band_ratio2 = numexpr.evaluate("(band4 - band5) / (band4 + band5)")
     band_ratio3 = numexpr.evaluate("(band5 - band3) / (band5 + band3)")
+    band_ratio4 = numexpr.evaluate("(band3 - band2) / (band3 + band2)")
 
     # The 2009_08_10 and 2012_12_07 versions use a different interactive
     # terms array compared to the 2013_01_08 version
     # 2013_01_08 uses 59 endmebers
     # 2009_08_10 uses 56 endmebers
     # 2012_12_07 uses 56 endmebers
+    # 2014_07_23 uses 60 endmembers
     # TODO write an interface that can retrieve the correct
     # interactiveTerms array according to the specified version.
 
@@ -364,7 +350,7 @@ def unmix(green, red, nir, swir1, swir2, sum_to_one_weight, endmembers_array):
                                      lb3lb7, lb4lb5, lb4lb7, lb5lb7, band2,
                                      band3, band4, band5, band7, logb2, logb3,
                                      logb4, logb5, logb7, band_ratio1,
-                                     band_ratio2, band_ratio3])
+                                     band_ratio2, band_ratio3, band_ratio4])
 
     # Now add the sum to one constraint to the interactive terms
     # First make a zero array of the right shape
@@ -376,7 +362,7 @@ def unmix(green, red, nir, swir1, swir2, sum_to_one_weight, endmembers_array):
     weighted_spectra[-1] = sum_to_one_weight
 
     in_null = 0.0001
-    out_unmix_null = 0
+    out_unmix_null = -10.0
 
     fractions = unmiximage.unmiximage(weighted_spectra, endmembers_array,
                                       in_null, out_unmix_null)
