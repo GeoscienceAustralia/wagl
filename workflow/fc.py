@@ -38,12 +38,12 @@ class FractionalCoverTask(luigi.Task):
         y_tile = None if y_tile <= 0 else y_tile
 
         # Get the fractional component short names and base output format
-        fraction_names = CONFIG.get('work', 'fractions').split(',')
-        output_format = CONFIG.get('work', 'output_format')
+        fraction_names = CONFIG.get('scene', 'fractions').split(',')
+        output_format = CONFIG.get('scene', 'output_format')
 
         # Get the wavelengths to filter by
-        min_lambda = float(CONFIG.get('work', 'min_lambda'))
-        max_lambda = float(CONFIG.get('work', 'max_lambda'))
+        min_lambda = float(CONFIG.get('scene', 'min_lambda'))
+        max_lambda = float(CONFIG.get('scene', 'max_lambda'))
 
         # Define the output targets
         out_fnames = []
