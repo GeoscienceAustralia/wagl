@@ -1,10 +1,10 @@
 
-===============================================
-Standard Operating Procedure (Fractional Cover)
-===============================================
+====================================================
+Standard Operating Procedure (AGDC Fractional Cover)
+====================================================
 
-Fractional Cover
-----------------
+AGDC Fractional Cover
+---------------------
 
 Purpose
 -------
