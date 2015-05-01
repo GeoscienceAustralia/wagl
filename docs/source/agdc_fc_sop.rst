@@ -16,13 +16,8 @@ This document describes how to run the Fractional Cover job via PBS script to pr
 
 The Fractional Cover PBS job uses Luigi to run multiple instances of the fractional cover program in parallel. By adjusting the system resources used by the PBS job, hundreds (or thousands) of NBAR input files may be processed in a short period of time.
 
-Schematic
----------
-The diagram below shows the basic operation of the Fractional Cover Job
-
-.. image:: diagrams/fc.png
-
-Key elements are:
+Key shell scripts
+-----------------
 
 * shell script submit_agdc_FC.sh_ is used to submit the run_agdc_fc.pbs_ script to the PBS job queue
 * run_agdc_fc.pbs_ reads scene data from the NBAR input directory
