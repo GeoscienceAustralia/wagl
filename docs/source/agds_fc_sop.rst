@@ -73,7 +73,19 @@ To run the Fractional Cover job, follow these steps:
 
 Specify inputs and outputs
 --------------------------
-Edit the submit__agdc_FC.sh script file and specify the following paths
+The fc.cfg configuration file can be edited to control how the agdc fractional cover workflow will operate.
+The fc.configuration file covers both the agdc and the scene level workflows.
+The section titled `[work]` is used by both the agdc and the scene level workflows. Currently there are only
+two parameters: `x_tile_size` & `y_tile_size`. These tell the program the spatial tile size to use for I/O and
+processing, when the entire image is too large to fit into memory all at once.
+The section titled `[scene]` caters for the scene level workflow. Here the final output filename format can
+be defined, as well as the range of wavelengths for determining which bands of an acquisition are to be used
+for deriving the fractional cover product.
+The section titled `[agdc]` caters for the agdc workflow. Here the user specifies the output directory, and the path
+for individual log files. Database query options include `min_date`, `max_date`, `satellites`, `cell_xmin`, `cell_ymin`, 
+`cell_xmax`, `cell_ymax`. The result of the database query will be saved to a file defined by the `query_result` parameter.
+The section titled `[core]` points to the logging configuration file that determines how luigi will log the processing.
+`gaip` comes with a default log file named logging.cfg. Here the logging level such as `ERROR`, `WARNING`, `DEBUG` can be defined.
 
 Set job resources
 -----------------
