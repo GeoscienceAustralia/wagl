@@ -110,8 +110,7 @@ def calc_land_sea_mask(geo_box, \
     ls_arr = lsobj.ReadAsArray(xoff, yoff, xsize, ysize)
     return (ls_arr.astype('bool'))
 
-def setLandSeaBit(gridded_geo_box, 
-        pq_const, pqaResult,
+def set_land_sea_bit(gridded_geo_box, pq_const, pqaResult,
         ancillary_path='/g/data/v10/eoancillarydata/Land_Sea_Rasters'):
 
     mask = calc_land_sea_mask(gridded_geo_box, ancillary_path)

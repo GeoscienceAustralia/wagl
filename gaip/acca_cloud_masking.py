@@ -294,13 +294,13 @@ def acca_2nd_pass(cloud_mask, ambiguous_array, thermal_array,
         # CONFIG.pqa_param['acca_thermal_effect']:
         if qpop < pq_const.acca_thermal_effect:
             # CONFIG.pqa_param['acca_coldcloud_mean']:
-            if qmean < pq_const.acca_coldCloud_mean:
+            if qmean < pq_const.acca_cold_cloud_mean:
                 # Combine all cloud classes
                 return numexpr.evaluate("cloud_mask | query | query2")
             # CONFIG.pqa_param['acca_thermal_effect']:
             elif qpop2 < pq_const.acca_thermal_effect:
                 # CONFIG.pqa_param['acca_coldcloud_mean']:
-                if qmean2 < pq_const.acca_coldCloud_mean:
+                if qmean2 < pq_const.acca_cold_cloud_mean:
                     # Combine lower threshold clouds and pass 1 clouds
                     return numexpr.evaluate("cloud_mask | query2")
             else:  # Keep first pass cloud
@@ -347,13 +347,13 @@ def acca_2nd_pass(cloud_mask, ambiguous_array, thermal_array,
         # CONFIG.pqa_param['acca_thermal_effect']:
         if qpop < pq_const.acca_thermal_effect:
             # CONFIG.pqa_param['acca_coldcloud_mean']:
-            if qmean < pq_const.acca_coldCloud_mean:
+            if qmean < pq_const.acca_cold_cloud_mean:
                 # Combine all cloud classes
                 return numexpr.evaluate("cloud_mask | query | query2")
             # CONFIG.pqa_param['acca_thermal_effect']:
             elif qpop2 < pq_const.acca_thermal_effect:
                 # CONFIG.pqa_param['acca_coldcloud_mean']:
-                if qmean2 < pq_const.acca_coldCloud_mean:
+                if qmean2 < pq_const.acca_cold_cloud_mean:
                     # Combine lower threshold clouds and pass 1 clouds
                     return numexpr.evaluate("cloud_mask | query2")
             else:  # Keep first pass cloud
@@ -557,7 +557,7 @@ def acca(reflectance_stack, thermal_array, potential_cloud_array, pq_const,
     # is implemented.
 
     # REDO of tests for pass two engagement
-    if desert_index <= pq_const.acca_desertIndex and \
+    if desert_index <= pq_const.acca_desert_index and \
        snow_percent > pq_const.acca_snow_threshold:
         cloud = cold_cloud
         ambiguous_array[warm_cloud] = 1
@@ -571,10 +571,10 @@ def acca(reflectance_stack, thermal_array, potential_cloud_array, pq_const,
         logging.debug('desert_index: %s', desert_index)
         logging.debug('Mean temperature: %s', numpy.mean(
             thermal_array[cloud], dtype='float'))
-        if ((cold_cloud_pop > pq_const.acca_coldCloud_pop) and \
-            (desert_index > pq_const.acca_desertIndex) and \
+        if ((cold_cloud_pop > pq_const.acca_cold_cloud_pop) and \
+            (desert_index > pq_const.acca_desert_index) and \
             (numpy.mean(thermal_array[cloud], dtype='float') <
-             pq_const.acca_coldCloud_mean)):
+             pq_const.acca_cold_cloud_mean)):
             # Inititate 2nd Pass Testing
             r_cloud = acca_2nd_pass(cloud_mask=cloud,
                                     ambiguous_array=ambiguous_array,
@@ -585,9 +585,9 @@ def acca(reflectance_stack, thermal_array, potential_cloud_array, pq_const,
                 return cloud
             else:
                 return r_cloud
-        elif ((desert_index <= pq_const.acca_desertIndex) and
+        elif ((desert_index <= pq_const.acca_desert_index) and
               (numpy.mean(thermal_array[cloud], dtype='float') <
-               pq_const.acca_coldCloud_mean)):
+               pq_const.acca_cold_cloud_mean)):
             return cold_cloud
         else:
             aux_data['acca_desert_index'] = 'failed'
