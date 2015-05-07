@@ -30,4 +30,4 @@ echo $LSPEC
 
 # Submit the job
 
-qsub -M $MAIL_LIST -l $LSPEC -q $QUEUE run_agdc_fc.bash
+qsub -M $MAIL_LIST -l $LSPEC -q $QUEUE -v NCPUS=$NCPUS run_agdc_fc.bash

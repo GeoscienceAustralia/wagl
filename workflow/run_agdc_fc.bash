@@ -14,4 +14,4 @@ module load gaip/test_aspect
 module load agdc-api
 
 
-mpirun -n 16 python agdc_fc.py
+mpirun -n $NCPUS python agdc_fc.py
