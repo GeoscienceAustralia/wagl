@@ -6,6 +6,9 @@ import rasterio as rio
 import math
 import osr
 import affine
+from  EOtools.bodies.vincenty import vinc_dist
+from  EOtools.bodies.bodies import earth
+from math import radians
 
 from affine import Affine
 
@@ -181,7 +184,7 @@ class GriddedGeoBox(object):
         self.pixelsize = pixelsize
         self.shape = tuple([int(v) for v in shape])
         self.origin = origin
-        if isinstance(crs, osr.SpatialReference):
+	if isinstance(crs, osr.SpatialReference):
             self.crs = crs
         else:
             self.crs = osr.SpatialReference()
@@ -331,6 +334,46 @@ class GriddedGeoBox(object):
         x, y = self.transform_point(transform, xy)
 
         return (x, y)
+    
+    def get_pixelsize_metres(self, xy=None):
+        """
+        Compute the size (in metres)  of the pixel specified by xy coordinates.
+
+        :param xy:
+            A tuple containing an (x, y) co-ordinate pair of in grid
+            co-ordinates.
+
+        :return"
+            A tuple (x_size, y_size) gives the size of the pixel in metres
+        """
+        if xy is None:
+            xy = (self.shape[1]/2, self.shape[0]/2)
+
+        (x, y) = xy
+
+        (lon1, lat1) = self.affine * (x, y+0.5)
+        (lon2, lat2) = self.affine * (x+1, y+0.5)
+        x_size, _az_to, _az_from = vinc_dist(earth.F, earth.A, radians(lat1), radians(lon1), radians(lat2), radians(lon2))
+
+        (lon1, lat1) = self.affine * (x+0.5, y)
+        (lon2, lat2) = self.affine * (x+0.5, y+1)
+        y_size, _az_to, _az_from = vinc_dist(earth.F, earth.A, radians(lat1), radians(lon1), radians(lat2), radians(lon2))
+
+        return (x_size, y_size)
+
+    def get_all_pixelsize_metres(self):
+        """
+        Compute the size (in metres) of each pixel in this GriddedGeoBox. Only one longitude column
+        is returned from which as all other pixel sizes can be derived.
+
+        :return"
+            An array of tuples (x_size, y_size) each gives the size of one pixel in metres beginning with the
+            pixel at the NW corner and extending to the one at SW corner.
+        """
+        result = []
+        for y_val in range(0,self.shape[1]):
+            result.append(self.get_pixelsize_metres(xy=(0,y_val)))
+        return result
 
     @property
     def ul(self):
@@ -430,3 +473,4 @@ class GriddedGeoBox(object):
         sr.SetFromUserInput(CRS)
         centre = self.transform_coordinates(self.centre, sr)
         return centre
+
