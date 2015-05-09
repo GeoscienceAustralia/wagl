@@ -134,6 +134,30 @@ class GriddedGeoBox(object):
         shapeYX = (shapeXY[1], shapeXY[0])
         return GriddedGeoBox(shapeYX, origin, pixelsize, crs)
 
+    def equals(self, geobox):
+        """
+        Compare this GriddedGeoBox with the supplied geobox. Return
+        true if they are actually or functionally the same object
+        """
+
+        if self == geobox:
+            return True
+
+        if self.origin != geobox.origin:
+            return False
+
+        if self.shape != geobox.shape:
+            return False
+
+        if self.pixelsize != geobox.pixelsize:
+            return False
+
+        if self.crs.ExportToWkt() != geobox.crs.ExportToWkt():
+            return False
+
+        return True
+
+
     def __init__(self, shape=(1, 1), origin=(0.0, 0.0),
                  pixelsize=(0.00025, 0.00025), crs='EPSG:4326'):
         """
