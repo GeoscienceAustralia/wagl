@@ -39,19 +39,23 @@ def no_data(acq):
         idx = 0
         return nodata_list[idx]
 
-def data(acq, out=None):
+def data(acq, out=None, window=None, masked=False):
     """
     Read the supplied acquisition's data into the `out` array if provided,
     otherwise return a new `numpy.array` containing the data.
     The parameter `acq` should behave like a `gaip.Acquisition` object.
+    The parameter `window` defines a subset ((ystart, yend), (xstart, xend))
+    in array co-ordinates. Default is None.
+    The parameter `masked` indicates whether or not to return a masked array.
+    Default is False.
     """
     dirname = acq.dir_name
     filename = acq.file_name
     with rasterio.open(pjoin(dirname, filename), 'r') as fo:
-        return fo.read_band(1, out=out)
+        return fo.read_band(1, out=out, window=window, masked=masked)
 
 
-def data_and_box(acq, out=None):
+def data_and_box(acq, out=None, window=None, masked=False):
     """
     Return a tuple comprising the `numpy.array` containing the data of
     the acquisition `acq` together with the associated GriddedGeoBox describing
@@ -59,12 +63,25 @@ def data_and_box(acq, out=None):
     The parameter `acq` should behave like a `gaip.Acquisition` object.
     The `out` parameter, if supplied is a numpy.array into which the
     acquisition data is read.
+    The parameter `window` defines a subset ((ystart, yend), (xstart, xend))
+    in array co-ordinates. Default is None.
+    The parameter `masked` indicates whether or not to return a masked array.
+    Default is False.
     """
     dirname = acq.dir_name
     filename = acq.file_name
     with rasterio.open(pjoin(dirname, filename), 'r') as fo:
         box = gaip.GriddedGeoBox.from_dataset(fo)
-        return (fo.read_band(1, out=out), box)
+        if window is not None:
+            rows = window[0][1] - window[0][0]
+            cols = window[1][1] - window[1][0]
+            prj = bytes(fo.crs_wkt)
+            res = fo.res
+            # Get the new UL co-ordinates of the array
+            ul_x, ul_y = fo.affine * (window[1][0], window[0][0])
+            box = gaip.GriddedGeoBox(shape=(rows, cols), origin=(ul_x, ul_y),
+                                     pixelsize=res, crs=prj)
+        return (fo.read_band(1, out=out, window=window, masked=masked), box)
 
 
 def gridded_geo_box(acq):
@@ -77,39 +94,45 @@ def gridded_geo_box(acq):
         return gaip.GriddedGeoBox.from_dataset(fo)
 
 
-def stack_data(acqs_list, fn=(lambda acq: True)):
+def select_acquisitions(acqs_list, fn=(lambda acq: True)):
     """
     Given a list of acquisitions, apply the supplied fn to select the
-    desired acquisitions and return the data from each acquisition
+    desired acquisitions.
+    """
+    acqs = [acq for acq in acqs_list if fn(acq)]
+    return acqs
+
+
+def stack_data(acqs_list, fn=(lambda acq: True), window=None, masked=False):
+    """
+    Given a list of acquisitions, return the data from each acquisition
     collected in a 3D numpy array (first index is the acquisition number).
+    If window is defined, then the subset contained within the window is
+    returned along with a GriddedGeoBox instance detailing the 
+    spatial information associated with that subset.
 
     :param acqs_list:
-        The list of acquisitions to consider
+        The list of acquisitions from which to generate a stack of data.
 
-    :param fn:
-        A function that takes a single acquisition and returns True if the
-        acquisition is to be selected for inclusion in the output
+    :param window:
+        Defines a subset ((ystart, yend), (xstart, xend)) in array
+        co-ordinates. Default is None.
+
+    :param masked:
+        Indicates whether or not to return a masked array. Default is False.
 
     :return:
-        A 3-tuple containing:
+        A 2-tuple containing:
 
-            * 1. The list of selected acquisitions (possibly empty).
-            * 2. A 3D numpy array (or None) containing the corresponding
+            * 1. A 3D numpy array (or None) containing the corresponding
                  acquisition data. (None if no data).
-            * 3. A GriddedGeoBox instance specifying the spatial context
-                 or the 3D numpy array. Note: All Acquisitions share the
+            * 2. A GriddedGeoBox instance specifying the spatial context
+                 of the 3D numpy array. Note: All Acquisitions share the
                  same GriddedGeoBox.
     """
-
-    # get the subset of acquisitions required
-
-    acqs = [acq for acq in acqs_list if fn(acq)]
-    if len(acqs) == 0:
-        return acqs, None, None
-
     # determine data type and dimensions by reading the first band
-
-    a, geo_box = acqs[0].data_and_box()
+    acqs = acqs_list
+    a, geo_box = acqs[0].data_and_box(window=window, masked=masked)
 
     # create the result array, setting datatype based on source type
 
@@ -125,9 +148,9 @@ def stack_data(acqs_list, fn=(lambda acq: True)):
         # resampled. But we want an exception thrown if the user
         # tries to stack irreqular aquisitions
         # acqs[i].data(out=stack[i])
-        stack[i] = acqs[i].data()
+        stack[i] = acqs[i].data(window=window, masked=masked)
 
-    return acqs, stack, geo_box
+    return stack, geo_box
 
 
 def write_img(array, filename, fmt='ENVI', geobox=None, nodata=None):

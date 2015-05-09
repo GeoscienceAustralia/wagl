@@ -10,7 +10,7 @@ import numpy
 from affine import Affine
 from rasterio.warp import reproject, RESAMPLING
 
-def getUtmZone(pos_longlat):
+def get_utm_zone(pos_longlat):
     """
     Return the UTM zone number corresponding to the supplied position
 
@@ -47,7 +47,7 @@ def get_land_sea_mask(gridded_geo_box, \
 #    print "origin_lonlat=%s" % (origin_longlat,)
 
     # get Land/Sea data file for this bounding box
-    utmZone = abs(getUtmZone(origin_longlat))
+    utmZone = abs(get_utm_zone(origin_longlat))
     utmDataPath = '%s/WORLDzone%d.tif' % (ancillary_path, utmZone)
 
     # read the land/sea data 

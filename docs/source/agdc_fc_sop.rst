@@ -1,31 +1,26 @@
 
-===============================================
-Standard Operating Procedure (Fractional Cover)
-===============================================
+====================================================
+Standard Operating Procedure (AGDC Fractional Cover)
+====================================================
 
-Fractional Cover
-----------------
+AGDC Fractional Cover
+---------------------
 
 Purpose
 -------
-The fractional cover program (fc.py_) takes NBAR scene  and produces a Fractional Cover scene as output. 
+The fractional cover program (agdc_fc.py_) takes NBAR images from the datacube  and produces a Fractional Cover product as output. 
 
-.. _fc.py: https://github.com/GeoscienceAustralia/ga-neo-landsat-processor/blob/develop/workflow/fc.py
+.. _agdc_fc.py: https://github.com/GeoscienceAustralia/ga-neo-landsat-processor/blob/develop/workflow/agdc_fc.py
 
 This document describes how to run the Fractional Cover job via PBS script to process production data. 
 
 The Fractional Cover PBS job uses Luigi to run multiple instances of the fractional cover program in parallel. By adjusting the system resources used by the PBS job, hundreds (or thousands) of NBAR input files may be processed in a short period of time.
 
-Schematic
----------
-The diagram below shows the basic operation of the Fractional Cover Job
+Key shell scripts
+-----------------
 
-.. image:: diagrams/fc.png
-
-Key elements are:
-
-* shell script submit_FC.sh_ is used to submit the run_FC.pbs_ script to the PBS job queue
-* run_FC.pbs_ reads scene data from the NBAR input directory
+* shell script submit_agdc_FC.sh_ is used to submit the run_agdc_fc.pbs_ script to the PBS job queue
+* run_agdc_fc.pbs_ reads scene data from the NBAR input directory
 * `End Members`_ data are maintained in code (changes are applied through revision control)
 * output scenes (Fraction Cover scenes) are written to the FC Output Directory
 * log files are written to the logs directory
@@ -53,11 +48,11 @@ PBS Scripts
 -----------
 Two scripts are used to run Fractional Cover processing
 
-* submit_FC.sh_ – a convenience script to bootstrap the PBS job
-* run_FC.pbs_ – main PBS job scipt
+* submit_agdc_FC.sh_ – a convenience script to bootstrap the PBS job
+* run_agdc_fc.pbs_ – main PBS job scipt
 
-.. _submit_FC.sh: https://github.com/GeoscienceAustralia/ga-neo-landsat-processor/blob/develop/workflow/submit_FC.sh
-.. _run_FC.pbs: https://github.com/GeoscienceAustralia/ga-neo-landsat-processor/blob/develop/workflow/run_FC.pbs
+.. _submit_agdc_FC.sh: https://github.com/GeoscienceAustralia/ga-neo-landsat-processor/blob/develop/workflow/submit_agdc_FC.sh
+.. _run_agdc_fc.pbs: https://github.com/GeoscienceAustralia/ga-neo-landsat-processor/blob/develop/workflow/run__agdc_fc.pbs
 
 You can view these scripts by clicking on the links above.
 
@@ -73,22 +68,6 @@ To run the Fractional Cover job, follow these steps:
 
 Specify inputs and outputs
 --------------------------
-Edit the submit_FC.sh script file and specify the following paths
-
-+---------------+----------------------------------------------------------------------------+
-| Variable      | Description                                                                |
-+===============+============================================================================+
-| NBAR_PATH     | Path to directory containing NBAR files. Files in this directory must      |
-|               | comply with the file naming standards described in Appendix A              |
-+---------------+----------------------------------------------------------------------------+
-| OUTPUT_PATH   | Path to the directory where output files are to be placed. The FC files    |
-|               | output by this job will have a filename compliant with the standard        |
-|               | described in Appendix A. The product code will be “FC”. The remaining     |
-|               | components of the filename will be those of the NBAR input filename.        |
-+---------------+----------------------------------------------------------------------------+
-| LOG_PATH      | Path to the directory where log files will be placed.                      |
-+---------------+----------------------------------------------------------------------------+
-
 The fc.cfg configuration file can be edited to control how the agdc fractional cover workflow will operate.
 The fc.configuration file covers both the agdc and the scene level workflows.
 The section titled `[work]` is used by both the agdc and the scene level workflows. Currently there are only
@@ -178,13 +157,13 @@ Once the job script submit_FC.sh has been edited and the correct entries inserte
 
 .. code-block:: bash
 
- ./submit_FC.sh
+ ./submit_agdc_FC.sh
 
 Check that the job is queued and, after some short delay is executing
 
 .. code-block:: bash
 
- nqstat | grep run_FC
+ nqstat | grep run_agdc_fc
 
 Review Results
 --------------

@@ -2,16 +2,15 @@
 Reflectance Calculations
 ------------------------
 """
-import gc
+from osgeo import gdal
 import numpy
+import rasterio
 
 from gaip import as_array
 from gaip import constants
-from gaip import load_2d_bin_file
-from gaip import read_img
 from gaip import reflectance
-from gaip import write_img
 from gaip import write_new_brdf_file
+from EOtools import tiling
 
 
 def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
@@ -21,7 +20,8 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
                           relative_angle_fname, slope_fname, aspect_fname,
                           incident_angle_fname, exiting_angle_fname,
                           relative_slope_fname, reflectance_filenames,
-                          brdf_fname_format, new_brdf_fname_format):
+                          brdf_fname_format, new_brdf_fname_format,
+                          x_tile=None, y_tile=None):
     """
     The workflow used to calculate lambertian, BRDF corrected and
     terrain corrected surface reflectance.
@@ -116,6 +116,14 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
         new_brdf_modis_band_{band_num}.txt, where {band_num} will be
         substituted for the current band number.
 
+    :param x_tile:
+        Defines the tile size along the x-axis. Default is None which
+        equates to all elements along the x-axis.
+
+    :param y_tile:
+        Defines the tile size along the y-axis. Default is None which
+        equates to all elements along the y-axis.
+
     :return:
         None.
         The terrain correction algorithm will output 3 files for every
@@ -156,7 +164,6 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
     """
     # Specify the biliner binary files datatype
     boo_fnames = bilinear_ortho_filenames
-    bilinear_dtype = 'float32'
 
     # Retrieve the satellite and sensor for the acquisition
     satellite = acquisitions[0].spacecraft_id
@@ -166,33 +173,19 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
     nbar_constants = constants.NBARConstants(satellite, sensor)
     avg_reflectance_values = nbar_constants.get_avg_ref_lut()
 
-    # Read all required arrays into memory
-    # Convert to the appropriate datatype and transpose the array to convert
-    # to Fortran contiguous memory. This should prevent any array copying
-    self_shadow = as_array(read_img(self_shadow_fname), dtype=numpy.int16,
-                           transpose=True)
-    cast_shadow_sun = as_array(read_img(cast_shadow_sun_fname),
-                               dtype=numpy.int16, transpose=True)
-    cast_shadow_satellite = as_array(read_img(cast_shadow_satellite_fname),
-                                     dtype=numpy.int16, transpose=True)
-    solar_zenith = as_array(read_img(solar_zenith_fname),
-                            dtype=numpy.float32, transpose=True)
-    solar_azimuth = as_array(read_img(solar_azimuth_fname),
-                             dtype=numpy.float32, transpose=True)
-    satellite_view = as_array(read_img(satellite_view_fname),
-                              dtype=numpy.float32, transpose=True)
-    relative_angle = as_array(read_img(relative_angle_fname),
-                              dtype=numpy.float32, transpose=True)
-    slope = as_array(read_img(slope_fname), dtype=numpy.float32,
-                     transpose=True)
-    aspect = as_array(read_img(aspect_fname), dtype=numpy.float32,
-                      transpose=True)
-    incident_angle = as_array(read_img(incident_angle_fname),
-                              dtype=numpy.float32, transpose=True)
-    exiting_angle = as_array(read_img(exiting_angle_fname),
-                             dtype=numpy.float32, transpose=True)
-    relative_slope = as_array(read_img(relative_slope_fname),
-                              dtype=numpy.float32, transpose=True)
+    # Open all the images for reading
+    self_shadow_ds = rasterio.open(self_shadow_fname)
+    cast_shadow_sun_ds = rasterio.open(cast_shadow_sun_fname)
+    cast_shadow_satellite_ds = rasterio.open(cast_shadow_satellite_fname) 
+    solar_zenith_ds =  rasterio.open(solar_zenith_fname)
+    solar_azimuth_ds = rasterio.open(solar_azimuth_fname)
+    satellite_view_ds = rasterio.open(satellite_view_fname)
+    relative_angle_ds = rasterio.open(relative_angle_fname)
+    slope_ds = rasterio.open(slope_fname)
+    aspect_ds = rasterio.open(aspect_fname)
+    incident_angle_ds = rasterio.open(incident_angle_fname)
+    exiting_angle_ds = rasterio.open(exiting_angle_fname)
+    relative_slope_ds = rasterio.open(relative_slope_fname)
 
     # Loop over each acquisition and compute various reflectance arrays
     for acq in acquisitions:
@@ -201,11 +194,39 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
         band_number = acq.band_num
         geobox = acq.gridded_geo_box()
 
+        # Filenames for lambertian, brdf & terrain corrected reflectance
+        lmbrt_fname = reflectance_filenames[(band_number,
+                                             'reflectance_lambertian')]
+        brdf_fname = reflectance_filenames[(band_number,
+                                            'reflectance_brdf')]
+        tc_fname = reflectance_filenames[(band_number,
+                                          'reflectance_terrain')]
+
+        # Initialise the output files
+        out_dtype = gdal.GDT_Int16
+        no_data = -999
+        outds_lmbrt = tiling.TiledOutput(lmbrt_fname, cols, rows,
+                                         geobox=geobox, dtype=out_dtype,
+                                         nodata=no_data)
+        outds_brdf = tiling.TiledOutput(brdf_fname, cols, rows, geobox=geobox,
+                                        dtype=out_dtype, nodata=no_data)
+        outds_tc = tiling.TiledOutput(tc_fname, cols, rows, geobox=geobox,
+                                      dtype=out_dtype, nodata=no_data)
+
+        # Initialise the tiling scheme for processing
+        if x_tile is None:
+            x_tile = cols
+        if y_tile is None:
+            y_tile = rows
+        tiles = tiling.generate_tiles(cols, rows, x_tile, y_tile,
+                                      generator=False)
+
         # Read the BRDF modis file for a given band
         brdf_modis_file = brdf_fname_format.format(band_num=acq.band_num)
         with open(brdf_modis_file, 'r') as param_file:
             (brdf0, brdf1, brdf2, bias, slope_ca,
-             esun, dd) = map(float, ' '.join(param_file.readlines()).split())
+             esun, dd) = map(float,
+                             ' '.join(param_file.readlines()).split())
 
         # Output the new format of the brdf file (QA/QC)
         write_new_brdf_file(
@@ -213,66 +234,148 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
             rori, brdf0, brdf1, brdf2, bias, slope_ca, esun, dd,
             avg_reflectance_values[band_number])
 
-        # Read the data; convert to required dtype and transpose
-        band_data = as_array(acq.data(), dtype=numpy.int16, transpose=True)
+        # Open all the bilinear interpolated files for the current band
+        with rasterio.open(boo_fnames[(band_number, 'a')]) as a_mod_ds,\
+            rasterio.open(boo_fnames[(band_number, 'b')]) as b_mod_ds,\
+            rasterio.open(boo_fnames[(band_number, 's')]) as s_mod_ds,\
+            rasterio.open(boo_fnames[(band_number, 'fs')]) as fs_ds,\
+            rasterio.open(boo_fnames[(band_number, 'fv')]) as fv_ds,\
+            rasterio.open(boo_fnames[(band_number, 'ts')]) as ts_ds,\
+            rasterio.open(boo_fnames[(band_number, 'dir')]) as edir_h_ds,\
+            rasterio.open(boo_fnames[(band_number, 'dif')]) as edif_h_ds:
 
-        # Allocate the output arrays
-        # They'll be transposed upon input to the function
-        # The output and work arrays could be allocated once outside
-        # of the loop. But for future proof, we may get a product where
-        # each acquisition could have different resolutions.
-        ref_lm = numpy.zeros((rows, cols), dtype='int16')
-        ref_brdf = numpy.zeros((rows, cols), dtype='int16')
-        ref_terrain = numpy.zeros((rows, cols), dtype='int16')
+            # Loop over each tile
+            for tile in tiles:
+                # Row and column start and end locations
+                ystart = tile[0][0]
+                xstart = tile[1][0]
+                yend = tile[0][1]
+                xend = tile[1][1]
 
-        # Allocate the work arrays (single row of data)
-        band_work = numpy.zeros(cols, dtype='int32')
-        ref_lm_work = numpy.zeros(cols, dtype='float32')
-        ref_brdf_work = numpy.zeros(cols, dtype='float32')
-        ref_terrain_work = numpy.zeros(cols, dtype='float32')
+                # Tile size
+                ysize = yend - ystart
+                xsize = xend - xstart
 
-        # Read the bilinear ortho files for the current band
-        a_mod = load_2d_bin_file(boo_fnames[(band_number, 'a')], rows, cols,
-                                 dtype=bilinear_dtype, transpose=True)
-        b_mod = load_2d_bin_file(boo_fnames[(band_number, 'b')], rows, cols,
-                                 dtype=bilinear_dtype, transpose=True)
-        s_mod = load_2d_bin_file(boo_fnames[(band_number, 's')], rows, cols,
-                                 dtype=bilinear_dtype, transpose=True)
-        fv = load_2d_bin_file(boo_fnames[(band_number, 'fs')], rows, cols,
-                              dtype=bilinear_dtype, transpose=True)
-        fs = load_2d_bin_file(boo_fnames[(band_number, 'fv')], rows, cols,
-                              dtype=bilinear_dtype, transpose=True)
-        ts = load_2d_bin_file(boo_fnames[(band_number, 'ts')], rows, cols,
-                              dtype=bilinear_dtype, transpose=True)
-        edir_h = load_2d_bin_file(boo_fnames[(band_number, 'dir')], rows, cols,
-                                  dtype=bilinear_dtype, transpose=True)
-        edif_h = load_2d_bin_file(boo_fnames[(band_number, 'dif')], rows, cols,
-                                  dtype=bilinear_dtype, transpose=True)
+                # Read the data corresponding to the current tile for all
+                # files
+                # Convert the datatype if required and transpose
+                band_data = as_array(acq.data(window=tile, masked=False),
+                                     dtype=numpy.int16, transpose=True)
+                self_shadow = as_array(self_shadow_ds.read_band(1,
+                                       window=tile, masked=False),
+                                       dtype=numpy.int16,
+                                       transpose=True)
+                cast_shadow_sun = as_array(cast_shadow_sun_ds.read_band(1,
+                                           window=tile, masked=False),
+                                           dtype=numpy.int16,
+                                           transpose=True)
+                cast_shadow_satellite = as_array(
+                                      cast_shadow_satellite_ds.read_band(1,
+                                      window=tile, masked=False),
+                                      dtype=numpy.int16,
+                                      transpose=True)
+                solar_zenith = as_array(solar_zenith_ds.read_band(1,
+                                        window=tile, masked=False),
+                                        dtype=numpy.float32,
+                                        transpose=True)
+                solar_azimuth = as_array(solar_azimuth_ds.read_band(1,
+                                         window=tile, masked=False),
+                                         dtype=numpy.float32,
+                                         transpose=True)
+                satellite_view = as_array(satellite_view_ds.read_band(1,
+                                          window=tile, masked=False),
+                                          dtype=numpy.float32, transpose=True)
+                relative_angle = as_array(relative_angle_ds.read_band(1,
+                                          window=tile),
+                                          dtype=numpy.float32, transpose=True)
+                slope = as_array(slope_ds.read_band(1, window=tile,
+                                                    masked=False),
+                                 dtype=numpy.float32, transpose=True)
+                aspect = as_array(aspect_ds.read_band(1, window=tile,
+                                                      masked=False),
+                                  dtype=numpy.float32, transpose=True)
+                incident_angle = as_array(incident_angle_ds.read_band(1,
+                                          window=tile, masked=False),
+                                          dtype=numpy.float32,
+                                          transpose=True)
+                exiting_angle = as_array(exiting_angle_ds.read_band(1,
+                                         window=tile, masked=False),
+                                         dtype=numpy.float32,
+                                         transpose=True)
+                relative_slope = as_array(relative_slope_ds.read_band(1,
+                                          window=tile, masked=False),
+                                          dtype=numpy.float32, transpose=True)
+                a_mod = as_array(a_mod_ds.read_band(1, window=tile,
+                                                    masked=False),
+                                 dtype=numpy.float32, transpose=True)
+                b_mod = as_array(b_mod_ds.read_band(1, window=tile,
+                                                    masked=False),
+                                 dtype=numpy.float32, transpose=True)
+                s_mod = as_array(s_mod_ds.read_band(1, window=tile,
+                                                    masked=False),
+                                 dtype=numpy.float32, transpose=True)
+                fs = as_array(fs_ds.read_band(1, window=tile, masked=False),
+                              dtype=numpy.float32, transpose=True)
+                fv = as_array(fv_ds.read_band(1, window=tile, masked=False),
+                              dtype=numpy.float32, transpose=True)
+                ts = as_array(ts_ds.read_band(1, window=tile, masked=False),
+                              dtype=numpy.float32, transpose=True)
+                edir_h = as_array(edir_h_ds.read_band(1, window=tile,
+                                                      masked=False),
+                                  dtype=numpy.float32, transpose=True)
+                edif_h = as_array(edif_h_ds.read_band(1, window=tile,
+                                                      masked=False),
+                                  dtype=numpy.float32, transpose=True)
 
-        # Run terrain correction
-        # We use transposed arrays; rows become cols and cols become rows
-        reflectance(cols, rows, rori, brdf0, brdf1, brdf2, bias, slope_ca,
-                    esun, dd, avg_reflectance_values[band_number], band_data,
-                    self_shadow, cast_shadow_sun, cast_shadow_satellite,
-                    solar_zenith, solar_azimuth, satellite_view,
-                    relative_angle, slope, aspect, incident_angle,
-                    exiting_angle, relative_slope, a_mod, b_mod, s_mod, fv, fs,
-                    ts, edir_h, edif_h, band_work, ref_lm_work, ref_brdf_work,
-                    ref_terrain_work, ref_lm.transpose(), ref_brdf.transpose(),
-                    ref_terrain.transpose())
+                # Allocate the output arrays
+                # The output and work arrays could be allocated once
+                # outside of the loop. But for future proof, we may get a
+                # product where each acquisition could have different
+                # resolutions.
+                ref_lm = numpy.zeros((ysize, xsize), dtype='int16')
+                ref_brdf = numpy.zeros((ysize,xsize), dtype='int16')
+                ref_terrain = numpy.zeros((ysize, xsize), dtype='int16')
 
-        # Filenames for lambertian, brdf & terrain corrected reflectance
-        lmbrt_fname = reflectance_filenames[(band_number,
-                                             'reflectance_lambertian')]
-        brdf_fname = reflectance_filenames[(band_number, 'reflectance_brdf')]
-        tc_fname = reflectance_filenames[(band_number, 'reflectance_terrain')]
+                # Allocate the work arrays (single row of data)
+                band_work = numpy.zeros(xsize, dtype='int32')
+                ref_lm_work = numpy.zeros(xsize, dtype='float32')
+                ref_brdf_work = numpy.zeros(xsize, dtype='float32')
+                ref_terrain_work = numpy.zeros(xsize, dtype='float32')
 
-        # Output the files
-        write_img(ref_lm, lmbrt_fname, geobox=geobox, nodata=-999)
-        write_img(ref_brdf, brdf_fname, geobox=geobox, nodata=-999)
-        write_img(ref_terrain, tc_fname, geobox=geobox, nodata=-999)
+                # Run terrain correction
+                reflectance(xsize, ysize, rori, brdf0, brdf1, brdf2, bias,
+                            slope_ca, avg_reflectance_values[band_number],
+                            band_data, self_shadow, cast_shadow_sun,
+                            cast_shadow_satellite,
+                            solar_zenith, solar_azimuth, satellite_view,
+                            relative_angle, slope, aspect, incident_angle,
+                            exiting_angle, relative_slope, a_mod, b_mod,
+                            s_mod, fs, fv, ts, edir_h, edif_h, band_work,
+                            ref_lm_work, ref_brdf_work, ref_terrain_work,
+                            ref_lm.transpose(), ref_brdf.transpose(),
+                            ref_terrain.transpose())
 
-        # Free the memory
-        ref_lm = ref_brdf = ref_terrain = None
-        band_work = ref_lm_work = ref_brdf_work = ref_terrain_work = None
-        gc.collect()
+
+                # Write the current tile to disk
+                outds_lmbrt.write_tile(ref_lm, tile)
+                outds_brdf.write_tile(ref_brdf, tile)
+                outds_tc.write_tile(ref_terrain, tile)
+
+        # Close the files to complete the writing
+        outds_lmbrt.close()
+        outds_brdf.close()
+        outds_tc.close()
+
+    # close all the opened image files
+    self_shadow_ds.close()
+    cast_shadow_sun_ds.close()
+    cast_shadow_satellite_ds.close()
+    solar_zenith_ds.close()
+    solar_azimuth_ds.close()
+    satellite_view_ds.close()
+    relative_angle_ds.close()
+    slope_ds.close()
+    aspect_ds.close()
+    incident_angle_ds.close()
+    exiting_angle_ds.close()
+    relative_slope_ds.close()

@@ -1,6 +1,7 @@
-================
+====================
 Logging Memory usage
-================
+====================
+
 When writing code for the NCI HPC platform it is extremely beneficial to 
 keep the memory usage per process (specifically the Resident Set Size or RSS)
 below 2 GB in total. 
@@ -15,7 +16,7 @@ be significantly less than 100%. For example, a process requiring 4GB can only e
 achieve a maximum node CPU utilisation of 50%.
 
 Logging memory usage
----------------
+--------------------
 
 The simplest was to monitor memory usage during code deveopment is to log the
 memory utilisation of the process during development

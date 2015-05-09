@@ -504,9 +504,8 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
     # Compute the geobox
     geobox = gridded_geo_box(acquisition)
 
-    # Image projection, geotransform and scene centre time stamp
+    # Image projection
     prj = geobox.crs.ExportToWkt()
-    geoT = geobox.affine.to_gdal()
 
     # Get the lat/lon of the scene centre
     centre_xy = geobox.centre_lonlat
@@ -584,27 +583,19 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
             to_disk = None
 
         # Initialise the output files
-        output_files = []
-        drv = gdal.GetDriverByName("ENVI")
-        output_files.append(drv.Create(to_disk[0], cols, rows, 1, 6))
-        output_files.append(drv.Create(to_disk[1], cols, rows, 1, 6))
-        output_files.append(drv.Create(to_disk[2], cols, rows, 1, 6))
-        output_files.append(drv.Create(to_disk[3], cols, rows, 1, 6))
-        output_files.append(drv.Create(to_disk[4], cols, rows, 1, 6))
-        output_files.append(drv.Create(to_disk[5], cols, rows, 1, 6))
-
-        # Set the projection and geotransfrom
-        for outds in output_files:
-            outds.SetProjection(prj)
-            outds.SetGeoTransform(geoT)
-
-        # Get the band level write access
-        out_SAT_V_bnd = output_files[0].GetRasterBand(1)
-        out_SAT_AZ_bnd = output_files[1].GetRasterBand(1)
-        out_SOL_Z_bnd = output_files[2].GetRasterBand(1)
-        out_SOL_AZ_bnd = output_files[3].GetRasterBand(1)
-        out_REL_AZ_bnd = output_files[4].GetRasterBand(1)
-        out_TIME_bnd = output_files[5].GetRasterBand(1)
+        out_dtype = gdal.GDT_Float32
+        outds_sat_v = tiling.TiledOutput(to_disk[0], cols, rows, geobox=geobox,
+                                         dtype=out_dtype)
+        outds_sat_az = tiling.TiledOutput(to_disk[1], cols, rows,
+                                          geobox=geobox, dtype=out_dtype)
+        outds_sol_z = tiling.TiledOutput(to_disk[2], cols, rows, geobox=geobox,
+                                         dtype=out_dtype)
+        outds_sol_az = tiling.TiledOutput(to_disk[3], cols, rows,
+                                          geobox=geobox, dtype=out_dtype)
+        outds_rel_az = tiling.TiledOutput(to_disk[4], cols, rows,
+                                          geobox=geobox, dtype=out_dtype)
+        outds_time = tiling.TiledOutput(to_disk[5], cols, rows, geobox=geobox,
+                                        dtype=out_dtype)
 
     # Set to null value
     view[:] = -999
@@ -621,7 +612,7 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
 
     # Initialise the tile generator for processing
     # Process 1 row of data at a time
-    tiles = tiling.generate_tiles(cols, rows, cols, 1, Generator=True)
+    tiles = tiling.generate_tiles(cols, rows, cols, 1, generator=True)
 
     # Rather than do 8000+ if checks within the loop, we'll construct two
     # seperate loops
@@ -629,10 +620,8 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
         with rasterio.open(lon_fname) as lon, rasterio.open(lat_fname) as lat:
             # Loop over each row
             for i in range(rows):
-                # Get current tile
+                # Get the current tile
                 tile = tiles.next()
-                ystart = tile[0][0]
-                xstart = tile[1][0]
 
                 # Read the lon and lat tile
                 lon_array = lon.read_band(1, window=tile)
@@ -647,10 +636,8 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
         with rasterio.open(lon_fname) as lon, rasterio.open(lat_fname) as lat:
             # Loop over each row
             for i in range(rows):
-                # Get tile info
+                # Get the current tile
                 tile = tiles.next()
-                ystart = tile[0][0]
-                xstart = tile[1][0]
 
                 # Read the lon and lat tile
                 lon_array = lon.read_band(1, window=tile)
@@ -671,29 +658,21 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
                       x_cent, n_cent)
 
                 # Output to disk
-                out_SAT_V_bnd.WriteArray(view, xstart, ystart)
-                out_SAT_V_bnd.FlushCache()
-                out_SAT_AZ_bnd.WriteArray(azi, xstart, ystart)
-                out_SAT_AZ_bnd.FlushCache()
-                out_SOL_Z_bnd.WriteArray(asol, xstart, ystart)
-                out_SOL_Z_bnd.FlushCache()
-                out_SOL_AZ_bnd.WriteArray(soazi, xstart, ystart)
-                out_SOL_AZ_bnd.FlushCache()
-                out_REL_AZ_bnd.WriteArray(rela_angle, xstart, ystart)
-                out_REL_AZ_bnd.FlushCache()
-                out_TIME_bnd.WriteArray(time, xstart, ystart)
-                out_TIME_bnd.FlushCache()
+                outds_sat_v.write_tile(view, tile)
+                outds_sat_az.write_tile(azi, tile)
+                outds_sol_z.write_tile(asol, tile)
+                outds_sol_az.write_tile(soazi, tile)
+                outds_rel_az.write_tile(rela_angle, tile)
+                outds_time.write_tile(time, tile)
 
     if to_disk is not None:
         # Close all image files opened for writing
-        output_files = None
-        outds = None
-        out_SAT_V_bnd = None
-        out_SAT_AZ_bnd = None
-        out_SOL_Z_bnd = None
-        out_SOL_AZ_bnd = None
-        out_REL_AZ_bnd = None
-        out_TIME_bnd = None
+        outds_sat_v.close()
+        outds_sat_az.close()
+        outds_sol_z.close()
+        outds_sol_az.close()
+        outds_rel_az.close()
+        outds_time.close()
 
     # Centreline
     # here need code to write the track in the image as an ascii file

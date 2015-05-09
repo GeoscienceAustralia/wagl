@@ -1,5 +1,18 @@
-import os, errno, sys, numpy, numexpr
-import unmiximage, endmembers
+import errno
+import os
+import numpy
+import numexpr
+import gdal
+
+from EOtools import tiling
+from gaip import endmembers
+from gaip import GriddedGeoBox
+from gaip import LandsatAcquisition
+from gaip import stack_data
+from gaip import unmiximage
+
+from datacube.api.model import BANDS
+from datacube.api.model import DatasetType, Satellite
 
 """
 Utility functions used in fractional cover. These should not be used outside of this package as they
@@ -7,281 +20,353 @@ may be moved, renamed or deleted in the future. If you need to add more function
 use, this is the place to put them.
 """
 
-
-
-
-
-def datatype(dtype):
+def fractional_cover(acquisitions, x_tile, y_tile, out_fnames):
     """
-    Maps a gdal datatype to a numpy datatype.
+    Given a list of spectral acquisitions compute the fractional
+    components.
 
-    :param dtype:
-        The gdal datatype to get the numpy datatype for.
+    :param acquisitions:
+        A list of acquisition class objects that will be run through
+        the terrain correction workflow.
+
+    :param x_tile:
+        Defines the tile size along the x-axis. Default is None which
+        equates to all elements along the x-axis.
+
+    :param y_tile:
+        Defines the tile size along the y-axis. Default is None which
+        equates to all elements along the y-axis.
+
+    :param out_fnames:
+        A list of strings with each containing the full file path name
+        to a location on disk.
+        The order should be:
+
+            * Photosynthetic vegetation
+            * Non-photosynthetic vegetation
+            * Bare soil
+            * Unmixing error
 
     :return:
-        The numpy datatype corresponding to ``gdal_data_type``.
+        None. Outputs are written to disk.
+
+    :Notes:
+        The number of outputs, the order and the type of fractional
+        component can change with the algorithm used.
     """
-    instr = str(dtype)
-    return {
-        '1' : 'uint8',
-        '2' : 'uint16',
-        '3' : 'int16',
-        '4' : 'uint32',
-        '5' : 'int32',
-        '6' : 'float32',
-        '7' : 'float64',
-        '8' : 'complex64',
-        '9' : 'complex64',
-        '10': 'complex64',
-        '11': 'complex128',
-        }.get(instr, 'float64')
+    # Define the output datatype and format
+    out_dtype = gdal.GDT_Byte
+    fmt = "GTiff"
+    out_no_data = 0
+
+    # Compute the geobox and get the array dimensions from the 1st
+    # acquisition
+    if isinstance(acquisitions, LandsatAcquisition):
+        geobox = acquisitions[0].gridded_geo_box()
+        cols, rows = geobox.get_shape_xy()
+
+        # Define int16 zero and no data value
+        zero = numpy.int16(0)
+        no_data = acquisitions[0].no_data 
+        if no_data is None:
+            no_data = -999
+        
+        # Initialise the output files
+        outds_pv = tiling.TiledOutput(out_fnames[0], cols, rows, geobox=geobox,
+                                      dtype=out_dtype, nodata=no_data, fmt=fmt)
+        outds_npv = tiling.TiledOutput(out_fnames[1], cols, rows,
+                                       geobox=geobox, dtype=out_dtype,
+                                       nodata=no_data, fmt=fmt)
+        outds_bs = tiling.TiledOutput(out_fnames[2], cols, rows, geobox=geobox,
+                                      dtype=out_dtype, nodata=no_data, fmt=fmt)
+        outds_ue = tiling.TiledOutput(out_fnames[3], cols, rows, geobox=geobox,
+                                      dtype=out_dtype, nodata=no_data, fmt=fmt)
+    else:
+        # To avoid confusion between the Acquisition and StackedDataset
+        # objects we'll alias acquisitions to sd (StackedDataset)
+        sd = acquisitions
+
+        geobox = GriddedGeoBox.from_gdal_dataset(gdal.Open(sd.fname))
+        cols = sd.samples
+        rows = sd.lines
+        zero = numpy.int16(0)
+        no_data = sd.no_data
+        if no_data is None:
+            no_data = -999
+
+        # Define the output file
+        outds = tiling.TiledOutput(out_fnames, cols, rows, geobox=geobox,
+                                   dtype=out_dtype, nodata=no_data, fmt=fmt,
+                                   bands=4)
+
+    # Initialise the tiling scheme for processing
+    if x_tile is None:
+        x_tile = cols
+    if y_tile is None:
+        y_tile = rows
+    tiles = tiling.generate_tiles(cols, rows, x_tile, y_tile, generator=False)
 
 
+    # Scarth 20090810 14:06:35 CEST
+    # Define the weight of the sum to one constraint
+    # This value determined how well the resulting fractions will sum to 100%
+    # I typically determine this by running the unmixing against field data for
+    # a number of values, picking the best one
+    sum_to_one_weight = endmembers.sum_weight('2014_07_23')
 
 
+    # Scarth 20090810 14:06:35 CEST
+    # 2009v gives green, dead, bare1 and bare2
+    # 2012v gives green, dead, bare1 and bare2
+    # 2013v gives green, dead1, dead2 and bare fractions
+    # Note the last row is the sum to one constraint value
+    endmembers_array = endmembers.endmember_version('2014_07_23')
 
-def create_dir(path):
-    """
-    Create a directory.
-    """
-    try:
-        os.makedirs(path)
-    except OSError, e:
-        if e.errno != errno.EEXIST:
-            raise
+    # Define separate loops for the different data sources
+    if isinstance(acquisitions, LandsatAcquisition):
+        # Loop over each tile
+        for tile in tiles:
+            # Read the data for the current tile from acquisitions
+            stack, _ = stack_data(acquisitions, window=tile)
+
+            # set no data values to zero
+            #numpy.maximum(stack, zero, out=stack) # Only works if negative
+            wh_any = numpy.any(numexpr.evaluate("stack == no_data"), axis=0)
+            stack[:, wh_any] = zero
+
+            # Compute the fractions
+            (green, dead1, dead2, bare,
+             err) = unmix(stack[0], stack[1], stack[2], stack[3], stack[4],
+                          sum_to_one_weight, endmembers_array)
+
+            # Find any occurences of an unmixing error
+            # If an pixel is in error then all pixels for that location are
+            # counted as an error
+            wh_unmix_err = numexpr.evaluate("(green == -10) |"
+                                            "(dead1 == -10) |"
+                                            "(dead2 == -10) |"
+                                            "(bare == -10)")
+
+            # scale the results and clip the range to (0, 255)
+            green = numexpr.evaluate("green / 0.01 + 100")
+            green[wh_any] = out_no_data
+            green[wh_unmix_err] = out_no_data
+            numpy.clip(green, a_min=0, a_max=255, out=green)
+
+            dead = numexpr.evaluate("(dead1 + dead2) / 0.01 + 100")
+            dead[wh_any] = out_no_data
+            dead[wh_unmix_err] = out_no_data
+            numpy.clip(dead, a_min=0, a_max=255, out=dead)
+
+            bare = numexpr.evaluate("bare / 0.01 + 100")
+            bare[wh_any] = out_no_data
+            bare[wh_unmix_err] = out_no_data
+            numpy.clip(bare, a_min=0, a_max=255, out=bare)
+
+            err = numexpr.evaluate("err + 100")
+            err[wh_any] = out_no_data
+            err[wh_unmix_err] = out_no_data
+            numpy.clip(err, a_min=0, a_max=255, out=err)
+
+            # Output to disk
+            outds_pv.write_tile(green.astype('uint8'), tile)
+            outds_npv.write_tile(dead.astype('uint8'), tile)
+            outds_bs.write_tile(bare.astype('uint8'), tile)
+            outds_ue.write_tile(err.astype('uint8'), tile)
+    else:
+        # Get the sensor and construct a Satellite object
+        satellite = Satellite[os.path.basename(sd.fname).split('_')[0]]
+
+        # Get the required bands for the unmixing algorithm
+        bands = BANDS[DatasetType.ARG25, satellite]
+        bands = [bands.GREEN.value, bands.RED.value,
+                 bands.NEAR_INFRARED.value,
+                 bands.SHORT_WAVE_INFRARED_1.value,
+                 bands.SHORT_WAVE_INFRARED_2.value]
+
+        # ******* QDERM TEST **********
+        #bands = [2,3,4,5,6]
+
+        # Loop over each tile
+        for tile in tiles:
+            # Read the data for the current tile from acquisitions
+            stack = sd.read_tile(tile, raster_bands=bands)
+
+            # For some reason we might get an un-writeable array
+            stack.flags['WRITEABLE'] = True
+
+            # set no data values to zero
+            #numpy.maximum(stack, zero, out=stack)
+            wh_any = numpy.any(numexpr.evaluate("stack == no_data"), axis=0)
+            stack[:, wh_any] = zero
+
+            # Compute the fractions
+            (green, dead1, dead2, bare,
+             err) = unmix(stack[0], stack[1], stack[2], stack[3], stack[4],
+                          sum_to_one_weight, endmembers_array)
+
+            # Find any occurences of an unmixing error
+            # If an pixel is in error then all pixels for that location are
+            # counted as an error
+            wh_unmix_err = numexpr.evaluate("(green == -10) |"
+                                            "(dead1 == -10) |"
+                                            "(dead2 == -10) |"
+                                            "(bare == -10)")
+
+            # scale the results and clip the range to (0, 255)
+            green = numexpr.evaluate("green / 0.01 + 100")
+            green[wh_any] = out_no_data
+            green[wh_unmix_err] = out_no_data
+            numpy.clip(green, a_min=0, a_max=255, out=green)
+
+            dead = numexpr.evaluate("(dead1 + dead2) / 0.01 + 100")
+            dead[wh_any] = out_no_data
+            dead[wh_unmix_err] = out_no_data
+            numpy.clip(dead, a_min=0, a_max=255, out=dead)
+
+            bare = numexpr.evaluate("bare / 0.01 + 100")
+            bare[wh_any] = out_no_data
+            bare[wh_unmix_err] = out_no_data
+            numpy.clip(bare, a_min=0, a_max=255, out=bare)
+
+            err = numexpr.evaluate("err + 100")
+            err[wh_any] = out_no_data
+            err[wh_unmix_err] = out_no_data
+            numpy.clip(err, a_min=0, a_max=255, out=err)
+
+            # Output to disk
+            outds.write_tile(bare.astype('uint8'), tile, raster_band=1)
+            outds.write_tile(green.astype('uint8'), tile, raster_band=2)
+            outds.write_tile(dead.astype('uint8'), tile, raster_band=3)
+            outds.write_tile(err.astype('uint8'), tile, raster_band=4)
+
+    # Close the files to complete the writing
+    if isinstance(acquisitions, LandsatAcquisition):
+        outds_pv.close()
+        outds_npv.close()
+        outds_bs.close()
+        outds_ue.close()
+    else:
+        outds.close()
 
 
-
-
-
-def unmix(landsatReflectance):
+def unmix(green, red, nir, swir1, swir2, sum_to_one_weight, endmembers_array):
     # NNLS Unmixing v1.0
     # Scarth 20090810 14:06:35 CEST
     # This implements a constrained unmixing process to recover the fraction images from
     # a synthetic reflectance generated from a large number of interactive
     # terms produced from the original and log-transformed landsat bands
-    # It uses pre-defined endmembers that are defined below
-    # Note that this relies on the more recent builds of Scipy that have the nnls.f code wrapped
 
-    # The tiling routine that generates a list of tiles to process
-    def get_tile2(array, xtile=100,ytile=100):
-        dims = array.shape
-        ncols = dims[1]
-        nrows = dims[0]
-        l = []
-        if len(dims) >2:
-            ncols = dims[2]
-            nrows = dims[1]
-            dims  = (nrows,ncols)
-        xstart = numpy.arange(0,ncols,xtile)
-        ystart = numpy.arange(0,nrows,ytile)
-        for ystep in ystart:
-            if ystep + ytile < nrows:
-                yend = ystep + ytile
-            else:
-                yend = nrows
-            for xstep in xstart:
-                if xstep + xtile < ncols:
-                    xend = xstep + xtile
-                else:
-                    xend = ncols
-                l.append((ystep,yend,xstep,xend))
-        return l
+    # GA wrapped and modified version of Scarth 20090810 14:06:35 CEST
 
+    band2 = numexpr.evaluate("(1.0 + green) * 0.0001")
+    band3 = numexpr.evaluate("(1.0 + red) * 0.0001")
+    band4 = numexpr.evaluate("(1.0 + nir) * 0.0001")
+    band5 = numexpr.evaluate("(1.0 + swir1) * 0.0001")
+    band7 = numexpr.evaluate("(1.0 + swir2) * 0.0001")
 
-    # Define the weight of the sum to one constraint
-    # This value determined how well the resulting fractions will sum to 100%
-    # I typically determine this by running the unmixing against field data for a number of values, picking the best one
-    sumToOneWeight = endmembers.sum_weight('2013_01_08')
+    #b_logs = numexpr.evaluate("log(subset)")
+    logb2 = numexpr.evaluate("log(band2)")
+    logb3 = numexpr.evaluate("log(band3)")
+    logb4 = numexpr.evaluate("log(band4)")
+    logb5 = numexpr.evaluate("log(band5)")
+    logb7 = numexpr.evaluate("log(band7)")
 
-    # 2009v gives green, dead, bare1 and bare2
-    # 2012v gives green, dead, bare1 and bare2
-    # 2013v gives green, dead1, dead2 and bare fractions
-    # Note the last row is the sum to one constraint value
-    endmembers_array = endmembers.endmember_version('2013_01_08')
+    b2b3  = numexpr.evaluate("band2 * band3")
+    b2b4  = numexpr.evaluate("band2 * band4")
+    b2b5  = numexpr.evaluate("band2 * band5")
+    b2b7  = numexpr.evaluate("band2 * band7")
+    b2lb2 = numexpr.evaluate("band2 * logb2")
+    b2lb3 = numexpr.evaluate("band2 * logb3")
+    b2lb4 = numexpr.evaluate("band2 * logb4")
+    b2lb5 = numexpr.evaluate("band2 * logb5")
+    b2lb7 = numexpr.evaluate("band2 * logb7")
 
-    dims = landsatReflectance.shape
-    if len(dims) >2:
-        ncols = dims[2]
-        nrows = dims[1]
-        dims  = (nrows,ncols)
+    b3b4  = numexpr.evaluate("band3 * band4")
+    b3b5  = numexpr.evaluate("band3 * band5")
+    b3b7  = numexpr.evaluate("band3 * band7")
+    b3lb2 = numexpr.evaluate("band3 * logb2")
+    b3lb3 = numexpr.evaluate("band3 * logb3")
+    b3lb4 = numexpr.evaluate("band3 * logb4")
+    b3lb5 = numexpr.evaluate("band3 * logb5")
+    b3lb7 = numexpr.evaluate("band3 * logb7")
 
-    # Output can be float32, but the input and calculations have to be
-    # performed in float64, otherwise results will be zero.
+    b4b5  = numexpr.evaluate("band4 * band5")
+    b4b7  = numexpr.evaluate("band4 * band7")
+    b4lb2 = numexpr.evaluate("band4 * logb2")
+    b4lb3 = numexpr.evaluate("band4 * logb3")
+    b4lb4 = numexpr.evaluate("band4 * logb4")
+    b4lb5 = numexpr.evaluate("band4 * logb5")
+    b4lb7 = numexpr.evaluate("band4 * logb7")
 
-    # For use with the fortran function
-    fractions = numpy.zeros((5,dims[0],dims[1]), dtype='float32')
+    b5b7  = numexpr.evaluate("band5 * band7")
+    b5lb2 = numexpr.evaluate("band5 * logb2")
+    b5lb3 = numexpr.evaluate("band5 * logb3")
+    b5lb4 = numexpr.evaluate("band5 * logb4")
+    b5lb5 = numexpr.evaluate("band5 * logb5")
+    b5lb7 = numexpr.evaluate("band5 * logb7")
 
-    # *******************************************
-    # Use a tiling procedure, as the array that is created for input into the
-    # unmixing algorithm is [55,y,x]. Not sure how QDERM evaluates their
-    # components, but a [55,8000,8000] float64 is too large to be held in
-    # memory all at once.
-    # [58,y,x] array is calculated for 2013_01_08 version
-    # *******************************************
+    b7lb2 = numexpr.evaluate("band7 * logb2")
+    b7lb3 = numexpr.evaluate("band7 * logb3")
+    b7lb4 = numexpr.evaluate("band7 * logb4")
+    b7lb5 = numexpr.evaluate("band7 * logb5")
+    b7lb7 = numexpr.evaluate("band7 * logb7")
 
-    tiles = get_tile2(array=landsatReflectance)
+    lb2lb3 = numexpr.evaluate("logb2 * logb3")
+    lb2lb4 = numexpr.evaluate("logb2 * logb4")
+    lb2lb5 = numexpr.evaluate("logb2 * logb5")
+    lb2lb7 = numexpr.evaluate("logb2 * logb7")
 
-    # Calculate the [55,y,x] array to feed into the unmixing algorithm
-    # Loops over the number of tiles. Potentially could be run in parallel as
-    # each tile is independent, and no tiles overlap.
-    # [58,y,x] array is calculated for 2013_01_08 version
-    for tile in tiles:
-        ystart = tile[0]
-        yend   = tile[1]
-        xstart = tile[2]
-        xend   = tile[3]
+    lb3lb4 = numexpr.evaluate("logb3 * logb4")
+    lb3lb5 = numexpr.evaluate("logb3 * logb5")
+    lb3lb7 = numexpr.evaluate("logb3 * logb7")
 
-        subset = landsatReflectance[:,ystart:yend,xstart:xend]
-        subset = numexpr.evaluate("(1.0 + subset) * 0.0001")
+    lb4lb5 = numexpr.evaluate("logb4 * logb5")
+    lb4lb7 = numexpr.evaluate("logb4 * logb7")
 
-        band2 = subset[0]
-        band3 = subset[1]
-        band4 = subset[2]
-        band5 = subset[3]
-        band7 = subset[4]
+    lb5lb7 = numexpr.evaluate("logb5 * logb7")
 
-        b_logs = numexpr.evaluate("log(subset)")
-        logb2 = b_logs[0]
-        logb3 = b_logs[1]
-        logb4 = b_logs[2]
-        logb5 = b_logs[3]
-        logb7 = b_logs[4]
+    band_ratio1 = numexpr.evaluate("(band4 - band3) / (band4 + band3)")
+    band_ratio2 = numexpr.evaluate("(band4 - band5) / (band4 + band5)")
+    band_ratio3 = numexpr.evaluate("(band5 - band3) / (band5 + band3)")
+    band_ratio4 = numexpr.evaluate("(band3 - band2) / (band3 + band2)")
 
-        b2b3  = numexpr.evaluate("band2 * band3")
-        b2b4  = numexpr.evaluate("band2 * band4")
-        b2b5  = numexpr.evaluate("band2 * band5")
-        b2b7  = numexpr.evaluate("band2 * band7")
-        b2lb2 = numexpr.evaluate("band2 * logb2")
-        b2lb3 = numexpr.evaluate("band2 * logb3")
-        b2lb4 = numexpr.evaluate("band2 * logb4")
-        b2lb5 = numexpr.evaluate("band2 * logb5")
-        b2lb7 = numexpr.evaluate("band2 * logb7")
+    # The 2009_08_10 and 2012_12_07 versions use a different interactive
+    # terms array compared to the 2013_01_08 version
+    # 2013_01_08 uses 59 endmebers
+    # 2009_08_10 uses 56 endmebers
+    # 2012_12_07 uses 56 endmebers
+    # 2014_07_23 uses 60 endmembers
+    # TODO write an interface that can retrieve the correct
+    # interactiveTerms array according to the specified version.
 
-        b3b4  = numexpr.evaluate("band3 * band4")
-        b3b5  = numexpr.evaluate("band3 * band5")
-        b3b7  = numexpr.evaluate("band3 * band7")
-        b3lb2 = numexpr.evaluate("band3 * logb2")
-        b3lb3 = numexpr.evaluate("band3 * logb3")
-        b3lb4 = numexpr.evaluate("band3 * logb4")
-        b3lb5 = numexpr.evaluate("band3 * logb5")
-        b3lb7 = numexpr.evaluate("band3 * logb7")
+    interactive_terms = numpy.array([b2b3, b2b4, b2b5, b2b7, b2lb2, b2lb3,
+                                     b2lb4, b2lb5, b2lb7, b3b4, b3b5, b3b7,
+                                     b3lb2, b3lb3, b3lb4, b3lb5, b3lb7, b4b5,
+                                     b4b7, b4lb2, b4lb3, b4lb4, b4lb5, b4lb7,
+                                     b5b7, b5lb2, b5lb3, b5lb4, b5lb5, b5lb7,
+                                     b7lb2, b7lb3, b7lb4, b7lb5, b7lb7, lb2lb3,
+                                     lb2lb4, lb2lb5, lb2lb7, lb3lb4, lb3lb5,
+                                     lb3lb7, lb4lb5, lb4lb7, lb5lb7, band2,
+                                     band3, band4, band5, band7, logb2, logb3,
+                                     logb4, logb5, logb7, band_ratio1,
+                                     band_ratio2, band_ratio3, band_ratio4])
 
-        b4b5  = numexpr.evaluate("band4 * band5")
-        b4b7  = numexpr.evaluate("band4 * band7")
-        b4lb2 = numexpr.evaluate("band4 * logb2")
-        b4lb3 = numexpr.evaluate("band4 * logb3")
-        b4lb4 = numexpr.evaluate("band4 * logb4")
-        b4lb5 = numexpr.evaluate("band4 * logb5")
-        b4lb7 = numexpr.evaluate("band4 * logb7")
+    # Now add the sum to one constraint to the interactive terms
+    # First make a zero array of the right shape
+    weighted_spectra = numpy.zeros((interactive_terms.shape[0] + 1,) +
+                                   interactive_terms.shape[1:])
+    # Insert the interactive terms
+    weighted_spectra[:-1, ...] = interactive_terms
+    # Last element is special weighting
+    weighted_spectra[-1] = sum_to_one_weight
 
-        b5b7  = numexpr.evaluate("band5 * band7")
-        b5lb2 = numexpr.evaluate("band5 * logb2")
-        b5lb3 = numexpr.evaluate("band5 * logb3")
-        b5lb4 = numexpr.evaluate("band5 * logb4")
-        b5lb5 = numexpr.evaluate("band5 * logb5")
-        b5lb7 = numexpr.evaluate("band5 * logb7")
+    in_null = 0.0001
+    out_unmix_null = -10.0
 
-        b7lb2 = numexpr.evaluate("band7 * logb2")
-        b7lb3 = numexpr.evaluate("band7 * logb3")
-        b7lb4 = numexpr.evaluate("band7 * logb4")
-        b7lb5 = numexpr.evaluate("band7 * logb5")
-        b7lb7 = numexpr.evaluate("band7 * logb7")
-
-        lb2lb3 = numexpr.evaluate("logb2 * logb3")
-        lb2lb4 = numexpr.evaluate("logb2 * logb4")
-        lb2lb5 = numexpr.evaluate("logb2 * logb5")
-        lb2lb7 = numexpr.evaluate("logb2 * logb7")
-
-        lb3lb4 = numexpr.evaluate("logb3 * logb4")
-        lb3lb5 = numexpr.evaluate("logb3 * logb5")
-        lb3lb7 = numexpr.evaluate("logb3 * logb7")
-
-        lb4lb5 = numexpr.evaluate("logb4 * logb5")
-        lb4lb7 = numexpr.evaluate("logb4 * logb7")
-
-        lb5lb7 = numexpr.evaluate("logb5 * logb7")
-
-        band_ratio1 = numexpr.evaluate("(band4-band3) / (band4+band3)")
-        band_ratio2 = numexpr.evaluate("(band4-band5) / (band4+band3)")
-        band_ratio3 = numexpr.evaluate("(band5-band3) / (band5+band3)")
-
-        # The 2009_08_10 and 2012_12_07 versions use a different interactive
-        # terms array compared to the 2013_01_08 version
-        # 2013_01_08 uses 59 endmebers
-        # 2009_08_10 uses 56 endmebers
-        # 2012_12_07 uses 56 endmebers
-        # TODO write an interface that can retrieve the correct
-        # interactiveTerms array according to the specified version.
-
-        interactiveTerms=numpy.array([
-                                      b2b3, b2b4, b2b5, b2b7, b2lb2, b2lb3, b2lb4,
-                                      b2lb5, b2lb7, b3b4, b3b5, b3b7, b3lb2, b3lb3,
-                                      b3lb4, b3lb5, b3lb7, b4b5, b4b7, b4lb2, b4lb3,
-                                      b4lb4, b4lb5, b4lb7, b5b7, b5lb2, b5lb3, b5lb4,
-                                      b5lb5, b5lb7, b7lb2, b7lb3, b7lb4, b7lb5, b7lb7,
-                                      lb2lb3, lb2lb4, lb2lb5, lb2lb7, lb3lb4, lb3lb5,
-                                      lb3lb7, lb4lb5, lb4lb7, lb5lb7, band2, band3,
-                                      band4 ,band5, band7, logb2, logb3, logb4, logb5,
-                                      logb7, band_ratio1, band_ratio2, band_ratio3
-                                     ])
-
-        # Now add the sum to one constraint to the interactive terms
-        # First make a zero array of the right shape
-        weightedSpectra = numpy.zeros((interactiveTerms.shape[0]+1,)+interactiveTerms.shape[1:])
-        # Insert the interactive terms
-        weightedSpectra[:-1, ...] = interactiveTerms
-        # Last element is special weighting
-        weightedSpectra[-1] = sumToOneWeight
-
-        inNullValDN = 0.0001
-        outUnmixNullVal = 0
-
-        fractions[:,ystart:yend,xstart:xend] = unmiximage.unmiximage(weightedSpectra, endmembers_array, inNullValDN, outUnmixNullVal) # The fortan method
+    fractions = unmiximage.unmiximage(weighted_spectra, endmembers_array,
+                                      in_null, out_unmix_null)
 
     # 2013v gives green, dead1, dead2 and bare fractions
     # the last band should be the unmixing error
     return fractions
-
-
-
-
-
-
-# def linefinder(array, string = ""):
-#     '''
-#     Searches a list for the specified string.
-#
-#     :param array: A list containing searchable strings.
-#
-#     :param string: User input containing the string to search.
-#
-#     :return: The line containing the found sting.
-#     '''
-#
-#     for line in array:
-#         if string in str(line):
-#             return line
-
-
-
-
-
-# def locate(pattern, root):
-#     '''
-#     Finds files that match the given pattern. This will not search sub-directories.
-#
-#     :param pattern: A string containing the pattern to search, eg '*.csv'
-#
-#     :param root: The path directory to search
-#
-#     :return: A list of file-path name strings of files that match the given pattern.
-#     '''
-#
-#     matches = []
-#     for fl in os.listdir(root):
-#         if fnmatch.fnmatch(fl, pattern):
-#             matches.append(os.path.join(root, fl))
-#
-#     return matches
-

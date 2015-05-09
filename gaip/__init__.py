@@ -24,20 +24,24 @@ from acca_cloud_masking import calc_acca_cloud_mask
 from acca_cloud_masking import majority_filter
 from fmask_cloud_masking_wrapper import fmask_cloud_mask
 from cloud_shadow_masking import cloud_shadow
+from calculate_self_shadow import self_shadow
 
 try:
     from _satellite_model import set_satmod # F2Py
     from _track_time_info import set_times # F2Py
     from _sat_sol_angles import angle # F2Py
     from _cast_shadow_mask import cast_shadow_main # F2Py
-    from _slope_self_shadow import slope_self_shadow # F2Py
+    from _exiting_angle import exiting_angle # F2Py
+    from _incident_angle import incident_angle # F2Py
+    from _slope_aspect import slope_aspect # F2Py
     from _surface_reflectance import reflectance # F2Py
     from calculate_angles import *
     from tc import *
     from dsm import get_dsm
-    from self_shadow import calculate_self_shadow
     from cast_shadow import calculate_cast_shadow
     from calculate_reflectance import calculate_reflectance
+    from calculate_incident_exiting_angles import *
+    from calculate_slope_aspect import *
 except ImportError:
     msg = ('Run Makefile to build the Fortran modules.\n'
            'Some functionality in library is disabled')
