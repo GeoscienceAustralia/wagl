@@ -20,7 +20,7 @@ from gaip import set_satmod
 from gaip import set_times
 
 CRS = "EPSG:4326"
-TLE_DIR = '/g/data1/v10/eoancillarydata/sensor-specific'
+TLE_DIR = '/g/data/v10/eoancillarydata/sensor-specific'
 
 # To be used as a template while gaip is restructured
 
