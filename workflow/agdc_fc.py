@@ -1,7 +1,5 @@
 #!/bin/env python
 
-import luigi.contrib.mpi as mpi
-
 import luigi
 import os
 from os.path import join as pjoin, dirname, exists, splitext, basename
