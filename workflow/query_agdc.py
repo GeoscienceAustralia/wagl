@@ -28,7 +28,7 @@ PBS_DSH = (
 NNODES={nnodes}
 
 for i in $(seq 1 $NNODES); do
-   pbsdsh -n $((16 *$i)) -- bash -l -c "{modules} PBS_NNODES=$NNODES PBS_VNODENUM=$i python {pyfile} \
+   pbsdsh -n $((16 *$i)) -- bash -l -c "{modules} python {pyfile} \
    --tile $[$i - 1]" &
 done;
 wait
@@ -92,6 +92,7 @@ def query(output_path):
                                password=config.get_db_password(),
                                host=config.get_db_host(),
                                port=config.get_db_port()) 
+
     # Output the result to disk
     with open(out_fname, 'w') as outf:
         pickle.dump(tiles, outf)
