@@ -2,7 +2,6 @@
 
 import luigi
 from os.path import join as pjoin, dirname
-
 import cPickle as pickle
 import subprocess
 from datetime import date
@@ -10,7 +9,6 @@ from datetime import date
 from datacube.api.model import DatasetType, Satellite
 from datacube.api.query import list_tiles_as_list
 from datacube.config import Config
-import gaip
 
 CONFIG = luigi.configuration.get_config()
 CONFIG.add_config_path(pjoin(dirname(__file__), 'fc.cfg'))
