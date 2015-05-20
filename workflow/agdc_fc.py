@@ -7,6 +7,8 @@ import os
 from os.path import join as pjoin, dirname, exists, splitext, basename
 import gaip
 import cPickle as pickle
+import argparse
+import logging
 
 from datacube.api.model import DatasetType, Satellite
 from datacube.api.query import list_tiles_as_list
@@ -86,7 +88,8 @@ class ProcessFC(luigi.Task):
         return tasks
 
     def output(self):
-        out_fname = pjoin(self.out_path, 'ProcessFC.completed')
+        out_fname = pjoin(self.out_path, 'ProcessFC_chunk_{}:{}.completed')
+        out_fname = out_fname.format(self.idx1, self.idx2)
         return luigi.LocalTarget(out_fname)
 
     def run(self):
@@ -106,7 +109,7 @@ if __name__ == '__main__':
     tile_idx = parsed_args.tile
 
     # setup logging
-    log_dir = CONFIG.get('work', 'logs_directory')
+    log_dir = CONFIG.get('agdc', 'logs_directory')
     if not exists(log_dir):
         os.makedirs(log_dir)
 
