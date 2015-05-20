@@ -1,8 +1,7 @@
-#!/bin/env python
+#!/usr/bin/env python
 
 import luigi
-import os
-from os.path import join as pjoin, dirname, exists, splitext, basename
+from os.path import join as pjoin, dirname
 import cPickle as pickle
 import subprocess
 from datetime import date
@@ -10,7 +9,6 @@ from datetime import date
 from datacube.api.model import DatasetType, Satellite
 from datacube.api.query import list_tiles_as_list
 from datacube.config import Config
-import gaip
 
 CONFIG = luigi.configuration.get_config()
 CONFIG.add_config_path(pjoin(dirname(__file__), 'fc.cfg'))
@@ -128,9 +126,13 @@ def query(output_path):
                              modules=modules, pyfile=py_file)
 
     # Output the shell script to disk
-    pbs_fname = pjoin(out_dir, CONFIG.get('outputs', 'pbs_filename'))
+    pbs_fname = pjoin(output_path, CONFIG.get('pbs', 'pbs_filename'))
     with open(pbs_fname, 'w') as out_file:
         out_file.write(pbs_job)
 
     # Execute the job
     subprocess.check_call(['qsub', pbs_fname])
+
+if __name__ == '__main__':
+    out_dir = CONFIG.get('agdc', 'output_directory')
+    query(out_dir)
