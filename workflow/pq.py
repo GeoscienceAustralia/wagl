@@ -315,6 +315,31 @@ def nbar_name_from(l1t_fname):
     Return an NBAR file name given a L1T file name
     """
 
+
+def scatter(iterable, P=1, p=1):
+    """
+    Scatter an iterator across `P` processors where `p` is the index
+    of the current processor. This partitions the work evenly across
+    processors.
+    """
+    import itertools
+    return itertools.islice(iterable, p-1, None, P)
+ 
+ 
+def main(l1t_path, nbar_path, land_sea_path, outpath, nnodes=1, nodenum=1):
+    l1t_files = sorted([pjoin(l1t_path, f) for f in os.listdir(l1t_path) if
+                        '_OTH_' in f])
+    l1t_files = [f for f in scatter(l1t_files, nnodes, nodenum)]
+    ncpus = int(os.getenv('PBS_NCPUS', '1'))
+    for l1t_file in l1t_files:
+        nbar_dataset_path = pjoin(nbar_path, nbar_name_from_l1t(l1t_file))
+        pqa_dataset_path = pjoin(outpath, pqa_name_from_l1t(l1t_file))
+        tasks.append(PixelQualityTask(l1t_dataset_path, nbar_dataset_path,
+                                      land_sea_path, pqa_dataset_path))
+
+    luigi.build(tasks, local_scheduler=True, workers=4)
+
+
 if __name__ == '__main__':
 
     # command line arguments
@@ -365,20 +390,7 @@ if __name__ == '__main__':
     logging.info('out_path={}'.format(args.out_path))
     logging.info('log_path={}'.format(args.log_path))
 
-    # create the task list based on L1T files to processa
-
-    tasks = []
-    for l1t_file in [f for f in os.listdir(args.l1t_path) if '_OTH_' in f]:
-        l1t_dataset_path = os.path.join(args.l1t_path, l1t_file)
-        nbar_dataset_path = os.path.join(args.nbar_path,
-                                         nbar_name_from_l1t(l1t_file))
-        pqa_dataset_path = os.path.join(args.out_path,
-                                        pqa_name_from_l1t(l1t_file))
-
-        tasks.append(PixelQualityTask(l1t_dataset_path, nbar_dataset_path,
-                                      args.land_sea_path, pqa_dataset_path))
-        
-        print nbar_dataset_path
-
-    mpi.run(tasks)
-
+    size = int(os.getenv('PBS_NNODES', '1'))
+    rank = int(os.getenv('PBS_VNODENUM', '1'))
+    main(args.l1t_path, args.nbar_path, args.land_sea_path, args.out_path,
+         size, rank)
