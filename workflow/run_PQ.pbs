@@ -61,6 +61,9 @@ cat $PBS_NODEFILE | uniq
 echo "CPUS: "
 cat $PBS_NODEFILE | wc -l 
 
+# now run on all nodes
+NNODES=$(cat $PBS_NODEFILE | uniq | wc -l)
+
 for i in $(seq 1 $NNODES); do
   pbsdsh -n $((16 *$i)) -- bash -l -c "module use /projects/u46/opt/modules/modulefiles; module load gaip/test_aspect; module load agdc-api; PBS_NNODES=$NNODES PBS_VNODENUM=$i pq.py \
   --l1t_path ${L1T_PATH} \
