@@ -287,6 +287,29 @@ class TestGriddedGeoBox(unittest.TestCase):
 
             self.assertTrue((xcentre, ycentre) == (xmap, ymap))
 
+    def test_pixelscale_metres(self):
+        scale = 0.00025
+        shape = (4000,4000)
+        origin = (150.0, -34.0)
+        ggb = GriddedGeoBox(shape, origin, pixelsize=(scale, scale))
+        (size_x, size_y) = ggb.get_pixelsize_metres(xy=(0,0))
+        self.assertAlmostEqual(size_x, 23.0962, places=4)
+        self.assertAlmostEqual(size_y, 27.7306, places=4)
+
+    def test_all_pixelscale_metres(self):
+        scale = 0.00025
+        shape = (4000,4000)
+        origin = (150.0, -34.0)
+        ggb = GriddedGeoBox(shape, origin, pixelsize=(scale, scale))
+        size_array = ggb.get_all_pixelsize_metres()
+        
+        self.assertEqual(len(size_array), 4000)
+        (size_x, size_y) = size_array[0]
+        self.assertAlmostEqual(size_x, 23.0962, places=4)
+        self.assertAlmostEqual(size_y, 27.7306, places=4)
+        (size_x, size_y) = size_array[3999]
+        self.assertAlmostEqual(size_x, 22.8221, places=4)
+        self.assertAlmostEqual(size_y, 27.7351, places=4)
 
 if __name__ == '__main__':
     unittest.main()
