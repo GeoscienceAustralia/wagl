@@ -48,12 +48,7 @@ checkExists LOG_PATH $LOG_PATH
 
 module load python/2.7.6
 module use /projects/u46/opt/modules/modulefiles
-# module load gaip   # GA Image Processor
-module load EOtools
-module load luigi-mpi
-module load rasterio
-module load IDL_functions
-module load scikit-image
+module load gaip   # GA Image Processor
 
 # Debug resources
 echo "NODES:"
@@ -65,7 +60,7 @@ cat $PBS_NODEFILE | wc -l
 NNODES=$(cat $PBS_NODEFILE | uniq | wc -l)
 
 for i in $(seq 1 $NNODES); do
-  pbsdsh -n $((16 *$i)) -- bash -l -c "module use /projects/u46/opt/modules/modulefiles; module load gaip/test_aspect; module load agdc-api; PBS_NNODES=$NNODES PBS_VNODENUM=$i pq.py \
+  pbsdsh -n $((16 *$i)) -- bash -l -c "module use /projects/u46/opt/modules/modulefiles; module load gaip; module load agdc-api; PBS_NNODES=$NNODES PBS_VNODENUM=$i pq.py \
   --l1t_path ${L1T_PATH} \
   --nbar_path ${NBAR_PATH} \
   --land_sea_path ${LAND_SEA_PATH} \
