@@ -43,8 +43,16 @@ checkExists OUTPUT_PATH $OUTPUT_PATH
 checkExists LOG_PATH $LOG_PATH
 
 # Modules
-module load gcc/4.9.0
 module use /projects/u46/opt/modules/modulefiles
+module load gcc/4.9.0
+module load rasterio
+module load luigi-mpi
+module load numexpr
+module load IDL_functions
+module load agdc-api
+module load scikit-image
+module load eo-tools/0.4rc
+
 module load gaip   # GA Image Processor
 
 # Debug resources
