@@ -1,5 +1,5 @@
 {
-    "Landsat5": {
+    "LANDSAT_5": {
         "altitude": 705000.0,
         "classification": "U",
         "format": "EOSAT Fast Format",
@@ -107,7 +107,7 @@
         "tag": "LS5",
         "tle_format": "l5_%4d%s_norad.txt"
     },
-    "Landsat7": {
+    "LANDSAT_7": {
         "altitude": 705000.0,
         "classification": "U",
         "format": "FastL7A",

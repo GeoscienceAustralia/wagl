@@ -24,6 +24,11 @@ BAND_TYPE = {
 with open(pjoin(dirname(__file__), 'sensors.json')) as fo:
     SENSORS = json.load(fo)
 
+def fixname(s):
+    """Fix satellite name. Performs 'Landsat7' to 'LANDSAT_7' but also
+    handles 'LANDSAT_8' to 'LANDSAT_8'"""
+    return re.sub(r'([a-zA-Z]+)_?(\d)',
+                  lambda m: m.group(1).upper() + '_' + m.group(2), s)
 
 @total_ordering
 class Acquisition(object):
@@ -392,6 +397,8 @@ class Landsat8Acquisition(LandsatAcquisition):
 ACQUISITION_TYPE = {
     'Landsat5_TM': Landsat5Acquisition,
     'Landsat7_ETM+': Landsat7Acquisition,
+    'LANDSAT_5_TM': Landsat5Acquisition,
+    'LANDSAT_7_ETM+': Landsat7Acquisition,
     'LANDSAT_8_OLI': Landsat8Acquisition,
     'LANDSAT_8_OLI_TIRS': Landsat8Acquisition
 }
@@ -465,14 +472,13 @@ def acquisitions_via_geotiff(path):
                 new['FILENAME_FIELDS'] = md
 
                 # find the spacecraft based on the tag
-                tag = md['spacecraft_id']
+                tag = fixname(md['spacecraft_id'])
                 for k, v in SENSORS.iteritems():
                     if v['tag'] == tag:
-                        md['spacecraft_id'] = k
+                        md['spacecraft_id'] = fixname(k)
                         break
 
                 # get spacecraft info from SENSORS
-               
                 spacecraft = md['spacecraft_id']
                 new['SPACECRAFT'] = {}
                 db = SENSORS[spacecraft]
@@ -601,7 +607,7 @@ def acquisitions_via_mtl(path):
             new['PRODUCT_METADATA']['band_num'] = None
 
         product = new['PRODUCT_METADATA']
-        spacecraft = product['spacecraft_id']
+        spacecraft = fixname(product['spacecraft_id'])
         sensor = product['sensor_id']
 
         new['SPACECRAFT'] = {}

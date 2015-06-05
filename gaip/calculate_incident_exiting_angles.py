@@ -4,7 +4,7 @@ import gdal
 import numpy
 import rasterio
 
-from EOtools import tiling
+from eotools import tiling
 from gaip import as_array
 from gaip import GriddedGeoBox
 from gaip import exiting_angle

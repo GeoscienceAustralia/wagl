@@ -10,7 +10,7 @@ import os
 
 from osgeo import gdal
 from osgeo import osr
-from EOtools import tiling
+from eotools import tiling
 from gaip import acquisitions
 from gaip import find_file
 from gaip import gridded_geo_box

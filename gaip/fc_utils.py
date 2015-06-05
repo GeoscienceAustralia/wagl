@@ -4,7 +4,7 @@ import numpy
 import numexpr
 import gdal
 
-from EOtools import tiling
+from eotools import tiling
 from gaip import endmembers
 from gaip import GriddedGeoBox
 from gaip import LandsatAcquisition

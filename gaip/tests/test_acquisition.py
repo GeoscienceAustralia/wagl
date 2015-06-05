@@ -19,6 +19,15 @@ L8_MTL = os.path.join(DATA_DIR, 'LO80900842013284ASA00_MTL.txt')
 L8_DIR = os.path.join(DATA_DIR, 'L1T', 'LS8_90_84_2013-10-11', 'UTM',
                       'LS8_OLITIRS_OTH_P51_GALPGS01-002_090_084_20131011')
 
+L8_MTL2 = os.path.join('/g','data','v10','HPC_LPGS_TEST',
+                       'mixLS5LS7LS8_packaged', 'sample_L1T',
+                       'LS8_OLITIRS_OTH_P51_GALPGS01-032_090_081_20140726',
+                       'package', 'LC80900812014207LGN00_MTL.txt')
+L8_DIR2 = os.path.join('/g','data','v10','HPC_LPGS_TEST',
+                       'mixLS5LS7LS8_packaged', 'sample_L1T',
+                       'LS8_OLITIRS_OTH_P51_GALPGS01-032_090_081_20140726')
+
+
 
 class AcquisitionTest(unittest.TestCase):
 
@@ -333,6 +342,110 @@ class Landsat8AcquisitionTest(unittest.TestCase):
 
     def test_bias(self):
         self.assertAlmostEquals(self.acqs[0].bias, -64.76551)
+
+    def test_no_data(self):
+        acq = gaip.acquisitions(L7_DIR)[0]
+        self.assertTrue(acq.no_data is None, 'L1T data has NO no_data value specified')
+
+
+class Landsat8Acquisition2Test(unittest.TestCase):
+
+    def setUp(self):
+        self.acqs = gaip.acquisitions(L8_DIR2)
+
+    def test_discovery(self):
+        acqs = gaip.acquisitions(L8_DIR2)
+        self.assertEqual(len(acqs), 12)
+
+    def test_type(self):
+        for acq in self.acqs:
+            self.assertTrue(isinstance(acq, gaip.Landsat8Acquisition))
+
+    def test_lines(self):
+        for acq in self.acqs:
+            filename = os.path.join(acq.dir_name, acq.file_name)
+            with rasterio.open(filename) as a:
+                self.assertEqual(acq.lines, a.height)
+
+    def test_samples(self):
+        for acq in self.acqs:
+            filename = os.path.join(acq.dir_name, acq.file_name)
+            with rasterio.open(filename) as a:
+                self.assertEqual(acq.samples, a.width)
+
+    def test_scene_center_time(self):
+        for acq in self.acqs:
+            self.assertEqual(acq.scene_center_time,
+                             datetime.time(23, 49, 0, 343853))
+
+    def test_band_type(self):
+        self.assertEqual(self.acqs[0].band_type, gaip.REF)
+        self.assertEqual(self.acqs[1].band_type, gaip.REF)
+        self.assertEqual(self.acqs[2].band_type, gaip.REF)
+        self.assertEqual(self.acqs[3].band_type, gaip.REF)
+        self.assertEqual(self.acqs[4].band_type, gaip.REF)
+        self.assertEqual(self.acqs[5].band_type, gaip.REF)
+        self.assertEqual(self.acqs[6].band_type, gaip.REF)
+        self.assertEqual(self.acqs[7].band_type, gaip.PAN)
+        self.assertEqual(self.acqs[8].band_type, gaip.ATM)
+        self.assertEqual(self.acqs[9].band_type, gaip.THM)
+
+    def test_grid_cell_size(self):
+        self.assertEqual(self.acqs[0].grid_cell_size, 25.0)
+        self.assertEqual(self.acqs[1].grid_cell_size, 25.0)
+        self.assertEqual(self.acqs[2].grid_cell_size, 25.0)
+        self.assertEqual(self.acqs[3].grid_cell_size, 25.0)
+        self.assertEqual(self.acqs[4].grid_cell_size, 25.0)
+        self.assertEqual(self.acqs[5].grid_cell_size, 25.0)
+        self.assertEqual(self.acqs[6].grid_cell_size, 25.0)
+        self.assertEqual(self.acqs[7].grid_cell_size, 12.5)
+        self.assertEqual(self.acqs[8].grid_cell_size, 25.0)
+        self.assertEqual(self.acqs[9].grid_cell_size, 25.0)
+
+    def test_scene_center_datetime(self):
+        for acq in self.acqs:
+            self.assertEqual(acq.scene_center_datetime,
+                             datetime.datetime(2014, 7, 26, 23, 49, 0,
+                                               343853))
+
+    def test_min_max_radiance_band1(self):
+        self.assertEqual(self.acqs[0].min_radiance, -60.85312)
+        self.assertEqual(self.acqs[0].max_radiance, 736.89612)
+
+    def test_min_max_radiance_band2(self):
+        self.assertEqual(self.acqs[0].min_radiance, -60.85312)
+        self.assertEqual(self.acqs[0].max_radiance, 736.89612)
+
+    def test_min_max_radiance_band3(self):
+        self.assertEqual(self.acqs[0].min_radiance, -60.85312)
+        self.assertEqual(self.acqs[0].max_radiance, 736.89612)
+
+    def test_lmin(self):
+        self.assertEqual(self.acqs[0].lmin, -60.85312)
+
+    def test_lmax(self):
+        self.assertEqual(self.acqs[0].lmax, 736.89612)
+
+    def test_qcalmin(self):
+        self.assertEqual(self.acqs[0].qcalmin, 1)
+
+    def test_qcalmax(self):
+        self.assertEqual(self.acqs[0].qcalmax, 65535)
+
+    def test_zone_number(self):
+        self.assertEqual(self.acqs[0].zone_number, -56)
+
+    def test_sun_azimuth(self):
+        self.assertEqual(self.acqs[0].sun_azimuth, 37.30962098)
+
+    def test_sun_elevation(self):
+        self.assertEqual(self.acqs[0].sun_elevation, 31.06756304)
+
+    def test_gain(self):
+        self.assertAlmostEquals(self.acqs[0].gain, 0.012173)
+
+    def test_bias(self):
+        self.assertAlmostEquals(self.acqs[0].bias, -60.86529)
 
     def test_no_data(self):
         acq = gaip.acquisitions(L7_DIR)[0]

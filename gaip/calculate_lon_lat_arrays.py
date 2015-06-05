@@ -7,7 +7,7 @@ import osr
 import os
 
 from functools import partial
-from EOtools.blrb import interpolate_grid
+from eotools.blrb import interpolate_grid
 from gaip import gridded_geo_box
 from gaip import write_img
 

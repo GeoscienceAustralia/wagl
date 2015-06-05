@@ -6,8 +6,8 @@ import rasterio as rio
 import math
 import osr
 import affine
-from  EOtools.bodies.vincenty import vinc_dist
-from  EOtools.bodies.bodies import earth
+from  eotools.bodies.vincenty import vinc_dist
+from  eotools.bodies.bodies import earth
 from math import radians
 
 from affine import Affine

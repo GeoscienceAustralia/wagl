@@ -28,9 +28,9 @@ def parse_type(s):
 
     parsers = [int,
                float,
-               lambda x: strptime(x, '%Y-%m-%dT%H:%M:%SZ'),
-               lambda x: strptime(x, '%Y-%m-%d').date(),
-               lambda x: strptime(x[0:15], '%H:%M:%S.%f').time(),
+               lambda x: strptime(x.strip('"'), '%Y-%m-%dT%H:%M:%SZ'),
+               lambda x: strptime(x.strip('"'), '%Y-%m-%d').date(),
+               lambda x: strptime(x.strip('"')[0:15], '%H:%M:%S.%f').time(),
                lambda x: yesno(x.strip('"')),
                lambda x: none(x.strip('"')),
                lambda x: str(x.strip('"'))]
