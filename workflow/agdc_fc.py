@@ -12,7 +12,7 @@ from datacube.api.model import DatasetType, Satellite
 from datacube.api.query import list_tiles_as_list
 from datacube.config import Config
 from datetime import date
-from EOtools.DatasetDrivers.stacked_dataset import StackedDataset
+from eotools.drivers.stacked_dataset import StackedDataset
 
 CONFIG = luigi.configuration.get_config()
 CONFIG.add_config_path(pjoin(dirname(__file__), 'fc.cfg'))
@@ -111,7 +111,7 @@ if __name__ == '__main__':
     if not exists(log_dir):
         os.makedirs(log_dir)
 
-    logfile = "{log_path}/run_wc_{uname}_{pid}.log"
+    logfile = "{log_path}/agdc_fc_{uname}_{pid}.log"
     logfile = logfile.format(log_path=log_dir, uname=os.uname()[1],
                              pid=os.getpid())
     logging_level = logging.INFO
