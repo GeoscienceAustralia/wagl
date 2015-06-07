@@ -9,7 +9,7 @@ import numexpr
 import gc
 
 from scipy import ndimage
-from IDL_functions import histogram
+from idl_functions import histogram
 from gaip import majority_filter
 
 
@@ -652,9 +652,9 @@ def cloud_shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg,
         del weights
         gc.collect()
 
-        flatwsum = weight_sum.flatten()
+        flatwsum = weight_sum.ravel()
 
-        h = histogram(flatwsum, min=0, max=1.0, binsize=0.1,
+        h = histogram(flatwsum, minv=0, maxv=1.0, binsize=0.1,
                       reverse_indices='ri', locations='loc')
 
         # This might be the only need for the bin locations i.e. loc
@@ -675,27 +675,23 @@ def cloud_shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg,
         upper = binmean + limit
         lower = binmean - limit
 
-        print 'upper: ', upper
-        print 'lower: ', lower
-
-        #del binmean, binstdv, weight_sum; gc.collect()
         del binmean, binstdv, flatwsum, temp_array
         gc.collect()
 
-        grown_regions = np.zeros(dims, dtype='bool').flatten()
+        grown_regions = np.zeros(dims, dtype='bool').ravel()
 
         # Global stats/masking method
         lmin = lower.min()
         umax = upper.max()
         mask = numexpr.evaluate("(weight_sum >= lmin) & (weight_sum <= umax)")
         label_array, num_labels = ndimage.label(mask, structure=s)
-        flat_label = label_array.flatten()
         labels = label_array[sindex]
         ulabels = np.unique(labels[labels > 0])
 
         if ulabels.size > 0:  # only apply if labels are identified
             maxval = np.max(ulabels)  # this will fail if there are no labels
-            h = histogram(flat_label, min=0, max=maxval, reverse_indices='ri')
+            h = histogram(label_array, minv=0, maxv=maxval,
+                          reverse_indices='ri')
 
             # assign other variable names, makes it more readable
             # when indexing
