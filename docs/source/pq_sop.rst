@@ -254,8 +254,8 @@ Check for error messages in these file by:
 .. code-block:: bash
 
  cd <log directory>
- grep ERROR *.log
- grep WARN *.log
+ grep ERROR *.log*
+ grep WARN *.log*
 
 Investigate any errors found by this process.
 

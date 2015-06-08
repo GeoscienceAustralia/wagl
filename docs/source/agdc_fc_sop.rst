@@ -16,11 +16,6 @@ This document describes how to run the Fractional Cover job via PBS script to pr
 
 The Fractional Cover PBS job uses Luigi to run multiple instances of the fractional cover program in parallel. By adjusting the system resources used by the PBS job, hundreds (or thousands) of NBAR input files may be processed in a short period of time.
 
-Key shell scripts
------------------
-
-* shell script submit_agdc_FC.sh_ is used to submit the run_agdc_fc.pbs_ script to the PBS job queue
-* run_agdc_fc.pbs_ reads scene data from the NBAR input directory
 * `End Members`_ data are maintained in code (changes are applied through revision control)
 * output scenes (Fraction Cover scenes) are written to the FC Output Directory
 * log files are written to the logs directory
@@ -44,25 +39,27 @@ Now change directory into the GA image processing directory (gaip)
 
  cd ga-neo-landsat-processor/workflow
 
-PBS Scripts
+Key scripts
 -----------
-Two scripts are used to run Fractional Cover processing
-
-* submit_agdc_FC.sh_ – a convenience script to bootstrap the PBS job
-* run_agdc_fc.pbs_ – main PBS job scipt
-
-.. _submit_agdc_FC.sh: https://github.com/GeoscienceAustralia/ga-neo-landsat-processor/blob/develop/workflow/submit_agdc_FC.sh
-.. _run_agdc_fc.pbs: https://github.com/GeoscienceAustralia/ga-neo-landsat-processor/blob/develop/workflow/run__agdc_fc.pbs
-
-You can view these scripts by clicking on the links above.
+The `fc.cfg`_ config file is used to configure the processing job. It is used to
+query the Australian Geoscience Datacube, and dynamically generate the PBS
+submission script and execute it, thereby submitting it to the queue.
+Within the config file, the section titled `[agdc]` is used to configure the
+agdc query. Items such as `min_date`, `max_date` and `satellites` are input
+directly into the agdc query. The option `chunks_per_node` is used to configure
+how many fractional cover files are to be produced on a given node. Depending
+on the size of the query, this option can increase or decrease the processing
+time.
+The section titled `[pbs]` is used to configure the PBS submission script.
+Here the user can provide items such as the `queue` type, `project` code,
+`walltime` and any required modules.
 
 Procedure
 ---------
 To run the Fractional Cover job, follow these steps:
 
-1. Specify inputs and outputs
-2. Set job resources
-3. Submit and monitor job
+1. Specify agdc query
+2. Execute the query -> `python query_agdc.py`
 4. Review results
 5. Handling errors
 

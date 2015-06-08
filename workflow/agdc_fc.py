@@ -1,75 +1,21 @@
 #!/bin/env python
 
-import luigi.contrib.mpi as mpi
-
 import luigi
 import os
 from os.path import join as pjoin, dirname, exists, splitext, basename
 import gaip
 import cPickle as pickle
+import argparse
+import logging
 
 from datacube.api.model import DatasetType, Satellite
 from datacube.api.query import list_tiles_as_list
 from datacube.config import Config
 from datetime import date
-from EOtools.DatasetDrivers.stacked_dataset import StackedDataset
+from eotools.drivers.stacked_dataset import StackedDataset
 
 CONFIG = luigi.configuration.get_config()
 CONFIG.add_config_path(pjoin(dirname(__file__), 'fc.cfg'))
-
-class TileQuery(luigi.Task):
-    """
-    Queries the database based on the input parameters.
-    """
-    out_path = luigi.Parameter()
-
-    config = Config()
-    ds_type = DatasetType.ARG25
-
-    def requires(self):
-        return []
-
-    def output(self):
-        out_file = pjoin(self.out_path, CONFIG.get('agdc', 'query_result'))
-        return luigi.LocalTarget(out_file)
-
-    def run(self):
-        print "Executing DB query!"
-
-        if not os.path.exists(self.out_path):
-            os.makedirs(self.out_path)
-
-        satellites = CONFIG.get('agdc', 'satellites')
-        satellites = [Satellite(i) for i in satellites.split(',')]
-
-        min_date = CONFIG.get('agdc', 'min_date')
-        min_date = [int(i) for i in min_date.split('_')]
-        min_date = date(min_date[0], min_date[1], min_date[2])
-
-        max_date = CONFIG.get('agdc', 'max_date')
-        max_date = [int(i) for i in max_date.split('_')]
-        max_date = date(max_date[0], max_date[1], max_date[2])
-
-        cell_xmin = int(CONFIG.get('agdc', 'cell_xmin'))
-        cell_ymin = int(CONFIG.get('agdc', 'cell_ymin'))
-        cell_xmax = int(CONFIG.get('agdc', 'cell_xmax'))
-        cell_ymax = int(CONFIG.get('agdc', 'cell_ymax'))
-
-        xcells = range(cell_xmin, cell_xmax, 1)
-        ycells = range(cell_ymin, cell_ymax, 1)
-
-        tiles = list_tiles_as_list(x=xcells, y=ycells, acq_min=min_date,
-                                   acq_max=max_date,
-                                   satellites=satellites,
-                                   datasets=self.ds_type,
-                                   database=self.config.get_db_database(),
-                                   user=self.config.get_db_username(),
-                                   password=self.config.get_db_password(),
-                                   host=self.config.get_db_host(),
-                                   port=self.config.get_db_port())
-
-        with self.output().open('w') as outf:
-            pickle.dump(tiles, outf)
 
 
 class FractionalCoverTask(luigi.Task):
@@ -114,6 +60,8 @@ class ProcessFC(luigi.Task):
     the database query.
     """
     out_path = luigi.Parameter()
+    idx1 = luigi.IntParameter()
+    idx2 = luigi.IntParameter()
 
     ds_type = DatasetType.ARG25
 
@@ -123,7 +71,7 @@ class ProcessFC(luigi.Task):
             query = pickle.load(f)
 
         tasks = []
-        for ds in query:
+        for ds in query[self.idx1:self.idx2]:
             fname = ds.datasets[self.ds_type].path
 
             cell_out_dir = '{cell_x}_{cell_y}'.format(cell_x=ds.x,
@@ -138,7 +86,8 @@ class ProcessFC(luigi.Task):
         return tasks
 
     def output(self):
-        out_fname = pjoin(self.out_path, 'ProcessFC.completed')
+        out_fname = pjoin(self.out_path, 'ProcessFC_chunk_{}:{}.completed')
+        out_fname = out_fname.format(self.idx1, self.idx2)
         return luigi.LocalTarget(out_fname)
 
     def run(self):
@@ -147,13 +96,42 @@ class ProcessFC(luigi.Task):
 
 
 if __name__ == '__main__':
+    # Setup command-line arguments
+    desc = "Processes fractional cover.."
+    hlp = ("The tile/chunk index to retieve from the tiles list. "
+           "(Needs to have been previously computed to a file named chunks.pkl")
+    parser = argparse.ArgumentParser(description=desc)
+    parser.add_argument('--tile', type=int, help=hlp)
+
+    parsed_args = parser.parse_args()
+    tile_idx = parsed_args.tile
+
+    # setup logging
+    log_dir = CONFIG.get('agdc', 'logs_directory')
+    if not exists(log_dir):
+        os.makedirs(log_dir)
+
+    logfile = "{log_path}/agdc_fc_{uname}_{pid}.log"
+    logfile = logfile.format(log_path=log_dir, uname=os.uname()[1],
+                             pid=os.getpid())
+    logging_level = logging.INFO
+    logging.basicConfig(filename=logfile, level=logging_level,
+                        format=("%(asctime)s: [%(name)s] (%(levelname)s) "
+                                "%(message)s "))
+
     out_dir = CONFIG.get('agdc', 'output_directory')
 
-    tasks = [TileQuery(out_dir)]
-    mpi.run(tasks)
-    tasks = [ProcessFC(out_dir)]
-    mpi.run(tasks)
+    # Get the chunks list (each node will process a chunk determined by the
+    # chunks.pkl, and the index to the chunk is determined at run time
+    chunks_list_fname = pjoin(out_dir, CONFIG.get('agdc', 'chunks_list'))
+    with open(chunks_list_fname, 'r') as f:
+        chunks = pickle.load(f)
 
+    # Initialise the job to luigi
+    chunk = chunks[tile_idx]
+    tasks = [ProcessFC(out_dir, chunk[0], chunk[1])]
+    luigi.build(tasks, local_scheduler=True, workers=16)
+    luigi.run()
 
 
     # *********************** QDERM TEST ******************************

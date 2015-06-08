@@ -54,12 +54,13 @@ echo "CPUS: "
 cat $PBS_NODEFILE | wc -l 
 
 # now run on all nodes
+NNODES=$(cat $PBS_NODEFILE | uniq | wc -l)
 
-WORKERS_PER_NODE=16     # <--- Don't change, >16 will result in "PBS: job killed: mem"
-mpirun -npernode $WORKERS_PER_NODE \
-    --mca mpi_warn_on_fork 0 \
-    python fc.py \
-    --nbar_path ${NBAR_PATH} \
-    --out_path ${OUTPUT_PATH}  \
-    --log_path ${LOG_PATH} \
-    --debug
+for i in $(seq 1 $NNODES); do
+  pbsdsh -n $((16 *$i)) -- bash -l -c "module use /projects/u46/opt/modules/modulefiles; module load gaip; module load agdc-api; PBS_NNODES=$NNODES PBS_VNODENUM=$i fc.py \
+  --nbar_path ${NBAR_PATH} \
+  --out_path ${OUTPUT_PATH}  \
+  --log_path ${LOG_PATH} \
+  --debug" &
+done;
+wait

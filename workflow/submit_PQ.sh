@@ -13,9 +13,9 @@ umask 007
 # INPUTS (change any of these)
 # ======
 
-L1T_PATH=/g/data1/v10/projects/Luigi_work_flow_test/L1T
-NBAR_PATH=/g/data1/v10/projects/Luigi_work_flow_test/NBAR
-LAND_SEA_PATH=/g/data1/v10/eoancillarydata/Land_Sea_Rasters
+L1T_PATH=/g/data/v10/projects/Luigi_work_flow_test/L1T
+NBAR_PATH=/g/data/v10/projects/Luigi_work_flow_test/NBAR
+LAND_SEA_PATH=/g/data/v10/eoancillarydata/Land_Sea_Rasters
 
 # OUTPUTS (change any of these)
 # =======
@@ -61,4 +61,5 @@ qsub -v L1T_PATH=$L1T_PATH,NBAR_PATH=$NBAR_PATH,LAND_SEA_PATH=$LAND_SEA_PATH,OUT
  -e $LOG_PATH/run_PQ_${HOSTNAME}_${PID}.stderr \
  -o $LOG_PATH/run_PQ_${HOSTNAME}_${PID}.stdout \
  -l $LSPEC \
+ -q $QUEUE \
  run_PQ.pbs

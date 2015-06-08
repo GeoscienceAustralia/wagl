@@ -6,6 +6,14 @@ Standard Operating Procedure (Fractional Cover)
 Fractional Cover
 ----------------
 
+
+DEPRECATED
+==========
+This document and the workflow for processing Fractional Cover at the `Scene` level has been deprecated
+in favour of `agdc_fc_sop.rst_` which uses `agdc_fc.py_` as the workflow. Fractional cover products
+will be produced via queries against the `Australian Geoscience DataCube`.
+
+
 Purpose
 -------
 The fractional cover program (fc.py_) takes NBAR scene  and produces a Fractional Cover scene as output. 
@@ -15,6 +23,7 @@ The fractional cover program (fc.py_) takes NBAR scene  and produces a Fractiona
 This document describes how to run the Fractional Cover job via PBS script to process production data. 
 
 The Fractional Cover PBS job uses Luigi to run multiple instances of the fractional cover program in parallel. By adjusting the system resources used by the PBS job, hundreds (or thousands) of NBAR input files may be processed in a short period of time.
+
 
 Schematic
 ---------

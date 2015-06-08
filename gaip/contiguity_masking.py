@@ -6,7 +6,7 @@ import numpy
 import logging
 
 from scipy import ndimage
-from IDL_functions import histogram
+from idl_functions import histogram
 
 
 def calc_contiguity_mask(image_stack, spacecraft_id):
@@ -71,13 +71,9 @@ def calc_contiguity_mask(image_stack, spacecraft_id):
         labels = low_sat[edge]
         ulabels = numpy.unique(labels[labels > 0])
 
-        # Testing a new method, more code but might be quicker
-        #find_lab = numpy.in1d(low_sat.flatten(), ulabels)
-        #th_anom |= find_lab
-
         # Histogram method, a lot faster
         mx = numpy.max(ulabels)
-        h = histogram(low_sat.flatten(), min=0, max=mx, reverse_indices='ri')
+        h = histogram(low_sat, minv=0, maxv=mx, reverse_indices='ri')
         hist = h['histogram']
         ri = h['ri']
 
