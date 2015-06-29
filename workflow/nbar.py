@@ -1676,8 +1676,8 @@ if __name__ == '__main__':
     parser.add_argument("--out_path", help=("Path to directory where NBAR "
                         "dataset are to be written"), required=True,
                         type=lambda x: is_valid_directory(parser, x))
-    parse.add_argument('--cfg',
-                       help='Path to a user defined configuration file.')
+    parser.add_argument('--cfg',
+                        help='Path to a user defined configuration file.')
     parser.add_argument("--log_path", help=("Path to directory where where log"
                         " files will be written"), default='.',
                         type=lambda x: is_valid_directory(parser, x))
