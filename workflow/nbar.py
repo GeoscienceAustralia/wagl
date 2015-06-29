@@ -15,7 +15,6 @@ import cPickle as pickle
 import os
 import argparse
 import logging
-from gaip import MemuseFilter
 
 from os.path import join as pjoin, dirname, exists
 
@@ -1697,11 +1696,8 @@ if __name__ == '__main__':
         logging_level = logging.DEBUG
     logging.basicConfig(filename=logfile, level=logging_level,
                         format=("%(asctime)s: [%(name)s] (%(levelname)s) "
-                                "%(message)s "
-                                "{RSS=%(rss_MB).1fMB,SWAP=%(swap_MB).1fMB}"))
+                                "%(message)s "), datefmt='%H:%M:%S')
 
-    memuse_filter = MemuseFilter()
-    logging.root.handlers[0].addFilter(memuse_filter)
 
     logging.info("nbar.py started")
     logging.info('l1t_path={path}'.format(path=args.l1t_path))
