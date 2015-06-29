@@ -38,7 +38,7 @@ let JOBFS_MB=100*$NODES # don't touch
 # JOB SPECS
 # =========
 
-MAIL_LIST="steven.ring@ga.gov.au,smr@southsky.com.au"
+MAIL_LIST="your.name@ga.gov.au"
 
 # Create ouput directory
 
@@ -55,7 +55,7 @@ echo $LSPEC
 
 # Submit the job
 
-qsub -v L1T_PATH=$L1T_PATH,OUTPUT_PATH=$OUTPUT_PATH,LOG_PATH=$LOG_PATH CFG_FILE=$CFG_FILE\
+qsub -v L1T_PATH=$L1T_PATH,OUTPUT_PATH=$OUTPUT_PATH,LOG_PATH=$LOG_PATH,CFG_FILE=$CFG_FILE \
  -M $MAIL_LIST \
  -e $LOG_PATH/run_NBAR_${HOSTNAME}_${PID}.stderr \
  -o $LOG_PATH/run_NBAR_${HOSTNAME}_${PID}.stdout \
