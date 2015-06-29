@@ -21,6 +21,7 @@ L1T_PATH=/g/data1/v10/projects/Luigi_work_flow_test/L1T
 OUTPUT_ROOT=/g/data1/v10/testing_ground/NBAR_luigi_new_workflow_testing
 OUTPUT_PATH=$OUTPUT_ROOT/output
 LOG_PATH=$OUTPUT_ROOT/logs
+CFG_FILE=nbar.cfg
 
 # RESOURCES
 # =========
@@ -54,7 +55,7 @@ echo $LSPEC
 
 # Submit the job
 
-qsub -v L1T_PATH=$L1T_PATH,OUTPUT_PATH=$OUTPUT_PATH,LOG_PATH=$LOG_PATH \
+qsub -v L1T_PATH=$L1T_PATH,OUTPUT_PATH=$OUTPUT_PATH,LOG_PATH=$LOG_PATH CFG_FILE=$CFG_FILE\
  -M $MAIL_LIST \
  -e $LOG_PATH/run_NBAR_${HOSTNAME}_${PID}.stderr \
  -o $LOG_PATH/run_NBAR_${HOSTNAME}_${PID}.stdout \
