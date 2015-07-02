@@ -623,6 +623,12 @@ def acquisitions_via_mtl(path):
         spacecraft = fixname(product['spacecraft_id'])
         sensor = product['sensor_id']
 
+        # Account for a change in the new MTL files
+        if 'acquisition_date' not in product:
+            product['acquisition_date'] = product['date_acquired']
+        if 'scene_center_scan_time' not in product:
+            product['scene_center_scan_time'] = product['scene_center_time']
+
         new['SPACECRAFT'] = {}
         db = SENSORS[spacecraft]
         for k, v in db.iteritems():
