@@ -566,7 +566,15 @@ def acquisitions_via_mtl(path):
     data = gaip.load_mtl(filename)
     bandfiles = [k for k in data['PRODUCT_METADATA'].keys() if 'band' in k
                  and 'file_name' in k]
-    bands = [b.replace('file_name', '').strip('_') for b in bandfiles]
+    bands_ = [b.replace('file_name', '').strip('_') for b in bandfiles]
+
+    # The new MTL version for LS7 has 'vcid' in some sections
+    # So the following is account for and remove such instances
+    bands = []
+    for band in bands_:
+        if 'vcid' in band:
+            band = band.replace('_vcid_', '')
+        bands.append(band)
 
     # We now create an acquisition object for each band and make the
     # parameters names nice.
@@ -580,19 +588,24 @@ def acquisitions_via_mtl(path):
         # remove unnecessary values
         for kv in new.values():
             for k in kv.keys():
-                if bandparts.issubset(set(k.split('_'))): 
+                if 'vcid' in k:
+                    nk = k.replace('_vcid_', '')
+                    kv[nk] = kv.pop(k)
+                else:
+                    nk = k
+                if bandparts.issubset(set(nk.split('_'))): 
                     # remove the values for the other bands
-                    rm = [k.replace(band, b) for b in bands if b != band]
+                    rm = [nk.replace(band, b) for b in bands if b != band]
                     for r in rm:
                         try:
                             del kv[r]
                         except KeyError:
                             pass
                     # rename old key to remove band information
-                    newkey = k.replace(band, '').strip('_')
+                    newkey = nk.replace(band, '').strip('_')
                     # print "band=%s, k=%s, newkey=%s" % (band, k, newkey)
-                    kv[newkey] = kv[k]
-                    del kv[k]
+                    kv[newkey] = kv[nk]
+                    del kv[nk]
 
         # set path
         dir_name = os.path.dirname(os.path.abspath(filename))
@@ -620,7 +633,13 @@ def acquisitions_via_mtl(path):
                     new['SPACECRAFT'][k.encode('ascii')] = v
 
         new['SENSOR_INFO'] = {}
-        db = db['sensors'][sensor]
+        try:
+            db = db['sensors'][sensor]
+        except KeyError, e:
+            msg = 'No Match for {} sensor; Trying ETM+!'.format(e.message)
+            print msg
+            db = db['sensors']['ETM+']
+
         for k, v in db.iteritems():
             if k is not 'bands':
                 new['SENSOR_INFO'][k.encode('ascii')] = v
@@ -628,6 +647,7 @@ def acquisitions_via_mtl(path):
         bandname = band.replace('band', '').strip('_')
         new['BAND_INFO'] = {}
         db = db['bands'][bandname]
+
         for k, v in db.iteritems():
             new['BAND_INFO'][k.encode('ascii')] = v
         band_type = db['type_desc']
