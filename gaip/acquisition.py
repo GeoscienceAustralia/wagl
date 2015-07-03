@@ -628,6 +628,14 @@ def acquisitions_via_mtl(path):
             product['acquisition_date'] = product['date_acquired']
         if 'scene_center_scan_time' not in product:
             product['scene_center_scan_time'] = product['scene_center_time']
+        if  'product_samples_ref' not in product:
+            product['product_samples_ref'] = product['reflective_samples']
+        if  'product_lines_ref' not in product:
+            product['product_lines_ref'] = product['reflective_lines']
+        if  'product_samples_thm' not in product:
+            product['product_samples_thm'] = product['thermal_samples']
+        if  'product_lines_thm' not in product:
+            product['product_lines_thm'] = product['thermal_lines']
 
         new['SPACECRAFT'] = {}
         db = SENSORS[spacecraft]
