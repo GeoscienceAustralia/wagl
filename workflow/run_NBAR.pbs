@@ -41,6 +41,7 @@ checkExists() {
 checkExists L1T_PATH $L1T_PATH
 checkExists OUTPUT_PATH $OUTPUT_PATH
 checkExists LOG_PATH $LOG_PATH
+checkExists CFG_FILE $CFG_FILE
 
 # Modules
 module use /projects/u46/opt/modules/modulefiles
@@ -68,6 +69,7 @@ for i in $(seq 1 $NNODES); do
   pbsdsh -n $((16 *$i)) -- bash -l -c "module use /projects/u46/opt/modules/modulefiles; module load gaip; PBS_NNODES=$NNODES PBS_VNODENUM=$i nbar.py \
   --l1t_path ${L1T_PATH} \
   --out_path ${OUTPUT_PATH}  \
+  --cfg ${CFG_FILE}
   --log_path ${LOG_PATH} \
   --debug" &
 done;

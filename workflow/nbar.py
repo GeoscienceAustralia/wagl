@@ -18,9 +18,6 @@ import logging
 
 from os.path import join as pjoin, dirname, exists
 
-CONFIG = luigi.configuration.get_config()
-CONFIG.add_config_path(pjoin(dirname(__file__), 'nbar.cfg'))
-
 
 def save(target, value):
     """Save `value` to `target` where `target` is a `luigi.Target` object. If
@@ -1679,6 +1676,8 @@ if __name__ == '__main__':
     parser.add_argument("--out_path", help=("Path to directory where NBAR "
                         "dataset are to be written"), required=True,
                         type=lambda x: is_valid_directory(parser, x))
+    parser.add_argument('--cfg',
+                        help='Path to a user defined configuration file.')
     parser.add_argument("--log_path", help=("Path to directory where where log"
                         " files will be written"), default='.',
                         type=lambda x: is_valid_directory(parser, x))
@@ -1686,6 +1685,18 @@ if __name__ == '__main__':
                         " is INFO)"), default=False, action='store_true')
 
     args = parser.parse_args()
+
+    cfg = args.cfg
+
+    # Setup the config file
+    global CONFIG
+    if cfg is None:
+        CONFIG = luigi.configuration.get_config()
+        CONFIG.add_config_path(pjoin(dirname(__file__), 'nbar.cfg'))
+    else:
+        CONFIG = luigi.configuration.get_config()
+        CONFIG.add_config_path(cfg)
+
 
     # setup logging
     logfile = "{log_path}/run_nbar_{uname}_{pid}.log"

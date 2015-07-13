@@ -39,7 +39,7 @@ let JOBFS_MB=100*$NODES # don't touch
 # JOB SPECS
 # =========
 
-MAIL_LIST="steven.ring@ga.gov.au,smr@southsky.com.au"
+MAIL_LIST="your.name@ga.gov.au"
 
 # Create ouput directory
 

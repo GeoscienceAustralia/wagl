@@ -167,12 +167,38 @@ class LandsatAcquisition(Acquisition):
     @property
     def min_radiance(self):
         """The minimum radiance (aka. `lmin`)."""
-        return self.lmin
+        try:
+            lmin = self.lmin
+        except AttributeError:
+            lmin = self.radiance_minimum
+        return lmin
 
     @property
     def max_radiance(self):
         """The maximum radiance (aka. `lmax`)."""
-        return self.lmax
+        try:
+            lmax = self.lmax
+        except AttributeError:
+            lmax = self.radiance_maximum
+        return lmax
+
+    @property
+    def min_quantize(self):
+        """THe minimum quantize calibration (aka. `qcal_min`)."""
+        try:
+            qcal_min = self.qcalmin
+        except AttributeError:
+            qcal_min = self.quantize_cal_min
+        return qcal_min
+
+    @property
+    def max_quantize(self):
+        """THe maximum quantize calibration (aka. `qcal_max`)."""
+        try:
+            qcal_max = self.qcalmax
+        except AttributeError:
+            qcal_max = self.quantize_cal_max
+        return qcal_max
 
     @property
     def decimal_hour(self):
@@ -185,12 +211,13 @@ class LandsatAcquisition(Acquisition):
     @property
     def gain(self):
         """The sensor gain"""
-        return (self.lmax - self.lmin)/(self.qcalmax - self.qcalmin)
+        return ((self.max_radiance - self.min_radiance) /
+                (self.max_quantize - self.min_quantize))
 
     @property
     def bias(self):
         """Sensor bias"""
-        return self.lmax - (self.gain * self.qcalmax)
+        return self.max_radiance - (self.gain * self.max_quantize)
 
     @property
     def wavelength(self):
@@ -566,7 +593,15 @@ def acquisitions_via_mtl(path):
     data = gaip.load_mtl(filename)
     bandfiles = [k for k in data['PRODUCT_METADATA'].keys() if 'band' in k
                  and 'file_name' in k]
-    bands = [b.replace('file_name', '').strip('_') for b in bandfiles]
+    bands_ = [b.replace('file_name', '').strip('_') for b in bandfiles]
+
+    # The new MTL version for LS7 has 'vcid' in some sections
+    # So the following is account for and remove such instances
+    bands = []
+    for band in bands_:
+        if 'vcid' in band:
+            band = band.replace('_vcid_', '')
+        bands.append(band)
 
     # We now create an acquisition object for each band and make the
     # parameters names nice.
@@ -580,19 +615,24 @@ def acquisitions_via_mtl(path):
         # remove unnecessary values
         for kv in new.values():
             for k in kv.keys():
-                if bandparts.issubset(set(k.split('_'))): 
+                if 'vcid' in k:
+                    nk = k.replace('_vcid_', '')
+                    kv[nk] = kv.pop(k)
+                else:
+                    nk = k
+                if bandparts.issubset(set(nk.split('_'))): 
                     # remove the values for the other bands
-                    rm = [k.replace(band, b) for b in bands if b != band]
+                    rm = [nk.replace(band, b) for b in bands if b != band]
                     for r in rm:
                         try:
                             del kv[r]
                         except KeyError:
                             pass
                     # rename old key to remove band information
-                    newkey = k.replace(band, '').strip('_')
+                    newkey = nk.replace(band, '').strip('_')
                     # print "band=%s, k=%s, newkey=%s" % (band, k, newkey)
-                    kv[newkey] = kv[k]
-                    del kv[k]
+                    kv[newkey] = kv[nk]
+                    del kv[nk]
 
         # set path
         dir_name = os.path.dirname(os.path.abspath(filename))
@@ -608,7 +648,23 @@ def acquisitions_via_mtl(path):
 
         product = new['PRODUCT_METADATA']
         spacecraft = fixname(product['spacecraft_id'])
+        if product['sensor_id'] == 'ETM':
+            product['sensor_id'] = 'ETM+'
         sensor = product['sensor_id']
+
+        # Account for a change in the new MTL files
+        if 'acquisition_date' not in product:
+            product['acquisition_date'] = product['date_acquired']
+        if 'scene_center_scan_time' not in product:
+            product['scene_center_scan_time'] = product['scene_center_time']
+        if  'product_samples_ref' not in product:
+            product['product_samples_ref'] = product['reflective_samples']
+        if  'product_lines_ref' not in product:
+            product['product_lines_ref'] = product['reflective_lines']
+        if  'product_samples_thm' not in product:
+            product['product_samples_thm'] = product['thermal_samples']
+        if  'product_lines_thm' not in product:
+            product['product_lines_thm'] = product['thermal_lines']
 
         new['SPACECRAFT'] = {}
         db = SENSORS[spacecraft]
@@ -621,6 +677,7 @@ def acquisitions_via_mtl(path):
 
         new['SENSOR_INFO'] = {}
         db = db['sensors'][sensor]
+
         for k, v in db.iteritems():
             if k is not 'bands':
                 new['SENSOR_INFO'][k.encode('ascii')] = v
@@ -628,6 +685,7 @@ def acquisitions_via_mtl(path):
         bandname = band.replace('band', '').strip('_')
         new['BAND_INFO'] = {}
         db = db['bands'][bandname]
+
         for k, v in db.iteritems():
             new['BAND_INFO'][k.encode('ascii')] = v
         band_type = db['type_desc']
