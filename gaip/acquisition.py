@@ -167,12 +167,38 @@ class LandsatAcquisition(Acquisition):
     @property
     def min_radiance(self):
         """The minimum radiance (aka. `lmin`)."""
-        return self.lmin
+        try:
+            lmin = self.lmin
+        except AttributeError:
+            lmin = self.radiance_minimum
+        return lmin
 
     @property
     def max_radiance(self):
         """The maximum radiance (aka. `lmax`)."""
-        return self.lmax
+        try:
+            lmax = self.lmax
+        except AttributeError:
+            lmax = self.radiance_maximum
+        return lmax
+
+    @property
+    def min_quantize(self):
+        """THe minimum quantize calibration (aka. `qcal_min`)."""
+        try:
+            qcal_min = self.qcalmin
+        except AttributeError:
+            qcal_min = self.quantize_cal_min
+        return qcal_min
+
+    @property
+    def max_quantize(self):
+        """THe maximum quantize calibration (aka. `qcal_max`)."""
+        try:
+            qcal_max = self.qcalmax
+        except AttributeError:
+            qcal_max = self.quantize_cal_max
+        return qcal_max
 
     @property
     def decimal_hour(self):
@@ -185,12 +211,13 @@ class LandsatAcquisition(Acquisition):
     @property
     def gain(self):
         """The sensor gain"""
-        return (self.lmax - self.lmin)/(self.qcalmax - self.qcalmin)
+        return ((self.max_radiance - self.min_radiance) /
+                (self.max_quantize - self.min_quantize))
 
     @property
     def bias(self):
         """Sensor bias"""
-        return self.lmax - (self.gain * self.qcalmax)
+        return self.max_radiance - (self.gain * self.max_quantize)
 
     @property
     def wavelength(self):
@@ -621,6 +648,8 @@ def acquisitions_via_mtl(path):
 
         product = new['PRODUCT_METADATA']
         spacecraft = fixname(product['spacecraft_id'])
+        if product['sensor_id'] == 'ETM':
+            product['sensor_id'] = 'ETM+'
         sensor = product['sensor_id']
 
         # Account for a change in the new MTL files
@@ -647,12 +676,7 @@ def acquisitions_via_mtl(path):
                     new['SPACECRAFT'][k.encode('ascii')] = v
 
         new['SENSOR_INFO'] = {}
-        try:
-            db = db['sensors'][sensor]
-        except KeyError, e:
-            msg = 'No Match for {} sensor; Trying ETM+!'.format(e.message)
-            print msg
-            db = db['sensors']['ETM+']
+        db = db['sensors'][sensor]
 
         for k, v in db.iteritems():
             if k is not 'bands':
