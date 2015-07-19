@@ -186,31 +186,30 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser = argparse.ArgumentParser(description=desc)
 
-    parser.add_argument('--L1T_dir', required=True,
-                        help='A directory path of a L1T scene.')
-    parser.add_argument('--nbar_work_dir', required=True,
-                        help=('A directory path to the associated NBAR '
-                             'working directory.'))
+    parser.add_argument('--reference_dir', required=True,
+                        help='A directory path of a nbar reference output.')
+    parser.add_argument('--test_dir', required=True,
+                        help=('A directory path to the test output.'))
     parser.add_argument('--int_precision', default=1, type=int,
                         help='The integer precision used for array comparison')
 
     parsed_args = parser.parse_args()
 
-    L1T_dir = parsed_args.L1T_dir
-    nbar_work_dir = parsed_args.nbar_work_dir
+    reference_dir = parsed_args.reference_dir
+    test_dir = parsed_args.test_dir
     int_precision = parsed_args.int_precision
 
 
     print "Checking that we have all the reference and test data files."
     suite = unittest.TestSuite()
     suite.addTest(ParameterisedTestCase.parameterise(TestProductFileNames,
-                  reference_dir=nbar_work_dir, test_dir=outdir,
+                  reference_dir=reference_dir, test_dir=test_dir,
                   integer_precision=int_precision))
     unittest.TextTestRunner(verbosity=2).run(suite)
 
     print "Testing the numerical precision on each product output."
     suite = unittest.TestSuite()
     suite.addTest(ParameterisedTestCase.parameterise(TestProductDifference,
-                  reference_dir=nbar_work_dir, test_dir=outdir,
+                  reference_dir=reference_dir, test_dir=test_dir,
                   integer_precision=int_precision))
     unittest.TextTestRunner(verbosity=2).run(suite)
