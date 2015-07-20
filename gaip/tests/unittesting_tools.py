@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import os
-import sys
 import unittest
 
 import numpy
@@ -28,7 +26,7 @@ class ParameterisedTestCase(unittest.TestCase):
 
         # Reference and Testing directories
         self.reference_dir = reference_dir
-        self.test_dir      = test_dir
+        self.test_dir = test_dir
 
         # Allowable numerical precision
         self.decimal_precision = decimal_precision
@@ -76,6 +74,7 @@ class ParameterisedTestCase(unittest.TestCase):
 
 
 class ParameterisedTestCaseFiles(unittest.TestCase):
+
     """ 
     TestCase classes that want to be parameterised should
     inherit from this class.
@@ -85,9 +84,10 @@ class ParameterisedTestCaseFiles(unittest.TestCase):
 
     Modified to suit our given parameters.
     """
+
     def __init__(self, methodName='runTest', reference_fname=None,
                  test_fname=None, decimal_precision=4, integer_precision=1):
-        super(ParameterisedTestCase, self).__init__(methodName)
+        super(ParameterisedTestCaseFiles, self).__init__(methodName)
 
         # Reference and Testing directories
         self.reference_fname = reference_fname
