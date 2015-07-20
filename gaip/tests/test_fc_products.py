@@ -33,7 +33,7 @@ class TestFCProducts(ParameterisedTestCaseFiles):
         # Precision
         ip = self.integer_precision
 
-        self.assertIsNone(npt.assert_all_close(test_img, ref_img, atol=ip))
+        self.assertIsNone(npt.assert_allclose(test_img, ref_img, atol=ip))
 
 
     def test_non_photosynthetic_veg_band(self):
@@ -51,7 +51,7 @@ class TestFCProducts(ParameterisedTestCaseFiles):
         # Precision
         ip = self.integer_precision
 
-        self.assertIsNone(npt.assert_all_close(test_img, ref_img, atol=ip))
+        self.assertIsNone(npt.assert_allclose(test_img, ref_img, atol=ip))
 
 
     def test_bare_soil_band(self):
@@ -68,7 +68,7 @@ class TestFCProducts(ParameterisedTestCaseFiles):
         # Precision
         ip = self.integer_precision
 
-        self.assertIsNone(npt.assert_all_close(test_img, ref_img, atol=ip))
+        self.assertIsNone(npt.assert_allclose(test_img, ref_img, atol=ip))
 
 
     def test_unmixing_error_band(self):
@@ -85,7 +85,7 @@ class TestFCProducts(ParameterisedTestCaseFiles):
         # Precision
         ip = self.integer_precision
 
-        self.assertIsNone(npt.assert_all_close(test_img, ref_img, atol=ip))
+        self.assertIsNone(npt.assert_allclose(test_img, ref_img, atol=ip))
 
 
 if __name__ == '__main__':
@@ -110,7 +110,7 @@ if __name__ == '__main__':
 
     print "Testing the Fractional cover products."
     suite = unittest.TestSuite()
-    suite.addTest(ParameterisedTestCase.parameterise(TestFCProducts,
+    suite.addTest(ParameterisedTestCaseFiles.parameterise(TestFCProducts,
                   reference_fname=reference_fname, test_fname=test_fname,
                   integer_precision=int_precision))
     unittest.TextTestRunner(verbosity=2).run(suite)
