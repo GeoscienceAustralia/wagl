@@ -73,14 +73,17 @@ def fractional_cover(acquisitions, x_tile, y_tile, out_fnames):
         
         # Initialise the output files
         outds_pv = tiling.TiledOutput(out_fnames[0], cols, rows, geobox=geobox,
-                                      dtype=out_dtype, nodata=no_data, fmt=fmt)
+                                      dtype=out_dtype, nodata=out_no_data,
+                                      fmt=fmt)
         outds_npv = tiling.TiledOutput(out_fnames[1], cols, rows,
                                        geobox=geobox, dtype=out_dtype,
-                                       nodata=no_data, fmt=fmt)
+                                       nodata=out_no_data, fmt=fmt)
         outds_bs = tiling.TiledOutput(out_fnames[2], cols, rows, geobox=geobox,
-                                      dtype=out_dtype, nodata=no_data, fmt=fmt)
+                                      dtype=out_dtype, nodata=out_no_data,
+                                      fmt=fmt)
         outds_ue = tiling.TiledOutput(out_fnames[3], cols, rows, geobox=geobox,
-                                      dtype=out_dtype, nodata=no_data, fmt=fmt)
+                                      dtype=out_dtype, nodata=out_no_data,
+                                      fmt=fmt)
     else:
         # To avoid confusion between the Acquisition and StackedDataset
         # objects we'll alias acquisitions to sd (StackedDataset)
@@ -96,8 +99,8 @@ def fractional_cover(acquisitions, x_tile, y_tile, out_fnames):
 
         # Define the output file
         outds = tiling.TiledOutput(out_fnames, cols, rows, geobox=geobox,
-                                   dtype=out_dtype, nodata=no_data, fmt=fmt,
-                                   bands=4)
+                                   dtype=out_dtype, nodata=out_no_data,
+                                   fmt=fmt, bands=4)
 
     # Initialise the tiling scheme for processing
     if x_tile is None:
