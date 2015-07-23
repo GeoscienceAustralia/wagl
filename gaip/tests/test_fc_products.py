@@ -9,6 +9,7 @@ import os
 from os.path import join as pjoin, abspath, dirname
 import unittest
 
+import markdown
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy
@@ -398,6 +399,13 @@ def produce_report(out_dir):
     out_fname = pjoin(out_dir, 'Fractional-Cover-Report.md')
     with open(out_fname, 'w') as outf:
         outf.write(md_template)
+
+    md = markdown.Markdown()
+    html = md.convert(md_template)
+
+    out_fname = pjoin(out_dir, 'Fractional-Cover-Report.html')
+    with open(out_fname, 'w') as outf:
+        outf.write(html)
 
 
 if __name__ == '__main__':
