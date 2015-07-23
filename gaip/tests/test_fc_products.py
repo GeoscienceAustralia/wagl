@@ -439,4 +439,5 @@ if __name__ == '__main__':
                   tolerance=tolerance, output_directory=out_dir))
     unittest.TextTestRunner(verbosity=2).run(suite)
 
+    # Produce the markdown and html docs
     produce_report(out_dir)
