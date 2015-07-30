@@ -9,12 +9,24 @@ from os.path import join as pjoin, abspath, basename
 import unittest
 
 import markdown
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy
 
 from gaip import read_img
 from gaip.tests.unittesting_tools import ParameterisedTestCase
 from idl_functions import histogram
+
+"""
+Notes:
+
+What started out at as simple unittesting for the Lambertian-NBAR-TC products
+has become more convoluted with the incorporation of auto report generation
+for descisions to be made by the management board.
+It might be more ideal to break this apart and have unittesting separated
+from the auto report generation. JS 2015-07-24.
+"""
 
 
 class TestProductFileNames(ParameterisedTestCase):
@@ -163,13 +175,14 @@ class TestProductDifference(ParameterisedTestCase):
             ref_img =  None
             test_img = None
 
-            h = histogram(diff, minv=min_diff, maxv=max_diff)
+            h = histogram(diff, minv=min_diff, maxv=max_diff, omin='omin')
             hist = h['histogram']
+            omin = h['omin']
             cumu_h = numpy.cumsum(hist, dtype='float32')
             array_sz = diff.size
             cdf = (cumu_h / array_sz) * 100
 
-            pct_no_diff = cdf[0]
+            pct_no_diff = cdf[0 - omin]
             hist_results[fname] = hist
             cdist_results[fname] = cdf
 
@@ -204,27 +217,37 @@ class TestProductDifference(ParameterisedTestCase):
 
         # Output the histograms
         out_fname = pjoin(out_dir, 'Lambertian-Histogram-Differences.png')
+        fig = plt.figure()
+        axis = fig.add_subplot(111)
         for bname in bnames:
-            plt.plot(hist_results[bname])
+            axis.plot(hist_results[bname], label=bname)
         plt.title('Difference Histograms for the Lambertian product')
         plt.xlabel('Pixel Difference Value')
         plt.ylabel('Count')
-        plt.savefig(out_fname)
+        lgd = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),
+                         prop={'size': 10})
+        plt.tight_layout()
+        plt.savefig(out_fname, bbox_extra_artists=(lgd,), bbox_inches='tight')
         plt.close()
 
         out_fname = pjoin(out_dir,
                           'Lambertian-Cumulative-Distribution-Differences.png')
+        fig = plt.figure()
+        axis = fig.add_subplot(111)
         for bname in bnames:
-            plt.plot(cdist_results[bname])
+            axis.plot(cdist_results[bname], label=bname)
         plt.title('Cumulative Distribution for Lambertian product')
         plt.xlabel('Pixel Difference Value')
         plt.ylabel('Percent %')
-        plt.savefig(out_fname)
+        lgd = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),
+                         prop={'size': 10})
+        plt.tight_layout()
+        plt.savefig(out_fname, bbox_extra_artists=(lgd,), bbox_inches='tight')
         plt.close()
 
         for bname in cdist_results:
             print "Testing file: {}".format(bname)
-            self.assertTrue(cdist_results[bname] > tolerance)
+            self.assertTrue(cdist_results[bname][0 - omin] > tolerance)
 
 
     def test_compare_brdf_files(self):
@@ -281,13 +304,14 @@ class TestProductDifference(ParameterisedTestCase):
             ref_img =  None
             test_img = None
 
-            h = histogram(diff, minv=min_diff, maxv=max_diff)
+            h = histogram(diff, minv=min_diff, maxv=max_diff, omin='omin')
             hist = h['histogram']
+            omin = h['omin']
             cumu_h = numpy.cumsum(hist, dtype='float32')
             array_sz = diff.size
             cdf = (cumu_h / array_sz) * 100
 
-            pct_no_diff = cdf[0]
+            pct_no_diff = cdf[0 - omin]
             hist_results[fname] = hist
             cdist_results[fname] = cdf
 
@@ -322,27 +346,37 @@ class TestProductDifference(ParameterisedTestCase):
 
         # Output the histograms
         out_fname = pjoin(out_dir, 'BRDF-Corrected-Histogram-Differences.png')
+        fig = plt.figure()
+        axis = fig.add_subplot(111)
         for bname in bnames:
-            plt.plot(hist_results[bname])
+            axis.plot(hist_results[bname], label=bname)
         plt.title('Difference Histograms for the BRDF-Corrected product')
         plt.xlabel('Pixel Difference Value')
         plt.ylabel('Count')
-        plt.savefig(out_fname)
+        lgd = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),
+                         prop={'size': 10})
+        plt.tight_layout()
+        plt.savefig(out_fname, bbox_extra_artists=(lgd,), bbox_inches='tight')
         plt.close()
 
         out_fname = pjoin(out_dir, ('BRDF-Corrected-Cumulative-Distribution-'
                                     'Differences.png'))
+        fig = plt.figure()
+        axis = fig.add_subplot(111)
         for bname in bnames:
-            plt.plot(cdist_results[bname])
+            axis.plot(cdist_results[bname], label=bname)
         plt.title('Cumulative Distribution for BRDF-Corrected product')
         plt.xlabel('Pixel Difference Value')
         plt.ylabel('Percent %')
-        plt.savefig(out_fname)
+        lgd = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),
+                         prop={'size': 10})
+        plt.tight_layout()
+        plt.savefig(out_fname, bbox_extra_artists=(lgd,), bbox_inches='tight')
         plt.close()
 
         for bname in cdist_results:
             print "Testing file: {}".format(bname)
-            self.assertTrue(cdist_results[bname] > tolerance)
+            self.assertTrue(cdist_results[bname][0 - omin] > tolerance)
 
 
     def test_compare_tc_files(self):
@@ -399,13 +433,14 @@ class TestProductDifference(ParameterisedTestCase):
             ref_img =  None
             test_img = None
 
-            h = histogram(diff, minv=min_diff, maxv=max_diff)
+            h = histogram(diff, minv=min_diff, maxv=max_diff, omin='omin')
             hist = h['histogram']
+            omin = h['omin']
             cumu_h = numpy.cumsum(hist, dtype='float32')
             array_sz = diff.size
             cdf = (cumu_h / array_sz) * 100
 
-            pct_no_diff = cdf[0]
+            pct_no_diff = cdf[0 - omin]
             hist_results[fname] = hist
             cdist_results[fname] = cdf
 
@@ -441,34 +476,50 @@ class TestProductDifference(ParameterisedTestCase):
         # Output the histograms
         out_fname = pjoin(out_dir,
                           'Terrain-Corrected-Histogram-Differences.png')
+        fig = plt.figure()
+        axis = fig.add_subplot(111)
         for bname in bnames:
-            plt.plot(hist_results[bname])
+            axis.plot(hist_results[bname], label=bname)
         plt.title('Difference Histograms for the Terrain-Corrected product')
         plt.xlabel('Pixel Difference Value')
         plt.ylabel('Count')
-        plt.savefig(out_fname)
+        lgd = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),
+                         prop={'size': 10})
+        plt.tight_layout()
+        plt.savefig(out_fname, bbox_extra_artists=(lgd,), bbox_inches='tight')
         plt.close()
 
         out_fname = pjoin(out_dir, ('Terrain-Corrected-Cumulative-'
                                     'Distribution-Differences.png'))
+        fig = plt.figure()
+        axis = fig.add_subplot(111)
         for bname in bnames:
-            plt.plot(cdist_results[bname])
+            axis.plot(cdist_results[bname], label=bname)
         plt.title('Cumulative Distribution for Terrain-Corrected product')
         plt.xlabel('Pixel Difference Value')
         plt.ylabel('Percent %')
-        plt.savefig(out_fname)
+        lgd = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),
+                         prop={'size': 10})
+        plt.tight_layout()
+        plt.savefig(out_fname, bbox_extra_artists=(lgd,), bbox_inches='tight')
         plt.close()
 
         for bname in cdist_results:
             print "Testing file: {}".format(bname)
-            self.assertTrue(cdist_results[bname] > tolerance)
+            self.assertTrue(cdist_results[bname][0 - omin] > tolerance)
 
 
-def produce_report(out_dir):
+def produce_report(out_dir, reference_dir, test_dir):
     """
     Produce the markdown report document.
     """
     template = ("""# NBAR Comparison Report
+
+## Reference Data:
+*{ref_dir}*
+
+## Test Data:
+*{test_dir}*
 
 ## Lambertian Product
 
@@ -512,8 +563,8 @@ def produce_report(out_dir):
     for fname in lmbrt_json:
         with open(fname, 'r') as f:
             data = json.load(f, object_pairs_hook=OrderedDict)
-    lmbrt_data.append(json.dumps(data, indent=4, separators=(',\n', ': ')))
-    lmbrt_data_list = ['{}\n'.format(d for d in lmbrt_data)]
+        lmbrt_data.append(json.dumps(data, indent=4, separators=(',\n', ': ')))
+    lmbrt_data_list = ['{}\n'.format(d) for d in lmbrt_data]
     lmbrt_data = ''.join(lmbrt_data_list)
 
     # Get the brdf json data
@@ -522,8 +573,8 @@ def produce_report(out_dir):
     for fname in brdf_json:
         with open(fname, 'r') as f:
             data = json.load(f, object_pairs_hook=OrderedDict)
-    brdf_data.append(json.dumps(data, indent=4, separators=(',\n', ': ')))
-    brdf_data_list = ['{}\n'.format(d for d in brdf_data)]
+        brdf_data.append(json.dumps(data, indent=4, separators=(',\n', ': ')))
+    brdf_data_list = ['{}\n'.format(d) for d in brdf_data]
     brdf_data = ''.join(brdf_data_list)
 
     # Get the terrain json data
@@ -532,8 +583,8 @@ def produce_report(out_dir):
     for fname in tc_json:
         with open(fname, 'r') as f:
             data = json.load(f, object_pairs_hook=OrderedDict)
-    tc_data.append(json.dumps(data, indent=4, separators=(',\n', ': ')))
-    tc_data_list = ['{}\n'.format(d for d in tc_data)]
+        tc_data.append(json.dumps(data, indent=4, separators=(',\n', ': ')))
+    tc_data_list = ['{}\n'.format(d) for d in tc_data]
     tc_data = ''.join(tc_data_list)
 
     # Get the png difference maps
@@ -571,7 +622,9 @@ def produce_report(out_dir):
                                   lmbrt_diff_maps=lmbrt_diffs,
                                   brdf_data=brdf_data,
                                   brdf_diff_maps=brdf_diffs,
-                                  tc_data=tc_data, tc_diff_maps=tc_diffs)
+                                  tc_data=tc_data, tc_diff_maps=tc_diffs,
+                                  ref_dir=reference_dir,
+                                  test_dir=test_dir)
 
     # Output the nbar markdown
     out_fname = pjoin(out_dir, 'NBAR-Report.md')
@@ -627,4 +680,4 @@ if __name__ == '__main__':
     unittest.TextTestRunner(verbosity=2).run(suite)
 
     # Produce the markdown and html docs
-    produce_report(out_dir)
+    produce_report(out_dir, reference_dir, test_dir)
