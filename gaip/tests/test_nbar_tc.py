@@ -13,8 +13,10 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy
+import rasterio
 
-from gaip import read_img
+from gaip import GriddedGeoBox
+from gaip import write_img
 from gaip.tests.unittesting_tools import ParameterisedTestCase
 from idl_functions import histogram
 
@@ -114,399 +116,473 @@ class TestProductFileNames(ParameterisedTestCase):
         self.assertEqual(len(ref_files), len(test_files))
 
 
-class TestProductDifference(ParameterisedTestCase):
-
+def test_compare_lmbrt_files(reference_directory, test_directory,
+                             output_directory, percent):
     """
-    Test the numerical difference of the product outputs.
+    Check that the lambertian outputs are roughly equal.
     """
+    reflectance_ref_dir = pjoin(reference_directory, 'Reflectance_Outputs')
+    reflectance_test_dir = pjoin(test_directory, 'Reflectance_Outputs')
 
-    def test_compare_lmbrt_files(self):
-        """
-        Check that the lambertian outputs are roughly equal.
-        """
-        reflectance_ref_dir = pjoin(self.reference_dir, 'Reflectance_Outputs')
-        reflectance_test_dir = pjoin(self.test_dir, 'Reflectance_Outputs')
+    cwd = os.getcwd()
 
-        cwd = os.getcwd()
-        out_dir = self.output_directory
+    # Get the reference files
+    os.chdir(reflectance_ref_dir)
+    files = glob.glob('*.bin')
+    ref_files = [abspath(f) for f in files if 'lambertian' in f]
 
-        # Get the reference files
-        os.chdir(reflectance_ref_dir)
-        files = glob.glob('*.bin')
-        ref_files = [abspath(f) for f in files if 'lambertian' in f]
+    # Get the test files
+    os.chdir(reflectance_test_dir)
+    files = glob.glob('*.bin')
+    test_files = [abspath(f) for f in files if 'lambertian' in f]
 
-        # Get the test files
-        os.chdir(reflectance_test_dir)
-        files = glob.glob('*.bin')
-        test_files = [abspath(f) for f in files if 'lambertian' in f]
+    # Change back to the original directory
+    os.chdir(cwd)
 
-        # Change back to the original directory
-        os.chdir(cwd)
+    ref_files.sort()
+    test_files.sort()
 
-        ref_files.sort()
-        test_files.sort()
+    # Precision (Recycle the decmial_precision param)
+    tolerance = 100 - percent
 
-        # Precision (Recycle the decmial_precision param)
-        tolerance = 100 - self.decimal_precision
+    # Setup lists to hold band names, min and max values
+    diff_fnames = []
+    min_diff = []
+    max_diff = []
 
-        # Setup lists to hold hist results and band names
-        hist_results = {}
-        cdist_results = {}
-        bnames = []
-        print 'len(ref_files): {}'.format(len(ref_files))
+    # Open the first image and get the geobox
+    with rasterio.open(ref_files[0], 'r') as ds:
+        geobox = GriddedGeoBox.from_rio_dataset(ds)
 
-        for i in range(len(ref_files)):
-            ref_fname = ref_files[i]
-            test_fname = test_files[i]
-            fname = basename(test_fname)
-            bnames.append(fname)
+    # We need to calculate the difference images and determine the absolute
+    # max and min in order to create a generic histogram that captures all
+    # diff images on the same scale. This makes it easier to plot on the
+    # same graph
+    for i in range(len(ref_files)):
+        ref_fname = ref_files[i]
+        test_fname = test_files[i]
+        fname = basename(test_fname)
 
-            # Get the reference data
-            ref_img = read_img(ref_fname)
+        # Get the reference data
+        with rasterio.open(ref_fname, 'r') as ds:
+            ref_img = ds.read_band(1, masked=False)
 
-            # Get the test data
-            test_img = read_img(test_fname)
+        # Get the test data
+        with rasterio.open(test_fname, 'r') as ds:
+            test_img = ds.read_band(1, masked=False)
 
-            # Calculate the difference image and get some basic stats
-            diff = (ref_img - test_img).astype('int32')
-            max_diff = diff.max()
-            min_diff = diff.min()
+        # Calculate the difference image and get some basic stats
+        diff = (ref_img - test_img).astype('int32')
+        max_diff.append(diff.max())
+        min_diff.append(diff.min())
 
-            ref_img =  None
-            test_img = None
+        # Output the difference image to disk
+        diff_out_fname = pjoin(output_directory,
+                               fname.replace('.bin', '_diff.bin'))
+        diff_fnames.append(diff_out_fname)
+        write_img(diff, diff_out_fname, geobox=geobox)
 
-            h = histogram(diff, minv=min_diff, maxv=max_diff, omin='omin')
-            hist = h['histogram']
-            omin = h['omin']
-            cumu_h = numpy.cumsum(hist, dtype='float32')
-            array_sz = diff.size
-            cdf = (cumu_h / array_sz) * 100
-
-            pct_no_diff = cdf[0 - omin]
-            hist_results[fname] = hist
-            cdist_results[fname] = cdf
-
-            result = OrderedDict()
-            result['Product'] = 'Lambertian'
-            result['Filename'] = fname
-            result['Min Difference'] = float(min_diff)
-            result['Max Difference'] = float(max_diff)
-            result['Minimum Allowable Percent Difference'] = float(tolerance)
-            result['Percent No Difference'] = float(pct_no_diff)
-
-            if pct_no_diff > tolerance:
-                result['Acceptable Percent Difference?'] = True
-            else:
-                result['Acceptable Percent Difference?'] = False
-
-            out_fname = pjoin(out_dir, fname.replace('.bin', '.json'))
-            with open(out_fname, 'w') as outf:
-                json.dump(result, outf, ensure_ascii=False, indent=4)
-
-            # Output the difference map
-            out_fname = pjoin(out_dir, fname.replace('.bin',
-                                                     '-Difference-Map.png'))
-            plt.imshow(diff)
-            title = fname.replace('.bin', '-Difference-Map')
-            plt.title(title)
-            plt.colorbar()
-            plt.savefig(out_fname)
-            plt.close()
-
-        diff = None
-
-        # Output the histograms
-        out_fname = pjoin(out_dir, 'Lambertian-Histogram-Differences.png')
-        fig = plt.figure()
-        axis = fig.add_subplot(111)
-        for bname in bnames:
-            axis.plot(hist_results[bname], label=bname)
-        plt.title('Difference Histograms for the Lambertian product')
-        plt.xlabel('Pixel Difference Value')
-        plt.ylabel('Count')
-        lgd = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),
-                         prop={'size': 10})
-        plt.tight_layout()
-        plt.savefig(out_fname, bbox_extra_artists=(lgd,), bbox_inches='tight')
+        # Output the difference map
+        out_fname = pjoin(output_directory,
+                          fname.replace('.bin', '-Difference-Map.png'))
+        plt.imshow(diff)
+        title = fname.replace('.bin', '-Difference-Map')
+        plt.title(title)
+        plt.colorbar()
+        plt.savefig(out_fname)
         plt.close()
 
-        out_fname = pjoin(out_dir,
-                          'Lambertian-Cumulative-Distribution-Differences.png')
-        fig = plt.figure()
-        axis = fig.add_subplot(111)
-        for bname in bnames:
-            axis.plot(cdist_results[bname], label=bname)
-        plt.title('Cumulative Distribution for Lambertian product')
-        plt.xlabel('Pixel Difference Value')
-        plt.ylabel('Percent %')
-        lgd = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),
-                         prop={'size': 10})
-        plt.tight_layout()
-        plt.savefig(out_fname, bbox_extra_artists=(lgd,), bbox_inches='tight')
+
+    # Determine the min and max
+    min_v = numpy.min(min_diff)
+    max_v = numpy.max(max_diff)
+
+
+    # Initialise dicts to hold the histogram and cumulative distributions
+    hist_results = {}
+    cdist_results = {}
+
+    for diff_fname in diff_fnames:
+        fname = basename(diff_fname)
+        with rasterio.open(diff_fname, 'r') as ds:
+            diff = ds.read_band(1, masked=False)
+
+        h = histogram(diff, minv=min_v, maxv=max_v, omin='omin')
+        hist = h['histogram']
+        omin = h['omin']
+        cumu_h = numpy.cumsum(hist, dtype='float32')
+        array_sz = diff.size
+        cdf = (cumu_h / array_sz) * 100
+
+        pct_no_diff = cdf[0 - omin]
+        hist_results[fname] = hist
+        cdist_results[fname] = cdf
+
+        result = OrderedDict()
+        result['Product'] = 'Lambertian'
+        result['Filename'] = fname
+        result['Min Difference'] = float(diff.min())
+        result['Max Difference'] = float(diff.max())
+        result['Minimum Allowable Percent Difference'] = float(tolerance)
+        result['Percent No Difference'] = float(pct_no_diff)
+
+        if pct_no_diff > tolerance:
+            result['Acceptable Percent Difference?'] = True
+        else:
+            result['Acceptable Percent Difference?'] = False
+
+        out_fname = pjoin(output_directory, fname.replace('.bin', '.json'))
+        with open(out_fname, 'w') as outf:
+            json.dump(result, outf, ensure_ascii=False, indent=4)
+
+
+    # Output the histograms
+    out_fname = pjoin(output_directory, 'Lambertian-Histogram-Differences.png')
+    fig = plt.figure()
+    axis = fig.add_subplot(111)
+    for bname in hist_results:
+        y = hist_results[bname]
+        x = numpy.arange(y.shape[0]) + omin
+        axis.plot(x, y, label=bname)
+    plt.title('Difference Histograms for the Lambertian product')
+    plt.xlabel('Pixel Difference Value')
+    plt.ylabel('Count')
+    lgd = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),
+                     prop={'size': 10})
+    plt.tight_layout()
+    plt.savefig(out_fname, bbox_extra_artists=(lgd,), bbox_inches='tight')
+    plt.close()
+
+    out_fname = pjoin(output_directory,
+                      'Lambertian-Cumulative-Distribution-Differences.png')
+    fig = plt.figure()
+    axis = fig.add_subplot(111)
+    for bname in cdist_results:
+        y = cdist_results[bname]
+        x = numpy.arange(y.shape[0]) + omin
+        axis.plot(x, y, label=bname)
+    plt.title('Cumulative Distribution for Lambertian product')
+    plt.xlabel('Pixel Difference Value')
+    plt.ylabel('Percent %')
+    lgd = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),
+                     prop={'size': 10})
+    plt.tight_layout()
+    plt.savefig(out_fname, bbox_extra_artists=(lgd,), bbox_inches='tight')
+    plt.close()
+
+
+def test_compare_brdf_files(reference_directory, test_directory,
+                            output_directory, percent):
+    """
+    Check that the brdf outputs are roughly equal.
+    """
+    reflectance_ref_dir = pjoin(reference_directory, 'Reflectance_Outputs')
+    reflectance_test_dir = pjoin(test_directory, 'Reflectance_Outputs')
+
+    cwd = os.getcwd()
+
+    # Get the reference files
+    os.chdir(reflectance_ref_dir)
+    files = glob.glob('*.bin')
+    ref_files = [abspath(f) for f in files if 'brdf' in f]
+
+    # Get the test files
+    os.chdir(reflectance_test_dir)
+    files = glob.glob('*.bin')
+    test_files = [abspath(f) for f in files if 'brdf' in f]
+
+    # Change back to the original directory
+    os.chdir(cwd)
+
+    ref_files.sort()
+    test_files.sort()
+
+    # Precision (Recycle the decmial_precision param)
+    tolerance = 100 - percent
+
+    # Setup lists to hold band names, min and max values
+    diff_fnames = []
+    min_diff = []
+    max_diff = []
+
+    # Open the first image and get the geobox
+    with rasterio.open(ref_files[0], 'r') as ds:
+        geobox = GriddedGeoBox.from_rio_dataset(ds)
+
+    # We need to calculate the difference images and determine the absolute
+    # max and min in order to create a generic histogram that captures all
+    # diff images on the same scale. This makes it easier to plot on the
+    # same graph
+    for i in range(len(ref_files)):
+        ref_fname = ref_files[i]
+        test_fname = test_files[i]
+        fname = basename(test_fname)
+
+        # Get the reference data
+        with rasterio.open(ref_fname, 'r') as ds:
+            ref_img = ds.read_band(1, masked=False)
+
+        # Get the test data
+        with rasterio.open(test_fname, 'r') as ds:
+            test_img = ds.read_band(1, masked=False)
+
+        # Calculate the difference image and get some basic stats
+        diff = (ref_img - test_img).astype('int32')
+        max_diff.append(diff.max())
+        min_diff.append(diff.min())
+
+        # Output the difference image to disk
+        diff_out_fname = pjoin(output_directory,
+                               fname.replace('.bin', '_diff.bin'))
+        diff_fnames.append(diff_out_fname)
+        write_img(diff, diff_out_fname, geobox=geobox)
+
+        # Output the difference map
+        out_fname = pjoin(output_directory,
+                          fname.replace('.bin', '-Difference-Map.png'))
+        plt.imshow(diff)
+        title = fname.replace('.bin', '-Difference-Map')
+        plt.title(title)
+        plt.colorbar()
+        plt.savefig(out_fname)
         plt.close()
 
-        for bname in cdist_results:
-            print "Testing file: {}".format(bname)
-            self.assertTrue(cdist_results[bname][0 - omin] > tolerance)
+
+    # Determine the min and max
+    min_v = numpy.min(min_diff)
+    max_v = numpy.max(max_diff)
 
 
-    def test_compare_brdf_files(self):
-        """
-        Check that the brdf outputs are roughly equal.
-        """
-        reflectance_ref_dir = pjoin(self.reference_dir, 'Reflectance_Outputs')
-        reflectance_test_dir = pjoin(self.test_dir, 'Reflectance_Outputs')
+    # Initialise dicts to hold the histogram and cumulative distributions
+    hist_results = {}
+    cdist_results = {}
 
-        cwd = os.getcwd()
-        out_dir = self.output_directory
+    for diff_fname in diff_fnames:
+        fname = basename(diff_fname)
+        with rasterio.open(diff_fname, 'r') as ds:
+            diff = ds.read_band(1, masked=False)
 
-        # Get the reference files
-        os.chdir(reflectance_ref_dir)
-        files = glob.glob('*.bin')
-        ref_files = [abspath(f) for f in files if 'brdf' in f]
+        h = histogram(diff, minv=min_v, maxv=max_v, omin='omin')
+        hist = h['histogram']
+        omin = h['omin']
+        cumu_h = numpy.cumsum(hist, dtype='float32')
+        array_sz = diff.size
+        cdf = (cumu_h / array_sz) * 100
 
-        # Get the test files
-        os.chdir(reflectance_test_dir)
-        files = glob.glob('*.bin')
-        test_files = [abspath(f) for f in files if 'brdf' in f]
+        pct_no_diff = cdf[0 - omin]
+        hist_results[fname] = hist
+        cdist_results[fname] = cdf
 
-        # Change back to the original directory
-        os.chdir(cwd)
+        result = OrderedDict()
+        result['Product'] = 'BRDF-Corrected'
+        result['Filename'] = fname
+        result['Min Difference'] = float(diff.min())
+        result['Max Difference'] = float(diff.max())
+        result['Minimum Allowable Percent Difference'] = float(tolerance)
+        result['Percent No Difference'] = float(pct_no_diff)
 
-        ref_files.sort()
-        test_files.sort()
+        if pct_no_diff > tolerance:
+            result['Acceptable Percent Difference?'] = True
+        else:
+            result['Acceptable Percent Difference?'] = False
 
-        # Precision (Recycle the decmial_precision param)
-        tolerance = 100 - self.decimal_precision
+        out_fname = pjoin(output_directory, fname.replace('.bin', '.json'))
+        with open(out_fname, 'w') as outf:
+            json.dump(result, outf, ensure_ascii=False, indent=4)
 
-        # Setup lists to hold hist results and band names
-        hist_results = {}
-        cdist_results = {}
-        bnames = []
 
-        for i in range(len(ref_files)):
-            ref_fname = ref_files[i]
-            test_fname = test_files[i]
-            fname = basename(test_fname)
-            bnames.append(fname)
+    # Output the histograms
+    out_fname = pjoin(output_directory,
+                      'BRDF-Corrected-Histogram-Differences.png')
+    fig = plt.figure()
+    axis = fig.add_subplot(111)
+    for bname in hist_results:
+        y = hist_results[bname]
+        x = numpy.arange(y.shape[0]) + omin
+        axis.plot(x, y, label=bname)
+    plt.title('Difference Histograms for the BRDF-Corrected product')
+    plt.xlabel('Pixel Difference Value')
+    plt.ylabel('Count')
+    lgd = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),
+                     prop={'size': 10})
+    plt.tight_layout()
+    plt.savefig(out_fname, bbox_extra_artists=(lgd,), bbox_inches='tight')
+    plt.close()
 
-            # Get the reference data
-            ref_img = read_img(ref_fname)
+    out_fname = pjoin(output_directory,
+                      ('BRDF-Corrected-Cumulative-Distribution-'
+                       'Differences.png'))
+    fig = plt.figure()
+    axis = fig.add_subplot(111)
+    for bname in cdist_results:
+        y = cdist_results[bname]
+        x = numpy.arange(y.shape[0]) + omin
+        axis.plot(x, y, label=bname)
+    plt.title('Cumulative Distribution for BRDF-Corrected product')
+    plt.xlabel('Pixel Difference Value')
+    plt.ylabel('Percent %')
+    lgd = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),
+                     prop={'size': 10})
+    plt.tight_layout()
+    plt.savefig(out_fname, bbox_extra_artists=(lgd,), bbox_inches='tight')
+    plt.close()
 
-            # Get the test data
-            test_img = read_img(test_fname)
 
-            # Calculate the difference image and get some basic stats
-            diff = (ref_img - test_img).astype('int32')
-            max_diff = diff.max()
-            min_diff = diff.min()
+def test_compare_tc_files(reference_directory, test_directory,
+                          output_directory, percent):
+    """
+    Check that the tc outputs are roughly equal.
+    """
+    reflectance_ref_dir = pjoin(reference_directory, 'Reflectance_Outputs')
+    reflectance_test_dir = pjoin(test_directory, 'Reflectance_Outputs')
 
-            ref_img =  None
-            test_img = None
+    cwd = os.getcwd()
 
-            h = histogram(diff, minv=min_diff, maxv=max_diff, omin='omin')
-            hist = h['histogram']
-            omin = h['omin']
-            cumu_h = numpy.cumsum(hist, dtype='float32')
-            array_sz = diff.size
-            cdf = (cumu_h / array_sz) * 100
+    # Get the reference files
+    os.chdir(reflectance_ref_dir)
+    files = glob.glob('*.bin')
+    ref_files = [abspath(f) for f in files if 'terrain' in f]
 
-            pct_no_diff = cdf[0 - omin]
-            hist_results[fname] = hist
-            cdist_results[fname] = cdf
+    # Get the test files
+    os.chdir(reflectance_test_dir)
+    files = glob.glob('*.bin')
+    test_files = [abspath(f) for f in files if 'terrain' in f]
 
-            result = OrderedDict()
-            result['Product'] = 'BRDF-Corrected'
-            result['Filename'] = fname
-            result['Min Difference'] = float(min_diff)
-            result['Max Difference'] = float(max_diff)
-            result['Minimum Allowable Percent Difference'] = float(tolerance)
-            result['Percent No Difference'] = float(pct_no_diff)
+    # Change back to the original directory
+    os.chdir(cwd)
 
-            if pct_no_diff > tolerance:
-                result['Acceptable Percent Difference?'] = True
-            else:
-                result['Acceptable Percent Difference?'] = False
+    ref_files.sort()
+    test_files.sort()
 
-            out_fname = pjoin(out_dir, fname.replace('.bin', '.json'))
-            with open(out_fname, 'w') as outf:
-                json.dump(result, outf, ensure_ascii=False, indent=4)
+    # Precision (Recycle the decmial_precision param)
+    tolerance = 100 - percent
 
-            # Output the difference map
-            out_fname = pjoin(out_dir, fname.replace('.bin',
-                                                     '-Difference-Map.png'))
-            plt.imshow(diff)
-            title = fname.replace('.bin', '-Difference-Map')
-            plt.title(title)
-            plt.colorbar()
-            plt.savefig(out_fname)
-            plt.close()
+    # Setup lists to hold band names, min and max values
+    diff_fnames = []
+    min_diff = []
+    max_diff = []
 
-        diff = None
+    # Open the first image and get the geobox
+    with rasterio.open(ref_files[0], 'r') as ds:
+        geobox = GriddedGeoBox.from_rio_dataset(ds)
 
-        # Output the histograms
-        out_fname = pjoin(out_dir, 'BRDF-Corrected-Histogram-Differences.png')
-        fig = plt.figure()
-        axis = fig.add_subplot(111)
-        for bname in bnames:
-            axis.plot(hist_results[bname], label=bname)
-        plt.title('Difference Histograms for the BRDF-Corrected product')
-        plt.xlabel('Pixel Difference Value')
-        plt.ylabel('Count')
-        lgd = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),
-                         prop={'size': 10})
-        plt.tight_layout()
-        plt.savefig(out_fname, bbox_extra_artists=(lgd,), bbox_inches='tight')
+    # We need to calculate the difference images and determine the absolute
+    # max and min in order to create a generic histogram that captures all
+    # diff images on the same scale. This makes it easier to plot on the
+    # same graph
+    for i in range(len(ref_files)):
+        ref_fname = ref_files[i]
+        test_fname = test_files[i]
+        fname = basename(test_fname)
+
+        # Get the reference data
+        with rasterio.open(ref_fname, 'r') as ds:
+            ref_img = ds.read_band(1, masked=False)
+
+        # Get the test data
+        with rasterio.open(test_fname, 'r') as ds:
+            test_img = ds.read_band(1, masked=False)
+
+        # Calculate the difference image and get some basic stats
+        diff = (ref_img - test_img).astype('int32')
+        max_diff.append(diff.max())
+        min_diff.append(diff.min())
+
+        # Output the difference image to disk
+        diff_out_fname = pjoin(output_directory,
+                               fname.replace('.bin', '_diff.bin'))
+        diff_fnames.append(diff_out_fname)
+        write_img(diff, diff_out_fname, geobox=geobox)
+
+        # Output the difference map
+        out_fname = pjoin(output_directory,
+                          fname.replace('.bin', '-Difference-Map.png'))
+        plt.imshow(diff)
+        title = fname.replace('.bin', '-Difference-Map')
+        plt.title(title)
+        plt.colorbar()
+        plt.savefig(out_fname)
         plt.close()
 
-        out_fname = pjoin(out_dir, ('BRDF-Corrected-Cumulative-Distribution-'
-                                    'Differences.png'))
-        fig = plt.figure()
-        axis = fig.add_subplot(111)
-        for bname in bnames:
-            axis.plot(cdist_results[bname], label=bname)
-        plt.title('Cumulative Distribution for BRDF-Corrected product')
-        plt.xlabel('Pixel Difference Value')
-        plt.ylabel('Percent %')
-        lgd = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),
-                         prop={'size': 10})
-        plt.tight_layout()
-        plt.savefig(out_fname, bbox_extra_artists=(lgd,), bbox_inches='tight')
-        plt.close()
 
-        for bname in cdist_results:
-            print "Testing file: {}".format(bname)
-            self.assertTrue(cdist_results[bname][0 - omin] > tolerance)
+    # Determine the min and max
+    min_v = numpy.min(min_diff)
+    max_v = numpy.max(max_diff)
 
 
-    def test_compare_tc_files(self):
-        """
-        Check that the tc outputs are roughly equal.
-        """
-        reflectance_ref_dir = pjoin(self.reference_dir, 'Reflectance_Outputs')
-        reflectance_test_dir = pjoin(self.test_dir, 'Reflectance_Outputs')
+    # Initialise dicts to hold the histogram and cumulative distributions
+    hist_results = {}
+    cdist_results = {}
 
-        cwd = os.getcwd()
-        out_dir = self.output_directory
+    for diff_fname in diff_fnames:
+        fname = basename(diff_fname)
+        with rasterio.open(diff_fname, 'r') as ds:
+            diff = ds.read_band(1, masked=False)
 
-        # Get the reference files
-        os.chdir(reflectance_ref_dir)
-        files = glob.glob('*.bin')
-        ref_files = [abspath(f) for f in files if 'terrain' in f]
+        h = histogram(diff, minv=min_v, maxv=max_v, omin='omin')
+        hist = h['histogram']
+        omin = h['omin']
+        cumu_h = numpy.cumsum(hist, dtype='float32')
+        array_sz = diff.size
+        cdf = (cumu_h / array_sz) * 100
 
-        # Get the test files
-        os.chdir(reflectance_test_dir)
-        files = glob.glob('*.bin')
-        test_files = [abspath(f) for f in files if 'terrain' in f]
+        pct_no_diff = cdf[0 - omin]
+        hist_results[fname] = hist
+        cdist_results[fname] = cdf
 
-        # Change back to the original directory
-        os.chdir(cwd)
+        result = OrderedDict()
+        result['Product'] = 'Terrain-Corrected'
+        result['Filename'] = fname
+        result['Min Difference'] = float(diff.min())
+        result['Max Difference'] = float(diff.max())
+        result['Minimum Allowable Percent Difference'] = float(tolerance)
+        result['Percent No Difference'] = float(pct_no_diff)
 
-        ref_files.sort()
-        test_files.sort()
+        if pct_no_diff > tolerance:
+            result['Acceptable Percent Difference?'] = True
+        else:
+            result['Acceptable Percent Difference?'] = False
 
-        # Precision (Recycle the decmial_precision param)
-        tolerance = 100 - self.decimal_precision
+        out_fname = pjoin(output_directory, fname.replace('.bin', '.json'))
+        with open(out_fname, 'w') as outf:
+            json.dump(result, outf, ensure_ascii=False, indent=4)
 
-        # Setup lists to hold hist results and band names
-        hist_results = {}
-        cdist_results = {}
-        bnames = []
 
-        for i in range(len(ref_files)):
-            ref_fname = ref_files[i]
-            test_fname = test_files[i]
-            fname = basename(test_fname)
-            bnames.append(fname)
+    # Output the histograms
+    out_fname = pjoin(output_directory,
+                      'Terrain-Corrected-Histogram-Differences.png')
+    fig = plt.figure()
+    axis = fig.add_subplot(111)
+    for bname in hist_results:
+        y = hist_results[bname]
+        x = numpy.arange(y.shape[0]) + omin
+        axis.plot(x, y, label=bname)
+    plt.title('Difference Histograms for the Terrain-Corrected product')
+    plt.xlabel('Pixel Difference Value')
+    plt.ylabel('Count')
+    lgd = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),
+                     prop={'size': 10})
+    plt.tight_layout()
+    plt.savefig(out_fname, bbox_extra_artists=(lgd,), bbox_inches='tight')
+    plt.close()
 
-            # Get the reference data
-            ref_img = read_img(ref_fname)
-
-            # Get the test data
-            test_img = read_img(test_fname)
-
-            # Calculate the difference image and get some basic stats
-            diff = (ref_img - test_img).astype('int32')
-            max_diff = diff.max()
-            min_diff = diff.min()
-
-            ref_img =  None
-            test_img = None
-
-            h = histogram(diff, minv=min_diff, maxv=max_diff, omin='omin')
-            hist = h['histogram']
-            omin = h['omin']
-            cumu_h = numpy.cumsum(hist, dtype='float32')
-            array_sz = diff.size
-            cdf = (cumu_h / array_sz) * 100
-
-            pct_no_diff = cdf[0 - omin]
-            hist_results[fname] = hist
-            cdist_results[fname] = cdf
-
-            result = OrderedDict()
-            result['Product'] = 'Terrain-Corrected'
-            result['Filename'] = fname
-            result['Min Difference'] = float(min_diff)
-            result['Max Difference'] = float(max_diff)
-            result['Minimum Allowable Percent Difference'] = float(tolerance)
-            result['Percent No Difference'] = float(pct_no_diff)
-
-            if pct_no_diff > tolerance:
-                result['Acceptable Percent Difference?'] = True
-            else:
-                result['Acceptable Percent Difference?'] = False
-
-            out_fname = pjoin(out_dir, fname.replace('.bin', '.json'))
-            with open(out_fname, 'w') as outf:
-                json.dump(result, outf, ensure_ascii=False, indent=4)
-
-            # Output the difference map
-            out_fname = pjoin(out_dir, fname.replace('.bin',
-                                                     '-Difference-Map.png'))
-            plt.imshow(diff)
-            title = fname.replace('.bin', '-Difference-Map')
-            plt.title(title)
-            plt.colorbar()
-            plt.savefig(out_fname)
-            plt.close()
-
-        diff = None
-
-        # Output the histograms
-        out_fname = pjoin(out_dir,
-                          'Terrain-Corrected-Histogram-Differences.png')
-        fig = plt.figure()
-        axis = fig.add_subplot(111)
-        for bname in bnames:
-            axis.plot(hist_results[bname], label=bname)
-        plt.title('Difference Histograms for the Terrain-Corrected product')
-        plt.xlabel('Pixel Difference Value')
-        plt.ylabel('Count')
-        lgd = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),
-                         prop={'size': 10})
-        plt.tight_layout()
-        plt.savefig(out_fname, bbox_extra_artists=(lgd,), bbox_inches='tight')
-        plt.close()
-
-        out_fname = pjoin(out_dir, ('Terrain-Corrected-Cumulative-'
-                                    'Distribution-Differences.png'))
-        fig = plt.figure()
-        axis = fig.add_subplot(111)
-        for bname in bnames:
-            axis.plot(cdist_results[bname], label=bname)
-        plt.title('Cumulative Distribution for Terrain-Corrected product')
-        plt.xlabel('Pixel Difference Value')
-        plt.ylabel('Percent %')
-        lgd = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),
-                         prop={'size': 10})
-        plt.tight_layout()
-        plt.savefig(out_fname, bbox_extra_artists=(lgd,), bbox_inches='tight')
-        plt.close()
-
-        for bname in cdist_results:
-            print "Testing file: {}".format(bname)
-            self.assertTrue(cdist_results[bname][0 - omin] > tolerance)
+    out_fname = pjoin(output_directory,
+                      ('Terrain-Corrected-Cumulative-'
+                       'Distribution-Differences.png'))
+    fig = plt.figure()
+    axis = fig.add_subplot(111)
+    for bname in cdist_results:
+        y = cdist_results[bname]
+        x = numpy.arange(y.shape[0]) + omin
+        axis.plot(x, y, label=bname)
+    plt.title('Cumulative Distribution for Terrain-Corrected product')
+    plt.xlabel('Pixel Difference Value')
+    plt.ylabel('Percent %')
+    lgd = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),
+                     prop={'size': 10})
+    plt.tight_layout()
+    plt.savefig(out_fname, bbox_extra_artists=(lgd,), bbox_inches='tight')
+    plt.close()
 
 
 def produce_report(out_dir, reference_dir, test_dir):
@@ -666,18 +742,22 @@ if __name__ == '__main__':
     out_dir = parsed_args.out_directory
 
 
-    print "\nChecking that we have all the reference and test data files."
+    print "\nChecking that we have all the reference and test data files.\n"
     suite = unittest.TestSuite()
     suite.addTest(ParameterisedTestCase.parameterise(TestProductFileNames,
                   reference_dir=reference_dir, test_dir=test_dir))
     unittest.TextTestRunner(verbosity=2).run(suite)
 
-    print "\nTesting the numerical precision on each product output."
-    suite = unittest.TestSuite()
-    suite.addTest(ParameterisedTestCase.parameterise(TestProductDifference,
-                  reference_dir=reference_dir, test_dir=test_dir,
-                  decimal_precision=tolerance, output_directory=out_dir))
-    unittest.TextTestRunner(verbosity=2).run(suite)
+
+    # Run the difference tests
+    print "\nTesting Lambertian\n"
+    test_compare_lmbrt_files(reference_dir, test_dir, out_dir, tolerance)
+
+    print "\nTesting BRDF\n"
+    test_compare_brdf_files(reference_dir, test_dir, out_dir, tolerance)
+
+    print "\nTesting Terrain\n"
+    test_compare_tc_files(reference_dir, test_dir, out_dir, tolerance)
 
     # Produce the markdown and html docs
     produce_report(out_dir, reference_dir, test_dir)
