@@ -23,14 +23,14 @@ def compute_self_shadow(ref_dir, out_dir):
     """
     # TC_Intermediates directory
     tc_dir = pjoin(ref_dir, 'TC_Intermediates')
-    tc_outdir = pjoin(outdir, 'TC_Intermediates')
+    tc_outdir = pjoin(out_dir, 'TC_Intermediates')
 
     # Check and load the required files from disk
     fname_incident_angle = find_file(ref_dir, 'incident_angle.bin')
     fname_exiting_angle = find_file(ref_dir, 'exiting_angle.bin')
 
     # Define the output filenames
-    out_fname = pjoin(out_dir, 'self_shadow_mask.bin')
+    out_fname = pjoin(tc_outdir, 'self_shadow_mask.bin')
 
     self_shadow(fname_incident_angle, fname_exiting_angle, out_fname)
 
