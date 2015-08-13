@@ -1279,7 +1279,7 @@ class ExitingAngles(luigi.Task):
                             exiting_target, azi_exiting_target, x_tile, y_tile)
 
 
-class RelativeAzimuth(luigi.Task):
+class RelativeAzimuthSlope(luigi.Task):
 
     """
     Compute the relative azimuth angle on the slope surface.
@@ -1296,12 +1296,11 @@ class RelativeAzimuth(luigi.Task):
         out_path = self.out_path
         work_path = pjoin(out_path, CONFIG.get('work', 'tc_intermediates'))
 
-        # TODO change the name to be relative azimuth in config and here
-        relative_aximuth_target = pjoin(work_path,
-                                        CONFIG.get('self_shadow',
-                                                   'relative_slope_target'))
+        relative_azimuth_slope_target = pjoin(work_path,
+                                              CONFIG.get('self_shadow',
+                                                      'relative_slope_target'))
 
-        return luigi.LocalTarget(relative_aximuth_target)
+        return luigi.LocalTarget(relative_azimuth_slope_target)
 
     def run(self):
         out_path = self.out_path
@@ -1322,12 +1321,13 @@ class RelativeAzimuth(luigi.Task):
         y_tile = None if y_tile <= 0 else y_tile
 
         # Output target
-        relative_aximuth_target = pjoin(work_path,
-                                        CONFIG.get('self_shadow',
-                                                   'relative_slope_target'))
+        relative_azimuth_slope_target = pjoin(work_path,
+                                              CONFIG.get('self_shadow',
+                                                      'relative_slope_target'))
 
-        gaip.relative_azimuth(azi_incident_target, azi_exiting_target,
-                              relative_aximuth_target, x_tile, y_tile)
+        gaip.relative_azimuth_slope(azi_incident_target, azi_exiting_target,
+                                    relative_azimuth_slope_target,
+                                    x_tile, y_tile)
 
 class SelfShadow(luigi.Task):
 
@@ -1511,7 +1511,7 @@ class TerrainCorrection(luigi.Task):
     def requires(self):
         return [BilinearInterpolation(self.l1t_path, self.out_path),
                 DEMExctraction(self.l1t_path, self.out_path),
-                RelativeAzimuth(self.l1t_path, self.out_path),
+                RelativeAzimuthSlope(self.l1t_path, self.out_path),
                 SelfShadow(self.l1t_path, self.out_path),
                 CalculateCastShadow(self.l1t_path, self.out_path),
                 CreateModisBrdfFiles(self.l1t_path, self.out_path)]
