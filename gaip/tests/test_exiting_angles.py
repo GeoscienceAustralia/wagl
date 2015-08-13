@@ -18,7 +18,8 @@ from gaip.tests.unittesting_tools import ParameterisedTestCase
 
 def compute_exiting_angles(ref_dir, out_dir):
     """
-    
+    A small wrapper for executing the exiting_angles
+    function prior to unittesting.
     """
     # TC_Intermediates directory
     tc_dir = pjoin(ref_dir, 'TC_Intermediates')
