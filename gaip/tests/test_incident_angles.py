@@ -182,12 +182,12 @@ if __name__ == '__main__':
 
     parsed_args = parser.parse_args()
 
-    L1T_dir       = parsed_args.L1T_dir
+    L1T_dir = parsed_args.L1T_dir
     nbar_work_dir = parsed_args.nbar_work_dir
-    outdir        = parsed_args.outdir
+    outdir = parsed_args.outdir
     dec_precision = parsed_args.dec_precision
     int_precision = parsed_args.int_precision
-    compute       = parsed_args.compute
+    compute = parsed_args.compute
 
     if compute:
         # Check the output directory
@@ -212,7 +212,7 @@ if __name__ == '__main__':
         # Change back to the original directory
         os.chdir(cwd)
 
-    print "Checking that we have reference and test data files neccessary."
+    print "Checking that we have the reference and test data files."
     suite = unittest.TestSuite()
     suite.addTest(ParameterisedTestCase.parameterise(
                   TestIncidentAngleFileNames,
