@@ -4,7 +4,7 @@ import argparse
 import os
 from os.path import join as pjoin
 from os.path import exists as pexists
-import unittests
+import unittest
 
 import numpy.testing as npt
 
@@ -25,9 +25,11 @@ def compute_slope_aspect(acquisition, ref_dir, out_dir, margins):
     # TC_Intermediates directory
     tc_dir = pjoin(ref_dir, 'TC_Intermediates')
     tc_outdir = pjoin(out_dir, 'TC_Intermediates')
+    if not pexists(tc_outdir):
+        os.makedirs(tc_outdir)
 
     # Get the smoothed dsm
-    dsm_fname = find_file(ref_dir, 'dsm_subset_smoothed.bin')
+    dsm_fname = find_file(tc_dir, 'dsm_subset_smoothed.bin')
 
     # Define the output file names
     slope_out_fname = pjoin(tc_outdir, 'slope.bin')

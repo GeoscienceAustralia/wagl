@@ -4,7 +4,7 @@ import argparse
 import os
 from os.path import join as pjoin
 from os.path import exists as pexists
-import unittests
+import unittest
 
 import numpy.testing as npt
 
@@ -23,6 +23,8 @@ def compute_incident_angles(ref_dir, out_dir):
     # TC_Intermediates directory
     tc_dir = pjoin(ref_dir, 'TC_Intermediates')
     tc_outdir = pjoin(out_dir, 'TC_Intermediates')
+    if not pexists(tc_outdir):
+        os.makedirs(tc_outdir)
 
     # Check and load the required files from disk
     fname_solar_zenith  = find_file(ref_dir, 'SOLAR_ZENITH.bin')

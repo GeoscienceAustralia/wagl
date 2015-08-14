@@ -4,7 +4,7 @@ import argparse
 import os
 from os.path import join as pjoin
 from os.path import exists as pexists
-import unittests
+import unittest
 
 import numpy.testing as npt
 
@@ -24,6 +24,8 @@ def compute_relative_azimuth_slope(ref_dir, outdir):
     # TC_Intermediates directory
     tc_dir = pjoin(ref_dir, 'TC_Intermediates')
     tc_outdir = pjoin(outdir, 'TC_Intermediates')
+    if not pexists(tc_outdir):
+        os.makedirs(tc_outdir)
 
     # Check and load the required files from disk
     fname_azimuth_incident = find_file(tc_dir, 'incident_angle.bin')
