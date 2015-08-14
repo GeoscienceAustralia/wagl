@@ -17,7 +17,7 @@ SUBROUTINE slope_aspect(nrow, ncol, nrow_alloc, ncol_alloc, &
     integer*4, intent(in) :: nrow, ncol, nrow_alloc, ncol_alloc
     double precision, intent(in) :: dresx, dresy
     double precision, dimension(4), intent(in) :: spheroid
-    double precision, intent(in) :: alat
+    double precision, dimension(ncol), intent(in) :: alat
     real, dimension(nrow, ncol), intent(in) :: dem
     real, dimension(nrow_alloc, ncol_alloc) :: theta, phit
     logical is_utm
@@ -43,6 +43,7 @@ SUBROUTINE slope_aspect(nrow, ncol, nrow_alloc, ncol_alloc, &
 
 !f2py depend(nrow, ncol), dem
 !f2py depend(nrow_alloc, ncol_alloc), theta, phit
+!f2py depend(ncol), alat
 
 !feff2py intent(in) dresx, dresy, spheroid, alat, dem, is_utm
 !feff2py intent(inout) theta, phit
@@ -81,7 +82,7 @@ SUBROUTINE slope_aspect(nrow, ncol, nrow_alloc, ncol_alloc, &
 !-------------------------------------------------------------------
     do col=2,n_col+1
         if(.not. is_utm) then
-            call geo2metres_pixel_size(alat, dresx, dresy, &
+            call geo2metres_pixel_size(alat(col), dresx, dresy, &
                                        spheroid, dx, dy, istat)
         endif
 
