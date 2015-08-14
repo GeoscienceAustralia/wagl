@@ -4,7 +4,7 @@ import argparse
 import os
 from os.path import join as pjoin
 from os.path import exists as pexists
-import unittests
+import unittest
 
 import numpy.testing as npt
 
