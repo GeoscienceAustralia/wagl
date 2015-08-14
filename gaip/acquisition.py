@@ -499,10 +499,12 @@ def acquisitions_via_geotiff(path):
                 new['FILENAME_FIELDS'] = md
 
                 # find the spacecraft based on the tag
-                tag = fixname(md['spacecraft_id'])
+                #tag = fixname(md['spacecraft_id'])
+                tag = md['spacecraft_id']
                 for k, v in SENSORS.iteritems():
                     if v['tag'] == tag:
                         md['spacecraft_id'] = fixname(k)
+                        #md['spacecraft_id'] = k
                         break
 
                 # get spacecraft info from SENSORS
@@ -648,6 +650,7 @@ def acquisitions_via_mtl(path):
 
         product = new['PRODUCT_METADATA']
         spacecraft = fixname(product['spacecraft_id'])
+        product['spacecraft_id'] = spacecraft
         if product['sensor_id'] == 'ETM':
             product['sensor_id'] = 'ETM+'
         sensor = product['sensor_id']
