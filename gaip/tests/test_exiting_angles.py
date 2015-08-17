@@ -28,10 +28,10 @@ def compute_exiting_angles(ref_dir, out_dir):
         os.makedirs(tc_outdir)
 
     # Check and load the required files from disk
-    fname_satellite_view   = find_file(ref_dir, 'SATELLITE_VIEW.bin')
-    fname_satellte_azimuth = find_file(ref_dir, 'SATELLITE_AZIMUTH.bin')
-    fname_slope = find_file(tc_dir, 'slope.bin')
-    fname_aspect = find_file(tc_dir, 'aspect.bin')
+    satellite_view_fname = find_file(ref_dir, 'SATELLITE_VIEW.bin')
+    satellite_azimuth_fname = find_file(ref_dir, 'SATELLITE_AZIMUTH.bin')
+    slope_fname = find_file(tc_dir, 'slope.bin')
+    aspect_fname = find_file(tc_dir, 'aspect.bin')
 
     # Output filenames
     exiting_out_fname = pjoin(tc_outdir, 'exiting_angle.bin')
@@ -54,50 +54,50 @@ class TestExitingAngleFileNames(ParameterisedTestCase):
     ParameterisedTestCase.fname_azi_exit_angle = 'azimuth_exiting_angle.bin'
 
 
-    def test_incident_angle_ref(self):
+    def test_exiting_angle_ref(self):
         """
-        Check that the incident angle reference file exists.
+        Check that the exiting angle reference file exists.
         """
         # TC_Intermediates directory
         tc_dir = pjoin(self.reference_dir, 'TC_Intermediates')
 
-        fname = pjoin(tc_dir, self.fname_incident_angle)
+        fname = pjoin(tc_dir, self.fname_exiting_angle)
         msg = 'Reference file does not exist: {fname}'.format(fname=fname)
         self.assertIs(pexists(fname), True, msg)
 
 
-    def test_incident_angle_tst(self):
+    def test_exiting_angle_tst(self):
         """
-        Check that the incident angle test file exists.
+        Check that the exiting angle test file exists.
         """
         # TC_Intermediates directory
         tc_dir = pjoin(self.reference_dir, 'TC_Intermediates')
 
-        fname = pjoin(tc_dir, self.fname_incident_angle)
+        fname = pjoin(tc_dir, self.fname_exiting_angle)
         msg = 'Reference file does not exist: {fname}'.format(fname=fname)
         self.assertIs(pexists(fname), True, msg)
 
 
-    def test_azimuth_incident_angle_ref(self):
+    def test_azimuth_exiting_angle_ref(self):
         """
-        Check that the azimuth incident angle reference file exists.
+        Check that the azimuth exiting angle reference file exists.
         """
         # TC_Intermediates directory
         tc_dir = pjoin(self.reference_dir, 'TC_Intermediates')
 
-        fname = pjoin(tc_dir, self.fname_azi_inci_angle)
+        fname = pjoin(tc_dir, self.fname_azi_exit_angle)
         msg = 'Reference file does not exist: {fname}'.format(fname=fname)
         self.assertIs(pexists(fname), True, msg)
 
 
-    def test_azimuth_incident_angle_tst(self):
+    def test_azimuth_exiting_angle_tst(self):
         """
-        Check that the azimuth incident angle test file exists.
+        Check that the azimuth exiting angle test file exists.
         """
         # TC_Intermediates directory
         tc_dir = pjoin(self.reference_dir, 'TC_Intermediates')
 
-        fname = pjoin(tc_dir, self.fname_azi_inci_angle)
+        fname = pjoin(tc_dir, self.fname_azi_exit_angle)
         msg = 'Reference file does not exist: {fname}'.format(fname=fname)
         self.assertIs(pexists(fname), True, msg)
 
@@ -124,7 +124,7 @@ class TestExitingAngleOutputs(ParameterisedTestCase):
 
         # Get the filenames for both the reference and test files
         ref_fname  = find_file(tc_ref_dir, self.fname_exiting_angle)
-        test_fname = find_file(tc_tst_dir, self.fname_)
+        test_fname = find_file(tc_tst_dir, self.fname_exiting_angle)
 
         # Get the image data
         ref_img  = read_img(ref_fname)

@@ -28,7 +28,7 @@ def compute_relative_azimuth_slope(ref_dir, outdir):
         os.makedirs(tc_outdir)
 
     # Check and load the required files from disk
-    fname_azimuth_incident = find_file(tc_dir, 'incident_angle.bin')
+    fname_azimuth_incident = find_file(tc_dir, 'azimuth_incident_angle.bin')
     fname_azimuth_exiting = find_file(tc_dir, 'azimuth_exiting_angle.bin')
 
     # Output filename

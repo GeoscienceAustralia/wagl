@@ -27,10 +27,10 @@ def compute_incident_angles(ref_dir, out_dir):
         os.makedirs(tc_outdir)
 
     # Check and load the required files from disk
-    fname_solar_zenith  = find_file(ref_dir, 'SOLAR_ZENITH.bin')
-    fname_solar_azimuth = find_file(ref_dir, 'SOLAR_AZIMUTH.bin')
-    fname_slope = find_file(tc_dir, 'slope.bin')
-    fname_aspect = find_file(tc_dir, 'aspect.bin')
+    solar_zenith_fname = find_file(ref_dir, 'SOLAR_ZENITH.bin')
+    solar_azimuth_fname = find_file(ref_dir, 'SOLAR_AZIMUTH.bin')
+    slope_fname = find_file(tc_dir, 'slope.bin')
+    aspect_fname = find_file(tc_dir, 'aspect.bin')
 
     # Output filenames
     incident_out_fname = pjoin(tc_outdir, 'incident_angle.bin')
