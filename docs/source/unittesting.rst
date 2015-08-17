@@ -16,11 +16,19 @@ NBAR-TC
 -------
 The following tests are available for the NBAR-TC algorithm:
 
-* `test_calculate_angles.py` Which tests the main intermediate files that get produced during the angular computational phase.
-* `test_cast_shadow_satellite.py` Test the cast shadow array generated from the satellite look angles.
-* `test_cast_shadow_sun.py` Test the cast shadow array generated from the solar look angles.
-* `test_smoothe_dsm.py` Test the sobel smoothing result of the DEM subset.
+* `test_calculate_angles.py` Which tests the main intermediate files that get produced during the angular computational phase (Option to compute).
+* `test_cast_shadow_satellite.py` Test the cast shadow array generated from the satellite look angles (Option to compute).
+* `test_cast_shadow_sun.py` Test the cast shadow array generated from the solar look angles (Option to compute).
+* `test_smoothe_dsm.py` Test the sobel smoothing result of the DEM subset (Option to compute).
+* `test_exiting_angles.py` Test the exiting and azimuthal exiting angle arrays (Option to compute).
+* `test_incident_angles.py` Test the incident and azimuthal incident angle arrays (Option to compute).
+* `test_relative_slope.py` Test the relative azimithal angle on the slope surface array (Option to compute).
+* `test_slope_aspect.py` Test the slope and aspect arrays (Option to compute).
+* `test_self_shadow_mask.py` Test the self shadow mask array (Option to compute).
 * `test_nbar_tc.py` Test the lambertian, NBAR-BRDF, and terrain corrected NBAR-BRDF output products, for each band.
+
+For those tests with an option to compute, the required outputs will be computed using pre-existing inputs from the reference directory before
+any tests are evaluated against the reference data.
 
 
 Fractional Cover
@@ -51,8 +59,6 @@ optional arguments:
   --int_precision INT_PRECISION
                         The integer precision used for array comparison
 
-
-* `python test_nbar_tc.py --help` outputs:
 
 * `python test_calculate_angles.py --help` outputs:
 
