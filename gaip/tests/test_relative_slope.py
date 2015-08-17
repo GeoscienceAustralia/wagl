@@ -63,7 +63,7 @@ class TestRelativeAzimuthSlopeFileName(ParameterisedTestCase):
         Check that the relative slope test file exists.
         """
         # TC_Intermediates directory
-        tc_dir = pjoin(self.reference_dir, 'TC_Intermediates')
+        tc_dir = pjoin(self.test_dir, 'TC_Intermediates')
 
         fname = pjoin(tc_dir, self.fname_relative_slope)
         msg = 'Reference file does not exist: {fname}'.format(fname=fname)

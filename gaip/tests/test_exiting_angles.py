@@ -71,7 +71,7 @@ class TestExitingAngleFileNames(ParameterisedTestCase):
         Check that the exiting angle test file exists.
         """
         # TC_Intermediates directory
-        tc_dir = pjoin(self.reference_dir, 'TC_Intermediates')
+        tc_dir = pjoin(self.test_dir, 'TC_Intermediates')
 
         fname = pjoin(tc_dir, self.fname_exiting_angle)
         msg = 'Reference file does not exist: {fname}'.format(fname=fname)
@@ -95,7 +95,7 @@ class TestExitingAngleFileNames(ParameterisedTestCase):
         Check that the azimuth exiting angle test file exists.
         """
         # TC_Intermediates directory
-        tc_dir = pjoin(self.reference_dir, 'TC_Intermediates')
+        tc_dir = pjoin(self.test_dir, 'TC_Intermediates')
 
         fname = pjoin(tc_dir, self.fname_azi_exit_angle)
         msg = 'Reference file does not exist: {fname}'.format(fname=fname)

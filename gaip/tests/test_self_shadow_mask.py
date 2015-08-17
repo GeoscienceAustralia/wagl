@@ -28,8 +28,8 @@ def compute_self_shadow(ref_dir, out_dir):
         os.makedirs(tc_outdir)
 
     # Check and load the required files from disk
-    fname_incident_angle = find_file(ref_dir, 'incident_angle.bin')
-    fname_exiting_angle = find_file(ref_dir, 'exiting_angle.bin')
+    fname_incident_angle = find_file(tc_dir, 'incident_angle.bin')
+    fname_exiting_angle = find_file(tc_dir, 'exiting_angle.bin')
 
     # Define the output filenames
     out_fname = pjoin(tc_outdir, 'self_shadow_mask.bin')
@@ -64,7 +64,7 @@ class TestSelfShadowMaskFileNames(ParameterisedTestCase):
         Check that the self shadow mask test file exists.
         """
         # TC_Intermediates directory
-        tc_dir = pjoin(self.reference_dir, 'TC_Intermediates')
+        tc_dir = pjoin(self.test_dir, 'TC_Intermediates')
 
         fname = pjoin(tc_dir, self.fname_self_shadow_mask)
         msg = 'Reference file does not exist: {fname}'.format(fname=fname)

@@ -70,7 +70,7 @@ class TestIncidentAngleFileNames(ParameterisedTestCase):
         Check that the incident angle test file exists.
         """
         # TC_Intermediates directory
-        tc_dir = pjoin(self.reference_dir, 'TC_Intermediates')
+        tc_dir = pjoin(self.test_dir, 'TC_Intermediates')
 
         fname = pjoin(tc_dir, self.fname_incident_angle)
         msg = 'Reference file does not exist: {fname}'.format(fname=fname)
@@ -94,7 +94,7 @@ class TestIncidentAngleFileNames(ParameterisedTestCase):
         Check that the azimuth incident angle test file exists.
         """
         # TC_Intermediates directory
-        tc_dir = pjoin(self.reference_dir, 'TC_Intermediates')
+        tc_dir = pjoin(self.test_dir, 'TC_Intermediates')
 
         fname = pjoin(tc_dir, self.fname_azi_inci_angle)
         msg = 'Reference file does not exist: {fname}'.format(fname=fname)

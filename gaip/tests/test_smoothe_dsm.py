@@ -2,7 +2,8 @@
 
 import argparse
 import os
-from os.path import join
+from os.path import join as pjoin
+from os.path import exists as pexists
 from os.path import dirname
 import unittest
 
@@ -18,20 +19,26 @@ from gaip import write_img
 from gaip.tests.unittesting_tools import ParameterisedTestCase
 
 
-def calculate_smoothed_dsm(geobox, ref_dir, outdir):
+def calculate_smoothed_dsm(geobox, ref_dir, out_dir):
     """
     Creates a smoothed DSM.
     """
 
     # Check and load the required files from disk
-    fname_dsm = 'region_dsm_image.bin'
+    tc_dir = pjoin(ref_dir, 'TC_Intermediates')
+    tc_outdir = pjoin(out_dir, 'TC_Intermediates')
+    if not pexists(tc_outdir):
+        os.makedirs(tc_outdir)
 
-    dsm = (read_img(find_file(ref_dir, fname_dsm))).astype('float32')
+    # Check and load the required files from disk
+    dsm_fname = find_file(tc_dir, 'dsm_subset.bin')
+
+    dsm = read_img(dsm_fname).astype('float32')
 
     smoothed_dsm = filter_dsm(dsm)
 
     # Write out the smoothed dsm file
-    out_fname = os.path.join(outdir, 'region_dsm_image_smoothed.bin')
+    out_fname = pjoin(tc_outdir, 'dsm_subset_smoothed.bin')
     write_img(smoothed_dsm, out_fname, geobox=geobox)
 
 
@@ -42,23 +49,28 @@ class TestFilterFileNames(ParameterisedTestCase):
     """
 
     # File of interest
-    ParameterisedTestCase.fname_smoothed_dsm = 'region_dsm_image_smoothed.bin'
+    ParameterisedTestCase.fname_smoothed_dsm = 'dsm_subset_smoothed.bin'
 
     def test_smoothed_dsm_ref(self):
         """
         Check that the smoothed dsm reference file exists.
         """
+        # TC_Intermediates directory
+        tc_dir = pjoin(self.reference_dir, 'TC_Intermediates')
 
-        fname = os.path.join(self.reference_dir, self.fname_smoothed_dsm)
+        fname = pjoin(tc_dir, self.fname_smoothed_dsm)
         self.assertIs(os.path.exists(fname), True,
                       'Reference file does not exist: %s'%fname)
+
 
     def test_smoothed_dsm_tst(self):
         """
         Check that the smoothed dsm test file exists.
         """
+        # TC_Intermediates directory
+        tc_dir = pjoin(self.test_dir, 'TC_Intermediates')
 
-        fname = os.path.join(self.test_dir, self.fname_smoothed_dsm)
+        fname = pjoin(tc_dir, self.fname_smoothed_dsm)
         self.assertIs(os.path.exists(fname), True,
                       'Test file does not exist: %s'%fname)
 
@@ -70,16 +82,19 @@ class TestFilterOutputs(ParameterisedTestCase):
     """
 
     # File of interest
-    ParameterisedTestCase.fname_smoothed_dsm = 'region_dsm_image_smoothed.bin'
+    ParameterisedTestCase.fname_smoothed_dsm = 'dsm_subset_smoothed.bin'
 
     def test_smoothed_dsm(self):
         """
         Test the smoothed dsm image against the reference image.
         """
+        # TC_Intermediates directory (reference and test)
+        tc_ref_dir = pjoin(self.reference_dir, 'TC_Intermediates')
+        tc_tst_dir = pjoin(self.test_dir, 'TC_Intermediates')
 
         # Get the filenames for both the reference and test files
-        ref_fname  = find_file(self.reference_dir, self.fname_smoothed_dsm)
-        test_fname = find_file(self.test_dir, self.fname_smoothed_dsm)
+        ref_fname  = find_file(tc_ref_dir, self.fname_smoothed_dsm)
+        test_fname = find_file(tc_tst_dir, self.fname_smoothed_dsm)
 
         # Get the image data
         ref_img  = read_img(ref_fname)
@@ -94,24 +109,35 @@ class TestFilterOutputs(ParameterisedTestCase):
 
 if __name__ == '__main__':
 
+    description = ('Performs unittests against the smoothed DSM and '
+                   'optionally calculates the smoothed DSM.')
     parser = argparse.ArgumentParser()
-    parser = argparse.ArgumentParser(description='Performs unittests against the smoothed DSM and optionally calculates the smoothed DSM.')
+    parser = argparse.ArgumentParser(description=description)
 
-    parser.add_argument('--L1T_dir', required=True, help='A directory path of a L1T scene.')
-    parser.add_argument('--nbar_work_dir', required=True, help='A directory path to the associated NBAR working directory.')
-    parser.add_argument('--outdir', required=True, help='A directory path that will contain the output files.')
-    parser.add_argument('--dec_precision', default=3, type=int, help='The decimal precision used for array comparison')
-    parser.add_argument('--int_precision', default=1, type=int, help='The integer precision used for array comparison')
-    parser.add_argument('--compute', action='store_true', help='If set then a smoothed dsm image will be created.')
+    parser.add_argument('--L1T_dir', required=True,
+                        help='A directory path of a L1T scene.')
+    parser.add_argument('--nbar_work_dir', required=True,
+                        help=('A directory path to the associated NBAR '
+                              'working directory.'))
+    parser.add_argument('--outdir', required=True,
+                        help=('A directory path that will contain the output '
+                              'files.'))
+    parser.add_argument('--dec_precision', default=3, type=int,
+                        help='The decimal precision used for array comparison')
+    parser.add_argument('--int_precision', default=1, type=int,
+                        help='The integer precision used for array comparison')
+    parser.add_argument('--compute', action='store_true',
+                        help=('If set then a smoothed dsm image will be '
+                              'created.'))
 
     parsed_args = parser.parse_args()
 
-    L1T_dir       = parsed_args.L1T_dir
+    L1T_dir = parsed_args.L1T_dir
     nbar_work_dir = parsed_args.nbar_work_dir
-    outdir        = parsed_args.outdir
+    outdir = parsed_args.outdir
     dec_precision = parsed_args.dec_precision
     int_precision = parsed_args.int_precision
-    compute       = parsed_args.compute
+    compute = parsed_args.compute
 
     if compute:
         # Check the output directory
@@ -139,7 +165,7 @@ if __name__ == '__main__':
         # Change back to the original directory
         os.chdir(cwd)
 
-    print "Checking that we have all the reference and test data files neccessary."
+    print "Checking that we have the reference and test data files."
     suite = unittest.TestSuite()
     suite.addTest(ParameterisedTestCase.parameterise(TestFilterFileNames,
                   reference_dir=nbar_work_dir, test_dir=outdir,
