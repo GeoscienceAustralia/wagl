@@ -88,11 +88,11 @@ class TestRelativeAzimuthSlopeOutput(ParameterisedTestCase):
         tc_tst_dir = pjoin(self.test_dir, 'TC_Intermediates')
 
         # Get the filenames for both the reference and test files
-        ref_fname  = find_file(tc_ref_dir, self.fname_relative_slope)
+        ref_fname = find_file(tc_ref_dir, self.fname_relative_slope)
         test_fname = find_file(tc_tst_dir, self.fname_relative_slope)
 
         # Get the image data
-        ref_img  = read_img(ref_fname)
+        ref_img = read_img(ref_fname)
         test_img = read_img(test_fname)
 
         # Precision

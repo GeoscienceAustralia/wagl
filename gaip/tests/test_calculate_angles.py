@@ -211,21 +211,22 @@ class TestSatSolAngles(ParameterisedTestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname  = find_file(self.reference_dir, self.fname_centreline)
+        ref_fname = find_file(self.reference_dir, self.fname_centreline)
         test_fname = find_file(self.test_dir, self.fname_centreline)
 
         # Open and read the reference data
-        f        = open(ref_fname)
+        f = open(ref_fname)
         ref_data = f.readlines()
         f.close()
 
         # Open and read the test data
-        f         = open(test_fname)
+        f = open(test_fname)
         test_data = f.readlines()
         f.close()
 
-        self.centreline_ref  = ref_data
+        self.centreline_ref = ref_data
         self.centreline_test = test_data
+
 
     def test_satellite_view(self):
         """
@@ -233,11 +234,11 @@ class TestSatSolAngles(ParameterisedTestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname  = find_file(self.reference_dir, self.fname_sat_v)
+        ref_fname = find_file(self.reference_dir, self.fname_sat_v)
         test_fname = find_file(self.test_dir, self.fname_sat_v)
 
         # Get the image data
-        ref_img  = read_img(ref_fname)
+        ref_img = read_img(ref_fname)
         test_img = read_img(test_fname)
 
         # Precision
@@ -245,6 +246,7 @@ class TestSatSolAngles(ParameterisedTestCase):
 
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
                                                   decimal=dp))
+
 
     def test_satellite_azimuth(self):
         """
@@ -252,11 +254,11 @@ class TestSatSolAngles(ParameterisedTestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname  = find_file(self.reference_dir, self.fname_sat_az)
+        ref_fname = find_file(self.reference_dir, self.fname_sat_az)
         test_fname = find_file(self.test_dir, self.fname_sat_az)
 
         # Get the image data
-        ref_img  = read_img(ref_fname)
+        ref_img = read_img(ref_fname)
         test_img = read_img(test_fname)
 
         # Precision
@@ -264,6 +266,7 @@ class TestSatSolAngles(ParameterisedTestCase):
 
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
                                                   decimal=dp))
+
 
     def test_solar_zenith(self):
         """
@@ -271,11 +274,11 @@ class TestSatSolAngles(ParameterisedTestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname  = find_file(self.reference_dir, self.fname_sol_z)
+        ref_fname = find_file(self.reference_dir, self.fname_sol_z)
         test_fname = find_file(self.test_dir, self.fname_sol_z)
 
         # Get the image data
-        ref_img  = read_img(ref_fname)
+        ref_img = read_img(ref_fname)
         test_img = read_img(test_fname)
 
         # Precision
@@ -283,6 +286,7 @@ class TestSatSolAngles(ParameterisedTestCase):
 
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
                                                   decimal=dp))
+
 
     def test_solar_azimuth(self):
         """
@@ -290,11 +294,11 @@ class TestSatSolAngles(ParameterisedTestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname  = find_file(self.reference_dir, self.fname_sol_az)
+        ref_fname = find_file(self.reference_dir, self.fname_sol_az)
         test_fname = find_file(self.test_dir, self.fname_sol_az)
 
         # Get the image data
-        ref_img  = read_img(ref_fname)
+        ref_img = read_img(ref_fname)
         test_img = read_img(test_fname)
 
         # Precision
@@ -302,6 +306,7 @@ class TestSatSolAngles(ParameterisedTestCase):
 
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
                                                   decimal=dp))
+
 
     def test_relative_azimuth(self):
         """
@@ -309,11 +314,11 @@ class TestSatSolAngles(ParameterisedTestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname  = find_file(self.reference_dir, self.fname_rel_az)
+        ref_fname = find_file(self.reference_dir, self.fname_rel_az)
         test_fname = find_file(self.test_dir, self.fname_rel_az)
 
         # Get the image data
-        ref_img  = read_img(ref_fname)
+        ref_img = read_img(ref_fname)
         test_img = read_img(test_fname)
 
         # Precision
@@ -321,6 +326,7 @@ class TestSatSolAngles(ParameterisedTestCase):
 
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
                                                   decimal=dp))
+
 
     def test_time_array(self):
         """
@@ -328,11 +334,11 @@ class TestSatSolAngles(ParameterisedTestCase):
         """
 
         # Get the filenames for both the reference and test files
-        ref_fname  = find_file(self.reference_dir, self.fname_time)
+        ref_fname = find_file(self.reference_dir, self.fname_time)
         test_fname = find_file(self.test_dir, self.fname_time)
 
         # Get the image data
-        ref_img  = read_img(ref_fname)
+        ref_img = read_img(ref_fname)
         test_img = read_img(test_fname)
 
         # Precision
@@ -340,6 +346,7 @@ class TestSatSolAngles(ParameterisedTestCase):
 
         self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
                                                   decimal=dp))
+
 
     def test_centreline_max_view_angle(self):
         """
@@ -351,10 +358,11 @@ class TestSatSolAngles(ParameterisedTestCase):
         if self.centreline_ref is None:
             self._read_centreline_files()
 
-        ref_data  = float(self.centreline_ref[0].split()[0])
+        ref_data = float(self.centreline_ref[0].split()[0])
         test_data = float(self.centreline_test[0].split()[0])
 
         self.assertEqual(ref_data, test_data)
+
 
     def test_centreline_rows(self):
         """
@@ -367,10 +375,11 @@ class TestSatSolAngles(ParameterisedTestCase):
         if self.centreline_ref is None:
             self._read_centreline_files()
 
-        ref_rows  = int(self.centreline_ref[1].split()[0])
+        ref_rows = int(self.centreline_ref[1].split()[0])
         test_rows = int(self.centreline_test[1].split()[0])
 
         self.assertEqual(ref_rows, test_rows)
+
 
     def test_centreline_columns(self):
         """
@@ -383,10 +392,11 @@ class TestSatSolAngles(ParameterisedTestCase):
         if self.centreline_ref is None:
             self._read_centreline_files()
 
-        ref_cols  = int(self.centreline_ref[1].split()[1])
+        ref_cols = int(self.centreline_ref[1].split()[1])
         test_cols = int(self.centreline_test[1].split()[1])
 
         self.assertEqual(ref_cols, test_cols)
+
 
     def test_number_centreline_points(self):
         """
@@ -399,10 +409,11 @@ class TestSatSolAngles(ParameterisedTestCase):
         if self.centreline_ref is None:
             self._read_centreline_files()
 
-        ref_data  = self.centreline_ref[2:]
+        ref_data = self.centreline_ref[2:]
         test_data = self.centreline_test[2:]
 
         self.assertEqual(len(ref_data), len(test_data))
+
 
     def test_centreline_points(self):
         """
@@ -418,12 +429,12 @@ class TestSatSolAngles(ParameterisedTestCase):
         if self.centreline_ref is None:
             self._read_centreline_files()
 
-        ref_data  = self.centreline_ref[2:]
+        ref_data = self.centreline_ref[2:]
         test_data = self.centreline_test[2:]
 
         int_prec = self.integer_precision
 
-        ref_points  = numpy.zeros((len(ref_data), 3), dtype='int')
+        ref_points = numpy.zeros((len(ref_data), 3), dtype='int')
         test_points = numpy.zeros((len(ref_data), 3))
 
         for i in range(len(ref_data)):
@@ -434,6 +445,7 @@ class TestSatSolAngles(ParameterisedTestCase):
 
         self.assertIsNone(npt.assert_allclose(test_points, ref_points,
             atol=int_prec))
+
 
     def test_centreline_lonlat_points(self):
         """
@@ -451,12 +463,12 @@ class TestSatSolAngles(ParameterisedTestCase):
         if self.centreline_ref is None:
             self._read_centreline_files()
 
-        ref_data  = self.centreline_ref[2:]
+        ref_data = self.centreline_ref[2:]
         test_data = self.centreline_test[2:]
 
         int_prec = self.integer_precision
 
-        ref_points  = numpy.zeros((len(ref_data), 2))
+        ref_points = numpy.zeros((len(ref_data), 2))
         test_points = numpy.zeros((len(ref_data), 2))
 
         for i in range(len(ref_data)):
@@ -468,30 +480,38 @@ class TestSatSolAngles(ParameterisedTestCase):
         self.assertIsNone(npt.assert_almost_equal(test_points, ref_points,
             decimal=6))
 
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser = argparse.ArgumentParser(description='Calculates satellite and solar angles.')
+    parser = argparse.ArgumentParser(description=('Calculates satellite and '
+                                                  'solar angles.'))
 
-    parser.add_argument('--L1T_dir', required=True, help='A directory path of a L1T scene.')
-    parser.add_argument('--nbar_work_dir', required=True, help='A directory path to the associated NBAR working directory.')
-    parser.add_argument('--outdir', required=True, help='A directory path that will contain the output files.')
-    parser.add_argument('--dec_precision', default=4, type=int, help='The decimal precision used for array comparison')
-    parser.add_argument('--int_precision', default=1, type=int, help='The integer precision used for array comparison')
-    parser.add_argument('--compute', action='store_true', help='If set then the solar and sateliite angles will be computed as will the CENTRELINE text file before running the unittests.')
+    parser.add_argument('--L1T_dir', required=True,
+                        help='A directory path of a L1T scene.')
+    parser.add_argument('--nbar_work_dir', required=True,
+                        help=('A directory path to the associated NBAR '
+                              'working directory.'))
+    parser.add_argument('--outdir', required=True,
+                        help=('A directory path that will contain the output '
+                              'files.'))
+    parser.add_argument('--dec_precision', default=4, type=int,
+                        help='The decimal precision used for array comparison')
+    parser.add_argument('--int_precision', default=1, type=int,
+                        help='The integer precision used for array comparison')
+    parser.add_argument('--compute', action='store_true',
+                        help=('If set then the solar and sateliite angles '
+                              'will be computed as will the CENTRELINE text '
+                              'file before running the unittests.'))
 
     parsed_args = parser.parse_args()
 
-    #f = '/g/data1/v10/NBAR_validation_reference/Nov2013/L1T_Input/LS7_90-84_2013-10-03/EQR/LS7_ETM_OTH_P51_GALPGS04-002_090_084_20131003'
-    #lon_f = '/short/v10/jps547/nbar/test_skew/work/LON.tif'
-    #lat_f = '/short/v10/jps547/nbar/test_skew/work/LAT.tif'
-
-    L1T_dir       = parsed_args.L1T_dir
+    L1T_dir = parsed_args.L1T_dir
     nbar_work_dir = parsed_args.nbar_work_dir
-    outdir        = parsed_args.outdir
+    outdir = parsed_args.outdir
     dec_precision = parsed_args.dec_precision
     int_precision = parsed_args.int_precision
-    compute       = parsed_args.compute
+    compute = parsed_args.compute
 
     if compute:
         # Check the output directory
@@ -510,7 +530,7 @@ if __name__ == '__main__':
         # Change back to the original directory
         os.chdir(cwd)
 
-    print "Checking that we have all the reference and test data files neccessary."
+    print "Checking that we have  the reference and test data files."
     suite = unittest.TestSuite()
     suite.addTest(ParameterisedTestCase.parameterise(TestAngleFilenames,
                   reference_dir=nbar_work_dir, test_dir=outdir,
@@ -525,4 +545,3 @@ if __name__ == '__main__':
                   decimal_precision=dec_precision,
                   integer_precision=int_precision))
     unittest.TextTestRunner(verbosity=2).run(suite)
-
