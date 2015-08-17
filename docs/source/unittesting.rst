@@ -84,6 +84,83 @@ optional arguments:
                         computed as will the CENTRELINE text file before
                         running the unittests.
 
+* `python test_cast_shadow_satellite.py --help` outputs:
+
+usage: test_cast_shadow_satellite.py [-h] --L1T_dir L1T_DIR --nbar_work_dir
+                                     NBAR_WORK_DIR --outdir OUTDIR
+                                     [--dec_precision DEC_PRECISION]
+                                     [--int_precision INT_PRECISION]
+                                     [--compute] [--buffer BUFFER]
+                                     [--block_x BLOCK_X] [--block_y BLOCK_Y]
+
+Perform unittesting for the satellite view shadow mask and optionaly
+calculates the satellite view shadow mask.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --L1T_dir L1T_DIR     A directory path of a L1T scene.
+  --nbar_work_dir NBAR_WORK_DIR
+                        A directory path to the associated NBAR working
+                        directory.
+  --outdir OUTDIR       A directory path that will contain the output files.
+  --dec_precision DEC_PRECISION
+                        The decimal precision used for array comparison
+  --int_precision INT_PRECISION
+                        The integer precision used for array comparison
+  --compute             If set then the satellite view shadow mask will be
+                        computed before running the unittests.
+  --buffer BUFFER       The buffer in pixels to be used in calculating the
+                        satellite view shadow.
+  --block_x BLOCK_X     The x block size in pixels (Twice the buffer).
+  --block_y BLOCK_Y     The y block size in pixels (Twice the buffer)..
+
+* `python test_cast_shadow_sun.py --help` outputs:
+
+usage: test_cast_shadow_sun.py [-h] --L1T_dir L1T_DIR --nbar_work_dir
+                               NBAR_WORK_DIR --outdir OUTDIR
+                               [--dec_precision DEC_PRECISION]
+                               [--int_precision INT_PRECISION] [--compute]
+                               [--buffer BUFFER] [--block_x BLOCK_X]
+                               [--block_y BLOCK_Y]
+
+Perform unittesting for the cast shadow sun mask and optionaly calculates the
+cast shadow sun mask.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --L1T_dir L1T_DIR     A directory path of a L1T scene.
+  --nbar_work_dir NBAR_WORK_DIR
+                        A directory path to the associated NBAR working
+                        directory.
+  --outdir OUTDIR       A directory path that will contain the output files.
+  --dec_precision DEC_PRECISION
+                        The decimal precision used for array comparison
+  --int_precision INT_PRECISION
+                        The integer precision used for array comparison
+  --compute             If set then the self shadow array will be computed
+                        before running the unittests.
+  --buffer BUFFER       The buffer in pixels to be used in calculating the
+                        cast shadow sun mask.
+  --block_x BLOCK_X     The x block size in pixels (Twice the buffer).
+  --block_y BLOCK_Y     The y block size in pixels (Twice the buffer)..
+
+The unittests for `test_smoothe_dsm.py`, `test_exiting_angles.py`, `test_incident_angles.py`,
+`test_relative_slope.py`, `test_slope_aspect.py`, and `test_self_shadow_mask.py` all use the same commandline arguments:
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --L1T_dir L1T_DIR     A directory path of a L1T scene.
+  --nbar_work_dir NBAR_WORK_DIR
+                        A directory path to the associated NBAR working
+                        directory.
+  --outdir OUTDIR       A directory path that will contain the output files.
+  --dec_precision DEC_PRECISION
+                        The decimal precision used for array comparison
+  --int_precision INT_PRECISION
+                        The integer precision used for array comparison
+  --compute             If set then the self shadow array will be computed
+                        before running the unittests.
+
 * `python test_fc_products.py --help` outputs:
 
 usage: test_fc_products.py [-h] --reference_filename REFERENCE_FILENAME
