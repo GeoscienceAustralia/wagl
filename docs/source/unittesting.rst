@@ -19,7 +19,6 @@ The following tests are available for the NBAR-TC algorithm:
 * `test_calculate_angles.py` Which tests the main intermediate files that get produced during the angular computational phase.
 * `test_cast_shadow_satellite.py` Test the cast shadow array generated from the satellite look angles.
 * `test_cast_shadow_sun.py` Test the cast shadow array generated from the solar look angles.
-* `test_self_shadow.py` Test the self shadow array generated from the various angular arrays.
 * `test_smoothe_dsm.py` Test the sobel smoothing result of the DEM subset.
 * `test_nbar_tc.py` Test the lambertian, NBAR-BRDF, and terrain corrected NBAR-BRDF output products, for each band.
 
