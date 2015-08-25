@@ -76,8 +76,8 @@ def self_shadow(incident_fname, exiting_fname, self_shadow_out_fname,
 
             # Process the tile
             mask = numpy.ones((ysize, xsize), dtype='uint8')
-            mask[inc <= 0.0] = 0
-            mask[exi <= 0.0] = 0
+            mask[numpy.cos(inc) <= 0.0] = 0
+            mask[numpy.cos(exi) <= 0.0] = 0
 
             # Write the current tile to disk
             outds.write_tile(mask, tile)

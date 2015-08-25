@@ -235,8 +235,9 @@ def exiting_angles(satellite_view_fname, satellite_azimuth_fname, slope_fname,
     outds_azi_exiting.close()
 
 
-def relative_azimuth(azimuth_incident_fname, azimuth_exiting_fname,
-                     relative_azimuth_out_fname, x_tile=None, y_tile=None):
+def relative_azimuth_slope(azimuth_incident_fname, azimuth_exiting_fname,
+                           relative_azimuth_slope_out_fname,
+                           x_tile=None, y_tile=None):
     """
     Calculates the relative azimuth angle on the slope surface.
 
@@ -248,7 +249,7 @@ def relative_azimuth(azimuth_incident_fname, azimuth_exiting_fname,
         A string containing the full file path name to the azimuth
         exiting angle image.
 
-    :param relative_slope_out_fname:
+    :param relative_azimuth_slope_out_fname:
         A string containing the full file path name to be used for
         writing the relative azimuth angle image on disk.
 
@@ -276,8 +277,8 @@ def relative_azimuth(azimuth_incident_fname, azimuth_exiting_fname,
         # Initialise the output file
         out_dtype = gdal.GDT_Float32
         no_data = -999
-        outds = tiling.TiledOutput(relative_azimuth_out_fname, cols, rows,
-                                   geobox=geobox, dtype=out_dtype,
+        outds = tiling.TiledOutput(relative_azimuth_slope_out_fname, cols,
+                                   rows, geobox=geobox, dtype=out_dtype,
                                    nodata=no_data)
 
         # Initialise the tiling scheme for processing

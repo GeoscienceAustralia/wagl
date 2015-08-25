@@ -4,100 +4,95 @@ import argparse
 import os
 from os.path import join as pjoin
 from os.path import exists as pexists
-from os.path import dirname
 import unittest
 
-import numpy as np
 import numpy.testing as npt
 
 from gaip import acquisitions
-from gaip import filter_dsm
+from gaip import relative_azimuth_slope
 from gaip import find_file
-from gaip import gridded_geo_box
 from gaip import read_img
-from gaip import write_img
 from gaip.tests.unittesting_tools import ParameterisedTestCase
 
+#TODO Filename to be determined from the nbar.cfg file
 
-def calculate_smoothed_dsm(geobox, ref_dir, out_dir):
+def compute_relative_azimuth_slope(ref_dir, outdir):
     """
-    Creates a smoothed DSM.
+    A small wrapper for executing the relative_azimuth_slope
+    function prior to unittesting.
     """
-
-    # Check and load the required files from disk
+    # TC_Intermediates directory
     tc_dir = pjoin(ref_dir, 'TC_Intermediates')
-    tc_outdir = pjoin(out_dir, 'TC_Intermediates')
+    tc_outdir = pjoin(outdir, 'TC_Intermediates')
     if not pexists(tc_outdir):
         os.makedirs(tc_outdir)
 
     # Check and load the required files from disk
-    dsm_fname = find_file(tc_dir, 'dsm_subset.bin')
+    fname_azimuth_incident = find_file(tc_dir, 'azimuth_incident_angle.bin')
+    fname_azimuth_exiting = find_file(tc_dir, 'azimuth_exiting_angle.bin')
 
-    dsm = read_img(dsm_fname).astype('float32')
+    # Output filename
+    relative_azimuth_slope_out_fname = pjoin(tc_outdir, 'relative_slope.bin')
 
-    smoothed_dsm = filter_dsm(dsm)
+    relative_azimuth_slope(fname_azimuth_incident, fname_azimuth_exiting,
+                           relative_azimuth_slope_out_fname)
 
-    # Write out the smoothed dsm file
-    out_fname = pjoin(tc_outdir, 'dsm_subset_smoothed.bin')
-    write_img(smoothed_dsm, out_fname, geobox=geobox)
+class TestRelativeAzimuthSlopeFileName(ParameterisedTestCase):
 
-
-class TestFilterFileNames(ParameterisedTestCase):
     """
     Unittests will occur for the following files:
-    region_dsm_image_smoothed.bin
+        * relative_slope.bin
     """
 
-    # File of interest
-    ParameterisedTestCase.fname_smoothed_dsm = 'dsm_subset_smoothed.bin'
+    ParameterisedTestCase.fname_relative_slope = 'relative_slope.bin'
 
-    def test_smoothed_dsm_ref(self):
+    def test_relative_slope_ref(self):
         """
-        Check that the smoothed dsm reference file exists.
+        Check that the relative slope reference file exists.
         """
         # TC_Intermediates directory
         tc_dir = pjoin(self.reference_dir, 'TC_Intermediates')
 
-        fname = pjoin(tc_dir, self.fname_smoothed_dsm)
-        self.assertIs(os.path.exists(fname), True,
-                      'Reference file does not exist: %s'%fname)
+        fname = pjoin(tc_dir, self.fname_relative_slope)
+        msg = 'Reference file does not exist: {fname}'.format(fname=fname)
+        self.assertIs(pexists(fname), True, msg)
 
 
-    def test_smoothed_dsm_tst(self):
+    def test_relative_slope_tst(self):
         """
-        Check that the smoothed dsm test file exists.
+        Check that the relative slope test file exists.
         """
         # TC_Intermediates directory
         tc_dir = pjoin(self.test_dir, 'TC_Intermediates')
 
-        fname = pjoin(tc_dir, self.fname_smoothed_dsm)
-        self.assertIs(os.path.exists(fname), True,
-                      'Test file does not exist: %s'%fname)
+        fname = pjoin(tc_dir, self.fname_relative_slope)
+        msg = 'Reference file does not exist: {fname}'.format(fname=fname)
+        self.assertIs(pexists(fname), True, msg)
 
 
-class TestFilterOutputs(ParameterisedTestCase):
+class TestRelativeAzimuthSlopeOutput(ParameterisedTestCase):
+
     """
     Unittests will occur for the following files:
-    region_dsm_image_smoothed.bin
+        * relative_slope.bin
     """
 
-    # File of interest
-    ParameterisedTestCase.fname_smoothed_dsm = 'dsm_subset_smoothed.bin'
+    ParameterisedTestCase.fname_relative_slope = 'relative_slope.bin'
 
-    def test_smoothed_dsm(self):
+    def test_relative_slope(self):
         """
-        Test the smoothed dsm image against the reference image.
+        Test the relative_slope image against the reference image.
         """
         # TC_Intermediates directory (reference and test)
         tc_ref_dir = pjoin(self.reference_dir, 'TC_Intermediates')
         tc_tst_dir = pjoin(self.test_dir, 'TC_Intermediates')
 
         # Get the filenames for both the reference and test files
-        ref_fname  = find_file(tc_ref_dir, self.fname_smoothed_dsm)
-        test_fname = find_file(tc_tst_dir, self.fname_smoothed_dsm)
+        ref_fname = find_file(tc_ref_dir, self.fname_relative_slope)
+        test_fname = find_file(tc_tst_dir, self.fname_relative_slope)
 
         # Get the image data
-        ref_img  = read_img(ref_fname)
+        ref_img = read_img(ref_fname)
         test_img = read_img(test_fname)
 
         # Precision
@@ -109,10 +104,10 @@ class TestFilterOutputs(ParameterisedTestCase):
 
 if __name__ == '__main__':
 
-    description = ('Performs unittests against the smoothed DSM and '
-                   'optionally calculates the smoothed DSM.')
     parser = argparse.ArgumentParser()
-    parser = argparse.ArgumentParser(description=description)
+    parser = argparse.ArgumentParser(description=('Perform unittesting for '
+                                                  'the relative azimuth '
+                                                  'slope angles.'))
 
     parser.add_argument('--L1T_dir', required=True,
                         help='A directory path of a L1T scene.')
@@ -120,15 +115,15 @@ if __name__ == '__main__':
                         help=('A directory path to the associated NBAR '
                               'working directory.'))
     parser.add_argument('--outdir', required=True,
-                        help=('A directory path that will contain the output '
-                              'files.'))
-    parser.add_argument('--dec_precision', default=3, type=int,
+                        help=('A directory path that will contain the '
+                              'output files.'))
+    parser.add_argument('--dec_precision', default=4, type=int,
                         help='The decimal precision used for array comparison')
     parser.add_argument('--int_precision', default=1, type=int,
                         help='The integer precision used for array comparison')
     parser.add_argument('--compute', action='store_true',
-                        help=('If set then a smoothed dsm image will be '
-                              'created.'))
+                        help=('If set then the self shadow array will be '
+                              'computed before running the unittests.'))
 
     parsed_args = parser.parse_args()
 
@@ -141,7 +136,7 @@ if __name__ == '__main__':
 
     if compute:
         # Check the output directory
-        if not os.path.exists(outdir):
+        if not pexists(outdir):
             os.makedirs(outdir)
 
         # Get the current directory
@@ -153,11 +148,8 @@ if __name__ == '__main__':
         # Open the L1T dataset
         acqs = acquisitions(L1T_dir)
 
-        # Get a geobox of the 1st acquisition
-        geobox = gridded_geo_box(acqs[0])
-
-        # Compute the smoothed dsm
-        calculate_smoothed_dsm(geobox, nbar_work_dir, outdir)
+        # Compute the angles
+        compute_relative_azimuth_slope(nbar_work_dir, outdir)
 
         # Close the L1T dataset
         acqs = None
@@ -165,19 +157,20 @@ if __name__ == '__main__':
         # Change back to the original directory
         os.chdir(cwd)
 
-    print "Checking that we have the reference and test data files."
+    print "Checking that we have all the reference and test data files."
     suite = unittest.TestSuite()
-    suite.addTest(ParameterisedTestCase.parameterise(TestFilterFileNames,
+    suite.addTest(ParameterisedTestCase.parameterise(
+                  TestRelativeAzimuthSlopeFileName,
                   reference_dir=nbar_work_dir, test_dir=outdir,
                   decimal_precision=dec_precision,
                   integer_precision=int_precision))
     unittest.TextTestRunner(verbosity=2).run(suite)
 
-    print "Comparing the reference and test smoothed dsm output files."
+    print "Comparing the reference and test relative azimuth slope outputs."
     suite = unittest.TestSuite()
-    suite.addTest(ParameterisedTestCase.parameterise(TestFilterOutputs,
+    suite.addTest(ParameterisedTestCase.parameterise(
+                  TestRelativeAzimuthSlopeOutput,
                   reference_dir=nbar_work_dir, test_dir=outdir,
                   decimal_precision=dec_precision,
                   integer_precision=int_precision))
     unittest.TextTestRunner(verbosity=2).run(suite)
-
