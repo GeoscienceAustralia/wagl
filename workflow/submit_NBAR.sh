@@ -13,12 +13,12 @@ umask 007
 # INPUTS (change any of these)
 # ======
 
-L1T_PATH=/g/data1/v10/projects/Luigi_work_flow_test/L1T
+L1T_PATH=/g/data/v10/projects/Luigi_work_flow_test/L1T
 
 # OUTPUTS (change any of these)
 # =======
 
-OUTPUT_ROOT=/g/data1/v10/testing_ground/NBAR_luigi_new_workflow_testing
+OUTPUT_ROOT=/g/data/v10/testing_ground/NBAR_luigi_new_workflow_testing
 OUTPUT_PATH=$OUTPUT_ROOT/output
 LOG_PATH=$OUTPUT_ROOT/logs
 CFG_FILE=nbar.cfg
@@ -61,4 +61,5 @@ qsub -v L1T_PATH=$L1T_PATH,OUTPUT_PATH=$OUTPUT_PATH,LOG_PATH=$LOG_PATH,CFG_FILE=
  -o $LOG_PATH/run_NBAR_${HOSTNAME}_${PID}.stdout \
  -l $LSPEC \
  -q $QUEUE \
+ -P $PROJECT \
  run_NBAR.pbs
