@@ -17,6 +17,8 @@ import argparse
 import logging
 
 from os.path import join as pjoin, dirname, exists
+import glob
+import shutil
 
 
 def save(target, value):
@@ -1635,6 +1637,30 @@ class TerrainCorrection(luigi.Task):
                                    rfl_lvl_fnames, modis_brdf_format,
                                    new_modis_brdf_format, x_tile, y_tile)
 
+        # cleanup
+        rm_intermediates = bool(int(CONFIG.get('cleanup',
+                                               'remove_intermediates')))
+        rm_reflectance = bool(int(CONFIG.get('cleanup', 'remove_reflectance')))
+        rm_rf_levels = CONFIG.get('cleanup', 'rfl_levels').split(',')
+
+        if rm_intermediates:
+            for dirpath, dirnames, filenames in os.walk(bytes(out_path)):
+                if "Reflectance_Outputs" in dirnames:
+                    dirnames.remove("Reflectance_Outputs")
+                for fname in filenames:
+                    os.unlink(pjoin(dirpath, fname))
+                for dname in dirnames:
+                    shutil.rmtree(pjoin(dirpath, dname))
+
+        if rm_reflectance:
+            rm_fmt = '{level}_*'
+            for rf_lvl in rm_rf_levels:
+                rm_fname = rm_fmt.format(level=rf_lvl)
+                pth = pjoin(outdir, rm_fname)
+                rm_files = glob.glob(pth)
+                for f in rm_files:
+                    os.unlink(f)
+
 
 def is_valid_directory(parser, arg):
     """Used by argparse"""
@@ -1654,18 +1680,22 @@ def scatter(iterable, P=1, p=1):
     return itertools.islice(iterable, p-1, None, P)
  
  
-def main(inpath, outpath, nnodes=1, nodenum=1):
+def main(inpath, outpath, workpath, nnodes=1, nodenum=1):
     l1t_files = sorted([pjoin(inpath, f) for f in os.listdir(inpath) if
                         '_OTH_' in f])
     l1t_files = [f for f in scatter(l1t_files, nnodes, nodenum)]
     print l1t_files
-    nbar_files = [pjoin(outpath, os.path.basename(f).replace('OTH', 'NBAR'))
+    nbar_files = [pjoin(workpath, os.path.basename(f).replace('OTH', 'NBAR'))
                   for f in l1t_files]
     tasks = [TerrainCorrection(l1t, nbar) for l1t, nbar in
              zip(l1t_files, nbar_files)]
     ncpus = int(os.getenv('PBS_NCPUS', '1'))
     luigi.build(tasks, local_scheduler=True, workers=ncpus / nnodes)
-    #luigi.build(tasks, local_scheduler=True, workers=2)
+
+    # move outputs to output directory
+    # (unless both the work and output directories are the same)
+    if not outpath == workpath:
+        shutil.move(workpath, outpath)
 
 
 if __name__ == '__main__':
@@ -1683,6 +1713,9 @@ if __name__ == '__main__':
                         type=lambda x: is_valid_directory(parser, x))
     parser.add_argument("--debug", help=("Selects more detail logging (default"
                         " is INFO)"), default=False, action='store_true')
+    parser.add_argument("--work_path", help=("Path to a directory where the "
+                        "intermediate files will be written."), required=False,
+                        type=lambda x: is_valid_directory(parser, x))
 
     args = parser.parse_args()
 
@@ -1709,6 +1742,12 @@ if __name__ == '__main__':
                         format=("%(asctime)s: [%(name)s] (%(levelname)s) "
                                 "%(message)s "), datefmt='%H:%M:%S')
 
+    # use the disk of the local node if we can
+    # working directly off the lustre drive seems to flaky
+    if args.work_path is None:
+        work_path = os.getenv('TMPDIR')
+    else:
+        work_path = args.out_path
 
     logging.info("nbar.py started")
     logging.info('l1t_path={path}'.format(path=args.l1t_path))
@@ -1717,4 +1756,4 @@ if __name__ == '__main__':
 
     size = int(os.getenv('PBS_NNODES', '1'))
     rank = int(os.getenv('PBS_VNODENUM', '1'))
-    main(args.l1t_path, args.out_path, size, rank)
+    main(args.l1t_path, args.out_path, work_path, size, rank)
