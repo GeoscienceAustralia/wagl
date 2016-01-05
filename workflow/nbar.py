@@ -1695,7 +1695,8 @@ def main(inpath, outpath, workpath, nnodes=1, nodenum=1):
     # move outputs to output directory
     # (unless both the work and output directories are the same)
     if not outpath == workpath:
-        shutil.move(workpath, outpath)
+        for nbar in nbar_files:
+            shutil.move(nbar, outpath)
 
 
 if __name__ == '__main__':
