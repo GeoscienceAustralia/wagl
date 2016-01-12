@@ -16,9 +16,12 @@ import os
 import argparse
 import logging
 
-from os.path import join as pjoin, dirname, exists
+from os.path import join as pjoin, dirname, exists, basename
 import glob
 import shutil
+import yaml
+from yaml.representer import Representer
+import subprocess
 
 
 def save(target, value):
@@ -1637,6 +1640,83 @@ class TerrainCorrection(luigi.Task):
                                    rfl_lvl_fnames, modis_brdf_format,
                                    new_modis_brdf_format, x_tile, y_tile)
 
+
+class WriteMetadata(luigi.Task):
+
+    """Write metadata."""
+
+    l1t_path = luigi.Parameter()
+    out_path = luigi.Parameter()
+
+    def requires(self):
+        return [TerrainCorrection(self.l1t_path, self.out_path)]
+
+    def output(self):
+        out_path = self.out_path
+        out_fname = pjoin(out_path, CONFIG.get('work', 'metadata_target'))
+        return luigi.LocalTarget(out_fname)
+
+    def run(self):
+        acqs = gaip.acquisitions(self.l1t_path)
+        acq = acqs[0]
+        out_path = self.out_path
+
+        source_info = {}
+        source_info['Source_Scene'] = basename(dirname(acq.dir_name))
+        source_info['Scene_Centre_Datetime'] = acq.scene_centre_datetime
+        source_info['Platform'] = acq.spacecraft_id
+        source_info['Sensor'] = acq.sensor_id
+        source_info['Path'] = acq.path
+        source_info['Row'] = acq.row
+
+        targets = [pjoin(out_path, CONFIG.get('work', 'aerosol_target')),
+                   pjoin(out_path, CONFIG.get('work', 'sundist_target')),
+                   pjoin(out_path, CONFIG.get('work', 'vapour_target')),
+                   pjoin(out_path, CONFIG.get('work', 'ozone_target')),
+                   pjoin(out_path, CONFIG.get('work', 'dem_target'))]
+
+        sources = ['Aerosol',
+                   'Solar_Distance',
+                   'Water_Vapour',
+                   'Ozone',
+                   'Elevation']
+
+        sources_targets = zip(sources, targets)
+
+        ancillary = {}
+        for source, target in sources_targets:
+            with open(target, 'rb') as src:
+                ancillary[source] = pickle.load(src)
+
+        # Get the required BRDF LUT & factors list
+        nbar_constants = constants.NBARConstants(acq.spacecraft_id,
+                                                 acq.sensor_id)
+
+        bands = nbar_constants.get_brdf_lut()
+        brdf_factors = nbar_constants.get_brdf_factors()
+
+        target = pjoin(out_path, CONFIG.get('work', 'brdf_target'))
+        with open(target, 'rb') as src:
+            brdf_data = pickle.load(src)
+
+        brdf = {}
+        band_fmt = 'Band {}'
+        for band in bands:
+            data = {}
+            for factor in brdf_factors:
+                data[factor] = brdf_data[(band, factor)]
+            brdf[band_fmt.format(band)] = data
+
+        ancillary['BRDF'] = brdf
+
+        proc = subprocess.Popen(['uname', '-a'], stdout=subprocess.PIPE)
+        info = proc.stdout.read()
+
+        metadata = {}
+        metadata['System_Information'] = info
+        metadata['Source_Data'] = source_info
+        metadata['Ancillary_Data'] = ancillary
+        
         # cleanup
         rm_intermediates = bool(int(CONFIG.get('cleanup',
                                                'remove_intermediates')))
@@ -1660,6 +1740,15 @@ class TerrainCorrection(luigi.Task):
                 rm_files = glob.glob(pth)
                 for f in rm_files:
                     os.unlink(f)
+
+        # Account for NumPy dtypes
+        yaml.add_representer(numpy.float, Representer.represent_float)
+        yaml.add_representer(numpy.float32, Representer.represent_float)
+        yaml.add_representer(numpy.float64, Representer.represent_float)
+
+        # output
+        with self.output().open('w') as src:
+            yaml.dump(metadata, src, default_flow_style=False)
 
 
 def is_valid_directory(parser, arg):
@@ -1687,7 +1776,8 @@ def main(inpath, outpath, workpath, nnodes=1, nodenum=1):
     print l1t_files
     nbar_files = [pjoin(workpath, os.path.basename(f).replace('OTH', 'NBAR'))
                   for f in l1t_files]
-    tasks = [TerrainCorrection(l1t, nbar) for l1t, nbar in
+    # tasks = [TerrainCorrection(l1t, nbar) for l1t, nbar in
+    tasks = [WriteMetadata(l1t, nbar) for l1t, nbar in
              zip(l1t_files, nbar_files)]
     ncpus = int(os.getenv('PBS_NCPUS', '1'))
     luigi.build(tasks, local_scheduler=True, workers=ncpus / nnodes)
