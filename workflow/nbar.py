@@ -22,6 +22,7 @@ import shutil
 import yaml
 from yaml.representer import Representer
 import subprocess
+import numpy
 
 
 def save(target, value):
@@ -1689,8 +1690,8 @@ class WriteMetadata(luigi.Task):
                 ancillary[source] = pickle.load(src)
 
         # Get the required BRDF LUT & factors list
-        nbar_constants = constants.NBARConstants(acq.spacecraft_id,
-                                                 acq.sensor_id)
+        nbar_constants = gaip.constants.NBARConstants(acq.spacecraft_id,
+                                                      acq.sensor_id)
 
         bands = nbar_constants.get_brdf_lut()
         brdf_factors = nbar_constants.get_brdf_factors()
@@ -1700,7 +1701,7 @@ class WriteMetadata(luigi.Task):
             brdf_data = pickle.load(src)
 
         brdf = {}
-        band_fmt = 'Band {}'
+        band_fmt = 'Band_{}'
         for band in bands:
             data = {}
             for factor in brdf_factors:
@@ -1718,6 +1719,7 @@ class WriteMetadata(luigi.Task):
         metadata['Ancillary_Data'] = ancillary
         
         # cleanup
+        outdir = pjoin(out_path, CONFIG.get('work', 'rfl_output_dir'))
         rm_intermediates = bool(int(CONFIG.get('cleanup',
                                                'remove_intermediates')))
         rm_reflectance = bool(int(CONFIG.get('cleanup', 'remove_reflectance')))
