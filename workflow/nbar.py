@@ -16,13 +16,14 @@ import os
 import argparse
 import logging
 
-from os.path import join as pjoin, dirname, exists, basename
+from os.path import join as pjoin, dirname, exists
 import glob
 import shutil
 import yaml
 from yaml.representer import Representer
 import subprocess
 import numpy
+from datetime import datetime as dt
 
 
 def save(target, value):
@@ -1663,12 +1664,12 @@ class WriteMetadata(luigi.Task):
         out_path = self.out_path
 
         source_info = {}
-        source_info['Source_Scene'] = basename(dirname(acq.dir_name))
-        source_info['Scene_Centre_Datetime'] = acq.scene_centre_datetime
-        source_info['Platform'] = acq.spacecraft_id
-        source_info['Sensor'] = acq.sensor_id
-        source_info['Path'] = acq.path
-        source_info['Row'] = acq.row
+        source_info['source_scene'] = self.l1t_path
+        source_info['scene_centre_datetime'] = acq.scene_centre_datetime
+        source_info['platform'] = acq.spacecraft_id
+        source_info['sensor'] = acq.sensor_id
+        source_info['path'] = acq.path
+        source_info['row'] = acq.row
 
         targets = [pjoin(out_path, CONFIG.get('work', 'aerosol_target')),
                    pjoin(out_path, CONFIG.get('work', 'sundist_target')),
@@ -1676,11 +1677,11 @@ class WriteMetadata(luigi.Task):
                    pjoin(out_path, CONFIG.get('work', 'ozone_target')),
                    pjoin(out_path, CONFIG.get('work', 'dem_target'))]
 
-        sources = ['Aerosol',
-                   'Solar_Distance',
-                   'Water_Vapour',
-                   'Ozone',
-                   'Elevation']
+        sources = ['aerosol',
+                   'solar_distance',
+                   'water_vapour',
+                   'ozone',
+                   'elevation']
 
         sources_targets = zip(sources, targets)
 
@@ -1701,22 +1702,35 @@ class WriteMetadata(luigi.Task):
             brdf_data = pickle.load(src)
 
         brdf = {}
-        band_fmt = 'Band_{}'
+        band_fmt = 'band_{}'
         for band in bands:
             data = {}
             for factor in brdf_factors:
                 data[factor] = brdf_data[(band, factor)]
             brdf[band_fmt.format(band)] = data
 
-        ancillary['BRDF'] = brdf
+        ancillary['brdf'] = brdf
 
+        # TODO (a) retrieve software version from git once deployed
+        # TODO (b) determine what the algorithm version is
+        algorithm = {}
+        algorithm['algorithm_version'] = 2.0 # hardcode for now see TODO (a)
+        algorithm['software_version'] = 4.0 # hardcode for now see TODO (b)
+        algorithm['arg25_doi'] = 'http://dx.doi.org/10.4225/25/5487CC0D4F40B'
+        algorithm['nbar_doi'] = 'http://dx.doi.org/10.1109/JSTARS.2010.2042281'
+        algorithm['nbar_terrain_corrected_doi'] = ('http://dx.doi.org/10.1016/'
+                                                   'j.rse.2012.06.018')
+
+        system_info = {}
         proc = subprocess.Popen(['uname', '-a'], stdout=subprocess.PIPE)
-        info = proc.stdout.read()
+        system_info['node'] = proc.stdout.read()
+        system_info['time_processed'] = dt.utcnow()
 
         metadata = {}
-        metadata['System_Information'] = info
-        metadata['Source_Data'] = source_info
-        metadata['Ancillary_Data'] = ancillary
+        metadata['system_information'] = system_info
+        metadata['source_data'] = source_info
+        metadata['ancillary_data'] = ancillary
+        metadata['algorithm_information'] = algorithm
         
         # cleanup
         outdir = pjoin(out_path, CONFIG.get('work', 'rfl_output_dir'))
