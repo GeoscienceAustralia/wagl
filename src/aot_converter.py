@@ -114,6 +114,7 @@ def main(aerosol_path, output_filename):
             # read/write
             df, extents = func[ext](fname)
             hstore.append(out_path, df)
+            hstore.flush()
 
             # assign extents attribute
             nd = hstore.get_node(out_path)

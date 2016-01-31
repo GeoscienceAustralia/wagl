@@ -189,6 +189,8 @@ class GetAerosolAncillaryData(luigi.Task):
         acqs = gaip.acquisitions(self.l1t_path)
         aerosol_path = CONFIG.get('ancillary', 'aerosol_path')
         value = gaip.get_aerosol_data(acqs[0], aerosol_path)
+        # aerosol_path = CONFIG.get('ancillary', 'aerosol_fname') # version 2
+        # value = gaip.get_aerosol_data_v2(acqs[0], aerosol_path) # version 2
         save(self.output(), value)
 
 
