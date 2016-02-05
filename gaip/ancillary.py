@@ -6,10 +6,65 @@ import subprocess
 import gaip
 import re
 import os
+from datetime import timedelta
 
-from os.path import join as pjoin, exists, splitext, abspath, dirname, pardir
+from os.path import join as pjoin
+from posixpath import join as ppjoin
+import pandas
+from geopandas import GeoSeries
+from shapely.geometry import Point
+from shapely.geometry import Polygon
+import numpy
 
 log = logging.getLogger()
+
+
+def get_aerosol_data_v2(acquisition, aerosol_fname):
+    """
+    Extract the aerosol value for an acquisition.
+    The version 2 retrieves the data from a HDF5 file, and provides
+    more control over how the data is selected geo-metrically.
+    Better control over timedeltas.
+    """
+
+    dt = acquisition.scene_center_datetime
+    geobox = acquisition.gridded_geo_box()
+    roi_poly = Polygon([geobox.ul_lonlat, geobox.ur_lonlat,
+                        geobox.lr_lonlat, geobox.ll_lonlat])
+
+    descr = ['AATSR_PIX', 'AATSR_CMP_YEAR_MONTH', 'AATSR_CMP_MONTH']
+    names = ['ATSR_LF_%Y%m', 'aot_mean_%b_%Y_All_Aerosols',
+             'aot_mean_%b_All_Aerosols']
+    exts = ['/pix', '/cmp', '/cmp']
+    pathnames = [ppjoin(ext, dt.strftime(n)) for ext, n in zip(exts, names)]
+
+    store = pandas.HDFStore(aerosol_fname, 'r')
+
+    delta_tolerance = timedelta(days=0.5)
+
+    value = None
+    for pathname, description in zip(pathnames, descr):
+        if pathname in store.keys():
+            df = store[pathname]
+            node = store.get_node(pathname)
+            aerosol_poly = Polygon(node._v_attrs.extents)
+            if aerosol_poly.intersects(roi_poly):
+                if description == 'AATSR_PIX':
+                    abs_diff = (df['timestamp'] - dt).abs()
+                    df = df[abs_diff < delta_tolerance]
+                intersection = aerosol_poly.intersection(roi_poly)
+                pts = GeoSeries([Point(x, y) for x, y in
+                                 zip(df['lon'], df['lat'])])
+                idx = pts.intersects(intersection)
+                value = df[idx]['aerosol'].mean()
+                if numpy.isfinite(value):
+                    return {'data_source': description,
+                            'data_file': pathname,
+                            'value': value}
+
+    store.close()
+
+    raise IOError('No aerosol ancillary data found.')
 
 
 def get_aerosol_data(acquisition, aerosol_path, aot_loader_path=None):
@@ -42,56 +97,40 @@ def run_aot_loader(filename, dt, ll_lat, ll_lon, ur_lat, ur_lon,
     """Load aerosol data for a specified `AATSR.
     <http://www.leos.le.ac.uk/aatsr/howto/index.html>`_ data file.  This uses
     the executable ``aot_loader``.
-
     :param filename:
         The full path to the `AATSR
         <http://www.leos.le.ac.uk/aatsr/howto/index.html>`_ file to load the
         data from.
-
     :type filename:
         :py:class:`str`
-
     :param dt:
         The date and time to extract the value for.
-
     :type dt:
         :py:class:`datetime.datetime`
-
     :param ll_lat:
-
         The latitude of the lower left corner of the region ('ll' for 'Lower
         Left').
-
     :type ll_lat:
         :py:class:`float`
-
     :param ll_lon:
         The longitude of the lower left corner of the region ('ll' for 'Lower
         Left').
-
     :type ll_lon:
         :py:class:`float`
-
     :param ur_lat:
-
         The latitude of the upper right corner of the region ('ur' for 'Upper
         Right').
-
     :type ur_lat:
         :py:class:`float`
-
     :param ur_lon:
         The longitude of the upper right corner of the region ('ur' for 'Upper
         Right').
-
     :type ur_lon:
         :py:class:`float`
-
     :param aot_loader_path:
         The directory where the executable ``aot_loader`` can be found.
     :type aot_loader_path:
         :py:class:`str`
-
     """
     filetype = splitext(filename)[1][1:]
     if not exists(filename):

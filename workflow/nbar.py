@@ -17,6 +17,13 @@ import argparse
 import logging
 
 from os.path import join as pjoin, dirname, exists
+import glob
+import shutil
+import yaml
+from yaml.representer import Representer
+import subprocess
+import numpy
+from datetime import datetime as dt
 
 
 def save(target, value):
@@ -182,6 +189,8 @@ class GetAerosolAncillaryData(luigi.Task):
         acqs = gaip.acquisitions(self.l1t_path)
         aerosol_path = CONFIG.get('ancillary', 'aerosol_path')
         value = gaip.get_aerosol_data(acqs[0], aerosol_path)
+        # aerosol_path = CONFIG.get('ancillary', 'aerosol_fname') # version 2
+        # value = gaip.get_aerosol_data_v2(acqs[0], aerosol_path) # version 2
         save(self.output(), value)
 
 
@@ -1636,6 +1645,130 @@ class TerrainCorrection(luigi.Task):
                                    new_modis_brdf_format, x_tile, y_tile)
 
 
+class WriteMetadata(luigi.Task):
+
+    """Write metadata."""
+
+    l1t_path = luigi.Parameter()
+    out_path = luigi.Parameter()
+
+    def requires(self):
+        return [TerrainCorrection(self.l1t_path, self.out_path)]
+
+    def output(self):
+        out_path = self.out_path
+        out_fname = pjoin(out_path, CONFIG.get('work', 'metadata_target'))
+        return luigi.LocalTarget(out_fname)
+
+    def run(self):
+        acqs = gaip.acquisitions(self.l1t_path)
+        acq = acqs[0]
+        out_path = self.out_path
+
+        source_info = {}
+        source_info['source_scene'] = self.l1t_path
+        source_info['scene_centre_datetime'] = acq.scene_centre_datetime
+        source_info['platform'] = acq.spacecraft_id
+        source_info['sensor'] = acq.sensor_id
+        source_info['path'] = acq.path
+        source_info['row'] = acq.row
+
+        targets = [pjoin(out_path, CONFIG.get('work', 'aerosol_target')),
+                   pjoin(out_path, CONFIG.get('work', 'sundist_target')),
+                   pjoin(out_path, CONFIG.get('work', 'vapour_target')),
+                   pjoin(out_path, CONFIG.get('work', 'ozone_target')),
+                   pjoin(out_path, CONFIG.get('work', 'dem_target'))]
+
+        sources = ['aerosol',
+                   'solar_distance',
+                   'water_vapour',
+                   'ozone',
+                   'elevation']
+
+        sources_targets = zip(sources, targets)
+
+        ancillary = {}
+        for source, target in sources_targets:
+            with open(target, 'rb') as src:
+                ancillary[source] = pickle.load(src)
+
+        # Get the required BRDF LUT & factors list
+        nbar_constants = gaip.constants.NBARConstants(acq.spacecraft_id,
+                                                      acq.sensor_id)
+
+        bands = nbar_constants.get_brdf_lut()
+        brdf_factors = nbar_constants.get_brdf_factors()
+
+        target = pjoin(out_path, CONFIG.get('work', 'brdf_target'))
+        with open(target, 'rb') as src:
+            brdf_data = pickle.load(src)
+
+        brdf = {}
+        band_fmt = 'band_{}'
+        for band in bands:
+            data = {}
+            for factor in brdf_factors:
+                data[factor] = brdf_data[(band, factor)]
+            brdf[band_fmt.format(band)] = data
+
+        ancillary['brdf'] = brdf
+
+        # TODO (a) retrieve software version from git once deployed
+        # TODO (b) determine what the algorithm version is
+        algorithm = {}
+        algorithm['algorithm_version'] = 2.0 # hardcode for now see TODO (a)
+        algorithm['software_version'] = 4.0 # hardcode for now see TODO (b)
+        algorithm['arg25_doi'] = 'http://dx.doi.org/10.4225/25/5487CC0D4F40B'
+        algorithm['nbar_doi'] = 'http://dx.doi.org/10.1109/JSTARS.2010.2042281'
+        algorithm['nbar_terrain_corrected_doi'] = ('http://dx.doi.org/10.1016/'
+                                                   'j.rse.2012.06.018')
+
+        system_info = {}
+        proc = subprocess.Popen(['uname', '-a'], stdout=subprocess.PIPE)
+        system_info['node'] = proc.stdout.read()
+        system_info['time_processed'] = dt.utcnow()
+
+        metadata = {}
+        metadata['system_information'] = system_info
+        metadata['source_data'] = source_info
+        metadata['ancillary_data'] = ancillary
+        metadata['algorithm_information'] = algorithm
+        
+        # cleanup
+        outdir = pjoin(out_path, CONFIG.get('work', 'rfl_output_dir'))
+        rm_intermediates = bool(int(CONFIG.get('cleanup',
+                                               'remove_intermediates')))
+        rm_reflectance = bool(int(CONFIG.get('cleanup', 'remove_reflectance')))
+        rm_rf_levels = CONFIG.get('cleanup', 'rfl_levels').split(',')
+
+        if rm_intermediates:
+            for dirpath, dirnames, filenames in os.walk(bytes(out_path)):
+                if "Reflectance_Outputs" in dirnames:
+                    dirnames.remove("Reflectance_Outputs")
+                for fname in filenames:
+                    os.unlink(pjoin(dirpath, fname))
+                for dname in dirnames:
+                    shutil.rmtree(pjoin(dirpath, dname))
+
+        if rm_reflectance:
+            rm_fmt = '{level}_*'
+            for rf_lvl in rm_rf_levels:
+                rm_fname = rm_fmt.format(level=rf_lvl)
+                pth = pjoin(outdir, rm_fname)
+                rm_files = glob.glob(pth)
+                for f in rm_files:
+                    os.unlink(f)
+
+        # Account for NumPy dtypes
+        yaml.add_representer(numpy.float, Representer.represent_float)
+        yaml.add_representer(numpy.float32, Representer.represent_float)
+        yaml.add_representer(numpy.float64, Representer.represent_float)
+
+        # output
+        with self.output().open('w') as src:
+            yaml.dump(metadata, src, default_flow_style=False)
+
+
 def is_valid_directory(parser, arg):
     """Used by argparse"""
     if not exists(arg):
@@ -1654,18 +1787,24 @@ def scatter(iterable, P=1, p=1):
     return itertools.islice(iterable, p-1, None, P)
  
  
-def main(inpath, outpath, nnodes=1, nodenum=1):
+def main(inpath, outpath, workpath, nnodes=1, nodenum=1):
     l1t_files = sorted([pjoin(inpath, f) for f in os.listdir(inpath) if
                         '_OTH_' in f])
     l1t_files = [f for f in scatter(l1t_files, nnodes, nodenum)]
     print l1t_files
-    nbar_files = [pjoin(outpath, os.path.basename(f).replace('OTH', 'NBAR'))
+    nbar_files = [pjoin(workpath, os.path.basename(f).replace('OTH', 'NBAR'))
                   for f in l1t_files]
-    tasks = [TerrainCorrection(l1t, nbar) for l1t, nbar in
+    # tasks = [TerrainCorrection(l1t, nbar) for l1t, nbar in
+    tasks = [WriteMetadata(l1t, nbar) for l1t, nbar in
              zip(l1t_files, nbar_files)]
     ncpus = int(os.getenv('PBS_NCPUS', '1'))
     luigi.build(tasks, local_scheduler=True, workers=ncpus / nnodes)
-    #luigi.build(tasks, local_scheduler=True, workers=2)
+
+    # move outputs to output directory
+    # (unless both the work and output directories are the same)
+    if not outpath == workpath:
+        for nbar in nbar_files:
+            shutil.move(nbar, outpath)
 
 
 if __name__ == '__main__':
@@ -1683,6 +1822,9 @@ if __name__ == '__main__':
                         type=lambda x: is_valid_directory(parser, x))
     parser.add_argument("--debug", help=("Selects more detail logging (default"
                         " is INFO)"), default=False, action='store_true')
+    parser.add_argument("--work_path", help=("Path to a directory where the "
+                        "intermediate files will be written."), required=False,
+                        type=lambda x: is_valid_directory(parser, x))
 
     args = parser.parse_args()
 
@@ -1709,6 +1851,12 @@ if __name__ == '__main__':
                         format=("%(asctime)s: [%(name)s] (%(levelname)s) "
                                 "%(message)s "), datefmt='%H:%M:%S')
 
+    # use the disk of the local node if we can
+    # working directly off the lustre drive seems to flaky
+    if args.work_path is None:
+        work_path = os.getenv('TMPDIR')
+    else:
+        work_path = args.out_path
 
     logging.info("nbar.py started")
     logging.info('l1t_path={path}'.format(path=args.l1t_path))
@@ -1717,4 +1865,4 @@ if __name__ == '__main__':
 
     size = int(os.getenv('PBS_NNODES', '1'))
     rank = int(os.getenv('PBS_VNODENUM', '1'))
-    main(args.l1t_path, args.out_path, size, rank)
+    main(args.l1t_path, args.out_path, work_path, size, rank)

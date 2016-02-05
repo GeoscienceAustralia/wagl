@@ -29,6 +29,7 @@ import re
 from osgeo import gdal
 from osgeo import gdalconst
 from osgeo import osr
+from shapely.geometry import Polygon
 from gaip import GriddedGeoBox
 from gaip import write_img
 from gaip import constants
@@ -112,14 +113,37 @@ class BRDFLoader(object):
 
         # The region-of-interest (scene) should lie within the HDF extents.
 
-        if self.roi['UL'][0] < self.ul[0] or \
-           self.roi['LR'][0] > self.lr[0] or \
-           self.roi['UL'][1] > self.ul[1] or \
-           self.roi['LR'][1] < self.lr[1]:
+        # New feature: Polygon intersection
+        coords = [self.ul, (self.lr[0], self.ul[1]),
+                  self.lr, (self.ul[0], self.lr[1])]
+        brdf_poly = Polygon(coords)
+        coords = [self.roi['UL'], (self.roi['LR'][0], self.roi['UL'][1]),
+                  self.roi['LR'], (self.roi['UL'][0], self.roi['LR'][1])]
+        roi_poly = Polygon(coords)
+
+        intersection = brdf_poly.intersection(roi_poly)
+
+        if len(intersection.bounds) == 0:
+            self.intersects = False
             raise BRDFLoaderError(('%s: Region of interest %s extends beyond '
                                    'HDF domain {UL: %s, LR: %s}')
                                   % (self.__class__.__name__, str(self.roi),
                                      str(self.ul), str(self.lr)))
+        else:
+            self.intersects = True
+            i_ul = (intersection.bounds[0], intersection.bounds[-1])
+            i_lr = (intersection.bounds[2], intersection.bounds[1])
+            self.roi = {'UL': i_ul, 'LR': i_lr}
+
+
+        #if self.roi['UL'][0] < self.ul[0] or \
+        #   self.roi['LR'][0] > self.lr[0] or \
+        #   self.roi['UL'][1] > self.ul[1] or \
+        #   self.roi['LR'][1] < self.lr[1]:
+        #    raise BRDFLoaderError(('%s: Region of interest %s extends beyond '
+        #                           'HDF domain {UL: %s, LR: %s}')
+        #                          % (self.__class__.__name__, str(self.roi),
+        #                             str(self.ul), str(self.lr)))
 
     def load(self):
         """
@@ -470,21 +494,8 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
     dt = acquisition.scene_center_datetime.date()
 
     # Get the boundary extents of the image
-    # Each is a co-ordinate pair of (x, y)
-    ul_lon = geobox.ul_lonlat[0]
-    ul_lat = geobox.ul_lonlat[1]
-    ur_lon = geobox.ur_lonlat[0]
-    ur_lat = geobox.ur_lonlat[1]
-    lr_lon = geobox.lr_lonlat[0]
-    lr_lat = geobox.lr_lonlat[1]
-    ll_lon = geobox.ll_lonlat[0]
-    ll_lat = geobox.ll_lonlat[1]
-
-    # Use maximal axis-aligned extents for BRDF mean value calculation.
-    # Note that latitude min-max logic is valid for the Southern
-    # hemisphere only.
-    nw = (min(ul_lon, ll_lon), max(ul_lat, ur_lat))
-    se = (max(lr_lon, ur_lon), min(ll_lat, lr_lat))
+    nw = geobox.ul_lonlat
+    se = geobox.lr_lonlat
 
     # Compare the scene date and MODIS BRDF start date to select the
     # BRDF data root directory.
@@ -569,6 +580,20 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
 
             # Convert the file format
             brdf_object.convert_format(out_fname)
+
+            # Get the intersected roi
+            # the intersection is used rather than the actual bounds,
+            # as we want to include partial overlaps rather than exclude them
+            if not brdf_object.intersects:
+                msg = "ROI is outside the BRDF extents!"
+                log.error(msg)
+                raise Exception(msg)
+
+            roi = brdf_object.roi
+            ul_lon, ul_lat = roi['UL']
+            ur_lon, ur_lat = (roi['LR'][0], roi['UL'][1])
+            lr_lon, lr_lat = roi['UL']
+            ll_lon, ll_lat = (roi['UL'][0], roi['LR'][1])
 
             # Read the subset and geotransform that corresponds to the subset
             subset, geobox_subset = read_subset(out_fname,
