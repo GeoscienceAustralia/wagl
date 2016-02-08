@@ -21,10 +21,10 @@ estimates is required.
 import subprocess
 import datetime
 import logging
-import numpy as np
 import math
 import os
 import re
+import numpy as np
 
 from osgeo import gdal
 from osgeo import gdalconst
@@ -34,6 +34,7 @@ from gaip import GriddedGeoBox
 from gaip import write_img
 from gaip import constants
 from gaip import read_subset
+from gaip import extract_ancillary_metadata
 
 log = logging.getLogger('root.' + __name__)
 
@@ -615,8 +616,15 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
                 os.remove(hdf_file)
 
             # Add the brdf filename and mean value to brdf_dict
-            brdf_dict[(band, factor)] = {'data_source': 'BRDF',
-                                         'data_file': hdfFile,
-                                         'value': brdf_mean_value}
+            res = {'data_source': 'BRDF',
+                   'data_file': hdfFile,
+                   'value': brdf_mean_value}
+
+            # ancillary metadata tracking
+            md = extract_ancillary_metadata(hdfFile)
+            for key in md:
+                res[key] = md[key]
+
+            brdf_dict[(band, factor)] = res
 
     return brdf_dict
