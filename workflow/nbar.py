@@ -1673,6 +1673,11 @@ class WriteMetadata(luigi.Task):
         source_info['path'] = acq.path
         source_info['row'] = acq.row
 
+        # ancillary metadata tracking
+        md = gaip.extract_ancillary_metadata(self.l1t_path)
+        for key in md:
+            source_info[key] = md[key]
+
         targets = [pjoin(out_path, CONFIG.get('work', 'aerosol_target')),
                    pjoin(out_path, CONFIG.get('work', 'sundist_target')),
                    pjoin(out_path, CONFIG.get('work', 'vapour_target')),

@@ -95,7 +95,7 @@ def write_modis_brdf_files(acquisitions, fname_format, brdf_data,
             msg = "{bias} {gain} {irrad} {dist}\n"
             msg = msg.format(bias=acq.bias, gain=acq.gain,
                              irrad=solar_irrad_data[band],
-                             dist=solar_dist_data['distance'])
+                             dist=solar_dist_data)
             outfile.write(msg)
 
 
