@@ -523,6 +523,9 @@ def acquisitions_via_geotiff(path):
                 if md['sensor_id'] == 'ETM':
                     md['sensor_id'] = 'ETM+'
 
+                if md['sensor_id'] == 'OLITIRS':
+                    md['sensor_id'] == 'OLI_TIRS'
+
                 # get sensor info from SENSORS
 
                 new['SENSOR_INFO'] = {}
