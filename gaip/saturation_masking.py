@@ -74,8 +74,7 @@ def set_saturation_bits(l1t_stack, pq_const, result):
 
         # Use numpy for single bands run in parallel - numexpr is not thread
         # safe
-        mask = saturation_mask(band_array, (len(band_list) > 1
-                                            or CONFIG.sequential))
+        mask = saturation_mask(band_array)
 
         result.set_mask(mask, bit_index)
 

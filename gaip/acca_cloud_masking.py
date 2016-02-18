@@ -120,8 +120,6 @@ def filter6(reflectance_stack):
         An nD Numpy array (unbound range).
     """
 
-    # return nir/green
-    # return  numpy.divide(array[3],array[1])
     return numexpr.evaluate("nir / green",
                             {'nir': reflectance_stack[3],
                              'green': reflectance_stack[1]}, locals())
@@ -291,15 +289,11 @@ def acca_2nd_pass(cloud_mask, ambiguous_array, thermal_array,
         aux_data['acca_pass_2_class_1_percent'] = qpop
         aux_data['acca_pass_2_class_2_percent'] = qpop2
 
-        # CONFIG.pqa_param['acca_thermal_effect']:
         if qpop < pq_const.acca_thermal_effect:
-            # CONFIG.pqa_param['acca_coldcloud_mean']:
             if qmean < pq_const.acca_cold_cloud_mean:
                 # Combine all cloud classes
                 return numexpr.evaluate("cloud_mask | query | query2")
-            # CONFIG.pqa_param['acca_thermal_effect']:
             elif qpop2 < pq_const.acca_thermal_effect:
-                # CONFIG.pqa_param['acca_coldcloud_mean']:
                 if qmean2 < pq_const.acca_cold_cloud_mean:
                     # Combine lower threshold clouds and pass 1 clouds
                     return numexpr.evaluate("cloud_mask | query2")
@@ -344,15 +338,11 @@ def acca_2nd_pass(cloud_mask, ambiguous_array, thermal_array,
         aux_data['acca_pass_2_class_1_percent'] = qpop
         aux_data['acca_pass_2_class_2_percent'] = qpop2
 
-        # CONFIG.pqa_param['acca_thermal_effect']:
         if qpop < pq_const.acca_thermal_effect:
-            # CONFIG.pqa_param['acca_coldcloud_mean']:
             if qmean < pq_const.acca_cold_cloud_mean:
                 # Combine all cloud classes
                 return numexpr.evaluate("cloud_mask | query | query2")
-            # CONFIG.pqa_param['acca_thermal_effect']:
             elif qpop2 < pq_const.acca_thermal_effect:
-                # CONFIG.pqa_param['acca_coldcloud_mean']:
                 if qmean2 < pq_const.acca_cold_cloud_mean:
                     # Combine lower threshold clouds and pass 1 clouds
                     return numexpr.evaluate("cloud_mask | query2")
@@ -411,10 +401,6 @@ def acca(reflectance_stack, thermal_array, potential_cloud_array, pq_const,
     # Create the array for Ambiguous Pixels - NAN means not ambiguous
     ambiguous_array = numpy.ones(
         potential_cloud_array.shape, dtype=numpy.float32) * NAN
-
-    # Keep an un-NANed copy of the thermal band for later use
-    #thermal_array = image_stack[5].copy()
-    #thermal_array = image_stack[5]
 
     # Will add in a water mask, to remove cold water bodies that have been
     # put into the ambigous group. If the water body is high in red
