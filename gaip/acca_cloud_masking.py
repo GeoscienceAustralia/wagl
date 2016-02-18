@@ -291,15 +291,11 @@ def acca_2nd_pass(cloud_mask, ambiguous_array, thermal_array,
         aux_data['acca_pass_2_class_1_percent'] = qpop
         aux_data['acca_pass_2_class_2_percent'] = qpop2
 
-        # CONFIG.pqa_param['acca_thermal_effect']:
         if qpop < pq_const.acca_thermal_effect:
-            # CONFIG.pqa_param['acca_coldcloud_mean']:
             if qmean < pq_const.acca_cold_cloud_mean:
                 # Combine all cloud classes
                 return numexpr.evaluate("cloud_mask | query | query2")
-            # CONFIG.pqa_param['acca_thermal_effect']:
             elif qpop2 < pq_const.acca_thermal_effect:
-                # CONFIG.pqa_param['acca_coldcloud_mean']:
                 if qmean2 < pq_const.acca_cold_cloud_mean:
                     # Combine lower threshold clouds and pass 1 clouds
                     return numexpr.evaluate("cloud_mask | query2")
@@ -344,15 +340,11 @@ def acca_2nd_pass(cloud_mask, ambiguous_array, thermal_array,
         aux_data['acca_pass_2_class_1_percent'] = qpop
         aux_data['acca_pass_2_class_2_percent'] = qpop2
 
-        # CONFIG.pqa_param['acca_thermal_effect']:
         if qpop < pq_const.acca_thermal_effect:
-            # CONFIG.pqa_param['acca_coldcloud_mean']:
             if qmean < pq_const.acca_cold_cloud_mean:
                 # Combine all cloud classes
                 return numexpr.evaluate("cloud_mask | query | query2")
-            # CONFIG.pqa_param['acca_thermal_effect']:
             elif qpop2 < pq_const.acca_thermal_effect:
-                # CONFIG.pqa_param['acca_coldcloud_mean']:
                 if qmean2 < pq_const.acca_cold_cloud_mean:
                     # Combine lower threshold clouds and pass 1 clouds
                     return numexpr.evaluate("cloud_mask | query2")
