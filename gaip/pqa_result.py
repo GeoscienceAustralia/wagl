@@ -33,6 +33,7 @@ class PQAResult(object):
 
         self.test_set = set()
         self.array = numpy.zeros(shape, dtype=dtype)
+        self.dtype = dtype
         self.bitcount = self.array.itemsize * 8
         self.aux_data = aux_data
         self.geoBox = aGriddedGeoBox
@@ -49,9 +50,12 @@ class PQAResult(object):
 
         c = sum(sum(mask))
         logging.debug('Setting result for bit %d, masking %d pixels' % (bit_index, c))
-        numpy.bitwise_or(self.array, (mask << bit_index), self.array) # Set any 1 bits
+        numpy.bitwise_or(self.array, (mask << bit_index).astype(self.dtype),
+                         self.array) # Set any 1 bits
         if unset_bits:
-            numpy.bitwise_and(self.array, ~(~mask << bit_index), self.array) # Clear any 0 bits
+            numpy.bitwise_and(self.array,
+                              ~(~mask << bit_index).astype(self.dtype),
+                              self.array) # Clear any 0 bits
 
     def get_mask(self, bit_index):
         """
