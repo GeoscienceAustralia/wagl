@@ -116,24 +116,6 @@ def cloud_shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg,
     slope_b47b = pq_const.cshadow_slope_b47b
     stdv_mltp = pq_const.cshadow_stdv_multiplier
 
-    def linefinder(string_list, string=""):
-        """
-        Searches a list for the specified string.
-
-        :param string_list:
-            A list containing searchable strings.
-
-        :param string:
-            User input containing the string to search.
-
-        :return:
-            The line containing the found string.
-        """
-
-        for line in string_list:
-            if string in str(line):
-                return line
-
     def origin_map(geoTransform, cindex):
         """
         Converts the origin pixel co-ordinates to map units.
@@ -424,7 +406,6 @@ def cloud_shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg,
         gc.collect()
 
     # Expecting surface reflectance with a scale factor of 10000
-    #dim = image_stack.shape
     scaling_factor = np.float32(0.0001)
     reflectance_stack = image_stack.astype(np.float32)
     reflectance_stack = numexpr.evaluate("reflectance_stack * scaling_factor")
@@ -432,7 +413,6 @@ def cloud_shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg,
     # Get the indices of cloud
     # need the actual indices rather than a boolean array
     ctherm = kelvin_array[cindex]
-    #dims_index   = ctherm.shape
     dims = kelvin_array.shape
 
     ndvi = ndvi(red=reflectance_stack[2], nir=reflectance_stack[3])
@@ -444,7 +424,6 @@ def cloud_shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg,
 
     # General water test
     wt = water_test(ndvi=ndvi, band5=reflectance_stack[4])
-    #wt = numexpr.evaluate("((ndvi < wt_ndvi) & (band5 < wt_b5))")
 
     if contiguity_mask is not None:
         # Non-contiguous pixels
@@ -464,7 +443,6 @@ def cloud_shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg,
     surfaceTemp = np.mean(
         kelvin_array[survivors], dtype='float64')  # What if too low?
 
-    print 'Surface Temperature (Survivors): ', surfaceTemp
 
     del ndvi, non_cloud
 
@@ -477,7 +455,6 @@ def cloud_shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg,
     if sr.IsGeographic() == 1:
         R = sr.GetSemiMajor()
 
-        print 'Calculating Cloud Map Origin Coordinates'
         rlon, rlat = origin_map(geoTransform, cindex)
         rlon = np.radians(rlon)
         rlat = np.radians(rlat)
@@ -485,16 +462,11 @@ def cloud_shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg,
         i = 1
         for lr in lapse_rates:
 
-            print 'Calculating Cloud Height'
             cheight = cloud_height(
                 ctherm, surface_temp=surfaceTemp, lapse_rate=lr)
-            #del ctherm; gc.collect()
 
-            print 'Calculating Cloud Shadow Length'
             d = shadow_length(cheight, rad_elev)
-            #del cheight; gc.collect()
 
-            print 'Calculating Cloud Shadow Map Coordinates'
             rlat2 = np.arcsin(np.sin(rlat) * np.cos(d / R) +
                               np.cos(rlat) * np.sin(d / R) *
                               np.cos(rad_cor_az))
@@ -506,7 +478,6 @@ def cloud_shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg,
             rlat2 = np.rad2deg(rlat2)
             rlon2 = np.rad2deg(rlon2)
 
-            print 'Calculating Cloud Shadow Image Coordinates'
             sindex = map2img(new_mapx=rlon2, new_mapy=rlat2,
                              geoTransform=geoTransform, dims=dims)
 
@@ -518,35 +489,26 @@ def cloud_shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg,
         s_index = numexpr.evaluate("cshadow == True")
 
     else:
-        print 'Calculating Cloud Map Origin Coordinates'
         omapx, omapy = origin_map(geoTransform, cindex)
 
         i = 1
         for lr in lapse_rates:
 
-            print 'Calculating Cloud Height'
             cheight = cloud_height(
                 ctherm, surface_temp=surfaceTemp, lapse_rate=lr)
-            #del ctherm; gc.collect()
 
-            print 'Calculating Cloud Shadow Length'
             shad_length = shadow_length(cheight, rad_elev)
             del cheight
             gc.collect()
 
-            print 'Converting Polar to Rectangular Coordinates'
             rectxy = rect_xy(shad_length, rad_cor_az)
             del shad_length
             gc.collect()
 
-            print 'Calculating Cloud Shadow Map Coordinates'
             new_mapx, new_mapy = mapxy(rectxy, omapx, omapy)
-            #del rectxy, omapx, omapy; gc.collect()
             del rectxy
             gc.collect()
-            # print 'len new_mapx: ', new_mapx.shape
 
-            print 'Calculating Cloud Shadow Image Coordinates'
             sindex = map2img(new_mapx, new_mapy, geoTransform, dims)
             del new_mapx, new_mapy
             gc.collect()
@@ -562,7 +524,6 @@ def cloud_shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg,
     # Only apply spectral tests when growing a region
     # May need to add or change spectral tests to eliminate some landcovers.
     if growregion:
-        print 'Applying Region Growing'
         stng = datetime.datetime.now()
 
         q1 = numexpr.evaluate("(cloud_mask >= 1) & s_index")
