@@ -145,9 +145,10 @@ class PixelQualityTask(luigi.Task):
             aux_data = {}   # for collecting result metadata
             
             # TODO: pass in scene metadata via Dale's new MTL reader
-            mtl = glob(os.path.join(self.l1t_path, \
-                'scene01/*_MTL.txt'))[0] # Crude but effective
-            mask = gaip.fmask_cloud_mask(mtl, null_mask=contiguity_mask,
+            mtl = glob(os.path.join(self.l1t_path,  'scene01/*_MTL.txt'))
+            if len(mtl) == 0:
+                mtl = glob(os.path.join(self.l1t_path,  'product/*_MTL.txt'))
+            mask = gaip.fmask_cloud_mask(mtl[0], null_mask=contiguity_mask,
                                          sat_tag=spacecraft_id,
                                          aux_data=aux_data)
 
