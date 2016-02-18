@@ -120,8 +120,6 @@ def filter6(reflectance_stack):
         An nD Numpy array (unbound range).
     """
 
-    # return nir/green
-    # return  numpy.divide(array[3],array[1])
     return numexpr.evaluate("nir / green",
                             {'nir': reflectance_stack[3],
                              'green': reflectance_stack[1]}, locals())
@@ -403,10 +401,6 @@ def acca(reflectance_stack, thermal_array, potential_cloud_array, pq_const,
     # Create the array for Ambiguous Pixels - NAN means not ambiguous
     ambiguous_array = numpy.ones(
         potential_cloud_array.shape, dtype=numpy.float32) * NAN
-
-    # Keep an un-NANed copy of the thermal band for later use
-    #thermal_array = image_stack[5].copy()
-    #thermal_array = image_stack[5]
 
     # Will add in a water mask, to remove cold water bodies that have been
     # put into the ambigous group. If the water body is high in red
