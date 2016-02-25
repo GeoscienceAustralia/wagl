@@ -1719,10 +1719,9 @@ class WriteMetadata(luigi.Task):
         ancillary['brdf'] = brdf
 
         # TODO (a) retrieve software version from git once deployed
-        # TODO (b) determine what the algorithm version is
         algorithm = {}
         algorithm['algorithm_version'] = 2.0 # hardcode for now see TODO (a)
-        algorithm['software_version'] = 4.0 # hardcode for now see TODO (b)
+        algorithm['software_version'] = gaip.get_version()
         algorithm['arg25_doi'] = 'http://dx.doi.org/10.4225/25/5487CC0D4F40B'
         algorithm['nbar_doi'] = 'http://dx.doi.org/10.1109/JSTARS.2010.2042281'
         algorithm['nbar_terrain_corrected_doi'] = ('http://dx.doi.org/10.1016/'
