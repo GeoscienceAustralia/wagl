@@ -36,7 +36,8 @@ def nbar_name_from_l1t(l1t_fname):
     m = PAT.match(l1t_fname)
     if m:
         sensor_id = m.group('sensor_id')
-        sensor_id = sensor_id.replace('OLITIRS', 'OLI_TIRS')
+        # NBAR products should now be packaged as OLITIRS
+        # sensor_id = sensor_id.replace('OLITIRS', 'OLI_TIRS')
         msg = "{}_{}_NBAR_P54_GANBAR01-{}_{}_{}_{}"
         return msg.format(m.group('spacecraft_id'), sensor_id,
                           m.group('station_id'), m.group('wrs_path'),
@@ -145,10 +146,8 @@ class PixelQualityTask(luigi.Task):
             aux_data = {}   # for collecting result metadata
             
             # TODO: pass in scene metadata via Dale's new MTL reader
-            mtl = glob(os.path.join(self.l1t_path,  'scene01/*_MTL.txt'))
-            if len(mtl) == 0:
-                mtl = glob(os.path.join(self.l1t_path,  'product/*_MTL.txt'))
-            mask = gaip.fmask_cloud_mask(mtl[0], null_mask=contiguity_mask,
+            mtl = glob(os.path.join(self.l1t_path,  '*/*_MTL.txt'))[0]
+            mask = gaip.fmask_cloud_mask(mtl, null_mask=contiguity_mask,
                                          sat_tag=spacecraft_id,
                                          aux_data=aux_data)
 
