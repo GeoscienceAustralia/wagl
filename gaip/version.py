@@ -3,13 +3,13 @@
 Get the current version number.
 
 Public releases are expected to be tagged in the repository
-with prefix 'gqa-' and a version number following PEP-440.
+with prefix 'gaip-' and a version number following PEP-440.
 
 Eg. ::
 
-    gqa-0.1.0
-    gqa-0.2.0.dev1
-    gqa-0.2.0+9f43bbc
+    gaip-0.1.0
+    gaip-0.2.0.dev1
+    gaip-0.2.0+9f43bbc
 
 Refer to PEP440: https://www.python.org/dev/peps/pep-0440
 
@@ -24,7 +24,7 @@ from subprocess import CalledProcessError, check_output
 
 import pkg_resources
 
-PREFIX = 'gqa-'
+PREFIX = 'gaip-'
 
 GIT_TAG_PATTERN = re.compile(r'\btag: %s([0-9][^,]*)\b' % PREFIX)
 VERSION_PATTERN = re.compile(r'^Version: (.+)$', re.M)
@@ -40,7 +40,7 @@ def get_version():
 
     if isdir(git_dir):
         # Ask git for an annotated version number
-        # (eg. "gqa-0.0.0-651-gcf335a9-dirty")
+        # (eg. "gaip-0.0.0-651-gcf335a9-dirty")
         cmd = [
             'git',
             '--git-dir', git_dir,
