@@ -4,15 +4,15 @@ import numpy
 import numexpr
 import gdal
 
-from eotools import tiling
+#from eotools import tiling
 from gaip import endmembers
 from gaip import GriddedGeoBox
 from gaip import LandsatAcquisition
 from gaip import stack_data
 from gaip import unmiximage
 
-from datacube.api.model import BANDS
-from datacube.api.model import DatasetType, Satellite
+#from datacube.api.model import BANDS
+#from datacube.api.model import DatasetType, Satellite
 
 """
 Utility functions used in fractional cover. These should not be used outside of this package as they

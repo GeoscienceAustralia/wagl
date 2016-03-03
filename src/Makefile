@@ -28,11 +28,11 @@ $(INSTALLED_EXES): $(BINDIR)/%: %
 	@cp -p $< $@
 
 %: %.c
-	$$(module load gcc/4.9.0)
+	$$(module load gcc/5.2.0)
 	$(CC) $(CFLAGS) $< -o $@
 
 %: %.f
-	$$(module load gcc/4.9.0)
+	$$(module load gcc/5.2.0)
 	$(FC) $(FCFLAGS) $< -o $@
 
 clean:
