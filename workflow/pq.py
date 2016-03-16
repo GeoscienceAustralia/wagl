@@ -9,10 +9,14 @@ import luigi
 import logging
 import os
 from os.path import join as pjoin
-from os.path import basename
+from os.path import basename, exists
 import sys
 import gc
 import re
+import yaml
+from enum import Enum
+import subprocess
+from datetime import datetime as dt
 import gaip
 
 
@@ -26,6 +30,22 @@ L1T_PATTERN = ('(?P<spacecraft_id>LS\d)_(?P<sensor_id>\w+)_'
                '(?P<wrs_path>\d+)_(?P<wrs_row>\d+)_'
                '(?P<acquisition_date>\d{8})')
 PAT = re.compile(L1T_PATTERN)
+
+
+class PQbits(Enum):
+    band_1_saturated = 0
+    band_2_saturated = 1
+    band_3_saturated = 2
+    band_4_saturated = 3
+    band_5_saturated = 4
+    band_6_saturated = 5
+    band_7_saturated = 6
+    contiguity = 7
+    land_obs = 8
+    cloud_acca = 9
+    cloud_fmask = 10
+    cloud_shadow_acca = 11
+    cloud_shadow_fmask = 12
 
 
 def nbar_name_from_l1t(l1t_fname):
@@ -102,6 +122,21 @@ class PixelQualityTask(luigi.Task):
         logging.debug("setting constants for sensor={}".format(sensor))
         pq_const = gaip.PQAConstants(sensor)
 
+        # track the bits that have been set (tests that have been run)
+        tests_run = {'band_1_saturated': False,
+                     'band_2_saturated': False,
+                     'band_3_saturated': False,
+                     'band_4_saturated': False,
+                     'band_5_saturated': False,
+                     'band_6_saturated': False,
+                     'band_7_saturated': False,
+                     'contiguity': False,
+                     'land_obs': False,
+                     'cloud_acca': False,
+                     'cloud_fmask': False,
+                     'cloud_shadow_acca': False,
+                     'cloud_shadow_fmask': False}
+
         # the PQAResult object for this run
 
         pqaResult = gaip.PQAResult(l1t_data[0].shape, geo_box)
@@ -109,14 +144,17 @@ class PixelQualityTask(luigi.Task):
         # Saturation
 
         logging.debug("setting saturation bits")
-        gaip.set_saturation_bits(l1t_data, pq_const, pqaResult)
+        bits_set = gaip.set_saturation_bits(l1t_data, pq_const, pqaResult)
         logging.debug("done setting saturation bits")
+        for bit in bits_set:
+            tests_run[PQbits(bit).name] = True
 
         # contiguity
 
         logging.debug("setting contiguity bit")
         gaip.set_contiguity_bit(l1t_data, spacecraft_id, pq_const, pqaResult)
         logging.debug("done setting contiguity bit")
+        tests_run['contiguity'] = True
 
         # land/sea
 
@@ -124,6 +162,7 @@ class PixelQualityTask(luigi.Task):
  #       affine = geo_box.affine
         gaip.set_land_sea_bit(geo_box, pq_const, pqaResult, self.land_sea_path)
         logging.debug("done setting land/sea bit")
+        tests_run['land_obs'] = True
 
         # get temperature data from thermal band in prepartion for cloud detection
 
@@ -146,7 +185,7 @@ class PixelQualityTask(luigi.Task):
             aux_data = {}   # for collecting result metadata
             
             # TODO: pass in scene metadata via Dale's new MTL reader
-            mtl = glob(os.path.join(self.l1t_path,  '*/*_MTL.txt'))[0]
+            mtl = glob(os.path.join(self.l1t_path, '*/*_MTL.txt'))[0]
             mask = gaip.fmask_cloud_mask(mtl, null_mask=contiguity_mask,
                                          sat_tag=spacecraft_id,
                                          aux_data=aux_data)
@@ -154,6 +193,8 @@ class PixelQualityTask(luigi.Task):
             # set the result
             pqaResult.set_mask(mask, pq_const.fmask)
             pqaResult.add_to_aux_data(aux_data)
+
+            tests_run['cloud_fmask'] = True
         else:
             logging.warning(('FMASK Not Run! {} sensor not configured for the '
                              'FMASK algorithm.').format(sensor))
@@ -180,7 +221,7 @@ class PixelQualityTask(luigi.Task):
             mask = None
             aux_data = {}   # for collecting result metadata
             if pq_const.oli_tirs:
-                mask = gaip.calc_acca_cloud_mask(nbar_data[1:,:,:],
+                mask = gaip.calc_acca_cloud_mask(nbar_data[1:, :, :],
                                                  kelvin_band, pq_const,
                                                  contiguity_mask, aux_data)
             else: # TM or ETM
@@ -191,6 +232,8 @@ class PixelQualityTask(luigi.Task):
             # set the result
             pqaResult.set_mask(mask, pq_const.acca)
             pqaResult.add_to_aux_data(aux_data)
+
+            tests_run['cloud_acca'] = True
         else:
             logging.warning(('ACCA Not Run! {} sensor not configured for the '
                              'ACCA algorithm.').format(sensor))
@@ -211,7 +254,7 @@ class PixelQualityTask(luigi.Task):
             sun_az_deg = l1t_acqs[0].sun_azimuth
             sun_elev_deg = l1t_acqs[0].sun_elevation
             if pq_const.oli_tirs:
-                mask = gaip.cloud_shadow(nbar_data[1:,:,:], kelvin_band,
+                mask = gaip.cloud_shadow(nbar_data[1 :, :, :], kelvin_band,
                                          cloud_mask, geo_box, sun_az_deg,
                                          sun_elev_deg, pq_const,
                                          land_sea_mask=land_sea_mask,
@@ -229,8 +272,9 @@ class PixelQualityTask(luigi.Task):
             pqaResult.set_mask(mask, pq_const.acca_shadow)
             pqaResult.add_to_aux_data(aux_data)
 
+            tests_run['cloud_shadow_acca'] = True
         else: # OLI/TIRS only
-            logger.warning(('Cloud Shadow Algorithm Not Run! {} sensor not '
+            logging.warning(('Cloud Shadow Algorithm Not Run! {} sensor not '
                             'configured for the cloud shadow '
                             'algorithm.').format(sensor))
 
@@ -247,7 +291,7 @@ class PixelQualityTask(luigi.Task):
             sun_az_deg = l1t_acqs[0].sun_azimuth
             sun_elev_deg = l1t_acqs[0].sun_elevation
             if pq_const.oli_tirs:
-                mask = gaip.cloud_shadow(nbar_data[1:,:,:], kelvin_band,
+                mask = gaip.cloud_shadow(nbar_data[1:, :, :], kelvin_band,
                                          cloud_mask, geo_box, sun_az_deg,
                                          sun_elev_deg, pq_const,
                                          land_sea_mask=land_sea_mask,
@@ -265,8 +309,9 @@ class PixelQualityTask(luigi.Task):
             pqaResult.set_mask(mask, pq_const.fmask_shadow)
             pqaResult.add_to_aux_data(aux_data)
 
+            tests_run['cloud_shadow_fmask'] = True
         else: # OLI/TIRS only
-            logger.warning(('Cloud Shadow Algorithm Not Run! {} sensor not '
+            logging.warning(('Cloud Shadow Algorithm Not Run! {} sensor not '
                             'configured for the cloud shadow '
                             'algorithm.').format(sensor))
 
@@ -278,7 +323,30 @@ class PixelQualityTask(luigi.Task):
         pqa_output_path = os.path.join(self.pq_path, "pqa.tif")
         pqaResult.save_as_tiff(pqa_output_path)
         logging.debug("done saving PQA result GeoTiff")
-            
+
+        # metadata
+        system_info = {}
+        proc = subprocess.Popen(['uname', '-a'], stdout=subprocess.PIPE)
+        system_info['node'] = proc.stdout.read()
+        system_info['time_processed'] = dt.utcnow()
+
+        source_info = {}
+        source_info['source_l1t'] = self.l1t_path
+        source_info['source_nbar'] = self.nbar_path
+
+        algorithm = {}
+        algorithm['software_version'] = gaip.get_version()
+        algorithm['pq_doi'] = 'http://dx.doi.org/10.1109/IGARSS.2013.6723746'
+        
+        metadata = {}
+        metadata['system_information'] = system_info
+        metadata['source_data'] = source_info
+        metadata['algorithm_information'] = algorithm
+        metadata['test_run'] = tests_run
+
+        with open(pjoin(self.pq_path, "pq_metadata.yml")) as src:
+            yaml.dump(metadata, src, default_flow_style=False)
+
 
 class PQDataset(luigi.Target):
 
