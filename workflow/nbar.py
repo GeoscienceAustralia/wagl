@@ -1794,8 +1794,16 @@ def scatter(iterable, P=1, p=1):
 def main(inpath, outpath, workpath, nnodes=1, nodenum=1):
     l1t_files = sorted([pjoin(inpath, f) for f in os.listdir(inpath) if
                         '_OTH_' in f])
-    l1t_files = [f for f in scatter(l1t_files, nnodes, nodenum)]
-    print l1t_files
+    filtered_l1t = []
+    for l1t in l1t_files:
+        acq = gaipacquisitions(l1t)[0]
+        if ((87 <= acq.path <= 116) & (67 <= acq.row <= 91)):
+            filtered_l1t.append(l1t)
+        else:
+            msg = "Skipping {}".format(acq.dir_name)
+            print msg
+        
+    l1t_files = [f for f in scatter(filtered_l1t, nnodes, nodenum)]
     nbar_files = [pjoin(workpath, os.path.basename(f).replace('OTH', 'NBAR'))
                   for f in l1t_files]
     # tasks = [TerrainCorrection(l1t, nbar) for l1t, nbar in

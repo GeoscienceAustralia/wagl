@@ -330,15 +330,16 @@ def scatter(iterable, P=1, p=1):
 def main(l1t_path, nbar_path, land_sea_path, outpath, nnodes=1, nodenum=1):
     l1t_files = sorted([pjoin(l1t_path, f) for f in os.listdir(l1t_path) if
                         '_OTH_' in f])
-    l1t_files = [basename(f) for f in scatter(l1t_files, nnodes, nodenum)]
+    files = zip(l1t_files, [pjoin(nbar_path, nbar_name_from_l1t(basename(f)))
+                            for f in l1t_files])
+    files = [(l1t, nbar) for l1t, nbar in files if exists(nbar)]
+    files = [f for f in scatter(files, nnodes, nodenum)]
     ncpus = int(os.getenv('PBS_NCPUS', '1'))
     tasks = []
-    for l1t_file in l1t_files:
-        l1t_dataset_path = pjoin(l1t_path, l1t_file)
-        nbar_dataset_path = pjoin(nbar_path, nbar_name_from_l1t(l1t_file))
-        pqa_dataset_path = pjoin(outpath, pqa_name_from_l1t(l1t_file))
-        tasks.append(PixelQualityTask(l1t_dataset_path, nbar_dataset_path,
-                                      land_sea_path, pqa_dataset_path))
+    for l1t, nbar in files:
+        pqa_dataset_path = pjoin(outpath, pqa_name_from_l1t(basename(l1t)))
+        tasks.append(PixelQualityTask(l1t, nbar, land_sea_path,
+                                      pqa_dataset_path))
 
     luigi.build(tasks, local_scheduler=True, workers=4)
 
