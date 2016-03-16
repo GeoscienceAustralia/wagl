@@ -58,7 +58,7 @@ class PQAConstants(object):
             'ETM+': [0, 1, 2, 3, 4, 5, 6, 7],
             'OLI_TIRS': [0, 1, 2, 3, 4, 7, 5, 6],
             'OLI': [0, 1, 2, 3, 4, 7],
-            'TIRS': [6, 6]
+            'TIRS': [5, 6]
         }
 
         self.saturation_bits = bits[self.sensor]
