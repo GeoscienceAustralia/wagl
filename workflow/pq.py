@@ -4,23 +4,22 @@
 #
 #
 
-import argparse
-import luigi
-import logging
+from datetime import datetime as dt
 import os
 from os.path import join as pjoin
 from os.path import basename, exists
-import sys
 import gc
+from glob import glob
+import logging
 import re
+import subprocess
+import argparse
 import yaml
 from enum import Enum
-import subprocess
-from datetime import datetime as dt
+import luigi
 import gaip
 
 
-from glob import glob
 
 
 L1T_PATTERN = ('(?P<spacecraft_id>LS\d)_(?P<sensor_id>\w+)_'
@@ -211,7 +210,7 @@ class PixelQualityTask(luigi.Task):
 
         nbar_data, geo_box = gaip.stack_data(nbar_acqs)
         logging.debug(("nbar_data shape={}, "
-                        "geo_box= {}").format(bytes(nbar_data.shape),
+                       "geo_box= {}").format(bytes(nbar_data.shape),
                                               bytes(geo_box)))
 
         # acca cloud mask
@@ -312,8 +311,8 @@ class PixelQualityTask(luigi.Task):
             tests_run['cloud_shadow_fmask'] = True
         else: # OLI/TIRS only
             logging.warning(('Cloud Shadow Algorithm Not Run! {} sensor not '
-                            'configured for the cloud shadow '
-                            'algorithm.').format(sensor))
+                             'configured for the cloud shadow '
+                             'algorithm.').format(sensor))
 
         logging.debug("done calculating FMASK cloud shadow mask")
 
