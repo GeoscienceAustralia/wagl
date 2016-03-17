@@ -9,21 +9,21 @@ Workflow settings can be configured in `nbar.cfg` file.
 # pylint: disable=missing-docstring,no-init,too-many-function-args
 # pylint: disable=too-many-locals
 
-import luigi
-import gaip
+from datetime import datetime as dt
 import cPickle as pickle
 import os
-import argparse
-import logging
-
 from os.path import join as pjoin, dirname, exists
+import subprocess
+import logging
 import glob
 import shutil
+import tempfile
+import argparse
 import yaml
 from yaml.representer import Representer
-import subprocess
+import luigi
 import numpy
-from datetime import datetime as dt
+import gaip
 
 
 def save(target, value):
@@ -461,7 +461,7 @@ class CreateModisBrdfFiles(luigi.Task):
         acqs = gaip.acquisitions(self.l1t_path)
         out_path = self.out_path
         modis_brdf_format = pjoin(out_path,
-            CONFIG.get('brdf', 'modis_brdf_format'))
+                                  CONFIG.get('brdf', 'modis_brdf_format'))
 
         # Retrieve the satellite and sensor for the acquisition
         satellite = acqs[0].spacecraft_id
@@ -485,7 +485,7 @@ class CreateModisBrdfFiles(luigi.Task):
         acqs = gaip.acquisitions(self.l1t_path)
         outdir = self.out_path
         modis_brdf_format = pjoin(outdir,
-            CONFIG.get('brdf', 'modis_brdf_format'))
+                                  CONFIG.get('brdf', 'modis_brdf_format'))
         brdf_target = pjoin(outdir, CONFIG.get('work', 'brdf_target'))
         brdf_data = load_value(brdf_target)
         irrad_target = pjoin(outdir, CONFIG.get('work', 'irrad_target'))
@@ -1510,12 +1510,13 @@ class CalculateCastShadowSatellite(luigi.Task):
                                    satellite_azimuth_target, satellite_target)
 
 
-class TerrainCorrection(luigi.Task):
+class RunTCBand(luigi.Task):
 
-    """Perform the terrain correction."""
+    """Run the terrain correction over a given band."""
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    band_num = luigi.IntParameter()
 
     def requires(self):
         return [BilinearInterpolation(self.l1t_path, self.out_path),
@@ -1528,14 +1529,6 @@ class TerrainCorrection(luigi.Task):
     def output(self):
         acqs = gaip.acquisitions(self.l1t_path)
 
-        # Retrieve the satellite and sensor for the acquisition
-        satellite = acqs[0].spacecraft_id
-        sensor = acqs[0].sensor_id
-
-        # Get the required nbar bands list for processing
-        nbar_constants = gaip.constants.NBARConstants(satellite, sensor)
-        bands_to_process = nbar_constants.get_nbar_lut()
-
         # Get the reflectance levels and base output format
         rfl_levels = CONFIG.get('terrain_correction', 'rfl_levels').split(',')
         output_format = CONFIG.get('terrain_correction', 'output_format')
@@ -1544,13 +1537,16 @@ class TerrainCorrection(luigi.Task):
         out_path = pjoin(self.out_path,
                          CONFIG.get('work', 'rfl_output_dir'))
 
+        # get the acquisition we wish to process
+        acqs = [acq for acq in acqs if acq.band_num == self.band_num]
+
         # Create the targets
         targets = []
         for level in rfl_levels:
-            for band in bands_to_process:
-                target = pjoin(out_path,
-                               output_format.format(level=level, band=band))
-                targets.append(luigi.LocalTarget(target))
+            target = pjoin(out_path,
+                           output_format.format(level=level,
+                                                band=self.band_num))
+            targets.append(luigi.LocalTarget(target))
         return targets
 
     def run(self):
@@ -1605,36 +1601,24 @@ class TerrainCorrection(luigi.Task):
                                       CONFIG.get('work',
                                                  'relative_azimuth_target'))
 
-        # Retrieve the satellite and sensor for the acquisition
-        satellite = acqs[0].spacecraft_id
-        sensor = acqs[0].sensor_id
-
-        # Get the required nbar bands list for processing
-        nbar_constants = gaip.constants.NBARConstants(satellite, sensor)
-        bands_to_process = nbar_constants.get_nbar_lut()
-
-        # Initialise the list to contain the acquisitions we wish to process
-        acqs_to_process = []
-        for acq in acqs:
-            band_number = acq.band_num
-            if band_number in bands_to_process:
-                acqs_to_process.append(acq)
-
         # Get the processing tile sizes
         x_tile = int(CONFIG.get('work', 'x_tile_size'))
         y_tile = int(CONFIG.get('work', 'y_tile_size'))
         x_tile = None if x_tile <= 0 else x_tile
         y_tile = None if y_tile <= 0 else y_tile
 
+        # get the acquisition we wish to process
+        acqs = [acq for acq in acqs if acq.band_num == self.band_num]
+
         # Output targets
         # Create a dict of filenames per reflectance level per band
         rfl_lvl_fnames = {}
         for level in rfl_levels:
-            for band in bands_to_process:
-                outfname = output_format.format(level=level, band=band)
-                rfl_lvl_fnames[(band, level)] = pjoin(outdir, outfname)
+            outfname = output_format.format(level=level, band=self.band_num)
+            rfl_lvl_fnames[(self.band_num, level)] = pjoin(outdir, outfname)
 
-        gaip.calculate_reflectance(acqs_to_process, bilinear_target, rori,
+        # calculate reflectance for lambertian, brdf, and terrain correction 
+        gaip.calculate_reflectance(acqs, bilinear_target, rori,
                                    self_shadow_target, sun_target,
                                    satellite_target, solar_zenith_target,
                                    solar_azimuth_target, satellite_view_target,
@@ -1643,6 +1627,35 @@ class TerrainCorrection(luigi.Task):
                                    exiting_target, relative_slope_target,
                                    rfl_lvl_fnames, modis_brdf_format,
                                    new_modis_brdf_format, x_tile, y_tile)
+
+
+class TerrainCorrection(luigi.Task):
+
+    """Perform the terrain correction."""
+
+    l1t_path = luigi.Parameter()
+    out_path = luigi.Parameter()
+
+    def requires(self):
+        acqs = gaip.acquisitions(self.l1t_path)
+
+        # Retrieve the satellite and sensor for the acquisition
+        satellite = acqs[0].spacecraft_id
+        sensor = acqs[0].sensor_id
+
+        # Get the required nbar bands list for processing
+        nbar_constants = gaip.constants.NBARConstants(satellite, sensor)
+        bands_to_process = nbar_constants.get_nbar_lut()
+
+        # define the bands to compute reflectance for
+        tc_bands = []
+        for band in bands_to_process:
+            tc_bands.append(RunTCBand(self.l1t_path, self.out_path, band))
+
+        return tc_bands
+
+    def complete(self):
+        return all([t.complete() for t in self.requires()])
 
 
 class WriteMetadata(luigi.Task):
@@ -1796,7 +1809,7 @@ def main(inpath, outpath, workpath, nnodes=1, nodenum=1):
                         '_OTH_' in f])
     filtered_l1t = []
     for l1t in l1t_files:
-        acq = gaipacquisitions(l1t)[0]
+        acq = gaip.acquisitions(l1t)[0]
         if ((87 <= acq.path <= 116) & (67 <= acq.row <= 91)):
             filtered_l1t.append(l1t)
         else:
@@ -1866,7 +1879,8 @@ if __name__ == '__main__':
     # use the disk of the local node if we can
     # working directly off the lustre drive seems to flaky
     if args.work_path is None:
-        work_path = os.getenv('TMPDIR')
+        # work_path = os.getenv('TMPDIR')
+        work_path = tempfile.mkdtemp()
     else:
         work_path = args.out_path
 
