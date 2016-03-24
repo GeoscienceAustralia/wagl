@@ -12,7 +12,7 @@ Workflow settings can be configured in `nbar.cfg` file.
 from datetime import datetime as dt
 import cPickle as pickle
 import os
-from os.path import join as pjoin, dirname, exists
+from os.path import join as pjoin, basename, dirname, exists
 import subprocess
 import logging
 import glob
@@ -23,6 +23,8 @@ import yaml
 from yaml.representer import Representer
 import luigi
 import numpy
+from eodatasets.run import package_newly_processed_data_folder
+from eodatasets.drivers import PACKAGE_DRIVERS
 import gaip
 
 
@@ -1786,6 +1788,68 @@ class WriteMetadata(luigi.Task):
             yaml.dump(metadata, src, default_flow_style=False)
 
 
+class Packager(luigi.Task):
+
+    """Packages an nbar or nbart product."""
+
+    l1t_path = luigi.Parameter()
+    out_path = luigi.Parameter()
+    work_path = luigi.Parameter()
+    product = luigi.Parameter()
+
+    def requires(self):
+        return [WriteMetadata(self.l1t_path, self.work_path)]
+
+    def output(self):
+        out_format = '{}-packaging.completed'
+        out_fname = pjoin(self.work_path, out_format.format(self.product))
+        return luigi.LocalTarget(out_fname)
+
+    def run(self):
+        # run the packager
+        kwargs = {'driver': PACKAGE_DRIVERS[self.product],
+                  'input_data_paths': self.work_path,
+                  'destination_path': self.out_path,
+                  'parent_dataset_paths': self.l1t_path,
+                  'hard_link': False}
+        package_newly_processed_data_folder(**kwargs)
+
+        # output a checkpoint
+        with self.output.open('w') as src:
+            src.write('{} packaging completed'.format(self.product))
+
+
+class PackageTC(luigi.Task):
+
+    """Issues nbar &/or nbart packaging depending on the config."""
+
+    l1t_path = luigi.Parameter()
+    out_path = luigi.Parameter()
+    work_path = luigi.Parameter()
+
+    def requires(self):
+        products = CONFIG.get('packaging', 'products').split(',')
+        tasks = []
+        for product in products:
+            tasks.append(Packager(self.l1t_path, self.out_path,
+                                  self.work_path, product))
+        return tasks
+
+    def output(self):
+        out_format = '{}.completed'
+        base_dir = dirname(self.work_path)
+        fname = out_format.format(basename(self.work_path))
+        out_fname = pjoin(base_dir, fname)
+        return luigi.LocalTarget(out_fname)
+
+    def run(self):
+        with self.output.open('w') as src:
+            src.write('Task completed')
+
+        # cleanup the entire nbar scene working directory
+        shutil.rmtree(self.work_path)
+
+
 def is_valid_directory(parser, arg):
     """Used by argparse"""
     if not exists(arg):
@@ -1820,16 +1884,11 @@ def main(inpath, outpath, workpath, nnodes=1, nodenum=1):
     nbar_files = [pjoin(workpath, os.path.basename(f).replace('OTH', 'NBAR'))
                   for f in l1t_files]
     # tasks = [TerrainCorrection(l1t, nbar) for l1t, nbar in
-    tasks = [WriteMetadata(l1t, nbar) for l1t, nbar in
+    # tasks = [WriteMetadata(l1t, nbar) for l1t, nbar in
+    tasks = [PackageTC(l1t, nbar, workpath) for l1t, nbar in
              zip(l1t_files, nbar_files)]
     ncpus = int(os.getenv('PBS_NCPUS', '1'))
     luigi.build(tasks, local_scheduler=True, workers=ncpus / nnodes)
-
-    # move outputs to output directory
-    # (unless both the work and output directories are the same)
-    if not outpath == workpath:
-        for nbar in nbar_files:
-            shutil.move(nbar, outpath)
 
 
 if __name__ == '__main__':
