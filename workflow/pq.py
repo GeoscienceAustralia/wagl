@@ -158,8 +158,8 @@ class PixelQualityTask(luigi.Task):
         # land/sea
 
         logging.debug("setting land/sea bit")
- #       affine = geo_box.affine
-        gaip.set_land_sea_bit(geo_box, pq_const, pqaResult, self.land_sea_path)
+        md = gaip.set_land_sea_bit(geo_box, pq_const, pqaResult,
+                                   self.land_sea_path)
         logging.debug("done setting land/sea bit")
         tests_run['land_obs'] = True
 
@@ -211,7 +211,7 @@ class PixelQualityTask(luigi.Task):
         nbar_data, geo_box = gaip.stack_data(nbar_acqs)
         logging.debug(("nbar_data shape={}, "
                        "geo_box= {}").format(bytes(nbar_data.shape),
-                                              bytes(geo_box)))
+                                             bytes(geo_box)))
 
         # acca cloud mask
 
@@ -274,8 +274,8 @@ class PixelQualityTask(luigi.Task):
             tests_run['cloud_shadow_acca'] = True
         else: # OLI/TIRS only
             logging.warning(('Cloud Shadow Algorithm Not Run! {} sensor not '
-                            'configured for the cloud shadow '
-                            'algorithm.').format(sensor))
+                             'configured for the cloud shadow '
+                             'algorithm.').format(sensor))
 
         logging.debug("done calculating ACCA cloud shadow mask")
 
@@ -334,13 +334,14 @@ class PixelQualityTask(luigi.Task):
         source_info['source_nbar'] = self.nbar_path
 
         algorithm = {}
-        algorithm['software_version'] = gaip.get_version()
+        algorithm['software_version'] = bytes(gaip.get_version())
         algorithm['pq_doi'] = 'http://dx.doi.org/10.1109/IGARSS.2013.6723746'
         
         metadata = {}
         metadata['system_information'] = system_info
         metadata['source_data'] = source_info
         metadata['algorithm_information'] = algorithm
+        metadata['ancillary'] = md
         metadata['tests_run'] = tests_run
 
         with open(pjoin(self.pq_path, "pq_metadata.yml"), 'w') as src:
