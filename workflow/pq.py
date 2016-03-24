@@ -341,9 +341,9 @@ class PixelQualityTask(luigi.Task):
         metadata['system_information'] = system_info
         metadata['source_data'] = source_info
         metadata['algorithm_information'] = algorithm
-        metadata['test_run'] = tests_run
+        metadata['tests_run'] = tests_run
 
-        with open(pjoin(self.pq_path, "pq_metadata.yml")) as src:
+        with open(pjoin(self.pq_path, "pq_metadata.yml"), 'w') as src:
             yaml.dump(metadata, src, default_flow_style=False)
 
 
