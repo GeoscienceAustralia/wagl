@@ -313,7 +313,8 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, bands=1):
         yend = max(img_ll_y, img_lr_y) + 1
 
         # Check for out of bounds
-        if ((xstart < 0) or (ystart < 0)) or ((xend > cols) or (yend > rows)):
+        if (((xstart < 0) or (ystart < 0)) or
+            ((xend -1 > cols) or (yend -1 > rows))):
             msg = ("Error! Attempt to read a subset that is outside of the"
                    "image domain. Index: ({ys}, {ye}), ({xs}, {xe}))")
             msg = msg.format(ys=ystart, ye=yend, xs=xstart, xe=xend)
