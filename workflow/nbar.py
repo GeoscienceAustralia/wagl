@@ -1938,7 +1938,6 @@ if __name__ == '__main__':
     # use the disk of the local node if we can
     # working directly off the lustre drive seems to flaky
     if args.work_path is None:
-        # work_path = os.getenv('TMPDIR')
         work_path = tempfile.mkdtemp()
     else:
         work_path = args.out_path

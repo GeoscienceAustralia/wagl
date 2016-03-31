@@ -137,15 +137,6 @@ class BRDFLoader(object):
             self.roi = {'UL': i_ul, 'LR': i_lr}
 
 
-        #if self.roi['UL'][0] < self.ul[0] or \
-        #   self.roi['LR'][0] > self.lr[0] or \
-        #   self.roi['UL'][1] > self.ul[1] or \
-        #   self.roi['LR'][1] < self.lr[1]:
-        #    raise BRDFLoaderError(('%s: Region of interest %s extends beyond '
-        #                           'HDF domain {UL: %s, LR: %s}')
-        #                          % (self.__class__.__name__, str(self.roi),
-        #                             str(self.ul), str(self.lr)))
-
     def load(self):
         """
         Open file and load data arrays and required metadata.
