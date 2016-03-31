@@ -89,7 +89,7 @@ def slope_aspect_arrays(acquisition, dsm_fname, margins, slope_out_fname,
            (pixel_margin.left - 1, -(pixel_margin.right - 1)))
 
     with rasterio.open(dsm_fname) as dsm_ds:
-        dsm_subset = as_array(dsm_ds.read_band(1, window=idx, masked=False),
+        dsm_subset = as_array(dsm_ds.read(1, window=idx, masked=False),
                               dtype=numpy.float32, transpose=True)
 
     # Define an array of latitudes

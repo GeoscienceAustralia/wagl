@@ -624,8 +624,8 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
                 tile = tiles.next()
 
                 # Read the lon and lat tile
-                lon_array = lon.read_band(1, window=tile)
-                lat_array = lat.read_band(1, window=tile)
+                lon_array = lon.read(1, window=tile)
+                lat_array = lat.read(1, window=tile)
 
                 angle(cols, rows, i + 1, lat_array, lon_array,
                       spheroid, orbital_elements, hours, century,
@@ -640,8 +640,8 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
                 tile = tiles.next()
 
                 # Read the lon and lat tile
-                lon_array = lon.read_band(1, window=tile)
-                lat_array = lat.read_band(1, window=tile)
+                lon_array = lon.read(1, window=tile)
+                lat_array = lat.read(1, window=tile)
 
                 # Set to null value
                 view[:] = -999

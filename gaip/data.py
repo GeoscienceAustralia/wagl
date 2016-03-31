@@ -21,7 +21,7 @@ def get_pixel(filename, lonlat, band=1):
     by the tuple `lonlat`. Optionally, the `band` can be specified."""
     with rasterio.open(filename) as src:
         x, y = [int(v) for v in ~src.affine * lonlat]
-        return src.read_band(band, window=((y, y + 1), (x, x + 1))).flat[0]
+        return src.read(band, window=((y, y + 1), (x, x + 1))).flat[0]
 
 
 def no_data(acq):
@@ -52,7 +52,7 @@ def data(acq, out=None, window=None, masked=False):
     dirname = acq.dir_name
     filename = acq.file_name
     with rasterio.open(pjoin(dirname, filename), 'r') as fo:
-        return fo.read_band(1, out=out, window=window, masked=masked)
+        return fo.read(1, out=out, window=window, masked=masked)
 
 
 def data_and_box(acq, out=None, window=None, masked=False):
@@ -81,7 +81,7 @@ def data_and_box(acq, out=None, window=None, masked=False):
             ul_x, ul_y = fo.affine * (window[1][0], window[0][0])
             box = gaip.GriddedGeoBox(shape=(rows, cols), origin=(ul_x, ul_y),
                                      pixelsize=res, crs=prj)
-        return (fo.read_band(1, out=out, window=window, masked=masked), box)
+        return (fo.read(1, out=out, window=window, masked=masked), box)
 
 
 def gridded_geo_box(acq):

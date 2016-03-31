@@ -35,10 +35,10 @@ class TestFCProducts(ParameterisedTestCaseFiles):
         out_dir = self.output_directory
 
         with rasterio.open(self.reference_fname, 'r') as ref_ds:
-            ref_img = ref_ds.read_band(2, masked=False)
+            ref_img = ref_ds.read(2, masked=False)
 
         with rasterio.open(self.test_fname, 'r') as test_ds:
-            test_img = test_ds.read_band(2, masked=False)
+            test_img = test_ds.read(2, masked=False)
 
         # Precision
         tolerance = 100 - self.tolerance
@@ -109,10 +109,10 @@ class TestFCProducts(ParameterisedTestCaseFiles):
         out_dir = self.output_directory
 
         with rasterio.open(self.reference_fname, 'r') as ref_ds:
-            ref_img = ref_ds.read_band(3, masked=False)
+            ref_img = ref_ds.read(3, masked=False)
 
         with rasterio.open(self.test_fname, 'r') as test_ds:
-            test_img = test_ds.read_band(3, masked=False)
+            test_img = test_ds.read(3, masked=False)
 
         # Precision
         tolerance = 100 - self.tolerance
@@ -184,10 +184,10 @@ class TestFCProducts(ParameterisedTestCaseFiles):
         out_dir = self.output_directory
 
         with rasterio.open(self.reference_fname, 'r') as ref_ds:
-            ref_img = ref_ds.read_band(1, masked=False)
+            ref_img = ref_ds.read(1, masked=False)
 
         with rasterio.open(self.test_fname, 'r') as test_ds:
-            test_img = test_ds.read_band(1, masked=False)
+            test_img = test_ds.read(1, masked=False)
 
         # Precision
         tolerance = 100 - self.tolerance
@@ -257,10 +257,10 @@ class TestFCProducts(ParameterisedTestCaseFiles):
         out_dir = self.output_directory
 
         with rasterio.open(self.reference_fname, 'r') as ref_ds:
-            ref_img = ref_ds.read_band(4, masked=False)
+            ref_img = ref_ds.read(4, masked=False)
 
         with rasterio.open(self.test_fname, 'r') as test_ds:
-            test_img = test_ds.read_band(4, masked=False)
+            test_img = test_ds.read(4, masked=False)
 
         # Precision
         tolerance = 100 - self.tolerance

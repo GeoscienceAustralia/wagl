@@ -13,8 +13,8 @@ with rio.open(f1) as ds1:
         assert(ds1.count == ds2.count)
 
         for band in range(1, ds1.count+1):
-            d1 = ds1.read_band(band)
-            d2 = ds2.read_band(band)
+            d1 = ds1.read(band)
+            d2 = ds2.read(band)
 
             diff = sum(sum(d1-d2))
             print "band=%d, diff=%d" % (band, diff)

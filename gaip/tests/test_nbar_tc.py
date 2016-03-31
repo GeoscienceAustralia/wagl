@@ -165,11 +165,11 @@ def test_compare_lmbrt_files(reference_directory, test_directory,
 
         # Get the reference data
         with rasterio.open(ref_fname, 'r') as ds:
-            ref_img = ds.read_band(1, masked=False)
+            ref_img = ds.read(1, masked=False)
 
         # Get the test data
         with rasterio.open(test_fname, 'r') as ds:
-            test_img = ds.read_band(1, masked=False)
+            test_img = ds.read(1, masked=False)
 
         # Calculate the difference image and get some basic stats
         diff = (ref_img - test_img).astype('int32')
@@ -205,7 +205,7 @@ def test_compare_lmbrt_files(reference_directory, test_directory,
     for diff_fname in diff_fnames:
         fname = basename(diff_fname)
         with rasterio.open(diff_fname, 'r') as ds:
-            diff = ds.read_band(1, masked=False)
+            diff = ds.read(1, masked=False)
 
         h = histogram(diff, minv=min_v, maxv=max_v, omin='omin')
         hist = h['histogram']
@@ -320,11 +320,11 @@ def test_compare_brdf_files(reference_directory, test_directory,
 
         # Get the reference data
         with rasterio.open(ref_fname, 'r') as ds:
-            ref_img = ds.read_band(1, masked=False)
+            ref_img = ds.read(1, masked=False)
 
         # Get the test data
         with rasterio.open(test_fname, 'r') as ds:
-            test_img = ds.read_band(1, masked=False)
+            test_img = ds.read(1, masked=False)
 
         # Calculate the difference image and get some basic stats
         diff = (ref_img - test_img).astype('int32')
@@ -360,7 +360,7 @@ def test_compare_brdf_files(reference_directory, test_directory,
     for diff_fname in diff_fnames:
         fname = basename(diff_fname)
         with rasterio.open(diff_fname, 'r') as ds:
-            diff = ds.read_band(1, masked=False)
+            diff = ds.read(1, masked=False)
 
         h = histogram(diff, minv=min_v, maxv=max_v, omin='omin')
         hist = h['histogram']
@@ -477,11 +477,11 @@ def test_compare_tc_files(reference_directory, test_directory,
 
         # Get the reference data
         with rasterio.open(ref_fname, 'r') as ds:
-            ref_img = ds.read_band(1, masked=False)
+            ref_img = ds.read(1, masked=False)
 
         # Get the test data
         with rasterio.open(test_fname, 'r') as ds:
-            test_img = ds.read_band(1, masked=False)
+            test_img = ds.read(1, masked=False)
 
         # Calculate the difference image and get some basic stats
         diff = (ref_img - test_img).astype('int32')
@@ -517,7 +517,7 @@ def test_compare_tc_files(reference_directory, test_directory,
     for diff_fname in diff_fnames:
         fname = basename(diff_fname)
         with rasterio.open(diff_fname, 'r') as ds:
-            diff = ds.read_band(1, masked=False)
+            diff = ds.read(1, masked=False)
 
         h = histogram(diff, minv=min_v, maxv=max_v, omin='omin')
         hist = h['histogram']

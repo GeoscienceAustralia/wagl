@@ -94,15 +94,15 @@ def incident_angles(solar_zenith_fname, solar_azimuth_fname, slope_fname,
 
             # Read the data for the current tile
             # Convert to required datatype and transpose
-            sol_zen = as_array(sol_z_ds.read_band(1, window=tile,
+            sol_zen = as_array(sol_z_ds.read(1, window=tile,
                                                   masked=False),
                                dtype=numpy.float32, transpose=True)
-            sol_azi = as_array(sol_azi_ds.read_band(1, window=tile,
+            sol_azi = as_array(sol_azi_ds.read(1, window=tile,
                                                     masked=False),
                                dtype=numpy.float32, transpose=True)
-            slope = as_array(slope_ds.read_band(1, window=tile, masked=False),
+            slope = as_array(slope_ds.read(1, window=tile, masked=False),
                              dtype=numpy.float32, transpose=True)
-            aspect = as_array(aspect_ds.read_band(1, window=tile,
+            aspect = as_array(aspect_ds.read(1, window=tile,
                                                   masked=False),
                               dtype=numpy.float32, transpose=True)
 
@@ -206,15 +206,15 @@ def exiting_angles(satellite_view_fname, satellite_azimuth_fname, slope_fname,
 
             # Read the data for the current tile
             # Convert to required datatype and transpose
-            sat_view = as_array(sat_view_ds.read_band(1, window=tile,
+            sat_view = as_array(sat_view_ds.read(1, window=tile,
                                                       masked=False),
                                 dtype=numpy.float32, transpose=True)
-            sat_azi = as_array(sat_azi_ds.read_band(1, window=tile,
+            sat_azi = as_array(sat_azi_ds.read(1, window=tile,
                                                     masked=False),
                                dtype=numpy.float32, transpose=True)
-            slope = as_array(slope_ds.read_band(1, window=tile, masked=False),
+            slope = as_array(slope_ds.read(1, window=tile, masked=False),
                              dtype=numpy.float32, transpose=True)
-            aspect = as_array(aspect_ds.read_band(1, window=tile,
+            aspect = as_array(aspect_ds.read(1, window=tile,
                                                   masked=False),
                               dtype=numpy.float32, transpose=True)
 
@@ -292,8 +292,8 @@ def relative_azimuth_slope(azimuth_incident_fname, azimuth_exiting_fname,
         # Loop over each tile
         for tile in tiles:
             # Read the data for the current tile
-            azi_inc = azi_inc_ds.read_band(1, window=tile, masked=False)
-            azi_exi = azi_exi_ds.read_band(1, window=tile, masked=False)
+            azi_inc = azi_inc_ds.read(1, window=tile, masked=False)
+            azi_exi = azi_exi_ds.read(1, window=tile, masked=False)
 
             # Process the tile
             rel_azi = azi_inc - azi_exi
