@@ -22,6 +22,7 @@ import argparse
 import yaml
 from yaml.representer import Representer
 import luigi
+from pathlib import Path
 import numpy
 from eodatasets.run import package_newly_processed_data_folder
 from eodatasets.drivers import PACKAGE_DRIVERS
@@ -1808,14 +1809,14 @@ class Packager(luigi.Task):
     def run(self):
         # run the packager
         kwargs = {'driver': PACKAGE_DRIVERS[self.product],
-                  'input_data_paths': self.work_path,
-                  'destination_path': self.out_path,
-                  'parent_dataset_paths': self.l1t_path,
+                  'input_data_paths': [Path(self.work_path)],
+                  'destination_path': Path(self.out_path),
+                  'parent_dataset_paths': [Path(self.l1t_path)],
                   'hard_link': False}
         package_newly_processed_data_folder(**kwargs)
 
         # output a checkpoint
-        with self.output.open('w') as src:
+        with self.output().open('w') as src:
             src.write('{} packaging completed'.format(self.product))
 
 
@@ -1824,8 +1825,8 @@ class PackageTC(luigi.Task):
     """Issues nbar &/or nbart packaging depending on the config."""
 
     l1t_path = luigi.Parameter()
-    out_path = luigi.Parameter()
     work_path = luigi.Parameter()
+    out_path = luigi.Parameter()
 
     def requires(self):
         products = CONFIG.get('packaging', 'products').split(',')
@@ -1843,7 +1844,7 @@ class PackageTC(luigi.Task):
         return luigi.LocalTarget(out_fname)
 
     def run(self):
-        with self.output.open('w') as src:
+        with self.output().open('w') as src:
             src.write('Task completed')
 
         # cleanup the entire nbar scene working directory
@@ -1885,7 +1886,7 @@ def main(inpath, outpath, workpath, nnodes=1, nodenum=1):
                   for f in l1t_files]
     # tasks = [TerrainCorrection(l1t, nbar) for l1t, nbar in
     # tasks = [WriteMetadata(l1t, nbar) for l1t, nbar in
-    tasks = [PackageTC(l1t, nbar, workpath) for l1t, nbar in
+    tasks = [PackageTC(l1t, nbar, outpath) for l1t, nbar in
              zip(l1t_files, nbar_files)]
     ncpus = int(os.getenv('PBS_NCPUS', '1'))
     luigi.build(tasks, local_scheduler=True, workers=ncpus / nnodes)
