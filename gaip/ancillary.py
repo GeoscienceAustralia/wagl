@@ -127,7 +127,19 @@ def get_aerosol_data(acquisition, aerosol_path, aot_loader_path=None):
 
             return res
 
-    raise IOError('No aerosol ancillary data found.')
+    # default aerosol value
+    # assumea we are only processing Australia in which case it it should
+    # be a coastal scene
+    res = {'data_source': description,
+           'data_file': filename,
+           'value': 0.06}
+
+    # ancillary metadata tracking
+    md = extract_ancillary_metadata(filename)
+    for key in md:
+        res[key] = md[key]
+
+    return res
 
 
 def run_aot_loader(filename, dt, ll_lat, ll_lon, ur_lat, ur_lon,
