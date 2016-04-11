@@ -128,16 +128,11 @@ def get_aerosol_data(acquisition, aerosol_path, aot_loader_path=None):
             return res
 
     # default aerosol value
-    # assumea we are only processing Australia in which case it it should
+    # assumes we are only processing Australia in which case it it should
     # be a coastal scene
-    res = {'data_source': description,
-           'data_file': filename,
+    res = {'data_source': 'default-value',
+           'data_file': 'default-value',
            'value': 0.06}
-
-    # ancillary metadata tracking
-    md = extract_ancillary_metadata(filename)
-    for key in md:
-        res[key] = md[key]
 
     return res
 
