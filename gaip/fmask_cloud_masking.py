@@ -411,7 +411,7 @@ def lndhdrread(filename):
             ul = (ulx, uly)
             # Read in date of year
             char_doy = data['LANDSAT_SCENE_ID']
-            doy = int(char_doy[14:16])
+            doy = int(char_doy[13:16])
 
     elif (Lnum == 8):
             # Retrieve LS8 info
