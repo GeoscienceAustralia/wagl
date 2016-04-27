@@ -1046,6 +1046,136 @@ class BilinearInterpolation(luigi.Task):
         save(self.output()[0], bilinear_fnames)
 
 
+class BilinearInterpolationBand(luigi.Task):
+    """
+    Runs the bilinear interpolation function for a given band.
+    """
+
+    l1t_path = luigi.Parameter()
+    out_path = luigi.Parameter()
+    band_num = luigi.IntParameter()
+    factor = luigi.Parameter()
+
+    def requires(self):
+        return [ReformatAtmosphericParameters(self.l1t_path, self.out_path),
+                CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path)]
+
+    def output(self):
+        out_path = self.out_path
+        modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
+        output_format = CONFIG.get('bilinear', 'output_format')
+        output_format = pjoin(modtran_root, output_format)
+
+        out_fname = output_format.format(factor=self.factor,
+                                         band=self.band_num)
+        return luigi.LocalTarget(out_fname)
+
+    def run(self):
+        out_path = self.out_path
+        coordinator = pjoin(out_path,
+                            CONFIG.get('work', 'coordinator_target'))
+        boxline = pjoin(out_path,
+                        CONFIG.get('work', 'boxline_target'))
+        centreline = pjoin(out_path,
+                           CONFIG.get('work', 'centreline_target'))
+        input_format = CONFIG.get('bilinear', 'input_format')
+        output_format = CONFIG.get('bilinear', 'output_format')
+        workpath = pjoin(out_path,
+                         CONFIG.get('work', 'modtran_root'))
+        input_format = pjoin(workpath, input_format)
+
+        acqs = gaip.acquisitions(self.l1t_path)
+
+        # get the acquisition we wish to process
+        acqs = [acq for acq in acqs if acq.band_num == self.band_num]
+
+        # Retrieve the satellite and sensor for the acquisition
+        satellite = acqs[0].spacecraft_id
+        sensor = acqs[0].sensor_id
+
+        bilinear_fnames = gaip.bilinear_interpolate(acqs, [self.factor],
+                                                    coordinator, boxline,
+                                                    centreline, input_format,
+                                                    output_format, workpath)
+
+
+class SubmitBilinearInterpolation(luigi.Task):
+    """
+    Issues BilinearInterpolationBand tasks.
+    This is a helper task.
+    """
+
+    l1t_path = luigi.Parameter()
+    out_path = luigi.Parameter()
+
+    def requires(self):
+        out_path = self.out_path
+        modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
+        factors = CONFIG.get('bilinear', 'factors').split(',')
+        output_format = CONFIG.get('bilinear', 'output_format')
+        output_format = pjoin(modtran_root, output_format)
+        acqs = gaip.acquisitions(self.l1t_path)
+
+        # Retrieve the satellite and sensor for the acquisition
+        satellite = acqs[0].spacecraft_id
+        sensor = acqs[0].sensor_id
+
+        # Get the required nbar bands list for processing
+        nbar_constants = gaip.constants.NBARConstants(satellite, sensor)
+        bands_to_process = nbar_constants.get_nbar_lut()
+
+        bands = [a.band_num for a in acqs]
+        tasks = []
+        for factor in factors:
+            for band in bands:
+                if band not in bands_to_process:
+                    # Skip
+                    continue
+                tasks.append(BilinearInterpolationBand(self.l1t_path,
+                                                       self.out_path,
+                                                       band, factor))
+        return tasks
+
+    def output(self):
+        out_path = self.out_path
+        target = pjoin(out_path,
+                       CONFIG.get('work', 'bilinear_outputs_target'))
+        return luigi.LocalTarget(target)
+
+    def run(self):
+        out_path = self.out_path
+        factors = CONFIG.get('bilinear', 'factors').split(',')
+        input_format = CONFIG.get('bilinear', 'input_format')
+        output_format = CONFIG.get('bilinear', 'output_format')
+        workpath = pjoin(out_path,
+                         CONFIG.get('work', 'modtran_root'))
+        input_format = pjoin(workpath, input_format)
+
+        acqs = gaip.acquisitions(self.l1t_path)
+        bands = [a.band_num for a in acqs]
+
+        # Retrieve the satellite and sensor for the acquisition
+        satellite = acqs[0].spacecraft_id
+        sensor = acqs[0].sensor_id
+
+        # Get the required nbar bands list for processing
+        nbar_constants = gaip.constants.NBARConstants(satellite, sensor)
+        bands_to_process = nbar_constants.get_nbar_lut()
+
+        # Initialise the dict to store the locations of the bilinear outputs
+        bilinear_fnames = {}
+
+        for band in bands:
+            if band not in bands_to_process:
+                continue
+            for factor in factors:
+                fname = output_format.format(factor=factor, band=band)
+                fname = pjoin(workpath, fname)
+                bilinear_fnames[(band, factor)] = fname
+
+        save(self.output(), bilinear_fnames)
+
+
 class CreateTCRflDirs(luigi.Task):
     """
     Setup the directories to contain the Intermediate files
@@ -1522,7 +1652,7 @@ class RunTCBand(luigi.Task):
     band_num = luigi.IntParameter()
 
     def requires(self):
-        return [BilinearInterpolation(self.l1t_path, self.out_path),
+        return [SubmitBilinearInterpolation(self.l1t_path, self.out_path),
                 DEMExctraction(self.l1t_path, self.out_path),
                 RelativeAzimuthSlope(self.l1t_path, self.out_path),
                 SelfShadow(self.l1t_path, self.out_path),
@@ -1810,7 +1940,7 @@ class Packager(luigi.Task):
         # run the packager
         kwargs = {'driver': PACKAGE_DRIVERS[self.product],
                   'input_data_paths': [Path(self.work_path)],
-                  'destination_path': Path(self.out_path),
+                  'destination_path': Path(pjoin(self.out_path, self.product)),
                   'parent_dataset_paths': [Path(self.l1t_path)],
                   'hard_link': False}
         package_newly_processed_data_folder(**kwargs)
@@ -1848,7 +1978,7 @@ class PackageTC(luigi.Task):
             src.write('Task completed')
 
         # cleanup the entire nbar scene working directory
-        shutil.rmtree(self.work_path)
+        # shutil.rmtree(self.work_path)
 
 
 def is_valid_directory(parser, arg):
@@ -1880,7 +2010,14 @@ def main(inpath, outpath, workpath, nnodes=1, nodenum=1):
         else:
             msg = "Skipping {}".format(acq.dir_name)
             print msg
-        
+
+    # create product output dirs
+    products = CONFIG.get('packaging', 'products').split(',')
+    for product in products:
+        product_dir = pjoin(outpath, product)
+        if not exists(product_dir):
+            os.makedirs(product_dir)
+
     l1t_files = [f for f in scatter(filtered_l1t, nnodes, nodenum)]
     nbar_files = [pjoin(workpath, os.path.basename(f).replace('OTH', 'NBAR'))
                   for f in l1t_files]
