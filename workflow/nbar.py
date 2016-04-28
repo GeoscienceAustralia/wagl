@@ -964,88 +964,6 @@ class ReformatAtmosphericParameters(luigi.Task):
                                   input_format, output_format, workpath)
 
 
-class BilinearInterpolation(luigi.Task):
-
-    """Perform the bilinear interpolation. This runs the Fortran binary
-       `bilinear_interpolation`."""
-
-    l1t_path = luigi.Parameter()
-    out_path = luigi.Parameter()
-
-    def requires(self):
-        return [ReformatAtmosphericParameters(self.l1t_path, self.out_path),
-                CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path)]
-
-    def output(self):
-        out_path = self.out_path
-        modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
-        factors = CONFIG.get('bilinear', 'factors').split(',')
-        output_format = CONFIG.get('bilinear', 'output_format')
-        output_format = pjoin(modtran_root, output_format)
-        acqs = gaip.acquisitions(self.l1t_path)
-
-        # Retrieve the satellite and sensor for the acquisition
-        satellite = acqs[0].spacecraft_id
-        sensor = acqs[0].sensor_id
-
-        # Get the required nbar bands list for processing
-        nbar_constants = gaip.constants.NBARConstants(satellite, sensor)
-        bands_to_process = nbar_constants.get_nbar_lut()
-
-        bands = [a.band_num for a in acqs]
-        targets = []
-        target = pjoin(out_path,
-                       CONFIG.get('work', 'bilinear_outputs_target'))
-        targets.append(luigi.LocalTarget(target))
-        for factor in factors:
-            for band in bands:
-                if band not in bands_to_process:
-                    # Skip
-                    continue
-                target = output_format.format(factor=factor, band=band)
-                targets.append(luigi.LocalTarget(target))
-        return targets
-
-    def run(self):
-        out_path = self.out_path
-        factors = CONFIG.get('bilinear', 'factors').split(',')
-        coordinator = pjoin(out_path,
-                            CONFIG.get('work', 'coordinator_target'))
-        boxline = pjoin(out_path,
-                        CONFIG.get('work', 'boxline_target'))
-        centreline = pjoin(out_path,
-                           CONFIG.get('work', 'centreline_target'))
-        input_format = CONFIG.get('bilinear', 'input_format')
-        output_format = CONFIG.get('bilinear', 'output_format')
-        workpath = pjoin(out_path,
-                         CONFIG.get('work', 'modtran_root'))
-        input_format = pjoin(workpath, input_format)
-
-        acqs = gaip.acquisitions(self.l1t_path)
-
-        # Retrieve the satellite and sensor for the acquisition
-        satellite = acqs[0].spacecraft_id
-        sensor = acqs[0].sensor_id
-
-        # Get the required nbar bands list for processing
-        nbar_constants = gaip.constants.NBARConstants(satellite, sensor)
-        bands_to_process = nbar_constants.get_nbar_lut()
-
-        # Initialise the list to contain the acquisitions we wish to process
-        acqs_to_process = []
-        for acq in acqs:
-            band_number = acq.band_num
-            if band_number in bands_to_process:
-                acqs_to_process.append(acq)
-
-        bilinear_fnames = gaip.bilinear_interpolate(acqs_to_process, factors,
-                                                    coordinator, boxline,
-                                                    centreline, input_format,
-                                                    output_format, workpath)
-
-        save(self.output()[0], bilinear_fnames)
-
-
 class BilinearInterpolationBand(luigi.Task):
     """
     Runs the bilinear interpolation function for a given band.
@@ -1099,7 +1017,7 @@ class BilinearInterpolationBand(luigi.Task):
                                                     output_format, workpath)
 
 
-class SubmitBilinearInterpolation(luigi.Task):
+class BilinearInterpolation(luigi.Task):
     """
     Issues BilinearInterpolationBand tasks.
     This is a helper task.
@@ -1652,7 +1570,7 @@ class RunTCBand(luigi.Task):
     band_num = luigi.IntParameter()
 
     def requires(self):
-        return [SubmitBilinearInterpolation(self.l1t_path, self.out_path),
+        return [BilinearInterpolation(self.l1t_path, self.out_path),
                 DEMExctraction(self.l1t_path, self.out_path),
                 RelativeAzimuthSlope(self.l1t_path, self.out_path),
                 SelfShadow(self.l1t_path, self.out_path),
