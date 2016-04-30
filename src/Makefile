@@ -4,8 +4,7 @@ FC := gfortran
 FCFLAGS := -Wall -O3 -fbounds-check
 CFLAGS := -O3
 
-EXES := bilinear_interpolation \
-        calculate_coefficients \
+EXES := calculate_coefficients \
         read_flux_albedo \
         box_line_coordinates \
         generate_modtran_input \
