@@ -226,44 +226,6 @@ def reformat_atmo_params(acqs, coords, satfilter, factors, input_fmt,
     subprocess.check_call(args, cwd=workpath)
 
 
-# def bilinear_interpolate(acqs, factors, coordinator, boxline, centreline,
-#                          input_fmt, output_fmt, workpath):
-#     """Perform bilinear interpolation."""
-# 
-#     cmd = pjoin(BIN_DIR, 'bilinear_interpolation')
-# 
-#     bands = [a.band_num for a in acqs]
-# 
-#     # Initialise the dict to store the locations of the bilinear outputs
-#     bilinear_outputs = {}
-# 
-#     # Base ENVI header file
-#     hdr = ("ENVI\n"
-#            "samples = {samples}\n"
-#            "lines   = {lines}\n"
-#            "bands   = 1\n"
-#            "data type = 4\n"
-#            "interleave = bsq"
-#            "byte order = 0").format(samples=acqs[0].samples,
-#                                     lines=acqs[0].lines)
-# 
-#     for band in bands:
-#         for factor in factors:
-#             fname = output_fmt.format(factor=factor, band=band)
-#             fname = pjoin(workpath, fname)
-#             hdr_fname = fname.replace('.bin', '.hdr')
-#             with open(hdr_fname, 'w') as outf:
-#                 for line in hdr:
-#                     outf.write(line)
-#             bilinear_outputs[(band, factor)] = fname
-#             args = [cmd, coordinator,
-#                     input_fmt.format(factor=factor, band=band),
-#                     boxline, centreline,
-#                     fname]
-# 
-#             subprocess.check_call(args, cwd=workpath)
-# 
-#     return bilinear_outputs
 def bilinear_interpolate(acqs, factors, coordinator, boxline, centreline,
                          input_fmt, output_fmt, workpath):
     """Perform bilinear interpolation."""
