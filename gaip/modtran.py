@@ -4,10 +4,12 @@ MODTRAN drivers
 
 """
 import os
-import gaip
+from os.path import join as pjoin, exists, abspath, dirname
 import subprocess
 
-from os.path import join as pjoin, exists, abspath, dirname
+import numpy
+import pandas
+import gaip
 
 BIN_DIR = abspath(pjoin(dirname(__file__), '..', 'bin'))
 
@@ -224,41 +226,94 @@ def reformat_atmo_params(acqs, coords, satfilter, factors, input_fmt,
     subprocess.check_call(args, cwd=workpath)
 
 
+# def bilinear_interpolate(acqs, factors, coordinator, boxline, centreline,
+#                          input_fmt, output_fmt, workpath):
+#     """Perform bilinear interpolation."""
+# 
+#     cmd = pjoin(BIN_DIR, 'bilinear_interpolation')
+# 
+#     bands = [a.band_num for a in acqs]
+# 
+#     # Initialise the dict to store the locations of the bilinear outputs
+#     bilinear_outputs = {}
+# 
+#     # Base ENVI header file
+#     hdr = ("ENVI\n"
+#            "samples = {samples}\n"
+#            "lines   = {lines}\n"
+#            "bands   = 1\n"
+#            "data type = 4\n"
+#            "interleave = bsq"
+#            "byte order = 0").format(samples=acqs[0].samples,
+#                                     lines=acqs[0].lines)
+# 
+#     for band in bands:
+#         for factor in factors:
+#             fname = output_fmt.format(factor=factor, band=band)
+#             fname = pjoin(workpath, fname)
+#             hdr_fname = fname.replace('.bin', '.hdr')
+#             with open(hdr_fname, 'w') as outf:
+#                 for line in hdr:
+#                     outf.write(line)
+#             bilinear_outputs[(band, factor)] = fname
+#             args = [cmd, coordinator,
+#                     input_fmt.format(factor=factor, band=band),
+#                     boxline, centreline,
+#                     fname]
+# 
+#             subprocess.check_call(args, cwd=workpath)
+# 
+#     return bilinear_outputs
 def bilinear_interpolate(acqs, factors, coordinator, boxline, centreline,
                          input_fmt, output_fmt, workpath):
     """Perform bilinear interpolation."""
 
-    cmd = pjoin(BIN_DIR, 'bilinear_interpolation')
-
     bands = [a.band_num for a in acqs]
+    geobox = gaip.gridded_geo_box(acqs[0])
+    cols, rows = geobox.get_shape_xy()
+
+    # dataframes for the coords, scene centreline, boxline
+    coords = pandas.read_csv(coordinator, header=None, sep=r'\s+\s+',
+                             engine='python', skiprows=1, names=['row', 'col'])
+    cent = pandas.read_csv(centreline, skiprows=2, header=None, sep=r'\s+\s+',
+                           engine='python',
+                           names=['line', 'centre', 'npoints', 'lat', 'lon'])
+    box = pandas.read_csv(boxline, header=None, sep=r'\s+\s+', engine='python',
+                          names=['line', 'cstart', 'cend'])
+
+    coord = numpy.zeros((9, 2), dtype='int')
+    coord[:, 0] = coords.row.values
+    coord[:, 1] = coords.col.values
+    centre = cent.centre.values
+    start = box.cstart.values
+    end = box.cend.values
 
     # Initialise the dict to store the locations of the bilinear outputs
     bilinear_outputs = {}
-
-    # Base ENVI header file
-    hdr = ("ENVI\n"
-           "samples = {samples}\n"
-           "lines   = {lines}\n"
-           "bands   = 1\n"
-           "data type = 4\n"
-           "interleave = bsq"
-           "byte order = 0").format(samples=acqs[0].samples,
-                                    lines=acqs[0].lines)
 
     for band in bands:
         for factor in factors:
             fname = output_fmt.format(factor=factor, band=band)
             fname = pjoin(workpath, fname)
-            hdr_fname = fname.replace('.bin', '.hdr')
-            with open(hdr_fname, 'w') as outf:
-                for line in hdr:
-                    outf.write(line)
+            atmospheric_fname = input_fmt.format(factor=factor, band=band)
             bilinear_outputs[(band, factor)] = fname
-            args = [cmd, coordinator,
-                    input_fmt.format(factor=factor, band=band),
-                    boxline, centreline,
-                    fname]
 
-            subprocess.check_call(args, cwd=workpath)
+            # atmospheric paramaters
+            atmos = pandas.read_csv(atmospheric_fname, header=None,
+                                    sep=r'\s+\s+', engine='python',
+                                    names=['s1', 's2', 's3', 's4'])
+
+            # get the individual atmospheric components
+            s1 = atmos.s1.values
+            s2 = atmos.s2.values
+            s3 = atmos.s3.values
+            s4 = atmos.s4.values
+
+            res = numpy.zeros((rows, cols), dtype='float32')
+            gaip.bilinear(cols, rows, coord, s1, s2, s3, s4, start, end,
+                          centre, res.transpose())
+
+            # Output the result to disk
+            gaip.write_img(res, fname, geobox=geobox, nodata=-999)
 
     return bilinear_outputs

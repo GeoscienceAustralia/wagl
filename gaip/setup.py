@@ -42,4 +42,6 @@ setup(name='gaip',
                                       'geod2geo.f90',
                                       'q_cal.f90',
                                       'compute_angles.f90',
-                                      'satellite_solar_angles_main.f90'])])
+                                      'satellite_solar_angles_main.f90']),
+                   Extension(name='_interpolation',
+                             sources=['bilinear_interpolation.f90'])])
