@@ -1802,31 +1802,6 @@ class WriteMetadata(luigi.Task):
         metadata['ancillary_data'] = ancillary
         metadata['algorithm_information'] = algorithm
         
-        # cleanup
-        outdir = pjoin(out_path, CONFIG.get('work', 'rfl_output_dir'))
-        rm_intermediates = bool(int(CONFIG.get('cleanup',
-                                               'remove_intermediates')))
-        rm_reflectance = bool(int(CONFIG.get('cleanup', 'remove_reflectance')))
-        rm_rf_levels = CONFIG.get('cleanup', 'rfl_levels').split(',')
-
-        if rm_intermediates:
-            for dirpath, dirnames, filenames in os.walk(bytes(out_path)):
-                if "Reflectance_Outputs" in dirnames:
-                    dirnames.remove("Reflectance_Outputs")
-                for fname in filenames:
-                    os.unlink(pjoin(dirpath, fname))
-                for dname in dirnames:
-                    shutil.rmtree(pjoin(dirpath, dname))
-
-        if rm_reflectance:
-            rm_fmt = '{level}_*'
-            for rf_lvl in rm_rf_levels:
-                rm_fname = rm_fmt.format(level=rf_lvl)
-                pth = pjoin(outdir, rm_fname)
-                rm_files = glob.glob(pth)
-                for f in rm_files:
-                    os.unlink(f)
-
         # Account for NumPy dtypes
         yaml.add_representer(numpy.float, Representer.represent_float)
         yaml.add_representer(numpy.float32, Representer.represent_float)
@@ -1896,7 +1871,9 @@ class PackageTC(luigi.Task):
             src.write('Task completed')
 
         # cleanup the entire nbar scene working directory
-        # shutil.rmtree(self.work_path)
+        cleanup = bool(int(CONFIG.get('cleanup', 'cleanup')))
+        if cleanup:
+            shutil.rmtree(self.work_path)
 
 
 def is_valid_directory(parser, arg):
