@@ -334,7 +334,10 @@ class PixelQualityTask(luigi.Task):
         source_info['source_nbar'] = self.nbar_path
 
         algorithm = {}
-        algorithm['software_version'] = bytes(gaip.get_version())
+        algorithm['software_version'] = gaip.get_version()
+        algorithm['software_repository'] = ('https://github.com/'
+                                            'GeoscienceAustralia/'
+                                            'ga-neo-landsat-processor.git')
         algorithm['pq_doi'] = 'http://dx.doi.org/10.1109/IGARSS.2013.6723746'
         
         metadata = {}
