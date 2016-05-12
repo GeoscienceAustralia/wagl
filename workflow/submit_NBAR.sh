@@ -43,7 +43,8 @@ MAIL_LIST="your.name@ga.gov.au"
 # Create ouput directory
 
 rm -r ${OUTPUT_ROOT}
-mkdir -p ${OUTPUT_PATH}
+mkdir -p ${OUTPUT_PATH}/nbar
+mkdir -p ${OUTPUT_PATH}/nbart
 mkdir -p ${LOG_PATH}
 
 
