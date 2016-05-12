@@ -6,7 +6,6 @@ CFLAGS := -O3
 
 EXES := calculate_coefficients \
         read_flux_albedo \
-        box_line_coordinates \
         generate_modtran_input \
         reformat_tp5_albedo \
         reformat_tp5_transmittance \
