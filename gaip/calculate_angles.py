@@ -195,6 +195,73 @@ def create_header_angle_file(acquisition, view_max, outfname='HEADERANGLE'):
                                          velocity=omega, max_angle=view_max))
 
 
+def create_boxline_file(view_angle_fname, line, ncentre, max_angle=9.0,
+                        boxline_fname='BOXLINE',
+                        coordinator_fname='COORDINATOR'):
+    """
+    Creates the BOXLINE text file.
+
+    :param view_angle_fname:
+        A string containing the full file path name to the location
+        of the image containing the containing the satellite view
+        angle values.
+
+    :param line:
+        A 1D NumPy array containing the values 1->n for n lines.
+        1 based index.
+
+    :param ncentre:
+        A 1D NumPy array containing the values for the column
+        coordinate for the central index; 1 based index.
+
+    :param max_angle:
+        The maximum viewing angle. Default is 9.0 degrees.
+
+    :param boxline_fname:
+        A string containing the filepath name of the boxline file.
+
+    :param coordinator_fname:
+        A string containing the filepath name of the coordinator file.
+    """
+    with rasterio.open(view_angle_fname) as ds:
+        view_angle = ds.read(1)
+        rows = ds.height
+        cols = ds.width
+
+    # allocate the output arrays
+    istart = np.zeros(rows, dtype='int')
+    iend = np.zeros(rows, dtype='int')
+
+    # calculate the column start and end indices
+    boxline(cols, rows, max_angle, view_angle.transpose(), line, ncentre,
+            istart, iend)
+
+    # output the boxline file
+    with open(boxline_fname, 'w') as src:
+        # Right justified at various lengths
+        msg = '{line:>12}{istart:>12}{iend:>12}\n'
+        for i in range(rows):
+            src.write(msg.format(line=line[i], istart=istart[i], iend=iend[i]))
+
+    # output the coordinator file
+    with open(coordinator_fname, 'w') as src:
+        # get the middle index (account for the 0-based index)
+        mid = rows // 2 - 1
+
+        # Right justified at various lengths
+        msg = '{row:>13}{column:>13}\n'
+        src.write(msg.format(row=rows, column=cols))
+        src.write(msg.format(row=line[0], column=istart[0]))
+        src.write(msg.format(row=line[0], column=ncentre[0]))
+        src.write(msg.format(row=line[0], column=iend[0]))
+        src.write(msg.format(row=line[mid], column=istart[mid]))
+        src.write(msg.format(row=line[mid], column=ncentre[mid]))
+        src.write(msg.format(row=line[mid], column=iend[mid]))
+        src.write(msg.format(row=line[-1], column=istart[-1]))
+        src.write(msg.format(row=line[-1], column=ncentre[-1]))
+        src.write(msg.format(row=line[-1], column=iend[-1]))
+
+
 def calculate_julian_century(datetime):
     """
     Given a datetime object return the julian century from the 2000 epoch.
