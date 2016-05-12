@@ -101,17 +101,6 @@ def write_modis_brdf_files(acquisitions, fname_format, brdf_data,
             outfile.write(msg)
 
 
-# TODO: delete
-# def run_box_line_coordinates(centreline, sat_view_zenith, coordinator,
-#                              boxline, cwd):
-#     """run box_line_coordinates executable."""
-#     cmd = pjoin(BIN_DIR, 'box_line_coordinates')
-# 
-#     args = [cmd, centreline, sat_view_zenith, coordinator, boxline]
-# 
-#     subprocess.check_call(args)
-
-
 def generate_modtran_inputs(modtran_input, coordinator, sat_view_zenith,
                             sat_azimuth, lon_grid, lat_grid, coords, albedos,
                             fname_format, workdir):

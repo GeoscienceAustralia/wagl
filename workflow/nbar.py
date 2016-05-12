@@ -508,44 +508,6 @@ class CreateModisBrdfFiles(luigi.Task):
                                     solar_irrad_data, solar_dist_data)
 
 
-# TODO: delete
-# class RunBoxLineCoordinates(luigi.Task):
-# 
-#     """Run `box_line_coordinates` binary."""
-# 
-#     l1t_path = luigi.Parameter()
-#     out_path = luigi.Parameter()
-# 
-#     def requires(self):
-#         return [CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path)]
-# 
-#     def output(self):
-#         out_path = self.out_path
-#         targets = [CONFIG.get('work', 'coordinator_target'),
-#                    CONFIG.get('work', 'boxline_target')]
-#         return [luigi.LocalTarget(pjoin(out_path, t)) for t in targets]
-# 
-#     def run(self):
-#         out_path = self.out_path
-#         # sources
-#         centreline_target = pjoin(out_path,
-#                                   CONFIG.get('work', 'centreline_target'))
-#         sat_view_zenith_target = pjoin(out_path,
-#                                        CONFIG.get('work', 'sat_view_target'))
-#         # targets
-#         coordinator_target = pjoin(out_path,
-#                                    CONFIG.get('work', 'coordinator_target'))
-#         boxline_target = pjoin(out_path,
-#                                CONFIG.get('work', 'boxline_target'))
-#         cwd = pjoin(out_path, CONFIG.get('work', 'read_modtrancor_ortho_cwd'))
-# 
-#         gaip.run_box_line_coordinates(centreline_target,
-#                                       sat_view_zenith_target,
-#                                       coordinator_target,
-#                                       boxline_target,
-#                                       cwd)
-
-
 class GenerateModtranInputFiles(luigi.Task):
 
     """Generate the MODTRAN input files by running the Fortran binary
