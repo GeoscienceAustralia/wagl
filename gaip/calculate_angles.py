@@ -18,6 +18,7 @@ from gaip import load_tle
 from gaip import angle
 from gaip import set_satmod
 from gaip import set_times
+from gaip import boxline
 
 CRS = "EPSG:4326"
 TLE_DIR = '/g/data/v10/eoancillarydata/sensor-specific'
