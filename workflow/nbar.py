@@ -316,8 +316,8 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
                    CONFIG.get('work', 'relative_azimuth_target'),
                    CONFIG.get('work', 'time_target'),
                    CONFIG.get('work', 'centreline_target'),
-                   CONFIG.get('work', 'header_angle_target')]
-                   CONFIG.get('work', 'coordinator_target')]
+                   CONFIG.get('work', 'header_angle_target'),
+                   CONFIG.get('work', 'coordinator_target'),
                    CONFIG.get('work', 'boxline_target')]
         return [luigi.LocalTarget(pjoin(out_path, t)) for t in targets]
 
