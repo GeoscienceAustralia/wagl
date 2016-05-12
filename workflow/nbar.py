@@ -317,6 +317,8 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
                    CONFIG.get('work', 'time_target'),
                    CONFIG.get('work', 'centreline_target'),
                    CONFIG.get('work', 'header_angle_target')]
+                   CONFIG.get('work', 'coordinator_target')]
+                   CONFIG.get('work', 'boxline_target')]
         return [luigi.LocalTarget(pjoin(out_path, t)) for t in targets]
 
     def run(self):
@@ -332,6 +334,9 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
                                   CONFIG.get('work', 'centreline_target'))
         header_angle_target = pjoin(out_path,
                                     CONFIG.get('work', 'header_angle_target'))
+        coordinator_target = pjoin(out_path,
+                                   CONFIG.get('work', 'coordinator_target'))
+        boxline_target = pjoin(out_path, CONFIG.get('work', 'boxline_target'))
         lon_target = pjoin(out_path, CONFIG.get('work', 'lon_grid_target'))
         lat_target = pjoin(out_path, CONFIG.get('work', 'lat_grid_target'))
 
@@ -350,6 +355,10 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
 
         gaip.create_header_angle_file(acqs[0], view_max=9.0,
                                       outfname=header_angle_target)
+
+        gaip.create_boxline_file(satellite_zenith, y_cent, x_cent,
+                                 boxline_fname=boxline_target,
+                                 coordinator_fname=coordinator_target)
 
 
 class CalculateGridsTask(luigi.Task):
@@ -499,41 +508,42 @@ class CreateModisBrdfFiles(luigi.Task):
                                     solar_irrad_data, solar_dist_data)
 
 
-class RunBoxLineCoordinates(luigi.Task):
-
-    """Run `box_line_coordinates` binary."""
-
-    l1t_path = luigi.Parameter()
-    out_path = luigi.Parameter()
-
-    def requires(self):
-        return [CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path)]
-
-    def output(self):
-        out_path = self.out_path
-        targets = [CONFIG.get('work', 'coordinator_target'),
-                   CONFIG.get('work', 'boxline_target')]
-        return [luigi.LocalTarget(pjoin(out_path, t)) for t in targets]
-
-    def run(self):
-        out_path = self.out_path
-        # sources
-        centreline_target = pjoin(out_path,
-                                  CONFIG.get('work', 'centreline_target'))
-        sat_view_zenith_target = pjoin(out_path,
-                                       CONFIG.get('work', 'sat_view_target'))
-        # targets
-        coordinator_target = pjoin(out_path,
-                                   CONFIG.get('work', 'coordinator_target'))
-        boxline_target = pjoin(out_path,
-                               CONFIG.get('work', 'boxline_target'))
-        cwd = pjoin(out_path, CONFIG.get('work', 'read_modtrancor_ortho_cwd'))
-
-        gaip.run_box_line_coordinates(centreline_target,
-                                      sat_view_zenith_target,
-                                      coordinator_target,
-                                      boxline_target,
-                                      cwd)
+# TODO: delete
+# class RunBoxLineCoordinates(luigi.Task):
+# 
+#     """Run `box_line_coordinates` binary."""
+# 
+#     l1t_path = luigi.Parameter()
+#     out_path = luigi.Parameter()
+# 
+#     def requires(self):
+#         return [CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path)]
+# 
+#     def output(self):
+#         out_path = self.out_path
+#         targets = [CONFIG.get('work', 'coordinator_target'),
+#                    CONFIG.get('work', 'boxline_target')]
+#         return [luigi.LocalTarget(pjoin(out_path, t)) for t in targets]
+# 
+#     def run(self):
+#         out_path = self.out_path
+#         # sources
+#         centreline_target = pjoin(out_path,
+#                                   CONFIG.get('work', 'centreline_target'))
+#         sat_view_zenith_target = pjoin(out_path,
+#                                        CONFIG.get('work', 'sat_view_target'))
+#         # targets
+#         coordinator_target = pjoin(out_path,
+#                                    CONFIG.get('work', 'coordinator_target'))
+#         boxline_target = pjoin(out_path,
+#                                CONFIG.get('work', 'boxline_target'))
+#         cwd = pjoin(out_path, CONFIG.get('work', 'read_modtrancor_ortho_cwd'))
+# 
+#         gaip.run_box_line_coordinates(centreline_target,
+#                                       sat_view_zenith_target,
+#                                       coordinator_target,
+#                                       boxline_target,
+#                                       cwd)
 
 
 class GenerateModtranInputFiles(luigi.Task):
@@ -545,8 +555,7 @@ class GenerateModtranInputFiles(luigi.Task):
     out_path = luigi.Parameter()
 
     def requires(self):
-        return [RunBoxLineCoordinates(self.l1t_path, self.out_path),
-                CreateModtranDirectories(self.out_path),
+        return [CreateModtranDirectories(self.out_path),
                 CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path),
                 CreateModtranInputFile(self.l1t_path, self.out_path),
                 CalculateLatGrid(self.l1t_path, self.out_path),
