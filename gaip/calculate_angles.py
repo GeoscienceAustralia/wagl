@@ -252,15 +252,15 @@ def create_boxline_file(view_angle_fname, line, ncentre, max_angle=9.0,
         # Right justified at various lengths
         msg = '{row:>13}{column:>13}\n'
         src.write(msg.format(row=rows, column=cols))
-        src.write(msg.format(row=line[0], column=istart[0]))
-        src.write(msg.format(row=line[0], column=ncentre[0]))
-        src.write(msg.format(row=line[0], column=iend[0]))
-        src.write(msg.format(row=line[mid], column=istart[mid]))
-        src.write(msg.format(row=line[mid], column=ncentre[mid]))
-        src.write(msg.format(row=line[mid], column=iend[mid]))
-        src.write(msg.format(row=line[-1], column=istart[-1]))
-        src.write(msg.format(row=line[-1], column=ncentre[-1]))
-        src.write(msg.format(row=line[-1], column=iend[-1]))
+        src.write(msg.format(row=int(line[0]), column=int(istart[0])))
+        src.write(msg.format(row=int(line[0]), column=int(ncentre[0])))
+        src.write(msg.format(row=int(line[0]), column=int(iend[0])))
+        src.write(msg.format(row=int(line[mid]), column=int(istart[mid])))
+        src.write(msg.format(row=int(line[mid]), column=int(ncentre[mid])))
+        src.write(msg.format(row=int(line[mid]), column=int(iend[mid])))
+        src.write(msg.format(row=int(line[-1]), column=int(istart[-1])))
+        src.write(msg.format(row=int(line[-1]), column=int(ncentre[-1])))
+        src.write(msg.format(row=int(line[-1]), column=int(iend[-1])))
 
 
 def calculate_julian_century(datetime):
