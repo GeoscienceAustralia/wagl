@@ -130,9 +130,7 @@ def get_aerosol_data(acquisition, aerosol_path, aot_loader_path=None):
     # default aerosol value
     # assumes we are only processing Australia in which case it it should
     # be a coastal scene
-    res = {'data_source': 'default-value',
-           'data_file': 'default-value',
-           'value': 0.06}
+    res = {'value': 0.06}
 
     return res
 

@@ -619,11 +619,14 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
             brdf_dict[(band, factor)] = res
 
     # check for no brdf (iso, vol, geo) (0, 0, 0) and convert to (1, 0, 0)
+    # and strip any file level metadata
     for band in brdf_lut.keys():
         data = {}
         for factor in brdf_factors:
-            data[factor] = brdf_dict[(band, factor)]
+            data[factor] = brdf_dict[(band, factor)]['value']
         if all([i == 0 for i in data.values()]):
-            brdf_dict[(band, 'iso')] = 1.0
+            brdf_dict[(band, 'iso')] = {'value': 1.0}
+            brdf_dict[(band, 'vol')] = {'value': 0.0}
+            brdf_dict[(band, 'geo')] = {'value': 0.0}
 
     return brdf_dict
