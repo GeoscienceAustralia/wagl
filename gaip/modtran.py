@@ -79,6 +79,70 @@ def write_modtran_input(acquisitions, modtran_input_file, ozone, vapour,
         outfile.write("%f\n" % dechour)
 
 
+def write_modtran_inputs(acquisition, coordinator, view_fname, azi_fname,
+                         lat_fname, lon_fname,  ozone, vapour, aerosol,
+                         elevation, coords, albedos, out_fname_fmt):
+    filter_file = acquisition.spectral_filter_file
+    cdate = acquisition.scene_centre_date
+    altitude = acquisition.altitude / 1000.0  # in km
+    dechour = acquisition.decimal_hour
+    coord = pandas.read_csv(coordinator, header=None, sep=r'\s+\s+',
+                            engine='python', names=['row', 'col'])
+
+    with rasterio.open(view_fname) as view_ds, \
+        with rasterio.open(azi_fname) as azi_ds, \
+        with rasterio.open(lat_fname) as lat_ds, \
+        with rasterio.open(lon_fname) as lon_ds:
+
+        npoints = len(coords)
+        view = numpy.zeros(npoints, dtype='float32')
+        azi = numpy.zeros(npoints, dtype='float32')
+        lat = numpy.zeros(npoints, dtype='float64')
+        lon = numpy.zeros(npoints, dtype='float64')
+
+        for i in range(1, npoints + 1):
+            yidx = coord['row'][i]
+            xidx = coord['col'][i]
+            idx = ((yidx -1, yidx), (xidx -1, xidx))
+            view[i-1] = view_ds.read(1, window=idx)[0, 0]
+            azi[i-1] = azi_ds.read(1, window=idx)[0, 0]
+            lat[i-1] = lat_ds.read(1, window=idx)[0, 0]
+            lon[i-1] = lon_ds.read(1, window=idx)[0, 0]
+
+    view_cor = 180 - view
+    azi_cor = azi + 180
+    rlon = 360 - lon
+    
+    wh = rlon >= 360
+    rlon[wh] -= 360
+    
+    wh = (180 - view_cor) < 0.1
+    view_cor[wh] = 180
+    azi_cor[wh] = 0
+    
+    wh = azi_cor > 360
+    azi_cor[wh] -= 360
+
+    for i, p in enumerate(coords):
+        for alb in albedos:
+            out_fname = out_fname_fmt.format(p, alb)
+            with open(out_fname, 'w') as src:
+                src.write('%f\n' % float(alb))
+                src.write("%f\n" % ozone)
+                src.write("%f\n" % vapour)
+                src.write("DATA/%s\n" % filter_file)
+                src.write("-%f\n" % aerosol)
+                src.write("%f\n" % elevation)
+                src.write("Annotation, %s\n" % cdate.strftime('%Y-%m-%d'))
+                src.write("%d\n" % altitude)
+                src.write('%f\n' % view_cor[i])
+                src.write("%d\n" % int(cdate.strftime('%j')))
+                src.write('%f\n' % lat[i])
+                src.write('%f\n' % rlon[i])
+                src.write("%f\n" % dechour)
+                src.write('%f\n' % azi_cor[i])
+
+
 def write_modis_brdf_files(acquisitions, fname_format, brdf_data,
                            solar_irrad_data, solar_dist_data):
     """Generate brdf input file."""
