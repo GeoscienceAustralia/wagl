@@ -9,6 +9,7 @@ import subprocess
 
 import numpy
 import pandas
+import rasterio
 import gaip
 
 BIN_DIR = abspath(pjoin(dirname(__file__), '..', 'bin'))
@@ -89,10 +90,10 @@ def write_modtran_inputs(acquisition, coordinator, view_fname, azi_fname,
     coord = pandas.read_csv(coordinator, header=None, sep=r'\s+\s+',
                             engine='python', names=['row', 'col'])
 
-    with rasterio.open(view_fname) as view_ds, \
-        with rasterio.open(azi_fname) as azi_ds, \
-        with rasterio.open(lat_fname) as lat_ds, \
-        with rasterio.open(lon_fname) as lon_ds:
+    with rasterio.open(view_fname) as view_ds,\
+        rasterio.open(azi_fname) as azi_ds,\
+        rasterio.open(lat_fname) as lat_ds,\
+        rasterio.open(lon_fname) as lon_ds:
 
         npoints = len(coords)
         view = numpy.zeros(npoints, dtype='float32')
@@ -125,22 +126,22 @@ def write_modtran_inputs(acquisition, coordinator, view_fname, azi_fname,
 
     for i, p in enumerate(coords):
         for alb in albedos:
-            out_fname = out_fname_fmt.format(p, alb)
+            out_fname = out_fname_fmt.format(coord=p, albedo=alb)
             with open(out_fname, 'w') as src:
-                src.write('%f\n' % float(alb))
-                src.write("%f\n" % ozone)
-                src.write("%f\n" % vapour)
-                src.write("DATA/%s\n" % filter_file)
-                src.write("-%f\n" % aerosol)
-                src.write("%f\n" % elevation)
-                src.write("Annotation, %s\n" % cdate.strftime('%Y-%m-%d'))
-                src.write("%d\n" % altitude)
-                src.write('%f\n' % view_cor[i])
-                src.write("%d\n" % int(cdate.strftime('%j')))
-                src.write('%f\n' % lat[i])
-                src.write('%f\n' % rlon[i])
-                src.write("%f\n" % dechour)
-                src.write('%f\n' % azi_cor[i])
+                src.write("{:.8f}\n".format(float(alb)))
+                src.write("{:.14f}\n".format(ozone))
+                src.write("{:.14f}\n".format(vapour))
+                src.write("DATA/{}\n".format(filter_file))
+                src.write("-{:.14f}\n".format(aerosol))
+                src.write("{:.14f}\n".format(elevation))
+                src.write("Annotation, {}\n".format(cdate.strftime('%Y-%m-%d')))
+                src.write("{:.14f}\n".format(altitude))
+                src.write("{:f}\n".format(view_cor[i]))
+                src.write("{:d}\n".format(int(cdate.strftime('%j'))))
+                src.write("{:.14f}\n".format(lat[i]))
+                src.write("{:.14f}\n".format(rlon[i]))
+                src.write("{:.14f}\n".format(dechour))
+                src.write("{:f}\n".format(azi_cor[i]))
 
 
 def write_modis_brdf_files(acquisitions, fname_format, brdf_data,

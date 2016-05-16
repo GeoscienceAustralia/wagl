@@ -580,11 +580,11 @@ class GenerateModtranInputFiles(luigi.Task):
         aerosol = load_value(aerosol_target)
         elevation = load_value(elevation_target)
         out_fname_fmt = pjoin(workdir, fname_format)
-        gaip.write_motran_inputs(acqs[0], coordinator_target,
-                                 sat_view_zenith_target, sat_azimuth_target,
-                                 lat_grid_target, lon_grid_target, ozone,
-                                 vapour, aerosol, elevation, coords, albedos,
-                                 out_fname_fmt)
+        gaip.write_modtran_inputs(acqs[0], coordinator_target,
+                                  sat_view_zenith_target, sat_azimuth_target,
+                                  lat_grid_target, lon_grid_target, ozone,
+                                  vapour, aerosol, elevation, coords, albedos,
+                                  out_fname_fmt)
 
 
 class ReformatAsTp5(luigi.Task):
