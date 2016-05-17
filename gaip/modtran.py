@@ -169,6 +169,7 @@ def write_modis_brdf_files(acquisitions, fname_format, brdf_data,
             outfile.write(msg)
 
 
+# TODO: remove
 def generate_modtran_inputs(modtran_input, coordinator, sat_view_zenith,
                             sat_azimuth, lon_grid, lat_grid, coords, albedos,
                             fname_format, workdir):

@@ -510,15 +510,14 @@ class CreateModisBrdfFiles(luigi.Task):
 
 class GenerateModtranInputFiles(luigi.Task):
 
-    """Generate the MODTRAN input files by running the Fortran binary
-    `generate_modtran_input`."""
+    """Generate the MODTRAN input files."""
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
 
     def requires(self):
-        #        CreateModtranInputFile(self.l1t_path, self.out_path),
         return [CreateModtranDirectories(self.out_path),
+                GetAncillaryData(self.l1t_path, self.out_path),
                 CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path),
                 CalculateLatGrid(self.l1t_path, self.out_path),
                 CalculateLonGrid(self.l1t_path, self.out_path)]
@@ -560,16 +559,6 @@ class GenerateModtranInputFiles(luigi.Task):
         fname_format = CONFIG.get('input_modtran', 'output_format')
         workdir = pjoin(out_path, CONFIG.get('work', 'input_modtran_cwd'))
 
-        # gaip.generate_modtran_inputs(modtran_input_target,
-        #                              coordinator_target,
-        #                              sat_view_zenith_target,
-        #                              sat_azimuth_target,
-        #                              lon_grid_target,
-        #                              lat_grid_target,
-        #                              coords,
-        #                              albedos,
-        #                              fname_format,
-        #                              workdir)
         acqs = gaip.acquisitions(self.l1t_path)
         ozone_target = pjoin(out_path, CONFIG.get('work', 'ozone_target'))
         vapour_target = pjoin(out_path, CONFIG.get('work', 'vapour_target'))
@@ -700,6 +689,7 @@ class PrepareModtranInput(luigi.Task):
 
     def requires(self):
         return [CreateModtranDirectories(self.out_path),
+                CreateModtranInputFile(self.l1t_path, self.out_path),
                 CreateSatelliteFilterFile(self.l1t_path, self.out_path),
                 GenerateModtranInputFiles(self.l1t_path, self.out_path),
                 ReformatAsTp5(self.l1t_path, self.out_path),
