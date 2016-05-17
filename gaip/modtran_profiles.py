@@ -1,5 +1,23 @@
 #!/usr/bin/env python
 
+"""
+These are the templates for the inputs into MODTRAN.
+Parameters to be inserted are:
+    * albedo
+    * water vapour; units: g/cm^2
+    * ozone; units: ATM-cm
+    * filter function (spectral response of sensor)
+    * aerosol visibility; optical depth at 550 nm (negative); units: km
+    * elevation (sourced from a DSM); units: km above sea level
+    * satellite height; units: km
+    * satellite view angle (zenith); corrected (180 - angle); units: degrees
+    * julian day of year
+    * latitude; units: degrees
+    * longitude; corrected (360 - angle); units: degrees
+    * time; units: decimal hours in UTC
+    * satellite azimuth angle; corrected (angle + 180); units: degrees
+    * satellite view offset; (180 - angle); units: degrees
+"""
 
 MIDLAT_SUMMER_ALBEDO = (
 """TM  2    2    2    1    2    2    2    2    2    2    1    1    0  10.000{albedo:7.2f}
