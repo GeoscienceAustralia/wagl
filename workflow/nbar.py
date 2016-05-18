@@ -576,6 +576,70 @@ class GenerateModtranInputFiles(luigi.Task):
                                   out_fname_fmt)
 
 
+class WriteTp5(luigi.Task):
+
+    """Output the `tp5` formatted files."""
+
+    l1t_path = luigi.Parameter()
+    out_path = luigi.Parameter()
+
+    def requires(self):
+        return [CreateModtranDirectories(self.out_path),
+                GetAncillaryData(self.l1t_path, self.out_path),
+                CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path),
+                CalculateLatGrid(self.l1t_path, self.out_path),
+                CalculateLonGrid(self.l1t_path, self.out_path)]
+
+    def output(self):
+        out_path = self.out_path
+        coords = CONFIG.get('write_tp5', 'coords').split(',')
+        albedos = CONFIG.get('write_tp5', 'albedos').split(',')
+        output_format = CONFIG.get('write_tp5', 'output_format')
+        workdir = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
+        targets = []
+        for coord in coords:
+            for albedo in albedos:
+                targets.append(output_format.format(coord=coord,
+                                                    albedo=albedo))
+        return [luigi.LocalTarget(pjoin(workdir, t)) for t in targets]
+
+    def run(self):
+        out_path = self.out_path
+        coords = CONFIG.get('write_tp5', 'coords').split(',')
+        albedos = CONFIG.get('write_tp5', 'albedos').split(',')
+        output_format = CONFIG.get('write_tp5', 'output_format')
+        workdir = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
+        out_fname_format = pjoin(workdir, output_format)
+
+        # get the filenames for the coordinator,
+        # satellite view zenith, azimuth, and latitude/longitude arrays
+        coord_fname = pjoin(out_path, CONFIG.get('work', 'coordinator_target'))
+        sat_view_fname = pjoin(out_path, CONFIG.get('work', 'sat_view_target'))
+        sat_azi_fname = pjoin(out_path, CONFIG.get('work',
+                                                   'sat_azimuth_target'))
+        lon_fname = pjoin(out_path, CONFIG.get('work', 'lon_grid_target'))
+        lat_fname = pjoin(out_path, CONFIG.get('work', 'lat_grid_target'))
+
+        # load the ancillary point values
+        ozone_fname = pjoin(out_path, CONFIG.get('work', 'ozone_target'))
+        vapour_fname = pjoin(out_path, CONFIG.get('work', 'vapour_target'))
+        aerosol_fname = pjoin(out_path, CONFIG.get('work', 'aerosol_target'))
+        elevation_fname = pjoin(out_path, CONFIG.get('work', 'dem_target'))
+        ozone = load_value(ozone_target)
+        vapour = load_value(vapour_target)
+        aerosol = load_value(aerosol_target)
+        elevation = load_value(elevation_target)
+
+        # load an acquisition
+        acq = gaip.acquisitions(self.l1t_path)[0]
+
+        # run
+        write_tp5_albedo_transmittance(acq, coord_fname, sat_view_fname,
+                                       sat_azi_fname, lat_fname, lon_fname,
+                                       ozone, vapour, aerosol, elevation,
+                                       coords, albedos, out_fname_format)
+
+
 class ReformatAsTp5(luigi.Task):
 
     """Reformat the MODTRAN input files in `tp5` format. This runs the
@@ -688,12 +752,13 @@ class PrepareModtranInput(luigi.Task):
     out_path = luigi.Parameter()
 
     def requires(self):
+                # ReformatAsTp5(self.l1t_path, self.out_path),
+                # ReformatAsTp5Trans(self.l1t_path, self.out_path)]
         return [CreateModtranDirectories(self.out_path),
-                CreateModtranInputFile(self.l1t_path, self.out_path),
                 CreateSatelliteFilterFile(self.l1t_path, self.out_path),
+                CreateModtranInputFile(self.l1t_path, self.out_path),
                 GenerateModtranInputFiles(self.l1t_path, self.out_path),
-                ReformatAsTp5(self.l1t_path, self.out_path),
-                ReformatAsTp5Trans(self.l1t_path, self.out_path)]
+                WriteTp5(self.l1t_path, self.out_path)]
 
     def complete(self):
         return all([t.complete() for t in self.requires()])
