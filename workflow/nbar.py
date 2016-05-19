@@ -625,19 +625,18 @@ class WriteTp5(luigi.Task):
         vapour_fname = pjoin(out_path, CONFIG.get('work', 'vapour_target'))
         aerosol_fname = pjoin(out_path, CONFIG.get('work', 'aerosol_target'))
         elevation_fname = pjoin(out_path, CONFIG.get('work', 'dem_target'))
-        ozone = load_value(ozone_target)
-        vapour = load_value(vapour_target)
-        aerosol = load_value(aerosol_target)
-        elevation = load_value(elevation_target)
+        ozone = load_value(ozone_fname)
+        vapour = load_value(vapour_fname)
+        aerosol = load_value(aerosol_fname)
+        elevation = load_value(elevation_fname)
 
         # load an acquisition
         acq = gaip.acquisitions(self.l1t_path)[0]
 
         # run
-        write_tp5_albedo_transmittance(acq, coord_fname, sat_view_fname,
-                                       sat_azi_fname, lat_fname, lon_fname,
-                                       ozone, vapour, aerosol, elevation,
-                                       coords, albedos, out_fname_format)
+        gaip.write_tp5(acq, coord_fname, sat_view_fname, sat_azi_fname,
+                       lat_fname, lon_fname, ozone, vapour, aerosol, elevation,
+                       coords, albedos, out_fname_format)
 
 
 class ReformatAsTp5(luigi.Task):
