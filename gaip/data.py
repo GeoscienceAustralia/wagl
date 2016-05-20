@@ -153,7 +153,8 @@ def stack_data(acqs_list, fn=(lambda acq: True), window=None, masked=False):
     return stack, geo_box
 
 
-def write_img(array, filename, fmt='ENVI', geobox=None, nodata=None, compress=None, tags=None):
+def write_img(array, filename, fmt='ENVI', geobox=None, nodata=None, compress=None,
+              tags=None, options=None):
     """
     Writes a 2D/3D image to disk using rasterio.
 
@@ -178,6 +179,10 @@ def write_img(array, filename, fmt='ENVI', geobox=None, nodata=None, compress=No
 
     :param tags:
         A dictionary of dataset-level metadata.
+
+    :param options:
+        A dictionary containing other dataset creation options.
+        See creation options for the respective GDAL formats.
     """
     # Get the datatype of the array
     dtype = array.dtype.name
@@ -222,16 +227,32 @@ def write_img(array, filename, fmt='ENVI', geobox=None, nodata=None, compress=No
               'driver': fmt,
               'nodata': nodata}
 
+    # compression predictor choices
+    predictor = {'int8': 2,
+                 'uint8': 2,
+                 'int16': 2,
+                 'uint16': 2,
+                 'int32': 2,
+                 'uint32': 2,
+                 'int64': 2,
+                 'uint64': 2,
+                 'float32': 3,
+                 'float64': 3}
+
     if fmt == 'GTiff' and compress is not None: 
         kwargs.update({'compress': compress})
-   
+        kwargs['predictor'] = predictor[dtype]
+
+    if options is not None:
+        for key in options:
+            kwargs[key] = options[key]
 
     with rasterio.open(filename, 'w', **kwargs) as outds:
         if bands == 1:
-            outds.write_band(1, array)
+            outds.write(array, 1)
         else:
             for i in range(bands):
-                outds.write_band(i + 1, array[i])
+                outds.write(array[i], i + 1)
         if tags is not None:
             outds.update_tags(**tags)
 
