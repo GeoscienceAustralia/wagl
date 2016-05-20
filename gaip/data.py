@@ -153,8 +153,8 @@ def stack_data(acqs_list, fn=(lambda acq: True), window=None, masked=False):
     return stack, geo_box
 
 
-def write_img(array, filename, fmt='ENVI', geobox=None, nodata=None, compress=None,
-              tags=None, options=None):
+def write_img(array, filename, fmt='ENVI', geobox=None, nodata=None,
+              compress=None, tags=None, options=None):
     """
     Writes a 2D/3D image to disk using rasterio.
 
