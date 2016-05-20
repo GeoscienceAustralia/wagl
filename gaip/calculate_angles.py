@@ -651,19 +651,23 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
             to_disk = None
 
         # Initialise the output files
-        out_dtype = gdal.GDT_Float32
-        outds_sat_v = tiling.TiledOutput(to_disk[0], cols, rows, geobox=geobox,
-                                         dtype=out_dtype)
-        outds_sat_az = tiling.TiledOutput(to_disk[1], cols, rows,
-                                          geobox=geobox, dtype=out_dtype)
-        outds_sol_z = tiling.TiledOutput(to_disk[2], cols, rows, geobox=geobox,
-                                         dtype=out_dtype)
-        outds_sol_az = tiling.TiledOutput(to_disk[3], cols, rows,
-                                          geobox=geobox, dtype=out_dtype)
-        outds_rel_az = tiling.TiledOutput(to_disk[4], cols, rows,
-                                          geobox=geobox, dtype=out_dtype)
-        outds_time = tiling.TiledOutput(to_disk[5], cols, rows, geobox=geobox,
-                                        dtype=out_dtype)
+        out_dtype = 'float32'
+        kwargs = {'driver': 'GTiff',
+                  'width': cols,
+                  'height': rows,
+                  'count': 1,
+                  'crs': prj,
+                  'transform': geobox.affine,
+                  'dtype': out_dtype,
+                  'compress': 'deflate',
+                  'zlevel': 1,
+                  'predictor': 3}
+        outds_sat_v = rasterio.open(to_disk[0], 'w', **kwargs)
+        outds_sat_az = rasterio.open(to_disk[1], 'w', **kwargs)
+        outds_sol_z = rasterio.open(to_disk[2], 'w', **kwargs)
+        outds_sol_az = rasterio.open(to_disk[3], 'w', **kwargs)
+        outds_rel_az = rasterio.open(to_disk[4], 'w', **kwargs)
+        outds_time = rasterio.open(to_disk[5], 'w', **kwargs)
 
     # Set to null value
     view[:] = -999
@@ -726,12 +730,12 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
                       x_cent, n_cent)
 
                 # Output to disk
-                outds_sat_v.write_tile(view, tile)
-                outds_sat_az.write_tile(azi, tile)
-                outds_sol_z.write_tile(asol, tile)
-                outds_sol_az.write_tile(soazi, tile)
-                outds_rel_az.write_tile(rela_angle, tile)
-                outds_time.write_tile(time, tile)
+                outds_sat_v.write(view, 1, window=tile)
+                outds_sat_az.write(azi, 1, window=tile)
+                outds_sol_z.write(asol, 1, window=tile)
+                outds_sol_az.write(soazi, 1, window=tile)
+                outds_rel_az.write(rela_angle, 1, window=tile)
+                outds_time.write(time, 1, window=tile)
 
     if to_disk is not None:
         # Close all image files opened for writing
