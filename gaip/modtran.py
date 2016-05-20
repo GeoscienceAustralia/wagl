@@ -172,29 +172,6 @@ def write_modis_brdf_files(acquisitions, fname_format, brdf_data,
             outfile.write(msg)
 
 
-# TODO: remove
-def generate_modtran_inputs(modtran_input, coordinator, sat_view_zenith,
-                            sat_azimuth, lon_grid, lat_grid, coords, albedos,
-                            fname_format, workdir):
-    """Generate MODTRAN input files."""
-    cmd = pjoin(BIN_DIR, 'generate_modtran_input')
-
-    args = [cmd, modtran_input, coordinator, sat_view_zenith, sat_azimuth,
-            lat_grid, lon_grid]
-
-    targets = []
-    for coord in coords:
-        for albedo in albedos:
-            target = fname_format.format(coord=coord, albedo=albedo)
-            targets.append(pjoin(workdir, target))
-
-    args.extend(targets)
-
-    subprocess.check_call(args)
-
-    return targets
-
-
 def write_tp5(acquisition, coordinator, view_fname, azi_fname,
               lat_fname, lon_fname, ozone, vapour, aerosol, elevation,
               coords, albedos, out_fname_fmt):
@@ -283,32 +260,6 @@ def write_tp5(acquisition, coordinator, view_fname, azi_fname,
                                              sat_azimuth=azi_cor[i])
             with open(out_fname, 'w') as src:
                 src.write(data)
-
-
-def reformat_as_tp5(coords, albedos, profile, input_format, output_format,
-                    workdir, cmd=pjoin(BIN_DIR, 'reformat_tp5_albedo')):
-    """Reformat the MODTRAN input files in `tp5` format."""
-
-    targets = []
-    for coord in coords:
-        for albedo in albedos:
-            src = input_format.format(coord=coord, albedo=albedo)
-            dst = output_format.format(coord=coord, albedo=albedo)
-            targets.append(pjoin(workdir, dst))
-
-            args = [cmd, pjoin(workdir, src), profile, pjoin(workdir, dst)]
-
-            subprocess.check_call(args)
-
-    return targets
-
-
-def reformat_as_tp5_trans(coords, albedos, profile, input_format,
-                          output_format, workdir):
-    """Reformat the MODTRAN input files in `tp5` format in the trans case."""
-    cmd = pjoin(BIN_DIR, 'reformat_tp5_transmittance')
-    return reformat_as_tp5(coords, albedos, profile, input_format,
-                           output_format, workdir, cmd)
 
 
 def run_modtran(modtran_exe, workpath):
