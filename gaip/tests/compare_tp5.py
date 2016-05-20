@@ -2,7 +2,7 @@
 
 from os.path import join as pjoin, exists
 import argparse
-import rasterio
+import numpy
 
 
 def main(ref_dir, test_dir, scenes, files):
@@ -10,24 +10,22 @@ def main(ref_dir, test_dir, scenes, files):
         ref_scene = pjoin(ref_dir, scene)
         test_scene = pjoin(test_dir, scene)
         for f in files:
-            ref_fname = pjoin(ref_scene, f)
-            test_fname = pjoin(test_scene, f)
+            ref_fname = pjoin(pjoin(ref_scene, 'mod'), f)
+            test_fname = pjoin(pjoin(test_scene, 'mod'), f)
             if not exists(ref_fname):
                 continue
-            with rasterio.open(ref_fname) as ref_ds,\
-                rasterio.open(test_fname) as test_ds:
-                print "Testing\nScene: {}\n File: {}".format(scene, f)
-                ref_data = ref_ds.read(1)
-                test_data = test_ds.read(1)
-                diff = (ref_data - test_data).sum()
-                if diff != 0:
-                    msg = "Mismatch:\nRef: {}\nTest: {}\nDifference: {}\n"
-                    print msg.format(ref_fname, test_fname, diff)
+            print "Testing\nScene: {}\n File: {}".format(scene, f)
+            with open(ref_fname, 'r') as ref, open(test_fname) as test:
+                ref_data = ref.readlines()
+                test_data = test.readlines()
+                for i in range(len(ref_data)):
+                    if not ref_data[i] == test_data[i]:
+                        print "Line {} not equivilent".format(i)
 
 
 if __name__ == '__main__':
 
-    description = "Compare the output image files."
+    description = "Compare the output tp5 files."
     parser = argparse.ArgumentParser()
     parser = argparse.ArgumentParser(description=description)
 
