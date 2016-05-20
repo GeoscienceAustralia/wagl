@@ -105,8 +105,10 @@ def slope_aspect_arrays(acquisition, dsm_fname, margins, slope_out_fname,
                  dsm_subset, slope.transpose(), aspect.transpose())
 
     # Output the results
-    write_img(slope, slope_out_fname, geobox=geobox, nodata=-999)
-    write_img(aspect, aspect_out_fname, geobox=geobox, nodata=-999)
+    write_img(slope, slope_out_fname, geobox=geobox, nodata=-999,
+              compress='deflate', options={'zlevel': 1})
+    write_img(aspect, aspect_out_fname, geobox=geobox, nodata=-999,
+              compress='deflate', options={'zlevel': 1})
 
     if header_slope_fname:
         write_header_slope_file(header_slope_fname, pixel_margin, geobox)
