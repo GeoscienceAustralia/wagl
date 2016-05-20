@@ -6,8 +6,6 @@ CFLAGS := -O3
 
 EXES := calculate_coefficients \
         read_flux_albedo \
-        reformat_tp5_albedo \
-        reformat_tp5_transmittance \
         reformat_modtran_output \
         read_flux_transmittance \
 	aot_loader
