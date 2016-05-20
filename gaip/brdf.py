@@ -284,12 +284,12 @@ class BRDFLoader(object):
 
         return result
 
-    def convert_format(self, filename, fmt='ENVI'):
+    def convert_format(self, filename, fmt='GTiff'):
         """
         Convert the HDF file to a more spatially recognisable data
         format such as ENVI or GTiff.
-        The default format is ENVI (flat bianry file and an
-        accompanying header (*.hdr) text file.
+        The default format is a compressed GeoTiff, with deflate
+        compression setting 1.
         """
 
         # Get the UL corner of the UL pixel co-ordinate
@@ -313,8 +313,12 @@ class BRDFLoader(object):
         geobox = GriddedGeoBox(shape=dims, origin=(ul_lon, ul_lat),
                                pixelsize=res, crs=prj)
 
+        # options
+        options = {'zlevel': 1}
+
         # Write the file
-        write_img(self.data[0], filename, fmt, geobox=geobox)
+        write_img(self.data[0], filename, fmt, geobox=geobox,
+                  compress='deflate', options=options)
 
     def get_mean(self, array):
         """
@@ -600,7 +604,8 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
 
             # Output the brdf subset
             out_fname_subset = out_fname + '_subset'
-            write_img(subset, out_fname_subset, geobox=geobox_subset)
+            write_img(subset, out_fname_subset, 'GTiff', geobox=geobox_subset,
+                      compress='deflate', options={'zlevel': 1})
 
             # Remove temporary unzipped file
             if hdf_file.find(work_path) == 0:
