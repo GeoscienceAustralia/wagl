@@ -11,6 +11,8 @@ import numpy
 import pandas
 import rasterio
 import gaip
+from gaip import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
+from gaip import MIDLAT_SUMMER_TRANSMITTANCE, TROPICAL_TRANSMITTANCE
 
 BIN_DIR = abspath(pjoin(dirname(__file__), '..', 'bin'))
 
@@ -117,6 +119,7 @@ def write_modtran_inputs(acquisition, coordinator, view_fname, azi_fname,
     azi_cor = azi + 180
     rlon = 360 - lon
     
+    # check if in western hemisphere
     wh = rlon >= 360
     rlon[wh] -= 360
     
@@ -169,53 +172,94 @@ def write_modis_brdf_files(acquisitions, fname_format, brdf_data,
             outfile.write(msg)
 
 
-# TODO: remove
-def generate_modtran_inputs(modtran_input, coordinator, sat_view_zenith,
-                            sat_azimuth, lon_grid, lat_grid, coords, albedos,
-                            fname_format, workdir):
-    """Generate MODTRAN input files."""
-    cmd = pjoin(BIN_DIR, 'generate_modtran_input')
+def write_tp5(acquisition, coordinator, view_fname, azi_fname,
+              lat_fname, lon_fname, ozone, vapour, aerosol, elevation,
+              coords, albedos, out_fname_fmt):
+    """Writes the tp5 files for the albedo (0, 1) and transmittance (t)."""
+    geobox = acquisition.gridded_geo_box()
+    filter_file = acquisition.spectral_filter_file
+    cdate = acquisition.scene_centre_date
+    doy = int(cdate.strftime('%j'))
+    altitude = acquisition.altitude / 1000.0  # in km
+    dechour = acquisition.decimal_hour
+    coord = pandas.read_csv(coordinator, header=None, sep=r'\s+\s+',
+                            engine='python', names=['row', 'col'])
 
-    args = [cmd, modtran_input, coordinator, sat_view_zenith, sat_azimuth,
-            lat_grid, lon_grid]
+    with rasterio.open(view_fname) as view_ds,\
+        rasterio.open(azi_fname) as azi_ds,\
+        rasterio.open(lat_fname) as lat_ds,\
+        rasterio.open(lon_fname) as lon_ds:
 
-    targets = []
-    for coord in coords:
-        for albedo in albedos:
-            target = fname_format.format(coord=coord, albedo=albedo)
-            targets.append(pjoin(workdir, target))
+        npoints = len(coords)
+        view = numpy.zeros(npoints, dtype='float32')
+        azi = numpy.zeros(npoints, dtype='float32')
+        lat = numpy.zeros(npoints, dtype='float64')
+        lon = numpy.zeros(npoints, dtype='float64')
 
-    args.extend(targets)
+        for i in range(1, npoints + 1):
+            yidx = coord['row'][i]
+            xidx = coord['col'][i]
+            idx = ((yidx -1, yidx), (xidx -1, xidx))
+            view[i-1] = view_ds.read(1, window=idx)[0, 0]
+            azi[i-1] = azi_ds.read(1, window=idx)[0, 0]
+            lat[i-1] = lat_ds.read(1, window=idx)[0, 0]
+            lon[i-1] = lon_ds.read(1, window=idx)[0, 0]
 
-    subprocess.check_call(args)
+    view_cor = 180 - view
+    azi_cor = azi + 180
+    rlon = 360 - lon
+    
+    # check if in western hemisphere
+    wh = rlon >= 360
+    rlon[wh] -= 360
+    
+    wh = (180 - view_cor) < 0.1
+    view_cor[wh] = 180
+    azi_cor[wh] = 0
+    
+    wh = azi_cor > 360
+    azi_cor[wh] -= 360
 
-    return targets
+    # get the modtran profiles to use based on the centre latitude 
+    centre_lon, centre_lat = geobox.centre_lonlat
+    if centre_lat < -23.0:
+        albedo_profile = MIDLAT_SUMMER_ALBEDO
+        trans_profile = MIDLAT_SUMMER_TRANSMITTANCE
+    else:
+        albedo_profile = TROPICAL_ALBEDO
+        trans_profile = TROPICAL_TRANSMITTANCE
 
-
-def reformat_as_tp5(coords, albedos, profile, input_format, output_format,
-                    workdir, cmd=pjoin(BIN_DIR, 'reformat_tp5_albedo')):
-    """Reformat the MODTRAN input files in `tp5` format."""
-
-    targets = []
-    for coord in coords:
-        for albedo in albedos:
-            src = input_format.format(coord=coord, albedo=albedo)
-            dst = output_format.format(coord=coord, albedo=albedo)
-            targets.append(pjoin(workdir, dst))
-
-            args = [cmd, pjoin(workdir, src), profile, pjoin(workdir, dst)]
-
-            subprocess.check_call(args)
-
-    return targets
-
-
-def reformat_as_tp5_trans(coords, albedos, profile, input_format,
-                          output_format, workdir):
-    """Reformat the MODTRAN input files in `tp5` format in the trans case."""
-    cmd = pjoin(BIN_DIR, 'reformat_tp5_transmittance')
-    return reformat_as_tp5(coords, albedos, profile, input_format,
-                           output_format, workdir, cmd)
+    # write the tp5 files required for input into MODTRAN
+    for i, p in enumerate(coords):
+        for alb in albedos:
+            out_fname = out_fname_fmt.format(coord=p, albedo=alb)
+            if alb == 't':
+                data = trans_profile.format(albedo=0.0,
+                                            water=vapour,
+                                            ozone=ozone,
+                                            filter_function=filter_file,
+                                            visibility=-aerosol,
+                                            elevation=elevation,
+                                            sat_height=altitude,
+                                            sat_view=view_cor[i],
+                                            doy=doy,
+                                            sat_view_offset=180.0-view_cor[i])
+            else:
+                data = albedo_profile.format(albedo=float(alb),
+                                             water=vapour,
+                                             ozone=ozone,
+                                             filter_function=filter_file,
+                                             visibility=-aerosol,
+                                             elevation=elevation,
+                                             sat_height=altitude,
+                                             sat_view=view_cor[i],
+                                             doy=doy,
+                                             lat=lat[i],
+                                             lon=rlon[i],
+                                             time=dechour,
+                                             sat_azimuth=azi_cor[i])
+            with open(out_fname, 'w') as src:
+                src.write(data)
 
 
 def run_modtran(modtran_exe, workpath):
