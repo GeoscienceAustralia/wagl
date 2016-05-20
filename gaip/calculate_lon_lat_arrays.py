@@ -201,7 +201,8 @@ def create_grid(acquisition, coord_fn, fname=None, depth=7, dtype='float64'):
                      eval_func=func, grid=arr)
 
     if fname is not None:
-        write_img(arr, fname, geobox=geobox)
+        write_img(arr, fname, fmt="GTiff", geobox=geobox, compress='deflate',
+                  options={'zlevel': 1})
     else:
         return arr
 
