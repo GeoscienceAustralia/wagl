@@ -45,10 +45,21 @@ def self_shadow(incident_fname, exiting_fname, self_shadow_out_fname,
         # Retrieve a geobox and image info
         geobox = GriddedGeoBox.from_rio_dataset(inc_ds)
         cols, rows = geobox.get_shape_xy()
+        crs = geobox.crs.ExportToWkt()
 
         # Initialise the output file
-        outds = tiling.TiledOutput(self_shadow_out_fname, cols, rows,
-                                   geobox=geobox)
+        out_dtype = 'uint8'
+        kwargs = {'driver': 'GTiff',
+                  'width': cols,
+                  'height': rows,
+                  'count': 1,
+                  'crs': crs,
+                  'transform': geobox.affine,
+                  'dtype': out_dtype,
+                  'compress': 'deflate',
+                  'zlevel': 1,
+                  'predictor': 2}
+        outds = rasterio.open(self_shadow_out_fname, 'w', **kwargs)
 
         # Initialise the tiling scheme for processing
         if x_tile is None:
@@ -80,9 +91,7 @@ def self_shadow(incident_fname, exiting_fname, self_shadow_out_fname,
             mask[numpy.cos(exi) <= 0.0] = 0
 
             # Write the current tile to disk
-            outds.write_tile(mask, tile)
+            outds.write(mask, 1, window=tile)
 
         # Close the file
         outds.close()
-        #outband = None
-        outds = None
