@@ -313,12 +313,9 @@ class BRDFLoader(object):
         geobox = GriddedGeoBox(shape=dims, origin=(ul_lon, ul_lat),
                                pixelsize=res, crs=prj)
 
-        # options
-        options = {'zlevel': 1}
-
         # Write the file
         write_img(self.data[0], filename, fmt, geobox=geobox,
-                  compress='deflate', options=options)
+                  compress='deflate', options={'zlevel': 1})
 
     def get_mean(self, array):
         """
@@ -575,7 +572,7 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
             out_fname = os.path.join(brdf_out_path, out_fname)
 
             # Convert the file format
-            brdf_object.convert_format(out_fname)
+            brdf_object.convert_format(out_fname + '.tif')
 
             # Get the intersected roi
             # the intersection is used rather than the actual bounds,
@@ -603,7 +600,7 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
             brdf_mean_value = brdf_object.get_mean(subset)
 
             # Output the brdf subset
-            out_fname_subset = out_fname + '_subset'
+            out_fname_subset = out_fname + '_subset.tif'
             write_img(subset, out_fname_subset, 'GTiff', geobox=geobox_subset,
                       compress='deflate', options={'zlevel': 1})
 
