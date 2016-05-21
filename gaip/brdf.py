@@ -309,7 +309,7 @@ class BRDFLoader(object):
 
         # Setup the geobox
         dims = self.data[0].shape
-        res = (pixsz_x, pixsz_y)
+        res = (abs(pixsz_x), abs(pixsz_y))
         geobox = GriddedGeoBox(shape=dims, origin=(ul_lon, ul_lat),
                                pixelsize=res, crs=prj)
 
@@ -589,7 +589,7 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
             ll_lon, ll_lat = (roi['UL'][0], roi['LR'][1])
 
             # Read the subset and geotransform that corresponds to the subset
-            subset, geobox_subset = read_subset(out_fname,
+            subset, geobox_subset = read_subset(out_fname + '.tif',
                                                 (ul_lon, ul_lat),
                                                 (ur_lon, ur_lat),
                                                 (lr_lon, lr_lat),
