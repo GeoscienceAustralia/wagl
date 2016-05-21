@@ -74,5 +74,5 @@ def calculate_cast_shadow(acquisition, dsm_fname, margins, block_height,
                           pixel_buf, block_height, block_width, spheroid)
 
     # Output the result to disk
-    write_img(mask, outfname, geobox=geobox, nodata=-999, compress='deflate',
-              options={'zlevel': 1})
+    write_img(mask, outfname, fmt='GTiff', geobox=geobox, nodata=-999,
+              compress='deflate', options={'zlevel': 1})

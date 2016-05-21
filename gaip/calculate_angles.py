@@ -8,7 +8,6 @@ import ephem
 import numpy as np
 import os
 
-from osgeo import gdal
 from osgeo import osr
 from eotools import tiling
 from gaip import acquisitions
@@ -42,20 +41,20 @@ def sat_sol_grid_workflow(l1t_path, work_path, lonlat_path):
     # Find and open the longitude and lattitude files
     # Avoiding DataManger here. find_file will be used sparingly until a
     # proper workflow is written.
-    lon_fname = find_file(lonlat_path, 'LON.bin')
-    lat_fname = find_file(lonlat_path, 'LAT.bin')
+    lon_fname = find_file(lonlat_path, 'LON.tif')
+    lat_fname = find_file(lonlat_path, 'LAT.tif')
 
     # Get the array dimensions from the first acquisistion
     # The dimensions should match for all bands except the panchromatic
     cols = acqs[0].samples
 
     # Define the output file names
-    sat_view_zenith_fname = os.path.join(work_path, 'SATELLITE_VIEW.bin')
-    sat_azimuth_fname = os.path.join(work_path, 'SATELLITE_AZIMUTH.bin')
-    solar_zenith_fname = os.path.join(work_path, 'SOLAR_ZENITH.bin')
-    solar_azimuth_fname = os.path.join(work_path, 'SOLAR_AZIMUTH.bin')
-    relative_azimuth_fname = os.path.join(work_path, 'RELATIVE_AZIMUTH.bin')
-    time_fname = os.path.join(work_path, 'TIME.bin')
+    sat_view_zenith_fname = os.path.join(work_path, 'SATELLITE_VIEW.tif')
+    sat_azimuth_fname = os.path.join(work_path, 'SATELLITE_AZIMUTH.tif')
+    solar_zenith_fname = os.path.join(work_path, 'SOLAR_ZENITH.tif')
+    solar_azimuth_fname = os.path.join(work_path, 'SOLAR_AZIMUTH.tif')
+    relative_azimuth_fname = os.path.join(work_path, 'RELATIVE_AZIMUTH.tif')
+    time_fname = os.path.join(work_path, 'TIME.tif')
 
     out_fnames = [sat_view_zenith_fname, sat_azimuth_fname,
                   solar_zenith_fname, solar_azimuth_fname,

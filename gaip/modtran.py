@@ -379,6 +379,7 @@ def bilinear_interpolate(acqs, factors, coordinator, boxline, centreline,
                           centre, res.transpose())
 
             # Output the result to disk
-            gaip.write_img(res, fname, geobox=geobox, nodata=-999)
+            gaip.write_img(res, fname, fmt='GTiff', geobox=geobox, nodata=-999,
+                           compress='deflate', options={'zlevel': 1})
 
     return bilinear_outputs

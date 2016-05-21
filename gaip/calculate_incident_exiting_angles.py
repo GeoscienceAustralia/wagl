@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import gdal
 import numpy
 import rasterio
 
