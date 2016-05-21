@@ -240,7 +240,7 @@ def write_img(array, filename, fmt='ENVI', geobox=None, nodata=None,
                  'float64': 3}
 
     if fmt == 'GTiff' and compress is not None: 
-        kwargs.update({'compress': compress})
+        kwargs['compress'] = compress
         kwargs['predictor'] = predictor[dtype]
 
     if options is not None:
