@@ -348,7 +348,7 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
         (satellite_zenith, satellite_azimuth, solar_zenith, solar_azimuth,
          relative_azimuth, time, y_cent, x_cent, n_cent) = \
             gaip.calculate_angles(acqs[0], lon_target, lat_target,
-                                  npoints=12, to_disk=targets)
+                                  npoints=12, out_fnames=targets)
 
         gaip.create_centreline_file(geobox, y_cent, x_cent, n_cent, cols,
                                     view_max=9.0, outfname=centreline_target)

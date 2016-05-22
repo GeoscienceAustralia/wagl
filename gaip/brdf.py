@@ -284,12 +284,12 @@ class BRDFLoader(object):
 
         return result
 
-    def convert_format(self, filename, fmt='ENVI'):
+    def convert_format(self, filename, fmt='GTiff'):
         """
         Convert the HDF file to a more spatially recognisable data
         format such as ENVI or GTiff.
-        The default format is ENVI (flat bianry file and an
-        accompanying header (*.hdr) text file.
+        The default format is a compressed GeoTiff, with deflate
+        compression setting 1.
         """
 
         # Get the UL corner of the UL pixel co-ordinate
@@ -309,12 +309,13 @@ class BRDFLoader(object):
 
         # Setup the geobox
         dims = self.data[0].shape
-        res = (pixsz_x, pixsz_y)
+        res = (abs(pixsz_x), abs(pixsz_y))
         geobox = GriddedGeoBox(shape=dims, origin=(ul_lon, ul_lat),
                                pixelsize=res, crs=prj)
 
         # Write the file
-        write_img(self.data[0], filename, fmt, geobox=geobox)
+        write_img(self.data[0], filename, fmt, geobox=geobox,
+                  compress='deflate', options={'zlevel': 1})
 
     def get_mean(self, array):
         """
@@ -571,7 +572,7 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
             out_fname = os.path.join(brdf_out_path, out_fname)
 
             # Convert the file format
-            brdf_object.convert_format(out_fname)
+            brdf_object.convert_format(out_fname + '.tif')
 
             # Get the intersected roi
             # the intersection is used rather than the actual bounds,
@@ -588,7 +589,7 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
             ll_lon, ll_lat = (roi['UL'][0], roi['LR'][1])
 
             # Read the subset and geotransform that corresponds to the subset
-            subset, geobox_subset = read_subset(out_fname,
+            subset, geobox_subset = read_subset(out_fname + '.tif',
                                                 (ul_lon, ul_lat),
                                                 (ur_lon, ur_lat),
                                                 (lr_lon, lr_lat),
@@ -599,8 +600,9 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
             brdf_mean_value = brdf_object.get_mean(subset)
 
             # Output the brdf subset
-            out_fname_subset = out_fname + '_subset'
-            write_img(subset, out_fname_subset, geobox=geobox_subset)
+            out_fname_subset = out_fname + '_subset.tif'
+            write_img(subset, out_fname_subset, 'GTiff', geobox=geobox_subset,
+                      compress='deflate', options={'zlevel': 1})
 
             # Remove temporary unzipped file
             if hdf_file.find(work_path) == 0:

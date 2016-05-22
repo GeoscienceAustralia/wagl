@@ -65,10 +65,12 @@ def get_dsm(acquisition, national_dsm, margins, fname_subset, fname_smoothed):
                                        resampling=RESAMPLING.bilinear)
 
     # Output the reprojected result
-    write_img(dsm_data, fname_subset, geobox=dem_geobox)
+    write_img(dsm_data, fname_subset, fmt='GTiff', geobox=dem_geobox,
+              compress='deflate', options={'zlevel': 1})
 
     # Smooth the DSM
     dsm_data = filter_dsm(dsm_data)
 
     # Output the smoothed DSM
-    write_img(dsm_data, fname_smoothed, geobox=dem_geobox)
+    write_img(dsm_data, fname_smoothed, fmt='GTiff', geobox=dem_geobox,
+              compress='deflate', options={'zlevel': 1})
