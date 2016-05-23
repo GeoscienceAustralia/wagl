@@ -555,9 +555,9 @@ def nd2toarbt(filename, images=None):
 
         # Band6
         if Lnum == 7:
-            n_B6 = match_file(base, '.*B61.*')
+            n_B6 = match_file(base, '.*B61.TIF')
         else:
-            n_B6 = match_file(base, '.*B6.*')
+            n_B6 = match_file(base, '.*B6.TIF')
 
         # Check that the thermal band resolution matches the reflectance bands.
         ref_lines, ref_samples = ijdim_ref
@@ -608,22 +608,22 @@ def nd2toarbt(filename, images=None):
 
         else:
             # Band1
-            n_B1 = match_file(base, '.*B1.*')
+            n_B1 = match_file(base, '.*B1.TIF')
             im_B1 = imread(n_B1).astype(numpy.float32)
             # Band2
-            n_B2 = match_file(base, '.*B2.*')
+            n_B2 = match_file(base, '.*B2.TIF')
             im_B2 = imread(n_B2).astype(numpy.float32)
             # Band3
-            n_B3 = match_file(base, '.*B3.*')
+            n_B3 = match_file(base, '.*B3.TIF')
             im_B3 = imread(n_B3).astype(numpy.float32)
             # Band4
-            n_B4 = match_file(base, '.*B4.*')
+            n_B4 = match_file(base, '.*B4.TIF')
             im_B4 = imread(n_B4).astype(numpy.float32)
             # Band5
-            n_B5 = match_file(base, '.*B5.*')
+            n_B5 = match_file(base, '.*B5.TIF')
             im_B5 = imread(n_B5).astype(numpy.float32)
             # Band7
-            n_B7 = match_file(base, '.*B7.*')
+            n_B7 = match_file(base, '.*B7.TIF')
             im_B7 = imread(n_B7).astype(numpy.float32)
 
             # Retrieve the projection and geotransform info from the blue band
@@ -736,7 +736,7 @@ def nd2toarbt(filename, images=None):
         # (geoT,prj) are added to the list
         return [im_B6, images, ijdim_ref, ul, zen, azi, zc, B1Satu, B2Satu, B3Satu, resolu, geoT, prj]
     elif (Lnum == 8):
-        n_B10 = match_file(base, '.*B10.*')
+        n_B10 = match_file(base, '.*B10.TIF')
         # Check that the thermal band resolution matches the reflectance bands.
         ref_lines, ref_samples = ijdim_ref
         thm_lines, thm_samples = ijdim_thm
@@ -748,25 +748,25 @@ def nd2toarbt(filename, images=None):
             im_B10 = imread(n_B10).astype(numpy.float32)
 
         # Band2
-        n_B2 = match_file(base, '.*B2.*')
+        n_B2 = match_file(base, '.*B2.TIF')
         im_B2 = imread(n_B2).astype(numpy.float32)
         # Band3
-        n_B3 = match_file(base, '.*B3.*')
+        n_B3 = match_file(base, '.*B3.TIF')
         im_B3 = imread(n_B3).astype(numpy.float32)
         # Band4
-        n_B4 = match_file(base, '.*B4.*')
+        n_B4 = match_file(base, '.*B4.TIF')
         im_B4 = imread(n_B4).astype(numpy.float32)
         # Band5
-        n_B5 = match_file(base, '.*B5.*')
+        n_B5 = match_file(base, '.*B5.TIF')
         im_B5 = imread(n_B5).astype(numpy.float32)
         # Band6
-        n_B6 = match_file(base, '.*B6.*')
+        n_B6 = match_file(base, '.*B6.TIF')
         im_B6 = imread(n_B6).astype(numpy.float32)
         # Band7
-        n_B7 = match_file(base, '.*B7.*')
+        n_B7 = match_file(base, '.*B7.TIF')
         im_B7 = imread(n_B7).astype(numpy.float32)
         # Band9
-        n_B9 = match_file(base, '.*B9.*')
+        n_B9 = match_file(base, '.*B9.TIF')
         im_B9 = imread(n_B9).astype(numpy.float32)
 
         # Retrieve the projection and geotransform info from the blue band (B2
