@@ -7,7 +7,7 @@
 from datetime import datetime as dt
 import os
 from os.path import join as pjoin
-from os.path import basename, exists
+from os.path import basename, exists, dirname
 import gc
 from glob import glob
 import logging
@@ -17,6 +17,7 @@ import argparse
 import yaml
 from enum import Enum
 import luigi
+from pathlib import Path
 from eodatasets.run import package_newly_processed_data_folder
 from eodatasets.drivers import PACKAGE_DRIVERS
 import gaip
@@ -364,7 +365,7 @@ class PackagePQ(luigi.Task):
 
     def requires(self):
         return [PixelQualityTask(self.l1t_path, self.nbar_path,
-                self.land_sea_path, self.pq_path)]
+                                 self.land_sea_path, self.pq_path)]
 
     def output(self):
         out_format = '{}.completed'
