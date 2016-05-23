@@ -17,6 +17,8 @@ import argparse
 import yaml
 from enum import Enum
 import luigi
+from eodatasets.run import package_newly_processed_data_folder
+from eodatasets.drivers import PACKAGE_DRIVERS
 import gaip
 
 
@@ -351,6 +353,41 @@ class PixelQualityTask(luigi.Task):
             yaml.dump(metadata, src, default_flow_style=False)
 
 
+class PackagePQ(luigi.Task):
+
+    """Packages an nbar or nbart product."""
+
+    l1t_path = luigi.Parameter()
+    nbar_path = luigi.Parameter()
+    land_sea_path = luigi.Parameter()
+    pq_path = luigi.Parameter()
+
+    def requires(self):
+        return [PixelQualityTask(self.l1t_path, self.nbar_path,
+                self.land_sea_path, self.pq_path)]
+
+    def output(self):
+        out_format = '{}.completed'
+        base_dir = dirname(self.pq_path)
+        fname = out_format.format(basename(self.pq_path))
+        out_fname = pjoin(base_dir, fname)
+        return luigi.LocalTarget(out_fname)
+
+    def run(self):
+        # run the packager
+        kwargs = {'driver': PACKAGE_DRIVERS['pqa'],
+                  'input_data_paths': [Path(self.pq_path)],
+                  'destination_path': Path(pjoin(self.pq_path, 'pqa')),
+                  'parent_dataset_paths': [Path(self.l1t_path),
+                                           Path(self.nbar_path)],
+                  'hard_link': False}
+        package_newly_processed_data_folder(**kwargs)
+
+        # output a checkpoint
+        with self.output().open('w') as src:
+            src.write('{} packaging completed'.format(self.pq_path))
+
+
 class PQDataset(luigi.Target):
 
     def __init__(self, path):
@@ -409,8 +446,7 @@ def main(l1t_path, nbar_path, land_sea_path, outpath, nnodes=1, nodenum=1):
     tasks = []
     for l1t, nbar in files:
         pqa_dataset_path = pjoin(outpath, pqa_name_from_l1t(basename(l1t)))
-        tasks.append(PixelQualityTask(l1t, nbar, land_sea_path,
-                                      pqa_dataset_path))
+        tasks.append(PackagePQ(l1t, nbar, land_sea_path, pqa_dataset_path))
 
     luigi.build(tasks, local_scheduler=True, workers=4)
 
