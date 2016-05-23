@@ -1844,7 +1844,7 @@ def main(inpath, outpath, workpath, nnodes=1, nodenum=1):
             filtered_l1t.append(l1t)
         else:
             msg = "Skipping {}".format(acq.dir_name)
-            print msg
+            logging.info(msg)
 
     # create product output dirs
     products = CONFIG.get('packaging', 'products').split(',')
