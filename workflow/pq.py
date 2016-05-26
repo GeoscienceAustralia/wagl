@@ -20,6 +20,7 @@ import luigi
 from pathlib import Path
 from eodatasets.run import package_newly_processed_data_folder
 from eodatasets.drivers import PACKAGE_DRIVERS
+from eodatasets import type as ptype
 import gaip
 
 
@@ -398,6 +399,7 @@ class PQDataset(luigi.Target):
     def exists(self):
         return os.path.exists(self.path)
 
+
 class NBARTask(luigi.ExternalTask):
     nbar_path = luigi.Parameter()
 
@@ -414,12 +416,14 @@ class NBARdataset(luigi.Target):
     def exists(self):
         return os.path.exists(self.nbar_path)
 
+
 def is_valid_directory(parser, arg):
     """Used by argparse"""
     if not os.path.exists(arg):
         parser.error("{} does not exist".format(arg))
     else:
         return arg
+
 
 def nbar_name_from(l1t_fname):
     """
@@ -446,6 +450,13 @@ def main(l1t_path, nbar_path, land_sea_path, outpath, nnodes=1, nodenum=1):
     files = [f for f in scatter(files, nnodes, nodenum)]
     ncpus = int(os.getenv('PBS_NCPUS', '1'))
     tasks = []
+
+    # Setup Software Versions for Packaging
+    ptype.register_software_version(
+        'gaip', gaip.get_version(),
+        repo_url='https://github.com/GeoscienceAustralia/ga-neo-landsat-processor.git'
+    )
+
     for l1t, nbar in files:
         pqa_dataset_path = pjoin(outpath, pqa_name_from_l1t(basename(l1t)))
         tasks.append(PackagePQ(l1t, nbar, land_sea_path, pqa_dataset_path))
@@ -495,7 +506,6 @@ if __name__ == '__main__':
                         format='[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s',
                         datefmt='%H:%M:%S')
     logging.info("run_pq started")
-
 
     logging.info('l1t_path={}'.format(args.l1t_path))
     logging.info('nbar_path={}'.format(args.nbar_path))

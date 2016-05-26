@@ -26,6 +26,7 @@ from pathlib import Path
 import numpy
 from eodatasets.run import package_newly_processed_data_folder
 from eodatasets.drivers import PACKAGE_DRIVERS
+from eodatasets import type as ptype
 import gaip
 
 
@@ -1852,6 +1853,12 @@ def main(inpath, outpath, workpath, nnodes=1, nodenum=1):
         product_dir = pjoin(outpath, product)
         if not exists(product_dir):
             os.makedirs(product_dir)
+
+    # Setup Software Versions for Packaging
+    ptype.register_software_version(
+        'gaip', gaip.get_version(),
+        repo_url='https://github.com/GeoscienceAustralia/ga-neo-landsat-processor.git'
+    )
 
     l1t_files = [f for f in scatter(filtered_l1t, nnodes, nodenum)]
     nbar_files = [pjoin(workpath, os.path.basename(f).replace('OTH', 'NBAR'))
