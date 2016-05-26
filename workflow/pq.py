@@ -350,7 +350,7 @@ class PixelQualityTask(luigi.Task):
         metadata['ancillary'] = md
         metadata['tests_run'] = tests_run
 
-        with open(pjoin(self.pq_path, "pq_metadata.yml"), 'w') as src:
+        with open(pjoin(self.pq_path, "pq_metadata.yaml"), 'w') as src:
             yaml.safe_dump(metadata, src, default_flow_style=False)
 
 
