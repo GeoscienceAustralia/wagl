@@ -1776,6 +1776,7 @@ class Packager(luigi.Task):
                   'input_data_paths': [Path(self.work_path)],
                   'destination_path': Path(pjoin(self.out_path, self.product)),
                   'parent_dataset_paths': [Path(self.l1t_path)],
+                  'metadata_expand_fn': lambda dataset: dataset.lineage.machine.note_current_system_software(),
                   'hard_link': False}
         package_newly_processed_data_folder(**kwargs)
 
@@ -1856,8 +1857,14 @@ def main(inpath, outpath, workpath, nnodes=1, nodenum=1):
 
     # Setup Software Versions for Packaging
     ptype.register_software_version(
-        'gaip', gaip.get_version(),
+        software_code='gaip',
+        version=gaip.get_version(),
         repo_url='https://github.com/GeoscienceAustralia/ga-neo-landsat-processor.git'
+    )
+    ptype.register_software_version(
+        software_code='modtran',
+        version=CONFIG.get('modtran', 'version'),
+        repo_url='http://www.ontar.com/software/productdetails.aspx?item=modtran'
     )
 
     l1t_files = [f for f in scatter(filtered_l1t, nnodes, nodenum)]
