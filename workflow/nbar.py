@@ -1750,7 +1750,7 @@ class WriteMetadata(luigi.Task):
 
         # output
         with self.output().open('w') as src:
-            yaml.safe_dump(metadata, src, default_flow_style=False)
+            yaml.dump(metadata, src, default_flow_style=False)
 
 
 class Packager(luigi.Task):

@@ -352,7 +352,7 @@ class PixelQualityTask(luigi.Task):
         metadata['tests_run'] = tests_run
 
         with open(pjoin(self.pq_path, "pq_metadata.yaml"), 'w') as src:
-            yaml.safe_dump(metadata, src, default_flow_style=False)
+            yaml.dump(metadata, src, default_flow_style=False)
 
 
 class PackagePQ(luigi.Task):
