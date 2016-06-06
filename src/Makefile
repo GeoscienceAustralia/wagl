@@ -1,7 +1,7 @@
 SHELL := /bin/bash
-CC := gcc
-FC := gfortran
-FCFLAGS := -Wall -O3 -fbounds-check
+CC := icc
+FC := ifort
+FCFLAGS := -O3 -check bounds -assume byterecl -xHost -ipo
 CFLAGS := -O3
 
 EXES := calculate_coefficients \

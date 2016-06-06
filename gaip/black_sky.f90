@@ -1,6 +1,8 @@
-real function black_sky(brdf0,brdf1,brdf2,theta)
+function black_sky(brdf0,brdf1,brdf2,theta,veclen)
+  integer veclen
       real brdf0,brdf1,brdf2
-      real theta
+      real theta(veclen)
+      real black_sky(veclen)
 
 !   theta should be in radians
     black_sky = brdf0 + &
