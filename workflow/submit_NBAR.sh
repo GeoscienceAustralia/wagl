@@ -13,12 +13,12 @@ umask 007
 # INPUTS (change any of these)
 # ======
 
-L1T_PATH=/g/data/v10/projects/Luigi_work_flow_test/L1T
+L1T_PATH=/short/v10/jps547/staging
 
 # OUTPUTS (change any of these)
 # =======
 
-OUTPUT_ROOT=/g/data/v10/testing_ground/NBAR_luigi_new_workflow_testing
+OUTPUT_ROOT=/g/data/v10/testing_ground/nbar-metadata
 OUTPUT_PATH=$OUTPUT_ROOT/output
 LOG_PATH=$OUTPUT_ROOT/logs
 CFG_FILE=nbar.cfg
@@ -29,7 +29,7 @@ CFG_FILE=nbar.cfg
 PROJECT='v10'           # <---- Change this as required
 QUEUE='normal'          # <---- Change this as required
 WALLCLOCK='01:30:00'    # <---- Change this depending on workload (see SOP)
-NODES=2                 # <---- Change this depending on workload (see SOP)
+NODES=1                 # <---- Change this depending on workload (see SOP)
 
 let MEM_GB=32*$NODES    # don't touch
 let NCPUS=16*$NODES     # don't touch
