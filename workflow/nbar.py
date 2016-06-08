@@ -1723,7 +1723,6 @@ class WriteMetadata(luigi.Task):
         # TODO (a) retrieve software version from git once deployed
         algorithm = {}
         algorithm['algorithm_version'] = 2.0 # hardcode for now see TODO (a)
-        algorithm['software_version'] = gaip.get_version()
         algorithm['software_repository'] = ('https://github.com/'
                                             'GeoscienceAustralia/'
                                             'ga-neo-landsat-processor.git')

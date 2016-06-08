@@ -19,6 +19,7 @@ This script is derived from https://github.com/Changaco/version.py
 from __future__ import absolute_import, print_function
 
 import re
+import os
 from os.path import dirname, isdir, join, exists
 from subprocess import CalledProcessError, check_output
 
@@ -43,22 +44,32 @@ def get_version():
         # (eg. "gaip-0.0.0-651-gcf335a9-dirty")
         cmd = [
             'git',
-            '--git-dir', git_dir,
             'describe', '--tags', '--match', '[0-9]*', '--dirty'
         ]
-        try:
-            git_version = check_output(cmd).decode().strip()
-        except CalledProcessError:
-            raise RuntimeError('Unable to get version number from git tags')
-        components = git_version.split('-')
-        version = components.pop(0)
+    with remember_cwd():
+        os.chdir(package_dir)
+            try:
+                git_version = check_output(cmd).decode().strip()
+            except CalledProcessError:
+                raise RuntimeError('Unable to get version number from git tags')
 
-        # Any other suffixes imply this is not a release: Append an internal build number
-        if components:
-            # <commit count>.<git hash>.<whether the working tree is dirty>
-            version += '+' + '.'.join(components)
+    components = git_version.split('-')
+    version = components.pop(0)
+
+    # Any other suffixes imply this is not a release: Append an internal build number
+    if components:
+        # <commit count>.<git hash>.<whether the working tree is dirty>
+        version += '+' + '.'.join(components)
 
     return version
+
+
+def remember_cwd():
+    current_dir = os.getcwd()
+    try:
+        yield
+    finally:
+        os.chdir(current_dir)
 
 
 if __name__ == '__main__':
