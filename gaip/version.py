@@ -46,20 +46,20 @@ def get_version():
             'git',
             'describe', '--tags', '--match', '[0-9]*', '--dirty'
         ]
-    with remember_cwd():
-        os.chdir(package_dir)
+        with remember_cwd():
+            os.chdir(package_dir)
             try:
                 git_version = check_output(cmd).decode().strip()
             except CalledProcessError:
                 raise RuntimeError('Unable to get version number from git tags')
 
-    components = git_version.split('-')
-    version = components.pop(0)
+            components = git_version.split('-')
+            version = components.pop(0)
 
-    # Any other suffixes imply this is not a release: Append an internal build number
-    if components:
-        # <commit count>.<git hash>.<whether the working tree is dirty>
-        version += '+' + '.'.join(components)
+            # Any other suffixes imply this is not a release: Append an internal build number
+            if components:
+                # <commit count>.<git hash>.<whether the working tree is dirty>
+                version += '+' + '.'.join(components)
 
     return version
 
