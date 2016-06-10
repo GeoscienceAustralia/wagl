@@ -60,7 +60,7 @@ cat $PBS_NODEFILE | wc -l
 NNODES=$(cat $PBS_NODEFILE | uniq | wc -l)
 
 for i in $(seq 1 $NNODES); do
-  pbsdsh -n $((16 *$i)) -- bash -l -c "module use /projects/u46/opt/modules/modulefiles; module load gaip; module load agdc-api; PBS_NNODES=$NNODES PBS_VNODENUM=$i pq.py \
+  pbsdsh -n $((16 *$i)) -- bash -l -c "module use /g/data/v10/private/modules/modulefiles; module load gaip/4.2.1; PBS_NNODES=$NNODES PBS_VNODENUM=$i pq.py \
   --l1t_path ${L1T_PATH} \
   --nbar_path ${NBAR_PATH} \
   --land_sea_path ${LAND_SEA_PATH} \
