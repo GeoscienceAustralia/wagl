@@ -667,10 +667,13 @@ def acquisitions_via_mtl(path):
             product['product_samples_ref'] = product['reflective_samples']
         if  'product_lines_ref' not in product:
             product['product_lines_ref'] = product['reflective_lines']
-        if  'product_samples_thm' not in product:
-            product['product_samples_thm'] = product['thermal_samples']
-        if  'product_lines_thm' not in product:
-            product['product_lines_thm'] = product['thermal_lines']
+
+        # Account for missing thermal bands in OLI only products
+        if product['sensor_id'] != 'OLI':
+            if  'product_samples_thm' not in product:
+                product['product_samples_thm'] = product['thermal_samples']
+            if  'product_lines_thm' not in product:
+                product['product_lines_thm'] = product['thermal_lines']
 
         new['SPACECRAFT'] = {}
         db = SENSORS[spacecraft]
