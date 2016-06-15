@@ -1842,7 +1842,10 @@ def main(inpath, outpath, workpath, nnodes=1, nodenum=1):
     for l1t in l1t_files:
         acq = gaip.acquisitions(l1t)[0]
         if ((87 <= acq.path <= 116) & (67 <= acq.row <= 91)):
-            filtered_l1t.append(l1t)
+            completed = pjoin(workpath, (basename(l1t).replace('OTH', 'NBAR') +
+                                         '.completed'))
+            if not exists(completed):
+                filtered_l1t.append(l1t)
         else:
             msg = "Skipping {}".format(acq.dir_name)
             logging.info(msg)
