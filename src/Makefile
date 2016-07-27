@@ -1,7 +1,7 @@
 SHELL := /bin/bash
-CC := icc
-FC := ifort
-FCFLAGS := -O3 -check bounds -assume byterecl -xHost -ipo
+CC := gcc
+FC := gfortran
+FCFLAGS := -Wall -O3 -fbounds-check
 CFLAGS := -O3
 
 EXES := calculate_coefficients \
@@ -23,11 +23,9 @@ $(INSTALLED_EXES): $(BINDIR)/%: %
 	@cp -p $< $@
 
 %: %.c
-	$$(module load gcc/5.2.0)
 	$(CC) $(CFLAGS) $< -o $@
 
 %: %.f
-	$$(module load gcc/5.2.0)
 	$(FC) $(FCFLAGS) $< -o $@
 
 clean:
