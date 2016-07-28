@@ -326,7 +326,12 @@ def acca_2nd_pass(cloud_mask, ambiguous_array, thermal_array,
             qmean = 295
         else:
             qmean = thermal_array[query].mean()
-        qmean2 = thermal_array[query2].mean()
+
+        # fix for case of no class2 clouds
+        try:
+            qmean2 = thermal_array[query2].mean()
+        except ValueError:
+            qmean2 = NAN
 
         aux_data['acca_pass_2_class_1_mean'] = qmean
         aux_data['acca_pass_2_class_2_mean'] = qmean2
