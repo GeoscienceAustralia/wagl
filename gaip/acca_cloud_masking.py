@@ -256,28 +256,23 @@ def acca_2nd_pass(cloud_mask, ambiguous_array, thermal_array,
                                   "<= new_lower)")
 
         # Compute stats for each query/class
-        # Max
-        if query.sum() == 0:
-            qmax = 295
-        else:
+        # Max, Mean
+        if query.any():
             qmax = thermal_array[query].max()
-        if query2.sum() == 0:
-            qmax2 = 295
+            qmean = thermal_array[query].mean()
         else:
+            qmax = 295
+            qmean = 295
+
+        if query2.any():
             qmax2 = thermal_array[query2].max()
+            qmean2 = thermal_array[query2].mean()
+        else:
+            qmax2 = 295
+            qmean2 = 295
 
         aux_data['acca_pass_2_class_1_max'] = qmax
         aux_data['acca_pass_2_class_2_max'] = qmax2
-
-        # Mean
-        if query.sum() == 0:
-            qmean = 295
-        else:
-            qmean = thermal_array[query].mean()
-        if query2.sum() == 0:
-            qmean2 = 295
-        else:
-            qmean2 = thermal_array[query2].mean()
 
         aux_data['acca_pass_2_class_1_mean'] = qmean
         aux_data['acca_pass_2_class_2_mean'] = qmean2
@@ -311,27 +306,23 @@ def acca_2nd_pass(cloud_mask, ambiguous_array, thermal_array,
                                   "<= lower)")
 
         # Compute stats for each query/class
-        # Max
-        if query.sum() == 0:
-            qmax = 295
-        else:
+        # Max, Mean
+        if query.any():
             qmax = thermal_array[query].max()
-        qmax2 = thermal_array[query2].max()
+            qmean = thermal_array[query].mean()
+        else:
+            qmax = 295
+            qmean = 295
+
+        if query2.any():
+            qmax2 = thermal_array[query2].max()
+            qmean2 = thermal_array[query2].mean()
+        else:
+            qmax2 = 295
+            qmean2 = 295
 
         aux_data['acca_pass_2_class_1_max'] = qmax
         aux_data['acca_pass_2_class_2_max'] = qmax2
-
-        # Mean
-        if query.sum() == 0:
-            qmean = 295
-        else:
-            qmean = thermal_array[query].mean()
-
-        # fix for case of no class2 clouds
-        try:
-            qmean2 = thermal_array[query2].mean()
-        except ValueError:
-            qmean2 = NAN
 
         aux_data['acca_pass_2_class_1_mean'] = qmean
         aux_data['acca_pass_2_class_2_mean'] = qmean2
