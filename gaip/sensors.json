@@ -363,5 +363,192 @@
         "sweep_period": 0.07342143906020558002936857562408,
         "tag": "LS8",
         "tle_format": "L8%4d%sASNNOR.S00"
-    }
+    },
+    "SENTINEL-2A": 
+        "altitude": 786000.0,
+        "inclination": 1.7204188481675,
+        "satellite_name": "Sentinel-2A",
+        "omega": 0.0010399253459,
+        "semi_major_axis": 7167000.0,
+        "sensors": {
+            "MSI-R10": {
+                "bands": {
+                    "2": {
+                        "desc": "Visible Blue",
+                        "resolution": 10.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [0.4575, 0.5225]
+                    },
+                    "3": {
+                        "desc": "Visible Green",
+                        "resolution": 10.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [0.5425, 0.5775]
+                    },
+                    "4": {
+                        "desc": "Visible Red",
+                        "resolution": 10.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [0.650, 0.680]
+                    },
+                    "8": {
+                        "desc": "Near Infrared",
+                        "resolution": 10.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [0.7845, 0.8995]
+                    },
+                }
+            },
+            "MSI-R20": {
+                "bands": {
+                    "2": {
+                        "desc": "Visible Blue",
+                        "resolution": 10.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [0.4575, 0.5225]
+                    },
+                    "3": {
+                        "desc": "Visible Green",
+                        "resolution": 20.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [0.5425, 0.5775]
+                    },
+                    "4": {
+                        "desc": "Visible Red",
+                        "resolution": 20.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [0.650, 0.680]
+                    },
+                    "5": {
+                        "desc": "Red Edge 1",
+                        "resolution": 60.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [0.6975, 0.7125]
+                    },
+                    "6": {
+                        "desc": "Red Edge 2",
+                        "resolution": 60.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [0.7325, 0.7475]
+                    },
+                    "7": {
+                        "desc": "Red Edge 3",
+                        "resolution": 60.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [0.773, 0.793]
+                    },
+                    "8": {
+                        "desc": "Near Infrared",
+                        "resolution": 60.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [0.7845, 0.8995]
+                    },
+                    "8a": {
+                        "desc": "Red Edge 4",
+                        "resolution": 60.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [0.855, 0.875]
+                    },
+                    "11": {
+                        "desc": "Short-wave Infrared 1",
+                        "resolution": 20.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [1.565, 1.655]
+                    },
+                    "12": {
+                        "desc": "Short-wave Infrared 2",
+                        "resolution": 20.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [2.10, 2.280]
+                    },
+                }
+            },
+            "MSI-R60": {
+                "bands": {
+                    "1": {
+                        "desc": "Aerosols",
+                        "resolution": 60.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [0.433, 0.453]
+                    },
+                    "2": {
+                        "desc": "Visible Blue",
+                        "resolution": 60.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [0.4575, 0.5225]
+                    },
+                    "3": {
+                        "desc": "Visible Green",
+                        "resolution": 60.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [0.5425, 0.5775]
+                    },
+                    "4": {
+                        "desc": "Visible Red",
+                        "resolution": 60.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [0.650, 0.680]
+                    },
+                    "5": {
+                        "desc": "Red Edge 1",
+                        "resolution": 60.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [0.6975, 0.7125]
+                    },
+                    "6": {
+                        "desc": "Red Edge 2",
+                        "resolution": 60.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [0.7325, 0.7475]
+                    },
+                    "7": {
+                        "desc": "Red Edge 3",
+                        "resolution": 60.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [0.773, 0.793]
+                    },
+                    "8": {
+                        "desc": "Near Infrared",
+                        "resolution": 60.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [0.7845, 0.8995]
+                    },
+                    "8a": {
+                        "desc": "Red Edge 4",
+                        "resolution": 60.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [0.855, 0.875]
+                    },
+                    "9": {
+                        "desc": "Water Vapour",
+                        "resolution": 60.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [0.935, 0.955]
+                    },
+                    "10": {
+                        "desc": "Cirrus",
+                        "resolution": 60.0,
+                        "type_desc": "Atmosphere",
+                        "wavelength": [1.365, 1.395]
+                    },
+                    "11": {
+                        "desc": "Short-wave Infrared 1",
+                        "resolution": 60.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [1.565, 1.655]
+                    },
+                    "12": {
+                        "desc": "Short-wave Infrared 2",
+                        "resolution": 60.0,
+                        "type_desc": "Reflective",
+                        "wavelength": [2.10, 2.280]
+                    }
+                }
+            },
+        "solar_irrad_file": "solar_irrad_landsat8.txt",
+        "spectral_filter_file": "landsat8_vsir.flt",
+        "sweep_period": 0.07342143906020558002936857562408,
+        "tag": "S2A",
+        "tle_format": "L8%4d%sASNNOR.S00"
+        }
 }
