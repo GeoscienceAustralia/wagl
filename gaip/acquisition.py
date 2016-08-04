@@ -7,9 +7,12 @@ import gaip
 import copy
 import json
 import datetime
+import glob
+import pandas
 
 from functools import total_ordering
-from os.path import isdir, join as pjoin, dirname
+from os.path import isdir, join as pjoin, dirname, basename
+import pdb
 
 REF, THM, PAN, ATM, BQA = range(5)
 
@@ -708,3 +711,134 @@ def acquisitions_via_mtl(path):
         acqs.append(acqtype(new))
 
     return sorted(acqs)
+
+
+def acquisitions_via_safe(path):
+    """
+    Collect the TOA Radiance images for a given granule.
+    """
+    resolutions = {}
+
+    img_dir = pjoin(path, 'IMG_DATA')
+    for res_dir in [d for d in os.listdir(img_dir) if isdir(pjoin(img_dir, d))]:
+        acqs = []
+        data_dir = pjoin(img_dir, res_dir)
+        cwd = os.getcwd()
+        os.chdir(data_dir)
+        bands = glob.glob('L_output*.hdr')
+        os.chdir(cwd)
+        bands = [pjoin(data_dir, b.replace('.hdr', '')) for b in bands]
+
+        with open(pjoin(data_dir, 'tile_metadata'), 'r') as src:
+            md = src.readlines()
+
+        metadata = {}
+        for m in md:
+            k, v = m.split('=')
+            metadata[k.strip()] = v.strip()
+
+        metadata['EPSG'] = int(metadata['EPSG'])
+
+        dt = pandas.to_datetime(metadata['SENSING_TIME']).to_pydatetime()
+        metadata['SENSING_TIME'] = dt
+
+        clon, clat = metadata['centre_lon_lat'].split()
+        metadata['centre_lon_lat'] = (float(clon), float(clat))
+
+        ll_lon, ll_lat = metadata['ll_lon_and_ll_lat'].split()
+        metadata['ll_lon_and_ll_lat'] = (float(ll_lon), float(ll_lat))
+
+        lr_lon, lr_lat = metadata['lr_lon_and_lr_lat'].split()
+        metadata['lr_lon_and_lr_lat'] = (float(lr_lon), float(lr_lat))
+
+        ul_lon, ul_lat = metadata['ul_lon_and_ul_lat'].split()
+        metadata['ul_lon_and_ul_lat'] = (float(ul_lon), float(ul_lat))
+
+        ur_lon, ur_lat = metadata['ur_lon_and_ur_lat'].split()
+        metadata['ur_lon_and_ur_lat'] = (float(ur_lon), float(ur_lat))
+
+        metadata['ncols'] = int(metadata['ncols'])
+        metadata['nrows'] = int(metadata['nrows'])
+
+        metadata['ulx'] = float(metadata['ulx'])
+        metadata['uly'] = float(metadata['uly'])
+
+        metadata['resolution'] = float(metadata['resolution'])
+
+        for band in bands:
+            dname = dirname(band)
+            fname = basename(band)
+            band_md = copy.deepcopy(metadata)
+            band_md['dir_name'] = dname
+            band_md['file_name'] = fname
+            bnum = fname.split('_')[2]
+            band_md['band_name'] = 'band_{}'.format(bnum)
+            if 'a' in bnum:
+                bnum = 8
+            else:
+                bnum = int(bnum)
+            band_md['band_num'] = bnum
+
+            acqs.append(Sentinel2aAcquisition({'PRODUCT_METADATA': band_md}))
+
+        resolutions[res_dir] = sorted(acqs)
+
+    return resolutions
+
+
+class Sentinel2aAcquisition(Acquisition):
+
+    def __init__(self, metadata):
+        super(Sentinel2aAcquisition, self).__init__(metadata)
+
+    @property
+    def samples(self):
+        """The number of samples (aka. `width`)."""
+        return self.ncols
+
+    @property
+    def lines(self):
+        """The number of lines (aka. `height`)."""
+        return self.nrows
+
+    @property
+    def width(self):
+        """The width of the acquisition (aka. `samples`)."""
+        return self.ncols
+
+    @property
+    def height(self):
+        """The height of the acquisition (aka. `lines`)."""
+        return self.nrows
+
+    @property
+    def grid_cell_size(self):
+        """The resolution of the cell."""
+        return self.resolution
+
+    @property
+    def acquisition_date(self):
+        """The acquisition time."""
+        return self.SENSING_TIME
+
+    @property
+    def scene_centre_datetime(self):
+        # TODO: check that the tile centre times are different
+        return self.SENSING_TIME
+
+    @property
+    def decimal_hour(self):
+        """The time in decimal."""
+        time = self.SENSING_TIME
+        return (time.hour + (time.minute + (time.second
+                                            + time.microsecond / 1000000.0)
+                             / 60.0) / 60.0)
+
+    # TODO: update nbar_constants for new sensor
+    @property
+    def spacecraft_id(self):
+        raise NotImplementedError
+
+    @property
+    def sensor_id(self):
+        raise NotImplementedError
