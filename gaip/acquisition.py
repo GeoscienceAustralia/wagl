@@ -718,9 +718,11 @@ def acquisitions_via_safe(path):
     Collect the TOA Radiance images for a given granule.
     """
     resolutions = {}
+    spacecraft = "SENTINEL-2A"
 
     img_dir = pjoin(path, 'IMG_DATA')
     for res_dir in [d for d in os.listdir(img_dir) if isdir(pjoin(img_dir, d))]:
+        sensor = "MSI-{}".format(res_dir)
         acqs = []
         data_dir = pjoin(img_dir, res_dir)
         cwd = os.getcwd()
@@ -765,6 +767,22 @@ def acquisitions_via_safe(path):
 
         metadata['resolution'] = float(metadata['resolution'])
 
+        metadata['SPACECRAFT'] = {}
+        db = SENSORS[spacecraft]
+        for k, v in db.iteritems():
+            if k is not 'sensors':
+                try:
+                    metadata['SPACECRAFT'][k.encode('ascii')] = v.encode('ascii')
+                except AttributeError:
+                    metadata['SPACECRAFT'][k.encode('ascii')] = v
+
+        metadata['SENSOR_INFO'] = {}
+        db = db['sensors'][sensor]
+
+        for k, v in db.iteritems():
+            if k is not 'bands':
+                metadata['SENSOR_INFO'][k.encode('ascii')] = v
+
         for band in bands:
             dname = dirname(band)
             fname = basename(band)
@@ -772,14 +790,27 @@ def acquisitions_via_safe(path):
             band_md['dir_name'] = dname
             band_md['file_name'] = fname
             bnum = fname.split('_')[2]
+            band_name = bnum
+
+            band_md['BAND_INFO'] = {}
+            db_copy = copy.deepcopy(db)
+            db_copy = db_copy['bands'][band_name]
+
+            for k, v in db_copy.iteritems():
+                band_md['BAND_INFO'][k.encode('ascii')] = v
+
+            band_type = db_copy['type_desc']
+            band_md['BAND_INFO']['band_type'] = BAND_TYPE[band_type]
+
             band_md['band_name'] = 'band_{}'.format(bnum)
             if 'a' in bnum:
-                bnum = 8
+                bnum = 82
             else:
                 bnum = int(bnum)
             band_md['band_num'] = bnum
 
             acqs.append(Sentinel2aAcquisition({'PRODUCT_METADATA': band_md}))
+            # acqs.append(Sentinel2aAcquisition(band_md))
 
         resolutions[res_dir] = sorted(acqs)
 
