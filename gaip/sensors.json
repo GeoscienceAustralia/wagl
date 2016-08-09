@@ -364,14 +364,14 @@
         "tag": "LS8",
         "tle_format": "L8%4d%sASNNOR.S00"
     },
-    "SENTINEL-2A": 
+    "SENTINEL-2A": {
         "altitude": 786000.0,
         "inclination": 1.7204188481675,
         "satellite_name": "Sentinel-2A",
         "omega": 0.0010399253459,
         "semi_major_axis": 7167000.0,
         "sensors": {
-            "MSI-R10": {
+            "MSI-R10m": {
                 "bands": {
                     "2": {
                         "desc": "Visible Blue",
@@ -396,10 +396,10 @@
                         "resolution": 10.0,
                         "type_desc": "Reflective",
                         "wavelength": [0.7845, 0.8995]
-                    },
+                    }
                 }
             },
-            "MSI-R20": {
+            "MSI-R20m": {
                 "bands": {
                     "2": {
                         "desc": "Visible Blue",
@@ -460,10 +460,10 @@
                         "resolution": 20.0,
                         "type_desc": "Reflective",
                         "wavelength": [2.10, 2.280]
-                    },
+                    }
                 }
             },
-            "MSI-R60": {
+            "MSI-R60m": {
                 "bands": {
                     "1": {
                         "desc": "Aerosols",
@@ -551,4 +551,5 @@
         "tag": "S2A",
         "tle_format": "L8%4d%sASNNOR.S00"
         }
+    }
 }
