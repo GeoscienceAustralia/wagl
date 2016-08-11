@@ -312,7 +312,32 @@ def brdf_wavelength_lut(satellite_sensor):
                                     4: '0620_0670nm',
                                     5: '0841_0876nm',
                                     6: '1628_1652nm',
-                                    7: '2105_2155nm'}}.get(input_str, 'Error')
+                                    7: '2105_2155nm'},
+                'sentinel2amsir10m': {2: '0459_0479nm',
+                                      3: '0545_0565nm',
+                                      4: '0620_0670nm',
+                                      8: '0841_0876nm'},
+                'sentinel2amsir20m': {2: '0459_0479nm',
+                                      3: '0545_0565nm',
+                                      4: '0620_0670nm',
+                                      5: '0620_0670nm',
+                                      6: '0620_0670nm',
+                                      7: '0841_0876nm',
+                                      11: '1628_1652nm',
+                                      12: '2105_2155nm',
+                                      82: '0841_0876nm'},
+                'sentinel2amsir60m': {1: '0459_0479nm',
+                                      2: '0459_0479nm',
+                                      3: '0545_0565nm',
+                                      4: '0620_0670nm',
+                                      5: '0620_0670nm',
+                                      6: '0620_0670nm',
+                                      7: '0841_0876nm',
+                                      9: '0841_0876nm',
+                                      11: '1628_1652nm',
+                                      12: '2105_2155nm',
+                                      82: '0841_0876nm'}}.get(input_str,
+                                                              'Error')
 
     return brdf_lut
 
@@ -338,7 +363,10 @@ def nbar_bands_lut(satellite_sensor):
     nbar_lut = {'landsat5tm': [1, 2, 3, 4, 5, 7],
                 'landsat7etm+': [1, 2, 3, 4, 5, 7],
                 'landsat8oli': [1, 2, 3, 4, 5, 6, 7],
-                'landsat8olitirs': [1, 2, 3, 4, 5, 6, 7]}
+                'landsat8olitirs': [1, 2, 3, 4, 5, 6, 7],
+                'sentinel2amsir10m': [2, 3, 4, 8],
+                'sentinel2amsir20m': [2, 3, 4, 5, 6, 7, 11, 12, 82],
+                'sentinel2amsir60m': [1, 2, 3, 4, 5, 6, 7, 9, 11, 12, 82]}
 
     return nbar_lut.get(input_str, 'Error')
 
