@@ -366,10 +366,10 @@
     },
     "SENTINEL-2A": {
         "altitude": 786000.0,
-        "inclination": 1.7204188481675,
+        "inclination": 1.721243708316808,
         "satellite_name": "Sentinel-2A",
-        "omega": 0.0010399253459,
-        "semi_major_axis": 7167000.0,
+        "omega": 0.001039918,
+        "semi_major_axis": 7164137.0,
         "sensors": {
             "MSI-R10m": {
                 "bands": {
@@ -546,7 +546,7 @@
                 }
             },
         "solar_irrad_file": "solar_irrad_landsat8.txt",
-        "spectral_filter_file": "landsat8_vsir.flt",
+        "spectral_filter_file": "sentinel2a_all.flt",
         "sweep_period": 0.07342143906020558002936857562408,
         "tag": "S2A",
         "tle_format": "L8%4d%sASNNOR.S00"
