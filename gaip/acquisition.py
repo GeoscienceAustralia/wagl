@@ -242,6 +242,10 @@ class LandsatAcquisition(Acquisition):
         return gaip.SENSORS[self.spacecraft_id]['sensors'][self.sensor_id]['bands']\
             [str(self.band_num)]['type_desc']
 
+    @property
+    def gps_track(self):
+        return False
+
 class Landsat5Acquisition(LandsatAcquisition):
 
     """ Landsat 5 acquisition. """
@@ -702,7 +706,7 @@ def acquisitions_via_mtl(path):
             new['BAND_INFO'][k.encode('ascii')] = v
         band_type = db['type_desc']
         new['BAND_INFO']['band_type'] = BAND_TYPE[band_type]
-
+  
         try:
             acqtype = ACQUISITION_TYPE[spacecraft + '_' + sensor]
         except KeyError:
@@ -720,8 +724,11 @@ def acquisitions_via_safe(path):
     resolutions = {}
     spacecraft = "SENTINEL-2A"
 
+    gps_fname = pjoin(dirname(dirname(path)), "GPS_points")
+
     img_dir = pjoin(path, 'IMG_DATA')
-    for res_dir in [d for d in os.listdir(img_dir) if isdir(pjoin(img_dir, d))]:
+    res_dirs = ["R10m", "R20m", "R60m"]
+    for res_dir in res_dirs:
         sensor = "MSI-{}".format(res_dir)
         acqs = []
         data_dir = pjoin(img_dir, res_dir)
@@ -731,7 +738,8 @@ def acquisitions_via_safe(path):
         os.chdir(cwd)
         bands = [pjoin(data_dir, b.replace('.hdr', '')) for b in bands]
 
-        with open(pjoin(data_dir, 'tile_metadata'), 'r') as src:
+        tile_metadata_fname = 'tile_metadata_{}'.format(res_dir[1:3])
+        with open(pjoin(data_dir, tile_metadata_fname), 'r') as src:
             md = src.readlines()
 
         metadata = {}
@@ -767,26 +775,41 @@ def acquisitions_via_safe(path):
 
         metadata['resolution'] = float(metadata['resolution'])
 
-        metadata['SPACECRAFT'] = {}
+        metadata['GPS_Filename'] = gps_fname
+
+        metadata['sensor_id'] = "MSI-{}".format(res_dir)
+
+        data = {}
+        data['PRODUCT_METADATA'] = copy.deepcopy(metadata)
+
+        #metadata['SPACECRAFT'] = {}
+        data['SPACECRAFT'] = {}
         db = SENSORS[spacecraft]
         for k, v in db.iteritems():
             if k is not 'sensors':
                 try:
-                    metadata['SPACECRAFT'][k.encode('ascii')] = v.encode('ascii')
+                    #metadata['SPACECRAFT'][k.encode('ascii')] = v.encode('ascii')
+                    data['SPACECRAFT'][k.encode('ascii')] = v.encode('ascii')
                 except AttributeError:
-                    metadata['SPACECRAFT'][k.encode('ascii')] = v
+                    #metadata['SPACECRAFT'][k.encode('ascii')] = v
+                    data['SPACECRAFT'][k.encode('ascii')] = v
 
-        metadata['SENSOR_INFO'] = {}
+        #metadata['SENSOR_INFO'] = {}
+        data['SENSOR_INFO'] = {}
         db = db['sensors'][sensor]
 
         for k, v in db.iteritems():
             if k is not 'bands':
-                metadata['SENSOR_INFO'][k.encode('ascii')] = v
+                #metadata['SENSOR_INFO'][k.encode('ascii')] = v
+                data['SENSOR_INFO'][k.encode('ascii')] = v
 
         for band in bands:
             dname = dirname(band)
             fname = basename(band)
-            band_md = copy.deepcopy(metadata)
+            #band_md = copy.deepcopy(metadata)
+            md = copy.deepcopy(data)
+            #band_md = copy.deepcopy(data)
+            band_md = md['PRODUCT_METADATA']
             band_md['dir_name'] = dname
             band_md['file_name'] = fname
             bnum = fname.split('_')[2]
@@ -809,8 +832,9 @@ def acquisitions_via_safe(path):
                 bnum = int(bnum)
             band_md['band_num'] = bnum
 
-            acqs.append(Sentinel2aAcquisition({'PRODUCT_METADATA': band_md}))
-            # acqs.append(Sentinel2aAcquisition(band_md))
+            #acqs.append(Sentinel2aAcquisition({'PRODUCT_METADATA': band_md}))
+            #acqs.append(Sentinel2aAcquisition(band_md))
+            acqs.append(Sentinel2aAcquisition(md))
 
         resolutions[res_dir] = sorted(acqs)
 
@@ -858,6 +882,10 @@ class Sentinel2aAcquisition(Acquisition):
         return self.SENSING_TIME
 
     @property
+    def scene_center_datetime(self):
+        return self.SENSING_TIME
+
+    @property
     def decimal_hour(self):
         """The time in decimal."""
         time = self.SENSING_TIME
@@ -871,5 +899,29 @@ class Sentinel2aAcquisition(Acquisition):
         return "Sentinel2A"
 
     @property
-    def sensor_id(self):
-        return "MSI"
+    def satellite_name(self):
+        return "Sentinel2A"
+
+    # @property
+    # def sensor_id(self):
+    #     return "MSI"
+
+    @property
+    def gps_file(self):
+        return True
+
+        #geobox = self.gridded_geo_box()
+        #ymin = numpy.min([geobox.ul_lonlat[1], geobox.ur_lonlat[1],
+        #                  geobox.lr_lonlat[1], geobox.ll_lonlat[1]])
+        #ymax= numpy.max([geobox.ul_lonlat[1], geobox.ur_lonlat[1],
+        #                 geobox.lr_lonlat[1], geobox.ll_lonlat[1]])
+
+        #subs = df[(df.lat >= ymin) & (df.lat <= ymax)]
+        #idx = subs.shape[0] // 2 - 1
+        #alon0 = subs.iloc[idx].lon
+        #alat0 = subs.iloc[idx].lat
+
+    def read_gps_file(self):
+        df = pandas.read_csv(self.GPS_Filename, sep=' ', names=['lon', 'lat'],
+                             header=None)
+        return df
