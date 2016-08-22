@@ -279,6 +279,9 @@ def brdf_wavelength_lut(satellite_sensor):
         landsat7etm
         landsat8oli
         landsat8olitirs
+        sentinel2amsir10m
+        sentinel2amsir20m
+        sentinel2amsir60m
 
     :return:
         A dictionary containing the Band numbers of a sensor as the
@@ -354,6 +357,9 @@ def nbar_bands_lut(satellite_sensor):
         landsat7etm
         landsat8oli
         landsat8olitirs
+        sentinel2amsir10m
+        sentinel2amsir20m
+        sentinel2amsir60m
 
     :return:
     """
@@ -384,6 +390,9 @@ def avg_reflectance_lut(satellite_sensor):
         landsat7etm
         landsat8oli
         landsat8olitirs
+        sentinel2amsir10m
+        sentinel2amsir20m
+        sentinel2amsir60m
 
     :return:
         A dictionary containing the Band numbers of a sensor as the
@@ -422,7 +431,32 @@ def avg_reflectance_lut(satellite_sensor):
                                                   4: 0.0880,
                                                   5: 0.2231,
                                                   6: 0.2512,
-                                                  7: 0.1648}}
+                                                  7: 0.1648},
+                              'sentinel2amsir10m': {2: 0.0365,
+                                                    3: 0.0667,
+                                                    4: 0.088,
+                                                    8: 0.2231},
+                              'sentinel2amsir20m': {2: 0.0365,
+                                                    3: 0.0667,
+                                                    4: 0.088,
+                                                    5: 0.088,
+                                                    6: 0.088,
+                                                    7: 0.2231,
+                                                    11: 0.2512,
+                                                    12: 0.1648,
+                                                    82: 0.2231},
+                              'sentinel2amsir60m': {1: 0.0365,
+                                                    2: 0.0365,
+                                                    3: 0.0667,
+                                                    4: 0.088,
+                                                    5: 0.088,
+                                                    6: 0.088,
+                                                    7: 0.2231,
+                                                    9: 0.2231,
+                                                    11: 0.2512,
+                                                    12: 0.1648,
+                                                    82: 0.2231}
+}
 
     return avg_reflectance_values.get(input_str, 'Error')
 
