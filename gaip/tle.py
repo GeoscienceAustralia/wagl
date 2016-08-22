@@ -56,8 +56,12 @@ def load_tle_from_archive(acquisition, data_root, day_radius=45):
                                     'TLE', '%s_ARCHIVE.txt' % acquisition.tag)
 
     text = ''
-    with open(tle_archive_path, 'r') as fd:
-        text = fd.read()
+    try:
+        with open(tle_archive_path, 'r') as fd:
+            text = fd.read()
+    except IOError:
+        # no TLE archive file exists
+        return None
 
     re_params = {
         'NUMBER': acquisition.number,
