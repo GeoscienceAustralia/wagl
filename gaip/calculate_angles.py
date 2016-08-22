@@ -148,7 +148,7 @@ def create_header_angle_file(acquisition, view_max, outfname='HEADERANGLE'):
         directory..
     """
     # Get the satellite orbital elements
-    sat_ephemeral = None#load_tle(acquisition, TLE_DIR)
+    sat_ephemeral = load_tle(acquisition, TLE_DIR)
 
     # If we have None, then no suitable TLE was found, so use values gathered
     # by the acquisition object
@@ -604,7 +604,7 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
     spheroid = setup_spheroid(prj)
 
     # Get the satellite orbital elements
-    sat_ephemeral = None#load_tle(acquisition, TLE_DIR)
+    sat_ephemeral = load_tle(acquisition, TLE_DIR)
 
     # If we have None, then no suitable TLE was found, so use values gathered
     # by the acquisition object
