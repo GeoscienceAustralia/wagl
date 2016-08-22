@@ -544,12 +544,10 @@
                         "wavelength": [2.10, 2.280]
                     }
                 }
-            },
-        "solar_irrad_file": "solar_irrad_landsat8.txt",
+            }
+        },
         "spectral_filter_file": "sentinel2a_all.flt",
-        "sweep_period": 0.07342143906020558002936857562408,
         "tag": "S2A",
-        "tle_format": "L8%4d%sASNNOR.S00"
-        }
+        "tle_format": "S2A%4d%sASNNOR.S00"
     }
 }
