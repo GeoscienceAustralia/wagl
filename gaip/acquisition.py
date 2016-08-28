@@ -11,7 +11,7 @@ import glob
 import pandas
 
 from functools import total_ordering
-from os.path import isdir, join as pjoin, dirname, basename
+from os.path import isdir, join as pjoin, dirname, basename, exists
 import pdb
 
 REF, THM, PAN, ATM, BQA = range(5)
@@ -473,10 +473,18 @@ def acquisitions(path):
     The search will include the `path` directory and its children.
     """
 
+    # try:
+    #     acqs = acquisitions_via_mtl(path)
+    # except OSError:
+    #     acqs = acquisitions_via_geotiff(path)
+
     try:
-        acqs = acquisitions_via_mtl(path)
-    except OSError:
-        acqs = acquisitions_via_geotiff(path)
+        acqs = acquisitions_via_safe(path)
+    except IOError:
+        try:
+            acqs = acquisitions_via_mtl(path)
+        except OSError:
+            acqs = acquisitions_via_geotiff(path)
 
     return acqs
 
@@ -727,6 +735,8 @@ def acquisitions_via_safe(path):
     gps_fname = pjoin(dirname(dirname(path)), "GPS_points")
 
     img_dir = pjoin(path, 'IMG_DATA')
+    if not exists(img_dir):
+        raise IOError("IMG_DATA directory not found: {}".format(img_dir))
     res_dirs = ["R10m", "R20m", "R60m"]
     for res_dir in res_dirs:
         sensor = "MSI-{}".format(res_dir)
@@ -824,6 +834,7 @@ def acquisitions_via_safe(path):
 
             band_type = db_copy['type_desc']
             band_md['BAND_INFO']['band_type'] = BAND_TYPE[band_type]
+            band_md['band_type'] = BAND_TYPE[band_type]
 
             band_md['band_name'] = 'band_{}'.format(bnum)
             if 'a' in bnum:
@@ -883,6 +894,10 @@ class Sentinel2aAcquisition(Acquisition):
 
     @property
     def scene_center_datetime(self):
+        return self.SENSING_TIME
+
+    @property
+    def scene_centre_date(self):
         return self.SENSING_TIME
 
     @property
