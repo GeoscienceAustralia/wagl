@@ -150,28 +150,6 @@ def write_modtran_inputs(acquisition, coordinator, view_fname, azi_fname,
                 src.write("{:f}\n".format(azi_cor[i]))
 
 
-def write_modis_brdf_files(acquisitions, fname_format, brdf_data,
-                           solar_irrad_data, solar_dist_data):
-    """Generate brdf input file."""
-    ref_acqs = [a for a in acquisitions if a.band_type == gaip.REF]
-
-    for acq in ref_acqs:
-        band = acq.band_num
-        modis_brdf_filename = fname_format.format(band_num=band)
-        with open(modis_brdf_filename, 'w') as outfile:
-            msg = "{iso} {vol} {geo}\n"
-            msg = msg.format(iso=brdf_data[(band, 'iso')]['value'],
-                             vol=brdf_data[(band, 'vol')]['value'],
-                             geo=brdf_data[(band, 'geo')]['value'])
-            outfile.write(msg)
-
-            msg = "{bias} {gain} {irrad} {dist}\n"
-            msg = msg.format(bias=acq.bias, gain=acq.gain,
-                             irrad=solar_irrad_data[band],
-                             dist=solar_dist_data)
-            outfile.write(msg)
-
-
 def write_tp5(acquisition, coordinator, view_fname, azi_fname,
               lat_fname, lon_fname, ozone, vapour, aerosol, elevation,
               coords, albedos, out_fname_fmt):

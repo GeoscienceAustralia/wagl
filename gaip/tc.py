@@ -27,14 +27,6 @@ def filter_dsm(array):
     return filtered
 
 
-def write_new_brdf_file(file_name, *args):
-    """Write a BRDF file."""
-    with open(file_name, 'w') as src:
-        out_string = "{0}\n{1} {2} {3}\n{4} {5} {6} {7}\n{8}\n"
-        out_string = out_string.format(*args)
-        src.write(out_string)
-
-
 class FortranError(Exception):
 
     """

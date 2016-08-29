@@ -108,50 +108,6 @@ class GetOzoneAncillaryData(luigi.Task):
         save(self.output(), value)
 
 
-class GetSolarIrradianceAncillaryData(luigi.Task):
-
-    """Get ancillary solar irradiance data."""
-
-    l1t_path = luigi.Parameter()
-    out_path = luigi.Parameter()
-
-    def requires(self):
-        return []
-
-    def output(self):
-        out_path = self.out_path
-        target = pjoin(out_path, CONFIG.get('work', 'irrad_target'))
-        return luigi.LocalTarget(target)
-
-    def run(self):
-        acqs = gaip.acquisitions(self.l1t_path)
-        solar_path = CONFIG.get('ancillary', 'solarirrad_path')
-        value = gaip.get_solar_irrad(acqs, solar_path)
-        save(self.output(), value)
-
-
-class GetSolarDistanceAncillaryData(luigi.Task):
-
-    """Get ancillary solar distance data."""
-
-    l1t_path = luigi.Parameter()
-    out_path = luigi.Parameter()
-
-    def requires(self):
-        return []
-
-    def output(self):
-        out_path = self.out_path
-        target = pjoin(out_path, CONFIG.get('work', 'sundist_target'))
-        return luigi.LocalTarget(target)
-
-    def run(self):
-        acqs = gaip.acquisitions(self.l1t_path)
-        sundist_path = CONFIG.get('ancillary', 'sundist_path')
-        value = gaip.get_solar_dist(acqs[0], sundist_path)
-        save(self.output(), value)
-
-
 class GetWaterVapourAncillaryData(luigi.Task):
 
     """Get ancillary water vapour data."""
@@ -233,8 +189,6 @@ class GetAncillaryData(luigi.Task):
     def requires(self):
         return [GetElevationAncillaryData(self.l1t_path, self.out_path),
                 GetOzoneAncillaryData(self.l1t_path, self.out_path),
-                GetSolarDistanceAncillaryData(self.l1t_path, self.out_path),
-                GetSolarIrradianceAncillaryData(self.l1t_path, self.out_path),
                 GetWaterVapourAncillaryData(self.l1t_path, self.out_path),
                 GetAerosolAncillaryData(self.l1t_path, self.out_path),
                 GetBrdfAncillaryData(self.l1t_path, self.out_path)]
@@ -459,55 +413,6 @@ class CreateModtranInputFile(luigi.Task):
         elevation = load_value(elevation_target)
         gaip.write_modtran_input(acqs, target, ozone, vapour, aerosol,
                                  elevation)
-
-
-class CreateModisBrdfFiles(luigi.Task):
-
-    """Create the Modis BRDF files."""
-
-    l1t_path = luigi.Parameter()
-    out_path = luigi.Parameter()
-
-    def requires(self):
-        return [GetAncillaryData(self.l1t_path, self.out_path)]
-
-    def output(self):
-        acqs = gaip.acquisitions(self.l1t_path)
-        out_path = self.out_path
-        modis_brdf_format = pjoin(out_path,
-                                  CONFIG.get('brdf', 'modis_brdf_format'))
-
-        # Retrieve the satellite and sensor for the acquisition
-        satellite = acqs[0].spacecraft_id
-        sensor = acqs[0].sensor_id
-
-        # Get the required nbar bands list for processing
-        nbar_constants = gaip.constants.NBARConstants(satellite, sensor)
-        bands_to_process = nbar_constants.get_nbar_lut()
-
-        targets = []
-        for acq in acqs:
-            band = acq.band_num
-            if band not in bands_to_process:
-                continue
-            modis_brdf_filename = modis_brdf_format.format(band_num=band)
-            target = pjoin(out_path, modis_brdf_filename)
-            targets.append(luigi.LocalTarget(target))
-        return targets
-
-    def run(self):
-        acqs = gaip.acquisitions(self.l1t_path)
-        outdir = self.out_path
-        modis_brdf_format = pjoin(outdir,
-                                  CONFIG.get('brdf', 'modis_brdf_format'))
-        brdf_target = pjoin(outdir, CONFIG.get('work', 'brdf_target'))
-        brdf_data = load_value(brdf_target)
-        irrad_target = pjoin(outdir, CONFIG.get('work', 'irrad_target'))
-        solar_irrad_data = load_value(irrad_target)
-        solar_dist_target = pjoin(outdir, CONFIG.get('work', 'sundist_target'))
-        solar_dist_data = load_value(solar_dist_target)
-        gaip.write_modis_brdf_files(acqs, modis_brdf_format, brdf_data,
-                                    solar_irrad_data, solar_dist_data)
 
 
 # Keep around for testing; for the time being
@@ -1512,8 +1417,7 @@ class RunTCBand(luigi.Task):
                 DEMExctraction(self.l1t_path, self.out_path),
                 RelativeAzimuthSlope(self.l1t_path, self.out_path),
                 SelfShadow(self.l1t_path, self.out_path),
-                CalculateCastShadow(self.l1t_path, self.out_path),
-                CreateModisBrdfFiles(self.l1t_path, self.out_path)]
+                CalculateCastShadow(self.l1t_path, self.out_path)]
 
     def output(self):
         acqs = gaip.acquisitions(self.l1t_path)
@@ -1549,11 +1453,9 @@ class RunTCBand(luigi.Task):
                                 CONFIG.get('work', 'bilinear_outputs_target'))
         bilinear_target = load_value(bilinear_target)
         rori = float(CONFIG.get('terrain_correction', 'rori'))
-        modis_brdf_format = pjoin(out_path,
-                                  CONFIG.get('brdf', 'modis_brdf_format'))
-        new_modis_brdf_format = pjoin(tc_path,
-                                      CONFIG.get('brdf',
-                                                 'new_modis_brdf_format'))
+
+        brdf_target = pjoin(out_path, CONFIG.get('work', 'brdf_target'))
+        brdf_data = load_value(brdf_target)
 
         # Get the reflectance levels and base output format
         rfl_levels = CONFIG.get('terrain_correction', 'rfl_levels').split(',')
@@ -1607,15 +1509,14 @@ class RunTCBand(luigi.Task):
             rfl_lvl_fnames[(self.band_num, level)] = pjoin(outdir, outfname)
 
         # calculate reflectance for lambertian, brdf, and terrain correction 
-        gaip.calculate_reflectance(acqs, bilinear_target, rori,
+        gaip.calculate_reflectance(acqs, bilinear_target, rori, brdf_data,
                                    self_shadow_target, sun_target,
                                    satellite_target, solar_zenith_target,
                                    solar_azimuth_target, satellite_view_target,
                                    relative_angle_target, slope_target,
                                    aspect_target, incident_target,
                                    exiting_target, relative_slope_target,
-                                   rfl_lvl_fnames, modis_brdf_format,
-                                   new_modis_brdf_format, x_tile, y_tile)
+                                   rfl_lvl_fnames, x_tile, y_tile)
 
 
 class TerrainCorrection(luigi.Task):
@@ -1681,13 +1582,11 @@ class WriteMetadata(luigi.Task):
             source_info[key] = md[key]
 
         targets = [pjoin(out_path, CONFIG.get('work', 'aerosol_target')),
-                   pjoin(out_path, CONFIG.get('work', 'sundist_target')),
                    pjoin(out_path, CONFIG.get('work', 'vapour_target')),
                    pjoin(out_path, CONFIG.get('work', 'ozone_target')),
                    pjoin(out_path, CONFIG.get('work', 'dem_target'))]
 
         sources = ['aerosol',
-                   'solar_distance',
                    'water_vapour',
                    'ozone',
                    'elevation']
