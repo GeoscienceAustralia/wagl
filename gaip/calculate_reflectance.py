@@ -9,7 +9,6 @@ import rasterio
 from gaip import as_array
 from gaip import constants
 from gaip import reflectance
-from gaip import write_new_brdf_file
 from eotools import tiling
 
 
