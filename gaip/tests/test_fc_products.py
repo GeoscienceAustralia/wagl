@@ -35,7 +35,7 @@ class TestFCProducts(ParameterisedTestCaseFiles):
         out_dir = self.output_directory
 
         with rasterio.open(self.reference_fname, 'r') as ref_ds:
-            ref_img = ref_ds.read(2, masked=False)
+            ref_img = ref_ds.read(2, masked=False).astype('float')
 
         with rasterio.open(self.test_fname, 'r') as test_ds:
             test_img = test_ds.read(2, masked=False)
@@ -48,13 +48,14 @@ class TestFCProducts(ParameterisedTestCaseFiles):
         max_diff = diff.max()
         min_diff = diff.min()
 
-        h = histogram(diff, minv=min_diff, maxv=max_diff)
+        h = histogram(diff, minv=min_diff, maxv=max_diff, omin='omin')
         array_sz = ref_img.size
         hist = h['histogram']
+        omin = h['omin']
         cumu_h = numpy.cumsum(hist, dtype='float')
         cdf = (cumu_h / array_sz) * 100
 
-        pct_no_diff = cdf[0]
+        pct_no_diff = cdf[0 - omin]
 
         # Initialise a dict ready for output to JSON
         result = OrderedDict()
@@ -109,7 +110,7 @@ class TestFCProducts(ParameterisedTestCaseFiles):
         out_dir = self.output_directory
 
         with rasterio.open(self.reference_fname, 'r') as ref_ds:
-            ref_img = ref_ds.read(3, masked=False)
+            ref_img = ref_ds.read(3, masked=False).astype('float')
 
         with rasterio.open(self.test_fname, 'r') as test_ds:
             test_img = test_ds.read(3, masked=False)
@@ -122,13 +123,14 @@ class TestFCProducts(ParameterisedTestCaseFiles):
         max_diff = diff.max()
         min_diff = diff.min()
 
-        h = histogram(diff, minv=min_diff, maxv=max_diff)
+        h = histogram(diff, minv=min_diff, maxv=max_diff, omin='omin')
         array_sz = ref_img.size
         hist = h['histogram']
+        omin = h['omin']
         cumu_h = numpy.cumsum(hist, dtype='float')
         cdf = (cumu_h / array_sz) * 100
 
-        pct_no_diff = cdf[0]
+        pct_no_diff = cdf[0 - omin]
 
         # Initialise a dict ready for output to JSON
         result = OrderedDict()
@@ -184,7 +186,7 @@ class TestFCProducts(ParameterisedTestCaseFiles):
         out_dir = self.output_directory
 
         with rasterio.open(self.reference_fname, 'r') as ref_ds:
-            ref_img = ref_ds.read(1, masked=False)
+            ref_img = ref_ds.read(1, masked=False).astype('float')
 
         with rasterio.open(self.test_fname, 'r') as test_ds:
             test_img = test_ds.read(1, masked=False)
@@ -197,13 +199,14 @@ class TestFCProducts(ParameterisedTestCaseFiles):
         max_diff = diff.max()
         min_diff = diff.min()
 
-        h = histogram(diff, minv=min_diff, maxv=max_diff)
+        h = histogram(diff, minv=min_diff, maxv=max_diff, omin='omin')
         array_sz = ref_img.size
         hist = h['histogram']
+        omin = h['omin']
         cumu_h = numpy.cumsum(hist, dtype='float')
         cdf = (cumu_h / array_sz) * 100
 
-        pct_no_diff = cdf[0]
+        pct_no_diff = cdf[0 - omin]
 
         # Initialise a dict ready for output to JSON
         result = OrderedDict()
@@ -257,7 +260,7 @@ class TestFCProducts(ParameterisedTestCaseFiles):
         out_dir = self.output_directory
 
         with rasterio.open(self.reference_fname, 'r') as ref_ds:
-            ref_img = ref_ds.read(4, masked=False)
+            ref_img = ref_ds.read(4, masked=False).astype('float')
 
         with rasterio.open(self.test_fname, 'r') as test_ds:
             test_img = test_ds.read(4, masked=False)
@@ -270,13 +273,14 @@ class TestFCProducts(ParameterisedTestCaseFiles):
         max_diff = diff.max()
         min_diff = diff.min()
 
-        h = histogram(diff, minv=min_diff, maxv=max_diff)
+        h = histogram(diff, minv=min_diff, maxv=max_diff, omin='omin')
         array_sz = ref_img.size
         hist = h['histogram']
+        omin = h['omin']
         cumu_h = numpy.cumsum(hist, dtype='float')
         cdf = (cumu_h / array_sz) * 100
 
-        pct_no_diff = cdf[0]
+        pct_no_diff = cdf[0 - omin]
 
         # Initialise a dict ready for output to JSON
         result = OrderedDict()
