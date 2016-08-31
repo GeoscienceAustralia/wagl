@@ -732,8 +732,10 @@ class CalculateCoefficients(luigi.Task):
         satfilter = pjoin(out_path, CONFIG.get('work', 'sat_filter_target'))
         workpath = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
 
-        gaip.calc_coefficients(coords, chn_input_format, dir_input_format,
-                               output_format, satfilter, workpath)
+        # gaip.calc_coefficients(coords, chn_input_format, dir_input_format,
+        #                        output_format, satfilter, workpath)
+        gaip.calculate_coefficients(coords, chn_input_format, dir_input_format,
+                                    output_format, workpath)
 
 
 class ReformatAtmosphericParameters(luigi.Task):

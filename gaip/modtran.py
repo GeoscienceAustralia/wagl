@@ -86,7 +86,7 @@ def write_modtran_input(acquisitions, modtran_input_file, ozone, vapour,
 # TODO: once validated, this can function can be deprecated
 # as we can write direct to the tp5 template
 def write_modtran_inputs(acquisition, coordinator, view_fname, azi_fname,
-                         lat_fname, lon_fname,  ozone, vapour, aerosol,
+                         lat_fname, lon_fname, ozone, vapour, aerosol,
                          elevation, coords, albedos, out_fname_fmt):
     filter_file = acquisition.spectral_filter_file
     cdate = acquisition.scene_centre_date
@@ -270,22 +270,131 @@ def extract_flux_trans(coords, input_format, output_format, satfilter):
         subprocess.check_call(args)
 
 
-def calc_coefficients(coords, chn_input_fmt, dir_input_fmt,
-                      output_fmt, satfilter, cwd):
-    """Calculate the coefficients from the MODTRAN output."""
+# def calc_coefficients(coords, chn_input_fmt, dir_input_fmt,
+#                       output_fmt, satfilter, cwd):
+#     """Calculate the coefficients from the MODTRAN output."""
+# 
+#     cmd = pjoin(BIN_DIR, 'calculate_coefficients')
+# 
+#     for coord in coords:
+#         args = [cmd, satfilter,
+#                 pjoin(cwd, chn_input_fmt.format(coord=coord, albedo=0)),
+#                 pjoin(cwd, chn_input_fmt.format(coord=coord, albedo=1)),
+#                 pjoin(cwd, dir_input_fmt.format(coord=coord, albedo=0)),
+#                 pjoin(cwd, dir_input_fmt.format(coord=coord, albedo=1)),
+#                 pjoin(cwd, dir_input_fmt.format(coord=coord, albedo='t')),
+#                 pjoin(cwd, output_fmt.format(coord=coord))]
+# 
+#         subprocess.check_call(args, cwd=cwd)
 
-    cmd = pjoin(BIN_DIR, 'calculate_coefficients')
 
+# def calculate_coefficients(acqs, coords, chn_input_fmt, dir_input_fmt,
+def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt,
+                           output_fmt, cwd):
+    """
+    Calculate the atmospheric coefficients from the MODTRAN output
+    and used in the BRDF and atmospheric correction.
+
+    :param acqs:
+        A `list` of acquisitions.
+
+    :param coords:
+        A `list` of `string` coordinates indicating the location
+        within an array, eg.
+        ["TL", "TM", "TR", "ML", "MM", "MR", "BL", "BM", "BR"]
+
+    :param chn_input_fmt:
+        A `string` format for the MODTRAN *.chn output file.
+        eg '{coord}/alb_{albedo}/{coord}_alb_{albedo}.chn'.
+
+    :param dir_input_fmt:
+        A `string` format for the MODTRAN *.dir output file.
+        eg '{coord}_alb_{albedo}.dir'.
+
+    :param output_fmt:
+        A `string` format for the output filename.
+        eg '{coord}_alb.txt'. If set to `None`, then a `dictionary`
+        with the `coords` as the keys will be returned.
+
+    :param cwd:
+        A `string` containing the full file pathname to the MODTRAN
+        output directory.
+    """
+
+    result = {}
     for coord in coords:
-        args = [cmd, satfilter,
-                pjoin(cwd, chn_input_fmt.format(coord=coord, albedo=0)),
-                pjoin(cwd, chn_input_fmt.format(coord=coord, albedo=1)),
-                pjoin(cwd, dir_input_fmt.format(coord=coord, albedo=0)),
-                pjoin(cwd, dir_input_fmt.format(coord=coord, albedo=1)),
-                pjoin(cwd, dir_input_fmt.format(coord=coord, albedo='t')),
-                pjoin(cwd, output_fmt.format(coord=coord))]
+        # MODTRAN output .chn file (albedo 0)
+        fname1 = pjoin(cwd, chn_input_fmt.format(coord=coord, albedo=0))
 
-        subprocess.check_call(args, cwd=cwd)
+        # **********UNUSED**********
+        # MODTRAN output .chn file (albedo 1)
+        # fname2 = pjoin(cwd, chn_input_fmt.format(coord=coord, albedo=1))
+
+        # solar radiation file (albedo 0)
+        fname3 = pjoin(cwd, dir_input_fmt.format(coord=coord, albedo=0))
+
+        # solar radiation file (albedo 1)
+        fname4 = pjoin(cwd, dir_input_fmt.format(coord=coord, albedo=1))
+
+        # solar radiation file (transmittance mode)
+        fname5 = pjoin(cwd, dir_input_fmt.format(coord=coord, albedo='t'))
+
+        # output file
+        if output_fmt is not None:
+            out_fname = pjoin(cwd, output_fmt.format(coord=coord))
+
+        # read the data
+        data1 = pandas.read_csv(fname1, skiprows=5, header=None,
+                                delim_whitespace=True)
+
+        # **********UNUSED**********
+        # data2 = pandas.read_csv(fname2, skiprows=5, header=None,
+        #                         delim_whitespace=True)
+
+        data3 = pandas.read_csv(fname3, header=0, delim_whitespace=True)
+        data4 = pandas.read_csv(fname4, header=0, delim_whitespace=True)
+        data5 = pandas.read_csv(fname5, header=0, delim_whitespace=True)
+
+        # calculate
+        diff_0 = data3['diffuse'] * 10000000.0
+        diff_1 = data4['diffuse'] * 10000000.0
+        dir_0 = data3['direct'] * 10000000.0
+        dir_1 = data4['direct'] * 10000000.0
+        dir_t = data5['direct']
+        dir0_top = data3['directtop'] * 10000000.0
+        dirt_top = data5['directtop']
+        tv_total = data5['transmittance']
+        ts_total = (diff_0 + dir_0) / dir0_top
+        ts_dir = dir_0 / dir0_top
+        tv_dir = dir_t / dirt_top
+
+        columns = ['band',
+                   'fs',
+                   'fv',
+                   'a',
+                   'b',
+                   's',
+                   'direct',
+                   'diffuse',
+                   'ts']
+        df = pandas.DataFrame(columns=columns)
+
+        df['band'] = data3['band']
+        df['fs'] = ts_dir / ts_total
+        df['fv'] = tv_dir / tv_total
+        df['a'] = (diff_0 + dir_0) / numpy.pi * tv_total
+        df['b'] = data1[3] * 10000000
+        df['s'] = 1 - (diff_0 + dir_0) / (diff_1 + dir_1)
+        df['direct'] = dir_0
+        df['diffuse'] = diff_0
+        df['ts'] = ts_dir
+
+        # output to disk; tab delimited
+        if output_fmt is not None:
+            df.to_csv(out_fname, sep='\t', index=False)
+
+        result[coord] = df
+    return result
 
 
 def reformat_atmo_params(acqs, coords, satfilter, factors, input_fmt,
