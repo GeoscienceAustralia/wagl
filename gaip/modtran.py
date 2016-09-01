@@ -270,30 +270,14 @@ def extract_flux_trans(coords, input_format, output_format, satfilter):
         subprocess.check_call(args)
 
 
-# def calc_coefficients(coords, chn_input_fmt, dir_input_fmt,
-#                       output_fmt, satfilter, cwd):
-#     """Calculate the coefficients from the MODTRAN output."""
-# 
-#     cmd = pjoin(BIN_DIR, 'calculate_coefficients')
-# 
-#     for coord in coords:
-#         args = [cmd, satfilter,
-#                 pjoin(cwd, chn_input_fmt.format(coord=coord, albedo=0)),
-#                 pjoin(cwd, chn_input_fmt.format(coord=coord, albedo=1)),
-#                 pjoin(cwd, dir_input_fmt.format(coord=coord, albedo=0)),
-#                 pjoin(cwd, dir_input_fmt.format(coord=coord, albedo=1)),
-#                 pjoin(cwd, dir_input_fmt.format(coord=coord, albedo='t')),
-#                 pjoin(cwd, output_fmt.format(coord=coord))]
-# 
-#         subprocess.check_call(args, cwd=cwd)
-
-
-# def calculate_coefficients(acqs, coords, chn_input_fmt, dir_input_fmt,
 def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt,
-                           output_fmt, cwd):
+                           output_fmt, output_reformat, cwd):
     """
     Calculate the atmospheric coefficients from the MODTRAN output
     and used in the BRDF and atmospheric correction.
+    Coefficients are computed for each band for each each coordinate
+    for each factor.  The factors are:
+    ['fs', 'fv', 'a', 'b', 's', 'dir', 'dif', 'ts'].
 
     :param acqs:
         A `list` of acquisitions.
@@ -316,9 +300,21 @@ def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt,
         eg '{coord}_alb.txt'. If set to `None`, then a `dictionary`
         with the `coords` as the keys will be returned.
 
+    :param output_reformat:
+        A `string` format for the reformatted output file.
+        eg '{factor}_out_b_{band}.txt'. If set to `None`, then a
+        `dictionary` with the combination of (band, factor) as the
+        keys will be returned.
+
     :param cwd:
         A `string` containing the full file pathname to the MODTRAN
         output directory.
+
+    :return:
+        A `tuple` of two `dictionaries`. The first containing the
+        calculated coefficients with the `coords` as the keys.
+        The second containing the reformated coefficients and
+        a `tuple` of (band, factor) as the keys.
     """
 
     result = {}
@@ -374,19 +370,19 @@ def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt,
                    'a',
                    'b',
                    's',
-                   'direct',
-                   'diffuse',
+                   'dir',
+                   'dif',
                    'ts']
         df = pandas.DataFrame(columns=columns)
 
-        df['band'] = data3['band']
+        df['band'] = data1[21]
         df['fs'] = ts_dir / ts_total
         df['fv'] = tv_dir / tv_total
         df['a'] = (diff_0 + dir_0) / numpy.pi * tv_total
         df['b'] = data1[3] * 10000000
         df['s'] = 1 - (diff_0 + dir_0) / (diff_1 + dir_1)
-        df['direct'] = dir_0
-        df['diffuse'] = diff_0
+        df['dir'] = dir_0
+        df['dif'] = diff_0
         df['ts'] = ts_dir
 
         # output to disk; tab delimited
@@ -394,26 +390,58 @@ def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt,
             df.to_csv(out_fname, sep='\t', index=False)
 
         result[coord] = df
-    return result
 
+    # set the band numbers as a searchable index
+    for key in result:
+        result[key].set_index('band', inplace=True, drop=False)
 
-def reformat_atmo_params(acqs, coords, satfilter, factors, input_fmt,
-                         output_fmt, workpath):
-    """Reformat atmospheric parameters."""
+    # combine all results into a single pandas.DataFrame
+    df = pandas.concat(result)
+    groups = df.groupby('band')
 
-    cmd = pjoin(BIN_DIR, 'reformat_modtran_output')
+    # reformat the derived coefficients into another format layout
+    # specifically a 4x4 layout, for each factor, for each band
+    """
+    TL, TM, ML, MM
+    TM, TR, MM, MR
+    ML, MM, BL, BM
+    MM, MR, BM, BR
+    """
 
-    bands = [str(a.band_num) for a in acqs]
+    factors = columns[1:]
 
-    args = [cmd, satfilter]
-    for coord in coords:
-        args.append(input_fmt.format(coord=coord))
-
-    for band in bands:
+    result2 = {}
+    for bn, grp in groups:
         for factor in factors:
-            args.append(output_fmt.format(factor=factor, band=band))
+            s1 = [grp.ix[('TL', bn)][factor],
+                  grp.ix[('TM', bn)][factor],
+                  grp.ix[('ML', bn)][factor],
+                  grp.ix[('MM', bn)][factor]]
+            s2 = [grp.ix[('TM', bn)][factor],
+                  grp.ix[('TR', bn)][factor],
+                  grp.ix[('MM', bn)][factor],
+                  grp.ix[('MR', bn)][factor]]
+            s3 = [grp.ix[('ML', bn)][factor],
+                  grp.ix[('MM', bn)][factor],
+                  grp.ix[('BL', bn)][factor],
+                  grp.ix[('BM', bn)][factor]]
+            s4 = [grp.ix[('MM', bn)][factor],
+                  grp.ix[('MR', bn)][factor],
+                  grp.ix[('BM', bn)][factor],
+                  grp.ix[('BR', bn)][factor]]
 
-    subprocess.check_call(args, cwd=workpath)
+            sdata = {'s1': s1, 's2': s2, 's3': s3, 's4': s4}
+            df_reformat = pandas.DataFrame(sdata)
+
+            if output_reformat is not None:
+                out_fname = pjoin(cwd, output_reformat.format(factor=factor,
+                                                              band=bn))
+                df_reformat.to_csv(out_fname, index=False, header=False,
+                                   sep='\t')
+
+            result2[(bn, factor)] = df_reformat
+
+    return result, result2
 
 
 def bilinear_interpolate(acqs, factors, coordinator, boxline, centreline,
@@ -452,7 +480,7 @@ def bilinear_interpolate(acqs, factors, coordinator, boxline, centreline,
 
             # atmospheric paramaters
             atmos = pandas.read_csv(atmospheric_fname, header=None,
-                                    sep=r'\s+\s+', engine='python',
+                                    sep='\t', engine='python',
                                     names=['s1', 's2', 's3', 's4'])
 
             # get the individual atmospheric components
