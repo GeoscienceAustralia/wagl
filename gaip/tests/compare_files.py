@@ -2,6 +2,7 @@
 
 from os.path import join as pjoin, exists
 import argparse
+import numpy
 import rasterio
 
 
@@ -17,12 +18,17 @@ def main(ref_dir, test_dir, scenes, files):
             with rasterio.open(ref_fname) as ref_ds,\
                 rasterio.open(test_fname) as test_ds:
                 print "Testing\nScene: {}\n File: {}".format(scene, f)
-                ref_data = ref_ds.read(1)
-                test_data = test_ds.read(1)
-                diff = (ref_data - test_data).sum()
-                if diff != 0:
-                    msg = "Mismatch:\nRef: {}\nTest: {}\nDifference: {}\n"
-                    print msg.format(ref_fname, test_fname, diff)
+                ref_data = ref_ds.read(1)#.astype('float')
+                test_data = test_ds.read(1)#.astype('float')
+                diff = ref_data - test_data
+                min_ = diff.min()
+                max_ = diff.max()
+                n_pixels = (numpy.abs(diff) != 0).sum()
+                msg = ("Mismatch:\nRef: {}\nTest: {}\n"
+                       "Min Difference: {}\n"
+                       "Max Difference: {}\n"
+                       "No. Pixels Different: {}\n")
+                print msg.format(ref_fname, test_fname, min_, max_, n_pixels)
 
 
 if __name__ == '__main__':
