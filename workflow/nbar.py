@@ -730,83 +730,11 @@ class CalculateCoefficients(luigi.Task):
         output_format = CONFIG.get('coefficients', 'output_format')
         satfilter = pjoin(out_path, CONFIG.get('work', 'sat_filter_target'))
         workpath = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
+        reformat_output_format = CONFIG.get('read_modtran', 'output_format')
 
-        # gaip.calc_coefficients(coords, chn_input_format, dir_input_format,
-        #                        output_format, satfilter, workpath)
         gaip.calculate_coefficients(coords, chn_input_format, dir_input_format,
-                                    output_format, workpath)
-
-
-class ReformatAtmosphericParameters(luigi.Task):
-
-    """Reformat the atmospheric parameters produced by MODTRAN for four boxes.
-    These are needed to conduct bilinear interpolation. This runs the binary
-    `reformat_modtran_output`. """
-
-    l1t_path = luigi.Parameter()
-    out_path = luigi.Parameter()
-
-    def requires(self):
-        return [CalculateCoefficients(self.l1t_path, self.out_path),
-                CreateSatelliteFilterFile(self.l1t_path, self.out_path)]
-
-    def output(self):
-        out_path = self.out_path
-        factors = CONFIG.get('read_modtran', 'factors').split(',')
-        modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
-        output_format = CONFIG.get('read_modtran', 'output_format')
-        output_format = pjoin(modtran_root, output_format)
-        acqs = gaip.acquisitions(self.l1t_path)
-
-        # Retrieve the satellite and sensor for the acquisition
-        satellite = acqs[0].spacecraft_id
-        sensor = acqs[0].sensor_id
-
-        # Get the required nbar bands list for processing
-        nbar_constants = gaip.constants.NBARConstants(satellite, sensor)
-        bands_to_process = nbar_constants.get_nbar_lut()
-
-        bands = [a.band_num for a in acqs]
-        targets = []
-        for factor in factors:
-            for band in bands:
-                if band not in bands_to_process:
-                    # Skip
-                    continue
-                target = output_format.format(factor=factor, band=band)
-                targets.append(luigi.LocalTarget(target))
-        return targets
-
-    def run(self):
-        out_path = self.out_path
-        coords = CONFIG.get('read_modtran', 'coords').split(',')
-        factors = CONFIG.get('read_modtran', 'factors').split(',')
-        workpath = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
-        input_format = CONFIG.get('read_modtran', 'input_format')
-        input_format = pjoin(workpath, input_format)
-        output_format = CONFIG.get('read_modtran', 'output_format')
-        output_format = pjoin(workpath, output_format)
-        satfilter = pjoin(out_path, CONFIG.get('work', 'sat_filter_target'))
-
-        acqs = gaip.acquisitions(self.l1t_path)
-
-        # Retrieve the satellite and sensor for the acquisition
-        satellite = acqs[0].spacecraft_id
-        sensor = acqs[0].sensor_id
-
-        # Get the required nbar bands list for processing
-        nbar_constants = gaip.constants.NBARConstants(satellite, sensor)
-        bands_to_process = nbar_constants.get_nbar_lut()
-
-        # Initialise the list to contain the acquisitions we wish to process
-        acqs_to_process = []
-        for acq in acqs:
-            band_number = acq.band_num
-            if band_number in bands_to_process:
-                acqs_to_process.append(acq)
-
-        gaip.reformat_atmo_params(acqs_to_process, coords, satfilter, factors,
-                                  input_format, output_format, workpath)
+                                    output_format, reformat_output_format,
+                                    workpath)
 
 
 class BilinearInterpolationBand(luigi.Task):
@@ -820,7 +748,7 @@ class BilinearInterpolationBand(luigi.Task):
     factor = luigi.Parameter()
 
     def requires(self):
-        return [ReformatAtmosphericParameters(self.l1t_path, self.out_path),
+        return [CalculateCoefficients(self.l1t_path, self.out_path),
                 CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path)]
 
     def output(self):
@@ -967,6 +895,7 @@ class CreateTCRflDirs(luigi.Task):
         if not exists(rfl_path):
             os.makedirs(rfl_path)
 
+
 class DEMExctraction(luigi.Task):
 
     """
@@ -1005,6 +934,7 @@ class DEMExctraction(luigi.Task):
 
         gaip.get_dsm(acqs[0], national_dsm, buffer, dsm_subset_fname,
                      dsm_subset_smooth_fname)
+
 
 class SlopeAndAspect(luigi.Task):
 
