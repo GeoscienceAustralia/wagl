@@ -498,3 +498,49 @@ def bilinear_interpolate(acqs, factors, coordinator, boxline, centreline,
                            compress='deflate', options={'zlevel': 1})
 
     return bilinear_outputs
+
+
+def read_spectral_response(fname):
+    """
+    Read the spectral response function text file used during
+    MODTRAN processing.
+
+    :param fname:
+        A `str` containing the full file path name.
+
+    :return:
+        A `pandas.DataFrame`.
+    """
+    # open the text file
+    with open(fname, 'r') as src:
+        lines = src.readlines()
+
+    lines = [line.strip() for line in lines]
+
+    # find the starting locations of each band description label
+    ids = []
+    for i, val in enumerate(lines):
+        if 'B' in val:
+            ids.append(i)
+
+    # get the spectral response data up to band n-1
+    response = {}
+    for i, idx in enumerate(ids[0:-1]):
+        data = numpy.array([l.split('  ') for l in lines[idx+1:ids[i+1]]],
+                           dtype='float')
+        df = pandas.DataFrame({'band_description': lines[idx],
+                               'wavelength': data[:, 0],
+                               'response': data[:, 1]})
+        response[lines[idx]] = df
+
+    # get spectral response data for band n
+    idx = ids[-1]
+    data = numpy.array([l.split('  ') for l in lines[idx+1:]], dtype='float')
+    df = pandas.DataFrame({'band_description': lines[idx],
+                           'wavelength': data[:, 0],
+                           'response': data[:, 1]})
+    response[lines[idx]] = df
+
+    spectral_response = pandas.concat(response)
+
+    return spectral_response
