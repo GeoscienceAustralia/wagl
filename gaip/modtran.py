@@ -544,3 +544,66 @@ def read_spectral_response(fname):
     spectral_response = pandas.concat(response)
 
     return spectral_response
+
+
+def read_modtran_flux(fname, binary=True):
+    """
+    Read a MODTRAN output `*_b.flx` binary file.
+
+    :param fname:
+        A `str` containing the full file pathname of the flux
+        data file.
+
+    :return:
+        A `pandas.DataFrame` contining the spectral table data.
+    """
+    # define a datatype for the hdr info
+    hdr_dtype = numpy.dtype([('record_length', 'int32'),
+                             ('spectral_unit', 'S1'),
+                             ('relabs', 'S1'),
+                             ('linefeed', 'S1'),
+                             ('mlflx', 'int32'),
+                             ('iv1', 'float32'),
+                             ('band_width', 'float32'),
+                             ('fwhm', 'float32'),
+                             ('ifwhm', 'float32')])
+
+    # datatype for the dataframe containing the flux data
+    flux_dtype = numpy.dtype([('wavelength', 'float64'),
+                              ('upward_diffuse', 'float64'),
+                              ('downwar_diffuse', 'float64'),
+                              ('direct_solar', 'float64')])
+
+    with open(fname, 'rb') as src:
+        # read the hdr record
+        hdr_data = numpy.fromfile(src, hdr_dtype, count=1)
+
+        # maximum flux levels at a spectral grid point
+        levels = hdr_data['mlflx'][0] + 1
+
+        # define a datatype to read a record containing flux data
+        dtype = numpy.dtype([('wavelength', 'float64'),
+                             ('flux_data', 'float64', (levels, 3))])
+
+        # read the rest of the hdr which contains the altitude data
+        altitude = numpy.fromfile(src, dtype='float32', count=levels)
+
+        # read the record length end value
+        end_marker = numpy.fromfile(src, 'int32', count=1)
+
+        # read data from 2600 down to 350
+        flux = {}
+        wavelength_steps = range(2600, 349, -1)
+        for wv in wavelength_steps:
+            data = ffile.read_record(dtype)
+            df = pandas.DataFrame(numpy.zeros(levels, dtype=flux_dtype))
+            df['wavelength'] = data['wavelength'][0]
+            df['upward_difuse'] = data['flux_data'].squeeze()[:, 0]
+            df['downward_diffuse'] = data['flux_data'].squeeze()[:, 1]
+            df['direct_solar'] = data['flux_data'].squeeze()[:, 2]
+            flux[wv] = df
+
+    # concatenate into a single table
+    flux_data = pandas.concat(flux)
+
+    return flux_data
