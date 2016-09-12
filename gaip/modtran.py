@@ -8,6 +8,7 @@ from os.path import join as pjoin, exists, abspath, dirname
 import subprocess
 
 import numpy
+from scipy.io import FortranFile
 import pandas
 import rasterio
 import gaip
@@ -541,6 +542,17 @@ def read_spectral_response(fname):
                            'response': data[:, 1]})
     response[lines[idx]] = df
 
+    wavelengths = range(2600, 349, -1)
+    for band in response:
+        base_df = pandas.DataFrame({'wavelength': wavelengths,
+                                    'response': 0.0,
+                                    'band_description': band},
+                                   index=wavelengths)
+        df = response[band]
+        base_df.ix[df['wavelength'], 'response'] = df['response'].values
+
+        response[band] = base_df
+
     spectral_response = pandas.concat(response)
 
     return spectral_response
@@ -589,7 +601,10 @@ def read_modtran_flux(fname, binary=True):
         altitude = numpy.fromfile(src, dtype='float32', count=levels)
 
         # read the record length end value
-        end_marker = numpy.fromfile(src, 'int32', count=1)
+        _ = numpy.fromfile(src, 'int32', count=1)
+
+        # initialise the FORTRAN read
+        ffile = FortranFile(src)
 
         # read data from 2600 down to 350
         flux = {}
@@ -606,4 +621,122 @@ def read_modtran_flux(fname, binary=True):
     # concatenate into a single table
     flux_data = pandas.concat(flux)
 
-    return flux_data
+    return flux_data, altitude
+
+
+def calculate_solar_radiation(flux_fname, response_fname, transmittance=False):
+    """
+    Retreive the flux data from the MODTRAN output `*.flx`, and
+    calculate the solar radiation.
+
+    The solar radiation will be calculated for each of the bands
+    contained within the spectral response dataset.
+
+    :param flux_fname:
+        A `str` containing the full file path name of the flux dataset
+        output by MODTRAN.
+
+    :param response_fname:
+        A `str` containing the full file path name of the spectral
+        response dataset.
+
+    :param transmittance:
+        If set to `True`, then calculate the solar radiation in
+        transmittance mode. Default is to calculate from albedo.
+    """
+    # get the flux and spectral response datasets
+    flux_data, altitudes = read_modtran_flux(flux_fname)
+    response = read_spectral_response(response_fname)
+
+    # No. of atmospheric levels & index location of the top atmospheric level
+    levels = altitudes.shape[0]
+    idx = levels - 1
+
+    # group via the available bands
+    groups = response.groupby('band_description')
+
+    # output dataframe
+    # later on the process can be refined to only evaluate the bands
+    # we wish to process
+    if transmittance:
+        columns = ['band',
+                   'diffuse',
+                   'direct',
+                   'diffusetop',
+                   'directtop',
+                   'transmittance']
+    else:
+        columns = ['band',
+                   'diffuse',
+                   'direct',
+                   'directtop']
+    df = pandas.DataFrame(columns=columns, index=groups.groups.keys())
+
+    # indices for flux at bottom and top of atmosphere layers
+    wv_idx = range(2599, 350, -1)
+    wv_idx2 = [(i, 0) for i in wv_idx]
+    wv_idx3 = [(i, idx) for i in wv_idx]
+
+    # TODO: utilise the `transmittance` keyword for additional processing
+    # loop over each band and get the solar radiation
+    for band, grp in groups:
+        df.ix[band, 'band'] = band
+
+        # downward diffuse at bottom of atmospheric levels
+        diffuse_bottom = (grp.ix[band, 2600]['response'] *
+                          flux_data.ix[2600, 'downward_diffuse'][0] +
+                          grp.ix[band, 350]['response'] *
+                          flux_data.ix[350, 'downward_diffuse'][0]) / 2
+
+        # direct solar at bottom of atmospheric levels
+        direct_bottom = (grp.ix[band, 2600]['response'] *
+                         flux_data.ix[2600, 'direct_solar'][0] +
+                         grp.ix[band, 350]['response'] *
+                         flux_data.ix[350, 'direct_solar'][0]) / 2
+
+        # direct solar at top of atmospheric levels
+        direct_top = (grp.ix[band, 2600]['response'] *
+                      flux_data.ix[2600, 'direct_solar'][idx] +
+                      grp.ix[band, 350]['response'] *
+                      flux_data.ix[350, 'direct_solar'][idx]) / 2
+
+        response_sum = (grp.ix[band, 2600]['response'] +
+                        grp.ix[band, 350]['response']) / 2
+
+        # Fuqin's code now loops over each wavelength, in -1 decrements
+        # the indices might do the trick
+        # flux.ix[wv_idx, 'direct_solar']
+        # response.ix[band, wv_idx] or response.ix[('BAND 1', wv_idx)] ???
+        response_subs = grp.ix[band].ix[wv_idx]['response'].values
+        flux_data_subs = flux_data.ix[wv_idx2]
+
+        response_sum = response_sum + response_subs.sum()
+
+        df.ix[band, 'diffuse'] = (((flux_data_subs['downward_diffuse'].values *
+                                    response_subs).sum() + diffuse_bottom) /
+                                  response_sum)
+        df.ix[band, 'direct'] = (((flux_data_subs['direct_solar'].values *
+                                   response_subs).sum() + direct_bottom) /
+                                 response_sum)
+
+        # direct solar at top of atmospheric levels
+        flux_data_subs = flux_data.ix[wv_idx3]
+        df.ix[band, 'directtop'] = (((flux_data_subs['direct_solar'].values *
+                                      response_subs).sum() + direct_top) /
+                                    response_sum)
+
+        if transmittance:
+            # downward diffuse at top of atmospheric levels
+            diffuse_top = (grp.ix[band, 2600]['response'] *
+                           flux_data.ix[2600, 'downward_diffuse'][idx] +
+                           grp.ix[band, 350]['response'] *
+                           flux_data.ix[350, 'downward_diffuse'][idx]) / 2
+
+            edo_top = flux_data_subs['downward_diffuse'].values
+            df.ix[band, 'diffusetop'] = ((edo_top * response_subs).sum() +
+                                         diffuse_top) / response_sum
+            t_result = ((df.ix[band, 'diffuse'] + df.ix[band, 'direct']) /
+                        (df.ix[band, 'diffusetop'] + df.ix[band, 'directtop']))
+            df.ix[band, 'transmittance'] = t_result
+
+    return df
