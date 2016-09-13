@@ -20,7 +20,7 @@ Parameters to be inserted are:
 """
 
 MIDLAT_SUMMER_ALBEDO = (
-"""TM  2    2    2    1    2    2    2    2    2    2    1    1    0  10.000{albedo:7.2f}
+"""TM{binary}  2    2    2    1    2    2    2    2    2    2    1    1    0  10.000{albedo:7.2f}
 TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0.3         0      0.70         0         0
 DATA/{filter_function:<75}
     1    0    0    0    0    0{visibility:10.3f}     0.000     0.000     0.000{elevation:10.3f}
@@ -32,7 +32,7 @@ DATA/{filter_function:<75}
 """)
 
 TROPICAL_ALBEDO = (
-"""TM  1    2    2    1    1    1    1    1    1    1    1    1    0  10.000{albedo:7.2f}
+"""TM{binary}  1    2    2    1    1    1    1    1    1    1    1    1    0  10.000{albedo:7.2f}
 TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0.3         0      0.70         0         0
 DATA/{filter_function:<75}
     1    0    0    0    0    0{visibility:10.3f}     0.000     0.000     0.000{elevation:10.3f}
@@ -44,7 +44,7 @@ DATA/{filter_function:<75}
 """)
 
 MIDLAT_SUMMER_TRANSMITTANCE = (
-"""TM  2    2    2    1    2    2    2    2    2    2    1    1    0  10.000{albedo:7.2f}
+"""TM{binary}  2    2    2    1    2    2    2    2    2    2    1    1    0  10.000{albedo:7.2f}
 TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0.3         0      0.70         0         0
 DATA/{filter_function:<75}
     1    0    0    0    0    0{visibility:10.5f}     0.000     0.000     0.000{elevation:10.3f}
@@ -56,7 +56,7 @@ DATA/{filter_function:<75}
 """)
 
 TROPICAL_TRANSMITTANCE = (
-"""TM  1    2    2    1    1    1    1    1    1    1    1    1    0  10.000{albedo:7.2f}
+"""TM{binary}  1    2    2    1    1    1    1    1    1    1    1    1    0  10.000{albedo:7.2f}
 TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0.3         0      0.70         0         0
 DATA/{filter_function:<75}
     1    0    0    0    0    0{visibility:10.5f}     0.000     0.000     0.000{elevation:10.3f}
