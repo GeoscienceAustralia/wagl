@@ -246,29 +246,29 @@ def run_modtran(modtran_exe, workpath):
     subprocess.check_call([modtran_exe], cwd=workpath)
 
 
-def extract_flux(coords, albedos, input_format, output_format, satfilter):
-    """Extract the flux data."""
-    cmd = pjoin(BIN_DIR, 'read_flux_albedo')
-
-    for coord in coords:
-        for albedo in albedos:
-            src = input_format.format(coord=coord, albedo=albedo)
-            dst = output_format.format(coord=coord, albedo=albedo)
-            args = [cmd, src, satfilter, dst]
-
-            subprocess.check_call(args)
-
-
-def extract_flux_trans(coords, input_format, output_format, satfilter):
-    """Extract the flux data in the transmissive case."""
-    cmd = pjoin(BIN_DIR, 'read_flux_transmittance')
-
-    for coord in coords:
-        src = input_format.format(coord=coord)
-        dst = output_format.format(coord=coord)
-        args = [cmd, src, satfilter, dst]
-
-        subprocess.check_call(args)
+# def extract_flux(coords, albedos, input_format, output_format, satfilter):
+#     """Extract the flux data."""
+#     cmd = pjoin(BIN_DIR, 'read_flux_albedo')
+# 
+#     for coord in coords:
+#         for albedo in albedos:
+#             src = input_format.format(coord=coord, albedo=albedo)
+#             dst = output_format.format(coord=coord, albedo=albedo)
+#             args = [cmd, src, satfilter, dst]
+# 
+#             subprocess.check_call(args)
+# 
+# 
+# def extract_flux_trans(coords, input_format, output_format, satfilter):
+#     """Extract the flux data in the transmissive case."""
+#     cmd = pjoin(BIN_DIR, 'read_flux_transmittance')
+# 
+#     for coord in coords:
+#         src = input_format.format(coord=coord)
+#         dst = output_format.format(coord=coord)
+#         args = [cmd, src, satfilter, dst]
+# 
+#         subprocess.check_call(args)
 
 
 def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt,
@@ -677,7 +677,6 @@ def calculate_solar_radiation(flux_fname, response_fname, transmittance=False):
     wv_idx2 = [(i, 0) for i in wv_idx]
     wv_idx3 = [(i, idx) for i in wv_idx]
 
-    # TODO: utilise the `transmittance` keyword for additional processing
     # loop over each band and get the solar radiation
     for band, grp in groups:
         df.ix[band, 'band'] = band
@@ -704,9 +703,7 @@ def calculate_solar_radiation(flux_fname, response_fname, transmittance=False):
                         grp.ix[band, 350]['response']) / 2
 
         # Fuqin's code now loops over each wavelength, in -1 decrements
-        # the indices might do the trick
-        # flux.ix[wv_idx, 'direct_solar']
-        # response.ix[band, wv_idx] or response.ix[('BAND 1', wv_idx)] ???
+        # we'll use indices rather than a loop
         response_subs = grp.ix[band].ix[wv_idx]['response'].values
         flux_data_subs = flux_data.ix[wv_idx2]
 
