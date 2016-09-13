@@ -4,11 +4,7 @@ FC := gfortran
 FCFLAGS := -Wall -O3 -fbounds-check
 CFLAGS := -O3
 
-EXES := calculate_coefficients \
-        read_flux_albedo \
-        reformat_modtran_output \
-        read_flux_transmittance \
-	aot_loader
+EXES := aot_loader
 
 OBJS := $(addsuffix .o,$(EXES))
 
