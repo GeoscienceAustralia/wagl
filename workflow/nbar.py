@@ -622,94 +622,169 @@ class RunModtran(luigi.Task):
         return all([t.complete() for t in self.requires()])
 
 
-class ExtractFlux(luigi.Task):
+class RunAccumulateSolarIrradianceCase(luigi.Task):
 
-    """Extract the flux data from the MODTRAN outputs. This runs the
-       Fortran binary `read_flux_albedo`."""
+    """
+    Run calculate_solar_radiation for a given case, with case being
+    a given albedo and coordinate.
+    """
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    coord = luigi.Parameter()
+    albedo = luigi.Parameter()
 
     def requires(self):
         return [RunModtran(self.l1t_path, self.out_path)]
 
     def output(self):
         out_path = self.out_path
-        coords = CONFIG.get('extract_flux', 'coords').split(',')
-        albedos = CONFIG.get('extract_flux', 'albedos').split(',')
         modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
         output_format = CONFIG.get('extract_flux', 'output_format')
         output_format = pjoin(modtran_root, output_format)
-        targets = []
-        for coord in coords:
-            for albedo in albedos:
-                target = output_format.format(coord=coord, albedo=albedo)
-                targets.append(luigi.LocalTarget(target))
-        return targets
+        out_fname = output_format.format(coord=self.coord, albedo=self.albedo)
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
+        acqs = gaip.acquisitions(self.l1t_path)
         out_path = self.out_path
-        coords = CONFIG.get('extract_flux', 'coords').split(',')
-        albedos = CONFIG.get('extract_flux', 'albedos').split(',')
         modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
         input_format = CONFIG.get('extract_flux', 'input_format')
         input_format = pjoin(modtran_root, input_format)
-        output_format = CONFIG.get('extract_flux', 'output_format')
-        output_format = pjoin(modtran_root, output_format)
-        satfilter = pjoin(out_path, CONFIG.get('work', 'sat_filter_target'))
+        flux_fname = input_format.format(coord=self.coord, albedo=self.albedo)
+        satfilterpath = CONFIG.get('ancillary', 'satfilter_path')
+        response_fname = pjoin(satfilterpath, acqs[0].spectral_filter_file)
+        out_fname = self.output().fn
 
-        gaip.extract_flux(coords, albedos, input_format, output_format,
-                          satfilter)
+        transmittance = True if self.albedo == 't' else False
+        result = gaip.calculate_solar_radiation(flux_fname, response_fname,
+                                                transmittance)
+        result.to_csv(out_fname, index=False, sep='\t')
 
 
-class ExtractFluxTrans(luigi.Task):
+class AccumulateSolarIrradiance(luigi.Task):
 
-    """Extract the flux data from the MODTRAN output in the transmissive
-    case. This runs the Fortran binary `read_flux_transmittance`."""
+    """
+    Extract the flux data from the MODTRAN outputs, and calculate
+    the accumulative solar irradiance for a given spectral
+    response function.
+
+    This is a helper class that kicks off individual coordinate albedo
+    RunAccumulateSolarIrradianceCase tasks.
+    """
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
 
     def requires(self):
-        return [RunModtran(self.l1t_path, self.out_path)]
-
-    def output(self):
         out_path = self.out_path
-        coords = CONFIG.get('extract_flux_trans', 'coords').split(',')
+        coords = CONFIG.get('extract_flux', 'coords').split(',')
+        albedos = CONFIG.get('extract_flux', 'albedos').split(',')
         modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
-        output_format = CONFIG.get('extract_flux_trans', 'output_format')
+        output_format = CONFIG.get('extract_flux', 'output_format')
         output_format = pjoin(modtran_root, output_format)
-        targets = []
+
+        reqs = []
         for coord in coords:
-            target = output_format.format(coord=coord)
-            targets.append(luigi.LocalTarget(target))
-        return targets
+            for albedo in albedos:
+                reqs.append(RunAccumulateSolarIrradianceCase(self.l1t_path,
+                                                             self.out_path, 
+                                                             coord, albedo))
+        return reqs
 
-    def run(self):
-        out_path = self.out_path
-        coords = CONFIG.get('extract_flux_trans', 'coords').split(',')
-        modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
-        input_format = CONFIG.get('extract_flux_trans', 'input_format')
-        input_format = pjoin(modtran_root, input_format)
-        output_format = CONFIG.get('extract_flux_trans', 'output_format')
-        output_format = pjoin(modtran_root, output_format)
-        satfilter = pjoin(out_path, CONFIG.get('work', 'sat_filter_target'))
+    def complete(self):
+        return all([t.complete() for t in self.requires()])
 
-        gaip.extract_flux_trans(coords, input_format, output_format,
-                                satfilter)
+
+# class ExtractFlux(luigi.Task):
+# 
+#     """Extract the flux data from the MODTRAN outputs. This runs the
+#        Fortran binary `read_flux_albedo`."""
+# 
+#     l1t_path = luigi.Parameter()
+#     out_path = luigi.Parameter()
+# 
+#     def requires(self):
+#         return [RunModtran(self.l1t_path, self.out_path)]
+# 
+#     def output(self):
+#         out_path = self.out_path
+#         coords = CONFIG.get('extract_flux', 'coords').split(',')
+#         albedos = CONFIG.get('extract_flux', 'albedos').split(',')
+#         modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
+#         output_format = CONFIG.get('extract_flux', 'output_format')
+#         output_format = pjoin(modtran_root, output_format)
+#         targets = []
+#         for coord in coords:
+#             for albedo in albedos:
+#                 target = output_format.format(coord=coord, albedo=albedo)
+#                 targets.append(luigi.LocalTarget(target))
+#         return targets
+# 
+#     def run(self):
+#         out_path = self.out_path
+#         coords = CONFIG.get('extract_flux', 'coords').split(',')
+#         albedos = CONFIG.get('extract_flux', 'albedos').split(',')
+#         modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
+#         input_format = CONFIG.get('extract_flux', 'input_format')
+#         input_format = pjoin(modtran_root, input_format)
+#         output_format = CONFIG.get('extract_flux', 'output_format')
+#         output_format = pjoin(modtran_root, output_format)
+#         satfilter = pjoin(out_path, CONFIG.get('work', 'sat_filter_target'))
+# 
+#         gaip.extract_flux(coords, albedos, input_format, output_format,
+#                           satfilter)
+# 
+# 
+# class ExtractFluxTrans(luigi.Task):
+# 
+#     """Extract the flux data from the MODTRAN output in the transmissive
+#     case. This runs the Fortran binary `read_flux_transmittance`."""
+# 
+#     l1t_path = luigi.Parameter()
+#     out_path = luigi.Parameter()
+# 
+#     def requires(self):
+#         return [RunModtran(self.l1t_path, self.out_path)]
+# 
+#     def output(self):
+#         out_path = self.out_path
+#         coords = CONFIG.get('extract_flux_trans', 'coords').split(',')
+#         modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
+#         output_format = CONFIG.get('extract_flux_trans', 'output_format')
+#         output_format = pjoin(modtran_root, output_format)
+#         targets = []
+#         for coord in coords:
+#             target = output_format.format(coord=coord)
+#             targets.append(luigi.LocalTarget(target))
+#         return targets
+# 
+#     def run(self):
+#         out_path = self.out_path
+#         coords = CONFIG.get('extract_flux_trans', 'coords').split(',')
+#         modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
+#         input_format = CONFIG.get('extract_flux_trans', 'input_format')
+#         input_format = pjoin(modtran_root, input_format)
+#         output_format = CONFIG.get('extract_flux_trans', 'output_format')
+#         output_format = pjoin(modtran_root, output_format)
+#         satfilter = pjoin(out_path, CONFIG.get('work', 'sat_filter_target'))
+# 
+#         gaip.extract_flux_trans(coords, input_format, output_format,
+#                                 satfilter)
 
 
 class CalculateCoefficients(luigi.Task):
 
-    """Calculate the atmospheric parameters needed by BRDF and atmospheric
-    correction model. This runs the Fortran binary `calculate_coefficients`."""
+    """
+    Calculate the atmospheric parameters needed by BRDF and atmospheric
+    correction model.
+    """
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
 
     def requires(self):
-        return [ExtractFlux(self.l1t_path, self.out_path),
-                ExtractFluxTrans(self.l1t_path, self.out_path)]
+        return [AccumulateSolarIrradiance(self.l1t_path, self.out_path)]
 
     def output(self):
         out_path = self.out_path
@@ -729,7 +804,6 @@ class CalculateCoefficients(luigi.Task):
         chn_input_format = CONFIG.get('coefficients', 'chn_input_format')
         dir_input_format = CONFIG.get('coefficients', 'dir_input_format')
         output_format = CONFIG.get('coefficients', 'output_format')
-        satfilter = pjoin(out_path, CONFIG.get('work', 'sat_filter_target'))
         workpath = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
         reformat_output_format = CONFIG.get('read_modtran', 'output_format')
 
