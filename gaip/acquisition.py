@@ -243,8 +243,9 @@ class LandsatAcquisition(Acquisition):
             [str(self.band_num)]['type_desc']
 
     @property
-    def gps_track(self):
+    def gps_file(self):
         return False
+
 
 class Landsat5Acquisition(LandsatAcquisition):
 
@@ -272,6 +273,7 @@ class Landsat5Acquisition(LandsatAcquisition):
     def row(self):
         """The acquisition row."""
         return self.wrs_row
+
 
 class Landsat7Acquisition(LandsatAcquisition):
 
@@ -302,6 +304,7 @@ class Landsat7Acquisition(LandsatAcquisition):
     def row(self):
         """The acquisition row."""
         return self.wrs_row
+
 
 class Landsat8Acquisition(LandsatAcquisition):
 
