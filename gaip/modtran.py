@@ -208,6 +208,9 @@ def write_tp5(acquisition, coordinator, view_fname, azi_fname,
         albedo_profile = TROPICAL_ALBEDO
         trans_profile = TROPICAL_TRANSMITTANCE
 
+    # we'll only cater for MODTRAN to output binary form
+    binary = 'T'
+
     # write the tp5 files required for input into MODTRAN
     for i, p in enumerate(coords):
         for alb in albedos:
@@ -222,7 +225,8 @@ def write_tp5(acquisition, coordinator, view_fname, azi_fname,
                                             sat_height=altitude,
                                             sat_view=view_cor[i],
                                             doy=doy,
-                                            sat_view_offset=180.0-view_cor[i])
+                                            sat_view_offset=180.0-view_cor[i],
+                                            binary=binary)
             else:
                 data = albedo_profile.format(albedo=float(alb),
                                              water=vapour,
@@ -236,7 +240,8 @@ def write_tp5(acquisition, coordinator, view_fname, azi_fname,
                                              lat=lat[i],
                                              lon=rlon[i],
                                              time=dechour,
-                                             sat_azimuth=azi_cor[i])
+                                             sat_azimuth=azi_cor[i],
+                                             binary=binary)
             with open(out_fname, 'w') as src:
                 src.write(data)
 
@@ -344,13 +349,25 @@ def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt,
         data1 = pandas.read_csv(fname1, skiprows=5, header=None,
                                 delim_whitespace=True)
 
+        fmt = 'BAND {}'
+        band_idx = [fmt.format(val) for key, val in data1[21].iteritems()]
+        data1['band'] = band_idx
+        data1.set_index('band', inplace=True, drop=False)
+
         # **********UNUSED**********
         # data2 = pandas.read_csv(fname2, skiprows=5, header=None,
         #                         delim_whitespace=True)
 
-        data3 = pandas.read_csv(fname3, header=0, delim_whitespace=True)
-        data4 = pandas.read_csv(fname4, header=0, delim_whitespace=True)
-        data5 = pandas.read_csv(fname5, header=0, delim_whitespace=True)
+        data3 = pandas.read_csv(fname3, header=0, sep='\t')
+        data4 = pandas.read_csv(fname4, header=0, sep='\t')
+        data5 = pandas.read_csv(fname5, header=0, sep='\t')
+
+        # set the index to be the band name
+        # we didn't write the index out previously as we'll try to keep
+        # the same format so Fuqin can use it within her code
+        data3.set_index('band', inplace=True, drop=False)
+        data4.set_index('band', inplace=True, drop=False)
+        data5.set_index('band', inplace=True, drop=False)
 
         # calculate
         diff_0 = data3['diffuse'] * 10000000.0
@@ -374,7 +391,7 @@ def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt,
                    'dir',
                    'dif',
                    'ts']
-        df = pandas.DataFrame(columns=columns)
+        df = pandas.DataFrame(columns=columns, index=band_idx)
 
         df['band'] = data1[21]
         df['fs'] = ts_dir / ts_total
@@ -735,5 +752,7 @@ def calculate_solar_radiation(flux_fname, response_fname, transmittance=False):
             t_result = ((df.ix[band, 'diffuse'] + df.ix[band, 'direct']) /
                         (df.ix[band, 'diffusetop'] + df.ix[band, 'directtop']))
             df.ix[band, 'transmittance'] = t_result
+
+    df.sort_index(inplace=True)
 
     return df
