@@ -251,31 +251,6 @@ def run_modtran(modtran_exe, workpath):
     subprocess.check_call([modtran_exe], cwd=workpath)
 
 
-# def extract_flux(coords, albedos, input_format, output_format, satfilter):
-#     """Extract the flux data."""
-#     cmd = pjoin(BIN_DIR, 'read_flux_albedo')
-# 
-#     for coord in coords:
-#         for albedo in albedos:
-#             src = input_format.format(coord=coord, albedo=albedo)
-#             dst = output_format.format(coord=coord, albedo=albedo)
-#             args = [cmd, src, satfilter, dst]
-# 
-#             subprocess.check_call(args)
-# 
-# 
-# def extract_flux_trans(coords, input_format, output_format, satfilter):
-#     """Extract the flux data in the transmissive case."""
-#     cmd = pjoin(BIN_DIR, 'read_flux_transmittance')
-# 
-#     for coord in coords:
-#         src = input_format.format(coord=coord)
-#         dst = output_format.format(coord=coord)
-#         args = [cmd, src, satfilter, dst]
-# 
-#         subprocess.check_call(args)
-
-
 def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt,
                            output_fmt, output_reformat, cwd):
     """
@@ -346,18 +321,11 @@ def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt,
             out_fname = pjoin(cwd, output_fmt.format(coord=coord))
 
         # read the data
-        data1 = pandas.read_csv(fname1, skiprows=5, header=None,
-                                delim_whitespace=True)
-
-        fmt = 'BAND {}'
-        band_idx = [fmt.format(val) for key, val in data1[21].iteritems()]
-        data1['band'] = band_idx
-        data1.set_index('band', inplace=True, drop=False)
-
         # **********UNUSED**********
         # data2 = pandas.read_csv(fname2, skiprows=5, header=None,
         #                         delim_whitespace=True)
 
+        # solar radiation (albedo 0, albedo 1, transmittance mode)
         data3 = pandas.read_csv(fname3, header=0, sep='\t')
         data4 = pandas.read_csv(fname4, header=0, sep='\t')
         data5 = pandas.read_csv(fname5, header=0, sep='\t')
@@ -368,6 +336,15 @@ def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt,
         data3.set_index('band', inplace=True, drop=False)
         data4.set_index('band', inplace=True, drop=False)
         data5.set_index('band', inplace=True, drop=False)
+
+        # MODTRAN output .chn file (albedo 0)
+        data1 = pandas.read_csv(fname1, skiprows=5, header=None,
+                                delim_whitespace=True, nrows=data3.shape[0])
+
+        fmt = 'BAND {}'
+        band_idx = [fmt.format(val) for key, val in data1[21].iteritems()]
+        data1['band'] = band_idx
+        data1.set_index('band', inplace=True, drop=False)
 
         # calculate
         diff_0 = data3['diffuse'] * 10000000.0
@@ -527,7 +504,8 @@ def read_spectral_response(fname):
         A `str` containing the full file path name.
 
     :return:
-        A `pandas.DataFrame`.
+        A `pandas.DataFrame` containing the spectral response
+        function.
     """
     # open the text file
     with open(fname, 'r') as src:
@@ -575,7 +553,7 @@ def read_spectral_response(fname):
     return spectral_response
 
 
-def read_modtran_flux(fname, binary=True):
+def read_modtran_flux(fname):
     """
     Read a MODTRAN output `*_b.flx` binary file.
 
@@ -584,7 +562,9 @@ def read_modtran_flux(fname, binary=True):
         data file.
 
     :return:
-        A `pandas.DataFrame` contining the spectral table data.
+        Two `pandas.DataFrame's`. The first contains the spectral flux
+        table data, and the second is contains the atmospheric height
+        levels in km.
     """
     # define a datatype for the hdr info
     hdr_dtype = numpy.dtype([('record_length', 'int32'),
@@ -660,6 +640,10 @@ def calculate_solar_radiation(flux_fname, response_fname, transmittance=False):
     :param transmittance:
         If set to `True`, then calculate the solar radiation in
         transmittance mode. Default is to calculate from albedo.
+
+    :return:
+        A `pandas.DataFrame` containing the solar radiation
+        accumulation.
     """
     # get the flux and spectral response datasets
     flux_data, altitudes = read_modtran_flux(flux_fname)
