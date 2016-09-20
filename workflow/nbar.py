@@ -713,7 +713,7 @@ class CalculateCoefficients(luigi.Task):
         out_path = self.out_path
         coords = CONFIG.get('coefficients', 'coords').split(',')
         modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
-        output_format = CONFIG.get('coefficients', 'output_format')
+        output_format = CONFIG.get('coefficients', 'output_format1')
         output_format = pjoin(modtran_root, output_format)
         targets = []
         for coord in coords:
@@ -726,12 +726,12 @@ class CalculateCoefficients(luigi.Task):
         coords = CONFIG.get('coefficients', 'coords').split(',')
         chn_input_format = CONFIG.get('coefficients', 'chn_input_format')
         dir_input_format = CONFIG.get('coefficients', 'dir_input_format')
-        output_format = CONFIG.get('coefficients', 'output_format')
+        output_format1 = CONFIG.get('coefficients', 'output_format1')
         workpath = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
-        reformat_output_format = CONFIG.get('read_modtran', 'output_format')
+        output_format2 = CONFIG.get('coefficients', 'output_format2')
 
         gaip.calculate_coefficients(coords, chn_input_format, dir_input_format,
-                                    output_format, reformat_output_format,
+                                    output_format1, output_format2,
                                     workpath)
 
 
