@@ -363,128 +363,6 @@ class CreateModtranDirectories(luigi.Task):
                                  input_format)
 
 
-class CreateSatelliteFilterFile(luigi.Task):
-
-    """Create the satellite filter file."""
-
-    l1t_path = luigi.Parameter()
-    out_path = luigi.Parameter()
-
-    def output(self):
-        out_path = self.out_path
-        target = pjoin(out_path, CONFIG.get('work', 'sat_filter_target'))
-        return luigi.LocalTarget(target)
-
-    def run(self):
-        out_path = self.out_path
-        acqs = gaip.acquisitions(self.l1t_path)
-        satfilterpath = CONFIG.get('ancillary', 'satfilter_path')
-        target = pjoin(out_path, CONFIG.get('work', 'sat_filter_target'))
-        gaip.create_satellite_filter_file(acqs, satfilterpath,
-                                          target)
-
-
-# Keep around for testing; for the time being
-class CreateModtranInputFile(luigi.Task):
-
-    """Create the MODTRAN input file."""
-
-    l1t_path = luigi.Parameter()
-    out_path = luigi.Parameter()
-
-    def requires(self):
-        return [GetAncillaryData(self.l1t_path, self.out_path)]
-
-    def output(self):
-        out_path = self.out_path
-        target = pjoin(out_path, CONFIG.get('work', 'modtran_input_target'))
-        return luigi.LocalTarget(target)
-
-    def run(self):
-        out_path = self.out_path
-        ozone_target = pjoin(out_path, CONFIG.get('work', 'ozone_target'))
-        vapour_target = pjoin(out_path, CONFIG.get('work', 'vapour_target'))
-        aerosol_target = pjoin(out_path, CONFIG.get('work', 'aerosol_target'))
-        elevation_target = pjoin(out_path, CONFIG.get('work', 'dem_target'))
-        acqs = gaip.acquisitions(self.l1t_path)
-        target = self.output().fn
-        ozone = load_value(ozone_target)
-        vapour = load_value(vapour_target)
-        aerosol = load_value(aerosol_target)
-        elevation = load_value(elevation_target)
-        gaip.write_modtran_input(acqs, target, ozone, vapour, aerosol,
-                                 elevation)
-
-
-# Keep around for testing; for the time being
-class GenerateModtranInputFiles(luigi.Task):
-
-    """Generate the MODTRAN input files."""
-
-    l1t_path = luigi.Parameter()
-    out_path = luigi.Parameter()
-
-    def requires(self):
-        return [CreateModtranDirectories(self.out_path),
-                GetAncillaryData(self.l1t_path, self.out_path),
-                CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path),
-                CalculateLatGrid(self.l1t_path, self.out_path),
-                CalculateLonGrid(self.l1t_path, self.out_path)]
-
-    def output(self):
-        out_path = self.out_path
-        coords = CONFIG.get('input_modtran', 'coords').split(',')
-        albedos = CONFIG.get('input_modtran', 'albedos').split(',')
-        output_format = CONFIG.get('input_modtran', 'output_format')
-        workdir = pjoin(out_path, CONFIG.get('work', 'input_modtran_cwd'))
-        output_format = pjoin(workdir, output_format)
-
-        targets = []
-        for coord in coords:
-            for albedo in albedos:
-                targets.append(output_format.format(coord=coord,
-                                                    albedo=albedo))
-        return [luigi.LocalTarget(t) for t in targets]
-
-    def run(self):
-        out_path = self.out_path
-        # sources
-        modtran_input_target = pjoin(out_path,
-                                     CONFIG.get('work',
-                                                'modtran_input_target'))
-        coordinator_target = pjoin(out_path,
-                                   CONFIG.get('work', 'coordinator_target'))
-        sat_view_zenith_target = pjoin(out_path,
-                                       CONFIG.get('work', 'sat_view_target'))
-        sat_azimuth_target = pjoin(out_path,
-                                   CONFIG.get('work', 'sat_azimuth_target'))
-        lon_grid_target = pjoin(out_path,
-                                CONFIG.get('work', 'lon_grid_target'))
-        lat_grid_target = pjoin(out_path,
-                                CONFIG.get('work', 'lat_grid_target'))
-
-        coords = CONFIG.get('input_modtran', 'coords').split(',')
-        albedos = CONFIG.get('input_modtran', 'albedos').split(',')
-        fname_format = CONFIG.get('input_modtran', 'output_format')
-        workdir = pjoin(out_path, CONFIG.get('work', 'input_modtran_cwd'))
-
-        acqs = gaip.acquisitions(self.l1t_path)
-        ozone_target = pjoin(out_path, CONFIG.get('work', 'ozone_target'))
-        vapour_target = pjoin(out_path, CONFIG.get('work', 'vapour_target'))
-        aerosol_target = pjoin(out_path, CONFIG.get('work', 'aerosol_target'))
-        elevation_target = pjoin(out_path, CONFIG.get('work', 'dem_target'))
-        ozone = load_value(ozone_target)
-        vapour = load_value(vapour_target)
-        aerosol = load_value(aerosol_target)
-        elevation = load_value(elevation_target)
-        out_fname_fmt = pjoin(workdir, fname_format)
-        gaip.write_modtran_inputs(acqs[0], coordinator_target,
-                                  sat_view_zenith_target, sat_azimuth_target,
-                                  lat_grid_target, lon_grid_target, ozone,
-                                  vapour, aerosol, elevation, coords, albedos,
-                                  out_fname_fmt)
-
-
 class WriteTp5(luigi.Task):
 
     """Output the `tp5` formatted files."""
@@ -548,6 +426,102 @@ class WriteTp5(luigi.Task):
                        coords, albedos, out_fname_format)
 
 
+class FilesRequiredByFugin(luigi.Task):
+
+    """
+    A task that isn't required for production, but is required
+    for Fuqin to undergo validation. The files produced by this
+    task are neccessary for her version of NBAR to run, whereas
+    the production version skips producing file `a` and goes direct
+    to file `b`, or simply is not used by the system and hence has
+    been removed from production.
+    """
+
+    l1t_path = luigi.Parameter()
+    out_path = luigi.Parameter()
+
+    def requires(self):
+        tasks = [GetAncillaryData(self.l1t_path, self.out_path),
+                 GetAncillaryData(self.l1t_path, self.out_path),
+                 CreateModtranDirectories(self.out_path),
+                 CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path),
+                 CalculateLatGrid(self.l1t_path, self.out_path),
+                 CalculateLonGrid(self.l1t_path, self.out_path)]
+
+        return tasks
+
+    def output(self):
+        out_path = self.out_path
+        targets = []
+        filter_fname = CONFIG.get('fuqin_requires', 'sat_filter_target')
+        targets.append(pjoin(out_path, filter_fname))
+
+        input_fname = CONFIG.get('fuqin_requires', 'modtran_input_target')
+        targets.append(pjoin(out_path, input_fname))
+
+        coords = CONFIG.get('fuqin_requires', 'coords').split(',')
+        albedos = CONFIG.get('fuqin_requires', 'albedos').split(',')
+        output_format = CONFIG.get('fuqin_requires', 'output_format')
+        workdir = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
+        output_format = pjoin(workdir, output_format)
+
+        for coord in coords:
+            for albedo in albedos:
+                targets.append(output_format.format(coord=coord,
+                                                    albedo=albedo))
+
+        return [luigi.LocalTarget(t) for t in targets]
+
+    def run(self):
+        out_path = self.out_path
+        acqs = gaip.acquisitions(self.l1t_path)
+
+        # satellite filter file
+        satfilterpath = CONFIG.get('ancillary', 'satfilter_path')
+        filter_fname = CONFIG.get('fuqin_requires', 'sat_filter_target')
+        target = pjoin(out_path, filter_fname)
+        gaip.create_satellite_filter_file(acqs, satfilterpath,
+                                          target)
+
+        # modtran input file
+        ozone_target = pjoin(out_path, CONFIG.get('work', 'ozone_target'))
+        vapour_target = pjoin(out_path, CONFIG.get('work', 'vapour_target'))
+        aerosol_target = pjoin(out_path, CONFIG.get('work', 'aerosol_target'))
+        elevation_target = pjoin(out_path, CONFIG.get('work', 'dem_target'))
+        input_fname = CONFIG.get('fuqin_requires', 'modtran_input_target')
+        target = pjoin(out_path, input_fname)
+        ozone = load_value(ozone_target)
+        vapour = load_value(vapour_target)
+        aerosol = load_value(aerosol_target)
+        elevation = load_value(elevation_target)
+        gaip.write_modtran_input(acqs, target, ozone, vapour, aerosol,
+                                 elevation)
+
+        # modtran input files
+        coordinator_target = pjoin(out_path,
+                                   CONFIG.get('work', 'coordinator_target'))
+        sat_view_zenith_target = pjoin(out_path,
+                                       CONFIG.get('work', 'sat_view_target'))
+        sat_azimuth_target = pjoin(out_path,
+                                   CONFIG.get('work', 'sat_azimuth_target'))
+        lon_grid_target = pjoin(out_path,
+                                CONFIG.get('work', 'lon_grid_target'))
+        lat_grid_target = pjoin(out_path,
+                                CONFIG.get('work', 'lat_grid_target'))
+
+        coords = CONFIG.get('fuqin_requires', 'coords').split(',')
+        albedos = CONFIG.get('fuqin_requires', 'albedos').split(',')
+        fname_format = CONFIG.get('fuqin_requires', 'output_format')
+        workdir = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
+
+        out_fname_fmt = pjoin(workdir, fname_format)
+        gaip.write_modtran_inputs(acqs[0], coordinator_target,
+                                  sat_view_zenith_target, sat_azimuth_target,
+                                  lat_grid_target, lon_grid_target, ozone,
+                                  vapour, aerosol, elevation, coords, albedos,
+                                  out_fname_fmt)
+
+
 class PrepareModtranInput(luigi.Task):
 
     """Prepare MODTRAN inputs. This is a helper task."""
@@ -556,12 +530,16 @@ class PrepareModtranInput(luigi.Task):
     out_path = luigi.Parameter()
 
     def requires(self):
-                # retain for testing; for the time being.
-                # CreateModtranInputFile(self.l1t_path, self.out_path),
-                # GenerateModtranInputFiles(self.l1t_path, self.out_path),
-        return [CreateModtranDirectories(self.out_path),
-                CreateSatelliteFilterFile(self.l1t_path, self.out_path),
-                WriteTp5(self.l1t_path, self.out_path)]
+        # are we running a validation suite for Fuqin?
+        if bool(int(CONFIG.get('fuqin_requires', 'required'))):
+            tasks = [CreateModtranDirectories(self.out_path),
+                     FilesRequiredByFugin(self.l1t_path, self.out_path),
+                     WriteTp5(self.l1t_path, self.out_path)]
+        else:
+            tasks = [CreateModtranDirectories(self.out_path),
+                     WriteTp5(self.l1t_path, self.out_path)]
+
+        return tasks
 
     def complete(self):
         return all([t.complete() for t in self.requires()])
@@ -1673,9 +1651,9 @@ def main(l1t_path, outpath, workpath, l1t_list, nnodes=1, nodenum=1):
     tmp = formatter.parse(l1t_path)
     pos = 0
     for lstr, fname, fs, cv in tmp:
-      pos += len(lstr)
-      if fname == "year": year_pos = pos; pos += 4
-      if fname == "month": month_pos = pos; pos += 2
+        pos += len(lstr)
+        if fname == "year": year_pos = pos; pos += 4
+        if fname == "month": month_pos = pos; pos += 2
 
     # Setup Software Versions for Packaging
     ptype.register_software_version(
@@ -1701,25 +1679,25 @@ def main(l1t_path, outpath, workpath, l1t_list, nnodes=1, nodenum=1):
         bf = basename(l1t)
 
         acq = gaip.acquisitions(l1t)[0]
-        workdir = workpath.format(year = year, month = month)
+        workdir = workpath.format(year=year, month=month)
         if not exists(workdir): os.makedirs(workdir)
         if ((87 <= acq.path <= 116) & (67 <= acq.row <= 91)):
             completed = pjoin(workdir,
-                             (bf.replace('OTH', 'NBAR') + '.completed'))
+                              (bf.replace('OTH', 'NBAR') + '.completed'))
             if exists(completed):
-                msg = "Skipping {}".format(l1t)
+                msg = "NBAR for {} already exists...skipping".format(l1t)
                 logging.info(msg)
                 continue
 
 	# create product output dirs
-        outdir = outpath.format(year = year, month = month)
+        outdir = outpath.format(year=year, month=month)
         if not exists(outdir):
             os.makedirs(outdir)
             os.makedirs(pjoin(outdir, "nbar"))
             os.makedirs(pjoin(outdir, "nbart"))
-	for product in products:
-	    product_dir = pjoin(outdir, product)
-	    if not exists(product_dir): os.makedirs(product_dir)
+        for product in products:
+            product_dir = pjoin(outdir, product)
+            if not exists(product_dir): os.makedirs(product_dir)
 
         nbar = pjoin(workdir, bf.replace('OTH', 'NBAR'))
         tasks.append(PackageTC(l1t, nbar, outdir))
