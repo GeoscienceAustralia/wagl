@@ -167,7 +167,7 @@ class GetBrdfAncillaryData(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        target = pjoin(out_path, CONFIG.get('work', 'brdf_target'))
+        target = pjoin(out_path, CONFIG.get('work', 'brdf_fname'))
         return luigi.LocalTarget(target)
 
     def run(self):
@@ -210,13 +210,16 @@ class CalculateLonGrid(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        target = pjoin(out_path, CONFIG.get('work', 'lon_grid_target'))
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'CalculateLonGrid.task')
         return luigi.LocalTarget(target)
 
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
-        target = self.output()
-        gaip.create_lon_grid(acqs[0], target.fn)
+        out_fname = pjoin(self.out_path, CONFIG.get('work', 'lon_grid_fname'))
+        gaip.create_lon_grid(acqs[0], out_fname)
+
+        save(self.output(), 'completed')
 
 
 class CalculateLatGrid(luigi.Task):
@@ -231,13 +234,16 @@ class CalculateLatGrid(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        target = pjoin(out_path, CONFIG.get('work', 'lat_grid_target'))
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'CalculateLatGrid.task')
         return luigi.LocalTarget(target)
 
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
-        target = self.output()
-        gaip.create_lat_grid(acqs[0], target.fn)
+        out_fname = pjoin(self.out_path, CONFIG.get('work', 'lat_grid_fname'))
+        gaip.create_lat_grid(acqs[0], out_fname)
+
+        save(self.output(), 'completed')
 
 
 class CalculateLatLonGrids(luigi.Task):
@@ -265,56 +271,49 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        targets = [CONFIG.get('work', 'sat_view_target'),
-                   CONFIG.get('work', 'sat_azimuth_target'),
-                   CONFIG.get('work', 'solar_zenith_target'),
-                   CONFIG.get('work', 'solar_azimuth_target'),
-                   CONFIG.get('work', 'relative_azimuth_target'),
-                   CONFIG.get('work', 'time_target'),
-                   CONFIG.get('work', 'centreline_target'),
-                   CONFIG.get('work', 'header_angle_target'),
-                   CONFIG.get('work', 'coordinator_target'),
-                   CONFIG.get('work', 'boxline_target')]
-        return [luigi.LocalTarget(pjoin(out_path, t)) for t in targets]
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'CalculateSatelliteAndSolarGrids.task')
+        return luigi.LocalTarget(target)
 
     def run(self):
         out_path = self.out_path
-        targets = [CONFIG.get('work', 'sat_view_target'),
-                   CONFIG.get('work', 'sat_azimuth_target'),
-                   CONFIG.get('work', 'solar_zenith_target'),
-                   CONFIG.get('work', 'solar_azimuth_target'),
-                   CONFIG.get('work', 'relative_azimuth_target'),
-                   CONFIG.get('work', 'time_target')]
-        targets = [pjoin(out_path, t) for t in targets]
-        centreline_target = pjoin(out_path,
-                                  CONFIG.get('work', 'centreline_target'))
-        header_angle_target = pjoin(out_path,
-                                    CONFIG.get('work', 'header_angle_target'))
-        coordinator_target = pjoin(out_path,
-                                   CONFIG.get('work', 'coordinator_target'))
-        boxline_target = pjoin(out_path, CONFIG.get('work', 'boxline_target'))
-        lon_target = pjoin(out_path, CONFIG.get('work', 'lon_grid_target'))
-        lat_target = pjoin(out_path, CONFIG.get('work', 'lat_grid_target'))
+        fnames = [CONFIG.get('work', 'sat_view_fname'),
+                  CONFIG.get('work', 'sat_azimuth_fname'),
+                  CONFIG.get('work', 'solar_zenith_fname'),
+                  CONFIG.get('work', 'solar_azimuth_fname'),
+                  CONFIG.get('work', 'relative_azimuth_fname'),
+                  CONFIG.get('work', 'time_fname')]
+        out_fnames = [pjoin(out_path, f) for f in fnames]
+        centreline_fname = pjoin(out_path,
+                                 CONFIG.get('work', 'centreline_fname'))
+        header_angle_fname = pjoin(out_path,
+                                   CONFIG.get('work', 'header_angle_fname'))
+        coordinator_fname = pjoin(out_path,
+                                  CONFIG.get('work', 'coordinator_fname'))
+        boxline_fname = pjoin(out_path, CONFIG.get('work', 'boxline_fname'))
+        lon_fname = pjoin(out_path, CONFIG.get('work', 'lon_grid_fname'))
+        lat_fname = pjoin(out_path, CONFIG.get('work', 'lat_grid_fname'))
 
         acqs = gaip.acquisitions(self.l1t_path)
 
         geobox = acqs[0].gridded_geo_box()
         cols = acqs[0].samples
 
-        (satellite_zenith, satellite_azimuth, solar_zenith, solar_azimuth,
-         relative_azimuth, time, y_cent, x_cent, n_cent) = \
-            gaip.calculate_angles(acqs[0], lon_target, lat_target,
-                                  npoints=12, out_fnames=targets)
+        (satellite_zenith, _, _, _, _, _, y_cent, x_cent, n_cent) = \
+            gaip.calculate_angles(acqs[0], lon_fname, lat_fname,
+                                  npoints=12, out_fnames=out_fnames)
 
         gaip.create_centreline_file(geobox, y_cent, x_cent, n_cent, cols,
-                                    view_max=9.0, outfname=centreline_target)
+                                    view_max=9.0, outfname=centreline_fname)
 
         gaip.create_header_angle_file(acqs[0], view_max=9.0,
-                                      outfname=header_angle_target)
+                                      outfname=header_angle_fname)
 
         gaip.create_boxline_file(satellite_zenith, y_cent, x_cent,
-                                 boxline_fname=boxline_target,
-                                 coordinator_fname=coordinator_target)
+                                 boxline_fname=boxline_fname,
+                                 coordinator_fname=coordinator_fname)
+
+        save(self.output(), 'completed')
 
 
 class CalculateGridsTask(luigi.Task):
@@ -337,16 +336,9 @@ class CreateModtranDirectories(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        input_format = CONFIG.get('modtran', 'input_format')
-        coords = CONFIG.get('modtran', 'coords').split(',')
-        albedos = CONFIG.get('modtran', 'albedos').split(',')
-        modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
-        targets = []
-        for coord in coords:
-            for albedo in albedos:
-                targets.append(input_format.format(coord=coord,
-                                                   albedo=albedo))
-        return [luigi.LocalTarget(pjoin(modtran_root, t)) for t in targets]
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'CreateModtranDirectories.task')
+        return luigi.LocalTarget(target)
 
     def run(self):
         out_path = self.out_path
@@ -361,6 +353,8 @@ class CreateModtranDirectories(luigi.Task):
                                  modtran_exe_root,
                                  workpath_format,
                                  input_format)
+
+        save(self.output(), 'completed')
 
 
 class WriteTp5(luigi.Task):
@@ -379,16 +373,9 @@ class WriteTp5(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        coords = CONFIG.get('write_tp5', 'coords').split(',')
-        albedos = CONFIG.get('write_tp5', 'albedos').split(',')
-        output_format = CONFIG.get('write_tp5', 'output_format')
-        workdir = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
-        targets = []
-        for coord in coords:
-            for albedo in albedos:
-                targets.append(output_format.format(coord=coord,
-                                                    albedo=albedo))
-        return [luigi.LocalTarget(pjoin(workdir, t)) for t in targets]
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'WriteTp5.task')
+        return luigi.LocalTarget(target)
 
     def run(self):
         out_path = self.out_path
@@ -400,12 +387,12 @@ class WriteTp5(luigi.Task):
 
         # get the filenames for the coordinator,
         # satellite view zenith, azimuth, and latitude/longitude arrays
-        coord_fname = pjoin(out_path, CONFIG.get('work', 'coordinator_target'))
-        sat_view_fname = pjoin(out_path, CONFIG.get('work', 'sat_view_target'))
+        coord_fname = pjoin(out_path, CONFIG.get('work', 'coordinator_fname'))
+        sat_view_fname = pjoin(out_path, CONFIG.get('work', 'sat_view_fname'))
         sat_azi_fname = pjoin(out_path, CONFIG.get('work',
-                                                   'sat_azimuth_target'))
-        lon_fname = pjoin(out_path, CONFIG.get('work', 'lon_grid_target'))
-        lat_fname = pjoin(out_path, CONFIG.get('work', 'lat_grid_target'))
+                                                   'sat_azimuth_fname'))
+        lon_fname = pjoin(out_path, CONFIG.get('work', 'lon_grid_fname'))
+        lat_fname = pjoin(out_path, CONFIG.get('work', 'lat_grid_fname'))
 
         # load the ancillary point values
         ozone_fname = pjoin(out_path, CONFIG.get('work', 'ozone_target'))
@@ -424,6 +411,8 @@ class WriteTp5(luigi.Task):
         gaip.write_tp5(acq, coord_fname, sat_view_fname, sat_azi_fname,
                        lat_fname, lon_fname, ozone, vapour, aerosol, elevation,
                        coords, albedos, out_fname_format)
+
+        save(self.output(), 'completed')
 
 
 class FilesRequiredByFugin(luigi.Task):
@@ -452,25 +441,9 @@ class FilesRequiredByFugin(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        targets = []
-        filter_fname = CONFIG.get('fuqin_requires', 'sat_filter_target')
-        targets.append(pjoin(out_path, filter_fname))
-
-        input_fname = CONFIG.get('fuqin_requires', 'modtran_input_target')
-        targets.append(pjoin(out_path, input_fname))
-
-        coords = CONFIG.get('fuqin_requires', 'coords').split(',')
-        albedos = CONFIG.get('fuqin_requires', 'albedos').split(',')
-        output_format = CONFIG.get('fuqin_requires', 'output_format')
-        workdir = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
-        output_format = pjoin(workdir, output_format)
-
-        for coord in coords:
-            for albedo in albedos:
-                targets.append(output_format.format(coord=coord,
-                                                    albedo=albedo))
-
-        return [luigi.LocalTarget(t) for t in targets]
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'FilesRequiredByFugin.task')
+        return luigi.LocalTarget(target)
 
     def run(self):
         out_path = self.out_path
@@ -478,36 +451,35 @@ class FilesRequiredByFugin(luigi.Task):
 
         # satellite filter file
         satfilterpath = CONFIG.get('ancillary', 'satfilter_path')
-        filter_fname = CONFIG.get('fuqin_requires', 'sat_filter_target')
-        target = pjoin(out_path, filter_fname)
-        gaip.create_satellite_filter_file(acqs, satfilterpath,
-                                          target)
+        filter_fname = CONFIG.get('fuqin_requires', 'sat_filter_fname')
+        out_fname = pjoin(out_path, filter_fname)
+        gaip.create_satellite_filter_file(acqs, satfilterpath, out_fname)
 
         # modtran input file
         ozone_target = pjoin(out_path, CONFIG.get('work', 'ozone_target'))
         vapour_target = pjoin(out_path, CONFIG.get('work', 'vapour_target'))
         aerosol_target = pjoin(out_path, CONFIG.get('work', 'aerosol_target'))
         elevation_target = pjoin(out_path, CONFIG.get('work', 'dem_target'))
-        input_fname = CONFIG.get('fuqin_requires', 'modtran_input_target')
-        target = pjoin(out_path, input_fname)
+        mod_input_fname = CONFIG.get('fuqin_requires', 'modtran_input_fname')
+        out_fname = pjoin(out_path, mod_input_fname)
         ozone = load_value(ozone_target)
         vapour = load_value(vapour_target)
         aerosol = load_value(aerosol_target)
         elevation = load_value(elevation_target)
-        gaip.write_modtran_input(acqs, target, ozone, vapour, aerosol,
+        gaip.write_modtran_input(acqs, out_fname, ozone, vapour, aerosol,
                                  elevation)
 
         # modtran input files
-        coordinator_target = pjoin(out_path,
-                                   CONFIG.get('work', 'coordinator_target'))
-        sat_view_zenith_target = pjoin(out_path,
-                                       CONFIG.get('work', 'sat_view_target'))
-        sat_azimuth_target = pjoin(out_path,
-                                   CONFIG.get('work', 'sat_azimuth_target'))
-        lon_grid_target = pjoin(out_path,
-                                CONFIG.get('work', 'lon_grid_target'))
-        lat_grid_target = pjoin(out_path,
-                                CONFIG.get('work', 'lat_grid_target'))
+        coordinator_fname = pjoin(out_path,
+                                  CONFIG.get('work', 'coordinator_fname'))
+        sat_view_zenith_fname = pjoin(out_path,
+                                      CONFIG.get('work', 'sat_view_fname'))
+        sat_azimuth_fname = pjoin(out_path,
+                                  CONFIG.get('work', 'sat_azimuth_fname'))
+        lon_grid_fname = pjoin(out_path,
+                               CONFIG.get('work', 'lon_grid_fname'))
+        lat_grid_fname = pjoin(out_path,
+                               CONFIG.get('work', 'lat_grid_fname'))
 
         coords = CONFIG.get('fuqin_requires', 'coords').split(',')
         albedos = CONFIG.get('fuqin_requires', 'albedos').split(',')
@@ -515,11 +487,13 @@ class FilesRequiredByFugin(luigi.Task):
         workdir = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
 
         out_fname_fmt = pjoin(workdir, fname_format)
-        gaip.write_modtran_inputs(acqs[0], coordinator_target,
-                                  sat_view_zenith_target, sat_azimuth_target,
-                                  lat_grid_target, lon_grid_target, ozone,
+        gaip.write_modtran_inputs(acqs[0], coordinator_fname,
+                                  sat_view_zenith_fname, sat_azimuth_fname,
+                                  lat_grid_fname, lon_grid_fname, ozone,
                                   vapour, aerosol, elevation, coords, albedos,
                                   out_fname_fmt)
+
+        save(self.output(), 'completed')
 
 
 class PrepareModtranInput(luigi.Task):
@@ -560,15 +534,10 @@ class RunModtranCase(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
-        flux_format = CONFIG.get('modtran', 'flx_output_format')
-        flux_format = pjoin(modtran_root, flux_format)
-        coef_format = CONFIG.get('modtran', 'chn_output_format')
-        coef_format = pjoin(modtran_root, coef_format)
-        flx_target = flux_format.format(coord=self.coord, albedo=self.albedo)
-        chn_target = coef_format.format(coord=self.coord, albedo=self.albedo)
-        return [luigi.LocalTarget(flx_target),
-                luigi.LocalTarget(chn_target)]
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'RunModtranCase_{coord}_{albedo}.task')
+        target = target.format(coord=self.coord, albedo=self.albedo)
+        return luigi.LocalTarget(target)
 
     def run(self):
         out_path = self.out_path
@@ -577,6 +546,8 @@ class RunModtranCase(luigi.Task):
         modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
         workpath = workpath_format.format(coord=self.coord, albedo=self.albedo)
         gaip.run_modtran(modtran_exe, pjoin(modtran_root, workpath))
+
+        save(self.output(), 'completed')
 
 
 class RunModtran(luigi.Task):
@@ -617,11 +588,11 @@ class RunAccumulateSolarIrradianceCase(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
-        output_format = CONFIG.get('extract_flux', 'output_format')
-        output_format = pjoin(modtran_root, output_format)
-        out_fname = output_format.format(coord=self.coord, albedo=self.albedo)
-        return luigi.LocalTarget(out_fname)
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        task = 'RunAccumulateSolarIrradianceCase_{coord}_{albedo}.task'
+        target = pjoin(out_path, task)
+        target = target.format(coord=self.coord, albedo=self.albedo)
+        return luigi.LocalTarget(target)
 
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
@@ -632,12 +603,16 @@ class RunAccumulateSolarIrradianceCase(luigi.Task):
         flux_fname = input_format.format(coord=self.coord, albedo=self.albedo)
         satfilterpath = CONFIG.get('ancillary', 'satfilter_path')
         response_fname = pjoin(satfilterpath, acqs[0].spectral_filter_file)
-        out_fname = self.output().fn
+        output_format = CONFIG.get('extract_flux', 'output_format')
+        output_format = pjoin(modtran_root, output_format)
+        out_fname = output_format.format(coord=self.coord, albedo=self.albedo)
 
         transmittance = True if self.albedo == 't' else False
         result = gaip.calculate_solar_radiation(flux_fname, response_fname,
                                                 transmittance)
         result.to_csv(out_fname, index=False, sep='\t')
+
+        save(self.output(), 'completed')
 
 
 class AccumulateSolarIrradiance(luigi.Task):
@@ -689,15 +664,9 @@ class CalculateCoefficients(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        coords = CONFIG.get('coefficients', 'coords').split(',')
-        modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
-        output_format = CONFIG.get('coefficients', 'output_format1')
-        output_format = pjoin(modtran_root, output_format)
-        targets = []
-        for coord in coords:
-            target = output_format.format(coord=coord)
-            targets.append(luigi.LocalTarget(target))
-        return targets
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'CalculateCoefficients.task')
+        return luigi.LocalTarget(target)
 
     def run(self):
         out_path = self.out_path
@@ -711,6 +680,8 @@ class CalculateCoefficients(luigi.Task):
         gaip.calculate_coefficients(coords, chn_input_format, dir_input_format,
                                     output_format1, output_format2,
                                     workpath)
+
+        save(self.output(), 'completed')
 
 
 class BilinearInterpolationBand(luigi.Task):
@@ -728,23 +699,22 @@ class BilinearInterpolationBand(luigi.Task):
                 CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path)]
 
     def output(self):
+        band_num = self.band_num
+        factor = self.factor
         out_path = self.out_path
-        modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
-        output_format = CONFIG.get('bilinear', 'output_format')
-        output_format = pjoin(modtran_root, output_format)
-
-        out_fname = output_format.format(factor=self.factor,
-                                         band=self.band_num)
-        return luigi.LocalTarget(out_fname)
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        task = 'BilinearInterpolationBand_{band}_{factor}.task'
+        target = pjoin(out_path, task.format(band=band_num, factor=factor)
+        return luigi.LocalTarget(target)
 
     def run(self):
         out_path = self.out_path
         coordinator = pjoin(out_path,
-                            CONFIG.get('work', 'coordinator_target'))
+                            CONFIG.get('work', 'coordinator_fname'))
         boxline = pjoin(out_path,
-                        CONFIG.get('work', 'boxline_target'))
+                        CONFIG.get('work', 'boxline_fname'))
         centreline = pjoin(out_path,
-                           CONFIG.get('work', 'centreline_target'))
+                           CONFIG.get('work', 'centreline_fname'))
         input_format = CONFIG.get('bilinear', 'input_format')
         output_format = CONFIG.get('bilinear', 'output_format')
         workpath = pjoin(out_path,
@@ -764,6 +734,8 @@ class BilinearInterpolationBand(luigi.Task):
                                                     coordinator, boxline,
                                                     centreline, input_format,
                                                     output_format, workpath)
+
+        save(self.output(), 'completed')
 
 
 class BilinearInterpolation(luigi.Task):
@@ -805,8 +777,8 @@ class BilinearInterpolation(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        target = pjoin(out_path,
-                       CONFIG.get('work', 'bilinear_outputs_target'))
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'BilinearInterpolation.task')
         return luigi.LocalTarget(target)
 
     def run(self):
@@ -840,7 +812,10 @@ class BilinearInterpolation(luigi.Task):
                 fname = pjoin(workpath, fname)
                 bilinear_fnames[(band, factor)] = fname
 
-        save(self.output(), bilinear_fnames)
+        out_fname = pjoin(out_path,
+                          CONFIG.get('work', 'bilinear_outputs_fname'))
+        save(luigi.LocalTarget(out_fname), bilinear_fnames)
+        save(self.output(), 'completed')
 
 
 class CreateTCRflDirs(luigi.Task):
@@ -856,11 +831,9 @@ class CreateTCRflDirs(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        tc_path = pjoin(out_path, CONFIG.get('work', 'tc_intermediates'))
-        rfl_path = pjoin(out_path, CONFIG.get('work', 'rfl_output_dir'))
-
-        targets = [luigi.LocalTarget(tc_path), luigi.LocalTarget(rfl_path)]
-        return targets
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'CreateTCRflDirs.task')
+        return luigi.LocalTarget(target)
 
     def run(self):
         out_path = self.out_path
@@ -870,6 +843,8 @@ class CreateTCRflDirs(luigi.Task):
             os.makedirs(tc_path)
         if not exists(rfl_path):
             os.makedirs(rfl_path)
+
+        save(self.output(), 'completed')
 
 
 class DEMExctraction(luigi.Task):
@@ -888,28 +863,25 @@ class DEMExctraction(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        work_path = pjoin(out_path, CONFIG.get('work', 'tc_intermediates'))
-        subset_target = pjoin(work_path,
-                              CONFIG.get('extract_dsm', 'dsm_subset'))
-        smoothed_target = pjoin(work_path,
-                                CONFIG.get('extract_dsm', 'dsm_smooth_subset'))
-        targets = [luigi.LocalTarget(subset_target),
-                   luigi.LocalTarget(smoothed_target)]
-        return targets
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'DEMExctraction.task')
+        return luigi.LocalTarget(target)
 
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
         out_path = self.out_path
         work_path = pjoin(out_path, CONFIG.get('work', 'tc_intermediates'))
         national_dsm = CONFIG.get('ancillary', 'dem_tc')
-        subset_target = CONFIG.get('extract_dsm', 'dsm_subset')
-        smoothed_target = CONFIG.get('extract_dsm', 'dsm_smooth_subset')
+        subset_fname = CONFIG.get('extract_dsm', 'dsm_subset')
+        smoothed_fname = CONFIG.get('extract_dsm', 'dsm_smooth_subset')
         buffer = int(CONFIG.get('extract_dsm', 'dsm_buffer_width'))
-        dsm_subset_fname = pjoin(work_path, subset_target)
-        dsm_subset_smooth_fname = pjoin(work_path, smoothed_target)
+        dsm_subset_fname = pjoin(work_path, subset_fname)
+        dsm_subset_smooth_fname = pjoin(work_path, smoothed_fname)
 
         gaip.get_dsm(acqs[0], national_dsm, buffer, dsm_subset_fname,
                      dsm_subset_smooth_fname)
+
+        save(self.output(), 'completed')
 
 
 class SlopeAndAspect(luigi.Task):
@@ -926,20 +898,9 @@ class SlopeAndAspect(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        work_path = pjoin(out_path, CONFIG.get('work', 'tc_intermediates'))
-
-        slope_target = pjoin(work_path,
-                             CONFIG.get('self_shadow', 'slope_target'))
-        aspect_target = pjoin(work_path,
-                              CONFIG.get('self_shadow', 'aspect_target'))
-        header_slope_target = pjoin(work_path,
-                                    CONFIG.get('work', 'header_slope_target'))
-
-        targets = [luigi.LocalTarget(slope_target),
-                   luigi.LocalTarget(aspect_target),
-                   luigi.LocalTarget(header_slope_target)]
-
-        return targets
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'SlopeAndAspect.task')
+        return luigi.LocalTarget(target)
 
     def run(self):
         out_path = self.out_path
@@ -947,22 +908,24 @@ class SlopeAndAspect(luigi.Task):
 
         acqs = gaip.acquisitions(self.l1t_path)
 
-        # Input targets
+        # Input filename
         smoothed_dsm_fname = pjoin(work_path, CONFIG.get('extract_dsm',
                                                          'dsm_smooth_subset'))
         margins = int(CONFIG.get('extract_dsm', 'dsm_buffer_width'))
 
-        # Output targets
-        slope_target = pjoin(work_path,
-                             CONFIG.get('self_shadow', 'slope_target'))
-        aspect_target = pjoin(work_path,
-                              CONFIG.get('self_shadow', 'aspect_target'))
-        header_slope_target = pjoin(work_path,
-                                    CONFIG.get('work', 'header_slope_target'))
+        # Output filenames
+        slope_fname = pjoin(work_path,
+                            CONFIG.get('self_shadow', 'slope_fname'))
+        aspect_fname = pjoin(work_path,
+                             CONFIG.get('self_shadow', 'aspect_fname'))
+        header_slope_fname = pjoin(work_path,
+                                   CONFIG.get('work', 'header_slope_fname'))
 
         gaip.slope_aspect_arrays(acqs[0], smoothed_dsm_fname, margins,
-                                 slope_target, aspect_target,
-                                 header_slope_target)
+                                 slope_fname, aspect_fname,
+                                 header_slope_fname)
+
+        save(self.output(), 'completed')
 
 
 class IncidentAngles(luigi.Task):
@@ -980,33 +943,24 @@ class IncidentAngles(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        work_path = pjoin(out_path, CONFIG.get('work', 'tc_intermediates'))
-
-        incident_target = pjoin(work_path,
-                                CONFIG.get('self_shadow', 'incident_target'))
-        azi_incident_target = pjoin(work_path,
-                                    CONFIG.get('self_shadow',
-                                               'azimuth_incident_target'))
-
-        targets = [luigi.LocalTarget(incident_target),
-                   luigi.LocalTarget(azi_incident_target)]
-
-        return targets
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'IncidentAngles.task')
+        return luigi.LocalTarget(target)
 
     def run(self):
         out_path = self.out_path
         work_path = pjoin(out_path, CONFIG.get('work', 'tc_intermediates'))
 
-        # Input targets
+        # Input filenames
         solar_zenith_fname = pjoin(out_path,
-                                   CONFIG.get('work', 'solar_zenith_target'))
+                                   CONFIG.get('work', 'solar_zenith_fname'))
         solar_azimuth_fname = pjoin(out_path,
                                     CONFIG.get('work',
-                                               'solar_azimuth_target'))
-        slope_target = pjoin(work_path,
-                             CONFIG.get('self_shadow', 'slope_target'))
-        aspect_target = pjoin(work_path,
-                              CONFIG.get('self_shadow', 'aspect_target'))
+                                               'solar_azimuth_fname'))
+        slope_fname = pjoin(work_path,
+                            CONFIG.get('self_shadow', 'slope_fname'))
+        aspect_fname = pjoin(work_path,
+                             CONFIG.get('self_shadow', 'aspect_fname'))
 
         # Get the processing tile sizes
         x_tile = int(CONFIG.get('work', 'x_tile_size'))
@@ -1014,17 +968,19 @@ class IncidentAngles(luigi.Task):
         x_tile = None if x_tile <= 0 else x_tile
         y_tile = None if y_tile <= 0 else y_tile
 
-        # Output targets
-        incident_target = pjoin(work_path,
-                                CONFIG.get('self_shadow', 'incident_target'))
-        azi_incident_target = pjoin(work_path,
-                                    CONFIG.get('self_shadow',
-                                               'azimuth_incident_target'))
+        # Output filenames
+        incident_fname = pjoin(work_path,
+                               CONFIG.get('self_shadow', 'incident_fname'))
+        azi_incident_fname = pjoin(work_path,
+                                   CONFIG.get('self_shadow',
+                                              'azimuth_incident_fname'))
 
         gaip.incident_angles(solar_zenith_fname, solar_azimuth_fname,
-                             slope_target, aspect_target,
-                             incident_target, azi_incident_target,
+                             slope_fname, aspect_fname,
+                             incident_fname, azi_incident_fname,
                              x_tile, y_tile)
+
+        save(self.output(), 'completed')
 
 
 class ExitingAngles(luigi.Task):
@@ -1042,34 +998,24 @@ class ExitingAngles(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        work_path = pjoin(out_path, CONFIG.get('work', 'tc_intermediates'))
-
-        exiting_target = pjoin(work_path,
-                               CONFIG.get('self_shadow',
-                                          'exiting_target'))
-        azi_exiting_target = pjoin(work_path,
-                                   CONFIG.get('self_shadow',
-                                              'azimuth_exiting_target'))
-
-        targets = [luigi.LocalTarget(exiting_target),
-                   luigi.LocalTarget(azi_exiting_target)]
-
-        return targets
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'ExitingAngles.task')
+        return luigi.LocalTarget(target)
 
     def run(self):
         out_path = self.out_path
         work_path = pjoin(out_path, CONFIG.get('work', 'tc_intermediates'))
 
-        # Input targets
+        # Input filenames
         satellite_view_fname = pjoin(out_path,
-                                     CONFIG.get('work', 'sat_view_target'))
+                                     CONFIG.get('work', 'sat_view_fname'))
         satellite_azimuth_fname = pjoin(out_path,
                                         CONFIG.get('work',
-                                                   'sat_azimuth_target'))
-        slope_target = pjoin(work_path,
-                             CONFIG.get('self_shadow', 'slope_target'))
-        aspect_target = pjoin(work_path,
-                              CONFIG.get('self_shadow', 'aspect_target'))
+                                                   'sat_azimuth_fname'))
+        slope_fname = pjoin(work_path,
+                            CONFIG.get('self_shadow', 'slope_fname'))
+        aspect_fname = pjoin(work_path,
+                             CONFIG.get('self_shadow', 'aspect_fname'))
 
         # Get the processing tile sizes
         x_tile = int(CONFIG.get('work', 'x_tile_size'))
@@ -1077,17 +1023,19 @@ class ExitingAngles(luigi.Task):
         x_tile = None if x_tile <= 0 else x_tile
         y_tile = None if y_tile <= 0 else y_tile
 
-        # Output targets
-        exiting_target = pjoin(work_path,
+        # Output filenames
+        exiting_fname = pjoin(work_path,
                                CONFIG.get('self_shadow',
-                                          'exiting_target'))
-        azi_exiting_target = pjoin(work_path,
-                                   CONFIG.get('self_shadow',
-                                              'azimuth_exiting_target'))
+                                          'exiting_fname'))
+        azi_exiting_fname = pjoin(work_path,
+                                  CONFIG.get('self_shadow',
+                                             'azimuth_exiting_fname'))
 
         gaip.exiting_angles(satellite_view_fname, satellite_azimuth_fname,
-                            slope_target, aspect_target,
-                            exiting_target, azi_exiting_target, x_tile, y_tile)
+                            slope_fname, aspect_fname,
+                            exiting_fname, azi_exiting_fname, x_tile, y_tile)
+
+        save(self.output(), 'completed')
 
 
 class RelativeAzimuthSlope(luigi.Task):
@@ -1105,25 +1053,21 @@ class RelativeAzimuthSlope(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        work_path = pjoin(out_path, CONFIG.get('work', 'tc_intermediates'))
-
-        relative_azimuth_slope_target = pjoin(work_path,
-                                              CONFIG.get('self_shadow',
-                                                      'relative_slope_target'))
-
-        return luigi.LocalTarget(relative_azimuth_slope_target)
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'RelativeAzimuthSlope.task')
+        return luigi.LocalTarget(target)
 
     def run(self):
         out_path = self.out_path
         work_path = pjoin(out_path, CONFIG.get('work', 'tc_intermediates'))
 
-        # Input targets
-        azi_incident_target = pjoin(work_path,
-                                    CONFIG.get('self_shadow',
-                                               'azimuth_incident_target'))
-        azi_exiting_target = pjoin(work_path,
+        # Input filenames
+        azi_incident_fname = pjoin(work_path,
                                    CONFIG.get('self_shadow',
-                                              'azimuth_exiting_target'))
+                                              'azimuth_incident_fname'))
+        azi_exiting_fname = pjoin(work_path,
+                                  CONFIG.get('self_shadow',
+                                             'azimuth_exiting_fname'))
 
         # Get the processing tile sizes
         x_tile = int(CONFIG.get('work', 'x_tile_size'))
@@ -1131,14 +1075,15 @@ class RelativeAzimuthSlope(luigi.Task):
         x_tile = None if x_tile <= 0 else x_tile
         y_tile = None if y_tile <= 0 else y_tile
 
-        # Output target
-        relative_azimuth_slope_target = pjoin(work_path,
-                                              CONFIG.get('self_shadow',
-                                                      'relative_slope_target'))
+        # Output filename
+        out_fname = pjoin(work_path, CONFIG.get('self_shadow',
+                                                'relative_slope_fname'))
 
-        gaip.relative_azimuth_slope(azi_incident_target, azi_exiting_target,
-                                    relative_azimuth_slope_target,
-                                    x_tile, y_tile)
+        gaip.relative_azimuth_slope(azi_incident_fname, azi_exiting_fname,
+                                    out_fname, x_tile, y_tile)
+
+        save(self.output(), 'completed')
+
 
 class SelfShadow(luigi.Task):
 
@@ -1155,23 +1100,19 @@ class SelfShadow(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        work_path = pjoin(out_path, CONFIG.get('work', 'tc_intermediates'))
-
-        self_shadow_target = pjoin(work_path,
-                                   CONFIG.get('self_shadow',
-                                              'self_shadow_target'))
-
-        return luigi.LocalTarget(self_shadow_target)
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'SelfShadow.task')
+        return luigi.LocalTarget(target)
 
     def run(self):
         out_path = self.out_path
         work_path = pjoin(out_path, CONFIG.get('work', 'tc_intermediates'))
 
-        # Input targets
-        incident_target = pjoin(work_path,
-                                CONFIG.get('self_shadow', 'incident_target'))
-        exiting_target = pjoin(work_path,
-                               CONFIG.get('self_shadow', 'exiting_target'))
+        # Input filenames
+        incident_fname = pjoin(work_path,
+                               CONFIG.get('self_shadow', 'incident_fname'))
+        exiting_fname = pjoin(work_path,
+                              CONFIG.get('self_shadow', 'exiting_fname'))
 
         # Get the processing tile sizes
         x_tile = int(CONFIG.get('work', 'x_tile_size'))
@@ -1179,13 +1120,14 @@ class SelfShadow(luigi.Task):
         x_tile = None if x_tile <= 0 else x_tile
         y_tile = None if y_tile <= 0 else y_tile
 
-        # Output target
-        self_shadow_target = pjoin(work_path,
-                                   CONFIG.get('self_shadow',
-                                              'self_shadow_target'))
+        # Output filename
+        out_fname = pjoin(work_path, CONFIG.get('self_shadow',
+                                                'self_shadow_fname'))
 
-        gaip.self_shadow(incident_target, exiting_target, self_shadow_target,
+        gaip.self_shadow(incident_fname, exiting_fname, out_fname,
                          x_tile, y_tile)
+
+        save(self.output(), 'completed')
 
 
 class CalculateCastShadow(luigi.Task):
@@ -1218,43 +1160,40 @@ class CalculateCastShadowSun(luigi.Task):
                 DEMExctraction(self.l1t_path, self.out_path)]
 
     def output(self):
-        out_path = pjoin(self.out_path,
-                         CONFIG.get('work', 'tc_intermediates'))
-        sun_target = pjoin(out_path,
-                           CONFIG.get('cast_shadow', 'sun_direction_target'))
-
-        target = luigi.LocalTarget(sun_target)
-
-        return target
+        out_path = self.out_path
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'CalculateCastShadowSun.task')
+        return luigi.LocalTarget(target)
 
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
         out_path = self.out_path
         tc_work_path = pjoin(out_path, CONFIG.get('work', 'tc_intermediates'))
 
-        # Input targets
+        # Input filenames
         smoothed_dsm_fname = pjoin(tc_work_path,
                                    CONFIG.get('extract_dsm',
                                               'dsm_smooth_subset'))
-        solar_zenith_target = pjoin(out_path,
-                                    CONFIG.get('work', 'solar_zenith_target'))
-        solar_azimuth_target = pjoin(out_path,
-                                     CONFIG.get('work',
-                                                'solar_azimuth_target'))
+        solar_zenith_fname = pjoin(out_path,
+                                   CONFIG.get('work', 'solar_zenith_fname'))
+        solar_azimuth_fname = pjoin(out_path,
+                                    CONFIG.get('work', 'solar_azimuth_fname'))
         buffer = int(CONFIG.get('extract_dsm', 'dsm_buffer_width'))
         window_height = int(CONFIG.get('terrain_correction',
                                        'shadow_sub_matrix_height'))
         window_width = int(CONFIG.get('terrain_correction',
                                       'shadow_sub_matrix_width'))
 
-        # Output targets
-        sun_target = pjoin(tc_work_path,
-                           CONFIG.get('cast_shadow', 'sun_direction_target'))
+        # Output filename
+        out_fname = pjoin(tc_work_path,
+                           CONFIG.get('cast_shadow', 'sun_direction_fname'))
 
         gaip.calculate_cast_shadow(acqs[0], smoothed_dsm_fname, buffer,
                                    window_height, window_width,
-                                   solar_zenith_target, solar_azimuth_target,
-                                   sun_target)
+                                   solar_zenith_fname, solar_azimuth_fname,
+                                   out_fname)
+
+        save(self.output(), 'completed')
 
 
 class CalculateCastShadowSatellite(luigi.Task):
@@ -1272,44 +1211,42 @@ class CalculateCastShadowSatellite(luigi.Task):
                 DEMExctraction(self.l1t_path, self.out_path)]
 
     def output(self):
-        out_path = pjoin(self.out_path,
-                         CONFIG.get('work', 'tc_intermediates'))
-        satellite_target = pjoin(out_path,
-                                 CONFIG.get('cast_shadow',
-                                            'satellite_direction_target'))
-        target = luigi.LocalTarget(satellite_target)
-
-        return target
+        out_path = self.out_path
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'CalculateCastShadowSatellite.task')
+        return luigi.LocalTarget(target)
 
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
         out_path = self.out_path
         tc_work_path = pjoin(out_path, CONFIG.get('work', 'tc_intermediates'))
 
-        # Input targets
+        # Input filenames
         smoothed_dsm_fname = pjoin(tc_work_path,
                                    CONFIG.get('extract_dsm',
                                               'dsm_smooth_subset'))
-        satellite_view_target = pjoin(out_path,
-                                      CONFIG.get('work', 'sat_view_target'))
-        satellite_azimuth_target = pjoin(out_path,
-                                         CONFIG.get('work',
-                                                    'sat_azimuth_target'))
+        satellite_view_fname = pjoin(out_path,
+                                     CONFIG.get('work', 'sat_view_fname'))
+        satellite_azimuth_fname = pjoin(out_path,
+                                        CONFIG.get('work',
+                                                    'sat_azimuth_fname'))
         buffer = int(CONFIG.get('extract_dsm', 'dsm_buffer_width'))
         window_height = int(CONFIG.get('terrain_correction',
                                        'shadow_sub_matrix_height'))
         window_width = int(CONFIG.get('terrain_correction',
                                       'shadow_sub_matrix_width'))
 
-        # Output targets
-        satellite_target = pjoin(tc_work_path,
-                                 CONFIG.get('cast_shadow',
-                                            'satellite_direction_target'))
+        # Output fnames
+        satellite_fname = pjoin(tc_work_path,
+                                CONFIG.get('cast_shadow',
+                                           'satellite_direction_fname'))
 
         gaip.calculate_cast_shadow(acqs[0], smoothed_dsm_fname, buffer,
                                    window_height, window_width,
-                                   satellite_view_target,
-                                   satellite_azimuth_target, satellite_target)
+                                   satellite_view_fname,
+                                   satellite_azimuth_fname, satellite_fname)
+
+        save(self.output(), 'completed')
 
 
 class RunTCBand(luigi.Task):
@@ -1328,27 +1265,10 @@ class RunTCBand(luigi.Task):
                 CalculateCastShadow(self.l1t_path, self.out_path)]
 
     def output(self):
-        acqs = gaip.acquisitions(self.l1t_path)
-
-        # Get the reflectance levels and base output format
-        rfl_levels = CONFIG.get('terrain_correction', 'rfl_levels').split(',')
-        output_format = CONFIG.get('terrain_correction', 'output_format')
-
-        # Output directory
-        out_path = pjoin(self.out_path,
-                         CONFIG.get('work', 'rfl_output_dir'))
-
-        # get the acquisition we wish to process
-        acqs = [acq for acq in acqs if acq.band_num == self.band_num]
-
-        # Create the targets
-        targets = []
-        for level in rfl_levels:
-            target = pjoin(out_path,
-                           output_format.format(level=level,
-                                                band=self.band_num))
-            targets.append(luigi.LocalTarget(target))
-        return targets
+        out_path = self.out_path
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'RunTCBand{band}.task')
+        return luigi.LocalTarget(target.format(band=self.band_num)
 
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
@@ -1357,48 +1277,47 @@ class RunTCBand(luigi.Task):
         # Get the necessary config params
         tc_path = pjoin(out_path, CONFIG.get('work', 'tc_intermediates'))
         outdir = pjoin(out_path, CONFIG.get('work', 'rfl_output_dir'))
-        bilinear_target = pjoin(out_path, 
-                                CONFIG.get('work', 'bilinear_outputs_target'))
-        bilinear_target = load_value(bilinear_target)
+        bilinear_fname = pjoin(out_path, 
+                               CONFIG.get('work', 'bilinear_outputs_fname'))
+        bilinear_data = load_value(bilinear_fname)
         rori = float(CONFIG.get('terrain_correction', 'rori'))
 
-        brdf_target = pjoin(out_path, CONFIG.get('work', 'brdf_target'))
-        brdf_data = load_value(brdf_target)
+        brdf_fname = pjoin(out_path, CONFIG.get('work', 'brdf_fname'))
+        brdf_data = load_value(brdf_fname)
 
         # Get the reflectance levels and base output format
         rfl_levels = CONFIG.get('terrain_correction', 'rfl_levels').split(',')
         output_format = CONFIG.get('terrain_correction', 'output_format')
 
-        # Input targets (images)
-        self_shadow_target = pjoin(tc_path,
-                                   CONFIG.get('self_shadow',
-                                              'self_shadow_target'))
-        slope_target = pjoin(tc_path,
-                             CONFIG.get('self_shadow', 'slope_target'))
-        aspect_target = pjoin(tc_path,
-                              CONFIG.get('self_shadow', 'aspect_target'))
-        incident_target = pjoin(tc_path,
-                                CONFIG.get('self_shadow', 'incident_target'))
-        exiting_target = pjoin(tc_path,
-                               CONFIG.get('self_shadow', 'exiting_target'))
-        relative_slope_target = pjoin(tc_path,
-                                      CONFIG.get('self_shadow',
-                                                 'relative_slope_target'))
-        sun_target = pjoin(tc_path,
-                           CONFIG.get('cast_shadow', 'sun_direction_target'))
-        satellite_target = pjoin(tc_path,
-                                 CONFIG.get('cast_shadow',
-                                            'satellite_direction_target'))
-        solar_zenith_target = pjoin(out_path,
-                                    CONFIG.get('work', 'solar_zenith_target'))
-        solar_azimuth_target = pjoin(out_path,
+        # Input filenames (images)
+        self_shadow_fname = pjoin(tc_path,
+                                  CONFIG.get('self_shadow',
+                                             'self_shadow_fname'))
+        slope_fname = pjoin(tc_path,
+                            CONFIG.get('self_shadow', 'slope_fname'))
+        aspect_fname = pjoin(tc_path,
+                             CONFIG.get('self_shadow', 'aspect_fname'))
+        incident_fname = pjoin(tc_path,
+                               CONFIG.get('self_shadow', 'incident_fname'))
+        exiting_fname = pjoin(tc_path,
+                              CONFIG.get('self_shadow', 'exiting_fname'))
+        relative_slope_fname = pjoin(tc_path,
+                                     CONFIG.get('self_shadow',
+                                                 'relative_slope_fname'))
+        sun_fname = pjoin(tc_path,
+                          CONFIG.get('cast_shadow', 'sun_direction_fname'))
+        satellite_fname = pjoin(tc_path,
+                                CONFIG.get('cast_shadow',
+                                           'satellite_direction_fname'))
+        solar_zenith_fname = pjoin(out_path,
+                                   CONFIG.get('work', 'solar_zenith_fname'))
+        solar_azimuth_fname = pjoin(out_path,
+                                    CONFIG.get('work', 'solar_azimuth_fname'))
+        satellite_view_fname = pjoin(out_path,
+                                     CONFIG.get('work', 'sat_view_fname'))
+        relative_angle_fname = pjoin(out_path,
                                      CONFIG.get('work',
-                                                'solar_azimuth_target'))
-        satellite_view_target = pjoin(out_path,
-                                      CONFIG.get('work', 'sat_view_target'))
-        relative_angle_target = pjoin(out_path,
-                                      CONFIG.get('work',
-                                                 'relative_azimuth_target'))
+                                                'relative_azimuth_fname'))
 
         # Get the processing tile sizes
         x_tile = int(CONFIG.get('work', 'x_tile_size'))
@@ -1425,6 +1344,8 @@ class RunTCBand(luigi.Task):
                                    aspect_target, incident_target,
                                    exiting_target, relative_slope_target,
                                    rfl_lvl_fnames, x_tile, y_tile)
+
+        save(self.output(), 'completed')
 
 
 class TerrainCorrection(luigi.Task):
@@ -1468,8 +1389,9 @@ class WriteMetadata(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        out_fname = pjoin(out_path, CONFIG.get('work', 'metadata_target'))
-        return luigi.LocalTarget(out_fname)
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'WriteMetadata.task')
+        return luigi.LocalTarget(target.format(band=self.band_num)
 
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
@@ -1513,7 +1435,7 @@ class WriteMetadata(luigi.Task):
         bands = nbar_constants.get_brdf_lut()
         brdf_factors = nbar_constants.get_brdf_factors()
 
-        target = pjoin(out_path, CONFIG.get('work', 'brdf_target'))
+        target = pjoin(out_path, CONFIG.get('work', 'brdf_fname'))
         with open(target, 'rb') as src:
             brdf_data = pickle.load(src)
 
@@ -1555,8 +1477,11 @@ class WriteMetadata(luigi.Task):
         yaml.add_representer(numpy.float64, Representer.represent_float)
 
         # output
-        with self.output().open('w') as src:
+        out_fname = pjoin(out_path, CONFIG.get('work', 'metadata_fname'))
+        with open(out_fname, 'w') as src:
             yaml.dump(metadata, src, default_flow_style=False)
+
+        save(self.output(), 'completed')
 
 
 class Packager(luigi.Task):
@@ -1572,9 +1497,9 @@ class Packager(luigi.Task):
         return [WriteMetadata(self.l1t_path, self.work_path)]
 
     def output(self):
-        out_format = '{}-packaging.completed'
-        out_fname = pjoin(self.work_path, out_format.format(self.product))
-        return luigi.LocalTarget(out_fname)
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'Packager_{}.task')
+        return luigi.LocalTarget(target.format(self.product)
 
     def run(self):
         # run the packager
@@ -1586,9 +1511,7 @@ class Packager(luigi.Task):
                   'hard_link': False}
         package_newly_processed_data_folder(**kwargs)
 
-        # output a checkpoint
-        with self.output().open('w') as src:
-            src.write('{} packaging completed'.format(self.product))
+        save(self.output(), 'completed')
 
 
 class PackageTC(luigi.Task):
