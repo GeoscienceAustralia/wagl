@@ -73,15 +73,18 @@ class GetElevationAncillaryData(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        target = pjoin(out_path, CONFIG.get('work', 'dem_target'))
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'GetElevationAncillaryData.task')
         return luigi.LocalTarget(target)
 
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
         geobox = acqs[0].gridded_geo_box()
         dem_path = CONFIG.get('ancillary', 'dem_path')
+        out_fname = pjoin(self.out_path, CONFIG.get('work', 'dem_fname'))
         value = gaip.get_elevation_data(geobox.centre_lonlat, dem_path)
-        save(self.output(), value)
+        save(luigi.LocalTarget(out_fname), value)
+        save(self.output(), 'completed')
 
 
 class GetOzoneAncillaryData(luigi.Task):
@@ -96,7 +99,8 @@ class GetOzoneAncillaryData(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        target = pjoin(out_path, CONFIG.get('work', 'ozone_target'))
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'GetOzoneAncillaryData.task')
         return luigi.LocalTarget(target)
 
     def run(self):
@@ -106,7 +110,9 @@ class GetOzoneAncillaryData(luigi.Task):
         centre = geobox.centre_lonlat
         dt = acqs[0].scene_center_datetime
         value = gaip.get_ozone_data(ozone_path, centre, dt)
-        save(self.output(), value)
+        out_fname = pjoin(self.out_path, CONFIG.get('work', 'ozone_fname'))
+        save(luigi.LocalTarget(out_fname), value)
+        save(self.output(), 'completed')
 
 
 class GetWaterVapourAncillaryData(luigi.Task):
@@ -121,14 +127,17 @@ class GetWaterVapourAncillaryData(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        target = pjoin(out_path, CONFIG.get('work', 'vapour_target'))
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'GetWaterVapourAncillaryData.task')
         return luigi.LocalTarget(target)
 
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
         vapour_path = CONFIG.get('ancillary', 'vapour_path')
         value = gaip.get_water_vapour(acqs[0], vapour_path)
-        save(self.output(), value)
+        out_fname = pjoin(self.out_path, CONFIG.get('work', 'vapour_fname'))
+        save(luigi.LocalTarget(out_fname), value)
+        save(self.output(), 'completed')
 
 
 class GetAerosolAncillaryData(luigi.Task):
@@ -143,7 +152,8 @@ class GetAerosolAncillaryData(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        target = pjoin(out_path, CONFIG.get('work', 'aerosol_target'))
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'GetAerosolAncillaryData.task')
         return luigi.LocalTarget(target)
 
     def run(self):
@@ -152,7 +162,9 @@ class GetAerosolAncillaryData(luigi.Task):
         value = gaip.get_aerosol_data(acqs[0], aerosol_path)
         # aerosol_path = CONFIG.get('ancillary', 'aerosol_fname') # version 2
         # value = gaip.get_aerosol_data_v2(acqs[0], aerosol_path) # version 2
-        save(self.output(), value)
+        out_fname = pjoin(self.out_path, CONFIG.get('work', 'aerosol_fname'))
+        save(luigi.LocalTarget(out_fname), value)
+        save(self.output(), 'completed')
 
 
 class GetBrdfAncillaryData(luigi.Task):
@@ -167,7 +179,8 @@ class GetBrdfAncillaryData(luigi.Task):
 
     def output(self):
         out_path = self.out_path
-        target = pjoin(out_path, CONFIG.get('work', 'brdf_fname'))
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'GetAerosolAncillaryData.task')
         return luigi.LocalTarget(target)
 
     def run(self):
@@ -177,7 +190,9 @@ class GetBrdfAncillaryData(luigi.Task):
         brdf_premodis_path = CONFIG.get('ancillary', 'brdf_premodis_path')
         value = gaip.get_brdf_data(acqs[0], brdf_path, brdf_premodis_path,
                                    out_path)
-        save(self.output(), value)
+        out_fname = pjoin(out_path, CONFIG.get('work', 'brdf_fname'))
+        save(luigi.LocalTarget(out_fname), value)
+        save(self.output(), 'completed')
 
 
 class GetAncillaryData(luigi.Task):
@@ -456,16 +471,16 @@ class FilesRequiredByFugin(luigi.Task):
         gaip.create_satellite_filter_file(acqs, satfilterpath, out_fname)
 
         # modtran input file
-        ozone_target = pjoin(out_path, CONFIG.get('work', 'ozone_target'))
-        vapour_target = pjoin(out_path, CONFIG.get('work', 'vapour_target'))
-        aerosol_target = pjoin(out_path, CONFIG.get('work', 'aerosol_target'))
-        elevation_target = pjoin(out_path, CONFIG.get('work', 'dem_target'))
+        ozone_fname = pjoin(out_path, CONFIG.get('work', 'ozone_fname'))
+        vapour_fname = pjoin(out_path, CONFIG.get('work', 'vapour_fname'))
+        aerosol_fname = pjoin(out_path, CONFIG.get('work', 'aerosol_fname'))
+        elevation_fname = pjoin(out_path, CONFIG.get('work', 'dem_fname'))
         mod_input_fname = CONFIG.get('fuqin_requires', 'modtran_input_fname')
         out_fname = pjoin(out_path, mod_input_fname)
-        ozone = load_value(ozone_target)
-        vapour = load_value(vapour_target)
-        aerosol = load_value(aerosol_target)
-        elevation = load_value(elevation_target)
+        ozone = load_value(ozone_fname)
+        vapour = load_value(vapour_fname)
+        aerosol = load_value(aerosol_fname)
+        elevation = load_value(elevation_fname)
         gaip.write_modtran_input(acqs, out_fname, ozone, vapour, aerosol,
                                  elevation)
 
@@ -704,7 +719,7 @@ class BilinearInterpolationBand(luigi.Task):
         out_path = self.out_path
         out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
         task = 'BilinearInterpolationBand_{band}_{factor}.task'
-        target = pjoin(out_path, task.format(band=band_num, factor=factor)
+        target = pjoin(out_path, task.format(band=band_num, factor=factor))
         return luigi.LocalTarget(target)
 
     def run(self):
@@ -1268,7 +1283,7 @@ class RunTCBand(luigi.Task):
         out_path = self.out_path
         out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
         target = pjoin(out_path, 'RunTCBand{band}.task')
-        return luigi.LocalTarget(target.format(band=self.band_num)
+        return luigi.LocalTarget(target.format(band=self.band_num))
 
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
@@ -1303,7 +1318,7 @@ class RunTCBand(luigi.Task):
                               CONFIG.get('self_shadow', 'exiting_fname'))
         relative_slope_fname = pjoin(tc_path,
                                      CONFIG.get('self_shadow',
-                                                 'relative_slope_fname'))
+                                                'relative_slope_fname'))
         sun_fname = pjoin(tc_path,
                           CONFIG.get('cast_shadow', 'sun_direction_fname'))
         satellite_fname = pjoin(tc_path,
@@ -1328,7 +1343,7 @@ class RunTCBand(luigi.Task):
         # get the acquisition we wish to process
         acqs = [acq for acq in acqs if acq.band_num == self.band_num]
 
-        # Output targets
+        # Output filenames
         # Create a dict of filenames per reflectance level per band
         rfl_lvl_fnames = {}
         for level in rfl_levels:
@@ -1336,13 +1351,13 @@ class RunTCBand(luigi.Task):
             rfl_lvl_fnames[(self.band_num, level)] = pjoin(outdir, outfname)
 
         # calculate reflectance for lambertian, brdf, and terrain correction 
-        gaip.calculate_reflectance(acqs, bilinear_target, rori, brdf_data,
-                                   self_shadow_target, sun_target,
-                                   satellite_target, solar_zenith_target,
-                                   solar_azimuth_target, satellite_view_target,
-                                   relative_angle_target, slope_target,
-                                   aspect_target, incident_target,
-                                   exiting_target, relative_slope_target,
+        gaip.calculate_reflectance(acqs, bilinear_fname, rori, brdf_data,
+                                   self_shadow_fname, sun_fname,
+                                   satellite_fname, solar_zenith_fname,
+                                   solar_azimuth_fname, satellite_view_fname,
+                                   relative_angle_fname, slope_fname,
+                                   aspect_fname, incident_fname,
+                                   exiting_fname, relative_slope_fname,
                                    rfl_lvl_fnames, x_tile, y_tile)
 
         save(self.output(), 'completed')
@@ -1391,7 +1406,7 @@ class WriteMetadata(luigi.Task):
         out_path = self.out_path
         out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
         target = pjoin(out_path, 'WriteMetadata.task')
-        return luigi.LocalTarget(target.format(band=self.band_num)
+        return luigi.LocalTarget(target.format(band=self.band_num))
 
     def run(self):
         acqs = gaip.acquisitions(self.l1t_path)
@@ -1411,10 +1426,10 @@ class WriteMetadata(luigi.Task):
         for key in md:
             source_info[key] = md[key]
 
-        targets = [pjoin(out_path, CONFIG.get('work', 'aerosol_target')),
-                   pjoin(out_path, CONFIG.get('work', 'vapour_target')),
-                   pjoin(out_path, CONFIG.get('work', 'ozone_target')),
-                   pjoin(out_path, CONFIG.get('work', 'dem_target'))]
+        targets = [pjoin(out_path, CONFIG.get('work', 'aerosol_fname')),
+                   pjoin(out_path, CONFIG.get('work', 'vapour_fname')),
+                   pjoin(out_path, CONFIG.get('work', 'ozone_fname')),
+                   pjoin(out_path, CONFIG.get('work', 'dem_fname'))]
 
         sources = ['aerosol',
                    'water_vapour',
@@ -1497,9 +1512,9 @@ class Packager(luigi.Task):
         return [WriteMetadata(self.l1t_path, self.work_path)]
 
     def output(self):
-        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        out_path = pjoin(self.out_path, CONFIG.get('work', 'targets_root'))
         target = pjoin(out_path, 'Packager_{}.task')
-        return luigi.LocalTarget(target.format(self.product)
+        return luigi.LocalTarget(target.format(self.product))
 
     def run(self):
         # run the packager
