@@ -251,55 +251,6 @@ def get_ozone_data(ozone_path, lonlat, datetime):
     return res
 
 
-def get_solar_irrad(acquisitions, solar_path):
-    """
-    Extract solar irradiance values from the specified file. One for each band
-
-    """
-    acqs = [a for a in acquisitions if a.band_type == gaip.REF]
-    bands = [a.band_num for a in acqs]
-
-    with open(pjoin(solar_path, acqs[0].solar_irrad_file), 'r') as infile:
-        header = infile.readline()
-        if 'band solar irradiance' not in header:
-            raise IOError('Cannot load solar irradiance file')
-
-        irrads = {}
-        for line in infile.readlines():
-            band, value = line.strip().split()
-            band, value = int(band), float(value)  # parse
-            if band in bands:
-                irrads[band] = value
-
-        return irrads
-
-
-def get_solar_dist(acquisition, sundist_path):
-    """
-    Extract Earth-Sun distance for this day of the year (varies during orbit).
-
-    """
-    doy = acquisition.scene_center_datetime.timetuple().tm_yday
-
-    with open(sundist_path, 'r') as infile:
-        for line in infile.readlines():
-            index, dist = line.strip().split()
-            index = int(index)
-            if index == doy:
-                res = {'data_source': 'Solar Distance',
-                       'data_file': sundist_path,
-                       'value': float(dist)}
-
-                # ancillary metadata tracking
-                md = extract_ancillary_metadata(sundist_path)
-                for key in md:
-                    res[key] = md[key]
-
-                return res
-
-    raise IOError('Cannot load Earth-Sun distance')
-
-
 def get_water_vapour(acquisition, vapour_path, scale_factor=0.1):
     """
     Retrieve the water vapour value for an `acquisition` and the
