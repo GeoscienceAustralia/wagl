@@ -49,6 +49,7 @@ def create_modtran_dirs(coords, albedos, modtran_root, modtran_exe_root,
             os.symlink(data_dir, symlink_dir)
 
 
+# science team requires
 def create_satellite_filter_file(acquisitions, satfilter_path, target):
     """Generate satellite filter input file."""
     refbands = [a for a in acquisitions if a.band_type == gaip.REF]
@@ -62,7 +63,7 @@ def create_satellite_filter_file(acquisitions, satfilter_path, target):
     return target
 
 
-# TODO: once validated, this can function can be deprecated
+# science team requires
 def write_modtran_input(acquisitions, modtran_input_file, ozone, vapour,
                         aerosol, elevation):
     """Generate modtran input file."""
@@ -84,8 +85,7 @@ def write_modtran_input(acquisitions, modtran_input_file, ozone, vapour,
         outfile.write("%f\n" % dechour)
 
 
-# TODO: once validated, this can function can be deprecated
-# as we can write direct to the tp5 template
+# science team requires
 def write_modtran_inputs(acquisition, coordinator, view_fname, azi_fname,
                          lat_fname, lon_fname, ozone, vapour, aerosol,
                          elevation, coords, albedos, out_fname_fmt):
