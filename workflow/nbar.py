@@ -107,6 +107,12 @@ class CreateWorkingDirectoryTree(luigi.Task):
         groups = gaip.acquisitions(self.l1t_path)
         out_path = self.out_path
 
+        # base/top level output targets
+        targets_dir = CONFIG.get('work', 'targets_root')
+        base_targets = pjoin(out_path, targets_dir)
+        if not exists(base_targets):
+            os.makedirs(base_targets)
+
         # modtran directory tree
         modtran_exe_root = CONFIG.get('modtran', 'root')
         modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
@@ -123,6 +129,9 @@ class CreateWorkingDirectoryTree(luigi.Task):
         for group in groups:
             grp_path = pjoin(out_path, group)
 
+            # group level output targets
+            grp_targets = pjoin(grp_path, targets_dir)
+
             # terrain correction intermediates
             tc_path = pjoin(grp_path, CONFIG.get('work', 'tc_root'))
 
@@ -134,6 +143,9 @@ class CreateWorkingDirectoryTree(luigi.Task):
 
             # bilinear
             bil_path = pjoin(grp_path, CONFIG.get('work', 'bilinear_root'))
+
+            if not exists(grp_targets):
+                os.makedirs(grp_targets)
 
             if not exists(tc_path):
                 os.makedirs(tc_path)
@@ -158,7 +170,7 @@ class GetElevationAncillaryData(luigi.Task):
     out_path = luigi.Parameter()
 
     def requires(self):
-        return []
+        return [CreateWorkingDirectoryTree(self.l1t_path, self.out_path)]
 
     def output(self):
         out_path = self.out_path
@@ -184,7 +196,7 @@ class GetOzoneAncillaryData(luigi.Task):
     out_path = luigi.Parameter()
 
     def requires(self):
-        return []
+        return [CreateWorkingDirectoryTree(self.l1t_path, self.out_path)]
 
     def output(self):
         out_path = self.out_path
@@ -212,7 +224,7 @@ class GetWaterVapourAncillaryData(luigi.Task):
     out_path = luigi.Parameter()
 
     def requires(self):
-        return []
+        return [CreateWorkingDirectoryTree(self.l1t_path, self.out_path)]
 
     def output(self):
         out_path = self.out_path
@@ -237,7 +249,7 @@ class GetAerosolAncillaryData(luigi.Task):
     out_path = luigi.Parameter()
 
     def requires(self):
-        return []
+        return [CreateWorkingDirectoryTree(self.l1t_path, self.out_path)]
 
     def output(self):
         out_path = self.out_path
@@ -264,7 +276,7 @@ class GetBrdfAncillaryData(luigi.Task):
     out_path = luigi.Parameter()
 
     def requires(self):
-        return []
+        return [CreateWorkingDirectoryTree(self.l1t_path, self.out_path)]
 
     def output(self):
         out_path = self.out_path
@@ -311,7 +323,7 @@ class CalculateLonGrid(luigi.Task):
     group = luigi.Parameter()
 
     def requires(self):
-        return []
+        return [CreateWorkingDirectoryTree(self.l1t_path, self.out_path)]
 
     def output(self):
         grp_path = pjoin(self.out_path, self.group)
@@ -337,7 +349,7 @@ class CalculateLatGrid(luigi.Task):
     group = luigi.Parameter()
 
     def requires(self):
-        return []
+        return [CreateWorkingDirectoryTree(self.l1t_path, self.out_path)]
 
     def output(self):
         grp_path = pjoin(self.out_path, self.group)
@@ -408,35 +420,6 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
         save(self.output(), 'completed')
 
 
-class CreateModtranDirectories(luigi.Task):
-
-    """Create the MODTRAN work directories and input driver files."""
-
-    out_path = luigi.Parameter()
-
-    def output(self):
-        out_path = self.out_path
-        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
-        target = pjoin(out_path, 'CreateModtranDirectories.task')
-        return luigi.LocalTarget(target)
-
-    def run(self):
-        out_path = self.out_path
-        modtran_exe_root = CONFIG.get('modtran', 'root')
-        modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
-        input_format = CONFIG.get('modtran', 'input_format')
-        workpath_format = CONFIG.get('modtran', 'workpath_format')
-        coords = CONFIG.get('modtran', 'coords').split(',')
-        albedos = CONFIG.get('modtran', 'albedos').split(',')
-
-        gaip.create_modtran_dirs(coords, albedos, modtran_root,
-                                 modtran_exe_root,
-                                 workpath_format,
-                                 input_format)
-
-        save(self.output(), 'completed')
-
-
 class WriteTp5(luigi.Task):
 
     """Output the `tp5` formatted files."""
@@ -448,8 +431,7 @@ class WriteTp5(luigi.Task):
         # for consistancy, we'll wait for dependencies on all groups of
         # acquisitions, rather than 1 group
         groups = gaip.acquisitions(self.l1t_path)
-        tasks = [CreateModtranDirectories(self.out_path),
-                 GetAncillaryData(self.l1t_path, self.out_path)]
+        tasks = [GetAncillaryData(self.l1t_path, self.out_path)]
 
         for group in groups:
             tasks.append(CalculateSatelliteAndSolarGrids(self.l1t_path,
@@ -523,8 +505,7 @@ class FilesRequiredByFugin(luigi.Task):
 
     def requires(self):
         groups = gaip.acquisitions(self.l1t_path)
-        tasks = [CreateModtranDirectories(self.out_path),
-                 GetAncillaryData(self.l1t_path, self.out_path)]
+        tasks = [GetAncillaryData(self.l1t_path, self.out_path)]
 
         for group in groups:
             tasks.append(CalculateSatelliteAndSolarGrids(self.l1t_path,
@@ -612,12 +593,10 @@ class PrepareModtranInput(luigi.Task):
     def requires(self):
         # are we running a validation suite for Fuqin?
         if bool(int(CONFIG.get('fuqin_requires', 'required'))):
-            tasks = [CreateModtranDirectories(self.out_path),
-                     FilesRequiredByFugin(self.l1t_path, self.out_path),
+            tasks = [FilesRequiredByFugin(self.l1t_path, self.out_path),
                      WriteTp5(self.l1t_path, self.out_path)]
         else:
-            tasks = [CreateModtranDirectories(self.out_path),
-                     WriteTp5(self.l1t_path, self.out_path)]
+            tasks = [WriteTp5(self.l1t_path, self.out_path)]
 
         return tasks
 
@@ -922,36 +901,6 @@ class BilinearInterpolation(luigi.Task):
         save(self.output(), 'completed')
 
 
-class CreateTCRflDirs(luigi.Task):
-    """
-    Setup the directories to contain the Intermediate files
-    produced for terrain corection.
-    """
-
-    out_path = luigi.Parameter()
-    group = luigi.Parameter()
-
-    def requires(self):
-        return []
-
-    def output(self):
-        grp_path = pjoin(self.out_path, self.group)
-        grp_path = pjoin(grp_path, CONFIG.get('work', 'targets_root'))
-        target = pjoin(grp_path, 'CreateTCRflDirs.task')
-        return luigi.LocalTarget(target)
-
-    def run(self):
-        grp_path = pjoin(self.out_path, self.group)
-        tc_path = pjoin(grp_path, CONFIG.get('work', 'tc_root'))
-        rfl_path = pjoin(grp_path, CONFIG.get('work', 'reflectance_root'))
-        if not exists(tc_path):
-            os.makedirs(tc_path)
-        if not exists(rfl_path):
-            os.makedirs(rfl_path)
-
-        save(self.output(), 'completed')
-
-
 class DEMExctraction(luigi.Task):
 
     """
@@ -965,7 +914,7 @@ class DEMExctraction(luigi.Task):
     group = luigi.Parameter()
 
     def requires(self):
-        return [CreateTCRflDirs(self.out_path, self.group)]
+        return [CreateWorkingDirectoryTree(self.l1t_path, self.out_path)]
 
     def output(self):
         grp_path = pjoin(self.out_path, self.group)
