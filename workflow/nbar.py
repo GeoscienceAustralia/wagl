@@ -287,10 +287,11 @@ class GetBrdfAncillaryData(luigi.Task):
     def run(self):
         acqs = retrieve_acquisitions(self.l1t_path)
         out_path = self.out_path
+        work_path = pjoin(out_path, CONFIG.get('work', 'brdf_root'))
         brdf_path = CONFIG.get('ancillary', 'brdf_path')
         brdf_premodis_path = CONFIG.get('ancillary', 'brdf_premodis_path')
         value = gaip.get_brdf_data(acqs[0], brdf_path, brdf_premodis_path,
-                                   out_path)
+                                   work_path)
         out_fname = pjoin(out_path, CONFIG.get('work', 'brdf_fname'))
         save(luigi.LocalTarget(out_fname), value)
         save(self.output(), 'completed')

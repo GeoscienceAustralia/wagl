@@ -23,6 +23,7 @@ import datetime
 import logging
 import math
 import os
+from ps.path import join as pjoin, basename
 import re
 import numpy as np
 
@@ -456,9 +457,8 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
         pre-MODIS and potentially post-MODIS acquisitions.
 
     :param work_path:
-        A string containing the full file system path to your NBAR
-        working directory. Intermediate BRDF files will be saved to
-        work_path/brdf_intermediates/.
+        A string containing the full file system path that will be
+        used to save the BRDF files.
 
     :return:
         A dictionary with tuple (band, factor) as the keys. Each key
@@ -493,8 +493,7 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
     # Compare the scene date and MODIS BRDF start date to select the
     # BRDF data root directory.
     # Scene dates outside the range of the CSIRO mosaic data
-    # (currently 2000-02-18 through 2013-01-09) should use the pre-MODIS,
-    # Jupp-Li BRDF.
+    # should use the pre-MODIS, Jupp-Li BRDF.
     brdf_dir_list = sorted(os.listdir(brdf_primary_path))
     brdf_dir_range = [brdf_dir_list[0], brdf_dir_list[-1]]
     brdf_range = [datetime.date(*[int(x) for x in y.split('.')])
@@ -509,24 +508,18 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
         brdf_base_dir = brdf_primary_path
         brdf_dirs = get_brdf_dirs_modis(brdf_base_dir, dt)
 
-    # The following hdfList code was resurrected from the old SVN repo. JS
+    # The following hdflist code was resurrected from the old SVN repo. JS
     # get all HDF files in the input dir
-    dbDir = os.path.join(brdf_base_dir, brdf_dirs)
+    dbDir = pjoin(brdf_base_dir, brdf_dirs)
     three_tup = os.walk(dbDir)
-    hdfList = []
-    for (hdfHome, _, filelist) in three_tup:
+    hdflist = []
+    for (hdfhome, _, filelist) in three_tup:
         for f in filelist:
             if f.endswith(".hdf.gz") or f.endswith(".hdf"):
-                hdfList.append(f)
+                hdflist.append(f)
 
     # Initialise the brdf dictionary to store the results
     brdf_dict = {}
-
-    # Create a BRDF directory in the work path to store the intermediate
-    # files such as format conversion and subsets.
-    brdf_out_path = os.path.join(work_path, 'brdf_intermediates')
-    if not os.path.exists(brdf_out_path):
-        os.makedirs(brdf_out_path)
 
     def find_file(files, band_wl, factor):
         """Find file with a specific name."""
@@ -539,9 +532,9 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
     for band in brdf_lut.keys():
         bandwl = brdf_lut[band]  # Band wavelength
         for factor in brdf_factors:
-            hdfFileName = find_file(hdfList, bandwl, factor)
+            hdf_fname = find_file(hdflist, bandwl, factor)
 
-            hdfFile = os.path.join(hdfHome, hdfFileName) #FIXME: hdfHome
+            hdfFile = pjoin(hdfhome, hdf_fname)
 
             # Test if the file exists and has correct permissions
             try:
@@ -552,10 +545,8 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
 
             # Unzip if we need to
             if hdfFile.endswith(".hdf.gz"):
-                hdf_file = os.path.join(
-                    work_path,
-                    re.sub(".hdf.gz", ".hdf",
-                           os.path.basename(hdfFile)))
+                hdf_file = pjoin(work_path, re.sub(".hdf.gz", ".hdf",
+                                                   basename(hdfFile)))
                 cmd = "gunzip -c %s > %s" % (hdfFile, hdf_file)
                 subprocess.check_call(cmd, shell=True)
             else:
@@ -569,7 +560,7 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
 
             # setup the output filename
             out_fname = '_'.join(['Band', str(band), bandwl, factor])
-            out_fname = os.path.join(brdf_out_path, out_fname)
+            out_fname = pjoin(work_path, out_fname)
 
             # Convert the file format
             brdf_object.convert_format(out_fname + '.tif')
