@@ -81,7 +81,7 @@ def retrieve_acquisitions(path, group=None):
     """
     groups = gaip.acquisitions(path)
 
-    if groups is None:
+    if group is None:
         acqs = groups[groups.keys()[0]]
     else:
         acqs = groups[group]
@@ -126,6 +126,12 @@ class CreateWorkingDirectoryTree(luigi.Task):
                                  workpath_format,
                                  input_format)
 
+        # brdf intermediates
+        brdf_path = pjoin(out_path, CONFIG.get('work', 'brdf_root'))
+        if not exists(brdf_path):
+            os.makedirs(brdf_path)
+
+
         for group in groups:
             grp_path = pjoin(out_path, group)
 
@@ -138,8 +144,6 @@ class CreateWorkingDirectoryTree(luigi.Task):
             # reflectance outputs
             rfl_path = pjoin(grp_path, CONFIG.get('work', 'reflectance_root'))
 
-            # brdf intermediates
-            brdf_path = pjoin(grp_path, CONFIG.get('work', 'brdf_root'))
 
             # bilinear
             bil_path = pjoin(grp_path, CONFIG.get('work', 'bilinear_root'))
@@ -152,9 +156,6 @@ class CreateWorkingDirectoryTree(luigi.Task):
 
             if not exists(rfl_path):
                 os.makedirs(rfl_path)
-
-            if not exists(brdf_path):
-                os.makedirs(brdf_path)
 
             if not exists(bil_path):
                 os.makedirs(bil_path)
@@ -1688,7 +1689,7 @@ def main(l1t_path, outpath, workpath, l1t_list, nnodes=1, nodenum=1):
         if month_pos > -1: month = int(l1t[month_pos:month_pos+2])
         bf = basename(l1t)
 
-        acq = gaip.acquisitions(l1t)[0]
+        acq = retrieve_acquisitions(l1t)[0]
         workdir = workpath.format(year=year, month=month)
         if not exists(workdir): os.makedirs(workdir)
         if ((87 <= acq.path <= 116) & (67 <= acq.row <= 91)):

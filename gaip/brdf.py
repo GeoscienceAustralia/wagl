@@ -23,7 +23,7 @@ import datetime
 import logging
 import math
 import os
-from ps.path import join as pjoin, basename
+from os.path import join as pjoin, basename
 import re
 import numpy as np
 
