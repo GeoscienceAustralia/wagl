@@ -13,6 +13,7 @@
         "projection": "EQUIRECT_0_0",
         "radius": 7285600.0,
         "semi_major_axis": 7083160.0,
+        "maximum_view_angle": 9.0,
         "sensors": {
             "MSS": {
                 "acquisition_seconds": 0,
@@ -121,6 +122,7 @@
         "projection": "EQUIRECT_0_0",
         "radius": 7285600.0,
         "semi_major_axis": 7083160.0,
+        "maximum_view_angle": 9.0,
         "sensors": {
             "ETM+": {
                 "acquisition_seconds": 24.0,
@@ -206,6 +208,7 @@
         "projection": "EQUIRECT_0_0",
         "radius": 7285600.0,
         "semi_major_axis": 7083160.0,
+        "maximum_view_angle": 9.0,
         "sensors": {
             "OLI": {
                 "acquisition_seconds": 24,
@@ -370,6 +373,7 @@
         "satellite_name": "Sentinel-2A",
         "omega": 0.001039918,
         "semi_major_axis": 7164137.0,
+        "maximum_view_angle": 20.0,
         "sensors": {
             "MSI": {
                 "bands": {
