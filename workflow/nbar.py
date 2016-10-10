@@ -407,16 +407,19 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
 
         geobox = acqs[0].gridded_geo_box()
         cols = acqs[0].samples
+        view_max = acqs[0].maximum_view_angle
 
         (satellite_zenith, _, _, _, _, _, y_cent, x_cent, n_cent) = \
             gaip.calculate_angles(acqs[0], lon_fname, lat_fname,
                                   npoints=12, out_fnames=out_fnames)
 
         gaip.create_centreline_file(geobox, y_cent, x_cent, n_cent, cols,
-                                    view_max=9.0, outfname=centreline_fname)
+                                    view_max=view_max,
+                                    outfname=centreline_fname)
 
         gaip.create_boxline_file(satellite_zenith, y_cent, x_cent,
                                  boxline_fname=boxline_fname,
+                                 max_angle=view_max,
                                  coordinator_fname=coordinator_fname)
 
         save(self.output(), 'completed')
@@ -1476,7 +1479,6 @@ class WriteMetadata(luigi.Task):
         return luigi.LocalTarget(target)
 
     def run(self):
-        # acqs = gaip.acquisitions(self.l1t_path)
         acqs = retrieve_acquisitions(self.l1t_path)
         acq = acqs[0]
         out_path = self.out_path
@@ -1648,19 +1650,7 @@ def scatter(iterable, P=1, p=1):
     return itertools.islice(iterable, p-1, None, P)
  
  
-def main(l1t_path, outpath, workpath, l1t_list, nnodes=1, nodenum=1):
-
-    # allow to use "{year}" and "{month}" in l1t_path, outpath, and workpath
-    # first determine "{year}" and "{month}" positions
-    year_pos = month_pos = -1
-    formatter = string.Formatter()
-    tmp = formatter.parse(l1t_path)
-    pos = 0
-    for lstr, fname, fs, cv in tmp:
-        pos += len(lstr)
-        if fname == "year": year_pos = pos; pos += 4
-        if fname == "month": month_pos = pos; pos += 2
-
+def main(l1t_list, outpath, nnodes=1, nodenum=1):
     # Setup Software Versions for Packaging
     ptype.register_software_version(
         software_code='gaip',
@@ -1673,40 +1663,33 @@ def main(l1t_path, outpath, workpath, l1t_list, nnodes=1, nodenum=1):
         repo_url='http://www.ontar.com/software/productdetails.aspx?item=modtran'
     )
 
-    tasks = []
+    # create product output dirs
     products = CONFIG.get('packaging', 'products').split(',')
+    for product in products:
+        product_dir = pjoin(outpath, product)
+        if not exists(product_dir): os.makedirs(product_dir)
+
+    tasks = []
     for l1t in open(l1t_list).readlines():
         l1t = l1t.strip()
         if l1t == '': continue
-        # get {year} and {month} values
-        year = month = 0
-        if year_pos > -1: year = int(l1t[year_pos:year_pos+4])
-        if month_pos > -1: month = int(l1t[month_pos:month_pos+2])
         bf = basename(l1t)
 
         acq = retrieve_acquisitions(l1t)[0]
-        workdir = workpath.format(year=year, month=month)
-        if not exists(workdir): os.makedirs(workdir)
-        if ((87 <= acq.path <= 116) & (67 <= acq.row <= 91)):
-            completed = pjoin(workdir,
-                              (bf.replace('OTH', 'NBAR') + '.completed'))
-            if exists(completed):
-                msg = "NBAR for {} already exists...skipping".format(l1t)
-                logging.info(msg)
-                continue
 
-	# create product output dirs
-        outdir = outpath.format(year=year, month=month)
-        if not exists(outdir):
-            os.makedirs(outdir)
-            os.makedirs(pjoin(outdir, "nbar"))
-            os.makedirs(pjoin(outdir, "nbart"))
-        for product in products:
-            product_dir = pjoin(outdir, product)
-            if not exists(product_dir): os.makedirs(product_dir)
+        # TODO: filter outside of nbar so it receives a clean list???
+        # can't be applied anyway for sentinel-2a
+        # if ((87 <= acq.path <= 116) & (67 <= acq.row <= 91)):
+        #     completed = pjoin(outpath,
+        #                       '.'.join([bf, "nbar-work", "completed"]))
+        #     if exists(completed):
+        #         msg = "NBAR for {} already exists...skipping".format(l1t)
+        #         logging.info(msg)
+        #         continue
 
-        nbar = pjoin(workdir, bf.replace('OTH', 'NBAR'))
-        tasks.append(PackageTC(l1t, nbar, outdir))
+        # create a workpath for the given scene/granule (l1t) dataset
+        nbar = pjoin(outpath, bf + ".nbar-work")
+        tasks.append(PackageTC(l1t, nbar, outpath))
 
     tasks = [f for f in scatter(tasks, nnodes, nodenum)]
     ncpus = int(os.getenv('PBS_NCPUS', '1'))
@@ -1715,27 +1698,24 @@ def main(l1t_path, outpath, workpath, l1t_list, nnodes=1, nodenum=1):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--l1t_path", help=("Path to directory containing L1T "
-                        "datasets"), required=True)
-    parser.add_argument("--out_path", help=("Path to directory where NBAR "
-                        "dataset are to be written"), required=True)
-    parser.add_argument('--cfg',
-                        help='Path to a user defined configuration file.')
-    parser.add_argument("--log_path", help=("Path to directory where where log"
-                        " files will be written"), default='.',
-                        type=lambda x: is_valid_path(parser, x))
-    parser.add_argument("--l1t_list",
-                        help="A file listing full path of L1T datasets",
+    parser.add_argument("--input_list",
+                        help="A full file path listing scene/granule datasets",
                         required=True,
+                        type=lambda x: is_valid_path(parser, x))
+    parser.add_argument("--out_path", help=("Path to directory where NBAR "
+                        "datasets are to be written"), required=True)
+    parser.add_argument('--cfg_file',
+                        help='Path to a user defined configuration file.')
+    parser.add_argument("--log_path", help=("Path to directory where log"
+                        " files will be written"), default='.',
                         type=lambda x: is_valid_path(parser, x))
     parser.add_argument("--debug", help=("Selects more detail logging (default"
                         " is INFO)"), default=False, action='store_true')
-    parser.add_argument("--work_path", help=("Path to a directory where the "
-                        "intermediate files will be written."), required=False)
 
     args = parser.parse_args()
 
-    cfg = args.cfg
+    # TODO: save the cfg file in a HDF5(???) dataset somewhere
+    cfg = args.cfg_file
 
     # Setup the config file
     global CONFIG
@@ -1758,16 +1738,11 @@ if __name__ == '__main__':
                         format=("%(asctime)s: [%(name)s] (%(levelname)s) "
                                 "%(message)s "), datefmt='%H:%M:%S')
 
-    if args.work_path is None:
-        work_path = args.out_path
-    else:
-        work_path = args.work_path
-
+    # TODO: save the input list into a HDF5(???) dataset somewhere
     logging.info("nbar.py started")
-    logging.info('l1t_path={path}'.format(path=args.l1t_path))
     logging.info('out_path={path}'.format(path=args.out_path))
     logging.info('log_path={path}'.format(path=args.log_path))
 
     size = int(os.getenv('PBS_NNODES', '1'))
     rank = int(os.getenv('PBS_VNODENUM', '1'))
-    main(args.l1t_path, args.out_path, work_path, args.l1t_list, size, rank)
+    main(args.input_list, args.out_path, size, rank)
