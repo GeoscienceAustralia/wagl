@@ -1574,23 +1574,20 @@ class Packager(luigi.Task):
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
     work_path = luigi.Parameter()
-    group = luigi.Parameter()
     product = luigi.Parameter()
 
     def requires(self):
         return [WriteMetadata(self.l1t_path, self.work_path)]
 
     def output(self):
-        grp_path = pjoin(self.work_path, self.group)
-        grp_path = pjoin(grp_path, CONFIG.get('work', 'targets_root'))
-        target = pjoin(grp_path, 'Packager_{}.task')
+        out_path = pjoin(self.work_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'Packager_{}.task')
         return luigi.LocalTarget(target.format(self.product))
 
     def run(self):
-        grp_path = pjoin(self.work_path, self.group)
         # run the packager
         kwargs = {'driver': PACKAGE_DRIVERS[self.product],
-                  'input_data_paths': [Path(grp_path)],
+                  'input_data_paths': [Path(self.work_path)],
                   'destination_path': Path(pjoin(self.out_path, self.product)),
                   'parent_dataset_paths': [Path(self.l1t_path)],
                   'metadata_expand_fn': lambda dataset: dataset.lineage.machine.note_current_system_software(),
@@ -1609,13 +1606,11 @@ class PackageTC(luigi.Task):
     out_path = luigi.Parameter()
 
     def requires(self):
-        groups = gaip.acquisitions(self.l1t_path)
         products = CONFIG.get('packaging', 'products').split(',')
         tasks = []
-        for group in groups:
-            for product in products:
-                tasks.append(Packager(self.l1t_path, self.out_path,
-                                      self.work_path, group, product))
+        for product in products:
+            tasks.append(Packager(self.l1t_path, self.out_path, self.work_path,
+                                  product))
         return tasks
 
     def output(self):
