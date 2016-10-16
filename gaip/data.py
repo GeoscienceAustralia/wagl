@@ -39,7 +39,8 @@ def no_data(acq):
         idx = 0
         return nodata_list[idx]
 
-def data(acq, out=None, window=None, masked=False):
+def data(acq, out=None, window=None, masked=False, apply_gain_offset=False,
+         out_no_data=-999):
     """
     Read the supplied acquisition's data into the `out` array if provided,
     otherwise return a new `numpy.array` containing the data.
@@ -52,6 +53,24 @@ def data(acq, out=None, window=None, masked=False):
     dirname = acq.dir_name
     filename = acq.file_name
     with rasterio.open(pjoin(dirname, filename), 'r') as fo:
+        # convert to at sensor radiance as required
+        if apply_gain_offset:
+            if out is None:
+                out = fo.read(1, window=window, masked=masked)
+            else:
+                fo.read(1, out=out, window=window, masked=masked)
+
+            # check for no data
+            no_data = acq.no_data if acq.no_data is not None else 0
+            nulls = out == no_data
+
+            # gain & offset; y = mx + b
+            data = acq.gain * out + acq.bias
+
+            # set the out_no_data value inplace of the input no data value
+            data[nulls] = out_no_data
+
+            return data
         return fo.read(1, out=out, window=window, masked=masked)
 
 
