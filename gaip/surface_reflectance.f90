@@ -3,9 +3,8 @@ SUBROUTINE reflectance( &
     nrow, ncol, &
     rori, &
     brdf0, brdf1, brdf2, &
-    bias, slope_ca, &
     ref_adj, &
-    dn_1, &
+    radiance, &
     mask_self, &
     mask_castsun, &
     mask_castview, &
@@ -26,7 +25,6 @@ SUBROUTINE reflectance( &
     ts, &
     edir_h, &
     edif_h, &
-    dn, &
     ref_lm, &
     ref_brdf, &
     ref_terrain, &
@@ -43,7 +41,7 @@ SUBROUTINE reflectance( &
     real*4 brdf0, brdf1, brdf2 ! BRDF parameters
     real*4 bias, slope_ca ! satellite calibration coefficients
     real*4 ref_adj ! average reflectance for terrain correction
-    integer*2 dn_1(nrow, ncol) ! raw image
+    real*4 radiance(nrow, ncol) ! at sensor radiance image
     integer*2 mask_self(nrow, ncol) ! mask
     integer*2 mask_castsun(nrow, ncol) ! self shadow mask
     integer*2 mask_castview(nrow, ncol) ! cast shadow mask
@@ -51,7 +49,7 @@ SUBROUTINE reflectance( &
     real*4 sazi_angle(nrow, ncol) ! solar azimuth angle
     real*4 view_angle(nrow, ncol) ! view angle (for flat surface)
     real*4 rela_angle(nrow, ncol) ! relative azimuth angle (for flat surface)
-    real*4 slope_angle(nrow, ncol) ! slop angle
+    real*4 slope_angle(nrow, ncol) ! slope angle
     real*4 aspect_angle(nrow, ncol) ! aspect angle
     real*4 it_angle(nrow, ncol) ! incident angle (for inclined surface)
     real*4 et_angle(nrow, ncol) ! exiting angle (for inclined surface)
@@ -69,19 +67,18 @@ SUBROUTINE reflectance( &
     integer*2 iref_terrain(nrow, ncol) ! atmospheric and brdf and terrain corrected reflectance
 
 !internal parameters passed as arrays.
-    integer*4 dn(nrow)
     real*4 ref_lm(nrow)
     real*4 ref_brdf(nrow)
     real*4 ref_terrain(nrow)
 
-!f2py depend(nrow), ref_lm, ref_brdf, ref_terrain, dn
-!f2py depend(nrow, ncol), dn_1, mask_self, mask_castsun, mask_castview
+!f2py depend(nrow), ref_lm, ref_brdf, ref_terrain
+!f2py depend(nrow, ncol), radiance, mask_self, mask_castsun, mask_castview
 !f2py depend(nrow, ncol), solar_angle, sazi_angle, view_angle, rela_angle
 !f2py depend(nrow, ncol), slope_angle,, aspect_angle, it_angle, et_angle
 !f2py depend(nrow, ncol), rela_slope, a_mod, b_mod, s_mod, fv, fs, ts
 !f2py depend(nrow, ncol), edir_h, edif_h
 !f2py depend(nrow, ncol), iref_lm, iref_brdf, iref_terrain
-!f2py intent(in) rori, brdf0, brdf1, brdf2, bias, slop_ca, ref_adj
+!f2py intent(in) rori, brdf0, brdf1, brdf2, ref_adj
 !f2py intent(in) dn_1, mask_self, mask_castsun, mask_castview, solar_angle,
 !f2py intent(in) sazi_angle, view_angle, rela_angle, slope_angle, aspect_angle
 !f2py intent(in) it_angle, et_angle, rela_slope, a_mod, b_mod, s_mod, fv, fs, ts, edir_h, edif_h
@@ -125,19 +122,16 @@ SUBROUTINE reflectance( &
 !   Now loop over the cols of the images
     do j=1,ncol
 !----------------------------------------------------------------------
-!   convert byte to integer for the raw image
-        do i=1,nrow
-            if (dn_1(i, j) .lt. 0) then
-                dn(i) = dn_1(i, j) + 65536
-            else
-                dn(i) = dn_1(i, j)
-            endif
-        enddo
 
 !       now loop over the rows of the images
         do i=1,nrow
+!           radiance value for the pixel
+            lt = radiance(i, j)
+
+!           TODO: check radiance against a better null than 0
+!           TODO: some at sensor radiance values are < 0
 !           if valid masks and valid digital number then do the calcs
-            if (a_mod(i, j) .ge. 0 .and. dn(i) .gt. 0) then
+            if (a_mod(i, j) .ge. 0 .and. lt .gt. 0) then
                 if (rela_angle(i, j) .gt. 180) rela_angle(i, j) = rela_angle(i, j) - 360
                 if (rela_slope(i, j) .gt. 180) rela_slope(i, j) = rela_slope(i, j) - 360
 
@@ -153,7 +147,7 @@ SUBROUTINE reflectance( &
                 et = et_angle(i, j) * pib
 
                 if (it_angle(i, j) .ge. 70.0) then
-                    it_brdf= 70.0 * pib
+                    it_brdf = 70.0 * pib
                 else
                     it_brdf = it_angle(i, j) * pib
                 endif
@@ -177,9 +171,6 @@ SUBROUTINE reflectance( &
             endif
 !------------------------------------------------
 !           for flat surface
-
-!           calculate radiance at top atmosphere
-            lt = bias + dn(i) * slope_ca
 
 !           calcualte lambetian reflectance with bilinear average
 
