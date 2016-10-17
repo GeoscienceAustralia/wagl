@@ -67,7 +67,8 @@ class Acquisition(object):
         the Acquisition's data will be read.
         """
         return gaip.data(self, out=out, window=window, masked=masked,
-                         apply_gain_offset=apply_gain_offset)
+                         apply_gain_offset=apply_gain_offset,
+                         out_no_data=out_no_data)
 
     def data_and_box(self, out=None, window=None, masked=False):
         """
