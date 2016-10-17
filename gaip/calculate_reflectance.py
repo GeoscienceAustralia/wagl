@@ -247,9 +247,11 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
                 xsize = xend - xstart
 
                 # define some static arguments
+                out_null = -999
                 acq_args = {'window': tile,
                             'masked': False,
-                            'apply_gain_offset': acq.scaled_radiance}
+                            'apply_gain_offset': acq.scaled_radiance,
+                            'out_no_data': out_null}
                 args = {'window': tile,
                         'masked': False}
                 i16_args = {'dtype': numpy.int16,
@@ -309,7 +311,7 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
 
                 # Run terrain correction
                 reflectance(xsize, ysize, rori, brdf0, brdf1, brdf2,
-                            avg_reflectance_values[band_number],
+                            avg_reflectance_values[band_number], out_null,
                             band_data, self_shadow, cast_shadow_sun,
                             cast_shadow_satellite,
                             solar_zenith, solar_azimuth, satellite_view,
