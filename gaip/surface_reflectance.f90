@@ -4,6 +4,7 @@ SUBROUTINE reflectance( &
     rori, &
     brdf0, brdf1, brdf2, &
     ref_adj, &
+    no_data, &
     radiance, &
     mask_self, &
     mask_castsun, &
@@ -39,8 +40,8 @@ SUBROUTINE reflectance( &
     integer nrow, ncol ! we should be passing in transposed arrays cols = rows and vice versa
     real*4 rori ! threshold for terrain correction
     real*4 brdf0, brdf1, brdf2 ! BRDF parameters
-    real*4 bias, slope_ca ! satellite calibration coefficients
     real*4 ref_adj ! average reflectance for terrain correction
+    real*4 no_data ! input & output no data value
     real*4 radiance(nrow, ncol) ! at sensor radiance image
     integer*2 mask_self(nrow, ncol) ! mask
     integer*2 mask_castsun(nrow, ncol) ! self shadow mask
@@ -78,7 +79,7 @@ SUBROUTINE reflectance( &
 !f2py depend(nrow, ncol), rela_slope, a_mod, b_mod, s_mod, fv, fs, ts
 !f2py depend(nrow, ncol), edir_h, edif_h
 !f2py depend(nrow, ncol), iref_lm, iref_brdf, iref_terrain
-!f2py intent(in) rori, brdf0, brdf1, brdf2, ref_adj
+!f2py intent(in) rori, brdf0, brdf1, brdf2, ref_adj, no_data
 !f2py intent(in) dn_1, mask_self, mask_castsun, mask_castview, solar_angle,
 !f2py intent(in) sazi_angle, view_angle, rela_angle, slope_angle, aspect_angle
 !f2py intent(in) it_angle, et_angle, rela_slope, a_mod, b_mod, s_mod, fv, fs, ts, edir_h, edif_h
@@ -86,7 +87,7 @@ SUBROUTINE reflectance( &
 !f2py intent(inout) iref_lm, iref_brdf, iref_terrain
 
 !   internal parameters
-    integer i, j
+    integer i, j, i_no_data
     real pi, pib
     real ann_f, aa_viewf, aa_solarf, aa_white
     real ann_s, aa_views, aa_solars
@@ -113,6 +114,9 @@ SUBROUTINE reflectance( &
     norm_1 = brdf1 / brdf0
     norm_2 = brdf2 / brdf0
 
+!   integer version of the no_data value
+    i_no_data = int(no_data)
+
 !   calculate white sky albedo
     aa_white = white_sky(1.0, norm_1, norm_2)
 !   calcualte BRDF at 45 solar angle and 0 view angle
@@ -131,7 +135,7 @@ SUBROUTINE reflectance( &
 !           TODO: check radiance against a better null than 0
 !           TODO: some at sensor radiance values are < 0
 !           if valid masks and valid digital number then do the calcs
-            if (a_mod(i, j) .ge. 0 .and. lt .gt. 0) then
+            if (a_mod(i, j) .ge. 0 .and. lt .ne. no_data) then
                 if (rela_angle(i, j) .gt. 180) rela_angle(i, j) = rela_angle(i, j) - 360
                 if (rela_slope(i, j) .gt. 180) rela_slope(i, j) = rela_slope(i, j) - 360
 
@@ -312,25 +316,25 @@ SUBROUTINE reflectance( &
 !               presently comments as test for ge 90 in initial one
 !
                 if (it_angle(i, j) .ge. 85.0) then
-                    iref_terrain(i, j) = -999
+                    iref_terrain(i, j) = i_no_data
                 endif
 
                 if (et_angle(i, j) .ge. 85.0) then
-                    iref_terrain(i, j) = -999
+                    iref_terrain(i, j) = i_no_data
                 endif
 
 !     if in masked or otherwise unused area you get here
-!     put in -999 values to indicate null data
+!     put in no_data values to indicate null data
                 else
-                    iref_terrain(i, j) = -999
+                    iref_terrain(i, j) = i_no_data
                 endif
             else
-                ref_lm(i) = -999.0
-                ref_brdf(i) = -999.0
-                ref_terrain(i) = -999.0
-                iref_lm(i, j) = -999
-                iref_brdf(i, j) = -999
-                iref_terrain(i, j) = -999
+                ref_lm(i) = no_data
+                ref_brdf(i) = no_data
+                ref_terrain(i) = no_data
+                iref_lm(i, j) = i_no_data
+                iref_brdf(i, j) = i_no_data
+                iref_terrain(i, j) = i_no_data
             endif
         enddo
     enddo
