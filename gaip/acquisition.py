@@ -33,6 +33,34 @@ def fixname(s):
     return re.sub(r'([a-zA-Z]+)_?(\d)',
                   lambda m: m.group(1).upper() + '_' + m.group(2), s)
 
+
+class AcquisitionsContainer(object):
+
+    """
+    A container for dealing with a hierarchial structure
+    of acquisitions from different groups, granules, but
+    all part of the same geospatial area or scene.
+    
+    Note: Assuming that each granule contains the same groups.
+    """
+
+    def __init__(self, groups=None, granules=None):
+        self.tiled = False if granules is None else True
+        self._groups = groups
+        self._granules = granules
+
+    def get_acquisitions(self, group=None, granule=None):
+
+    def get_granule(self, granule=None):
+
+    @property
+    def granules(self):
+        return self._granules.keys() if self.tiled else []
+
+    @property
+    def groups(self):
+        return self.granules[0].keys() if self.tiled else self._groups.keys()
+
 @total_ordering
 class Acquisition(object):
 
