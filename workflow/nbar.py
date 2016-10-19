@@ -72,7 +72,7 @@ def retrieve_acquisitions(path, group=None):
         containing a products acquisitions.
 
     :param group:
-        A key defining the grouo from which a list of acquisitions
+        A key defining the group from which a list of acquisitions
         will be returned. If `None` (default), return the first group
         in the `dict`'s keys.
 
