@@ -750,130 +750,140 @@ def acquisitions_via_mtl(path):
 
 def acquisitions_via_safe(path):
     """
-    Collect the TOA Radiance images for a given granule.
+    Collect the TOA Radiance images for each granule within a scene.
+    Multi-granule & multi-resolution hierarchy format.
+    Returns a dict of granules, each granule contains a dict of resolutions,
+    and each resolution contains a list of acquisition objects.
+
+    Example:
+    {'GRANULE_1': {'R10m': [`acquisition_1`,...,`acquisition_n`],
+                   'R20m': [`acquisition_1`,...,`acquisition_n`],
+                   'R60m': [`acquisition_1`,...,`acquisition_n`]},
+                .
+                .
+                .
+     'GRANULE_N': {'R10m': [`acquisition_1`,...,`acquisition_n`],
+                   'R20m': [`acquisition_1`,...,`acquisition_n`],
+                   'R60m': [`acquisition_1`,...,`acquisition_n`]}}
     """
-    resolutions = {}
+    granules = {}
     spacecraft = "SENTINEL-2A"
     sensor = "MSI"
 
-    gps_fname = pjoin(dirname(dirname(path)), "GPS_points")
+    gps_fname = pjoin(path, "GPS_points")
 
-    img_dir = pjoin(path, 'IMG_DATA')
-    if not exists(img_dir):
-        raise IOError("IMG_DATA directory not found: {}".format(img_dir))
+    granule_dir = pjoin(path, 'GRANULE')
+    if not exists(granule_dir):
+        raise IOError("GRANULE directory not found: {}".format(granule_dir))
+
     res_dirs = ["R10m", "R20m", "R60m"]
-    for res_dir in res_dirs:
-        # sensor = "MSI-{}".format(res_dir)
-        acqs = []
-        data_dir = pjoin(img_dir, res_dir)
-        cwd = os.getcwd()
-        os.chdir(data_dir)
-        bands = glob.glob('L_output*.hdr')
-        os.chdir(cwd)
-        bands = [pjoin(data_dir, b.replace('.hdr', '')) for b in bands]
+    for granule in os.listdir(granule_dir):
+        resolutions = {}
 
-        tile_metadata_fname = 'tile_metadata_{}'.format(res_dir[1:3])
-        with open(pjoin(data_dir, tile_metadata_fname), 'r') as src:
-            md = src.readlines()
+        img_dir = pjoin(pjoin(granule_dir, granule), 'IMG_DATA')
+        if not exists(img_dir):
+            continue
 
-        metadata = {}
-        for m in md:
-            k, v = m.split('=')
-            metadata[k.strip()] = v.strip()
+        for res_dir in res_dirs:
+            acqs = []
+            data_dir = pjoin(img_dir, res_dir)
+            cwd = os.getcwd()
+            os.chdir(data_dir)
+            bands = glob.glob('L_output*.hdr')
+            os.chdir(cwd)
+            bands = [pjoin(data_dir, b.replace('.hdr', '')) for b in bands]
 
-        metadata['EPSG'] = int(metadata['EPSG'])
+            tile_metadata_fname = 'tile_metadata_{}'.format(res_dir[1:3])
+            with open(pjoin(data_dir, tile_metadata_fname), 'r') as src:
+                md = src.readlines()
 
-        dt = pandas.to_datetime(metadata['SENSING_TIME']).to_pydatetime()
-        metadata['SENSING_TIME'] = dt
+            metadata = {}
+            for m in md:
+                k, v = m.split('=')
+                metadata[k.strip()] = v.strip()
 
-        clon, clat = metadata['centre_lon_lat'].split()
-        metadata['centre_lon_lat'] = (float(clon), float(clat))
+            metadata['EPSG'] = int(metadata['EPSG'])
 
-        ll_lon, ll_lat = metadata['ll_lon_and_ll_lat'].split()
-        metadata['ll_lon_and_ll_lat'] = (float(ll_lon), float(ll_lat))
+            dt = pandas.to_datetime(metadata['SENSING_TIME']).to_pydatetime()
+            metadata['SENSING_TIME'] = dt
 
-        lr_lon, lr_lat = metadata['lr_lon_and_lr_lat'].split()
-        metadata['lr_lon_and_lr_lat'] = (float(lr_lon), float(lr_lat))
+            clon, clat = metadata['centre_lon_lat'].split()
+            metadata['centre_lon_lat'] = (float(clon), float(clat))
 
-        ul_lon, ul_lat = metadata['ul_lon_and_ul_lat'].split()
-        metadata['ul_lon_and_ul_lat'] = (float(ul_lon), float(ul_lat))
+            ll_lon, ll_lat = metadata['ll_lon_and_ll_lat'].split()
+            metadata['ll_lon_and_ll_lat'] = (float(ll_lon), float(ll_lat))
 
-        ur_lon, ur_lat = metadata['ur_lon_and_ur_lat'].split()
-        metadata['ur_lon_and_ur_lat'] = (float(ur_lon), float(ur_lat))
+            lr_lon, lr_lat = metadata['lr_lon_and_lr_lat'].split()
+            metadata['lr_lon_and_lr_lat'] = (float(lr_lon), float(lr_lat))
 
-        metadata['ncols'] = int(metadata['ncols'])
-        metadata['nrows'] = int(metadata['nrows'])
+            ul_lon, ul_lat = metadata['ul_lon_and_ul_lat'].split()
+            metadata['ul_lon_and_ul_lat'] = (float(ul_lon), float(ul_lat))
 
-        metadata['ulx'] = float(metadata['ulx'])
-        metadata['uly'] = float(metadata['uly'])
+            ur_lon, ur_lat = metadata['ur_lon_and_ur_lat'].split()
+            metadata['ur_lon_and_ur_lat'] = (float(ur_lon), float(ur_lat))
 
-        metadata['resolution'] = float(metadata['resolution'])
+            metadata['ncols'] = int(metadata['ncols'])
+            metadata['nrows'] = int(metadata['nrows'])
 
-        metadata['GPS_Filename'] = gps_fname
+            metadata['ulx'] = float(metadata['ulx'])
+            metadata['uly'] = float(metadata['uly'])
 
-        metadata['sensor_id'] = "MSI"
+            metadata['resolution'] = float(metadata['resolution'])
 
-        data = {}
-        data['PRODUCT_METADATA'] = copy.deepcopy(metadata)
+            metadata['GPS_Filename'] = gps_fname
 
-        #metadata['SPACECRAFT'] = {}
-        data['SPACECRAFT'] = {}
-        db = SENSORS[spacecraft]
-        for k, v in db.iteritems():
-            if k is not 'sensors':
-                try:
-                    #metadata['SPACECRAFT'][k.encode('ascii')] = v.encode('ascii')
-                    data['SPACECRAFT'][k.encode('ascii')] = v.encode('ascii')
-                except AttributeError:
-                    #metadata['SPACECRAFT'][k.encode('ascii')] = v
-                    data['SPACECRAFT'][k.encode('ascii')] = v
+            metadata['sensor_id'] = "MSI"
 
-        #metadata['SENSOR_INFO'] = {}
-        data['SENSOR_INFO'] = {}
-        db = db['sensors'][sensor]
+            data = {}
+            data['PRODUCT_METADATA'] = copy.deepcopy(metadata)
 
-        for k, v in db.iteritems():
-            if k is not 'bands':
-                #metadata['SENSOR_INFO'][k.encode('ascii')] = v
-                data['SENSOR_INFO'][k.encode('ascii')] = v
+            #metadata['SPACECRAFT'] = {}
+            data['SPACECRAFT'] = {}
+            db = SENSORS[spacecraft]
+            for k, v in db.iteritems():
+                if k is not 'sensors':
+                    try:
+                        data['SPACECRAFT'][k.encode('ascii')] = v.encode('ascii')
+                    except AttributeError:
+                        data['SPACECRAFT'][k.encode('ascii')] = v
 
-        for band in bands:
-            dname = dirname(band)
-            fname = basename(band)
-            #band_md = copy.deepcopy(metadata)
-            md = copy.deepcopy(data)
-            #band_md = copy.deepcopy(data)
-            band_md = md['PRODUCT_METADATA']
-            band_md['dir_name'] = dname
-            band_md['file_name'] = fname
-            bnum = fname.split('_')[2]
-            band_name = bnum
+            data['SENSOR_INFO'] = {}
+            db = db['sensors'][sensor]
 
-            band_md['BAND_INFO'] = {}
-            db_copy = copy.deepcopy(db)
-            db_copy = db_copy['bands'][band_name]
+            for k, v in db.iteritems():
+                if k is not 'bands':
+                    data['SENSOR_INFO'][k.encode('ascii')] = v
 
-            for k, v in db_copy.iteritems():
-                band_md['BAND_INFO'][k.encode('ascii')] = v
+            for band in bands:
+                dname = dirname(band)
+                fname = basename(band)
+                md = copy.deepcopy(data)
+                band_md = md['PRODUCT_METADATA']
+                band_md['dir_name'] = dname
+                band_md['file_name'] = fname
+                bnum = fname.split('_')[2]
+                band_name = bnum
 
-            band_type = db_copy['type_desc']
-            band_md['BAND_INFO']['band_type'] = BAND_TYPE[band_type]
-            band_md['band_type'] = BAND_TYPE[band_type]
+                band_md['BAND_INFO'] = {}
+                db_copy = copy.deepcopy(db)
+                db_copy = db_copy['bands'][band_name]
 
-            band_md['band_name'] = 'band_{}'.format(bnum)
-            # if 'a' in bnum:
-            #     bnum = 82
-            # else:
-            #     bnum = int(bnum)
-            band_md['band_num'] = bnum
+                for k, v in db_copy.iteritems():
+                    band_md['BAND_INFO'][k.encode('ascii')] = v
 
-            #acqs.append(Sentinel2aAcquisition({'PRODUCT_METADATA': band_md}))
-            #acqs.append(Sentinel2aAcquisition(band_md))
-            acqs.append(Sentinel2aAcquisition(md))
+                band_type = db_copy['type_desc']
+                band_md['BAND_INFO']['band_type'] = BAND_TYPE[band_type]
+                band_md['band_type'] = BAND_TYPE[band_type]
 
-        resolutions[res_dir] = sorted(acqs)
+                band_md['band_name'] = 'band_{}'.format(bnum)
+                band_md['band_num'] = bnum
 
-    return resolutions
+                acqs.append(Sentinel2aAcquisition(md))
+
+            resolutions[res_dir] = sorted(acqs)
+        granules[granule] = resolutions
+
+    return granules
 
 
 class Sentinel2aAcquisition(Acquisition):
