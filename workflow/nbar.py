@@ -781,6 +781,7 @@ class BilinearInterpolationBand(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
     group = luigi.Parameter()
     band_num = luigi.IntParameter()
     factor = luigi.Parameter()
@@ -836,6 +837,7 @@ class BilinearInterpolation(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
     group = luigi.Parameter()
 
     def requires(self):
@@ -916,6 +918,7 @@ class DEMExctraction(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
     group = luigi.Parameter()
 
     def requires(self):
@@ -952,6 +955,7 @@ class SlopeAndAspect(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
     group = luigi.Parameter()
 
     def requires(self):
@@ -997,6 +1001,7 @@ class IncidentAngles(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
     group = luigi.Parameter()
 
     def requires(self):
@@ -1054,6 +1059,7 @@ class ExitingAngles(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
     group = luigi.Parameter()
 
     def requires(self):
@@ -1111,6 +1117,7 @@ class RelativeAzimuthSlope(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
     group = luigi.Parameter()
 
     def requires(self):
@@ -1203,6 +1210,7 @@ class CalculateCastShadow(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
     group = luigi.Parameter()
 
     def requires(self):
@@ -1224,6 +1232,7 @@ class CalculateCastShadowSun(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
     group = luigi.Parameter()
 
     def requires(self):
@@ -1277,6 +1286,7 @@ class CalculateCastShadowSatellite(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
     group = luigi.Parameter()
 
     def requires(self):
@@ -1329,26 +1339,38 @@ class RunTCBand(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
     group = luigi.Parameter()
     band_num = luigi.IntParameter()
 
     def requires(self):
+        # TODO: use *args
+        #args = [self.l1t_path, self.out_path, self.granule, self.group]
         return [BilinearInterpolation(self.l1t_path, self.out_path,
-                                      self.group),
-                DEMExctraction(self.l1t_path, self.out_path, self.group),
-                RelativeAzimuthSlope(self.l1t_path, self.out_path, self.group),
-                SelfShadow(self.l1t_path, self.out_path, self.group),
-                CalculateCastShadow(self.l1t_path, self.out_path, self.group)]
+                                      self.granule, self.group),
+                DEMExctraction(self.l1t_path, self.out_path, self.granule,
+                               self.group),
+                RelativeAzimuthSlope(self.l1t_path, self.out_path,
+                                     self.granule, self.group),
+                SelfShadow(self.l1t_path, self.out_path, self.granule,
+                           self.group),
+                CalculateCastShadow(self.l1t_path, self.out_path, self.granule,
+                                    self.group)]
 
     def output(self):
+        # TODO: create a func to return the output path
         grp_path = pjoin(self.out_path, self.group)
         grp_path = pjoin(grp_path, CONFIG.get('work', 'targets_root'))
         target = pjoin(grp_path, 'RunTCBand{band}.task')
         return luigi.LocalTarget(target.format(band=self.band_num))
 
     def run(self):
-        acqs = retrieve_acquisitions(self.l1t_path, self.group)
-        grp_path = pjoin(self.out_path, self.group)
+        # TODO: cleanup old retreival
+        # acqs = retrieve_acquisitions(self.l1t_path, self.group)
+        container = gaip.acquisitions(self.l1t_path)
+        # TODO: create a func to return the output path
+        # grp_path = pjoin(self.out_path, self.group)
+        # grp_path = TODO !!!
 
         # Get the necessary config params
         tc_path = pjoin(grp_path, CONFIG.get('work', 'tc_root'))
@@ -1430,10 +1452,14 @@ class TerrainCorrection(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
     group = luigi.Parameter()
 
     def requires(self):
-        acqs = retrieve_acquisitions(self.l1t_path, self.group)
+        # TODO: cleanup old retreival
+        # acqs = retrieve_acquisitions(self.l1t_path, self.group)
+        container = gaip.acquisitions(self.l1t_path)
+        # TODO: retrieve single acquisition
 
         # Retrieve the satellite and sensor for the acquisition
         satellite = acqs[0].spacecraft_id
@@ -1449,7 +1475,7 @@ class TerrainCorrection(luigi.Task):
         tc_bands = []
         for band in bands_to_process:
             tc_bands.append(RunTCBand(self.l1t_path, self.out_path,
-                                      self.group, band))
+                                      self.granule, self.group, band))
 
         return tc_bands
 
@@ -1465,11 +1491,14 @@ class WriteMetadata(luigi.Task):
     out_path = luigi.Parameter()
 
     def requires(self):
-        groups = gaip.acquisitions(self.l1t_path)
+        # TODO: cleanup old retreival
+        # groups = gaip.acquisitions(self.l1t_path)
+        container = gaip.acquisitions(self.l1t_path)
         tasks = []
-        for group in groups:
-            tasks.append(TerrainCorrection(self.l1t_path, self.out_path,
-                                           group))
+        for granule in acqs.granules:
+            for group in acqs.groups:
+                tasks.append(TerrainCorrection(self.l1t_path, self.out_path,
+                                               granule, group))
         return tasks
 
     def output(self):
@@ -1479,8 +1508,11 @@ class WriteMetadata(luigi.Task):
         return luigi.LocalTarget(target)
 
     def run(self):
-        acqs = retrieve_acquisitions(self.l1t_path)
-        acq = acqs[0]
+        # TODO: cleanup old retreival
+        # acqs = retrieve_acquisitions(self.l1t_path)
+        # acq = acqs[0]
+        container = gaip.acquisitions(self.l1t_path)
+        # TODO: retrieve single acquisition
         out_path = self.out_path
 
         source_info = {}
@@ -1675,6 +1707,7 @@ def main(l1t_list, outpath, nnodes=1, nodenum=1):
         if l1t == '': continue
         bf = basename(l1t)
 
+        # TODO: remove
         acq = retrieve_acquisitions(l1t)[0]
 
         # TODO: filter outside of nbar so it receives a clean list???
