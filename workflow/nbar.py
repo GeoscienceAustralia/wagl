@@ -104,6 +104,7 @@ class CreateWorkingDirectoryTree(luigi.Task):
         return luigi.LocalTarget(target)
 
     def run(self):
+        # TODO: rework to include granules
         groups = gaip.acquisitions(self.l1t_path)
         out_path = self.out_path
 
@@ -169,6 +170,7 @@ class GetElevationAncillaryData(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
 
     def requires(self):
         return [CreateWorkingDirectoryTree(self.l1t_path, self.out_path)]
@@ -195,6 +197,7 @@ class GetOzoneAncillaryData(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
 
     def requires(self):
         return [CreateWorkingDirectoryTree(self.l1t_path, self.out_path)]
@@ -223,6 +226,7 @@ class GetWaterVapourAncillaryData(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
 
     def requires(self):
         return [CreateWorkingDirectoryTree(self.l1t_path, self.out_path)]
@@ -248,6 +252,7 @@ class GetAerosolAncillaryData(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
 
     def requires(self):
         return [CreateWorkingDirectoryTree(self.l1t_path, self.out_path)]
@@ -275,6 +280,7 @@ class GetBrdfAncillaryData(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
 
     def requires(self):
         return [CreateWorkingDirectoryTree(self.l1t_path, self.out_path)]
@@ -304,13 +310,15 @@ class GetAncillaryData(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
 
     def requires(self):
-        return [GetElevationAncillaryData(self.l1t_path, self.out_path),
-                GetOzoneAncillaryData(self.l1t_path, self.out_path),
-                GetWaterVapourAncillaryData(self.l1t_path, self.out_path),
-                GetAerosolAncillaryData(self.l1t_path, self.out_path),
-                GetBrdfAncillaryData(self.l1t_path, self.out_path)]
+        args = [self.l1t_path, self.out_path, self.granule]
+        return [GetElevationAncillaryData(*args),
+                GetOzoneAncillaryData(*args),
+                GetWaterVapourAncillaryData(*args),
+                GetAerosolAncillaryData(*args),
+                GetBrdfAncillaryData(*args)]
 
     def complete(self):
         return all([t.complete() for t in self.requires()])
@@ -322,6 +330,7 @@ class CalculateLonGrid(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
     group = luigi.Parameter()
 
     def requires(self):
@@ -348,6 +357,7 @@ class CalculateLatGrid(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
     group = luigi.Parameter()
 
     def requires(self):
@@ -374,11 +384,13 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
     group = luigi.Parameter()
 
     def requires(self):
-        return [CalculateLatGrid(self.l1t_path, self.out_path, self.group),
-                CalculateLonGrid(self.l1t_path, self.out_path, self.group)]
+        args = [self.l1t_path, self.out_path, self.granule, self.group]
+        return [CalculateLatGrid(*args),
+                CalculateLonGrid(*args)]
 
     def output(self):
         grp_path = pjoin(self.out_path, self.group)
@@ -433,16 +445,21 @@ class WriteTp5(luigi.Task):
     out_path = luigi.Parameter()
 
     def requires(self):
-        # for consistancy, we'll wait for dependencies on all groups of
-        # acquisitions, rather than 1 group
-        groups = gaip.acquisitions(self.l1t_path)
-        tasks = [GetAncillaryData(self.l1t_path, self.out_path)]
+        # for consistancy, we'll wait for dependencies on all granules and
+        # groups of acquisitions
+        # current method requires to compute an average from all granules
+        # if the scene is tiled up that way
+        container = gaip.acquisitions(self.l1t_path)
+        tasks = []
 
-        for group in groups:
-            tasks.append(CalculateSatelliteAndSolarGrids(self.l1t_path,
-                                                         self.out_path, group))
-            tasks.append(CalculateLatGrid(self.l1t_path, self.out_path, group))
-            tasks.append(CalculateLonGrid(self.l1t_path, self.out_path, group))
+        for granule in container.granules:
+            args1 = [self.l1t_path, self.out_path, granule]
+            tasks.append(GetAncillaryData(args1))
+            for group in container.groups:
+                args2 = [self.l1t_path, self.out_path, granule, group]
+                tasks.append(CalculateSatelliteAndSolarGrids(*args2))
+                tasks.append(CalculateLatGrid(*args2))
+                tasks.append(CalculateLonGrid(*args2))
 
         return tasks
 
@@ -509,15 +526,19 @@ class FilesRequiredByFugin(luigi.Task):
     out_path = luigi.Parameter()
 
     def requires(self):
-        groups = gaip.acquisitions(self.l1t_path)
-        tasks = [GetAncillaryData(self.l1t_path, self.out_path)]
+        # TODO: kick off per granule and group tasks
+        container = gaip.acquisitions(self.l1t_path)
+        # groups = gaip.acquisitions(self.l1t_path)
+        tasks = []
 
-        for group in groups:
-            tasks.append(CalculateSatelliteAndSolarGrids(self.l1t_path,
-                                                         self.out_path,
-                                                         group))
-            tasks.append(CalculateLatGrid(self.l1t_path, self.out_path, group))
-            tasks.append(CalculateLonGrid(self.l1t_path, self.out_path, group))
+        for granule in container.granules:
+            args1 = [self.l1t_path, self.out_path, granule]
+            tasks.append(GetAncillaryData(args1))
+            for group in container.groups:
+                args2 = [self.l1t_path, self.out_path, granule, group]
+                tasks.append(CalculateSatelliteAndSolarGrids(*args2))
+                tasks.append(CalculateLatGrid(*args2))
+                tasks.append(CalculateLonGrid(*args2))
 
         return tasks
 
@@ -596,12 +617,14 @@ class PrepareModtranInput(luigi.Task):
     out_path = luigi.Parameter()
 
     def requires(self):
+        args = [self.l1t_path, self.out_path]
         # are we running a validation suite for Fuqin?
+        # TODO: replace 'fuqin_requires' with a different name
         if bool(int(CONFIG.get('fuqin_requires', 'required'))):
-            tasks = [FilesRequiredByFugin(self.l1t_path, self.out_path),
-                     WriteTp5(self.l1t_path, self.out_path)]
+            tasks = [FilesRequiredByFugin(*args),
+                     WriteTp5(*args)]
         else:
-            tasks = [WriteTp5(self.l1t_path, self.out_path)]
+            tasks = [WriteTp5(*args)]
 
         return tasks
 
@@ -616,6 +639,7 @@ class RunModtranCase(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
     coord = luigi.Parameter()
     albedo = luigi.Parameter()
 
@@ -646,6 +670,7 @@ class RunModtran(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
 
     def requires(self):
         coords = CONFIG.get('modtran', 'coords').split(',')
@@ -654,7 +679,7 @@ class RunModtran(luigi.Task):
         for coord in coords:
             for albedo in albedos:
                 reqs.append(RunModtranCase(self.l1t_path, self.out_path, 
-                                           coord, albedo))
+                                           self.granule, coord, albedo))
         return reqs
 
     def complete(self):
@@ -670,11 +695,12 @@ class RunAccumulateSolarIrradianceCase(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
     coord = luigi.Parameter()
     albedo = luigi.Parameter()
 
     def requires(self):
-        return [RunModtran(self.l1t_path, self.out_path)]
+        return [RunModtran(self.l1t_path, self.out_path, self.granule)]
 
     def output(self):
         out_path = self.out_path
@@ -718,6 +744,7 @@ class AccumulateSolarIrradiance(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
 
     def requires(self):
         out_path = self.out_path
@@ -732,6 +759,7 @@ class AccumulateSolarIrradiance(luigi.Task):
             for albedo in albedos:
                 reqs.append(RunAccumulateSolarIrradianceCase(self.l1t_path,
                                                              self.out_path, 
+                                                             self.granule,
                                                              coord, albedo))
         return reqs
 
@@ -748,9 +776,11 @@ class CalculateCoefficients(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
 
     def requires(self):
-        return [AccumulateSolarIrradiance(self.l1t_path, self.out_path)]
+        args = [self.l1t_path, self.out_path, self.granule]
+        return [AccumulateSolarIrradiance(*args)]
 
     def output(self):
         out_path = self.out_path
@@ -787,9 +817,10 @@ class BilinearInterpolationBand(luigi.Task):
     factor = luigi.Parameter()
 
     def requires(self):
-        return [CalculateCoefficients(self.l1t_path, self.out_path),
-                CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path,
-                                                self.group)]
+        args1 = [self.l1t_path, self.out_path, self.granule]
+        args2 = [self.l1t_path, self.out_path, self.granule, self.group]
+        return [CalculateCoefficients(*args1),
+                CalculateSatelliteAndSolarGrids(*args2)]
 
     def output(self):
         band_num = self.band_num
@@ -841,6 +872,7 @@ class BilinearInterpolation(luigi.Task):
     group = luigi.Parameter()
 
     def requires(self):
+        # TODO: retrieve acquisitions
         factors = CONFIG.get('bilinear', 'factors').split(',')
         acqs = retrieve_acquisitions(self.l1t_path, self.group)
 
@@ -852,15 +884,13 @@ class BilinearInterpolation(luigi.Task):
         nbar_constants = gaip.constants.NBARConstants(satellite, sensor)
         bands_to_process = nbar_constants.get_nbar_lut()
 
-        bands = [a.band_num for a in acqs]
+        bands = [a.band_num for a in acqs if a.band_num in bands_to_process]
         tasks = []
         for factor in factors:
             for band in bands:
-                if band not in bands_to_process:
-                    # Skip
-                    continue
                 tasks.append(BilinearInterpolationBand(self.l1t_path,
                                                        self.out_path,
+                                                       self.granule,
                                                        self.group,
                                                        band, factor))
         return tasks
@@ -959,7 +989,9 @@ class SlopeAndAspect(luigi.Task):
     group = luigi.Parameter()
 
     def requires(self):
-        return [DEMExctraction(self.l1t_path, self.out_path, self.group)]
+        args = [self.l1t_path, self.out_path, self.granule, self.group]
+        return [DEMExctraction(*args)]
+        # return [DEMExctraction(self.l1t_path, self.out_path, self.group)]
 
     def output(self):
         grp_path = pjoin(self.out_path, self.group)
@@ -1005,9 +1037,12 @@ class IncidentAngles(luigi.Task):
     group = luigi.Parameter()
 
     def requires(self):
-        return [CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path,
-                                                self.group),
-                SlopeAndAspect(self.l1t_path, self.out_path, self.group)]
+        args = [self.l1t_path, self.out_path, self.granule, self.group]
+        return [CalculateSatelliteAndSolarGrids(*args),
+                SlopeAndAspect(*args)]
+        # return [CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path,
+        #                                         self.group),
+        #         SlopeAndAspect(self.l1t_path, self.out_path, self.group)]
 
     def output(self):
         grp_path = pjoin(self.out_path, self.group)
@@ -1063,9 +1098,12 @@ class ExitingAngles(luigi.Task):
     group = luigi.Parameter()
 
     def requires(self):
-        return [CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path,
-                                                self.group),
-                SlopeAndAspect(self.l1t_path, self.out_path, self.group)]
+        args = [self.l1t_path, self.out_path, self.granule, self.group]
+        return [CalculateSatelliteAndSolarGrids(*args)
+                SlopeAndAspect(*args)]
+        # return [CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path,
+        #                                         self.group),
+        #         SlopeAndAspect(self.l1t_path, self.out_path, self.group)]
 
     def output(self):
         grp_path = pjoin(self.out_path, self.group)
@@ -1121,8 +1159,11 @@ class RelativeAzimuthSlope(luigi.Task):
     group = luigi.Parameter()
 
     def requires(self):
-        return [IncidentAngles(self.l1t_path, self.out_path, self.group),
-                ExitingAngles(self.l1t_path, self.out_path, self.group)]
+        args = [self.l1t_path, self.out_path, self.granule, self.group]
+        return [IncidentAngles(*args),
+                ExitingAngles(*args)]
+        # return [IncidentAngles(self.l1t_path, self.out_path, self.group),
+        #         ExitingAngles(self.l1t_path, self.out_path, self.group)]
 
     def output(self):
         grp_path = pjoin(self.out_path, self.group)
@@ -1166,11 +1207,15 @@ class SelfShadow(luigi.Task):
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
     group = luigi.Parameter()
 
     def requires(self):
-        return [IncidentAngles(self.l1t_path, self.out_path, self.group),
-                ExitingAngles(self.l1t_path, self.out_path, self.group)]
+        args = [self.l1t_path, self.out_path, self.granule, self.group]
+        return [IncidentAngles(*args),
+                ExitingAngles(*args)]
+        # return [IncidentAngles(self.l1t_path, self.out_path, self.group),
+        #         ExitingAngles(self.l1t_path, self.out_path, self.group)]
 
     def output(self):
         grp_path = pjoin(self.out_path, self.group)
@@ -1214,10 +1259,13 @@ class CalculateCastShadow(luigi.Task):
     group = luigi.Parameter()
 
     def requires(self):
-        return [CalculateCastShadowSun(self.l1t_path, self.out_path,
-                                       self.group),
-                CalculateCastShadowSatellite(self.l1t_path, self.out_path,
-                                             self.group)]
+        args = [self.l1t_path, self.out_path, self.granule, self.group]
+        return [CalculateCastShadowSun(*args),
+                CalculateCastShadowSatellite(*args)]
+        # return [CalculateCastShadowSun(self.l1t_path, self.out_path,
+        #                                self.group),
+        #         CalculateCastShadowSatellite(self.l1t_path, self.out_path,
+        #                                      self.group)]
 
     def complete(self):
         return all([t.complete() for t in self.requires()])
@@ -1236,9 +1284,12 @@ class CalculateCastShadowSun(luigi.Task):
     group = luigi.Parameter()
 
     def requires(self):
-        return [CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path,
-                                                self.group),
-                DEMExctraction(self.l1t_path, self.out_path, self.group)]
+        args = [self.l1t_path, self.out_path, self.granule, self.group]
+        return [CalculateSatelliteAndSolarGrids(*args),
+                DEMExctraction(*args)]
+        # return [CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path,
+        #                                         self.group),
+        #         DEMExctraction(self.l1t_path, self.out_path, self.group)]
 
     def output(self):
         grp_path = pjoin(self.out_path, self.group)
@@ -1290,11 +1341,14 @@ class CalculateCastShadowSatellite(luigi.Task):
     group = luigi.Parameter()
 
     def requires(self):
-        return [CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path,
-                                                self.group),
-                DEMExctraction(self.l1t_path, self.out_path, self.group)]
+        args = [self.l1t_path, self.out_path, self.granule, self.group]
+        return [CalculateSatelliteAndSolarGrids(*args)
+        # return [CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path,
+        #                                         self.group),
+        #         DEMExctraction(self.l1t_path, self.out_path, self.group)]
 
     def output(self):
+        # TODO: create a func to return the output path
         grp_path = pjoin(self.out_path, self.group)
         grp_path = pjoin(grp_path, CONFIG.get('work', 'targets_root'))
         target = pjoin(grp_path, 'CalculateCastShadowSatellite.task')
@@ -1304,6 +1358,13 @@ class CalculateCastShadowSatellite(luigi.Task):
         acqs = retrieve_acquisitions(self.l1t_path, self.group)
         grp_path = pjoin(self.out_path, self.group)
         tc_work_path = pjoin(grp_path, CONFIG.get('work', 'tc_root'))
+        # TODO: cleanup old retreival
+        # acqs = retrieve_acquisitions(self.l1t_path, self.group)
+        container = gaip.acquisitions(self.l1t_path)
+        # TODO: create a func to return the output path
+        # grp_path = pjoin(self.out_path, self.group)
+        # grp_path = TODO !!!
+        # tc_work_path = TODO !!!
 
         # Input filenames
         smoothed_dsm_fname = pjoin(tc_work_path,
@@ -1344,18 +1405,22 @@ class RunTCBand(luigi.Task):
     band_num = luigi.IntParameter()
 
     def requires(self):
-        # TODO: use *args
-        #args = [self.l1t_path, self.out_path, self.granule, self.group]
-        return [BilinearInterpolation(self.l1t_path, self.out_path,
-                                      self.granule, self.group),
-                DEMExctraction(self.l1t_path, self.out_path, self.granule,
-                               self.group),
-                RelativeAzimuthSlope(self.l1t_path, self.out_path,
-                                     self.granule, self.group),
-                SelfShadow(self.l1t_path, self.out_path, self.granule,
-                           self.group),
-                CalculateCastShadow(self.l1t_path, self.out_path, self.granule,
-                                    self.group)]
+        args = [self.l1t_path, self.out_path, self.granule, self.group]
+        return [BilinearInterpolation(*args),
+                DEMExctraction(*args),
+                RelativeAzimuthSlope(*args),
+                SelfShadow(*args),
+                CalculateCastShadow(*args)
+        # return [BilinearInterpolation(self.l1t_path, self.out_path,
+        #                               self.granule, self.group),
+        #         DEMExctraction(self.l1t_path, self.out_path, self.granule,
+        #                        self.group),
+        #         RelativeAzimuthSlope(self.l1t_path, self.out_path,
+        #                              self.granule, self.group),
+        #         SelfShadow(self.l1t_path, self.out_path, self.granule,
+        #                    self.group),
+        #         CalculateCastShadow(self.l1t_path, self.out_path, self.granule,
+        #                             self.group)]
 
     def output(self):
         # TODO: create a func to return the output path
