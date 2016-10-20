@@ -29,7 +29,7 @@ with open(pjoin(dirname(__file__), 'sensors.json')) as fo:
 
 def fixname(s):
     """Fix satellite name. Performs 'Landsat7' to 'LANDSAT_7' but also
-    handles 'LANDSAT_8' to 'LANDSAT_8'"""
+    handles 'LANDSAT8' to 'LANDSAT_8'"""
     return re.sub(r'([a-zA-Z]+)_?(\d)',
                   lambda m: m.group(1).upper() + '_' + m.group(2), s)
 
@@ -49,17 +49,37 @@ class AcquisitionsContainer(object):
         self._groups = groups
         self._granules = granules
 
-    def get_acquisitions(self, group=None, granule=None):
-
-    def get_granule(self, granule=None):
-
     @property
     def granules(self):
-        return self._granules.keys() if self.tiled else []
+        return self._granules.keys() if self.tiled else [None]
 
     @property
     def groups(self):
         return self.granules[0].keys() if self.tiled else self._groups.keys()
+
+    def get_acquisitions(self, group=None, granule=None):
+        if self.tiled:
+            groups = self.get_granule(granule=granule)
+            if group is None:
+                acqs = groups[groups.keys()[0]]
+            else:
+                acqs = groups[group]
+        else:
+            if group is None:
+                acqs = self._groups[self.groups()[0]]
+            else:
+                acqs = self._groups[group]
+
+        return acqs
+
+    def get_granule(self, granule=None):
+        if not self.tiled:
+            return self._groups
+        if granule is None:
+            return self._granules[self.granules()[0]]
+        else:
+            return self._granules[granule]
+
 
 @total_ordering
 class Acquisition(object):
