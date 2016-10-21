@@ -61,33 +61,6 @@ def load_value(target):
         return data
 
 
-def retrieve_acquisitions(path, group=None):
-    """
-    Given an input path, load a list of acquistions for a
-    given `group`.
-    If no `group` is specified, load the first list of acquisitions.
-
-    :param path:
-        A `str` containing the full file path name of a directory
-        containing a products acquisitions.
-
-    :param group:
-        A key defining the group from which a list of acquisitions
-        will be returned. If `None` (default), return the first group
-        in the `dict`'s keys.
-
-    :return:
-        A list of `acquisition` objects.
-    """
-    groups = gaip.acquisitions(path)
-
-    if group is None:
-        acqs = groups[groups.keys()[0]]
-    else:
-        acqs = groups[group]
-    return acqs
-
-
 class CreateWorkingDirectoryTree(luigi.Task):
 
     """Creates the output working directory tree."""
@@ -104,62 +77,64 @@ class CreateWorkingDirectoryTree(luigi.Task):
         return luigi.LocalTarget(target)
 
     def run(self):
-        # TODO: rework to include granules
-        groups = gaip.acquisitions(self.l1t_path)
-        out_path = self.out_path
+        container = gaip.acquisitions(self.l1t_path)
 
-        # base/top level output targets
-        targets_dir = CONFIG.get('work', 'targets_root')
-        base_targets = pjoin(out_path, targets_dir)
-        if not exists(base_targets):
-            os.makedirs(base_targets)
+        for granule in container.granules:
+            out_path = container.get_root(self.out_path, granule=granule)
 
-        # modtran directory tree
-        modtran_exe_root = CONFIG.get('modtran', 'root')
-        modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
-        input_format = CONFIG.get('modtran', 'input_format')
-        workpath_format = CONFIG.get('modtran', 'workpath_format')
-        coords = CONFIG.get('modtran', 'coords').split(',')
-        albedos = CONFIG.get('modtran', 'albedos').split(',')
+            # base/top level output targets
+            targets_dir = CONFIG.get('work', 'targets_root')
+            base_targets = pjoin(out_path, targets_dir)
+            if not exists(base_targets):
+                os.makedirs(base_targets)
 
-        gaip.create_modtran_dirs(coords, albedos, modtran_root,
-                                 modtran_exe_root,
-                                 workpath_format,
-                                 input_format)
+            # modtran directory tree
+            modtran_exe_root = CONFIG.get('modtran', 'root')
+            modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
+            input_format = CONFIG.get('modtran', 'input_format')
+            workpath_format = CONFIG.get('modtran', 'workpath_format')
+            coords = CONFIG.get('modtran', 'coords').split(',')
+            albedos = CONFIG.get('modtran', 'albedos').split(',')
 
-        # brdf intermediates
-        brdf_path = pjoin(out_path, CONFIG.get('work', 'brdf_root'))
-        if not exists(brdf_path):
-            os.makedirs(brdf_path)
+            gaip.create_modtran_dirs(coords, albedos, modtran_root,
+                                     modtran_exe_root,
+                                     workpath_format,
+                                     input_format)
 
-
-        for group in groups:
-            grp_path = pjoin(out_path, group)
-
-            # group level output targets
-            grp_targets = pjoin(grp_path, targets_dir)
-
-            # terrain correction intermediates
-            tc_path = pjoin(grp_path, CONFIG.get('work', 'tc_root'))
-
-            # reflectance outputs
-            rfl_path = pjoin(grp_path, CONFIG.get('work', 'reflectance_root'))
+            # brdf intermediates
+            brdf_path = pjoin(out_path, CONFIG.get('work', 'brdf_root'))
+            if not exists(brdf_path):
+                os.makedirs(brdf_path)
 
 
-            # bilinear
-            bil_path = pjoin(grp_path, CONFIG.get('work', 'bilinear_root'))
+            for group in groups:
+                grp_path = pjoin(out_path, group)
 
-            if not exists(grp_targets):
-                os.makedirs(grp_targets)
+                # group level output targets
+                grp_targets = pjoin(grp_path, targets_dir)
 
-            if not exists(tc_path):
-                os.makedirs(tc_path)
+                # terrain correction intermediates
+                tc_path = pjoin(grp_path, CONFIG.get('work', 'tc_root'))
 
-            if not exists(rfl_path):
-                os.makedirs(rfl_path)
+                # reflectance outputs
+                rfl_path = pjoin(grp_path,
+                                 CONFIG.get('work', 'reflectance_root'))
 
-            if not exists(bil_path):
-                os.makedirs(bil_path)
+
+                # bilinear
+                bil_path = pjoin(grp_path, CONFIG.get('work', 'bilinear_root'))
+
+                if not exists(grp_targets):
+                    os.makedirs(grp_targets)
+
+                if not exists(tc_path):
+                    os.makedirs(tc_path)
+
+                if not exists(rfl_path):
+                    os.makedirs(rfl_path)
+
+                if not exists(bil_path):
+                    os.makedirs(bil_path)
 
         save(self.output(), 'completed')
 
@@ -176,16 +151,19 @@ class GetElevationAncillaryData(luigi.Task):
         return [CreateWorkingDirectoryTree(self.l1t_path, self.out_path)]
 
     def output(self):
-        out_path = self.out_path
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, granule=self.granule)
         out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
         target = pjoin(out_path, 'GetElevationAncillaryData.task')
         return luigi.LocalTarget(target)
 
     def run(self):
-        acqs = retrieve_acquisitions(self.l1t_path)
+        container = gaip.acquisitions(self.l1t_path)
+        acqs = container.get_acquisitions(granule=self.granule)
         geobox = acqs[0].gridded_geo_box()
         dem_path = CONFIG.get('ancillary', 'dem_path')
-        out_fname = pjoin(self.out_path, CONFIG.get('work', 'dem_fname'))
+        out_path = container.get_root(self.out_path, granule=self.granule)
+        out_fname = pjoin(out_path, CONFIG.get('work', 'dem_fname'))
         value = gaip.get_elevation_data(geobox.centre_lonlat, dem_path)
         save(luigi.LocalTarget(out_fname), value)
         save(self.output(), 'completed')
@@ -203,19 +181,24 @@ class GetOzoneAncillaryData(luigi.Task):
         return [CreateWorkingDirectoryTree(self.l1t_path, self.out_path)]
 
     def output(self):
-        out_path = self.out_path
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, granule=self.granule)
         out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
         target = pjoin(out_path, 'GetOzoneAncillaryData.task')
         return luigi.LocalTarget(target)
 
     def run(self):
-        acqs = retrieve_acquisitions(self.l1t_path)
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, granule=self.granule)
+        acqs = container.get_acquisitions(granule=self.granule)
         geobox = acqs[0].gridded_geo_box()
+
         ozone_path = CONFIG.get('ancillary', 'ozone_path')
         centre = geobox.centre_lonlat
         dt = acqs[0].scene_center_datetime
         value = gaip.get_ozone_data(ozone_path, centre, dt)
-        out_fname = pjoin(self.out_path, CONFIG.get('work', 'ozone_fname'))
+
+        out_fname = pjoin(out_path, CONFIG.get('work', 'ozone_fname'))
         save(luigi.LocalTarget(out_fname), value)
         save(self.output(), 'completed')
 
@@ -232,16 +215,21 @@ class GetWaterVapourAncillaryData(luigi.Task):
         return [CreateWorkingDirectoryTree(self.l1t_path, self.out_path)]
 
     def output(self):
-        out_path = self.out_path
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, granule=self.granule)
         out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
         target = pjoin(out_path, 'GetWaterVapourAncillaryData.task')
         return luigi.LocalTarget(target)
 
     def run(self):
-        acqs = retrieve_acquisitions(self.l1t_path)
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, granule=self.granule)
+        acqs = container.get_acquisitions(granule=self.granule)
+
         vapour_path = CONFIG.get('ancillary', 'vapour_path')
         value = gaip.get_water_vapour(acqs[0], vapour_path)
-        out_fname = pjoin(self.out_path, CONFIG.get('work', 'vapour_fname'))
+
+        out_fname = pjoin(out_path, CONFIG.get('work', 'vapour_fname'))
         save(luigi.LocalTarget(out_fname), value)
         save(self.output(), 'completed')
 
@@ -258,18 +246,23 @@ class GetAerosolAncillaryData(luigi.Task):
         return [CreateWorkingDirectoryTree(self.l1t_path, self.out_path)]
 
     def output(self):
-        out_path = self.out_path
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, granule=self.granule)
         out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
         target = pjoin(out_path, 'GetAerosolAncillaryData.task')
         return luigi.LocalTarget(target)
 
     def run(self):
-        acqs = retrieve_acquisitions(self.l1t_path)
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, granule=self.granule)
+        acqs = container.get_acquisitions(granule=self.granule)
+
         aerosol_path = CONFIG.get('ancillary', 'aerosol_path')
         value = gaip.get_aerosol_data(acqs[0], aerosol_path)
         # aerosol_path = CONFIG.get('ancillary', 'aerosol_fname') # version 2
         # value = gaip.get_aerosol_data_v2(acqs[0], aerosol_path) # version 2
-        out_fname = pjoin(self.out_path, CONFIG.get('work', 'aerosol_fname'))
+
+        out_fname = pjoin(out_path, CONFIG.get('work', 'aerosol_fname'))
         save(luigi.LocalTarget(out_fname), value)
         save(self.output(), 'completed')
 
@@ -286,19 +279,23 @@ class GetBrdfAncillaryData(luigi.Task):
         return [CreateWorkingDirectoryTree(self.l1t_path, self.out_path)]
 
     def output(self):
-        out_path = self.out_path
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, granule=self.granule)
         out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
         target = pjoin(out_path, 'GetBrdfAncillaryData.task')
         return luigi.LocalTarget(target)
 
     def run(self):
-        acqs = retrieve_acquisitions(self.l1t_path)
-        out_path = self.out_path
+        container = gaip.acquisitions(self.l1t_path)
+        acqs = container.get_acquisitions(granule=self.granule)
+        out_path = container.get_root(self.out_path, granule=self.granule)
+
         work_path = pjoin(out_path, CONFIG.get('work', 'brdf_root'))
         brdf_path = CONFIG.get('ancillary', 'brdf_path')
         brdf_premodis_path = CONFIG.get('ancillary', 'brdf_premodis_path')
         value = gaip.get_brdf_data(acqs[0], brdf_path, brdf_premodis_path,
                                    work_path)
+
         out_fname = pjoin(out_path, CONFIG.get('work', 'brdf_fname'))
         save(luigi.LocalTarget(out_fname), value)
         save(self.output(), 'completed')
@@ -337,15 +334,21 @@ class CalculateLonGrid(luigi.Task):
         return [CreateWorkingDirectoryTree(self.l1t_path, self.out_path)]
 
     def output(self):
-        grp_path = pjoin(self.out_path, self.group)
-        grp_path = pjoin(grp_path, CONFIG.get('work', 'targets_root'))
-        target = pjoin(grp_path, 'CalculateLonGrid.task')
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'CalculateLonGrid.task')
         return luigi.LocalTarget(target)
 
     def run(self):
-        acqs = retrieve_acquisitions(self.l1t_path, self.group)
-        grp_path = pjoin(self.out_path, self.group)
-        out_fname = pjoin(grp_path, CONFIG.get('work', 'lon_grid_fname'))
+        container = gaip.acquisitions(self.l1t_path)
+        acqs = container.get_acquisitions(group=self.group,
+                                          granule=self.granule)
+        out_path = container.get_root(self.out_path, group=group,
+                                      granule=granule)
+
+        out_fname = pjoin(out_path, CONFIG.get('work', 'lon_grid_fname'))
         gaip.create_lon_grid(acqs[0], out_fname)
 
         save(self.output(), 'completed')
@@ -364,15 +367,21 @@ class CalculateLatGrid(luigi.Task):
         return [CreateWorkingDirectoryTree(self.l1t_path, self.out_path)]
 
     def output(self):
-        grp_path = pjoin(self.out_path, self.group)
-        grp_path = pjoin(grp_path, CONFIG.get('work', 'targets_root'))
-        target = pjoin(grp_path, 'CalculateLatGrid.task')
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'CalculateLatGrid.task')
         return luigi.LocalTarget(target)
 
     def run(self):
-        acqs = retrieve_acquisitions(self.l1t_path, self.group)
-        grp_path = pjoin(self.out_path, self.group)
-        out_fname = pjoin(grp_path, CONFIG.get('work', 'lat_grid_fname'))
+        container = gaip.acquisitions(self.l1t_path)
+        acqs = container.get_acquisitions(group=self.group,
+                                          granule=self.granule)
+        out_path = container.get_root(self.out_path, group=group,
+                                      granule=granule)
+
+        out_fname = pjoin(out_path, CONFIG.get('work', 'lat_grid_fname'))
         gaip.create_lat_grid(acqs[0], out_fname)
 
         save(self.output(), 'completed')
@@ -393,29 +402,34 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
                 CalculateLonGrid(*args)]
 
     def output(self):
-        grp_path = pjoin(self.out_path, self.group)
-        grp_path = pjoin(grp_path, CONFIG.get('work', 'targets_root'))
-        target = pjoin(grp_path, 'CalculateSatelliteAndSolarGrids.task')
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'CalculateSatelliteAndSolarGrids.task')
         return luigi.LocalTarget(target)
 
     def run(self):
-        grp_path = pjoin(self.out_path, self.group)
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
         fnames = [CONFIG.get('work', 'sat_view_fname'),
                   CONFIG.get('work', 'sat_azimuth_fname'),
                   CONFIG.get('work', 'solar_zenith_fname'),
                   CONFIG.get('work', 'solar_azimuth_fname'),
                   CONFIG.get('work', 'relative_azimuth_fname'),
                   CONFIG.get('work', 'time_fname')]
-        out_fnames = [pjoin(grp_path, f) for f in fnames]
-        centreline_fname = pjoin(grp_path,
+        out_fnames = [pjoin(out_path, f) for f in fnames]
+        centreline_fname = pjoin(out_path,
                                  CONFIG.get('work', 'centreline_fname'))
-        coordinator_fname = pjoin(grp_path,
+        coordinator_fname = pjoin(out_path,
                                   CONFIG.get('work', 'coordinator_fname'))
-        boxline_fname = pjoin(grp_path, CONFIG.get('work', 'boxline_fname'))
-        lon_fname = pjoin(grp_path, CONFIG.get('work', 'lon_grid_fname'))
-        lat_fname = pjoin(grp_path, CONFIG.get('work', 'lat_grid_fname'))
+        boxline_fname = pjoin(out_path, CONFIG.get('work', 'boxline_fname'))
+        lon_fname = pjoin(out_path, CONFIG.get('work', 'lon_grid_fname'))
+        lat_fname = pjoin(out_path, CONFIG.get('work', 'lat_grid_fname'))
 
-        acqs = retrieve_acquisitions(self.l1t_path, self.group)
+        acqs = container.get_acquisitions(group=self.group,
+                                          granule=self.granule)
 
         geobox = acqs[0].gridded_geo_box()
         cols = acqs[0].samples
@@ -437,6 +451,8 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
         save(self.output(), 'completed')
 
 
+# TODO: re-work for granules, and calculate ancillary average from
+# each granule
 class WriteTp5(luigi.Task):
 
     """Output the `tp5` formatted files."""
@@ -464,13 +480,17 @@ class WriteTp5(luigi.Task):
         return tasks
 
     def output(self):
-        out_path = self.out_path
+        container = gaip.acquisitions(self.l1t_path)
+        # TODO: we haven't passed in a granule
+        out_path = container.get_root(self.out_path, granule=self.granule)
         out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
         target = pjoin(out_path, 'WriteTp5.task')
         return luigi.LocalTarget(target)
 
     def run(self):
-        out_path = self.out_path
+        container = gaip.acquisitions(self.l1t_path)
+        # TODO: we haven't passed in a granule
+        out_path = container.get_root(self.out_path, granule=self.granule)
         coords = CONFIG.get('write_tp5', 'coords').split(',')
         albedos = CONFIG.get('write_tp5', 'albedos').split(',')
         output_format = CONFIG.get('write_tp5', 'output_format')
@@ -480,6 +500,9 @@ class WriteTp5(luigi.Task):
         # get the first group name
         group = gaip.acquisitions(self.l1t_path).keys()[0]
         grp_path = pjoin(out_path, group)
+        # TODO: retrieve a group for a granule
+        #group = container.
+        grp_path = container.get_root(self.out_path, group=group)
 
         # get the filenames for the coordinator,
         # satellite view zenith, azimuth, and latitude/longitude arrays
@@ -501,7 +524,9 @@ class WriteTp5(luigi.Task):
         elevation = load_value(elevation_fname)
 
         # load an acquisition
-        acq = retrieve_acquisitions(self.l1t_path, group)[0]
+        # TODO: we haven't passed in a granule
+        acq = container.get_acquisitions(group=self.group,
+                                         granule=self.granule)[0]
 
         # run
         gaip.write_tp5(acq, coord_fname, sat_view_fname, sat_azi_fname,
@@ -647,14 +672,17 @@ class RunModtranCase(luigi.Task):
         return [PrepareModtranInput(self.l1t_path, self.out_path)]
 
     def output(self):
-        out_path = self.out_path
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, granule=self.granule)
         out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
         target = pjoin(out_path, 'RunModtranCase_{coord}_{albedo}.task')
         target = target.format(coord=self.coord, albedo=self.albedo)
         return luigi.LocalTarget(target)
 
     def run(self):
-        out_path = self.out_path
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, granule=self.granule)
+
         modtran_exe = CONFIG.get('modtran', 'exe')
         workpath_format = CONFIG.get('modtran', 'workpath_format')
         modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
@@ -703,7 +731,8 @@ class RunAccumulateSolarIrradianceCase(luigi.Task):
         return [RunModtran(self.l1t_path, self.out_path, self.granule)]
 
     def output(self):
-        out_path = self.out_path
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, granule=self.granule)
         out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
         task = 'RunAccumulateSolarIrradianceCase_{coord}_{albedo}.task'
         target = pjoin(out_path, task)
@@ -711,8 +740,9 @@ class RunAccumulateSolarIrradianceCase(luigi.Task):
         return luigi.LocalTarget(target)
 
     def run(self):
-        acqs = retrieve_acquisitions(self.l1t_path)
-        out_path = self.out_path
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, granule=self.granule)
+
         modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
         input_format = CONFIG.get('extract_flux', 'input_format')
         input_format = pjoin(modtran_root, input_format)
@@ -747,7 +777,8 @@ class AccumulateSolarIrradiance(luigi.Task):
     granule = luigi.Parameter()
 
     def requires(self):
-        out_path = self.out_path
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, granule=self.granule)
         coords = CONFIG.get('extract_flux', 'coords').split(',')
         albedos = CONFIG.get('extract_flux', 'albedos').split(',')
         modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
@@ -783,13 +814,16 @@ class CalculateCoefficients(luigi.Task):
         return [AccumulateSolarIrradiance(*args)]
 
     def output(self):
-        out_path = self.out_path
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, granule=self.granule)
         out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
         target = pjoin(out_path, 'CalculateCoefficients.task')
         return luigi.LocalTarget(target)
 
     def run(self):
-        out_path = self.out_path
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, granule=self.granule)
+
         coords = CONFIG.get('coefficients', 'coords').split(',')
         chn_input_format = CONFIG.get('coefficients', 'chn_input_format')
         dir_input_format = CONFIG.get('coefficients', 'dir_input_format')
@@ -825,30 +859,36 @@ class BilinearInterpolationBand(luigi.Task):
     def output(self):
         band_num = self.band_num
         factor = self.factor
-        grp_path = pjoin(self.out_path, self.group)
-        grp_path = pjoin(grp_path, CONFIG.get('work', 'targets_root'))
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
         task = 'BilinearInterpolationBand_{band}_{factor}.task'
-        target = pjoin(grp_path, task.format(band=band_num, factor=factor))
+        target = pjoin(out_path, task.format(band=band_num, factor=factor))
         return luigi.LocalTarget(target)
 
     def run(self):
-        grp_path = pjoin(self.out_path, self.group)
-        coordinator = pjoin(grp_path,
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        coordinator = pjoin(out_path,
                             CONFIG.get('work', 'coordinator_fname'))
-        boxline = pjoin(grp_path,
+        boxline = pjoin(out_path,
                         CONFIG.get('work', 'boxline_fname'))
-        centreline = pjoin(grp_path,
+        centreline = pjoin(out_path,
                            CONFIG.get('work', 'centreline_fname'))
         input_format = CONFIG.get('bilinear', 'input_format')
         output_format = CONFIG.get('bilinear', 'output_format')
-        workpath = pjoin(grp_path,
+        workpath = pjoin(out_path,
                          CONFIG.get('work', 'bilinear_root'))
 
-        mod_work_path = pjoin(self.out_path,
+        mod_work_path = pjoin(container.get_root(self.out_path,
+                                                 granule=self.granule),
                               CONFIG.get('work', 'modtran_root'))
         input_format = pjoin(mod_work_path, input_format)
 
-        acqs = retrieve_acquisitions(self.l1t_path, self.group)
+        acqs = container.get_acquisitions(group=self.group,
+                                          granule=self.granule)
 
         # get the acquisition we wish to process
         acqs = [acq for acq in acqs if acq.band_num == self.band_num]
@@ -872,9 +912,10 @@ class BilinearInterpolation(luigi.Task):
     group = luigi.Parameter()
 
     def requires(self):
-        # TODO: retrieve acquisitions
         factors = CONFIG.get('bilinear', 'factors').split(',')
-        acqs = retrieve_acquisitions(self.l1t_path, self.group)
+        container = gaip.acquisitions(self.l1t_path)
+        acqs = container.get_acquisitions(group=self.group,
+                                          granule=self.granule)
 
         # Retrieve the satellite and sensor for the acquisition
         satellite = acqs[0].spacecraft_id
@@ -896,20 +937,25 @@ class BilinearInterpolation(luigi.Task):
         return tasks
 
     def output(self):
-        grp_path = pjoin(self.out_path, self.group)
-        grp_path = pjoin(grp_path, CONFIG.get('work', 'targets_root'))
-        target = pjoin(grp_path, 'BilinearInterpolation.task')
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'BilinearInterpolation.task')
         return luigi.LocalTarget(target)
 
     def run(self):
-        grp_path = pjoin(self.out_path, self.group)
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
         factors = CONFIG.get('bilinear', 'factors').split(',')
         input_format = CONFIG.get('bilinear', 'input_format')
         output_format = CONFIG.get('bilinear', 'output_format')
-        workpath = pjoin(grp_path, CONFIG.get('work', 'bilinear_root'))
+        workpath = pjoin(out_path, CONFIG.get('work', 'bilinear_root'))
         input_format = pjoin(workpath, input_format)
 
-        acqs = retrieve_acquisitions(self.l1t_path, self.group)
+        acqs = container.get_acquisitions(group=self.group,
+                                          granule=self.granule)
         bands = [a.band_num for a in acqs]
 
         # Retrieve the satellite and sensor for the acquisition
@@ -931,7 +977,7 @@ class BilinearInterpolation(luigi.Task):
                 fname = pjoin(workpath, fname)
                 bilinear_fnames[(band, factor)] = fname
 
-        out_fname = pjoin(grp_path,
+        out_fname = pjoin(out_path,
                           CONFIG.get('work', 'bilinear_outputs_fname'))
         save(luigi.LocalTarget(out_fname), bilinear_fnames)
 
@@ -955,15 +1001,21 @@ class DEMExctraction(luigi.Task):
         return [CreateWorkingDirectoryTree(self.l1t_path, self.out_path)]
 
     def output(self):
-        grp_path = pjoin(self.out_path, self.group)
-        grp_path = pjoin(grp_path, CONFIG.get('work', 'targets_root'))
-        target = pjoin(grp_path, 'DEMExctraction.task')
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'DEMExctraction.task')
         return luigi.LocalTarget(target)
 
     def run(self):
-        acqs = retrieve_acquisitions(self.l1t_path, self.group)
-        grp_path = pjoin(self.out_path, self.group)
-        work_path = pjoin(grp_path, CONFIG.get('work', 'tc_root'))
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        acqs = container.get_acquisitions(group=self.group,
+                                          granule=self.granule)
+
+        work_path = pjoin(out_path, CONFIG.get('work', 'tc_root'))
         national_dsm = CONFIG.get('ancillary', 'dem_tc')
         subset_fname = CONFIG.get('extract_dsm', 'dsm_subset')
         smoothed_fname = CONFIG.get('extract_dsm', 'dsm_smooth_subset')
@@ -994,16 +1046,21 @@ class SlopeAndAspect(luigi.Task):
         # return [DEMExctraction(self.l1t_path, self.out_path, self.group)]
 
     def output(self):
-        grp_path = pjoin(self.out_path, self.group)
-        grp_path = pjoin(grp_path, CONFIG.get('work', 'targets_root'))
-        target = pjoin(grp_path, 'SlopeAndAspect.task')
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'SlopeAndAspect.task')
         return luigi.LocalTarget(target)
 
     def run(self):
-        grp_path = pjoin(self.out_path, self.group)
-        work_path = pjoin(grp_path, CONFIG.get('work', 'tc_root'))
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        work_path = pjoin(out_path, CONFIG.get('work', 'tc_root'))
 
-        acqs = retrieve_acquisitions(self.l1t_path, self.group)
+        acqs = container.get_acquisitions(group=self.group,
+                                          granule=self.granule)
 
         # Input filename
         smoothed_dsm_fname = pjoin(work_path, CONFIG.get('extract_dsm',
@@ -1040,24 +1097,25 @@ class IncidentAngles(luigi.Task):
         args = [self.l1t_path, self.out_path, self.granule, self.group]
         return [CalculateSatelliteAndSolarGrids(*args),
                 SlopeAndAspect(*args)]
-        # return [CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path,
-        #                                         self.group),
-        #         SlopeAndAspect(self.l1t_path, self.out_path, self.group)]
 
     def output(self):
-        grp_path = pjoin(self.out_path, self.group)
-        grp_path = pjoin(grp_path, CONFIG.get('work', 'targets_root'))
-        target = pjoin(grp_path, 'IncidentAngles.task')
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'IncidentAngles.task')
         return luigi.LocalTarget(target)
 
     def run(self):
-        grp_path = pjoin(self.out_path, self.group)
-        work_path = pjoin(grp_path, CONFIG.get('work', 'tc_root'))
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        work_path = pjoin(out_path, CONFIG.get('work', 'tc_root'))
 
         # Input filenames
-        solar_zenith_fname = pjoin(grp_path,
+        solar_zenith_fname = pjoin(out_path,
                                    CONFIG.get('work', 'solar_zenith_fname'))
-        solar_azimuth_fname = pjoin(grp_path,
+        solar_azimuth_fname = pjoin(out_path,
                                     CONFIG.get('work',
                                                'solar_azimuth_fname'))
         slope_fname = pjoin(work_path,
@@ -1099,26 +1157,27 @@ class ExitingAngles(luigi.Task):
 
     def requires(self):
         args = [self.l1t_path, self.out_path, self.granule, self.group]
-        return [CalculateSatelliteAndSolarGrids(*args)
+        return [CalculateSatelliteAndSolarGrids(*args),
                 SlopeAndAspect(*args)]
-        # return [CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path,
-        #                                         self.group),
-        #         SlopeAndAspect(self.l1t_path, self.out_path, self.group)]
 
     def output(self):
-        grp_path = pjoin(self.out_path, self.group)
-        grp_path = pjoin(grp_path, CONFIG.get('work', 'targets_root'))
-        target = pjoin(grp_path, 'ExitingAngles.task')
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'ExitingAngles.task')
         return luigi.LocalTarget(target)
 
     def run(self):
-        grp_path = pjoin(self.out_path, self.group)
-        work_path = pjoin(grp_path, CONFIG.get('work', 'tc_root'))
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        work_path = pjoin(out_path, CONFIG.get('work', 'tc_root'))
 
         # Input filenames
-        satellite_view_fname = pjoin(grp_path,
+        satellite_view_fname = pjoin(out_path,
                                      CONFIG.get('work', 'sat_view_fname'))
-        satellite_azimuth_fname = pjoin(grp_path,
+        satellite_azimuth_fname = pjoin(out_path,
                                         CONFIG.get('work',
                                                    'sat_azimuth_fname'))
         slope_fname = pjoin(work_path,
@@ -1162,18 +1221,20 @@ class RelativeAzimuthSlope(luigi.Task):
         args = [self.l1t_path, self.out_path, self.granule, self.group]
         return [IncidentAngles(*args),
                 ExitingAngles(*args)]
-        # return [IncidentAngles(self.l1t_path, self.out_path, self.group),
-        #         ExitingAngles(self.l1t_path, self.out_path, self.group)]
 
     def output(self):
-        grp_path = pjoin(self.out_path, self.group)
-        grp_path = pjoin(grp_path, CONFIG.get('work', 'targets_root'))
-        target = pjoin(grp_path, 'RelativeAzimuthSlope.task')
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'RelativeAzimuthSlope.task')
         return luigi.LocalTarget(target)
 
     def run(self):
-        grp_path = pjoin(self.out_path, self.group)
-        work_path = pjoin(grp_path, CONFIG.get('work', 'tc_root'))
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        work_path = pjoin(out_path, CONFIG.get('work', 'tc_root'))
 
         # Input filenames
         azi_incident_fname = pjoin(work_path,
@@ -1214,18 +1275,20 @@ class SelfShadow(luigi.Task):
         args = [self.l1t_path, self.out_path, self.granule, self.group]
         return [IncidentAngles(*args),
                 ExitingAngles(*args)]
-        # return [IncidentAngles(self.l1t_path, self.out_path, self.group),
-        #         ExitingAngles(self.l1t_path, self.out_path, self.group)]
 
     def output(self):
-        grp_path = pjoin(self.out_path, self.group)
-        grp_path = pjoin(grp_path, CONFIG.get('work', 'targets_root'))
-        target = pjoin(grp_path, 'SelfShadow.task')
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'SelfShadow.task')
         return luigi.LocalTarget(target)
 
     def run(self):
-        grp_path = pjoin(self.out_path, self.group)
-        work_path = pjoin(grp_path, CONFIG.get('work', 'tc_root'))
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        work_path = pjoin(out_path, CONFIG.get('work', 'tc_root'))
 
         # Input filenames
         incident_fname = pjoin(work_path,
@@ -1262,10 +1325,6 @@ class CalculateCastShadow(luigi.Task):
         args = [self.l1t_path, self.out_path, self.granule, self.group]
         return [CalculateCastShadowSun(*args),
                 CalculateCastShadowSatellite(*args)]
-        # return [CalculateCastShadowSun(self.l1t_path, self.out_path,
-        #                                self.group),
-        #         CalculateCastShadowSatellite(self.l1t_path, self.out_path,
-        #                                      self.group)]
 
     def complete(self):
         return all([t.complete() for t in self.requires()])
@@ -1287,28 +1346,30 @@ class CalculateCastShadowSun(luigi.Task):
         args = [self.l1t_path, self.out_path, self.granule, self.group]
         return [CalculateSatelliteAndSolarGrids(*args),
                 DEMExctraction(*args)]
-        # return [CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path,
-        #                                         self.group),
-        #         DEMExctraction(self.l1t_path, self.out_path, self.group)]
 
     def output(self):
-        grp_path = pjoin(self.out_path, self.group)
-        grp_path = pjoin(grp_path, CONFIG.get('work', 'targets_root'))
-        target = pjoin(grp_path, 'CalculateCastShadowSun.task')
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'CalculateCastShadowSun.task')
         return luigi.LocalTarget(target)
 
     def run(self):
-        acqs = retrieve_acquisitions(self.l1t_path, self.group)
-        grp_path = pjoin(self.out_path, self.group)
-        tc_work_path = pjoin(grp_path, CONFIG.get('work', 'tc_root'))
+        container = gaip.acquisitions(self.l1t_path)
+        acqs = container.get_acquisitions(group=self.group,
+                                          granule=self.granule)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        tc_work_path = pjoin(out_path, CONFIG.get('work', 'tc_root'))
 
         # Input filenames
         smoothed_dsm_fname = pjoin(tc_work_path,
                                    CONFIG.get('extract_dsm',
                                               'dsm_smooth_subset'))
-        solar_zenith_fname = pjoin(grp_path,
+        solar_zenith_fname = pjoin(out_path,
                                    CONFIG.get('work', 'solar_zenith_fname'))
-        solar_azimuth_fname = pjoin(grp_path,
+        solar_azimuth_fname = pjoin(out_path,
                                     CONFIG.get('work', 'solar_azimuth_fname'))
         buffer = int(CONFIG.get('extract_dsm', 'dsm_buffer_width'))
         window_height = int(CONFIG.get('terrain_correction',
@@ -1342,37 +1403,32 @@ class CalculateCastShadowSatellite(luigi.Task):
 
     def requires(self):
         args = [self.l1t_path, self.out_path, self.granule, self.group]
-        return [CalculateSatelliteAndSolarGrids(*args)
-        # return [CalculateSatelliteAndSolarGrids(self.l1t_path, self.out_path,
-        #                                         self.group),
-        #         DEMExctraction(self.l1t_path, self.out_path, self.group)]
+        return [CalculateSatelliteAndSolarGrids(*args),
+                DEMExctraction(*args)]
 
     def output(self):
-        # TODO: create a func to return the output path
-        grp_path = pjoin(self.out_path, self.group)
-        grp_path = pjoin(grp_path, CONFIG.get('work', 'targets_root'))
-        target = pjoin(grp_path, 'CalculateCastShadowSatellite.task')
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'CalculateCastShadowSatellite.task')
         return luigi.LocalTarget(target)
 
     def run(self):
-        acqs = retrieve_acquisitions(self.l1t_path, self.group)
-        grp_path = pjoin(self.out_path, self.group)
-        tc_work_path = pjoin(grp_path, CONFIG.get('work', 'tc_root'))
-        # TODO: cleanup old retreival
-        # acqs = retrieve_acquisitions(self.l1t_path, self.group)
         container = gaip.acquisitions(self.l1t_path)
-        # TODO: create a func to return the output path
-        # grp_path = pjoin(self.out_path, self.group)
-        # grp_path = TODO !!!
-        # tc_work_path = TODO !!!
+        acqs = container.get_acquisitions(group=self.group,
+                                          granule=self.granule)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        tc_work_path = pjoin(out_path, CONFIG.get('work', 'tc_root'))
 
         # Input filenames
         smoothed_dsm_fname = pjoin(tc_work_path,
                                    CONFIG.get('extract_dsm',
                                               'dsm_smooth_subset'))
-        satellite_view_fname = pjoin(grp_path,
+        satellite_view_fname = pjoin(out_path,
                                      CONFIG.get('work', 'sat_view_fname'))
-        satellite_azimuth_fname = pjoin(grp_path,
+        satellite_azimuth_fname = pjoin(out_path,
                                         CONFIG.get('work',
                                                    'sat_azimuth_fname'))
         buffer = int(CONFIG.get('extract_dsm', 'dsm_buffer_width'))
@@ -1410,42 +1466,34 @@ class RunTCBand(luigi.Task):
                 DEMExctraction(*args),
                 RelativeAzimuthSlope(*args),
                 SelfShadow(*args),
-                CalculateCastShadow(*args)
-        # return [BilinearInterpolation(self.l1t_path, self.out_path,
-        #                               self.granule, self.group),
-        #         DEMExctraction(self.l1t_path, self.out_path, self.granule,
-        #                        self.group),
-        #         RelativeAzimuthSlope(self.l1t_path, self.out_path,
-        #                              self.granule, self.group),
-        #         SelfShadow(self.l1t_path, self.out_path, self.granule,
-        #                    self.group),
-        #         CalculateCastShadow(self.l1t_path, self.out_path, self.granule,
-        #                             self.group)]
+                CalculateCastShadow(*args)]
 
     def output(self):
-        # TODO: create a func to return the output path
-        grp_path = pjoin(self.out_path, self.group)
-        grp_path = pjoin(grp_path, CONFIG.get('work', 'targets_root'))
-        target = pjoin(grp_path, 'RunTCBand{band}.task')
+        container = gaip.acquisitions(self.l1t_path)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'RunTCBand{band}.task')
         return luigi.LocalTarget(target.format(band=self.band_num))
 
     def run(self):
-        # TODO: cleanup old retreival
-        # acqs = retrieve_acquisitions(self.l1t_path, self.group)
         container = gaip.acquisitions(self.l1t_path)
-        # TODO: create a func to return the output path
-        # grp_path = pjoin(self.out_path, self.group)
-        # grp_path = TODO !!!
+        acqs = container.get_acquisitions(group=self.group,
+                                          granule=self.granule)
+        out_path = container.get_root(self.out_path, group=self.group,
+                                      granule=self.granule)
+        granule_path = container.get_root(self.out_path,
+                                          granule=self.granule)
 
         # Get the necessary config params
-        tc_path = pjoin(grp_path, CONFIG.get('work', 'tc_root'))
-        outdir = pjoin(grp_path, CONFIG.get('work', 'reflectance_root'))
-        bilinear_fname = pjoin(grp_path, 
+        tc_path = pjoin(out_path, CONFIG.get('work', 'tc_root'))
+        outdir = pjoin(out_path, CONFIG.get('work', 'reflectance_root'))
+        bilinear_fname = pjoin(out_path, 
                                CONFIG.get('work', 'bilinear_outputs_fname'))
         bilinear_data = load_value(bilinear_fname)
         rori = float(CONFIG.get('terrain_correction', 'rori'))
 
-        brdf_fname = pjoin(self.out_path, CONFIG.get('work', 'brdf_fname'))
+        brdf_fname = pjoin(granule_path, CONFIG.get('work', 'brdf_fname'))
         brdf_data = load_value(brdf_fname)
 
         # Get the reflectance levels and base output format
@@ -1472,13 +1520,13 @@ class RunTCBand(luigi.Task):
         satellite_fname = pjoin(tc_path,
                                 CONFIG.get('cast_shadow',
                                            'satellite_direction_fname'))
-        solar_zenith_fname = pjoin(grp_path,
+        solar_zenith_fname = pjoin(out_path,
                                    CONFIG.get('work', 'solar_zenith_fname'))
-        solar_azimuth_fname = pjoin(grp_path,
+        solar_azimuth_fname = pjoin(out_path,
                                     CONFIG.get('work', 'solar_azimuth_fname'))
-        satellite_view_fname = pjoin(grp_path,
+        satellite_view_fname = pjoin(out_path,
                                      CONFIG.get('work', 'sat_view_fname'))
-        relative_angle_fname = pjoin(grp_path,
+        relative_angle_fname = pjoin(out_path,
                                      CONFIG.get('work',
                                                 'relative_azimuth_fname'))
 
@@ -1521,10 +1569,9 @@ class TerrainCorrection(luigi.Task):
     group = luigi.Parameter()
 
     def requires(self):
-        # TODO: cleanup old retreival
-        # acqs = retrieve_acquisitions(self.l1t_path, self.group)
         container = gaip.acquisitions(self.l1t_path)
-        # TODO: retrieve single acquisition
+        acqs = container.get_acquisitions(group=self.group,
+                                          granule=self.granule)
 
         # Retrieve the satellite and sensor for the acquisition
         satellite = acqs[0].spacecraft_id
@@ -1556,8 +1603,6 @@ class WriteMetadata(luigi.Task):
     out_path = luigi.Parameter()
 
     def requires(self):
-        # TODO: cleanup old retreival
-        # groups = gaip.acquisitions(self.l1t_path)
         container = gaip.acquisitions(self.l1t_path)
         tasks = []
         for granule in acqs.granules:
@@ -1573,11 +1618,11 @@ class WriteMetadata(luigi.Task):
         return luigi.LocalTarget(target)
 
     def run(self):
-        # TODO: cleanup old retreival
-        # acqs = retrieve_acquisitions(self.l1t_path)
-        # acq = acqs[0]
-        container = gaip.acquisitions(self.l1t_path)
         # TODO: retrieve single acquisition
+        # TODO: a single acquisition doesn't account for all granules
+        # TODO: do we write metadata per granule???
+        container = gaip.acquisitions(self.l1t_path)
+        acq = container.get_acquisitions()[0]
         out_path = self.out_path
 
         source_info = {}
@@ -1771,19 +1816,6 @@ def main(l1t_list, outpath, nnodes=1, nodenum=1):
         l1t = l1t.strip()
         if l1t == '': continue
         bf = basename(l1t)
-
-        # TODO: remove
-        acq = retrieve_acquisitions(l1t)[0]
-
-        # TODO: filter outside of nbar so it receives a clean list???
-        # can't be applied anyway for sentinel-2a
-        # if ((87 <= acq.path <= 116) & (67 <= acq.row <= 91)):
-        #     completed = pjoin(outpath,
-        #                       '.'.join([bf, "nbar-work", "completed"]))
-        #     if exists(completed):
-        #         msg = "NBAR for {} already exists...skipping".format(l1t)
-        #         logging.info(msg)
-        #         continue
 
         # create a workpath for the given scene/granule (l1t) dataset
         nbar = pjoin(outpath, bf + ".nbar-work")
