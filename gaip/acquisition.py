@@ -80,6 +80,17 @@ class AcquisitionsContainer(object):
         else:
             return self._granules[granule]
 
+    def get_root(self, path='', group=None, granule=None):
+        if (granule is None) or (granule not in self.granules):
+            root = path
+        else:
+            root = pjoin(path, granule)
+
+        if (group is not None) and (group in self.groups):
+            root = pjoin(root, group)
+
+        return root
+
 
 @total_ordering
 class Acquisition(object):
