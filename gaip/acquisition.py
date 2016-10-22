@@ -877,7 +877,7 @@ def acquisitions_via_mtl(path):
 
         acqs.append(acqtype(new))
 
-    return {'product': sorted(acqs)}
+    return AcquisitionsContainer(groups={'product': sorted(acqs)})
 
 
 def acquisitions_via_safe(path):
@@ -1015,7 +1015,7 @@ def acquisitions_via_safe(path):
             resolutions[res_dir] = sorted(acqs)
         granules[granule] = resolutions
 
-    return granules
+    return AcquisitionsContainer(granules=granules)
 
 
 class Sentinel2aAcquisition(Acquisition):
