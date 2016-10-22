@@ -195,8 +195,8 @@ class GetOzoneAncillaryData(luigi.Task):
 
         ozone_path = CONFIG.get('ancillary', 'ozone_path')
         centre = geobox.centre_lonlat
-        dt = acqs[0].scene_center_datetime
-        value = gaip.get_ozone_data(ozone_path, centre, dt)
+        centre_datetime = acqs[0].scene_center_datetime
+        value = gaip.get_ozone_data(ozone_path, centre, centre_datetime)
 
         out_fname = pjoin(out_path, CONFIG.get('work', 'ozone_fname'))
         save(luigi.LocalTarget(out_fname), value)
