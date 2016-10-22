@@ -546,6 +546,10 @@ class WriteTp5(luigi.Task):
         container = gaip.acquisitions(self.l1t_path)
         tasks = []
 
+        # are we dealing with tiles/granules?
+        if container.tiled:
+            tasks.append(AggregateAncillary(self.l1t_path, self.out_path))
+
         for granule in container.granules:
             args1 = [self.l1t_path, self.out_path, granule]
             tasks.append(GetAncillaryData(args1))
@@ -609,11 +613,11 @@ class WriteTp5(luigi.Task):
         save(self.output(), 'completed')
 
 
-class FilesRequiredByFugin(luigi.Task):
+class LegacyOutputs(luigi.Task):
 
     """
-    A task that isn't required for production, but is required
-    for Fuqin to undergo validation. The files produced by this
+    A task that isn't required for production, but can be useful for
+    users undergoing validation. The files produced by this
     task are neccessary for her version of NBAR to run, whereas
     the production version skips producing file `a` and goes direct
     to file `b`, or simply is not used by the system and hence has
@@ -624,10 +628,12 @@ class FilesRequiredByFugin(luigi.Task):
     out_path = luigi.Parameter()
 
     def requires(self):
-        # TODO: kick off per granule and group tasks
         container = gaip.acquisitions(self.l1t_path)
-        # groups = gaip.acquisitions(self.l1t_path)
         tasks = []
+
+        # are we dealing with tiles/granules?
+        if container.tiled:
+            tasks.append(AggregateAncillary(self.l1t_path, self.out_path))
 
         for granule in container.granules:
             args1 = [self.l1t_path, self.out_path, granule]
@@ -643,17 +649,17 @@ class FilesRequiredByFugin(luigi.Task):
     def output(self):
         out_path = self.out_path
         out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
-        target = pjoin(out_path, 'FilesRequiredByFugin.task')
+        target = pjoin(out_path, 'LegacyOutputs.task')
         return luigi.LocalTarget(target)
 
     def run(self):
         out_path = self.out_path
-        groups = gaip.acquisitions(self.l1t_path)
-        acqs = groups[groups.keys()[0]]
+        container = gaip.acquisitions(self.l1t_path)
+        acqs = container.get_acqisitions()
 
         # satellite filter file
         satfilterpath = CONFIG.get('ancillary', 'satfilter_path')
-        filter_fname = CONFIG.get('fuqin_requires', 'sat_filter_fname')
+        filter_fname = CONFIG.get('legacy_outputs', 'sat_filter_fname')
         out_fname = pjoin(out_path, filter_fname)
         gaip.create_satellite_filter_file(acqs, satfilterpath, out_fname)
 
@@ -662,7 +668,7 @@ class FilesRequiredByFugin(luigi.Task):
         vapour_fname = pjoin(out_path, CONFIG.get('work', 'vapour_fname'))
         aerosol_fname = pjoin(out_path, CONFIG.get('work', 'aerosol_fname'))
         elevation_fname = pjoin(out_path, CONFIG.get('work', 'dem_fname'))
-        mod_input_fname = CONFIG.get('fuqin_requires', 'modtran_input_fname')
+        mod_input_fname = CONFIG.get('legacy_outputs', 'modtran_input_fname')
         out_fname = pjoin(out_path, mod_input_fname)
         ozone = load_value(ozone_fname)
         vapour = load_value(vapour_fname)
@@ -671,38 +677,41 @@ class FilesRequiredByFugin(luigi.Task):
         gaip.write_modtran_input(acqs, out_fname, ozone, vapour, aerosol,
                                  elevation)
 
-        for group in groups:
-            acqs = groups[group]
-            grp_path = pjoin(out_path, group)
+        for granule in container.granules:
+            for group in groups:
+                acqs = container.get_acquisitions(group=group, granule=granule)
+                grp_path = container.get_root(group=group, granule=granule)
 
-            # modtran input files
-            coordinator_fname = pjoin(grp_path,
-                                      CONFIG.get('work', 'coordinator_fname'))
-            sat_view_zenith_fname = pjoin(grp_path,
-                                          CONFIG.get('work', 'sat_view_fname'))
-            sat_azimuth_fname = pjoin(grp_path,
-                                      CONFIG.get('work', 'sat_azimuth_fname'))
-            lon_grid_fname = pjoin(grp_path,
-                                   CONFIG.get('work', 'lon_grid_fname'))
-            lat_grid_fname = pjoin(grp_path,
-                                   CONFIG.get('work', 'lat_grid_fname'))
+                # modtran input files
+                coordinator_fname = CONFIG.get('work', 'coordinator_fname')
+                coordinator_fname = pjoin(grp_path, coordinator_fname)
+                sat_view_zenith_fname = CONFIG.get('work', 'sat_view_fname')
+                sat_view_zenith_fname = pjoin(grp_path, sat_view_zenith_fname)
+                sat_azimuth_fname = CONFIG.get('work', 'sat_azimuth_fname')
+                sat_azimuth_fname = pjoin(grp_path, sat_azimuth_fname)
+                lon_grid_fname = CONFIG.get('work', 'lon_grid_fname')
+                lon_grid_fname = pjoin(grp_path, lon_grid_fname)
+                lat_grid_fname = CONFIG.get('work', 'lat_grid_fname')
+                lat_grid_fname = pjoin(grp_path, lat_grid_fname)
 
-            coords = CONFIG.get('fuqin_requires', 'coords').split(',')
-            albedos = CONFIG.get('fuqin_requires', 'albedos').split(',')
-            fname_format = CONFIG.get('fuqin_requires', 'output_format')
+                coords = CONFIG.get('legacy_outputs', 'coords').split(',')
+                albedos = CONFIG.get('legacy_outputs', 'albedos').split(',')
+                fname_format = CONFIG.get('legacy_outputs', 'output_format')
 
-            out_fname_fmt = pjoin(grp_path, fname_format)
-            gaip.write_modtran_inputs(acqs[0], coordinator_fname,
-                                      sat_view_zenith_fname, sat_azimuth_fname,
-                                      lat_grid_fname, lon_grid_fname, ozone,
-                                      vapour, aerosol, elevation, coords,
-                                      albedos, out_fname_fmt)
+                out_fname_fmt = pjoin(grp_path, fname_format)
+                gaip.write_modtran_inputs(acqs[0], coordinator_fname,
+                                          sat_view_zenith_fname,
+                                          sat_azimuth_fname,
+                                          lat_grid_fname, lon_grid_fname,
+                                          ozone, vapour, aerosol, elevation,
+                                          coords, albedos, out_fname_fmt)
 
-            # header angle file
-            hdr_angle_fname = CONFIG.get('work', 'header_angle_fname')
-            header_angle_fname = pjoin(grp_path, hdr_angle_fname)
-            gaip.create_header_angle_file(acqs[0], view_max=9.0,
-                                          outfname=header_angle_fname)
+                # header angle file
+                view_max = acqs[0].maximum_view_angle
+                hdr_angle_fname = CONFIG.get('work', 'header_angle_fname')
+                header_angle_fname = pjoin(grp_path, hdr_angle_fname)
+                gaip.create_header_angle_file(acqs[0], view_max=view_max,
+                                              outfname=header_angle_fname)
 
         save(self.output(), 'completed')
 
@@ -716,9 +725,8 @@ class PrepareModtranInput(luigi.Task):
 
     def requires(self):
         args = [self.l1t_path, self.out_path]
-        # are we running a validation suite for Fuqin?
-        # TODO: replace 'fuqin_requires' with a different name
-        if bool(int(CONFIG.get('fuqin_requires', 'required'))):
+        # do need to output the legacy files?
+        if bool(int(CONFIG.get('legacy_outputs', 'required'))):
             tasks = [FilesRequiredByFugin(*args),
                      WriteTp5(*args)]
         else:
