@@ -1875,7 +1875,7 @@ def scatter(iterable, P=1, p=1):
     return itertools.islice(iterable, p-1, None, P)
  
  
-def main(l1t_list, outpath, nnodes=1, nodenum=1):
+def main(level1_list, work_root, nnodes=1, nodenum=1):
     # Setup Software Versions for Packaging
     ptype.register_software_version(
         software_code='gaip',
@@ -1891,18 +1891,18 @@ def main(l1t_list, outpath, nnodes=1, nodenum=1):
     # create product output dirs
     products = CONFIG.get('packaging', 'products').split(',')
     for product in products:
-        product_dir = pjoin(outpath, product)
+        product_dir = pjoin(work_root, product)
         if not exists(product_dir): os.makedirs(product_dir)
 
     tasks = []
-    for l1t in open(l1t_list).readlines():
-        l1t = l1t.strip()
-        if l1t == '': continue
-        bf = basename(l1t)
+    for level1 in open(level1_list).readlines():
+        level1 = level1.strip()
+        if level1 == '': continue
+        bf = basename(level1)
 
-        # create a workpath for the given scene/granule (l1t) dataset
-        nbar = pjoin(outpath, bf + ".nbar-work")
-        tasks.append(PackageTC(l1t, nbar, outpath))
+        # create a workpath for the given scene/granule (level1) dataset
+        nbar = pjoin(work_root, bf + ".nbar-work")
+        tasks.append(PackageTC(level1, nbar, work_root))
 
     tasks = [f for f in scatter(tasks, nnodes, nodenum)]
     ncpus = int(os.getenv('PBS_NCPUS', '1'))
@@ -1911,11 +1911,11 @@ def main(l1t_list, outpath, nnodes=1, nodenum=1):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input_list",
+    parser.add_argument("--level1_list",
                         help="A full file path listing scene/granule datasets",
                         required=True,
                         type=lambda x: is_valid_path(parser, x))
-    parser.add_argument("--out_path", help=("Path to directory where NBAR "
+    parser.add_argument("--work_root", help=("Path to directory where NBAR "
                         "datasets are to be written"), required=True)
     parser.add_argument('--cfg_file',
                         help='Path to a user defined configuration file.')
@@ -1958,4 +1958,4 @@ if __name__ == '__main__':
 
     size = int(os.getenv('PBS_NNODES', '1'))
     rank = int(os.getenv('PBS_VNODENUM', '1'))
-    main(args.input_list, args.out_path, size, rank)
+    main(args.level1_list, args.work_root, size, rank)
