@@ -1799,23 +1799,23 @@ class Packager(luigi.Task):
     """Packages an nbar or nbart product."""
 
     level1 = luigi.Parameter()
-    out_path = luigi.Parameter()
-    work_path = luigi.Parameter()
+    work_root = luigi.Parameter()
+    nbar_root = luigi.Parameter()
     product = luigi.Parameter()
 
     def requires(self):
-        return [WriteMetadata(self.level1, self.work_path)]
+        return [WriteMetadata(self.level1, self.nbar_root)]
 
     def output(self):
-        out_path = pjoin(self.work_path, CONFIG.get('work', 'targets_root'))
+        out_path = pjoin(self.nbar_root, CONFIG.get('work', 'targets_root'))
         target = pjoin(out_path, 'Packager_{}.task')
         return luigi.LocalTarget(target.format(self.product))
 
     def run(self):
         # run the packager
         kwargs = {'driver': PACKAGE_DRIVERS[self.product],
-                  'input_data_paths': [Path(self.work_path)],
-                  'destination_path': Path(pjoin(self.out_path, self.product)),
+                  'input_data_paths': [Path(self.nbar_root)],
+                  'destination_path': Path(pjoin(self.work_root, self.product)),
                   'parent_dataset_paths': [Path(self.level1)],
                   'metadata_expand_fn': lambda dataset: dataset.lineage.machine.note_current_system_software(),
                   'hard_link': False}
@@ -1829,21 +1829,21 @@ class PackageTC(luigi.Task):
     """Issues nbar &/or nbart packaging depending on the config."""
 
     level1 = luigi.Parameter()
-    work_path = luigi.Parameter()
-    out_path = luigi.Parameter()
+    work_root = luigi.Parameter()
+    nbar_root = luigi.Parameter()
 
     def requires(self):
         products = CONFIG.get('packaging', 'products').split(',')
         tasks = []
         for product in products:
-            tasks.append(Packager(self.level1, self.out_path, self.work_path,
+            tasks.append(Packager(self.level1, self.work_root, self.nbar_root,
                                   product))
         return tasks
 
     def output(self):
         out_format = '{}.completed'
-        base_dir = dirname(self.work_path)
-        fname = out_format.format(basename(self.work_path))
+        base_dir = dirname(self.nbar_root)
+        fname = out_format.format(basename(self.nbar_root))
         out_fname = pjoin(base_dir, fname)
         return luigi.LocalTarget(out_fname)
 
@@ -1854,7 +1854,7 @@ class PackageTC(luigi.Task):
         # cleanup the entire nbar scene working directory
         cleanup = CONFIG.getboolean('cleanup', 'cleanup')
         if cleanup:
-            shutil.rmtree(self.work_path)
+            shutil.rmtree(self.nbar_root)
 
 
 def is_valid_path(parser, arg):
@@ -1900,9 +1900,9 @@ def main(level1_list, work_root, nnodes=1, nodenum=1):
         if level1 == '': continue
         bf = basename(level1)
 
-        # create a workpath for the given scene/granule (level1) dataset
-        nbar = pjoin(work_root, bf + ".nbar-work")
-        tasks.append(PackageTC(level1, nbar, work_root))
+        # create a workpath for the given level1 dataset
+        nbar_root = pjoin(work_root, bf + ".nbar-work")
+        tasks.append(PackageTC(level1, work_root, nbar_root))
 
     tasks = [f for f in scatter(tasks, nnodes, nodenum)]
     ncpus = int(os.getenv('PBS_NCPUS', '1'))
@@ -1912,7 +1912,7 @@ def main(level1_list, work_root, nnodes=1, nodenum=1):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--level1_list",
-                        help="A full file path listing scene/granule datasets",
+                        help="A full file path listing of level1 datasets",
                         required=True,
                         type=lambda x: is_valid_path(parser, x))
     parser.add_argument("--work_root", help=("Path to directory where NBAR "
