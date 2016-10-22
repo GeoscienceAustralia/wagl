@@ -42,22 +42,60 @@ class AcquisitionsContainer(object):
     all part of the same geospatial area or scene.
     
     Note: Assuming that each granule contains the same groups.
+
+    The `AcquisitionsContainer.tiled` property indicates whether or
+    not a scene is partitioned into several tiles referred to as
+    granules.
     """
 
     def __init__(self, groups=None, granules=None):
-        self.tiled = False if granules is None else True
+        self._tiled = False if granules is None else True
         self._groups = groups
         self._granules = granules
 
     @property
+    def tiled(self):
+        """
+        Indicates whether or not a scene is partitioned into severl
+        tiles referred to as granules.
+        """
+        return self._tiled
+
+    @property
     def granules(self):
+        """
+        Lists the available granules within a scene.
+        If `AcquisitionsContainer.tiled` is False, then [None] is
+        returned.
+        """
         return self._granules.keys() if self.tiled else [None]
 
     @property
     def groups(self):
+        """
+        Lists the available groups within a scene.
+        """
         return self.granules[0].keys() if self.tiled else self._groups.keys()
 
     def get_acquisitions(self, group=None, granule=None):
+        """
+        Return a list of acquisitions for a given granule and group.
+
+        :param group:
+            A `str` defining the group layer from which to retrieve
+            the acquisitions from. If `None` (default), return the
+            acquisitions from the first group in the
+            `AcquisitionsContainer.groups` list.
+
+        :param granule:
+            A `str` defining the granule layer from which to retrieve
+            the acquisitions from. If `None` (default), return the
+            acquisitions from the the first granule in the
+            `AcquisitionsContainer.granule` list.
+
+        :return:
+            A `list` of `Acquisition` objects.
+        """
         if self.tiled:
             groups = self.get_granule(granule=granule)
             if group is None:
@@ -66,13 +104,26 @@ class AcquisitionsContainer(object):
                 acqs = groups[group]
         else:
             if group is None:
-                acqs = self._groups[self.groups()[0]]
+                acqs = self._groups[self.groups[0]]
             else:
                 acqs = self._groups[group]
 
         return acqs
 
     def get_granule(self, granule=None):
+        """
+        Return a granule containing groups of `Acquisition` objects.
+
+        :param granule:
+            A `str` defining the granule layer from which to retrieve
+            groups of `Acquisition` objects. Default is `None`, which
+            returns the the first granule in the
+            `AcquisitionsContainer.granule` list.
+
+        :return:
+            A `dict` containing the groups of `Acquisition` objects
+            for a given scene.
+        """
         if not self.tiled:
             return self._groups
         if granule is None:
@@ -81,6 +132,28 @@ class AcquisitionsContainer(object):
             return self._granules[granule]
 
     def get_root(self, path='', group=None, granule=None):
+        """
+        Get the root level file system path for a granule and/or group
+        within the `AcquisitionContainer` object.
+
+        :param path:
+            A `str` containing the root path on which to join the
+            granule and/or group layers onto.
+
+        :param group:
+            A `str` containing the group layer to be joined onto
+            `path`. If group is `None` (default), or `not in`
+             `AcquisitionContainer.groups` then no path join occurs.
+
+        :param granule:
+            A `str` containing the granule layer to be joined onto
+            `path`. If granule is `None` (default), or `not in`
+            `AcquisitionContainer.granules` then no path join occurs.
+
+        :return:
+            A `str` representing the combined path for group and/or
+            granule layers.
+        """
         if (granule is None) or (granule not in self.granules):
             root = path
         else:
