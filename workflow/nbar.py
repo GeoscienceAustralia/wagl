@@ -572,8 +572,8 @@ class WriteTp5(luigi.Task):
         container = gaip.acquisitions(self.l1t_path)
         grn_path = container.get_root(self.out_path, granule=self.granule)
 
-        coords = CONFIG.get('write_tp5', 'coords').split(',')
-        albedos = CONFIG.get('write_tp5', 'albedos').split(',')
+        coords = CONFIG.get('modtran', 'coords').split(',')
+        albedos = CONFIG.get('modtran', 'albedos').split(',')
         output_format = CONFIG.get('write_tp5', 'output_format')
         workdir = pjoin(grn_path, CONFIG.get('work', 'modtran_root'))
         out_fname_format = pjoin(workdir, output_format)
@@ -694,7 +694,7 @@ class LegacyOutputs(luigi.Task):
                 lat_grid_fname = CONFIG.get('work', 'lat_grid_fname')
                 lat_grid_fname = pjoin(grp_path, lat_grid_fname)
 
-                coords = CONFIG.get('legacy_outputs', 'coords').split(',')
+                coords = CONFIG.get('modtran', 'coords').split(',')
                 albedos = CONFIG.get('legacy_outputs', 'albedos').split(',')
                 fname_format = CONFIG.get('legacy_outputs', 'output_format')
 
@@ -726,7 +726,7 @@ class PrepareModtranInput(luigi.Task):
     def requires(self):
         args = [self.l1t_path, self.out_path]
         # do need to output the legacy files?
-        if bool(int(CONFIG.get('legacy_outputs', 'required'))):
+        if CONFIG.getboolean('legacy_outputs', 'required'):
             tasks = [FilesRequiredByFugin(*args),
                      WriteTp5(*args)]
         else:
@@ -861,8 +861,8 @@ class AccumulateSolarIrradiance(luigi.Task):
     def requires(self):
         container = gaip.acquisitions(self.l1t_path)
         out_path = container.get_root(self.out_path, granule=self.granule)
-        coords = CONFIG.get('extract_flux', 'coords').split(',')
-        albedos = CONFIG.get('extract_flux', 'albedos').split(',')
+        coords = CONFIG.get('modtran', 'coords').split(',')
+        albedos = CONFIG.get('modtran', 'albedos').split(',')
         modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
         output_format = CONFIG.get('extract_flux', 'output_format')
         output_format = pjoin(modtran_root, output_format)
@@ -906,9 +906,9 @@ class CalculateCoefficients(luigi.Task):
         container = gaip.acquisitions(self.l1t_path)
         out_path = container.get_root(self.out_path, granule=self.granule)
 
-        coords = CONFIG.get('coefficients', 'coords').split(',')
+        coords = CONFIG.get('modtran', 'coords').split(',')
         chn_input_format = CONFIG.get('coefficients', 'chn_input_format')
-        dir_input_format = CONFIG.get('coefficients', 'dir_input_format')
+        dir_input_format = CONFIG.get('extract_flux', 'output_format')
         output_format1 = CONFIG.get('coefficients', 'output_format1')
         workpath = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
         output_format2 = CONFIG.get('coefficients', 'output_format2')
@@ -959,7 +959,7 @@ class BilinearInterpolationBand(luigi.Task):
                         CONFIG.get('work', 'boxline_fname'))
         centreline = pjoin(out_path,
                            CONFIG.get('work', 'centreline_fname'))
-        input_format = CONFIG.get('bilinear', 'input_format')
+        input_format = CONFIG.get('coefficients', 'output_format2')
         output_format = CONFIG.get('bilinear', 'output_format')
         workpath = pjoin(out_path,
                          CONFIG.get('work', 'bilinear_root'))
@@ -1031,7 +1031,7 @@ class BilinearInterpolation(luigi.Task):
         out_path = container.get_root(self.out_path, group=self.group,
                                       granule=self.granule)
         factors = CONFIG.get('bilinear', 'factors').split(',')
-        input_format = CONFIG.get('bilinear', 'input_format')
+        input_format = CONFIG.get('coefficients', 'output_format2')
         output_format = CONFIG.get('bilinear', 'output_format')
         workpath = pjoin(out_path, CONFIG.get('work', 'bilinear_root'))
         input_format = pjoin(workpath, input_format)
@@ -1851,7 +1851,7 @@ class PackageTC(luigi.Task):
             src.write('Task completed')
 
         # cleanup the entire nbar scene working directory
-        cleanup = bool(int(CONFIG.get('cleanup', 'cleanup')))
+        cleanup = CONFIG.getboolean('cleanup', 'cleanup')
         if cleanup:
             shutil.rmtree(self.work_path)
 
