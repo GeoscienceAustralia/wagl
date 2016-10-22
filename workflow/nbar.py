@@ -161,10 +161,12 @@ class GetElevationAncillaryData(luigi.Task):
         container = gaip.acquisitions(self.l1t_path)
         acqs = container.get_acquisitions(granule=self.granule)
         geobox = acqs[0].gridded_geo_box()
+
         dem_path = CONFIG.get('ancillary', 'dem_path')
         out_path = container.get_root(self.out_path, granule=self.granule)
-        out_fname = pjoin(out_path, CONFIG.get('work', 'dem_fname'))
         value = gaip.get_elevation_data(geobox.centre_lonlat, dem_path)
+
+        out_fname = pjoin(out_path, CONFIG.get('work', 'dem_fname'))
         save(luigi.LocalTarget(out_fname), value)
         save(self.output(), 'completed')
 
@@ -451,14 +453,90 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
         save(self.output(), 'completed')
 
 
-# TODO: re-work for granules, and calculate ancillary average from
-# each granule
+class AggregateAncillary(luigi.Task):
+
+    """Aggregates the ancillary data from each granule."""
+
+    l1t_path = luigi.Parameter()
+    out_path = luigi.Parameter()
+
+    def requires(self):
+        container = gaip.acquisitions(self.l1t_path)
+        tasks = []
+
+        for granule in container.granules:
+            args1 = [self.l1t_path, self.out_path, granule]
+            tasks.append(GetAncillaryData(args1))
+            for group in container.groups:
+                args2 = [self.l1t_path, self.out_path, granule, group]
+                tasks.append(CalculateSatelliteAndSolarGrids(*args2))
+                tasks.append(CalculateLatGrid(*args2))
+                tasks.append(CalculateLonGrid(*args2))
+
+        return tasks
+
+    def output(self):
+        out_path = self.out_path
+        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
+        target = pjoin(out_path, 'AggregateAncillary.task')
+        return luigi.LocalTarget(target)
+
+    def run(self):
+        container = gaip.acquisitions(self.l1t_path)
+        n_tiles = len(container.granules)
+        out_path = self.out_path
+
+        # initialise the mean result
+        ozone = vapour = aerosol = elevation = 0.0
+
+        # loop over each granule and retrieve the acnillary
+        for granule in container.granules:
+            grn_path = container.get_root(out_path, granule)
+
+            # load the ancillary point values
+            ozone_fname = pjoin(grn_path, CONFIG.get('work', 'ozone_fname'))
+            vapour_fname = pjoin(grn_path, CONFIG.get('work', 'vapour_fname'))
+            aerosol_fname = pjoin(grn_path, CONFIG.get('work',
+                                                       'aerosol_fname'))
+            elevation_fname = pjoin(grn_path, CONFIG.get('work', 'dem_fname'))
+
+            ozone += load_value(ozone_fname)
+            vapour += load_value(vapour_fname)
+            aerosol += load_value(aerosol_fname)
+            elevation += load_value(elevation_fname)
+
+        ozone /= n_tiles
+        vapour /= n_tiles
+        aerosol /= n_tiles
+        elevation /= n_tiles
+
+        # out filenames
+        ozone_outfname = pjoin(out_path, CONFIG.get('work', 'ozone_fname'))
+        vapour_outfname = pjoin(out_path, CONFIG.get('work', 'vapour_fname'))
+        aerosol_outfname = pjoin(out_path, CONFIG.get('work', 'aerosol_fname'))
+        elevation_fname = pjoin(out_path, CONFIG.get('work', 'dem_fname'))
+
+        # write the mean ancillary values
+        data = {'data_source': 'granule_average'}
+        data['value'] = ozone
+        save(luigi.LocalTarget(ozone_outfname), data)
+        data['value'] = vapour
+        save(luigi.LocalTarget(vapour_outfname), data)
+        data['value'] = aerosol
+        save(luigi.LocalTarget(aerosol_outfname), data)
+        data['value'] = elevation
+        save(luigi.LocalTarget(elevation_fname), data)
+
+        save(self.output(), 'completed')
+
+
 class WriteTp5(luigi.Task):
 
     """Output the `tp5` formatted files."""
 
     l1t_path = luigi.Parameter()
     out_path = luigi.Parameter()
+    granule = luigi.Parameter()
 
     def requires(self):
         # for consistancy, we'll wait for dependencies on all granules and
@@ -481,7 +559,6 @@ class WriteTp5(luigi.Task):
 
     def output(self):
         container = gaip.acquisitions(self.l1t_path)
-        # TODO: we haven't passed in a granule
         out_path = container.get_root(self.out_path, granule=self.granule)
         out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
         target = pjoin(out_path, 'WriteTp5.task')
@@ -489,20 +566,17 @@ class WriteTp5(luigi.Task):
 
     def run(self):
         container = gaip.acquisitions(self.l1t_path)
-        # TODO: we haven't passed in a granule
-        out_path = container.get_root(self.out_path, granule=self.granule)
+        grn_path = container.get_root(self.out_path, granule=self.granule)
+
         coords = CONFIG.get('write_tp5', 'coords').split(',')
         albedos = CONFIG.get('write_tp5', 'albedos').split(',')
         output_format = CONFIG.get('write_tp5', 'output_format')
-        workdir = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
+        workdir = pjoin(grn_path, CONFIG.get('work', 'modtran_root'))
         out_fname_format = pjoin(workdir, output_format)
 
         # get the first group name
-        group = gaip.acquisitions(self.l1t_path).keys()[0]
-        grp_path = pjoin(out_path, group)
-        # TODO: retrieve a group for a granule
-        #group = container.
-        grp_path = container.get_root(self.out_path, group=group)
+        group = container.groups[0]
+        grp_path = container.get_root(grn_path, group=group)
 
         # get the filenames for the coordinator,
         # satellite view zenith, azimuth, and latitude/longitude arrays
@@ -514,6 +588,7 @@ class WriteTp5(luigi.Task):
         lat_fname = pjoin(grp_path, CONFIG.get('work', 'lat_grid_fname'))
 
         # load the ancillary point values
+        out_path = self.out_path
         ozone_fname = pjoin(out_path, CONFIG.get('work', 'ozone_fname'))
         vapour_fname = pjoin(out_path, CONFIG.get('work', 'vapour_fname'))
         aerosol_fname = pjoin(out_path, CONFIG.get('work', 'aerosol_fname'))
@@ -524,9 +599,7 @@ class WriteTp5(luigi.Task):
         elevation = load_value(elevation_fname)
 
         # load an acquisition
-        # TODO: we haven't passed in a granule
-        acq = container.get_acquisitions(group=self.group,
-                                         granule=self.granule)[0]
+        acq = container.get_acquisitions(group=group, granule=self.granule)[0]
 
         # run
         gaip.write_tp5(acq, coord_fname, sat_view_fname, sat_azi_fname,
@@ -669,7 +742,8 @@ class RunModtranCase(luigi.Task):
     albedo = luigi.Parameter()
 
     def requires(self):
-        return [PrepareModtranInput(self.l1t_path, self.out_path)]
+        args = [self.l1t_path, self.out_path, self.granule]
+        return [PrepareModtranInput(*args)]
 
     def output(self):
         container = gaip.acquisitions(self.l1t_path)
