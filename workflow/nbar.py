@@ -464,12 +464,10 @@ class AggregateAncillary(luigi.Task):
 
         for granule in container.granules:
             args1 = [self.level1, self.nbar_root, granule]
-            tasks.append(GetAncillaryData(args1))
+            tasks.append(GetAncillaryData(*args1))
             for group in container.groups:
                 args2 = [self.level1, self.nbar_root, granule, group]
                 tasks.append(CalculateSatelliteAndSolarGrids(*args2))
-                tasks.append(CalculateLatGrid(*args2))
-                tasks.append(CalculateLonGrid(*args2))
 
         return tasks
 
@@ -489,7 +487,7 @@ class AggregateAncillary(luigi.Task):
 
         # loop over each granule and retrieve the acnillary
         for granule in container.granules:
-            grn_path = container.get_root(out_path, granule)
+            grn_path = container.get_root(out_path, granule=granule)
 
             # load the ancillary point values
             ozone_fname = pjoin(grn_path, CONFIG.get('work', 'ozone_fname'))
@@ -547,15 +545,13 @@ class WriteTp5(luigi.Task):
         # are we dealing with tiles/granules?
         if container.tiled:
             tasks.append(AggregateAncillary(self.level1, self.nbar_root))
-
-        for granule in container.granules:
-            args1 = [self.level1, self.nbar_root, granule]
-            tasks.append(GetAncillaryData(args1))
-            for group in container.groups:
-                args2 = [self.level1, self.nbar_root, granule, group]
-                tasks.append(CalculateSatelliteAndSolarGrids(*args2))
-                tasks.append(CalculateLatGrid(*args2))
-                tasks.append(CalculateLonGrid(*args2))
+        else:
+            for granule in container.granules:
+                args1 = [self.level1, self.nbar_root, granule]
+                tasks.append(GetAncillaryData(*args1))
+                for group in container.groups:
+                    args2 = [self.level1, self.nbar_root, granule, group]
+                    tasks.append(CalculateSatelliteAndSolarGrids(*args2))
 
         return tasks
 
@@ -635,12 +631,10 @@ class LegacyOutputs(luigi.Task):
 
         for granule in container.granules:
             args1 = [self.level1, self.nbar_root, granule]
-            tasks.append(GetAncillaryData(args1))
+            tasks.append(GetAncillaryData(*args1))
             for group in container.groups:
                 args2 = [self.level1, self.nbar_root, granule, group]
                 tasks.append(CalculateSatelliteAndSolarGrids(*args2))
-                tasks.append(CalculateLatGrid(*args2))
-                tasks.append(CalculateLonGrid(*args2))
 
         return tasks
 
@@ -720,9 +714,10 @@ class PrepareModtranInput(luigi.Task):
 
     level1 = luigi.Parameter()
     nbar_root = luigi.Parameter()
+    granule = luigi.Parameter()
 
     def requires(self):
-        args = [self.level1, self.nbar_root]
+        args = [self.level1, self.nbar_root, self.granule]
         # do we need to output the legacy files?
         if CONFIG.getboolean('legacy_outputs', 'required'):
             tasks = [LegacyOutputs(*args),
@@ -783,7 +778,7 @@ class RunModtran(luigi.Task):
     def requires(self):
         coords = CONFIG.get('modtran', 'coords').split(',')
         albedos = CONFIG.get('modtran', 'albedos').split(',')
-        reqs = [PrepareModtranInput(self.level1, self.nbar_root)]
+        reqs = [PrepareModtranInput(self.level1, self.nbar_root, self.granule)]
         for coord in coords:
             for albedo in albedos:
                 reqs.append(RunModtranCase(self.level1, self.nbar_root, 
@@ -1126,7 +1121,6 @@ class SlopeAndAspect(luigi.Task):
     def requires(self):
         args = [self.level1, self.nbar_root, self.granule, self.group]
         return [DEMExctraction(*args)]
-        # return [DEMExctraction(self.level1, self.nbar_root, self.group)]
 
     def output(self):
         container = gaip.acquisitions(self.level1)
@@ -1953,7 +1947,7 @@ if __name__ == '__main__':
 
     # TODO: save the input list into a HDF5(???) dataset somewhere
     logging.info("nbar.py started")
-    logging.info('out_path={path}'.format(path=args.out_path))
+    logging.info('out_path={path}'.format(path=args.work_root))
     logging.info('log_path={path}'.format(path=args.log_path))
 
     size = int(os.getenv('PBS_NNODES', '1'))

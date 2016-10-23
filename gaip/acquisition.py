@@ -75,7 +75,11 @@ class AcquisitionsContainer(object):
         """
         Lists the available groups within a scene.
         """
-        return self.granules[0].keys() if self.tiled else self._groups.keys()
+        if self.tiled:
+            grps = self._granules.get(self.granules[0]).keys()
+        else:
+            grps = self._groups.keys()
+        return grps
 
     def get_acquisitions(self, group=None, granule=None):
         """
@@ -127,7 +131,7 @@ class AcquisitionsContainer(object):
         if not self.tiled:
             return self._groups
         if granule is None:
-            return self._granules[self.granules()[0]]
+            return self._granules[self.granules[0]]
         else:
             return self._granules[granule]
 
