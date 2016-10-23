@@ -13,7 +13,8 @@ umask 007
 # INPUTS (change any of these)
 # ======
 
-L1T_PATH=/short/v10/jps547/staging
+CFG_FILE=/short/v10/jps547/nbar-jobs/dev-calc-toa-rad/nbar.cfg
+L1_LIST=/short/v10/jps547/nbar-jobs/dev-calc-toa-rad/l1t-list.txt
 
 # OUTPUTS (change any of these)
 # =======
@@ -21,7 +22,6 @@ L1T_PATH=/short/v10/jps547/staging
 OUTPUT_ROOT=/g/data/v10/testing_ground/nbar-metadata
 OUTPUT_PATH=$OUTPUT_ROOT/output
 LOG_PATH=$OUTPUT_ROOT/logs
-CFG_FILE=nbar.cfg
 
 # RESOURCES
 # =========
@@ -45,6 +45,7 @@ MAIL_LIST="your.name@ga.gov.au"
 rm -r ${OUTPUT_ROOT}
 mkdir -p ${OUTPUT_PATH}/nbar
 mkdir -p ${OUTPUT_PATH}/nbart
+mkdir -p ${OUTPUT_PATH}/lambertian
 mkdir -p ${LOG_PATH}
 
 
@@ -56,7 +57,7 @@ echo $LSPEC
 
 # Submit the job
 
-qsub -v L1T_PATH=$L1T_PATH,OUTPUT_PATH=$OUTPUT_PATH,LOG_PATH=$LOG_PATH,CFG_FILE=$CFG_FILE \
+qsub -v OUTPUT_PATH=$OUTPUT_PATH,LOG_PATH=$LOG_PATH,CFG_FILE=$CFG_FILE,L1_LIST=$L1_LIST\
  -M $MAIL_LIST \
  -e $LOG_PATH/run_NBAR_${HOSTNAME}_${PID}.stderr \
  -o $LOG_PATH/run_NBAR_${HOSTNAME}_${PID}.stdout \

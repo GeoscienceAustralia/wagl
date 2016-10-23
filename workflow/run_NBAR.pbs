@@ -38,7 +38,7 @@ checkExists() {
     fi
 }
 
-checkExists L1T_PATH $L1T_PATH
+checkExists L1_LIST $L1_LIST
 checkExists OUTPUT_PATH $OUTPUT_PATH
 checkExists LOG_PATH $LOG_PATH
 
@@ -52,11 +52,10 @@ cat $PBS_NODEFILE | wc -l
 NNODES=$(cat $PBS_NODEFILE | uniq | wc -l)
 
 for i in $(seq 1 $NNODES); do
-  pbsdsh -n $((16 *$i)) -- bash -l -c "module use /g/data/v10/private/modules/modulefiles; module load gaip/4.2; PBS_NNODES=$NNODES PBS_VNODENUM=$i nbar.py \
-  --l1t_path ${L1T_PATH} \
-  --out_path ${OUTPUT_PATH}  \
-  --work_path ${OUTPUT_PATH}  \
-  --cfg ${CFG_FILE} \
+  pbsdsh -n $((16 *$i)) -- bash -l -c "module use /g/data/v10/private/modules/modulefiles; module load gaip/sentinel2-scene; PBS_NNODES=$NNODES PBS_VNODENUM=$i nbar.py \
+  --level1_list ${L1_LIST} \
+  --work_root ${OUTPUT_PATH}  \
+  --cfg_file ${CFG_FILE} \
   --log_path ${LOG_PATH} \
   --debug" &
 done;
