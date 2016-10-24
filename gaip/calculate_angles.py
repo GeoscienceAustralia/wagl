@@ -707,11 +707,15 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
             rela_angle[:] = -999
             time[:] = -999
 
-            angle(cols, rows, i + 1, lat_array, lon_array,
-                  spheroid, orbital_elements, hours, century,
-                  npoints, smodel, track, view[0], azi[0],
-                  asol[0], soazi[0], rela_angle[0], time[0],
-                  x_cent, n_cent)
+            stat = angle(cols, rows, i + 1, lat_array, lon_array,
+                         spheroid, orbital_elements, hours, century,
+                         npoints, smodel, track, view[0], azi[0],
+                         asol[0], soazi[0], rela_angle[0], time[0],
+                         x_cent, n_cent)
+
+            if stat != 0 :
+                msg = "Error in calculating angles at row: {}."
+                raise RuntimeError(msg.format(i))
 
             # Output to disk
             outds_sat_v.write(view, 1, window=tile)
