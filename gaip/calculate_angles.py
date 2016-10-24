@@ -714,7 +714,8 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
                          x_cent, n_cent)
 
             if stat != 0 :
-                msg = "Error in calculating angles at row: {}."
+                msg = ("Error in calculating angles at row: {}.\n"
+                       "No interval found in track!")
                 raise RuntimeError(msg.format(i))
 
             # Output to disk
