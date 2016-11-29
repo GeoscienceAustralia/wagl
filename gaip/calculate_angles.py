@@ -17,7 +17,7 @@ from gaip import load_tle
 from gaip import angle
 from gaip import set_satmod
 from gaip import set_times
-from gaip import boxline
+from gaip import cstart_cend
 
 CRS = "EPSG:4326"
 TLE_DIR = '/g/data/v10/eoancillarydata/sensor-specific'
@@ -233,8 +233,8 @@ def create_boxline_file(view_angle_fname, line, ncentre, max_angle=9.0,
     iend = np.zeros(rows, dtype='int')
 
     # calculate the column start and end indices
-    boxline(cols, rows, max_angle, view_angle.transpose(), line, ncentre,
-            istart, iend)
+    cstart_cend(cols, rows, max_angle, view_angle.transpose(), line, ncentre,
+                istart, iend)
 
     # output the boxline file
     with open(boxline_fname, 'w') as src:
