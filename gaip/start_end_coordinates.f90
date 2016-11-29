@@ -1,5 +1,5 @@
-SUBROUTINE boxline(nrow, ncol, viewmax, view, line, ncentre, &
-                   istart, iend)
+SUBROUTINE cstart_cend(nrow, ncol, viewmax, view, line, ncentre, &
+                       istart, iend)
 
        integer nrow, ncol
        real viewmax 
@@ -10,12 +10,19 @@ SUBROUTINE boxline(nrow, ncol, viewmax, view, line, ncentre, &
 !f2py depend(nrow, ncol), view
 !f2py depend(ncol), line, ncentre, istart, iend
 
+!      old doco
 !      program coordinator
 !      program to find the line and column for 9 coordinators
 !      program determines 9 coordinators from centre line
 !      and view angle
 !      written by Fuqin Li in 2009 and update in 2010
 !      converted to a python module via f2py
+
+!      new doco
+!      find the start and end column indices for each row of data
+!      takes into account whether the pixel is left or right of
+!      `ncentre` (satellite track location in pixel units for the array),
+!      as well as the satellite view angle
 
 !      nrow here in fortran are ncol in python
 !      ncol here in fortran are nrow in python
@@ -51,4 +58,4 @@ SUBROUTINE boxline(nrow, ncol, viewmax, view, line, ncentre, &
             iend(i) = nrow
           endif
         enddo
-END SUBROUTINE boxline
+END SUBROUTINE cstart_cend
