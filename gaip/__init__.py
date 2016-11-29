@@ -37,7 +37,7 @@ try:
     from _slope_aspect import slope_aspect # F2Py
     from _surface_reflectance import reflectance # F2Py
     from _interpolation import bilinear #F2Py
-    from _boxline import boxline #F2Py
+    from _start_end_coordinates import cstart_cend #F2Py
     from calculate_angles import *
     from tc import *
     from dsm import get_dsm
