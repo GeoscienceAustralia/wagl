@@ -45,5 +45,5 @@ setup(name='gaip',
                                       'satellite_solar_angles_main.f90']),
                    Extension(name='_interpolation',
                              sources=['bilinear_interpolation.f90']),
-                   Extension(name='_boxline',
-                             sources=['box_line_coordinates.f90'])])
+                   Extension(name='_start_end_coordinates',
+                             sources=['start_end_coordinates.f90'])])
