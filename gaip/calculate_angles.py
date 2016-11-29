@@ -7,6 +7,7 @@ import rasterio
 import ephem
 import numpy as np
 import os
+import pandas
 
 from osgeo import osr
 from eotools import tiling
@@ -195,7 +196,8 @@ def create_header_angle_file(acquisition, view_max, outfname='HEADERANGLE'):
                                          velocity=omega, max_angle=view_max))
 
 
-def create_boxline_file(view_angle_fname, line, ncentre, max_angle=9.0,
+def create_boxline_file(view_angle_fname, line, ncentre, npoints,
+                        max_angle=9.0,
                         boxline_fname='BOXLINE',
                         coordinator_fname='COORDINATOR'):
     """
@@ -213,6 +215,10 @@ def create_boxline_file(view_angle_fname, line, ncentre, max_angle=9.0,
     :param ncentre:
         A 1D NumPy array containing the values for the column
         coordinate for the central index; 1 based index.
+
+    :param npoints:
+        A 1D NumPy array containing the values for the number of points
+        used to determine the pixel index.
 
     :param max_angle:
         The maximum viewing angle. Default is 9.0 degrees.
@@ -236,38 +242,150 @@ def create_boxline_file(view_angle_fname, line, ncentre, max_angle=9.0,
     cstart_cend(cols, rows, max_angle, view_angle.transpose(), line, ncentre,
                 istart, iend)
 
-    # output the boxline file
-    with open(boxline_fname, 'w') as src:
-        # Right justified at various lengths
-        msg = '{line:>12}{istart:>12}{iend:>12}\n'
-        for i in range(rows):
-            src.write(msg.format(line=line[i], istart=istart[i], iend=iend[i]))
+    # TODO: Fuqin to document, and these results are only used for
+    # granules that do not contain the satellite track path
+    kk = ll = -1
+    for i in range(rows):
+        if npoints[i] > 0.5:
+            if kk == -1:
+                kk = i
+            ll = i
 
-    # output the coordinator file
+    coordinator = numpy.zeros((9, 2), dtype='int')
+    mid_col = cols // 2
+    mid_row = rows // 2
+    mid_row_idx = mid_row - 1
+
+    # Sentinel-2a doesn't require a start end index, but Landsat does
+    # the following should satisfy both use cases, that way we don't
+    # require two separate bilinear functions, and two separate boxline
+    # (or bisection co-ordinator functions)
+    # only used for the case "normal center line"
+    start_col = numpy.zeros(ncentre.shape, dtype='int')
+    end_col = numpy.zeros(ncentre.shape, dtype='int')
+    start_col.fill(1)
+    end_col.fill(cols)
+
+    numpy.maximum(istart, start_col, out=start_col)
+    numpy.minimum(iend, end_col, out=end_col)
+
+    df = pandas.DataFrame({'line': line,
+                           'bisection': ncentre,
+                           'npoints': npoints})
+
+    # do we have a hit with the satellite track falling within the granule
+    if npoints[0] > 0.5:
+        if npoints[-1] >= 0.5:
+            # normal center line
+            coordinator[0] = [line[0], start_col[0]]
+            coordinator[1] = [line[0], centre[0]]
+            coordinator[2] = [line[0], end_col[0]]
+            coordinator[3] = [line[mid_row_idx], start_col[mid_row_idx]]
+            coordinator[4] = [line[mid_row_idx], centre[mid_row_idx]]
+            coordinator[5] = [line[mid_row_idx], end_col[mid_row_idx]]
+            coordinator[6] = [line[-1], start_col[-1]]
+            coordinator[7] = [line[-1], centre[-1]]
+            coordinator[8] = [line[-1], end_col[-1]]
+
+            data = df[['line', 'bisection']].copy()
+            data['start'] = start_col
+            data['end'] = end_col
+        elif npoints[-1] < 0.5:
+            # first half centerline
+            coordinator[0] = [line[0], 1]
+            coordinator[1] = [line[0], centre[0]]
+            coordinator[2] = [line[0], cols]
+            coordinator[3] = [line[ll], 1]
+            coordinator[4] = [line[ll], centre[0]]
+            coordinator[5] = [line[ll], cols]
+            coordinator[6] = [line[-1], cols]
+            coordinator[7] = [line[-1], cols]
+            coordinator[8] = [line[-1], cols]
+
+            data = df[['line']].copy()
+            data['bisection'] = centre[0]
+            data['start'] = start_col
+            data['end'] = end_col
+        elif npoints[-1] >= 0.5:
+            # last half of center line
+            coordinator[0] = [line[0], 1]
+            coordinator[1] = [line[0], centre[ll]]
+            coordinator[2] = [line[0], cols]
+            coordinator[3] = [line[kk], 1]
+            coordinator[4] = [line[kk], centre[ll]]
+            coordinator[5] = [line[kk], cols]
+            coordinator[6] = [line[-1], 1]
+            coordinator[7] = [line[-1], centre[ll]]
+            coordinator[8] = [line[-1], cols]
+
+            data = df[['line']].copy()
+            data['bisection'] = centre[ll]
+            data['start'] = start_col
+            data['end'] = end_col
+    else:
+        # no centre line
+        coordinator[0] = [line[0], 1]
+        coordinator[1] = [line[0], mid_col]
+        coordinator[2] = [line[0], cols]
+        coordinator[3] = [line[mid_row_idx], 1]
+        coordinator[4] = [line[mid_row_idx], mid_col]
+        coordinator[5] = [line[mid_row_idx], cols]
+        coordinator[6] = [line[-1], 1]
+        coordinator[7] = [line[-1], mid_col]
+        coordinator[8] = [line[-1], cols]
+
+        data = df[['line']].copy()
+        data['bisection'] = mid_col
+        data['start'] = start_col
+        data['end'] = end_col
+
+    # # output the boxline file
+    # with open(boxline_fname, 'w') as src:
+    #     # Right justified at various lengths
+    #     msg = '{line:>12}{istart:>12}{iend:>12}\n'
+    #     for i in range(rows):
+    #         src.write(msg.format(line=line[i], istart=istart[i], iend=iend[i]))
+
+    df.to_csv(boxline_fname)
+
+    # # output the coordinator file
+    # with open(coordinator_fname, 'w') as src:
+    #     # get the middle index (account for the 0-based index)
+    #     mid = rows // 2 - 1
+
+    #     mid_col = rows // 2
+    #     UMx = mid_col if int(ncentre[0]) == 0 else int(ncentre[0])
+    #     MMx = mid_col if int(ncentre[mid]) == 0 else int(ncentre[mid])
+    #     BMx = mid_col if int(ncentre[-1]) == 0 else int(ncentre[-1])
+
+    #     # Right justified at various lengths
+    #     msg = '{row:>13}{column:>13}\n'
+    #     src.write(msg.format(row=rows, column=cols))
+    #     src.write(msg.format(row=int(line[0]), column=int(istart[0])))
+    #     # src.write(msg.format(row=int(line[0]), column=int(ncentre[0])))
+    #     src.write(msg.format(row=int(line[0]), column=UMx))
+    #     src.write(msg.format(row=int(line[0]), column=int(iend[0])))
+    #     src.write(msg.format(row=int(line[mid]), column=int(istart[mid])))
+    #     #src.write(msg.format(row=int(line[mid]), column=int(ncentre[mid])))
+    #     src.write(msg.format(row=int(line[mid]), column=MMx))
+    #     src.write(msg.format(row=int(line[mid]), column=int(iend[mid])))
+    #     src.write(msg.format(row=int(line[-1]), column=int(istart[-1])))
+    #     # src.write(msg.format(row=int(line[-1]), column=int(ncentre[-1])))
+    #     src.write(msg.format(row=int(line[-1]), column=BMx))
+    #     src.write(msg.format(row=int(line[-1]), column=int(iend[-1])))
+
     with open(coordinator_fname, 'w') as src:
-        # get the middle index (account for the 0-based index)
-        mid = rows // 2 - 1
-
-        mid_col = rows // 2
-        UMx = mid_col if int(ncentre[0]) == 0 else int(ncentre[0])
-        MMx = mid_col if int(ncentre[mid]) == 0 else int(ncentre[mid])
-        BMx = mid_col if int(ncentre[-1]) == 0 else int(ncentre[-1])
-
-        # Right justified at various lengths
         msg = '{row:>13}{column:>13}\n'
         src.write(msg.format(row=rows, column=cols))
-        src.write(msg.format(row=int(line[0]), column=int(istart[0])))
-        # src.write(msg.format(row=int(line[0]), column=int(ncentre[0])))
-        src.write(msg.format(row=int(line[0]), column=UMx))
-        src.write(msg.format(row=int(line[0]), column=int(iend[0])))
-        src.write(msg.format(row=int(line[mid]), column=int(istart[mid])))
-        #src.write(msg.format(row=int(line[mid]), column=int(ncentre[mid])))
-        src.write(msg.format(row=int(line[mid]), column=MMx))
-        src.write(msg.format(row=int(line[mid]), column=int(iend[mid])))
-        src.write(msg.format(row=int(line[-1]), column=int(istart[-1])))
-        # src.write(msg.format(row=int(line[-1]), column=int(ncentre[-1])))
-        src.write(msg.format(row=int(line[-1]), column=BMx))
-        src.write(msg.format(row=int(line[-1]), column=int(iend[-1])))
+        src.write(msg.format(row=coordinator[0][0], column=coordinator[0][1]))
+        src.write(msg.format(row=coordinator[1][0], column=coordinator[1][1]))
+        src.write(msg.format(row=coordinator[2][0], column=coordinator[2][1]))
+        src.write(msg.format(row=coordinator[3][0], column=coordinator[3][1]))
+        src.write(msg.format(row=coordinator[4][0], column=coordinator[4][1]))
+        src.write(msg.format(row=coordinator[5][0], column=coordinator[5][1]))
+        src.write(msg.format(row=coordinator[6][0], column=coordinator[6][1]))
+        src.write(msg.format(row=coordinator[7][0], column=coordinator[7][1]))
+        src.write(msg.format(row=coordinator[8][0], column=coordinator[8][1]))
 
 
 def calculate_julian_century(datetime):
