@@ -448,20 +448,23 @@ def bilinear_interpolate(acqs, factors, coordinator, boxline, centreline,
     cols, rows = geobox.get_shape_xy()
 
     # dataframes for the coords, scene centreline, boxline
+    # TODO: update these files so pandas can read directly without skipping
     coords = pandas.read_csv(coordinator, header=None, sep=r'\s+\s+',
                              engine='python', skiprows=1, names=['row', 'col'])
     cent = pandas.read_csv(centreline, skiprows=2, header=None, sep=r'\s+\s+',
                            engine='python',
                            names=['line', 'centre', 'npoints', 'lat', 'lon'])
-    box = pandas.read_csv(boxline, header=None, sep=r'\s+\s+', engine='python',
-                          names=['line', 'cstart', 'cend'])
+    # box = pandas.read_csv(boxline, header=None, sep=r'\s+\s+', engine='python',
+    #                       names=['line', 'cstart', 'cend'])
+    box = pandas.read_csv(boxline)
 
     coord = numpy.zeros((9, 2), dtype='int')
     coord[:, 0] = coords.row.values
     coord[:, 1] = coords.col.values
-    centre = cent.centre.values
-    start = box.cstart.values
-    end = box.cend.values
+    # centre = cent.centre.values
+    centre = box.bisection.values
+    start = box.start.values
+    end = box.end.values
 
     # Initialise the dict to store the locations of the bilinear outputs
     bilinear_outputs = {}

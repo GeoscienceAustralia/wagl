@@ -451,7 +451,7 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
                                     view_max=view_max,
                                     outfname=centreline_fname)
 
-        gaip.create_boxline_file(satellite_zenith, y_cent, x_cent,
+        gaip.create_boxline_file(satellite_zenith, y_cent, x_cent, n_cent,
                                  boxline_fname=boxline_fname,
                                  max_angle=view_max,
                                  coordinator_fname=coordinator_fname)
