@@ -251,7 +251,7 @@ def create_boxline_file(view_angle_fname, line, ncentre, npoints,
                 kk = i
             ll = i
 
-    coordinator = numpy.zeros((9, 2), dtype='int')
+    coordinator = np.zeros((9, 2), dtype='int')
     mid_col = cols // 2
     mid_row = rows // 2
     mid_row_idx = mid_row - 1
@@ -261,13 +261,13 @@ def create_boxline_file(view_angle_fname, line, ncentre, npoints,
     # require two separate bilinear functions, and two separate boxline
     # (or bisection co-ordinator functions)
     # only used for the case "normal center line"
-    start_col = numpy.zeros(ncentre.shape, dtype='int')
-    end_col = numpy.zeros(ncentre.shape, dtype='int')
+    start_col = np.zeros(ncentre.shape, dtype='int')
+    end_col = np.zeros(ncentre.shape, dtype='int')
     start_col.fill(1)
     end_col.fill(cols)
 
-    numpy.maximum(istart, start_col, out=start_col)
-    numpy.minimum(iend, end_col, out=end_col)
+    np.maximum(istart, start_col, out=start_col)
+    np.minimum(iend, end_col, out=end_col)
 
     df = pandas.DataFrame({'line': line,
                            'bisection': ncentre,
@@ -278,13 +278,13 @@ def create_boxline_file(view_angle_fname, line, ncentre, npoints,
         if npoints[-1] >= 0.5:
             # normal center line
             coordinator[0] = [line[0], start_col[0]]
-            coordinator[1] = [line[0], centre[0]]
+            coordinator[1] = [line[0], ncentre[0]]
             coordinator[2] = [line[0], end_col[0]]
             coordinator[3] = [line[mid_row_idx], start_col[mid_row_idx]]
-            coordinator[4] = [line[mid_row_idx], centre[mid_row_idx]]
+            coordinator[4] = [line[mid_row_idx], ncentre[mid_row_idx]]
             coordinator[5] = [line[mid_row_idx], end_col[mid_row_idx]]
             coordinator[6] = [line[-1], start_col[-1]]
-            coordinator[7] = [line[-1], centre[-1]]
+            coordinator[7] = [line[-1], ncentre[-1]]
             coordinator[8] = [line[-1], end_col[-1]]
 
             data = df[['line', 'bisection']].copy()
@@ -293,33 +293,33 @@ def create_boxline_file(view_angle_fname, line, ncentre, npoints,
         elif npoints[-1] < 0.5:
             # first half centerline
             coordinator[0] = [line[0], 1]
-            coordinator[1] = [line[0], centre[0]]
+            coordinator[1] = [line[0], ncentre[0]]
             coordinator[2] = [line[0], cols]
             coordinator[3] = [line[ll], 1]
-            coordinator[4] = [line[ll], centre[0]]
+            coordinator[4] = [line[ll], ncentre[0]]
             coordinator[5] = [line[ll], cols]
             coordinator[6] = [line[-1], cols]
             coordinator[7] = [line[-1], cols]
             coordinator[8] = [line[-1], cols]
 
             data = df[['line']].copy()
-            data['bisection'] = centre[0]
+            data['bisection'] = ncentre[0]
             data['start'] = start_col
             data['end'] = end_col
         elif npoints[-1] >= 0.5:
             # last half of center line
             coordinator[0] = [line[0], 1]
-            coordinator[1] = [line[0], centre[ll]]
+            coordinator[1] = [line[0], ncentre[ll]]
             coordinator[2] = [line[0], cols]
             coordinator[3] = [line[kk], 1]
-            coordinator[4] = [line[kk], centre[ll]]
+            coordinator[4] = [line[kk], ncentre[ll]]
             coordinator[5] = [line[kk], cols]
             coordinator[6] = [line[-1], 1]
-            coordinator[7] = [line[-1], centre[ll]]
+            coordinator[7] = [line[-1], ncentre[ll]]
             coordinator[8] = [line[-1], cols]
 
             data = df[['line']].copy()
-            data['bisection'] = centre[ll]
+            data['bisection'] = ncentre[ll]
             data['start'] = start_col
             data['end'] = end_col
     else:
@@ -346,7 +346,7 @@ def create_boxline_file(view_angle_fname, line, ncentre, npoints,
     #     for i in range(rows):
     #         src.write(msg.format(line=line[i], istart=istart[i], iend=iend[i]))
 
-    df.to_csv(boxline_fname)
+    data.to_csv(boxline_fname)
 
     # # output the coordinator file
     # with open(coordinator_fname, 'w') as src:
