@@ -276,17 +276,6 @@ def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt,
         A `string` format for the MODTRAN *.dir output file.
         eg '{coord}_alb_{albedo}.dir'.
 
-    :param output_fmt:
-        A `string` format for the output filename.
-        eg '{coord}_alb.txt'. If set to `None`, then a `dictionary`
-        with the `coords` as the keys will be returned.
-
-    :param output_reformat:
-        A `string` format for the reformatted output file.
-        eg '{factor}_out_b_{band}.txt'. If set to `None`, then a
-        `dictionary` with the combination of (band, factor) as the
-        keys will be returned.
-
     :param cwd:
         A `string` containing the full file pathname to the MODTRAN
         output directory.
@@ -315,10 +304,6 @@ def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt,
 
         # solar radiation file (transmittance mode)
         fname5 = pjoin(cwd, dir_input_fmt.format(coord=coord, albedo='t'))
-
-        # output file
-        if output_fmt is not None:
-            out_fname = pjoin(cwd, output_fmt.format(coord=coord))
 
         # read the data
         # **********UNUSED**********
@@ -380,10 +365,6 @@ def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt,
         df['dif'] = diff_0
         df['ts'] = ts_dir
 
-        # output to disk; tab delimited
-        if output_fmt is not None:
-            df.to_csv(out_fname, sep='\t', index=False)
-
         result[coord] = df
 
     # set the band numbers as a searchable index
@@ -428,22 +409,16 @@ def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt,
             sdata = {'s1': s1, 's2': s2, 's3': s3, 's4': s4}
             df_reformat = pandas.DataFrame(sdata)
 
-            if output_reformat is not None:
-                out_fname = pjoin(cwd, output_reformat.format(factor=factor,
-                                                              band=bn))
-                df_reformat.to_csv(out_fname, index=False, header=False,
-                                   sep='\t')
-
             result2[(bn, factor)] = df_reformat
 
     return result, result2
 
 
-def bilinear_interpolate(acqs, factors, coordinator, boxline, centreline,
-                         input_fmt, output_fmt, workpath):
+def bilinear_interpolate(acq, coordinator, boxline, centreline,
+                         coefficients, out_fname):
     """Perform bilinear interpolation."""
 
-    bands = [a.band_num for a in acqs]
+    band = acq.band_num
     geobox = gaip.gridded_geo_box(acqs[0])
     cols, rows = geobox.get_shape_xy()
 
@@ -466,36 +441,21 @@ def bilinear_interpolate(acqs, factors, coordinator, boxline, centreline,
     start = box.start.values
     end = box.end.values
 
-    # Initialise the dict to store the locations of the bilinear outputs
-    bilinear_outputs = {}
+    # get the individual atmospheric components
+    s1 = coefficients.s1.values
+    s2 = coefficients.s2.values
+    s3 = coefficients.s3.values
+    s4 = coefficients.s4.values
 
-    for band in bands:
-        for factor in factors:
-            fname = output_fmt.format(factor=factor, band=band)
-            fname = pjoin(workpath, fname)
-            atmospheric_fname = input_fmt.format(factor=factor, band=band)
-            bilinear_outputs[(band, factor)] = fname
+    res = numpy.zeros((rows, cols), dtype='float32')
+    gaip.bilinear(cols, rows, coord, s1, s2, s3, s4, start, end,
+                  centre, res.transpose())
 
-            # atmospheric paramaters
-            atmos = pandas.read_csv(atmospheric_fname, header=None,
-                                    sep='\t', engine='python',
-                                    names=['s1', 's2', 's3', 's4'])
+    # Output the result to disk
+    gaip.write_img(res, out_fname, fmt='GTiff', geobox=geobox, nodata=-999,
+                   compress='deflate', options={'zlevel': 1})
 
-            # get the individual atmospheric components
-            s1 = atmos.s1.values
-            s2 = atmos.s2.values
-            s3 = atmos.s3.values
-            s4 = atmos.s4.values
-
-            res = numpy.zeros((rows, cols), dtype='float32')
-            gaip.bilinear(cols, rows, coord, s1, s2, s3, s4, start, end,
-                          centre, res.transpose())
-
-            # Output the result to disk
-            gaip.write_img(res, fname, fmt='GTiff', geobox=geobox, nodata=-999,
-                           compress='deflate', options={'zlevel': 1})
-
-    return bilinear_outputs
+    return
 
 
 def read_spectral_response(fname):
