@@ -66,6 +66,15 @@ def get_buffer(group):
     return buf[group]
 
 
+def get_tile_sizes():
+    x_tile = CONFIG.getint('work', 'x_tile_size')
+    y_tile = CONFIG.getint('work', 'y_tile_size')
+    x_tile = None if x_tile <= 0 else x_tile
+    y_tile = None if y_tile <= 0 else y_tile
+
+    return x_tile, y_tile
+
+
 class CreateWorkingDirectoryTree(luigi.Task):
 
     """Creates the output working directory tree."""
@@ -277,7 +286,7 @@ class GetBrdfAncillaryData(luigi.Task):
         container = gaip.acquisitions(self.level1)
         out_path = container.get_root(self.nbar_root, granule=self.granule)
         out_fname = pjoin(out_path, CONFIG.get('work', 'brdf_fname'))
-        return {'brdf': luigi.LocalTarget(out_fname)}
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         container = gaip.acquisitions(self.level1)
@@ -290,7 +299,7 @@ class GetBrdfAncillaryData(luigi.Task):
         value = gaip.get_brdf_data(acqs[0], brdf_path, brdf_premodis_path,
                                    work_path)
 
-        with self.output()['brdf'].temporary_path() as out_fname:
+        with self.output().temporary_path() as out_fname:
             save(out_fname, value)
 
 
@@ -1124,11 +1133,8 @@ class IncidentAngles(luigi.Task):
         slope_fname = self.input()['slp_asp']['slope'].path
         aspect_fname = self.input()['slp_asp']['aspect'].path
 
-        # Get the processing tile sizes
-        x_tile = CONFIG.getint('work', 'x_tile_size')
-        y_tile = CONFIG.getint('work', 'y_tile_size')
-        x_tile = None if x_tile <= 0 else x_tile
-        y_tile = None if y_tile <= 0 else y_tile
+        # get the processing tile sizes
+        x_tile, ytile = get_tile_sizes()
 
         with self.output()['incident'].temporary_path() as incident_fname:
             with self.output()['azi_incident'].temporary_path() as azi_i_fname:
@@ -1176,11 +1182,8 @@ class ExitingAngles(luigi.Task):
         slope_fname = self.input()['slp_asp']['slope'].path
         aspect_fname = self.input()['slp_asp']['aspect'].path
 
-        # Get the processing tile sizes
-        x_tile = CONFIG.getint('work', 'x_tile_size')
-        y_tile = CONFIG.getint('work', 'y_tile_size')
-        x_tile = None if x_tile <= 0 else x_tile
-        y_tile = None if y_tile <= 0 else y_tile
+        # get the processing tile sizes
+        x_tile, ytile = get_tile_sizes()
 
         with self.output()['exiting'].temporary_path() as exiting_fname:
             with self.output()['azi_exiting'].temporary_path() as azi_e_fname:
@@ -1220,11 +1223,8 @@ class RelativeAzimuthSlope(luigi.Task):
         azi_incident_fname = self.input()['incident']['azi_incident'].path
         azi_exiting_fname = self.input()['exiting']['azi_exiting'].path
 
-        # Get the processing tile sizes
-        x_tile = CONFIG.getint('work', 'x_tile_size')
-        y_tile = CONFIG.getint('work', 'y_tile_size')
-        x_tile = None if x_tile <= 0 else x_tile
-        y_tile = None if y_tile <= 0 else y_tile
+        # get the processing tile sizes
+        x_tile, ytile = get_tile_sizes()
 
         with self.output().temporary_path() as out_fname:
             gaip.relative_azimuth_slope(azi_incident_fname, azi_exiting_fname,
@@ -1261,11 +1261,8 @@ class SelfShadow(luigi.Task):
         incident_fname = self.input()['incident']['incident'].path
         exiting_fname = self.input()['exiting']['exiting'].path
 
-        # Get the processing tile sizes
-        x_tile = CONFIG.getint('work', 'x_tile_size')
-        y_tile = CONFIG.getint('work', 'y_tile_size')
-        x_tile = None if x_tile <= 0 else x_tile
-        y_tile = None if y_tile <= 0 else y_tile
+        # get the processing tile sizes
+        x_tile, ytile = get_tile_sizes()
 
         with self.output().temporary_path() as out_fname:
             gaip.self_shadow(incident_fname, exiting_fname, out_fname,
@@ -1399,102 +1396,105 @@ class RunTCBand(luigi.Task):
 
     def requires(self):
         args = [self.level1, self.nbar_root, self.granule, self.group]
-        return [BilinearInterpolation(*args),
-                DEMExctraction(*args),
-                RelativeAzimuthSlope(*args),
-                SelfShadow(*args),
-                CalculateCastShadow(*args)]
+        reqs = {'bilinear': BilinearInterpolation(*args),
+                'brdf': GetBrdfAncillaryData(*args[:-1]),
+                'dsm': DEMExctraction(*args),
+                'rel_slope': RelativeAzimuthSlope(*args),
+                'self_shadow': SelfShadow(*args),
+                'cast_shadow_sun': CalculateCastShadowSun(*args),
+                'cast_shaodw_sat': CalculateCastShadowSatellite(*args),
+                'slp_asp': SlopeAndAspect(*args),
+                'incident': IncidentAngles(*args),
+                'exiting': ExitingAngles(*args),
+                'sat_sol': CalculateSatelliteAndSolarGrids(*args)}
+
+        return reqs
 
     def output(self):
+        band = self.band_num
         container = gaip.acquisitions(self.level1)
         out_path = container.get_root(self.nbar_root, group=self.group,
                                       granule=self.granule)
-        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
-        target = pjoin(out_path, 'RunTCBand{band}.task')
-        return luigi.LocalTarget(target.format(band=self.band_num))
+
+        # get the reflectance levels and base output format
+        lambertian_fmt = CONFIG.get('terrain_correction', 'lambertian_format')
+        brdf_fmt = CONFIG.get('terrain_correction', 'brdf_format')
+        terrain_fmt = CONFIG.get('terrain_correction', 'terrain_format')
+
+        lambertian_fname = pjoin(out_path, lambertian_fmt.format(band=band))
+        brdf_fname = pjoin(out_path, brdf_fmt.format(band=band))
+        terrain_fname = pjoin(out_path, terrain_fmt.format(band=band))
+
+        targets = {'lambertian': luigi.LocalTarget(lambertian_fname),
+                   'brdf': luigi.LocalTarget(brdf_fname),
+                   'terrain': luigi.LocalTarget(terrain_fname)}
+
+        return targets
 
     def run(self):
         container = gaip.acquisitions(self.level1)
         acqs = container.get_acquisitions(group=self.group,
                                           granule=self.granule)
-        out_path = container.get_root(self.nbar_root, group=self.group,
-                                      granule=self.granule)
-        granule_path = container.get_root(self.nbar_root,
-                                          granule=self.granule)
 
-        # Get the necessary config params
-        tc_path = pjoin(out_path, CONFIG.get('work', 'tc_root'))
-        outdir = pjoin(out_path, CONFIG.get('work', 'reflectance_root'))
-        bilinear_fname = pjoin(out_path, 
-                               CONFIG.get('work', 'bilinear_outputs_fname'))
+        # TODO: what is rori???
+        rori = CONFIG.getfloat('terrain_correction', 'rori')
+
+        # inputs
+        inputs = self.input()
+        bilinear_fname = inputs['bilinear'].path
+        brdf_fname = inputs['brdf'].path
+        self_shadow_fname = inputs['self_shadow'].path
+        slope_fname = inputs['slp_asp']['slope'].path
+        aspect_fname = inputs['slp_asp']['aspect'].path
+        incident_fname = inputs['incident']['incident'].path
+        exiting_fname = inputs['exiting']['exiting'].path
+        relative_slope_fname = inputs['rel_slope'].path
+        cast_shadow_sun_fname = inputs['cast_shadow_sun'].path
+        cast_shadow_sat_fname = inputs['cast_shadow_sat'].path
+        solar_zenith_fname = inputs['sat_sol']['solar_zenith_fname'].path
+        solar_azimuth_fname = inputs['sat_sol']['solar_azimuth_fname'].path
+        satellite_view_fname = inputs['sat_sol']['sat_view_fname'].path
+        relative_angle_fname = inputs['sat_sol']['relative_azimuth_fname'].path
+
         bilinear_data = load_value(bilinear_fname)
-        rori = float(CONFIG.get('terrain_correction', 'rori'))
-
-        brdf_fname = pjoin(granule_path, CONFIG.get('work', 'brdf_fname'))
         brdf_data = load_value(brdf_fname)
 
-        # Get the reflectance levels and base output format
-        rfl_levels = CONFIG.get('terrain_correction', 'rfl_levels').split(',')
-        output_format = CONFIG.get('terrain_correction', 'output_format')
-
-        # TODO: redo as task.input()
-        # Input filenames (images)
-        self_shadow_fname = pjoin(tc_path,
-                                  CONFIG.get('self_shadow',
-                                             'self_shadow_fname'))
-        slope_fname = pjoin(tc_path,
-                            CONFIG.get('self_shadow', 'slope_fname'))
-        aspect_fname = pjoin(tc_path,
-                             CONFIG.get('self_shadow', 'aspect_fname'))
-        incident_fname = pjoin(tc_path,
-                               CONFIG.get('self_shadow', 'incident_fname'))
-        exiting_fname = pjoin(tc_path,
-                              CONFIG.get('self_shadow', 'exiting_fname'))
-        relative_slope_fname = pjoin(tc_path,
-                                     CONFIG.get('self_shadow',
-                                                'relative_slope_fname'))
-        sun_fname = pjoin(tc_path,
-                          CONFIG.get('cast_shadow', 'sun_direction_fname'))
-        satellite_fname = pjoin(tc_path,
-                                CONFIG.get('cast_shadow',
-                                           'satellite_direction_fname'))
-        solar_zenith_fname = pjoin(out_path,
-                                   CONFIG.get('work', 'solar_zenith_fname'))
-        solar_azimuth_fname = pjoin(out_path,
-                                    CONFIG.get('work', 'solar_azimuth_fname'))
-        satellite_view_fname = pjoin(out_path,
-                                     CONFIG.get('work', 'sat_view_fname'))
-        relative_angle_fname = pjoin(out_path,
-                                     CONFIG.get('work',
-                                                'relative_azimuth_fname'))
-
-        # Get the processing tile sizes
-        x_tile = CONFIG.getint('work', 'x_tile_size')
-        y_tile = CONFIG.getint('work', 'y_tile_size')
-        x_tile = None if x_tile <= 0 else x_tile
-        y_tile = None if y_tile <= 0 else y_tile
+        # get the processing tile sizes
+        x_tile, ytile = get_tile_sizes()
 
         # get the acquisition we wish to process
-        acqs = [acq for acq in acqs if acq.band_num == self.band_num]
+        acq = [acq for acq in acqs if acq.band_num == self.band_num][0]
 
-        # Output filenames
-        # Create a dict of filenames per reflectance level per band
-        rfl_lvl_fnames = {}
-        for level in rfl_levels:
-            outfname = output_format.format(level=level, band=self.band_num)
-            rfl_lvl_fnames[(self.band_num, level)] = pjoin(outdir, outfname)
 
-        # calculate reflectance for lambertian, brdf, and terrain correction 
-        gaip.calculate_reflectance(acqs, bilinear_data, rori, brdf_data,
-                                   self_shadow_fname, sun_fname,
-                                   satellite_fname, solar_zenith_fname,
-                                   solar_azimuth_fname, satellite_view_fname,
-                                   relative_angle_fname, slope_fname,
-                                   aspect_fname, incident_fname,
-                                   exiting_fname, relative_slope_fname,
-                                   rfl_lvl_fnames, x_tile, y_tile)
+        outputs = self.output()
+        with outputs['lambertian'].temporary_path() as out_fname1:
+            with outputs['brdf'].temporary_path() as out_fname2:
+                with outputs['terrain'].temporary_path() as out_fname3:
 
-        save(self.output(), 'completed')
+                    # arguments
+                    args = [acq,
+                            bilinear_data,
+                            rori,
+                            brdf_data,
+                            self_shadow_fname,
+                            cast_shadow_sun_fname,
+                            cast_shadow_sat_fname,
+                            solar_zenith_fname,
+                            solar_azimuth_fname,
+                            satellite_view_fname,
+                            relative_angle_fname,
+                            slope_fname,
+                            aspect_fname,
+                            incident_fname, exiting_fname,
+                            relative_slope_fname,
+                            out_fname1,
+                            out_fname2,
+                            out_fname3,
+                            x_tile,
+                            y_tile]
+
+                    # calculate reflectance
+                    gaip.calculate_reflectance(*args)
 
 
 class TerrainCorrection(luigi.WrapperTask):
