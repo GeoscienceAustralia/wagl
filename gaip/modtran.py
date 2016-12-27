@@ -151,10 +151,10 @@ def write_modtran_inputs(acquisition, coordinator, view_fname, azi_fname,
                 src.write("{:f}\n".format(azi_cor[i]))
 
 
-def write_tp5(acquisition, coordinator, view_fname, azi_fname,
-              lat_fname, lon_fname, ozone, vapour, aerosol, elevation,
-              coords, albedos, out_fname_fmt):
-    """Writes the tp5 files for the albedo (0, 1) and transmittance (t)."""
+def format_tp5(acquisition, coordinator, view_fname, azi_fname,
+               lat_fname, lon_fname, ozone, vapour, aerosol, elevation,
+               coords, albedos):
+    """Creates str formatted tp5 files for the albedo (0, 1) and transmittance (t)."""
     geobox = acquisition.gridded_geo_box()
     filter_file = acquisition.spectral_filter_file
     cdate = acquisition.scene_centre_date
@@ -200,7 +200,7 @@ def write_tp5(acquisition, coordinator, view_fname, azi_fname,
     azi_cor[wh] -= 360
 
     # get the modtran profiles to use based on the centre latitude 
-    centre_lon, centre_lat = geobox.centre_lonlat
+    _, centre_lat = geobox.centre_lonlat
     if centre_lat < -23.0:
         albedo_profile = MIDLAT_SUMMER_ALBEDO
         trans_profile = MIDLAT_SUMMER_TRANSMITTANCE
@@ -211,10 +211,11 @@ def write_tp5(acquisition, coordinator, view_fname, azi_fname,
     # we'll only cater for MODTRAN to output binary form
     binary = 'T'
 
+    tp5_data = {}
+
     # write the tp5 files required for input into MODTRAN
     for i, p in enumerate(coords):
         for alb in albedos:
-            out_fname = out_fname_fmt.format(coord=p, albedo=alb)
             if alb == 't':
                 data = trans_profile.format(albedo=0.0,
                                             water=vapour,
@@ -242,8 +243,10 @@ def write_tp5(acquisition, coordinator, view_fname, azi_fname,
                                              time=dechour,
                                              sat_azimuth=azi_cor[i],
                                              binary=binary)
-            with open(out_fname, 'w') as src:
-                src.write(data)
+
+            tp5_data[(p, alb)] = data
+
+    return tp5_data
 
 
 def run_modtran(modtran_exe, workpath):
@@ -251,8 +254,7 @@ def run_modtran(modtran_exe, workpath):
     subprocess.check_call([modtran_exe], cwd=workpath)
 
 
-def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt,
-                           output_fmt, output_reformat, cwd):
+def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt, mod_root):
     """
     Calculate the atmospheric coefficients from the MODTRAN output
     and used in the BRDF and atmospheric correction.
@@ -276,7 +278,7 @@ def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt,
         A `string` format for the MODTRAN *.dir output file.
         eg '{coord}_alb_{albedo}.dir'.
 
-    :param cwd:
+    :param mod_root:
         A `string` containing the full file pathname to the MODTRAN
         output directory.
 
@@ -290,20 +292,20 @@ def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt,
     result = {}
     for coord in coords:
         # MODTRAN output .chn file (albedo 0)
-        fname1 = pjoin(cwd, chn_input_fmt.format(coord=coord, albedo=0))
+        fname1 = pjoin(mod_root, chn_input_fmt.format(coord=coord, albedo=0))
 
         # **********UNUSED**********
         # MODTRAN output .chn file (albedo 1)
         # fname2 = pjoin(cwd, chn_input_fmt.format(coord=coord, albedo=1))
 
         # solar radiation file (albedo 0)
-        fname3 = pjoin(cwd, dir_input_fmt.format(coord=coord, albedo=0))
+        fname3 = pjoin(mod_root, dir_input_fmt.format(coord=coord, albedo=0))
 
         # solar radiation file (albedo 1)
-        fname4 = pjoin(cwd, dir_input_fmt.format(coord=coord, albedo=1))
+        fname4 = pjoin(mod_root, dir_input_fmt.format(coord=coord, albedo=1))
 
         # solar radiation file (transmittance mode)
-        fname5 = pjoin(cwd, dir_input_fmt.format(coord=coord, albedo='t'))
+        fname5 = pjoin(mod_root, dir_input_fmt.format(coord=coord, albedo='t'))
 
         # read the data
         # **********UNUSED**********
@@ -418,8 +420,7 @@ def bilinear_interpolate(acq, coordinator, boxline, centreline,
                          coefficients, out_fname):
     """Perform bilinear interpolation."""
 
-    band = acq.band_num
-    geobox = gaip.gridded_geo_box(acqs[0])
+    geobox = gaip.gridded_geo_box(acq)
     cols, rows = geobox.get_shape_xy()
 
     # dataframes for the coords, scene centreline, boxline
