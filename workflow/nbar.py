@@ -1492,19 +1492,14 @@ class WriteMetadata(luigi.Task):
         targets = [pjoin(out_path, CONFIG.get('work', 'aerosol_fname')),
                    pjoin(out_path, CONFIG.get('work', 'vapour_fname')),
                    pjoin(out_path, CONFIG.get('work', 'ozone_fname')),
-                   pjoin(out_path, CONFIG.get('work', 'dem_fname'))]
+                   pjoin(out_path, CONFIG.get('work', 'dem_fname')),
+                   pjoin(out_path, CONFIG.get('work', 'brdf_fname'))]
 
-        with open(targets[0], 'rb') as src:
-            aerosol_data = pickle.load(src)
-
-        with open(targets[1], 'rb') as src:
-            water_vapour_data = pickle.load(src)
-
-        with open(targets[2], 'rb') as src:
-            ozone_data = pickle.load(src)
-
-        with open(targets[3], 'rb') as src:
-            elevation_data = pickle.load(src)
+        aerosol_data = load(luigi.LocalTarget(targets[0])
+        water_vapour_data = load(luigi.LocalTarget(targets[1])
+        ozone_data = load(luigi.LocalTarget(targets[2])
+        elevation_data = load(luigi.LocalTarget(targets[3])
+        brdf_data = load(luigi.LocalTarget(targets[4])
 
         # output
         with self.output().temporary_path() as out_fname:
