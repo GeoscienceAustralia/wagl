@@ -1,4 +1,5 @@
 
+from metadata import *
 from ancillary import *
 from acquisition import *
 from data import *
@@ -26,7 +27,6 @@ from acca_cloud_masking import majority_filter
 from fmask_cloud_masking_wrapper import fmask_cloud_mask
 from cloud_shadow_masking import cloud_shadow
 from calculate_self_shadow import self_shadow
-from metadata import *
 
 try:
     from _satellite_model import set_satmod # F2Py
