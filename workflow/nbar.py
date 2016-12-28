@@ -9,7 +9,6 @@ Workflow settings can be configured in `nbar.cfg` file.
 # pylint: disable=missing-docstring,no-init,too-many-function-args
 # pylint: disable=too-many-locals
 
-from datetime import datetime as dt
 import cPickle as pickle
 import os
 from os.path import join as pjoin, basename, dirname, exists
@@ -1485,92 +1484,33 @@ class WriteMetadata(luigi.Task):
         # TODO: retrieve single acquisition
         # TODO: a single acquisition doesn't account for all granules
         # TODO: do we write metadata per granule???
+        # TODO: rework to use self.input()
         container = gaip.acquisitions(self.level1)
         acq = container.get_acquisitions()[0]
         out_path = self.nbar_root
-
-        source_info = {}
-        source_info['source_scene'] = self.level1
-        source_info['scene_centre_datetime'] = acq.scene_centre_datetime
-        source_info['platform'] = acq.spacecraft_id
-        source_info['sensor'] = acq.sensor_id
-        source_info['path'] = acq.path
-        source_info['row'] = acq.row
-
-        # ancillary metadata tracking
-        md = gaip.extract_ancillary_metadata(self.level1)
-        for key in md:
-            source_info[key] = md[key]
 
         targets = [pjoin(out_path, CONFIG.get('work', 'aerosol_fname')),
                    pjoin(out_path, CONFIG.get('work', 'vapour_fname')),
                    pjoin(out_path, CONFIG.get('work', 'ozone_fname')),
                    pjoin(out_path, CONFIG.get('work', 'dem_fname'))]
 
-        sources = ['aerosol',
-                   'water_vapour',
-                   'ozone',
-                   'elevation']
+        with open(targets[0], 'rb') as src:
+            aerosol_data = pickle.load(src)
 
-        sources_targets = zip(sources, targets)
+        with open(targets[1], 'rb') as src:
+            water_vapour_data = pickle.load(src)
 
-        ancillary = {}
-        for source, target in sources_targets:
-            with open(target, 'rb') as src:
-                ancillary[source] = pickle.load(src)
+        with open(targets[2], 'rb') as src:
+            ozone_data = pickle.load(src)
 
-        # Get the required BRDF LUT & factors list
-        nbar_constants = gaip.constants.NBARConstants(acq.spacecraft_id,
-                                                      acq.sensor_id)
-
-        bands = nbar_constants.get_brdf_lut()
-        brdf_factors = nbar_constants.get_brdf_factors()
-
-        target = pjoin(out_path, CONFIG.get('work', 'brdf_fname'))
-        with open(target, 'rb') as src:
-            brdf_data = pickle.load(src)
-
-        brdf = {}
-        band_fmt = 'band_{}'
-        for band in bands:
-            data = {}
-            for factor in brdf_factors:
-                data[factor] = brdf_data[(band, factor)]
-            brdf[band_fmt.format(band)] = data
-
-        ancillary['brdf'] = brdf
-
-        # TODO (a) retrieve software version from git once deployed
-        algorithm = {}
-        algorithm['algorithm_version'] = 2.0 # hardcode for now see TODO (a)
-        algorithm['software_repository'] = ('https://github.com/'
-                                            'GeoscienceAustralia/'
-                                            'ga-neo-landsat-processor.git')
-        algorithm['arg25_doi'] = 'http://dx.doi.org/10.4225/25/5487CC0D4F40B'
-        algorithm['nbar_doi'] = 'http://dx.doi.org/10.1109/JSTARS.2010.2042281'
-        algorithm['nbar_terrain_corrected_doi'] = ('http://dx.doi.org/10.1016/'
-                                                   'j.rse.2012.06.018')
-
-        system_info = {}
-        proc = subprocess.Popen(['uname', '-a'], stdout=subprocess.PIPE)
-        system_info['node'] = proc.stdout.read()
-        system_info['time_processed'] = dt.utcnow()
-
-        metadata = {}
-        metadata['system_information'] = system_info
-        metadata['source_data'] = source_info
-        metadata['ancillary_data'] = ancillary
-        metadata['algorithm_information'] = algorithm
-        
-        # Account for NumPy dtypes
-        yaml.add_representer(numpy.float, Representer.represent_float)
-        yaml.add_representer(numpy.float32, Representer.represent_float)
-        yaml.add_representer(numpy.float64, Representer.represent_float)
+        with open(targets[3], 'rb') as src:
+            elevation_data = pickle.load(src)
 
         # output
         with self.output().temporary_path() as out_fname:
-            with open(out_fname, 'w') as src:
-                yaml.dump(metadata, src, default_flow_style=False)
+            gaip.write_nbar_yaml(acq, self.level1, ozone_data, aerosol_data,
+                                 water_vapour_data, elevation_data, brdf_data,
+                                 out_fname)
 
 
 class Packager(luigi.Task):
