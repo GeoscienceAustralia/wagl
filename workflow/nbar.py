@@ -1334,6 +1334,8 @@ class RunTCBand(luigi.Task):
         container = gaip.acquisitions(self.level1)
         out_path = container.get_root(self.nbar_root, group=self.group,
                                       granule=self.granule)
+        reflectance_root = CONFIG.get('work', 'reflectance_root')
+        out_path = pjoin(out_path, reflectance_root)
 
         # get the reflectance levels and base output format
         lambertian_fmt = CONFIG.get('terrain_correction', 'lambertian_format')
@@ -1476,9 +1478,8 @@ class WriteMetadata(luigi.Task):
 
     def output(self):
         out_path = self.nbar_root
-        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
-        target = pjoin(out_path, 'WriteMetadata.task')
-        return luigi.LocalTarget(target)
+        out_fname = pjoin(out_path, CONFIG.get('work', 'metadata_fname'))
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         # TODO: retrieve single acquisition
@@ -1567,11 +1568,9 @@ class WriteMetadata(luigi.Task):
         yaml.add_representer(numpy.float64, Representer.represent_float)
 
         # output
-        out_fname = pjoin(out_path, CONFIG.get('work', 'metadata_fname'))
-        with open(out_fname, 'w') as src:
-            yaml.dump(metadata, src, default_flow_style=False)
-
-        save(self.output(), 'completed')
+        with self.output().temporary_path() as out_fname:
+            with open(out_fname, 'w') as src:
+                yaml.dump(metadata, src, default_flow_style=False)
 
 
 class Packager(luigi.Task):
