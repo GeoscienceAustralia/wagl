@@ -1495,11 +1495,11 @@ class WriteMetadata(luigi.Task):
                    pjoin(out_path, CONFIG.get('work', 'dem_fname')),
                    pjoin(out_path, CONFIG.get('work', 'brdf_fname'))]
 
-        aerosol_data = load(luigi.LocalTarget(targets[0])
-        water_vapour_data = load(luigi.LocalTarget(targets[1])
-        ozone_data = load(luigi.LocalTarget(targets[2])
-        elevation_data = load(luigi.LocalTarget(targets[3])
-        brdf_data = load(luigi.LocalTarget(targets[4])
+        aerosol_data = load(luigi.LocalTarget(targets[0]))
+        water_vapour_data = load(luigi.LocalTarget(targets[1]))
+        ozone_data = load(luigi.LocalTarget(targets[2]))
+        elevation_data = load(luigi.LocalTarget(targets[3]))
+        brdf_data = load(luigi.LocalTarget(targets[4]))
 
         # output
         with self.output().temporary_path() as out_fname:
