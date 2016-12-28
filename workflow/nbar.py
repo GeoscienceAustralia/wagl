@@ -319,22 +319,24 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
         container = gaip.acquisitions(self.level1)
         out_path = container.get_root(self.nbar_root, group=self.group,
                                       granule=self.granule)
-        fnames = [CONFIG.get('work', 'sat_view_fname'),
-                  CONFIG.get('work', 'sat_azimuth_fname'),
-                  CONFIG.get('work', 'solar_zenith_fname'),
-                  CONFIG.get('work', 'solar_azimuth_fname'),
-                  CONFIG.get('work', 'relative_azimuth_fname'),
-                  CONFIG.get('work', 'time_fname'),
-                  CONFIG.get('work', 'boxline_fname'),
-                  CONFIG.get('work', 'centreline_fname'),
-                  CONFIG.get('work', 'coordinator_fname')]
-        targets = {f: luigi.LocalTarget(pjoin(out_path, f)) for f in fnames}
+        fnames = {'sat_view': CONFIG.get('work', 'sat_view_fname'),
+                  'sat_azimuth': CONFIG.get('work', 'sat_azimuth_fname'),
+                  'sol_zenith': CONFIG.get('work', 'solar_zenith_fname'),
+                  'sol_azimuth': CONFIG.get('work', 'solar_azimuth_fname'),
+                  'rel_azimuth': CONFIG.get('work', 'relative_azimuth_fname'),
+                  'time': CONFIG.get('work', 'time_fname'),
+                  'boxline': CONFIG.get('work', 'boxline_fname'),
+                  'centreline': CONFIG.get('work', 'centreline_fname'),
+                  'coordinator': CONFIG.get('work', 'coordinator_fname')}
+        targets = {k: luigi.LocalTarget(pjoin(out_path, v)) for k, v in
+                   fnames.items()}
+
         return targets
 
     def run(self):
         container = gaip.acquisitions(self.level1)
-        lat_fname = self.input()['lat'].path
-        lon_fname = self.input()['lon'].path
+        lat_fname = self.input()['lat']['lat'].path
+        lon_fname = self.input()['lon']['lon'].path
 
         acqs = container.get_acquisitions(group=self.group,
                                           granule=self.granule)
@@ -343,29 +345,29 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
         cols = acqs[0].samples
         view_max = acqs[0].maximum_view_angle
 
-        # TODO: define out_fnames
-        outputs = self.outputs()
-        with outputs['sat_view_fname'].path as fname1,\
-            outputs['sat_azimuth_fname'].path as fname2,\
-            outputs['solar_zenith_fname'].path as fname3,\
-            outputs['solar_azimuth_fname'].path as fname4,\
-            outputs['relative_azimuth_fname'].path as fname5,\
-            outputs['time_fnamee'].path as fname6:
+        outputs = self.output()
+        with outputs['sat_view'].temporary_path() as fname1,\
+            outputs['sat_azimuth'].temporary_path() as fname2,\
+            outputs['sol_zenith'].temporary_path() as fname3,\
+            outputs['sol_azimuth'].temporary_path() as fname4,\
+            outputs['rel_azimuth'].temporary_path() as fname5,\
+            outputs['time'].temporary_path() as fname6:
 
             out_fnames = [fname1, fname2, fname3, fname4, fname5, fname6]
 
-            (satellite_zenith, _, _, _, _, _, y_cent, x_cent, n_cent) = \
+            (_, _, _, _, _, _, y_cent, x_cent, n_cent) = \
                 gaip.calculate_angles(acqs[0], lon_fname, lat_fname,
                                       npoints=12, out_fnames=out_fnames)
 
-        with self.output()['centreline_fname'].temporary_path() as cent_fname:
+        with outputs['centreline'].temporary_path() as cent_fname:
             gaip.create_centreline_file(geobox, y_cent, x_cent, n_cent, cols,
                                         view_max=view_max,
                                         outfname=cent_fname)
 
-        with self.output()['boxline_fname'].temporary_path() as boxline_fname,\
-            self.output()['coordinator_fname'].temporary_path() as coord_fname:
+        with outputs['boxline'].temporary_path() as boxline_fname,\
+            outputs['coordinator'].temporary_path() as coord_fname:
 
+            satellite_zenith = outputs['sat_view'].path
             gaip.create_boxline_file(satellite_zenith, y_cent, x_cent, n_cent,
                                      boxline_fname=boxline_fname,
                                      max_angle=view_max,
@@ -425,7 +427,7 @@ class AggregateAncillary(luigi.Task):
         elevation /= n_tiles
 
         # write the mean ancillary values
-        outputs = self.outputs()
+        outputs = self.output()
         data = {'data_source': 'granule_average'}
 
         with outputs['ozone'].temporary_path() as out_fname1,\
@@ -497,7 +499,7 @@ class WriteTp5(luigi.Task):
             for albedo in albedos:
                 fname = out_format.format(coord=coord, albedo=albedo)
                 out_fname = pjoin(modtran_root, fname)
-                targets[(coord, albedo)] = out_fname
+                targets[(coord, albedo)] = luigi.LocalTarget(out_fname)
         return targets
 
     def run(self):
@@ -511,24 +513,26 @@ class WriteTp5(luigi.Task):
         albedos = CONFIG.get('modtran', 'albedos').split(',')
 
         # input file
-        inputs = self.inputs()
+        # inputs = self.requires().input()
+        inputs = self.input()
 
         if container.tiled:
             ancillary = inputs['ancillary']
         else:
-            ancillary = self.requires().inputs()[(self.granule, 'ancillary')]
+            ancillary = self.requires()[(self.granule, 'ancillary')].input()
+            # ancillary = inputs[(self.granule, 'ancillary')]
 
-        sat_sol = inputs[(self.ganule, group)]['sat_sol']
-        coord_fname = sat_sol['coordinator_fname'].path
-        sat_view_fname = sat_sol['sat_view_fname'].path
-        sat_azi_fname = sat_sol['sat_azimuth_fname'].path
-        lon_fname = inputs[(self.ganule, group)]['lon']['lon'].path
-        lat_fname = inputs[(self.ganule, group)]['lat']['lat'].path
+        sat_sol = inputs[(self.granule, group)]['sat_sol']
+        coord_fname = sat_sol['coordinator'].path
+        sat_view_fname = sat_sol['sat_view'].path
+        sat_azi_fname = sat_sol['sat_azimuth'].path
+        lon_fname = inputs[(self.granule, group)]['lon']['lon'].path
+        lat_fname = inputs[(self.granule, group)]['lat']['lat'].path
 
         ozone_fname = ancillary['ozone']['ozone'].path
         vapour_fname = ancillary['vapour']['vapour'].path
         aerosol_fname = ancillary['aerosol']['aerosol'].path
-        elevation_fname = ancillary['elevation']['elevationn'].path
+        elevation_fname = ancillary['elevation']['elevation'].path
 
         # load the ancillary point values
         ozone = load_value(ozone_fname)
@@ -543,7 +547,7 @@ class WriteTp5(luigi.Task):
                                    sat_azi_fname, lat_fname, lon_fname, ozone,
                                    vapour, aerosol, elevation, coords, albedos)
 
-        for key, target in self.outputs().items():
+        for key, target in self.output().items():
             with target.temporary_path() as out_fname:
                 save(out_fname, tp5_data[key], pkl=False)
 
@@ -679,6 +683,7 @@ class RunModtranCase(luigi.Task):
         modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
         output_format = CONFIG.get('extract_flux', 'input_format')
         out_fname = output_format.format(coord=self.coord, albedo=self.albedo)
+
         return luigi.LocalTarget(pjoin(modtran_root, out_fname))
 
     def run(self):
@@ -688,8 +693,13 @@ class RunModtranCase(luigi.Task):
         modtran_exe = CONFIG.get('modtran', 'exe')
         workpath_format = CONFIG.get('modtran', 'workpath_format')
         modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
+
         workpath = workpath_format.format(coord=self.coord, albedo=self.albedo)
-        gaip.run_modtran(modtran_exe, pjoin(modtran_root, workpath))
+        modtran_work = pjoin(modtran_root, workpath)
+
+        gaip.prepare_modtran(self.coord, self.albedo, modtran_work,
+                             modtran_exe)
+        gaip.run_modtran(modtran_exe, modtran_work)
 
 
 class RunAccumulateSolarIrradianceCase(luigi.Task):
@@ -790,8 +800,8 @@ class CalculateCoefficients(luigi.Task):
         container = gaip.acquisitions(self.level1)
         out_path = container.get_root(self.nbar_root, granule=self.granule)
         out_path = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
-        out_fname1 = CONFIG.get('coefficients', 'out_fname1')
-        out_fname2 = CONFIG.get('coefficients', 'out_fname2')
+        out_fname1 = pjoin(out_path, CONFIG.get('coefficients', 'out_fname1'))
+        out_fname2 = pjoin(out_path, CONFIG.get('coefficients', 'out_fname2'))
         targets = {'coef1': luigi.LocalTarget(out_fname1),
                    'coef2': luigi.LocalTarget(out_fname2)}
         return targets
@@ -810,9 +820,11 @@ class CalculateCoefficients(luigi.Task):
                                                    dir_input_format,
                                                    workpath)
 
-        with self.output()['coef1'].temporary_file() as out_fname1,\
-            self.output()['coef2'].temporary_file() as out_fname2:
+        with self.output()['coef1'].temporary_path() as out_fname1,\
+            self.output()['coef2'].temporary_path() as out_fname2:
 
+            print "---out_fname1---", out_fname1
+            print "---out_fname2---", out_fname2
             save(out_fname1, coef1)
             save(out_fname2, coef2)
 
@@ -850,9 +862,9 @@ class BilinearInterpolationBand(luigi.Task):
 
     def run(self):
         container = gaip.acquisitions(self.level1)
-        coord_fname = self.input()['satsol']['coordinator_fname']
-        box_fname = self.input()['satsol']['boxline_fname']
-        centre_fname = self.input()['satsol']['centreline_fname']
+        coord_fname = self.input()['satsol']['coordinator'].path
+        box_fname = self.input()['satsol']['boxline'].path
+        centre_fname = self.input()['satsol']['centreline'].path
 
         band_num = self.band_num
         factor = self.factor
@@ -986,7 +998,7 @@ class SlopeAndAspect(luigi.Task):
         slope_fname = pjoin(out_path,
                             CONFIG.get('self_shadow', 'slope_fname'))
         aspect_fname = pjoin(out_path,
-                             CONFIG.get('self_shadow', 'slope_fname'))
+                             CONFIG.get('self_shadow', 'aspect_fname'))
         targets = {'slope': luigi.LocalTarget(slope_fname),
                    'aspect': luigi.LocalTarget(aspect_fname)}
 
@@ -1050,8 +1062,8 @@ class IncidentAngles(luigi.Task):
 
     def run(self):
         # input filenames
-        sol_zen_fname = self.input()['sat_sol']['solar_zenith_fname'].path
-        sol_azi_fname = self.input()['sat_sol']['solar_azimuth_fname'].path
+        sol_zen_fname = self.input()['sat_sol']['sol_zenith'].path
+        sol_azi_fname = self.input()['sat_sol']['sol_azimuth'].path
         slope_fname = self.input()['slp_asp']['slope'].path
         aspect_fname = self.input()['slp_asp']['aspect'].path
 
@@ -1099,8 +1111,8 @@ class ExitingAngles(luigi.Task):
 
     def run(self):
         # input filenames
-        sat_view_fname = self.input()['sat_sol']['sat_view_fname'].path
-        sat_azi_fname = self.input()['sat_sol']['sat_azimuth_fname'].path
+        sat_view_fname = self.input()['sat_sol']['sat_view'].path
+        sat_azi_fname = self.input()['sat_sol']['sat_azimuth'].path
         slope_fname = self.input()['slp_asp']['slope'].path
         aspect_fname = self.input()['slp_asp']['aspect'].path
 
@@ -1224,8 +1236,8 @@ class CalculateCastShadowSun(luigi.Task):
 
         # input filenames
         dsm_fname = self.input()['dsm']['smoothed'].path
-        sol_zen_fname = self.input()['sat_sol']['solar_zenith_fname'].path
-        sol_azi_fname = self.input()['sat_sol']['solar_azimuth_fname'].path
+        sol_zen_fname = self.input()['sat_sol']['sol_zenith'].path
+        sol_azi_fname = self.input()['sat_sol']['sol_azimuth'].path
 
         #buffer = int(CONFIG.get('extract_dsm', 'dsm_buffer_width'))
         buffer = get_buffer(self.group)
@@ -1274,8 +1286,8 @@ class CalculateCastShadowSatellite(luigi.Task):
 
         # input filenames
         dsm_fname = self.input()['dsm']['smoothed'].path
-        sat_view_fname = self.input()['sat_sol']['sat_view_fname'].path
-        sat_azi_fname = self.input()['sat_sol']['sat_azimuth_fname'].path
+        sat_view_fname = self.input()['sat_sol']['sat_view'].path
+        sat_azi_fname = self.input()['sat_sol']['sat_azimuth'].path
 
         #buffer = int(CONFIG.get('extract_dsm', 'dsm_buffer_width'))
         buffer = get_buffer(self.group)
@@ -1309,7 +1321,7 @@ class RunTCBand(luigi.Task):
                 'rel_slope': RelativeAzimuthSlope(*args),
                 'self_shadow': SelfShadow(*args),
                 'cast_shadow_sun': CalculateCastShadowSun(*args),
-                'cast_shaodw_sat': CalculateCastShadowSatellite(*args),
+                'cast_shadow_sat': CalculateCastShadowSatellite(*args),
                 'slp_asp': SlopeAndAspect(*args),
                 'incident': IncidentAngles(*args),
                 'exiting': ExitingAngles(*args),
@@ -1358,10 +1370,10 @@ class RunTCBand(luigi.Task):
         relative_slope_fname = inputs['rel_slope'].path
         cast_shadow_sun_fname = inputs['cast_shadow_sun'].path
         cast_shadow_sat_fname = inputs['cast_shadow_sat'].path
-        solar_zenith_fname = inputs['sat_sol']['solar_zenith_fname'].path
-        solar_azimuth_fname = inputs['sat_sol']['solar_azimuth_fname'].path
-        satellite_view_fname = inputs['sat_sol']['sat_view_fname'].path
-        relative_angle_fname = inputs['sat_sol']['relative_azimuth_fname'].path
+        solar_zenith_fname = inputs['sat_sol']['sol_zenith'].path
+        solar_azimuth_fname = inputs['sat_sol']['sol_azimuth'].path
+        satellite_view_fname = inputs['sat_sol']['sat_view'].path
+        relative_angle_fname = inputs['sat_sol']['rel_azimuth'].path
 
         bilinear_data = load_value(bilinear_fname)
         brdf_data = load_value(brdf_fname)
@@ -1378,8 +1390,18 @@ class RunTCBand(luigi.Task):
             outputs['brdf'].temporary_path() as brdf_fname,\
             outputs['terrain'].temporary_path() as terrain_fname:
 
+            key1 = (self.band_num, 'lambertian')
+            key2 = (self.band_num, 'brdf')
+            key3 = (self.band_num, 'terrain')
+            reflectance_fnames = {key1: lambertian_fname,
+                                  key2: brdf_fname,
+                                  key3: terrain_fname}
+
+            # TODO: update reflectance function:
+            # accept single acquisition, no string formats, brdf data,
+            # no dicts of band numbers etc
             # arguments
-            args = [acq,
+            args = [[acq],
                     bilinear_data,
                     rori,
                     brdf_data,
@@ -1395,9 +1417,7 @@ class RunTCBand(luigi.Task):
                     incident_fname,
                     exiting_fname,
                     relative_slope_fname,
-                    lambertian_fname,
-                    brdf_fname,
-                    terrain_fname,
+                    reflectance_fnames,
                     x_tile,
                     y_tile]
 
