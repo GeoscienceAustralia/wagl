@@ -31,7 +31,7 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
     :param bilinear_ortho_filenames:
         A dictionary with keys specified via a tuple of
         (band_number, factor) and the value corresponding to a full
-        file pathname to the bilinearly interpolated flaot32 array.
+        file pathname to the bilinearly interpolated float32 array.
         Valid factor strings are:
 
             * fv: MODTRAN output (fv).
@@ -104,9 +104,9 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
         full file pathname.
         Valid reflectance level strings are:
 
-            * 1. ref_lm -> Lambertian reflectance
-            * 2. ref_brdf -> BRDF corrected reflectance
-            * 3. ref_terrain -> Terrain corrected reflectance
+            * 1. lambertian -> Lambertian reflectance
+            * 2. brdf -> BRDF corrected reflectance
+            * 3. terrain -> Terrain corrected reflectance
 
     :param x_tile:
         Defines the tile size along the x-axis. Default is None which
@@ -121,11 +121,11 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
         The terrain correction algorithm will output 3 files for every
         band in the following format:
 
-            * 1. reflectance_lambertian_{band_number}.bin -> Lambertian
+            * 1. reflectance_lambertian_{band_number}.tif -> Lambertian
                  reflectance.
-            * 2. reflectance_brdf_{band_number}.bin -> BRDF corrected
+            * 2. reflectance_brdf_{band_number}.tif -> BRDF corrected
                  reflectance.
-            * 3. reflectance_terrain_{band_number}.bin -> Terrain corrected
+            * 3. reflectance_terrain_{band_number}.tid -> Terrain corrected
                  reflectance.
 
     :notes:
@@ -188,12 +188,9 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
         crs = geobox.crs.ExportToWkt()
 
         # Filenames for lambertian, brdf & terrain corrected reflectance
-        lmbrt_fname = reflectance_filenames[(band_number,
-                                             'reflectance_lambertian')]
-        brdf_fname = reflectance_filenames[(band_number,
-                                            'reflectance_brdf')]
-        tc_fname = reflectance_filenames[(band_number,
-                                          'reflectance_terrain')]
+        lmbrt_fname = reflectance_filenames[(band_number, 'lambertian')]
+        brdf_fname = reflectance_filenames[(band_number, 'brdf')]
+        tc_fname = reflectance_filenames[(band_number, 'terrain')]
 
         # Initialise the output files
         kwargs = {'driver': 'GTiff',
