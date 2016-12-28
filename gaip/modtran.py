@@ -49,6 +49,26 @@ def create_modtran_dirs(coords, albedos, modtran_root, modtran_exe_root,
             os.symlink(data_dir, symlink_dir)
 
 
+def prepare_modtran(coordinate, albedo, modtran_work, modtran_exe):
+    """
+    Prepares the working directory for a MODTRAN execution.
+    """
+    data_dir = pjoin(dirname(modtran_exe), 'DATA')
+    if not exists(data_dir):
+        raise OSError('Cannot find MODTRAN')
+
+    out_fname = pjoin(modtran_work, 'mod5root.in')
+
+    with open(out_fname, 'w') as src:
+        src.write(coordinate + '_alb_' + albedo + '\n')
+
+    symlink_dir = pjoin(modtran_work, 'DATA')
+    if exists(symlink_dir):
+        os.unlink(symlink_dir)
+
+    os.symlink(data_dir, symlink_dir)
+
+
 # science team requires
 def create_satellite_filter_file(acquisitions, satfilter_path, target):
     """Generate satellite filter input file."""
