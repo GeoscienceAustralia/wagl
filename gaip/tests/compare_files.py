@@ -18,9 +18,7 @@ def main(ref_dir, test_dir, scenes, files):
             with rasterio.open(ref_fname) as ref_ds,\
                 rasterio.open(test_fname) as test_ds:
                 print "Testing\nScene: {}\n File: {}".format(scene, f)
-                ref_data = ref_ds.read(1)#.astype('float')
-                test_data = test_ds.read(1)#.astype('float')
-                diff = ref_data - test_data
+                diff = ref_ds.read(1).astype('float32') - test_ds.read(1)
                 min_ = diff.min()
                 max_ = diff.max()
                 n_pixels = (numpy.abs(diff) != 0).sum()
