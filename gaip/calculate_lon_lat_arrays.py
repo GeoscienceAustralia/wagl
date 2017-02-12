@@ -1,15 +1,17 @@
+#!/usr/bin/env python
+
 """
-Grid Creation
--------------
+Longitude and Latitude 2D grid creation.
 """
-import numpy
-import osr
-import os
 
 from functools import partial
+import numpy
+import osr
+import h5py
+
 from eotools.blrb import interpolate_grid
-from gaip import gridded_geo_box
-from gaip import write_img
+from gaip import dataset_compression_kwargs
+from gaip import attach_image_attributes
 
 CRS = "EPSG:4326"
 
@@ -93,8 +95,7 @@ def get_lat_coordinate(y, x, geobox, geo_crs=None, centre=False):
 
 
 def create_lon_lat_grids(acquisition, depth=7, dtype='float64',
-                         lon_fname='LON.bin', lat_fname='LAT.bin',
-                         work_dir='', to_disk=True):
+                         out_fname=None, compression='lzf'):
     """
     Creates 2 by 2D NumPy arrays containing longitude and latitude
     co-ordinates for each array element.
@@ -102,37 +103,33 @@ def create_lon_lat_grids(acquisition, depth=7, dtype='float64',
     :param acquisition:
         An instance of an acquisitions object.
 
-    :param lon_fname:
-        If the keyword to_disk is set to True (Default) then the
-        longitude array will be written to disk rather than returned.
-        The format of the output array is a GeoTiff.
-        Default filename is LON.tif.
+    :param out_fname:
+        If set to None (default) then the results will be returned
+        as an in-memory hdf5 file, i.e. the `core` driver.
+        Otherwise it should be a string containing the full file path
+        name to a writeable location on disk in which to save the HDF5
+        file.
 
-    :param lat_fname:
-        If the keyword to_disk is set to True (Default) then the
-        latitude array will be written to disk rather than returned.
-        The format of the output file is a GeoTiff.
-        Default filename is LAT.tif.
+        The dataset path names will be as follows:
 
-    :param work_dir:
-        A string containing the full system filepath to a directory
-        that will contain the longitude and latitude files. If unset
-        then files will be written to the current working directory.
+        * longitude
+        * latitude
 
-    :param to_disk:
-        If set to True (Default), then the longitude and latitude
-        arrays will be written to disk instead of being returned to
-        the caller.
+    :param compression:
+        The compression filter to use. Default is 'lzf'.
+        Options include:
+
+        * 'lzf' (Default)
+        * 'lz4'
+        * 'mafisc'
+        * An integer [1-9] (Deflate/gzip)
 
     :return:
-        If to_disk is set to True (Default), then the longitude and
-        latitude arrays are written to disk. If set to False, then
-        the longitude and latitude arrays are returned as a tuple
-        (longitude, latitude) 2D float64 NumPy arrays.
+        An opened `h5py.File` object, that is either in-memory using the
+        `core` driver, or on disk.
     """
-
-    # Compute the geobox
-    geobox = gridded_geo_box(acquisition)
+    # retrieve the geobox
+    geobox = acquisition.gridded_geo_box()
 
     # Define the lon and lat transform funtions
     lon_func = partial(get_lon_coordinate, geobox=geobox, centre=True)
@@ -142,57 +139,58 @@ def create_lon_lat_grids(acquisition, depth=7, dtype='float64',
     shape = geobox.get_shape_yx()
 
     # Initialise the array to contain the result
-    lon_arr = numpy.zeros(shape, dtype=dtype)
+    result = numpy.zeros(shape, dtype=dtype)
     interpolate_grid(depth=depth, origin=(0, 0), shape=shape,
-                     eval_func=lon_func, grid=lon_arr)
+                     eval_func=lon_func, grid=result)
 
-    if to_disk:
-        lon_fname = os.path.join(work_dir, lon_fname)
-        write_img(lon_arr, lon_fname, geobox=geobox)
-        lon_arr = None
-
-    lat_arr = numpy.zeros(shape, dtype=dtype)
-    interpolate_grid(depth=depth, origin=(0, 0), shape=shape,
-                     eval_func=lat_func, grid=lat_arr)
-
-    if to_disk:
-        lat_fname = os.path.join(work_dir, lat_fname)
-        write_img(lat_arr, lat_fname, geobox=geobox)
-        lat_arr = None
-        return
+    # Initialise the output files
+    if out_fname is None:
+        fid = h5py.File('longitude-latitude.h5', driver='core',
+                        backing_store=False)
     else:
-        return (lon_arr, lat_arr)
+        fid = h5py.File(out_fname, 'w')
+
+    # define some base attributes for the image datasets
+    attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
+             'geotransform': geobox.affine.to_gdal()}
+
+    desc = "An image containing the longitude values for each pixel."
+    attrs['Description'] = desc
+    kwargs = dataset_compression_kwargs(compression=compression,
+                                        chunks=(1, geobox.x_size()))
+    lon_dset = fid.create_dataset('longitude', data=result, **kwargs)
+    attach_image_attributes(lon_dset, attrs)
+
+    result = numpy.zeros(shape, dtype=dtype)
+    interpolate_grid(depth=depth, origin=(0, 0), shape=shape,
+                     eval_func=lat_func, grid=result)
+
+    desc = "An image containing the latitude values for each pixel."
+    attrs['Description'] = desc
+    lat_dset = fid.create_dataset('latitude', data=result, **kwargs)
+    attach_image_attributes(lat_dset, attrs)
+
+    return fid
 
 
-def create_grid(acquisition, coord_fn, fname=None, depth=7, dtype='float64'):
+def create_grid(geobox, coord_fn, depth=7, dtype='float64'):
     """
-    Creates 2x2 NumPy arrays containing co-ordinates for each array element.
+    Interpolates a `NumPy` array based on the input coordinate function
+    `coord_fn`.
 
-    :param acquisition:
-        An instance of an acquisitions object.
+    :param geobox:
+        An instance of an `GriddedGeoBox` object.
 
     :param coord_fn:
         A function that maps coordinates.
 
-    :param fname:
-        If set then the array will be written to disk rather than returned.
-        The format of the output array is a GeoTiff.
-
     :return:
-        If fname is set, then the longitude and latitude arrays are written
-        to disk. If set to False, then the array is returned as a tuple
-        (longitude, latitude) 2D float64 NumPy arrays.
+        A `NumPy` array.
     """
-
-    # Compute the geobox
-    geobox = gridded_geo_box(acquisition)
-
     # Define the transform funtions
     func = partial(coord_fn, geobox=geobox, centre=True)
 
     # Get some basic info about the image
-    #crs = geobox.crs.ExportToWkt()
-    #transform = geobox.affine.to_gdal()
     shape = geobox.get_shape_yx()
 
     # Initialise the array to contain the result
@@ -200,18 +198,112 @@ def create_grid(acquisition, coord_fn, fname=None, depth=7, dtype='float64'):
     interpolate_grid(depth=depth, origin=(0, 0), shape=shape,
                      eval_func=func, grid=arr)
 
-    if fname is not None:
-        write_img(arr, fname, fmt="GTiff", geobox=geobox, compress='deflate',
-                  options={'zlevel': 1})
+    return arr
+
+
+def create_lon_grid(acquisition, out_fname=None, compression='lzf', depth=7,
+                    dtype='float64'):
+    """Create longitude grid.
+
+    :param out_fname:
+        If set to None (default) then the results will be returned
+        as an in-memory hdf5 file, i.e. the `core` driver.
+        Otherwise it should be a string containing the full file path
+        name to a writeable location on disk in which to save the HDF5
+        file.
+
+        The dataset path names will be as follows:
+
+        * longitude
+
+    :param compression:
+        The compression filter to use. Default is 'lzf'.
+        Options include:
+
+        * 'lzf' (Default)
+        * 'lz4'
+        * 'mafisc'
+        * An integer [1-9] (Deflate/gzip)
+
+    :return:
+        An opened `h5py.File` object, that is either in-memory using the
+        `core` driver, or on disk.
+    """
+    # retrieve the geobox
+    geobox = acquisition.gridded_geo_box()
+
+    # Initialise the output files
+    if out_fname is None:
+        fid = h5py.File('longitude.h5', driver='core',
+                        backing_store=False)
     else:
-        return arr
+        fid = h5py.File(out_fname, 'w')
+
+    # define some base attributes for the image datasets
+    attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
+             'geotransform': geobox.affine.to_gdal()}
+    desc = "An image containing the longitude values for each pixel."
+    attrs['Description'] = desc
+    kwargs = dataset_compression_kwargs(compression=compression,
+                                        chunks=(1, geobox.x_size()))
+
+    lon_grid = create_grid(geobox, get_lon_coordinate, depth, dtype)
+
+    dset = fid.create_dataset('longitude', data=lon_grid, **kwargs)
+    attach_image_attributes(dset, attrs)
+
+    return fid
 
 
-def create_lon_grid(acquisition, fname=None, depth=7, dtype='float64'):
-    """Create longitude grid."""
-    return create_grid(acquisition, get_lon_coordinate, fname, depth, dtype)
+def create_lat_grid(acquisition, out_fname=None, compression='lzf', depth=7,
+                    dtype='float64'):
+    """Create latitude grid.
 
+    :param out_fname:
+        If set to None (default) then the results will be returned
+        as an in-memory hdf5 file, i.e. the `core` driver.
+        Otherwise it should be a string containing the full file path
+        name to a writeable location on disk in which to save the HDF5
+        file.
 
-def create_lat_grid(acquisition, fname=None, depth=7, dtype='float64'):
-    """ Create latitude grid."""
-    return create_grid(acquisition, get_lat_coordinate, fname, depth, dtype)
+        The dataset path names will be as follows:
+
+        * latitude
+
+    :param compression:
+        The compression filter to use. Default is 'lzf'.
+        Options include:
+
+        * 'lzf' (Default)
+        * 'lz4'
+        * 'mafisc'
+        * An integer [1-9] (Deflate/gzip)
+
+    :return:
+        An opened `h5py.File` object, that is either in-memory using the
+        `core` driver, or on disk.
+    """
+    # retrieve the geobox
+    geobox = acquisition.gridded_geo_box()
+
+    # Initialise the output files
+    if out_fname is None:
+        fid = h5py.File('latitude.h5', driver='core',
+                        backing_store=False)
+    else:
+        fid = h5py.File(out_fname, 'w')
+
+    # define some base attributes for the image datasets
+    attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
+             'geotransform': geobox.affine.to_gdal()}
+    desc = "An image containing the latitude values for each pixel."
+    attrs['Description'] = desc
+    kwargs = dataset_compression_kwargs(compression=compression,
+                                        chunks=(1, geobox.x_size()))
+
+    lat_grid = create_grid(geobox, get_lon_coordinate, depth, dtype)
+
+    dset = fid.create_dataset('latitude', data=lat_grid, **kwargs)
+    attach_image_attributes(dset, attrs)
+
+    return fid
