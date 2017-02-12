@@ -3,79 +3,57 @@ Grid Calculations.
 """
 
 import math
-import rasterio
 import ephem
 import numpy as np
-import os
+import h5py
 import pandas
 
 from osgeo import osr
 from eotools import tiling
-from gaip import acquisitions
-from gaip import find_file
 from gaip import gridded_geo_box
 from gaip import load_tle
 from gaip import angle
 from gaip import set_satmod
 from gaip import set_times
 from gaip import cstart_cend
+from gaip import dataset_compression_kwargs
+from gaip import attach_image_attributes
+from gaip import attach_table_attributes
 
 CRS = "EPSG:4326"
 TLE_DIR = '/g/data/v10/eoancillarydata/sensor-specific'
 
-# To be used as a template while gaip is restructured
 
-
-def sat_sol_grid_workflow(l1t_path, work_path, lonlat_path):
+def _calculate_angles_wrapper(acquisition, lon_fname, lon_dname, lat_fname,
+                              lat_dname, out_fname, npoints=12,
+                              compression='lzf', max_angle=9.0):
     """
-    Workflow to generate the satellite and solar grids.
-
-    :note:
-        This routine is only utilised by the unittesting framework.
+    A private wrapper for dealing with the internal custom workings of the
+    NBAR workflow.
     """
-    # Retrieve an acquisitions object
-    acqs = acquisitions(l1t_path)
+    if lon_fname == lat_fname:
+        with h5py.File(lon_fname, 'r') as src:
+            lon_ds = src[lon_dname]
+            lat_ds = src[lat_dname]
+            fid = calculate_angles(acquisition, lon_ds, lat_ds, npoints,
+                                   out_fname, compression)
+    else:
+        with h5py.File(lon_fname, 'r') as lon_src,\
+            h5py.File(lat_fname, 'r') as lat_src:
 
-    # Create the geobox
-    geobox = gridded_geo_box(acqs[0])
+            lon_ds = lon_src[lon_dname]
+            lat_ds = lat_src[lat_dname]
+            fid = calculate_angles(acquisition, lon_ds, lat_ds, npoints,
+                                   out_fname, compression)
 
-    # Find and open the longitude and lattitude files
-    # Avoiding DataManger here. find_file will be used sparingly until a
-    # proper workflow is written.
-    lon_fname = find_file(lonlat_path, 'LON.tif')
-    lat_fname = find_file(lonlat_path, 'LAT.tif')
+    fid.close()
 
-    # Get the array dimensions from the first acquisistion
-    # The dimensions should match for all bands except the panchromatic
-    cols = acqs[0].samples
-
-    # Define the output file names
-    sat_view_zenith_fname = os.path.join(work_path, 'SATELLITE_VIEW.tif')
-    sat_azimuth_fname = os.path.join(work_path, 'SATELLITE_AZIMUTH.tif')
-    solar_zenith_fname = os.path.join(work_path, 'SOLAR_ZENITH.tif')
-    solar_azimuth_fname = os.path.join(work_path, 'SOLAR_AZIMUTH.tif')
-    relative_azimuth_fname = os.path.join(work_path, 'RELATIVE_AZIMUTH.tif')
-    time_fname = os.path.join(work_path, 'TIME.tif')
-
-    out_fnames = [sat_view_zenith_fname, sat_azimuth_fname,
-                  solar_zenith_fname, solar_azimuth_fname,
-                  relative_azimuth_fname, time_fname]
-
-    # Get the angles, time, & satellite track coordinates
-    (satellite_zenith, satellite_azimuth, solar_zenith,
-     solar_azimuth, relative_azimuth, time,
-     y_cent, x_cent, n_cent) = calculate_angles(acqs[0], lon_fname,
-                                                lat_fname, npoints=12,
-                                                out_fnames=out_fnames)
-
-    # Write out the CENTRELINE file
-    create_centreline_file(geobox, y_cent, x_cent, n_cent, cols, view_max=9.0)
+    return
 
 
-def create_centreline_file(geobox, y, x, n, cols, view_max,
-                           outfname='CENTRELINE'):
+def create_centreline_dataset(geobox, y, x, n):
     """
-    Creates the centre line text file.
+    Creates the centre line dataset.
 
     :param geobox:
         An instance of a GriddedGeoBox object.
@@ -93,120 +71,46 @@ def create_centreline_file(geobox, y, x, n, cols, view_max,
         Details whether or not the track point coordinate is
         averaged.
 
-    :param cols:
-        An integer indicating the number of columns in the original
-        array.
+    :return:
+        A `NumPy` dataset with the following datatype:
 
-    :param view_max:
-        An float indicating the maximum view angle of the satellite
-        used for determining the centreline.
-
-    :param outfname:
-        A string containing the full file system pathname of the
-        output file.
-        Default is CENTRELINE produced in the current working
-        directory.
+        * [('row_index', 'int64'), ('col_index', 'int64'),
+           ('n_pixels', 'float'), ('latitude', 'float'),
+           ('longitude', 'float')]
     """
-
     rows = y.shape[0]
 
     # Define the TO_CRS for lon & lat outputs
     sr = osr.SpatialReference()
     sr.SetFromUserInput(CRS)
 
-    with open(outfname, 'w') as outfile:
+    dtype = np.dtype([('row_index', 'int64'), ('col_index', 'int64'),
+                      ('n_pixels', 'float'), ('latitude', 'float'),
+                      ('longitude', 'float')])
+    data = np.zeros(rows, dtype=dtype)
 
-        # Right justified with length of 14 per item
-        outfile.write('{view_max:>14}\n'.format(view_max=view_max))
-        outfile.write('{rows:>14}{cols:>14}\n'.format(rows=rows, cols=cols))
+    for r in range(rows):
+        # We offset by -1 to get the zero based col and row id
+        mapXY = geobox.convert_coordinates((x[r] - 1, y[r] - 1))
+        lon, lat = geobox.transform_coordinates(mapXY, to_crs=sr)
+        data['row_index'][r] = y[r]
+        data['col_index'][r] = x[r]
+        data['n_pixels'][r] = n[r]
+        data['latitude'][r] = lat
+        data['longitude'][r] = lon
 
-        for r in range(rows):
-            # We offset by -1 to get the zero based col and row id
-            mapXY = geobox.convert_coordinates((x[r] - 1, y[r] - 1))
-            lon, lat = geobox.transform_coordinates(mapXY, to_crs=sr)
-            # Right justified at various lengths
-            msg = '{row:>14}{col:>14}{n:>14}{lat:>21}{lon:>21}\n'
-            msg = msg.format(row=int(y[r]), col=int(x[r]), n=n[r], lat=lat,
-                             lon=lon)
-            outfile.write(msg)
+    return data
 
 
-def create_header_angle_file(acquisition, view_max, outfname='HEADERANGLE'):
+def create_boxline_coordinator(view_angle_dataset, line, ncentre, npoints,
+                               max_angle=9.0):
     """
-    Creates the header angle text file.
+    Creates the boxline and coordinator datasets.
 
-    :param acquisition:
-        An instance of an acquisitions object.
-
-    :param view_max:
-        An float indicating the maximum view angle of the satellite
-        used for determining the centreline.
-
-    :param outfname:
-        A string containing the full file system pathname of the
-        output file.
-        Default is HEADERANGLE produced in the current working
-        directory..
-    """
-    # Get the satellite orbital elements
-    sat_ephemeral = load_tle(acquisition, TLE_DIR)
-
-    # If we have None, then no suitable TLE was found, so use values gathered
-    # by the acquisition object
-    if sat_ephemeral is None:
-        # orbital inclination (degrees)
-        orb_incl = math.degrees(acquisition.inclination)
-        # semi_major radius (m)
-        orb_radius = acquisition.semi_major_axis
-        # angular velocity (rad sec-1)
-        omega = acquisition.omega
-        orbital_elements = np.array([orb_incl, orb_radius, omega],
-                                    dtype='float')
-    else:
-        dt = acquisition.scene_center_datetime
-        orbital_elements = setup_orbital_elements(sat_ephemeral, dt)
-        orb_incl = orbital_elements[0]
-        orb_radius = orbital_elements[1]
-        omega = orbital_elements[2]
-
-    # Scene centre datetime info
-    year = acquisition.scene_center_datetime.year
-    month = acquisition.scene_center_datetime.month
-    day = acquisition.scene_center_datetime.day
-    hours = acquisition.decimal_hour
-
-    # Spatial info
-    geobox = acquisition.gridded_geo_box()
-    cx, cy = geobox.centre_lonlat
-    samples, lines = geobox.get_shape_xy()
-
-    # Output to disk
-    with open(outfname, 'w') as outfile:
-        header_file = ("{year} {month} {day} {hours}\n"
-                       "{lines} {samples}\n"
-                       "{centre_lat} {centre_lon}\n"
-                       "{radius} {inclination} {velocity}\n"
-                       "{max_angle}")
-
-        outfile.write(header_file.format(year=year, month=month, day=day,
-                                         hours=hours, lines=lines,
-                                         samples=samples, centre_lat=cy,
-                                         centre_lon=cx, radius=orb_radius,
-                                         inclination=orb_incl,
-                                         velocity=omega, max_angle=view_max))
-
-
-def create_boxline_file(view_angle_fname, line, ncentre, npoints,
-                        max_angle=9.0,
-                        boxline_fname='BOXLINE',
-                        coordinator_fname='COORDINATOR'):
-    """
-    Creates the BOXLINE text file.
-
-    :param view_angle_fname:
-        A string containing the full file path name to the location
-        of the image containing the containing the satellite view
-        angle values.
+    :param view_angle_dataset:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the satellite view
+        angles when index/sliced.
 
     :param line:
         A 1D NumPy array containing the values 1->n for n lines.
@@ -223,24 +127,33 @@ def create_boxline_file(view_angle_fname, line, ncentre, npoints,
     :param max_angle:
         The maximum viewing angle. Default is 9.0 degrees.
 
-    :param boxline_fname:
-        A string containing the filepath name of the boxline file.
+    :return:
+        2 `NumPy` datasets:
 
-    :param coordinator_fname:
-        A string containing the filepath name of the coordinator file.
+    boxline_dtype = np.dtype([('row_index', 'int64'),
+                                 ('bisection_index', 'int64'),
+                                 ('start_index', 'int64'),
+                                 ('end_index', 'int64')])
+    coordinator_dtype = np.dtype([('row_index', 'int64'),
+                                  ('col_index', 'int64')])
+        * boxline; dtype = [('row_index', 'int64'),
+                            ('bisection_index', 'int64'),
+                            ('start_index', 'int64'),
+                            ('end_index', 'int64')]
+        * coordinator; dtype = [('row_index', 'int64'),
+                                ('bisection_index', 'int64'),
+                                ('start_index', 'int64'),
+                                ('end_index', 'int64')]
     """
-    with rasterio.open(view_angle_fname) as ds:
-        view_angle = ds.read(1)
-        rows = ds.height
-        cols = ds.width
+    rows, cols = view_angle_dataset.shape
 
     # allocate the output arrays
     istart = np.zeros(rows, dtype='int')
     iend = np.zeros(rows, dtype='int')
 
     # calculate the column start and end indices
-    cstart_cend(cols, rows, max_angle, view_angle.transpose(), line, ncentre,
-                istart, iend)
+    cstart_cend(cols, rows, max_angle, view_angle_dataset[:].transpose(),
+                line, ncentre, istart, iend)
 
     # TODO: Fuqin to document, and these results are only used for
     # granules that do not contain the satellite track path
@@ -251,7 +164,7 @@ def create_boxline_file(view_angle_fname, line, ncentre, npoints,
                 kk = i
             ll = i
 
-    coordinator = np.zeros((9, 2), dtype='int')
+    coordinator = np.zeros((9, 2), dtype='int64')
     mid_col = cols // 2
     mid_row = rows // 2
     mid_row_idx = mid_row - 1
@@ -339,53 +252,29 @@ def create_boxline_file(view_angle_fname, line, ncentre, npoints,
         data['start'] = start_col
         data['end'] = end_col
 
-    # # output the boxline file
-    # with open(boxline_fname, 'w') as src:
-    #     # Right justified at various lengths
-    #     msg = '{line:>12}{istart:>12}{iend:>12}\n'
-    #     for i in range(rows):
-    #         src.write(msg.format(line=line[i], istart=istart[i], iend=iend[i]))
+    columns = ['row_index', 'bisection_index', 'start_index', 'end_index']
+    boxline_dtype = np.dtype([(col, 'int64') for col in columns])
+    coordinator_dtype = np.dtype([('row_index', 'int64'),
+                                  ('col_index', 'int64')])
 
-    data.to_csv(boxline_fname)
+    boxline_dset = np.zeros(rows, dtype=boxline_dtype)
+    boxline_dset['row_index'] = data['line'].values
+    boxline_dset['bisection_index'] = data['bisection'].values
+    boxline_dset['start_index'] = data['start'].values
+    boxline_dset['end_index'] = data['end'].values
 
-    # # output the coordinator file
-    # with open(coordinator_fname, 'w') as src:
-    #     # get the middle index (account for the 0-based index)
-    #     mid = rows // 2 - 1
+    coordinator_dset = np.zeros(9, dtype=coordinator_dtype)
+    coordinator_dset[0] = coordinator[0]
+    coordinator_dset[1] = coordinator[1]
+    coordinator_dset[2] = coordinator[2]
+    coordinator_dset[3] = coordinator[3]
+    coordinator_dset[4] = coordinator[4]
+    coordinator_dset[5] = coordinator[5]
+    coordinator_dset[6] = coordinator[6]
+    coordinator_dset[7] = coordinator[7]
+    coordinator_dset[8] = coordinator[8]
 
-    #     mid_col = rows // 2
-    #     UMx = mid_col if int(ncentre[0]) == 0 else int(ncentre[0])
-    #     MMx = mid_col if int(ncentre[mid]) == 0 else int(ncentre[mid])
-    #     BMx = mid_col if int(ncentre[-1]) == 0 else int(ncentre[-1])
-
-    #     # Right justified at various lengths
-    #     msg = '{row:>13}{column:>13}\n'
-    #     src.write(msg.format(row=rows, column=cols))
-    #     src.write(msg.format(row=int(line[0]), column=int(istart[0])))
-    #     # src.write(msg.format(row=int(line[0]), column=int(ncentre[0])))
-    #     src.write(msg.format(row=int(line[0]), column=UMx))
-    #     src.write(msg.format(row=int(line[0]), column=int(iend[0])))
-    #     src.write(msg.format(row=int(line[mid]), column=int(istart[mid])))
-    #     #src.write(msg.format(row=int(line[mid]), column=int(ncentre[mid])))
-    #     src.write(msg.format(row=int(line[mid]), column=MMx))
-    #     src.write(msg.format(row=int(line[mid]), column=int(iend[mid])))
-    #     src.write(msg.format(row=int(line[-1]), column=int(istart[-1])))
-    #     # src.write(msg.format(row=int(line[-1]), column=int(ncentre[-1])))
-    #     src.write(msg.format(row=int(line[-1]), column=BMx))
-    #     src.write(msg.format(row=int(line[-1]), column=int(iend[-1])))
-
-    with open(coordinator_fname, 'w') as src:
-        msg = '{row:>13}{column:>13}\n'
-        src.write(msg.format(row=rows, column=cols))
-        src.write(msg.format(row=coordinator[0][0], column=coordinator[0][1]))
-        src.write(msg.format(row=coordinator[1][0], column=coordinator[1][1]))
-        src.write(msg.format(row=coordinator[2][0], column=coordinator[2][1]))
-        src.write(msg.format(row=coordinator[3][0], column=coordinator[3][1]))
-        src.write(msg.format(row=coordinator[4][0], column=coordinator[4][1]))
-        src.write(msg.format(row=coordinator[5][0], column=coordinator[5][1]))
-        src.write(msg.format(row=coordinator[6][0], column=coordinator[6][1]))
-        src.write(msg.format(row=coordinator[7][0], column=coordinator[7][1]))
-        src.write(msg.format(row=coordinator[8][0], column=coordinator[8][1]))
+    return boxline_dset, coordinator_dset
 
 
 def calculate_julian_century(datetime):
@@ -437,7 +326,19 @@ def setup_spheroid(proj_wkt):
             * Index 2 contains the spheroid Squared Eccentricity.
             * Index 3 contains the Earth rotational angular velocity in
               radians/second.
+
+        Also a np dataset of the following datatype:
+
+            * dtype = [('semi_major_axis', 'float64'),
+                       ('inverse_flattening', 'float64'),
+                       ('eccentricity_squared', 'float64'),
+                       ('earth_rotational_angular_velocity', 'float64')]
     """
+    dtype = np.dtype([('semi_major_axis', 'float64'),
+                      ('inverse_flattening', 'float64'),
+                      ('eccentricity_squared', 'float64'),
+                      ('earth_rotational_angular_velocity', 'float64')])
+    dset = np.zeros(1, dtype=dtype)
 
     # Initialise the spheroid array
     spheroid = np.zeros((4))
@@ -447,24 +348,24 @@ def setup_spheroid(proj_wkt):
     sr.ImportFromWkt(proj_wkt)
 
     # Spheroid major axis
-    spheroid[0] = sr.GetSemiMajor()
+    dset['semi_major_axis'] = sr.GetSemiMajor()
 
     # Inverse flattening
-    spheroid[1] = sr.GetInvFlattening()
+    dset['inverse_flattening'] = sr.GetInvFlattening()
 
     # Eccentricity squared
-    spheroid[2] = 1.0 - (1.0 - 1.0 / spheroid[1]) ** 2
+    dset['eccentricity_squared'] = 1.0 - (1.0 - 1.0 / spheroid[1]) ** 2
 
     # Earth rotational angular velocity rad/sec
     # Other sources such as:
     # http://www.oosa.unvienna.org/pdf/icg/2012/template/WGS_84.pdf
     # state 0.000072921150 as the mean value
-    spheroid[3] = 0.000072722052
+    dset['earth_rotational_angular_velocity'] = 0.000072722052
 
-    return spheroid
+    return np.array(dset.tolist()).squeeze(), dset
 
 
-def setup_orbital_elements(ephemeral, datetime):
+def setup_orbital_elements(ephemeral, datetime, acquisition):
     """
     Given an ephemeral object and a datetime object, calculate the
     satellite orbital paramaters used for calculating the angle grids.
@@ -477,6 +378,9 @@ def setup_orbital_elements(ephemeral, datetime):
         A datetime object containing the date to be used in computing
         the satellite orbital paramaters.
 
+    :param acquisition:
+        An `Acquisition` object.
+
     :return:
         A floating point np array of 3 elements containing the
         satellite ephemeral bodies orbital paramaters.
@@ -484,27 +388,45 @@ def setup_orbital_elements(ephemeral, datetime):
             * Index 0 contains the obrital inclination in degrees.
             * Index 1 contains the semi major raidus in metres.
             * Index 2 contains the angular velocity in radians/sec^1.
+
+        Also a np dataset of the following datatype:
+
+            * dtype = [('orbital_inclination', 'float64'),
+                       ('semi_major_radius', 'float64'),
+                       ('angular_velocity', 'float64')]
     """
+    dtype = np.dtype([('orbital_inclination', 'float64'),
+                      ('semi_major_radius', 'float64'),
+                      ('angular_velocity', 'float64')])
+    dset = np.zeros(1, dtype=dtype)
 
-    ephemeral.compute(datetime)
-    pi = np.pi
-    n = ephemeral._n  # number or orbits per day
-    s = 24 * 60 * 60  # Seconds in a day
-    mu = 398600441800000.0  # Earth Gravitational parameter m^3s^-2
+    # If we have None, then no suitable TLE was found, so use values gathered
+    # by the acquisition object
+    if ephemeral is None:
+        # orbital inclination (degrees)
+        dset['orbital_inclination'] = math.degrees(acquisition.inclination)
+        # semi_major radius (m)
+        dset['semi_major_radius'] = acquisition.semi_major_axis
+        # angular velocity (rad sec-1)
+        dset['angular_velocity'] = acquisition.omega
+    else:
+        ephemeral.compute(datetime)
+        pi = np.pi
+        n = ephemeral._n  # number or orbits per day
+        s = 24 * 60 * 60  # Seconds in a day
+        mu = 398600441800000.0  # Earth Gravitational parameter m^3s^-2
 
-    orbital_elements = np.zeros((3))
+        # orbital inclination (degrees)
+        dset['orbital_inclination'] = np.rad2deg(ephemeral._inc)
 
-    # orbital inclination (degrees)
-    orbital_elements[0] = np.rad2deg(ephemeral._inc)
+        # semi_major radius (m)
+        # http://smallsats.org/2012/12/06/two-line-element-set-tle/
+        dset['semi_major_radius'] = (mu / (2 * pi * n / s) ** 2) ** (1. / 3)
 
-    # semi_major radius (m)
-    # http://smallsats.org/2012/12/06/two-line-element-set-tle/
-    orbital_elements[1] = (mu / (2 * pi * n / s) ** 2) ** (1. / 3)
+        # angular velocity (rad sec-1)
+        dset['angular_velocity'] = (2 * pi * n) / s
 
-    # angular velocity (rad sec-1)
-    orbital_elements[2] = (2 * pi * n) / s
-
-    return orbital_elements
+    return np.array(dset.tolist()).squeeze(), dset
 
 
 def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements):
@@ -553,10 +475,23 @@ def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements):
             * Index 9 contains N0.
             * Index 10 contains H0.
             * Index 11 contains th_ratio0.
-    """
 
+        Also np dataset of the following datatype:
+
+            * dtype = [('phi0', 'f8'), ('phi0_p', 'f8'), ('rho0', 'f8'),
+                       ('t0', 'f8'), ('lam0', 'f8'), ('gamm0', 'f8'),
+                       ('beta0', 'f8'), ('rotn0', 'f8'), ('hxy0', 'f8'),
+                       ('N0', 'f8'), ('H0', 'f8'), ('th_ratio0', 'f8')]
+    """
     smodel, _ = set_satmod(centre_lon, centre_lat, spheroid, orbital_elements)
-    return smodel
+
+    columns = ['phi0', 'phi0_p', 'rho0', 't0', 'lam0', 'gamm0', 'beta0',
+               'rotn0', 'hxy0', 'N0', 'H0', 'th_ratio0']
+    dtype = np.dtype([(col, 'float64') for col in columns])
+    smodel_dset = np.zeros(1, dtype=dtype)
+    smodel_dset[0] = smodel
+
+    return smodel, smodel_dset
 
 
 def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, npoints=12):
@@ -622,15 +557,71 @@ def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, npoints=12):
             * Index 5 hxy.
             * Index 6 mj.
             * Index 7 skew.
-    """
 
+        Also a np dataset of the datatype:
+
+            * dtype = [('t', 'f8'), ('rho', 'f8'), ('phi_p', 'f8'),
+                       ('lam', 'f8'), ('beta', 'f8'), ('hxy', 'f8'),
+                       ('mj', 'f8'), ('skew', 'f8')]
+    """
     track, _ = set_times(ymin, ymax, npoints, spheroid, orbital_elements,
                          smodel)
-    return track
+
+    columns = ['t', 'rho', 'phi_p', 'lam', 'beta', 'hxy', 'mj', 'skew']
+    dtype = np.dtype([(col, 'float64') for col in columns])
+    track_dset = np.zeros(npoints, dtype=dtype)
+    track_dset['t'] = track[:, 0]
+    track_dset['rho'] = track[:, 1]
+    track_dset['phi_p'] = track[:, 2]
+    track_dset['lam'] = track[:, 3]
+    track_dset['beta'] = track[:, 4]
+    track_dset['hxy'] = track[:, 5]
+    track_dset['mj'] = track[:, 6]
+    track_dset['skew'] = track[:, 7]
+
+    return track, track_dset
 
 
-def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
-                     out_fnames=None):
+def _store_parameter_settings(fid, spheriod, orbital_elements,
+                              satellite_model, satellite_track, params):
+    group = fid.create_group('parameters')
+
+    for key in params:
+        group.attrs[key] = params[key]
+
+    # sheroid
+    desc = "The spheroid used in the satelite and solar angles calculation."
+    attrs = {'Description': desc}
+    sph_dset = group.create_dataset('spheroid', data=spheriod)
+    attach_table_attributes(sph_dset, title='Spheroid', attrs=attrs)
+
+    # orbital elements
+    desc = ("The satellite orbital parameters used in the satellite and "
+            "solar angles calculation.")
+    attrs = {'Description': desc}
+    orb_dset = group.create_dataset('orbital-elements', data=orbital_elements)
+    attach_table_attributes(orb_dset, title='Orbital Elements', attrs=attrs)
+
+    # satellite model
+    desc = ("The satellite model used in the satelite and solar angles "
+            "calculation.")
+    attrs = {'Description': desc}
+    sat_dset = group.create_dataset('satellite-model', data=satellite_model)
+    attach_table_attributes(sat_dset, title='Satellite Model', attrs=attrs)
+
+    # satellite track
+    desc = ("The satellite track information used in the satelite and solar "
+            "angles calculation.")
+    attrs = {'Description': desc}
+    track_dset = group.create_dataset('satellite-track', data=satellite_track)
+    attach_table_attributes(track_dset, title='Satellite Track', attrs=attrs)
+
+    # flush
+    fid.flush()
+
+
+def calculate_angles(acquisition, lon_dataset, lat_dataset, npoints=12,
+                     out_fname=None, compression='lzf', max_angle=9.0):
     """
     Calculate the satellite view, satellite azimuth, solar zenith,
     solar azimuth, and relative aziumth angle grids, as well as the
@@ -639,22 +630,42 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
     ``F2Py``.
 
     :param acquisition:
-        An instance of an acquisitions object.
+        An instance of an `Acquisition` object.
 
-    :param lon_fname:
-        A string containing the full file path name to the location
-        of the image containing the containing the longitude values.
+    :param lon_dataset:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the longitude
+        values when index/sliced.
+        The dimensions must match that of the `acquisition` objects's
+        samples (x) and lines (y) parameters.
 
-    :param lat_fname:
-        A string containing the full file path name to the location
-        of the image containing the containing the latitude values.
+    :param lat_dataset:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the latitude
+        values when index/sliced.
+        The dimensions must match that of the `acquisition` objects's
+        samples (x) and lines (y) parameters.
 
     :param npoints:
         The number of time sample points to be calculated along the
         satellite track. Default is 12
 
-    :param out_fnames:
+    :param out_fname:
         If set to None (default) then the results will be returned
+        as an in-memory hdf5 file, i.e. the `core` driver.
+        Otherwise it should be a string containing the full file path
+        name to a writeable location on disk in which to save the HDF5
+        file.
+
+        The dataset names will be as follows:
+
+        * satellite-view
+        * satellite-azimuth
+        * solar-zenith
+        * solar-azimuth
+        * relative-azimuth
+        * acquisition-time
+
         in memory and no disk space will be used. Otherwise out_fnames
         should be a list of length 6 containing file path names for
         the computed arrays. These arrays will be written directly
@@ -723,24 +734,13 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
         centre_xy = geobox.centre_lonlat
 
     # Get the earth spheroidal paramaters
-    spheroid = setup_spheroid(prj)
+    spheroid, spheroid_dset = setup_spheroid(prj)
 
     # Get the satellite orbital elements
     sat_ephemeral = load_tle(acquisition, TLE_DIR)
 
-    # If we have None, then no suitable TLE was found, so use values gathered
-    # by the acquisition object
-    if sat_ephemeral is None:
-        # orbital inclination (degrees)
-        orb_incl = math.degrees(acquisition.inclination)
-        # semi_major radius (m)
-        orb_radius = acquisition.semi_major_axis
-        # angular velocity (rad sec-1)
-        omega = acquisition.omega
-        orbital_elements = np.array([orb_incl, orb_radius, omega],
-                                    dtype='float')
-    else:
-        orbital_elements = setup_orbital_elements(sat_ephemeral, dt)
+    orbital_elements, orb_dset = setup_orbital_elements(sat_ephemeral, dt,
+                                                        acquisition)
 
     # Scene centre in time stamp in decimal hours
     hours = acquisition.decimal_hour
@@ -748,17 +748,13 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
     # Calculate the julian century past JD2000
     century = calculate_julian_century(dt)
 
-    # Need something to determine max satellite view angle
-    # Currently not even used in Fuqin's code
-    # view_max = 9.0
-
     # Get the satellite model paramaters
-    smodel = setup_smodel(centre_xy[0], centre_xy[1], spheroid,
-                          orbital_elements)
+    smodel, smodel_dset = setup_smodel(centre_xy[0], centre_xy[1], spheroid,
+                                       orbital_elements)
 
     # Get the times and satellite track information
-    track = setup_times(min_lat, max_lat, spheroid, orbital_elements, smodel,
-                        npoints)
+    track, track_dset = setup_times(min_lat, max_lat, spheroid,
+                                    orbital_elements, smodel, npoints)
 
     # Array dimensions
     cols = acquisition.samples
@@ -775,32 +771,70 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
     time = np.zeros((1, cols), dtype=out_dtype)
 
     # Initialise the output files
-    no_data = -999
-    kwargs = {'driver': 'GTiff',
-              'width': cols,
-              'height': rows,
-              'count': 1,
-              'crs': prj,
-              'transform': geobox.affine,
-              'dtype': out_dtype,
-              'nodata': no_data,
-              'compress': 'deflate',
-              'zlevel': 1,
-              'predictor': 3}
-    outds_sat_v = rasterio.open(out_fnames[0], 'w', **kwargs)
-    outds_sat_az = rasterio.open(out_fnames[1], 'w', **kwargs)
-    outds_sol_z = rasterio.open(out_fnames[2], 'w', **kwargs)
-    outds_sol_az = rasterio.open(out_fnames[3], 'w', **kwargs)
-    outds_rel_az = rasterio.open(out_fnames[4], 'w', **kwargs)
-    outds_time = rasterio.open(out_fnames[5], 'w', **kwargs)
+    if out_fname is None:
+        fid = h5py.File('satellite-solar-angles', driver='core',
+                        backing_store=False)
+    else:
+        fid = h5py.File(out_fname, 'w')
 
-    # Set to null value
-    view[:] = no_data
-    azi[:] = no_data
-    asol[:] = no_data
-    soazi[:] = no_data
-    rela_angle[:] = no_data
-    time[:] = no_data
+    # store the parameter settings used with the satellite and solar angles
+    # function
+    params = {'dimensions': dims,
+              'lines': rows,
+              'samples': cols,
+              'century': century,
+              'hours': hours,
+              'scene_acquisition_datetime_iso': dt.isoformat(),
+              'centre_longitude_latitude': centre_xy,
+              'minimum_latiude': min_lat,
+              'maximum_latiude': max_lat,
+              'latitude_buffer': '1.0 degrees',
+              'max_satellite_viewing_angle': max_angle}
+    _store_parameter_settings(fid, spheroid_dset, orb_dset,
+                              smodel_dset, track_dset, params)
+
+    no_data = -999
+    kwargs = dataset_compression_kwargs(compression=compression,
+                                        chunks=(1, cols))
+    kwargs['shape'] = dims
+    kwargs['fillvalue'] = no_data
+    kwargs['dtype'] = out_dtype
+
+    sat_v_ds = fid.create_dataset('satellite-view', **kwargs)
+    sat_az_ds = fid.create_dataset('satellite-azimuth', **kwargs)
+    sol_z_ds = fid.create_dataset('solar-zenith', **kwargs)
+    sol_az_ds = fid.create_dataset('solar-azimuth', **kwargs)
+    rel_az_ds = fid.create_dataset('relative-azimuth', **kwargs)
+    time_ds = fid.create_dataset('acquisition-time', **kwargs)
+
+    # attach some attributes to the image datasets
+    attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
+             'geotransform': geobox.affine.to_gdal(),
+             'no_data_value': no_data}
+    desc = "The satellite viewing angle in degrees."
+    attrs['Description'] = desc
+    attach_image_attributes(sat_v_ds, attrs)
+
+    desc = "The satellite azimuth angle in degrees."
+    attrs['Description'] = desc
+    attach_image_attributes(sat_az_ds, attrs)
+
+    desc = "The solar zenith angle in degrees."
+    attrs['Description'] = desc
+    attach_image_attributes(sol_z_ds, attrs)
+
+    desc = "The solar azimuth angle in degrees."
+    attrs['Description'] = desc
+    attach_image_attributes(sol_az_ds, attrs)
+
+    desc = "The relative azimuth angle in degrees."
+    attrs['Description'] = desc
+    attach_image_attributes(rel_az_ds, attrs)
+
+    desc = ("The satellite acquisition time grid in seconds before and after "
+            "the scene acquisition datetime.")
+    attrs['Description'] = desc
+    attach_image_attributes(time_ds, attrs)
 
     # Initialise centre line variables
     y_cent = np.arange(1, rows + 1).astype('float32')
@@ -809,54 +843,42 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
 
     # Initialise the tile generator for processing
     # Process 1 row of data at a time
-    tiles = tiling.generate_tiles(cols, rows, cols, 1, generator=True)
+    tiles = tiling.generate_tiles(cols, rows, cols, 1)
 
-    with rasterio.open(lon_fname) as lon, rasterio.open(lat_fname) as lat:
-        # Loop over each row
-        for i in range(rows):
-            # Get the current tile
-            tile = tiles.next()
+    for i, tile in enumerate(tiles):
+        idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
 
-            # Read the lon and lat tile
-            lon_array = lon.read(1, window=tile)
-            lat_array = lat.read(1, window=tile)
+        # read the lon and lat tile
+        lon_data = lon_dataset[idx]
+        lat_data = lat_dataset[idx]
 
-            # Set to null value
-            view[:] = -999
-            azi[:] = -999
-            asol[:] = -999
-            soazi[:] = -999
-            rela_angle[:] = -999
-            time[:] = -999
+        # set to null value
+        view[:] = no_data
+        azi[:] = no_data
+        asol[:] = no_data
+        soazi[:] = no_data
+        rela_angle[:] = no_data
+        time[:] = no_data
 
-            stat = angle(cols, rows, i + 1, lat_array, lon_array,
-                         spheroid, orbital_elements, hours, century,
-                         npoints, smodel, track, view[0], azi[0],
-                         asol[0], soazi[0], rela_angle[0], time[0],
-                         x_cent, n_cent)
+        stat = angle(cols, rows, i + 1, lat_data, lon_data, spheroid,
+                     orbital_elements, hours, century, npoints, smodel,
+                     track, view[0], azi[0], asol[0], soazi[0], rela_angle[0],
+                     time[0], x_cent, n_cent)
 
-            if stat != 0 :
-                msg = ("Error in calculating angles at row: {}.\n"
-                       "No interval found in track!")
-                raise RuntimeError(msg.format(i))
+        if stat != 0:
+            msg = ("Error in calculating angles at row: {}.\n"
+                   "No interval found in track!")
+            raise RuntimeError(msg.format(i))
 
-            # Output to disk
-            outds_sat_v.write(view, 1, window=tile)
-            outds_sat_az.write(azi, 1, window=tile)
-            outds_sol_z.write(asol, 1, window=tile)
-            outds_sol_az.write(soazi, 1, window=tile)
-            outds_rel_az.write(rela_angle, 1, window=tile)
-            outds_time.write(time, 1, window=tile)
+        # output to disk
+        sat_v_ds[idx] = view
+        sat_az_ds[idx] = azi
+        sol_z_ds[idx] = asol
+        sol_az_ds[idx] = soazi
+        rel_az_ds[idx] = rela_angle
+        time_ds[idx] = time
 
-    # Close all image files opened for writing
-    outds_sat_v.close()
-    outds_sat_az.close()
-    outds_sol_z.close()
-    outds_sol_az.close()
-    outds_rel_az.close()
-    outds_time.close()
-
-    # Centreline
+    # centreline
     # here need code to write the track in the image as an ascii file
     # if more than one pixel in a line was a track point the coordinates
     # are averaged
@@ -868,15 +890,43 @@ def calculate_angles(acquisition, lon_fname, lat_fname, npoints=12,
     wh = n_cent < 0.5
     temp = x_cent[0:2].copy()
     x_cent[wh] = np.roll(x_cent, 1)[wh]
-    # Account for first element potentially being changed with the
+    # account for first element potentially being changed with the
     # last element
     if wh[0]:
         x_cent[0] = temp[1]
 
-    # Convert X & Y centre points to integers (basically array co-ordinates)
+    # convert X & Y centre points to integers (basically array co-ordinates)
     y_cent = np.rint(y_cent)
     x_cent = np.rint(x_cent)
 
-    result = (out_fnames[0], out_fnames[1], out_fnames[2], out_fnames[3],
-              out_fnames[4], out_fnames[5], y_cent, x_cent, n_cent)
-    return result
+    # create the dataset and save to the HDF5 file
+    centreline_dataset = create_centreline_dataset(geobox, y_cent, x_cent,
+                                                   n_cent)
+    kwargs = dataset_compression_kwargs(compression=compression)
+    cent_dset = fid.create_dataset('centreline', data=centreline_dataset,
+                                   **kwargs)
+    desc = ("Contains the array, latitude and longitude coordinates of the "
+            "satellite track path.")
+    attrs = {'Description': desc,
+             'array_coordinate_offset': -1}
+    attach_table_attributes(cent_dset, title='Centreline', attrs=attrs)
+
+    # boxline and coordinator
+    boxline, coordinator = create_boxline_coordinator(sat_v_ds, y_cent, x_cent,
+                                                      n_cent,
+                                                      max_angle=max_angle)
+    desc = ("Contains the bi-section, column start and column end array "
+            "coordinates.")
+    attrs['Description'] = desc
+    box_dset = fid.create_dataset('boxline', data=boxline, **kwargs)
+    attach_table_attributes(box_dset, title='Boxline', attrs=attrs)
+
+    desc = ("Contains the row and column array coordinates used for the "
+            "atmospheric calculations.")
+    attrs['Description'] = desc
+    coord_dset = fid.create_dataset('coordinator', data=coordinator, **kwargs)
+    attach_table_attributes(coord_dset, title='Coordinator', attrs=attrs)
+
+    fid.flush()
+
+    return fid
