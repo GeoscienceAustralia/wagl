@@ -1,5 +1,7 @@
+#!/usr/bin/env python
+
 """
-Grid Calculations.
+Satellite and Solar angle claculations over a 2D grid.
 """
 
 import math
@@ -20,12 +22,11 @@ from gaip import attach_image_attributes
 from gaip import attach_table_attributes
 
 CRS = "EPSG:4326"
-TLE_DIR = '/g/data/v10/eoancillarydata/sensor-specific'
 
 
 def _calculate_angles_wrapper(acquisition, lon_fname, lon_dname, lat_fname,
                               lat_dname, out_fname, npoints=12,
-                              compression='lzf', max_angle=9.0):
+                              compression='lzf', max_angle=9.0, tle_path=None):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -35,7 +36,8 @@ def _calculate_angles_wrapper(acquisition, lon_fname, lon_dname, lat_fname,
             lon_ds = src[lon_dname]
             lat_ds = src[lat_dname]
             fid = calculate_angles(acquisition, lon_ds, lat_ds, npoints,
-                                   out_fname, compression)
+                                   out_fname, compression, max_angle=max_angle,
+                                   tle_path=tle_path)
     else:
         with h5py.File(lon_fname, 'r') as lon_src,\
             h5py.File(lat_fname, 'r') as lat_src:
@@ -43,7 +45,8 @@ def _calculate_angles_wrapper(acquisition, lon_fname, lon_dname, lat_fname,
             lon_ds = lon_src[lon_dname]
             lat_ds = lat_src[lat_dname]
             fid = calculate_angles(acquisition, lon_ds, lat_ds, npoints,
-                                   out_fname, compression)
+                                   out_fname, compression, max_angle=max_angle,
+                                   tle_path=tle_path)
 
     fid.close()
 
@@ -595,6 +598,10 @@ def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, npoints=12):
 
 def _store_parameter_settings(fid, spheriod, orbital_elements,
                               satellite_model, satellite_track, params):
+    """
+    An internal function for storing the parameter settings for the
+    calculate_angles workflow.
+    """
     group = fid.create_group('parameters')
 
     for key in params:
@@ -632,7 +639,8 @@ def _store_parameter_settings(fid, spheriod, orbital_elements,
 
 
 def calculate_angles(acquisition, lon_dataset, lat_dataset, npoints=12,
-                     out_fname=None, compression='lzf', max_angle=9.0):
+                     out_fname=None, compression='lzf', max_angle=9.0,
+                     tle_path=None):
     """
     Calculate the satellite view, satellite azimuth, solar zenith,
     solar azimuth, and relative aziumth angle grids, as well as the
@@ -677,41 +685,22 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, npoints=12,
         * relative-azimuth
         * acquisition-time
 
-        in memory and no disk space will be used. Otherwise out_fnames
-        should be a list of length 6 containing file path names for
-        the computed arrays. These arrays will be written directly
-        to disk in a tiled fashion. Setting this keyword reduces
-        memory consumption. When set, then 6 filepathnames will
-        be returned instead of np arrays.
-        The order is important, and is given as follows:
+    :param compression:
+        The compression filter to use. Default is 'lzf'.
+        Options include:
 
-            * Satellite zenith angle.
-            * Satellite azimuth angle.
-            * Solar zenith angle.
-            * Solar azimuth angle.
-            * Relative azimuth angle.
-            * Time.
+        * 'lzf' (Default)
+        * 'lz4'
+        * 'mafisc'
+        * An integer [1-9] (Deflate/gzip)
+
+    :param max_angle:
+        The maximum satellite view angle to use within the workflow.
+        Default is 9.0 degrees.
 
     :return:
-        6 float32 np arrays of the same shape as lon_array unless
-        the outfilenames is set in which case 6 filepath
-        names will be returned:
-
-            * 1. Satellite zenith angle.
-            * 2. Satellite azimuth angle.
-            * 3. Solar zenith angle.
-            * 4. Solar azimuth angle.
-            * 5. Relative azimuth angle.
-            * 6. Time.
-
-        3 float32 np arrays with the same shape as
-        lon_array.shape[0] containing the array coodinates of the
-        satellite track line and N_Cent:
-
-            * 4. Y_coordinates (Starting at 1)
-            * 5. X_coordinates
-            * 6. n_cent (Value 2 if centre x coordinate was averaged and
-                 1 if centre x coordinate was not averaged)
+        An opened `h5py.File` object, that is either in-memory using the
+        `core` driver, or on disk.
     """
     # Get the datetime of the acquisition
     dt = acquisition.scene_center_datetime
@@ -748,7 +737,7 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, npoints=12,
     spheroid, spheroid_dset = setup_spheroid(prj)
 
     # Get the satellite orbital elements
-    sat_ephemeral = load_tle(acquisition, TLE_DIR)
+    sat_ephemeral = load_tle(acquisition, tle_path)
 
     orbital_elements, orb_dset = setup_orbital_elements(sat_ephemeral, dt,
                                                         acquisition)
@@ -783,7 +772,7 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, npoints=12,
 
     # Initialise the output files
     if out_fname is None:
-        fid = h5py.File('satellite-solar-angles', driver='core',
+        fid = h5py.File('satellite-solar-angles.h5', driver='core',
                         backing_store=False)
     else:
         fid = h5py.File(out_fname, 'w')
