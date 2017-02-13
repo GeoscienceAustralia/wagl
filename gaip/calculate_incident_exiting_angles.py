@@ -42,7 +42,6 @@ def _incident_angles_wrapper(satellite_solar_fname, slope_aspect_fname,
                               aspect_dset, geobox, out_fname, x_tile, y_tile)
 
     fid.close()
-
     return
 
 
@@ -214,7 +213,6 @@ def _exiting_angles_wrapper(satellite_solar_fname, slope_aspect_fname,
                               aspect_dset, geobox, out_fname, x_tile, y_tile)
 
     fid.close()
-
     return
 
 
@@ -386,7 +384,6 @@ def _relative_azimuth_slope_wrapper(incident_angles_fname,
                                      out_fname, x_tile, y_tile)
 
     fid.close()
-
     return
 
 
