@@ -93,6 +93,12 @@ def get_dsm(acquisition, national_dsm, margins, out_fname=None,
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))
 
+    grp = fid.create_group('parameters')
+    grp.attrs['left_buffer'] = pixel_buf.left
+    grp.attrs['right_buffer'] = pixel_buf.right
+    grp.attrs['top_buffer'] = pixel_buf.top
+    grp.attrs['bottom_buffer'] = pixel_buf.bottom
+
     # output datasets
     out_dset = fid.create_dataset('dsm', data=dsm_data, **kwargs)
 
