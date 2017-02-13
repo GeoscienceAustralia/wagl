@@ -24,8 +24,8 @@ def _self_shadow_wrapper(incident_angles_fname, exiting_angles_fname,
     with h5py.File(incident_angles_fname, 'r') as inci_angles,\
         h5py.File(exiting_angles_fname, 'r') as exit_angles:
 
-        inci_dset = inci_angles['incident-angles']
-        exit_dset = exit_angles['exiting-angles']
+        inci_dset = inci_angles['incident-angle']
+        exit_dset = exit_angles['exiting-angle']
 
         shape = inci_dset.shape
         transform = inci_dset.attrs['geotransform']

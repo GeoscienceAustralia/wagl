@@ -26,8 +26,8 @@ def _incident_angles_wrapper(satellite_solar_fname, slope_aspect_fname,
     with h5py.File(satellite_solar_fname, 'r') as sat_sol,\
         h5py.File(slope_aspect_fname, 'r') as slp_asp:
 
-        solar_zen_dset = sat_sol['solar-zenith-angles']
-        solar_azi_dset = sat_sol['solar-azimuthi-angles']
+        solar_zen_dset = sat_sol['solar-zenith']
+        solar_azi_dset = sat_sol['solar-azimuth']
         slope_dset = slp_asp['slope']
         aspect_dset = slp_asp['aspect']
 
@@ -83,8 +83,8 @@ def incident_angles(solar_zenith_dataset, solar_azimuth_dataset, slope_datset,
 
         The dataset names will be as follows:
 
-        * incident-angles
-        * azimuthal-incident-angles
+        * incident-angle
+        * azimuthal-incident-angle
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -126,18 +126,18 @@ def incident_angles(solar_zenith_dataset, solar_azimuth_dataset, slope_datset,
     kwargs['dtype'] = 'float32'
 
     # output datasets
-    incident_dset = fid.create_dataset('incident-angles', **kwargs)
-    azi_inc_dset = fid.create_dataset('azimuthal-incident-angles', **kwargs)
+    incident_dset = fid.create_dataset('incident-angle', **kwargs)
+    azi_inc_dset = fid.create_dataset('azimuthal-incident-angle', **kwargs)
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': crs,
              'geotransform': geobox.affine.to_gdal(),
              'no_data_value': no_data}
-    desc = "The incident angles in degrees."
+    desc = "Contains the incident angles in degrees."
     attrs['Description'] = desc
     attach_image_attributes(incident_dset, attrs)
 
-    desc = "The azimuthal incident angles in degrees."
+    desc = "Contains the azimuthal incident angles in degrees."
     attrs['Description'] = desc
     attach_image_attributes(azi_inc_dset, attrs)
 
@@ -197,8 +197,8 @@ def _exiting_angles_wrapper(satellite_solar_fname, slope_aspect_fname,
     with h5py.File(satellite_solar_fname, 'r') as sat_sol,\
         h5py.File(slope_aspect_fname, 'r') as slp_asp:
 
-        sat_view_dset = sat_sol['satellite-view-angles']
-        sat_azi_dset = sat_sol['satellite-azimuth-angles']
+        sat_view_dset = sat_sol['satellite-view']
+        sat_azi_dset = sat_sol['satellite-azimuth']
         slope_dset = slp_asp['slope']
         aspect_dset = slp_asp['aspect']
 
@@ -254,8 +254,8 @@ def exiting_angles(satellite_view_dataset, satellite_azimuth_dataset,
 
         The dataset names will be as follows:
 
-        * exiting-angles
-        * azimuthal-exiting-angles
+        * exiting-angle
+        * azimuthal-exiting-angle
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -297,18 +297,18 @@ def exiting_angles(satellite_view_dataset, satellite_azimuth_dataset,
     kwargs['dtype'] = 'float32'
 
     # output datasets
-    exiting_dset = fid.create_dataset('exiting-angles', **kwargs)
-    azi_exit_dset = fid.create_dataset('azimuthal-exiting-angles', **kwargs)
+    exiting_dset = fid.create_dataset('exiting-angle', **kwargs)
+    azi_exit_dset = fid.create_dataset('azimuthal-exiting-angle', **kwargs)
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': crs,
              'geotransform': geobox.affine.to_gdal(),
              'no_data_value': no_data}
-    desc = "The exiting angles in degrees."
+    desc = "Contains the exiting angles in degrees."
     attrs['Description'] = desc
     attach_image_attributes(exiting_dset, attrs)
 
-    desc = "The azimuthal exiting angles in degrees."
+    desc = "Contains the azimuthal exiting angles in degrees."
     attrs['Description'] = desc
     attach_image_attributes(azi_exit_dset, attrs)
 
@@ -370,8 +370,8 @@ def _relative_azimuth_slope_wrapper(incident_angles_fname,
     with h5py.File(incident_angles_fname, 'r') as inci_angles,\
         h5py.File(exiting_angles_fname, 'r') as exit_angles:
 
-        azi_inci_dset = inci_angles['azimuthal-incident-angles']
-        azi_exit_dset = exit_angles['azimuthal-exiting-angles']
+        azi_inci_dset = inci_angles['azimuthal-incident-angle']
+        azi_exit_dset = exit_angles['azimuthal-exiting-angle']
 
         shape = azi_inci_dset.shape
         transform = azi_inci_dset.attrs['geotransform']
@@ -415,7 +415,7 @@ def relative_azimuth_slope(azimuth_incident_dataset,
 
         The dataset names will be as follows:
 
-        * relative-azimuth-angles
+        * relative-azimuth-angle
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -457,13 +457,14 @@ def relative_azimuth_slope(azimuth_incident_dataset,
     kwargs['dtype'] = 'float32'
 
     # output datasets
-    out_dset = fid.create_dataset('relative-azimuth-angles', **kwargs)
+    out_dset = fid.create_dataset('relative-azimuth-angle', **kwargs)
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': crs,
              'geotransform': geobox.affine.to_gdal(),
              'no_data_value': no_data}
-    desc = "The relative azimuth angles on the slope surface in degrees."
+    desc = ("Contains the relative azimuth angles on the slope surface in "
+            "degrees.")
     attrs['Description'] = desc
     attach_image_attributes(out_dset, attrs)
 

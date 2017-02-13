@@ -27,11 +27,11 @@ def _calculate_cast_shadow_wrapper(acquisition, dsm_fname, margins,
         dsm_dset = dsm_src['dsm-smoothed']
 
         if solar_source:
-            view_name = 'solar-zenith-angles'
-            azimuth_name = 'solar-azimuth-angles'
+            view_name = 'solar-zenith'
+            azimuth_name = 'solar-azimuth'
         else:
-            view_name = 'satellite-view-angles'
-            azimuth_name = 'satellite-azimuth-angles'
+            view_name = 'satellite-view'
+            azimuth_name = 'satellite-azimuth'
 
         view_dset = sat_sol[view_name]
         azi_dset = sat_sol[azimuth_name]

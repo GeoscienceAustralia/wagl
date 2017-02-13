@@ -673,6 +673,9 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, npoints=12,
         * solar-azimuth-angles
         * relative-azimuth-angles
         * acquisition-times
+        * centreline
+        * boxline
+        * coordinator
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -789,39 +792,39 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, npoints=12,
     kwargs['fillvalue'] = no_data
     kwargs['dtype'] = out_dtype
 
-    sat_v_ds = fid.create_dataset('satellite-view-angles', **kwargs)
-    sat_az_ds = fid.create_dataset('satellite-azimuth-angles', **kwargs)
-    sol_z_ds = fid.create_dataset('solar-zenith-angles', **kwargs)
-    sol_az_ds = fid.create_dataset('solar-azimuth-angles', **kwargs)
-    rel_az_ds = fid.create_dataset('relative-azimuth-angles', **kwargs)
-    time_ds = fid.create_dataset('acquisition-times', **kwargs)
+    sat_v_ds = fid.create_dataset('satellite-view', **kwargs)
+    sat_az_ds = fid.create_dataset('satellite-azimuth', **kwargs)
+    sol_z_ds = fid.create_dataset('solar-zenith', **kwargs)
+    sol_az_ds = fid.create_dataset('solar-azimuth', **kwargs)
+    rel_az_ds = fid.create_dataset('relative-azimuth', **kwargs)
+    time_ds = fid.create_dataset('acquisition-time', **kwargs)
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
              'geotransform': geobox.affine.to_gdal(),
              'no_data_value': no_data}
-    desc = "The satellite viewing angle in degrees."
+    desc = "Contains the satellite viewing angle in degrees."
     attrs['Description'] = desc
     attach_image_attributes(sat_v_ds, attrs)
 
-    desc = "The satellite azimuth angle in degrees."
+    desc = "Contains the satellite azimuth angle in degrees."
     attrs['Description'] = desc
     attach_image_attributes(sat_az_ds, attrs)
 
-    desc = "The solar zenith angle in degrees."
+    desc = "Contains the solar zenith angle in degrees."
     attrs['Description'] = desc
     attach_image_attributes(sol_z_ds, attrs)
 
-    desc = "The solar azimuth angle in degrees."
+    desc = "Contains the solar azimuth angle in degrees."
     attrs['Description'] = desc
     attach_image_attributes(sol_az_ds, attrs)
 
-    desc = "The relative azimuth angle in degrees."
+    desc = "Contains the relative azimuth angle in degrees."
     attrs['Description'] = desc
     attach_image_attributes(rel_az_ds, attrs)
 
-    desc = ("The satellite acquisition time grid in seconds before and after "
-            "the scene acquisition datetime.")
+    desc = ("Contains the satellite acquisition time grid in seconds before "
+            "and after the scene acquisition datetime.")
     attrs['Description'] = desc
     attach_image_attributes(time_ds, attrs)
 
