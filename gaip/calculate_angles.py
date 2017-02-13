@@ -928,5 +928,4 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, npoints=12,
     attach_table_attributes(coord_dset, title='Coordinator', attrs=attrs)
 
     fid.flush()
-
     return fid

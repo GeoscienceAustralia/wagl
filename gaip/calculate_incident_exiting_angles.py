@@ -185,6 +185,7 @@ def incident_angles(solar_zenith_dataset, solar_azimuth_dataset, slope_datset,
         incident_dset[idx] = incident
         azi_inc_dset[idx] = azi_incident
 
+    fid.flush()
     return fid
 
 
@@ -356,6 +357,7 @@ def exiting_angles(satellite_view_dataset, satellite_azimuth_dataset,
         exiting_dset[idx] = exiting
         azi_exit_dset[idx] = azi_exiting
 
+    fid.flush()
     return fid
 
 
@@ -491,4 +493,5 @@ def relative_azimuth_slope(azimuth_incident_dataset,
         # Write the current tile to disk
         out_dset[idx] = rel_azi
 
+    fid.flush()
     return fid
