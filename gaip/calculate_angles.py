@@ -667,12 +667,12 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, npoints=12,
 
         The dataset names will be as follows:
 
-        * satellite-view
-        * satellite-azimuth
-        * solar-zenith
-        * solar-azimuth
-        * relative-azimuth
-        * acquisition-time
+        * satellite-view-angles
+        * satellite-azimuth-angles
+        * solar-zenith-angles
+        * solar-azimuth-angles
+        * relative-azimuth-angles
+        * acquisition-times
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -789,12 +789,12 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, npoints=12,
     kwargs['fillvalue'] = no_data
     kwargs['dtype'] = out_dtype
 
-    sat_v_ds = fid.create_dataset('satellite-view', **kwargs)
-    sat_az_ds = fid.create_dataset('satellite-azimuth', **kwargs)
-    sol_z_ds = fid.create_dataset('solar-zenith', **kwargs)
-    sol_az_ds = fid.create_dataset('solar-azimuth', **kwargs)
-    rel_az_ds = fid.create_dataset('relative-azimuth', **kwargs)
-    time_ds = fid.create_dataset('acquisition-time', **kwargs)
+    sat_v_ds = fid.create_dataset('satellite-view-angles', **kwargs)
+    sat_az_ds = fid.create_dataset('satellite-azimuth-angles', **kwargs)
+    sol_z_ds = fid.create_dataset('solar-zenith-angles', **kwargs)
+    sol_az_ds = fid.create_dataset('solar-azimuth-angles', **kwargs)
+    rel_az_ds = fid.create_dataset('relative-azimuth-angles', **kwargs)
+    time_ds = fid.create_dataset('acquisition-times', **kwargs)
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
