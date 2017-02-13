@@ -14,6 +14,8 @@ from gaip import dataset_compression_kwargs
 from gaip import attach_image_attributes
 
 CRS = "EPSG:4326"
+LON_DESC = "Contains the longitude values for each pixel."
+LAT_DESC = "Contains the latitude values for each pixel."
 
 
 def get_lon_coordinate(y, x, geobox, geo_crs=None, centre=False):
@@ -154,8 +156,7 @@ def create_lon_lat_grids(acquisition, depth=7, dtype='float64',
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
              'geotransform': geobox.affine.to_gdal()}
 
-    desc = "An image containing the longitude values for each pixel."
-    attrs['Description'] = desc
+    attrs['Description'] = LON_DESC
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))
     lon_dset = fid.create_dataset('longitude', data=result, **kwargs)
@@ -165,8 +166,7 @@ def create_lon_lat_grids(acquisition, depth=7, dtype='float64',
     interpolate_grid(depth=depth, origin=(0, 0), shape=shape,
                      eval_func=lat_func, grid=result)
 
-    desc = "An image containing the latitude values for each pixel."
-    attrs['Description'] = desc
+    attrs['Description'] = LAT_DESC
     lat_dset = fid.create_dataset('latitude', data=result, **kwargs)
     attach_image_attributes(lat_dset, attrs)
 
@@ -243,8 +243,7 @@ def create_lon_grid(acquisition, out_fname=None, compression='lzf', depth=7,
     # define some base attributes for the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
              'geotransform': geobox.affine.to_gdal()}
-    desc = "An image containing the longitude values for each pixel."
-    attrs['Description'] = desc
+    attrs['Description'] = LON_DESC
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))
 
@@ -298,8 +297,7 @@ def create_lat_grid(acquisition, out_fname=None, compression='lzf', depth=7,
     # define some base attributes for the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
              'geotransform': geobox.affine.to_gdal()}
-    desc = "An image containing the latitude values for each pixel."
-    attrs['Description'] = desc
+    attrs['Description'] = LAT_DESC
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))
 
