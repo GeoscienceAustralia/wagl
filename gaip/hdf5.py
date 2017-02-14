@@ -141,33 +141,20 @@ def create_image_dataset(fid, dataset_name, shape, dtype, compression='lzf',
     return dset
 
 
-def write_image(data, dset_name, fid, compression='lzf', shuffle=True,
-                   chunks=(512, 512), attrs={}):
+def write_h5_image(data, dset_name, group, kwargs, attrs={}):
 
-    compression_opts = None
-    if compression == 'mafisc':
-        compression = 32002
-        shuffle = False
-        compression_opts = (1, 0)
-
-    dset = fid.create_dataset(dset_name, data=data, chunks=chunks,
-                              shuffle=shuffle, compression=compression,
-                              compression_opts=compression_opts)
+    dset = group.create_dataset(dset_name, data=data, **kwargs)
 
     minv = data.min()
     maxv = data.max()
 
     dset.attrs['CLASS'] = 'IMAGE'
-    dset.attrs['IMAGE_SUBCLASS'] = 'IMAGE_GRAYSCALE'
     dset.attrs['IMAGE_VERSION'] = '1.2'
     dset.attrs['DISPLAY_ORIGIN'] = 'UL'
-    dset.attrs['IMAGE_WHITE_IS_ZERO'] = 0
     dset.attrs['IMAGE_MINMAXRANGE'] = [minv, maxv]
 
     for key in attrs:
         dset.attrs[key] = attrs[key]
-
-    fid.flush()
 
 
 def write_h5_table(data, dset_name, fid, compression='lzf', shuffle=True,
