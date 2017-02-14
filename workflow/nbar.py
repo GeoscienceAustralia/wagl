@@ -27,36 +27,6 @@ from eodatasets import type as ptype
 import gaip
 
 
-def save(fname, value, pkl=True):
-    """Save `value` to disk given by the filename `fname`.
-    `pkl` is set to True, then pickle the data. Otherwise, save
-    as text."""
-    with open(fname, 'w') as outfile:
-        if pkl:
-            pickle.dump(value, outfile)
-        else:
-            print >>outfile, value
-
-
-def load(target):
-    """Load data from `target` where `target` is a `luigi.Target`."""
-    if not target.fn.endswith('pkl'):
-        raise IOError('Cannot load non-pickled object')
-    with target.open('r') as infile:
-        return pickle.load(infile)
-
-
-def load_value(target):
-    """Load the value from `target`."""
-    if isinstance(target, str):
-        target = luigi.LocalTarget(target)
-    data = load(target)
-    try:
-        return data['value']
-    except KeyError:
-        return data
-
-
 def get_buffer(group):
     buf = {'product': 250,
            'R10m': 700,
@@ -74,139 +44,18 @@ def get_tile_sizes():
     return x_tile, y_tile
 
 
-class GetElevationAncillaryData(luigi.Task):
+class GetAncillarData(luigi.Task):
 
-    """Get ancillary elevation data."""
-
-    level1 = luigi.Parameter()
-    nbar_root = luigi.Parameter()
-    granule = luigi.Parameter()
-
-    def requires(self):
-        return
-
-    def output(self):
-        container = gaip.acquisitions(self.level1)
-        out_path = container.get_root(self.nbar_root, granule=self.granule)
-        out_fname = pjoin(out_path, CONFIG.get('work', 'dem_fname'))
-        return {'elevation': luigi.LocalTarget(out_fname)}
-
-    def run(self):
-        container = gaip.acquisitions(self.level1)
-        acqs = container.get_acquisitions(granule=self.granule)
-        geobox = acqs[0].gridded_geo_box()
-
-        dem_path = CONFIG.get('ancillary', 'dem_path')
-        value = gaip.get_elevation_data(geobox.centre_lonlat, dem_path)
-
-        with self.output()['elevation'].temporary_path() as out_fname:
-            save(out_fname, value)
-
-
-class GetOzoneAncillaryData(luigi.Task):
-
-    """Get ancillary ozone data."""
+    """Get all ancillary data."""
 
     level1 = luigi.Parameter()
     nbar_root = luigi.Parameter()
     granule = luigi.Parameter()
 
-    def requires(self):
-        return
-
     def output(self):
         container = gaip.acquisitions(self.level1)
         out_path = container.get_root(self.nbar_root, granule=self.granule)
-        out_fname = pjoin(out_path, CONFIG.get('work', 'ozone_fname'))
-        return {'ozone': luigi.LocalTarget(out_fname)}
-
-    def run(self):
-        container = gaip.acquisitions(self.level1)
-        acqs = container.get_acquisitions(granule=self.granule)
-        geobox = acqs[0].gridded_geo_box()
-
-        ozone_path = CONFIG.get('ancillary', 'ozone_path')
-        centre = geobox.centre_lonlat
-        centre_datetime = acqs[0].scene_center_datetime
-        value = gaip.get_ozone_data(ozone_path, centre, centre_datetime)
-
-        with self.output()['ozone'].temporary_path() as out_fname:
-            save(out_fname, value)
-
-
-class GetWaterVapourAncillaryData(luigi.Task):
-
-    """Get ancillary water vapour data."""
-
-    level1 = luigi.Parameter()
-    nbar_root = luigi.Parameter()
-    granule = luigi.Parameter()
-
-    def requires(self):
-        return
-
-    def output(self):
-        container = gaip.acquisitions(self.level1)
-        out_path = container.get_root(self.nbar_root, granule=self.granule)
-        out_fname = pjoin(out_path, CONFIG.get('work', 'vapour_fname'))
-        return {'vapour': luigi.LocalTarget(out_fname)}
-
-    def run(self):
-        container = gaip.acquisitions(self.level1)
-        acqs = container.get_acquisitions(granule=self.granule)
-
-        vapour_path = CONFIG.get('ancillary', 'vapour_path')
-        value = gaip.get_water_vapour(acqs[0], vapour_path)
-
-        with self.output()['vapour'].temporary_path() as out_fname:
-            save(out_fname, value)
-
-
-class GetAerosolAncillaryData(luigi.Task):
-
-    """Get ancillary aerosol data."""
-
-    level1 = luigi.Parameter()
-    nbar_root = luigi.Parameter()
-    granule = luigi.Parameter()
-
-    def requires(self):
-        return
-
-    def output(self):
-        container = gaip.acquisitions(self.level1)
-        out_path = container.get_root(self.nbar_root, granule=self.granule)
-        out_fname = pjoin(out_path, CONFIG.get('work', 'aerosol_fname'))
-        return {'aerosol': luigi.LocalTarget(out_fname)}
-
-    def run(self):
-        container = gaip.acquisitions(self.level1)
-        acqs = container.get_acquisitions(granule=self.granule)
-
-        aerosol_path = CONFIG.get('ancillary', 'aerosol_path')
-        value = gaip.get_aerosol_data(acqs[0], aerosol_path)
-        # aerosol_path = CONFIG.get('ancillary', 'aerosol_fname') # version 2
-        # value = gaip.get_aerosol_data_v2(acqs[0], aerosol_path) # version 2
-
-        with self.output()['aerosol'].temporary_path() as out_fname:
-            save(out_fname, value)
-
-
-class GetBrdfAncillaryData(luigi.Task):
-
-    """Get ancillary BRDF data."""
-
-    level1 = luigi.Parameter()
-    nbar_root = luigi.Parameter()
-    granule = luigi.Parameter()
-
-    def requires(self):
-        return
-
-    def output(self):
-        container = gaip.acquisitions(self.level1)
-        out_path = container.get_root(self.nbar_root, granule=self.granule)
-        out_fname = pjoin(out_path, CONFIG.get('work', 'brdf_fname'))
+        out_fname = pjoin(out_path, CONFIG.get('work', 'ancillary_fname'))
         return luigi.LocalTarget(out_fname)
 
     def run(self):
@@ -214,34 +63,18 @@ class GetBrdfAncillaryData(luigi.Task):
         acqs = container.get_acquisitions(granule=self.granule)
         out_path = container.get_root(self.nbar_root, granule=self.granule)
 
-        work_path = pjoin(out_path, CONFIG.get('work', 'brdf_root'))
-        if not exists(work_path):
-            os.makedirs(work_path)
-
+        aerosol_path = CONFIG.get('ancillary', 'aerosol_path')
+        water_vapour_path = CONFIG.get('ancillary', 'vapour_path')
+        ozone_path = CONFIG.get('ancillary', 'ozone_path')
+        dem_path = CONFIG.get('ancillary', 'dem_path')
         brdf_path = CONFIG.get('ancillary', 'brdf_path')
         brdf_premodis_path = CONFIG.get('ancillary', 'brdf_premodis_path')
-        value = gaip.get_brdf_data(acqs[0], brdf_path, brdf_premodis_path,
-                                   work_path)
 
         with self.output().temporary_path() as out_fname:
-            save(out_fname, value)
-
-
-class GetAncillaryData(luigi.WrapperTask):
-
-    """Get all ancillary data. This a helper task."""
-
-    level1 = luigi.Parameter()
-    nbar_root = luigi.Parameter()
-    granule = luigi.Parameter()
-
-    def requires(self):
-        args = [self.level1, self.nbar_root, self.granule]
-        return {'elevation': GetElevationAncillaryData(*args),
-                'ozone': GetOzoneAncillaryData(*args),
-                'vapour': GetWaterVapourAncillaryData(*args),
-                'aerosol': GetAerosolAncillaryData(*args),
-                'brdf': GetBrdfAncillaryData(*args)}
+            gaip._collect_ancillary_data(acqs[0], aerosol_path,
+                                         water_vapour_path, ozone_path,
+                                         dem_path, brdf_path,
+                                         brdf_premodis_path, out_fname)
 
 
 class CalculateLonGrid(luigi.Task):
@@ -252,9 +85,6 @@ class CalculateLonGrid(luigi.Task):
     nbar_root = luigi.Parameter()
     granule = luigi.Parameter()
     group = luigi.Parameter()
-
-    def requires(self):
-        return
 
     def output(self):
         container = gaip.acquisitions(self.level1)
@@ -267,9 +97,10 @@ class CalculateLonGrid(luigi.Task):
         container = gaip.acquisitions(self.level1)
         acqs = container.get_acquisitions(group=self.group,
                                           granule=self.granule)
+        compression = CONFIG.get('work', 'compression')
 
         with self.output()['lon'].temporary_path() as out_fname:
-            gaip.create_lon_grid(acqs[0], out_fname)
+            gaip.create_lon_grid(acqs[0], out_fname, compression=compression)
 
 
 class CalculateLatGrid(luigi.Task):
@@ -280,9 +111,6 @@ class CalculateLatGrid(luigi.Task):
     nbar_root = luigi.Parameter()
     granule = luigi.Parameter()
     group = luigi.Parameter()
-
-    def requires(self):
-        return
 
     def output(self):
         container = gaip.acquisitions(self.level1)
@@ -295,9 +123,10 @@ class CalculateLatGrid(luigi.Task):
         container = gaip.acquisitions(self.level1)
         acqs = container.get_acquisitions(group=self.group,
                                           granule=self.granule)
+        compression = CONFIG.get('work', 'compression')
 
         with self.output()['lat'].temporary_path() as out_fname:
-            gaip.create_lat_grid(acqs[0], out_fname)
+            gaip.create_lat_grid(acqs[0], out_fname, compression=compression)
 
 
 class CalculateSatelliteAndSolarGrids(luigi.Task):
@@ -318,19 +147,9 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
         container = gaip.acquisitions(self.level1)
         out_path = container.get_root(self.nbar_root, group=self.group,
                                       granule=self.granule)
-        fnames = {'sat_view': CONFIG.get('work', 'sat_view_fname'),
-                  'sat_azimuth': CONFIG.get('work', 'sat_azimuth_fname'),
-                  'sol_zenith': CONFIG.get('work', 'solar_zenith_fname'),
-                  'sol_azimuth': CONFIG.get('work', 'solar_azimuth_fname'),
-                  'rel_azimuth': CONFIG.get('work', 'relative_azimuth_fname'),
-                  'time': CONFIG.get('work', 'time_fname'),
-                  'boxline': CONFIG.get('work', 'boxline_fname'),
-                  'centreline': CONFIG.get('work', 'centreline_fname'),
-                  'coordinator': CONFIG.get('work', 'coordinator_fname')}
-        targets = {k: luigi.LocalTarget(pjoin(out_path, v)) for k, v in
-                   fnames.items()}
+        out_fname = CONFIG.get('work', 'satellite_solar_fname')
 
-        return targets
+        return luigi.LocalTarget(pjoin(out_path, out_fname))
 
     def run(self):
         container = gaip.acquisitions(self.level1)
@@ -340,39 +159,17 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
         acqs = container.get_acquisitions(group=self.group,
                                           granule=self.granule)
 
-        geobox = acqs[0].gridded_geo_box()
-        cols = acqs[0].samples
         view_max = acqs[0].maximum_view_angle
+        tle_path = CONFIG.get('work', 'tle_path')
+        compression = CONFIG.get('work', 'compression')
 
-        outputs = self.output()
-        with outputs['sat_view'].temporary_path() as fname1,\
-            outputs['sat_azimuth'].temporary_path() as fname2,\
-            outputs['sol_zenith'].temporary_path() as fname3,\
-            outputs['sol_azimuth'].temporary_path() as fname4,\
-            outputs['rel_azimuth'].temporary_path() as fname5,\
-            outputs['time'].temporary_path() as fname6:
-
-            out_fnames = [fname1, fname2, fname3, fname4, fname5, fname6]
-
-            (_, _, _, _, _, _, y_cent, x_cent, n_cent) = \
-                gaip.calculate_angles(acqs[0], lon_fname, lat_fname,
-                                      npoints=12, out_fnames=out_fnames)
-
-        with outputs['centreline'].temporary_path() as cent_fname:
-            gaip.create_centreline_file(geobox, y_cent, x_cent, n_cent, cols,
-                                        view_max=view_max,
-                                        outfname=cent_fname)
-
-        with outputs['boxline'].temporary_path() as boxline_fname,\
-            outputs['coordinator'].temporary_path() as coord_fname:
-
-            satellite_zenith = outputs['sat_view'].path
-            gaip.create_boxline_file(satellite_zenith, y_cent, x_cent, n_cent,
-                                     boxline_fname=boxline_fname,
-                                     max_angle=view_max,
-                                     coordinator_fname=coord_fname)
+        with self.output().temporary_path() as out_fname:
+            _calculate_angles(acqs[0], lon_fname, lat_fname, out_fname,
+                              npoints=12, compression=compression,
+                              max_angle=view_max, tle_path=tle_path)
 
 
+# TODO: re-work with hdf5; re-writing into the ancillary file removes atomicity
 class AggregateAncillary(luigi.Task):
 
     """Aggregates the ancillary data from each granule."""
@@ -548,7 +345,8 @@ class WriteTp5(luigi.Task):
 
         for key, target in self.output().items():
             with target.temporary_path() as out_fname:
-                save(out_fname, tp5_data[key], pkl=False)
+                with open(out_fname, 'w') as src:
+                    src.writelines(tp5_data[key])
 
 
 # TODO: re-write using task.input() and task.output()
@@ -642,13 +440,6 @@ class LegacyOutputs(luigi.Task):
                                           lat_grid_fname, lon_grid_fname,
                                           ozone, vapour, aerosol, elevation,
                                           coords, albedos, out_fname_fmt)
-
-                # header angle file
-                view_max = acqs[0].maximum_view_angle
-                hdr_angle_fname = CONFIG.get('work', 'header_angle_fname')
-                header_angle_fname = pjoin(grp_path, hdr_angle_fname)
-                gaip.create_header_angle_file(acqs[0], view_max=view_max,
-                                              outfname=header_angle_fname)
 
         save(self.output(), 'completed')
 
