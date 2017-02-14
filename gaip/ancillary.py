@@ -21,6 +21,48 @@ import gaip
 log = logging.getLogger()
 
 
+def _collect_ancillary_data(acquisition, aerosol_path, water_vapour_path,
+                            ozone_path, dem_path, brdf_path,
+                            brdf_premodis_path, out_fname):
+    """
+    A private wrapper for dealing with the internal custom workings of the
+    NBAR workflow.
+    """
+    def _write_scalar(fid, dataset_path, data):
+        value = data.pop('value')
+        dset = fid.create_dataset(dataset_path, data=value)
+        for key in data:
+            if type(data[key]) == datetime.datetime:
+                dset.attrs[key] = data[key].isoformat()
+        fid.flush()
+
+        return
+
+    with h5py.File(out_fname, 'w') as fid:
+        geobox = acquisition.gridded_geo_box()
+
+        _write_scalar(fid, 'aerosol',
+                      get_aerosol_data(acquisition, aerosol_path))
+        _write_scalar(fid, 'water-vapour',
+                      get_water_vapour(acquisition, water_vapour_path))
+        _write_scalar(fid, 'ozone',
+                      get_ozone_data(ozone_path, geobox.centre_lonlat,
+                                     acquisition.scene_center_datetime))
+        _write_scalar(fid, 'elevation',
+                      get_elevation_data(geobox.centre_lonlat, dem_path)
+
+        # brdf
+        group = fid.create_group('brdf-image-datasets')
+        data = gaip.get_brdf_data(acqs[0], brdf_path, brdf_premodis_path,
+                                  group)
+        dname_format = "BRDF-Band-{band}-{factor}"
+        for key in data:
+        _write_scalar(fid, dname_format.format(band=key[0], factor=key[1]),
+                      data[key])
+
+    return
+
+
 def get_aerosol_data_v2(acquisition, aerosol_fname):
     """
     Extract the aerosol value for an acquisition.

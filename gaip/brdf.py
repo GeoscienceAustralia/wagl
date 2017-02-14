@@ -32,10 +32,10 @@ from osgeo import gdalconst
 from osgeo import osr
 from shapely.geometry import Polygon
 from gaip import GriddedGeoBox
-from gaip import write_img
 from gaip import constants
 from gaip import read_subset
 from gaip import extract_ancillary_metadata
+from gaip import write_h5_image
 
 log = logging.getLogger('root.' + __name__)
 
@@ -285,12 +285,9 @@ class BRDFLoader(object):
 
         return result
 
-    def convert_format(self, filename, fmt='GTiff'):
+    def convert_format(self, dataset_name, group, compression='lzf'):
         """
-        Convert the HDF file to a more spatially recognisable data
-        format such as ENVI or GTiff.
-        The default format is a compressed GeoTiff, with deflate
-        compression setting 1.
+        Convert the HDF file to a HDF5 dataset.
         """
 
         # Get the UL corner of the UL pixel co-ordinate
@@ -314,9 +311,14 @@ class BRDFLoader(object):
         geobox = GriddedGeoBox(shape=dims, origin=(ul_lon, ul_lat),
                                pixelsize=res, crs=prj)
 
-        # Write the file
-        write_img(self.data[0], filename, fmt, geobox=geobox,
-                  compress='deflate', options={'zlevel': 1})
+        # Write the dataset
+        kwargs = dataset_compression_kwargs(compression='lzf',
+                                            chunks=(1, dims[1]))
+        attrs = {'Description': 'Converted BRDF data from H4 to H5.',
+                 'crs_wkt': prj,
+                 'geotransform': geobox.affine.to_gdal()}
+        write_h5_image(self.data[0], dataset_name, group, **kwargs,
+                       attrs=attrs)
 
     def get_mean(self, array):
         """
@@ -437,7 +439,7 @@ def get_brdf_dirs_pre_modis(brdf_root, scene_date):
 
 
 def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
-                  work_path):
+                  hdf5_group):
     """
     Calculates the mean BRDF value for each band wavelength of your
     sensor, for each BRDF factor ['geo', 'iso', 'vol'] that covers
@@ -456,9 +458,9 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
         containing the Jupp-Li backup BRDF data.  To be used for
         pre-MODIS and potentially post-MODIS acquisitions.
 
-    :param work_path:
-        A string containing the full file system path that will be
-        used to save the BRDF files.
+    :param hdf5_group:
+        A HDF5 `Group` object that will be used to save the BRDF
+        image datasets.
 
     :return:
         A dictionary with tuple (band, factor) as the keys. Each key
@@ -560,10 +562,11 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
 
             # setup the output filename
             out_fname = '_'.join(['Band', str(band), bandwl, factor])
-            out_fname = pjoin(work_path, out_fname)
+            # out_fname = pjoin(work_path, out_fname)
 
             # Convert the file format
-            brdf_object.convert_format(out_fname + '.tif')
+            brdf_object.convert_format(out_fname, hdf5_group,
+                                       compression=compression)
 
             # Get the intersected roi
             # the intersection is used rather than the actual bounds,
@@ -591,9 +594,15 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
             brdf_mean_value = brdf_object.get_mean(subset)
 
             # Output the brdf subset
-            out_fname_subset = out_fname + '_subset.tif'
-            write_img(subset, out_fname_subset, 'GTiff', geobox=geobox_subset,
-                      compress='deflate', options={'zlevel': 1})
+            chunks = (1, geobox.x_size())
+            kwargs = dataset_compression_kwargs(compression='lzf',
+                                                chunks=chunks)
+            attrs = {'Description': 'Subsetted region of the BRDF image.',
+                     'crs_wkt': prj,
+                     'geotransform': geobox.affine.to_gdal()}
+            out_fname_subset = out_fname + '_subset'
+            write_h5_image(subset, out_fname_subset, hdf5_group, **kwargs,
+                           attrs=attrs)
 
             # Remove temporary unzipped file
             if hdf_file.find(work_path) == 0:
