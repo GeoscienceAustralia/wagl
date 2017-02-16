@@ -9,7 +9,7 @@ from tle import *
 from brdf import *
 from calculate_lon_lat_arrays import *
 from land_sea_masking import *
-from land_sea import get_land_sea_mask 
+from land_sea import get_land_sea_mask
 from modtran_profiles import *
 from modtran import *
 from margins import *
@@ -37,7 +37,6 @@ try:
     from _slope_aspect import slope_aspect # F2Py
     from _surface_reflectance import reflectance # F2Py
     from _interpolation import bilinear #F2Py
-    from _start_end_coordinates import cstart_cend #F2Py
     from calculate_angles import *
     from tc import *
     from dsm import get_dsm
