@@ -9,13 +9,14 @@ import subprocess
 
 import numpy
 from scipy.io import FortranFile
+import h5py
 import pandas
 import rasterio
 import gaip
 from gaip import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
 from gaip import MIDLAT_SUMMER_TRANSMITTANCE, TROPICAL_TRANSMITTANCE
-
-BIN_DIR = abspath(pjoin(dirname(__file__), '..', 'bin'))
+from gaip import write_h5_image
+from gaip import write_dataframe
 
 
 def create_modtran_dirs(coords, albedos, modtran_root, modtran_exe_root,
@@ -69,110 +70,53 @@ def prepare_modtran(coordinate, albedo, modtran_work, modtran_exe):
     os.symlink(data_dir, symlink_dir)
 
 
-# science team requires
-def create_satellite_filter_file(acquisitions, satfilter_path, target):
-    """Generate satellite filter input file."""
-    refbands = [a for a in acquisitions if a.band_type == gaip.REF]
-    filterfile = acquisitions[0].spectral_filter_file
-    filterpath = os.path.join(satfilter_path, filterfile)
+def _format_tp5(acquisition, satellite_solar_angles_fname,
+                longitude_fname, latitude_fname, ancillary_fname, coords,
+                albedos):
+    """
+    A private wrapper for dealing with the internal custom workings of the
+    NBAR workflow.
+    """
+    with h5py.File(satellite_solar_angles_fname, 'r') as sat_sol,\
+        h5py.File(longitude_fname, 'r') as lon_ds,\
+        h5py.File(latitude_fname, 'r') as lat_ds,\
+        h5py.File(ancillary_fname, 'a') as anc_ds:
 
-    with open(target, 'w') as outfile:
-        outfile.write("%i\n" % len(refbands))
-        outfile.write("%s\n" % filterpath)
+        # angles data
+        view_dset = sat_sol['satellite-view']
+        azi_dset = sat_sol['satellite-azimuth']
+        coord_dset = sat_sol['coordinator']
+        lon_dset = lon_ds['longitude']
+        lat_dset = lat_ds['latitude']
 
-    return target
+        # ancillary data
+        aerosol = anc_ds['aerosol'][()]
+        water_vapour = anc_ds['water-vapour'][()]
+        ozone = anc_ds['ozone'][()]
+        elevation = anc_ds['elevation'][()]
 
+        tp5_data, metadata = format_tp5(acquisition, coord_dset, view_dset,
+                                        azi_dset, lat_dset, lon_dset, ozone,
+                                        water_vapour, aerosol, elevation,
+                                        coords, albedos)
 
-# science team requires
-def write_modtran_input(acquisitions, modtran_input_file, ozone, vapour,
-                        aerosol, elevation):
-    """Generate modtran input file."""
-    acq = acquisitions[0]
-    filter_file = acq.spectral_filter_file
-    cdate = acq.scene_centre_date
-    altitude = acq.altitude / 1000.0  # in km
-    dechour = acq.decimal_hour
+        group = anc_ds.create_group('modtran-inputs')
+        iso_time = acquisition.scene_centre_date.isoformat()
+        group.attrs['acquisition-datetime'] = iso_time
+        dataset_fmt = '{point}/alb_{albedo}/tp5_data'
 
-    with open(modtran_input_file, 'w') as outfile:
-        outfile.write("%f\n" % ozone)
-        outfile.write("%f\n" % vapour)
-        outfile.write("DATA/%s\n" % filter_file)
-        outfile.write("-%f\n" % aerosol)
-        outfile.write("%f\n" % elevation)
-        outfile.write("Annotation, %s\n" % cdate.strftime('%Y-%m-%d'))
-        outfile.write("%d\n" % altitude)
-        outfile.write("%d\n" % int(cdate.strftime('%j')))
-        outfile.write("%f\n" % dechour)
+        for key in metadata:
+            dname = dataset_fmt.format(point=key[0], albedo=key[1])
+            str_data = numpy.string_(tp5_data[key])
+            dset = group.create_dataset(dname, data=str_data)
+            for k in metadata[key]:
+                dset.attrs[k] = metadata[key][k]
 
-
-# science team requires
-def write_modtran_inputs(acquisition, coordinator, view_fname, azi_fname,
-                         lat_fname, lon_fname, ozone, vapour, aerosol,
-                         elevation, coords, albedos, out_fname_fmt):
-    filter_file = acquisition.spectral_filter_file
-    cdate = acquisition.scene_centre_date
-    altitude = acquisition.altitude / 1000.0  # in km
-    dechour = acquisition.decimal_hour
-    coord = pandas.read_csv(coordinator, header=None, sep=r'\s+\s+',
-                            engine='python', names=['row', 'col'])
-
-    with rasterio.open(view_fname) as view_ds,\
-        rasterio.open(azi_fname) as azi_ds,\
-        rasterio.open(lat_fname) as lat_ds,\
-        rasterio.open(lon_fname) as lon_ds:
-
-        npoints = len(coords)
-        view = numpy.zeros(npoints, dtype='float32')
-        azi = numpy.zeros(npoints, dtype='float32')
-        lat = numpy.zeros(npoints, dtype='float64')
-        lon = numpy.zeros(npoints, dtype='float64')
-
-        for i in range(1, npoints + 1):
-            yidx = coord['row'][i]
-            xidx = coord['col'][i]
-            idx = ((yidx -1, yidx), (xidx -1, xidx))
-            view[i-1] = view_ds.read(1, window=idx)[0, 0]
-            azi[i-1] = azi_ds.read(1, window=idx)[0, 0]
-            lat[i-1] = lat_ds.read(1, window=idx)[0, 0]
-            lon[i-1] = lon_ds.read(1, window=idx)[0, 0]
-
-    view_cor = 180 - view
-    azi_cor = azi + 180
-    rlon = 360 - lon
-    
-    # check if in western hemisphere
-    wh = rlon >= 360
-    rlon[wh] -= 360
-    
-    wh = (180 - view_cor) < 0.1
-    view_cor[wh] = 180
-    azi_cor[wh] = 0
-    
-    wh = azi_cor > 360
-    azi_cor[wh] -= 360
-
-    for i, p in enumerate(coords):
-        for alb in albedos:
-            out_fname = out_fname_fmt.format(coord=p, albedo=alb)
-            with open(out_fname, 'w') as src:
-                src.write("{:.8f}\n".format(float(alb)))
-                src.write("{:.14f}\n".format(ozone))
-                src.write("{:.14f}\n".format(vapour))
-                src.write("DATA/{}\n".format(filter_file))
-                src.write("-{:.14f}\n".format(aerosol))
-                src.write("{:.14f}\n".format(elevation))
-                src.write("Annotation, {}\n".format(cdate.strftime('%Y-%m-%d')))
-                src.write("{:.14f}\n".format(altitude))
-                src.write("{:f}\n".format(view_cor[i]))
-                src.write("{:d}\n".format(int(cdate.strftime('%j'))))
-                src.write("{:.14f}\n".format(lat[i]))
-                src.write("{:.14f}\n".format(rlon[i]))
-                src.write("{:.14f}\n".format(dechour))
-                src.write("{:f}\n".format(azi_cor[i]))
+    return tp5_data
 
 
-def format_tp5(acquisition, coordinator, view_fname, azi_fname,
-               lat_fname, lon_fname, ozone, vapour, aerosol, elevation,
+def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
+               lat_dataset, lon_dataset, ozone, vapour, aerosol, elevation,
                coords, albedos):
     """Creates str formatted tp5 files for the albedo (0, 1) and transmittance (t)."""
     geobox = acquisition.gridded_geo_box()
@@ -181,28 +125,21 @@ def format_tp5(acquisition, coordinator, view_fname, azi_fname,
     doy = int(cdate.strftime('%j'))
     altitude = acquisition.altitude / 1000.0  # in km
     dechour = acquisition.decimal_hour
-    coord = pandas.read_csv(coordinator, header=None, sep=r'\s+\s+',
-                            engine='python', names=['row', 'col'])
 
-    with rasterio.open(view_fname) as view_ds,\
-        rasterio.open(azi_fname) as azi_ds,\
-        rasterio.open(lat_fname) as lat_ds,\
-        rasterio.open(lon_fname) as lon_ds:
+    npoints = len(coords)
+    view = numpy.zeros(npoints, dtype='float32')
+    azi = numpy.zeros(npoints, dtype='float32')
+    lat = numpy.zeros(npoints, dtype='float64')
+    lon = numpy.zeros(npoints, dtype='float64')
 
-        npoints = len(coords)
-        view = numpy.zeros(npoints, dtype='float32')
-        azi = numpy.zeros(npoints, dtype='float32')
-        lat = numpy.zeros(npoints, dtype='float64')
-        lon = numpy.zeros(npoints, dtype='float64')
-
-        for i in range(1, npoints + 1):
-            yidx = coord['row'][i]
-            xidx = coord['col'][i]
-            idx = ((yidx -1, yidx), (xidx -1, xidx))
-            view[i-1] = view_ds.read(1, window=idx)[0, 0]
-            azi[i-1] = azi_ds.read(1, window=idx)[0, 0]
-            lat[i-1] = lat_ds.read(1, window=idx)[0, 0]
-            lon[i-1] = lon_ds.read(1, window=idx)[0, 0]
+    for i in range(1, npoints + 1):
+        yidx = coordinator['row_index'][i]
+        xidx = coordinator['col_index'][i]
+        idx = (slice(yidx -1, yidx), slice(xidx -1, xidx))
+        view[i-1] = view_dataset[idx][0, 0]
+        azi[i-1] = azi_dataset[idx][0, 0]
+        lat[i-1] = lat_dataset[idx][0, 0]
+        lon[i-1] = lon_dataset[idx][0, 0]
 
     view_cor = 180 - view
     azi_cor = azi + 180
@@ -232,47 +169,71 @@ def format_tp5(acquisition, coordinator, view_fname, azi_fname,
     binary = 'T'
 
     tp5_data = {}
+    metadata = {}
 
     # write the tp5 files required for input into MODTRAN
     for i, p in enumerate(coords):
         for alb in albedos:
+            input_data = {'water': vapour,
+                          'ozone': ozone,
+                          'filter_function': filter_file,
+                          'visibility': -aerosol,
+                          'elevation': elevation,
+                          'sat_height': altitude,
+                          'sat_view': view_cor[i],
+                          'doy': doy,
+                          'binary': binary}
             if alb == 't':
-                data = trans_profile.format(albedo=0.0,
-                                            water=vapour,
-                                            ozone=ozone,
-                                            filter_function=filter_file,
-                                            visibility=-aerosol,
-                                            elevation=elevation,
-                                            sat_height=altitude,
-                                            sat_view=view_cor[i],
-                                            doy=doy,
-                                            sat_view_offset=180.0-view_cor[i],
-                                            binary=binary)
+                input_data['albedo'] = 0.0
+                input_data['sat_view_offset'] = 180.0-view_cor[i]
+                data = trans_profile.format(**input_data)
             else:
-                data = albedo_profile.format(albedo=float(alb),
-                                             water=vapour,
-                                             ozone=ozone,
-                                             filter_function=filter_file,
-                                             visibility=-aerosol,
-                                             elevation=elevation,
-                                             sat_height=altitude,
-                                             sat_view=view_cor[i],
-                                             doy=doy,
-                                             lat=lat[i],
-                                             lon=rlon[i],
-                                             time=dechour,
-                                             sat_azimuth=azi_cor[i],
-                                             binary=binary)
+                input_data['albedo'] = float(alb)
+                input_data['lat'] = lat[i]
+                input_data['lon'] = rlon[i]
+                input_data['time'] = dechour
+                input_data['sat_azimuth'] = azi_cor[i]
+                data = albedo_profile.format(**input_data)
 
             tp5_data[(p, alb)] = data
+            metadata[(p, alb)] = input_data
 
-    return tp5_data
+    return tp5_data, metadata
 
 
 def run_modtran(modtran_exe, workpath):
     """Run MODTRAN."""
     subprocess.check_call([modtran_exe], cwd=workpath)
 
+
+def _calculate_coefficients(coords, chn_input_fmt, dir_input_fmt, mod_root,
+                            out_fname, compression='lzf'):
+    """
+    A private wrapper for dealing with the internal custom workings of the
+    NBAR workflow.
+    """
+    res1, res2 = calculate_coefficients(coords, chn_input_fmt, dir_input_fmt,
+                                        mod_root)
+    attrs1 = {}
+    attrs1['Description'] = ("Coefficients derived from the "
+                             "accumulated solar irradiation.")
+    attrs2 = {}
+    attrs2['Description'] = ("Coefficients derived from the "
+                             "accumulated solar irradiation, and formatted "
+                             "into a 4x4 grid per MODTRAN factor.")
+    attrs2['Grid Layout'] = ("TL, TM, ML, MM\n"
+                             "TM, TR, MM, MR\n"
+                             "ML, MM, BL, BM\n"
+                             "MM, MR, BM, BR")
+
+    with h5py.File(out_fname, 'w') as fid:
+        write_dataframe(res1, 'coefficients_format_1', fid, compression,
+                        attrs=attrs1)
+        write_dataframe(res2, 'coefficients_format_2', fid, compression,
+                        attrs=attrs2)
+
+    return
+        
 
 def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt, mod_root):
     """
@@ -303,12 +264,9 @@ def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt, mod_root):
         output directory.
 
     :return:
-        A `tuple` of two `dictionaries`. The first containing the
-        calculated coefficients with the `coords` as the keys.
-        The second containing the reformated coefficients and
-        a `tuple` of (band, factor) as the keys.
+        A `pandas.DataFrame` object containing the coefficients of each
+        factor for each band.
     """
-
     result = {}
     for coord in coords:
         # MODTRAN output .chn file (albedo 0)
@@ -433,50 +391,84 @@ def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt, mod_root):
 
             result2[(bn, factor)] = df_reformat
 
+    # re-create basic single index tables
+    result = pandas.concat(result, names=['coordinate', 'band'])
+    result.reset_index(level='coordinate')
+    result.reset_index(inplace=True)
+
+    result2 = pandas.concat(result2, names=['band_number', 'factor'])
+    result2.reset_index(level=['band_number', 'factor'], inplace=True)
+    result2.reset_index(inplace=True)
+
     return result, result2
 
 
-def bilinear_interpolate(acq, coordinator, boxline, centreline,
-                         coefficients, out_fname):
-    """Perform bilinear interpolation."""
+def _bilinear_interpolate(acq, factor, sat_sol_angles_fname, coefficients,
+                          out_fname, compression):
+    """
+    A private wrapper for dealing with the internal custom workings of the
+    NBAR workflow.
+    """
+    band_num = acq.band_num
+    geobox = acq.gridded_geo_box()
 
-    geobox = gaip.gridded_geo_box(acq)
+    with h5py.File(sat_sol_angles_fname, 'r') as sat_sol,\
+        h5py.File(fname, 'r') as coef:
+
+        coord_dset = sat_sol['coordinator']
+        centre_dset = sat_sol['centreline']
+        box_dset = sat_sol['boxline']
+
+        coef_dset = coef['coefficients_format_2']
+        wh = ((coef_dset['band_number'] == band_num) &
+              (coef_dset['factor'] == factor))
+        coefficients = pandas.DataFrame(coef_dset[wh])
+
+        data = bilinear_interpolate(acq, coord_dset, box_dset, centre_dset,
+                                    coefficients, out_fname, compression)
+
+    with h5py.File(out_fname, 'w') as fid:
+        dname = '{factor}-band-{band}'.format(factor=factor, band=band_num)
+        kwargs = dataset_compression_kwargs(compression=compression,
+                                            chunks=(1, geobox.x_size()))
+        no_data = -999
+        kwargs['fillvalue'] = no_data
+        attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
+                 'geotransform': geobox.affine.to_gdal(),
+                 'no_data_value': no_data}
+        desc = ("Contains the bi-linearly interpolated result of factor {}"
+                "for band {} from sensor {}.")
+        attrs['Description'] = desc.format(factor, band, acq.satellite_name)
+        write_h5_image(data, dname, fid, **kwargs, attrs=attrs)
+        attach_image_attributes(dset, attrs)
+
+    return
+
+
+def bilinear_interpolate(acq, coordinator_dataset, boxline_dataset,
+                         centreline_dataset, coefficients):
+    """Perform bilinear interpolation."""
+    geobox = acq.gridded_geo_box()
     cols, rows = geobox.get_shape_xy()
 
-    # dataframes for the coords, scene centreline, boxline
-    # TODO: update these files so pandas can read directly without skipping
-    coords = pandas.read_csv(coordinator, header=None, sep=r'\s+\s+',
-                             engine='python', skiprows=1, names=['row', 'col'])
-    cent = pandas.read_csv(centreline, skiprows=2, header=None, sep=r'\s+\s+',
-                           engine='python',
-                           names=['line', 'centre', 'npoints', 'lat', 'lon'])
-    # box = pandas.read_csv(boxline, header=None, sep=r'\s+\s+', engine='python',
-    #                       names=['line', 'cstart', 'cend'])
-    box = pandas.read_csv(boxline)
-
     coord = numpy.zeros((9, 2), dtype='int')
-    coord[:, 0] = coords.row.values
-    coord[:, 1] = coords.col.values
-    # centre = cent.centre.values
-    centre = box.bisection.values
-    start = box.start.values
-    end = box.end.values
+    coord[:, 0] = coordinator_dataset['row_index'][:]
+    coord[:, 1] = coordinator_dataset['col_index'][:]
+    centre = boxline_dataset['bisection'][:]
+    start = boxline_dataset['start'][:]
+    end = boxline_dataset['end'][:]
 
     # get the individual atmospheric components
-    s1 = coefficients.s1.values
-    s2 = coefficients.s2.values
-    s3 = coefficients.s3.values
-    s4 = coefficients.s4.values
+    s1 = coefficients['s1'][:]
+    s2 = coefficients['s2'][:]
+    s3 = coefficients['s3'][:]
+    s4 = coefficients['s4'][:]
 
     res = numpy.zeros((rows, cols), dtype='float32')
     gaip.bilinear(cols, rows, coord, s1, s2, s3, s4, start, end,
                   centre, res.transpose())
 
-    # Output the result to disk
-    gaip.write_img(res, out_fname, fmt='GTiff', geobox=geobox, nodata=-999,
-                   compress='deflate', options={'zlevel': 1})
-
-    return
+    return res
 
 
 def read_spectral_response(fname):
