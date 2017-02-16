@@ -318,130 +318,22 @@ class WriteTp5(luigi.Task):
             ancillary = self.requires()[(self.granule, 'ancillary')].input()
             # ancillary = inputs[(self.granule, 'ancillary')]
 
-        sat_sol = inputs[(self.granule, group)]['sat_sol']
-        coord_fname = sat_sol['coordinator'].path
-        sat_view_fname = sat_sol['sat_view'].path
-        sat_azi_fname = sat_sol['sat_azimuth'].path
+        sat_sol_fname = inputs[(self.granule, group)]['sat_sol'].path
         lon_fname = inputs[(self.granule, group)]['lon']['lon'].path
         lat_fname = inputs[(self.granule, group)]['lat']['lat'].path
 
-        ozone_fname = ancillary['ozone']['ozone'].path
-        vapour_fname = ancillary['vapour']['vapour'].path
-        aerosol_fname = ancillary['aerosol']['aerosol'].path
-        elevation_fname = ancillary['elevation']['elevation'].path
-
-        # load the ancillary point values
-        ozone = load_value(ozone_fname)
-        vapour = load_value(vapour_fname)
-        aerosol = load_value(aerosol_fname)
-        elevation = load_value(elevation_fname)
+        ancillary_fname = ancillary.path
 
         # load an acquisition
         acq = container.get_acquisitions(group=group, granule=self.granule)[0]
 
-        tp5_data = gaip.format_tp5(acq, coord_fname, sat_view_fname,
-                                   sat_azi_fname, lat_fname, lon_fname, ozone,
-                                   vapour, aerosol, elevation, coords, albedos)
+        tp5_data = gaip._format_tp5(acq, sat_sol_fname, lon_fname, lat_fname,
+                                    ancillary_fname, coords, albedos)
 
         for key, target in self.output().items():
             with target.temporary_path() as out_fname:
                 with open(out_fname, 'w') as src:
                     src.writelines(tp5_data[key])
-
-
-# TODO: re-write using task.input() and task.output()
-class LegacyOutputs(luigi.Task):
-
-    """
-    A task that isn't required for production, but can be useful for
-    users undergoing validation. The files produced by this
-    task are neccessary for her version of NBAR to run, whereas
-    the production version skips producing file `a` and goes direct
-    to file `b`, or simply is not used by the system and hence has
-    been removed from production.
-    """
-
-    level1 = luigi.Parameter()
-    nbar_root = luigi.Parameter()
-
-    def requires(self):
-        container = gaip.acquisitions(self.level1)
-        tasks = []
-
-        # are we dealing with tiles/granules?
-        if container.tiled:
-            tasks.append(AggregateAncillary(self.level1, self.nbar_root))
-
-        for granule in container.granules:
-            args1 = [self.level1, self.nbar_root, granule]
-            tasks.append(GetAncillaryData(*args1))
-            for group in container.groups:
-                args2 = [self.level1, self.nbar_root, granule, group]
-                tasks.append(CalculateSatelliteAndSolarGrids(*args2))
-
-        return tasks
-
-    def output(self):
-        out_path = self.nbar_root
-        out_path = pjoin(out_path, CONFIG.get('work', 'targets_root'))
-        target = pjoin(out_path, 'LegacyOutputs.task')
-        return luigi.LocalTarget(target)
-
-    def run(self):
-        out_path = self.nbar_root
-        container = gaip.acquisitions(self.level1)
-        acqs = container.get_acqisitions()
-
-        # satellite filter file
-        satfilterpath = CONFIG.get('ancillary', 'satfilter_path')
-        filter_fname = CONFIG.get('legacy_outputs', 'sat_filter_fname')
-        out_fname = pjoin(out_path, filter_fname)
-        gaip.create_satellite_filter_file(acqs, satfilterpath, out_fname)
-
-        # modtran input file
-        ozone_fname = pjoin(out_path, CONFIG.get('work', 'ozone_fname'))
-        vapour_fname = pjoin(out_path, CONFIG.get('work', 'vapour_fname'))
-        aerosol_fname = pjoin(out_path, CONFIG.get('work', 'aerosol_fname'))
-        elevation_fname = pjoin(out_path, CONFIG.get('work', 'dem_fname'))
-        mod_input_fname = CONFIG.get('legacy_outputs', 'modtran_input_fname')
-        out_fname = pjoin(out_path, mod_input_fname)
-        ozone = load_value(ozone_fname)
-        vapour = load_value(vapour_fname)
-        aerosol = load_value(aerosol_fname)
-        elevation = load_value(elevation_fname)
-        gaip.write_modtran_input(acqs, out_fname, ozone, vapour, aerosol,
-                                 elevation)
-
-        for granule in container.granules:
-            for group in container.groups:
-                acqs = container.get_acquisitions(group=group, granule=granule)
-                grp_path = container.get_root(group=group, granule=granule)
-
-                # modtran input files
-                coordinator_fname = CONFIG.get('work', 'coordinator_fname')
-                coordinator_fname = pjoin(grp_path, coordinator_fname)
-                sat_view_zenith_fname = CONFIG.get('work', 'sat_view_fname')
-                sat_view_zenith_fname = pjoin(grp_path, sat_view_zenith_fname)
-                sat_azimuth_fname = CONFIG.get('work', 'sat_azimuth_fname')
-                sat_azimuth_fname = pjoin(grp_path, sat_azimuth_fname)
-                lon_grid_fname = CONFIG.get('work', 'lon_grid_fname')
-                lon_grid_fname = pjoin(grp_path, lon_grid_fname)
-                lat_grid_fname = CONFIG.get('work', 'lat_grid_fname')
-                lat_grid_fname = pjoin(grp_path, lat_grid_fname)
-
-                coords = CONFIG.get('modtran', 'coords').split(',')
-                albedos = CONFIG.get('legacy_outputs', 'albedos').split(',')
-                fname_format = CONFIG.get('legacy_outputs', 'output_format')
-
-                out_fname_fmt = pjoin(grp_path, fname_format)
-                gaip.write_modtran_inputs(acqs[0], coordinator_fname,
-                                          sat_view_zenith_fname,
-                                          sat_azimuth_fname,
-                                          lat_grid_fname, lon_grid_fname,
-                                          ozone, vapour, aerosol, elevation,
-                                          coords, albedos, out_fname_fmt)
-
-        save(self.output(), 'completed')
 
 
 class RunModtranCase(luigi.Task):
@@ -569,6 +461,9 @@ class AccumulateSolarIrradiance(luigi.WrapperTask):
                                                              self.granule,
                                                              coord, albedo))
         return reqs
+
+    # TODO: write a run, that combines all outputs into a single file
+    #       and cleans up the others after
 
 
 class CalculateCoefficients(luigi.Task):
