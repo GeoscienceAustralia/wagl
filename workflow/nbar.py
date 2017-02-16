@@ -411,7 +411,7 @@ class AggregateAncillary(luigi.Task):
 
         reqs = self.requires()
         for key in reqs:
-            for _, value in key.inputs().items():
+            for _, value in reqs[key].inputs().items():
                 ozone_fname = value['ozone'].path
                 vapour_fname = value['vapour'].path
                 aerosol_fname = value['aerosol'].path
