@@ -415,11 +415,11 @@ class RunAccumulateSolarIrradianceCase(luigi.Task):
         response_fname = pjoin(satfilterpath, acqs[0].spectral_filter_file)
 
         transmittance = True if self.albedo == 't' else False
-        result = gaip.calculate_solar_radiation(flux_fname, response_fname,
-                                                transmittance)
+        compression = CONFIG.get('work', 'compression')
 
         with self.output().temporary_path() as out_fname:
-            result.to_csv(out_fname, index=False, sep='\t')
+            _calculate_solar_radiation(flux_fname, response_fname,
+                                       transmittance, out_fname, compression)
 
 
 # TODO: do we need wrapper tasks???
@@ -456,8 +456,21 @@ class AccumulateSolarIrradiance(luigi.WrapperTask):
                                                              coord, albedo))
         return reqs
 
-    # TODO: write a run, that combines all outputs into a single file
-    #       and cleans up the others after
+    def output(self):
+        container = gaip.acquisitions(self.level1)
+        out_path = container.get_root(self.nbar_root, granule=self.granule)
+        modtran_root = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
+        out_fname = CONFIG.get('extract_flux', 'out_fname')
+        out_fname = pjoin(modtran_root, out_fname)
+        return luigi.LocalTarget(out_fname)
+
+    def run(self):
+        with self.output().temporary_path() as out_fname:
+            for target in self.input():
+                create_solar_irradiance_tables(target.path, out_fname,
+                                               compression=compression)
+                target.remove()
+            
 
 
 class CalculateCoefficients(luigi.Task):
