@@ -409,16 +409,18 @@ class AggregateAncillary(luigi.Task):
         # initialise the mean result
         ozone = vapour = aerosol = elevation = 0.0
 
-        for _, value in self.requires().inputs().items():
-            ozone_fname = value['ozone'].path
-            vapour_fname = value['vapour'].path
-            aerosol_fname = value['aerosol'].path
-            elevation_fname = value['elevation'].path
+        reqs = self.requires()
+        for key in reqs:
+            for _, value in key.inputs().items():
+                ozone_fname = value['ozone'].path
+                vapour_fname = value['vapour'].path
+                aerosol_fname = value['aerosol'].path
+                elevation_fname = value['elevation'].path
 
-            ozone += load_value(ozone_fname)
-            vapour += load_value(vapour_fname)
-            aerosol += load_value(aerosol_fname)
-            elevation += load_value(elevation_fname)
+                ozone += load_value(ozone_fname)
+                vapour += load_value(vapour_fname)
+                aerosol += load_value(aerosol_fname)
+                elevation += load_value(elevation_fname)
 
         ozone /= n_tiles
         vapour /= n_tiles
