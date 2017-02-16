@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import numpy
 import h5py
 
 DEFAULT_IMAGE_CLASS = {'CLASS': 'IMAGE',
@@ -75,7 +76,7 @@ def attach_table_attributes(dataset, title='Table', attrs={}):
         the dataset.
     """
     for key in DEFAULT_TABLE_CLASS:
-        datset.attrs[key] = DEFAULT_TABLE_CLASS[key]
+        dataset.attrs[key] = DEFAULT_TABLE_CLASS[key]
 
     dataset.attrs['TITLE'] = title
 
@@ -186,3 +187,25 @@ def write_h5_table(data, dset_name, fid, compression='lzf', shuffle=True,
     fid.flush()
 
 
+def write_dataframe(df, dset_name, group, compression='lzf', title='Table',
+                    attrs={}):
+    # check for object types, for now write fixed length strings
+    dtype = []
+    for i, val in enumerate(df.dtypes):
+        if val == object:
+            str_sz = len(df[df.columns[i]].max())
+            dtype.append((df.columns[i], '|S{}'.format(str_sz)))
+        else:
+            dtype.append((df.columns[i], val))
+
+    dtype = numpy.dtype(dtype)
+
+    kwargs = dataset_compression_kwargs(compression=compression, chunks=True)
+    kwargs['shape'] = df.shape[0]
+    kwargs['dtype'] = dtype
+    dset = group.create_dataset(dset_name, **kwargs)
+
+    for col in df.columns:
+        dset[col] = df[col].values
+
+    attach_table_attributes(dset, title=title, attrs=attrs)
