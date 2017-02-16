@@ -4,7 +4,7 @@ MODTRAN drivers
 
 """
 import os
-from os.path import join as pjoin, exists, abspath, dirname
+from os.path import join as pjoin, exists, abspath, dirname, basename, splitext
 import subprocess
 
 import numpy
@@ -597,6 +597,28 @@ def read_modtran_flux(fname):
     return flux_data, altitude
 
 
+def _calculate_solar_radiation(flux_fname, response_fname, transmittance,
+                               out_fname, compression='lzf'):
+    """
+    A private wrapper for dealing with the internal custom workings of the
+    NBAR workflow.
+    """
+    df = calculate_solar_radiation(flux_fname, response_fname, transmittance)
+    dset_name = splitext(basename(out_fname))[0]
+    coordinate, _, albedo = dset_name.split('-')
+
+    with h5py.File(out_fname, 'w') as fid:
+
+        description = ("Accumulated solar irradiation for coordinate {} "
+                       "and albedo {}.")
+        attrs = {'Description': description.format(coordinate, albedo),
+                 'Coordinate': coordinate,
+                 'Albedo': albedo}
+        write_dataframe(df, dset_name, fid, compression, attrs=attrs)
+
+    return
+
+
 def calculate_solar_radiation(flux_fname, response_fname, transmittance=False):
     """
     Retreive the flux data from the MODTRAN output `*.flx`, and
@@ -716,3 +738,16 @@ def calculate_solar_radiation(flux_fname, response_fname, transmittance=False):
     df.sort_index(inplace=True)
 
     return df
+
+
+def create_solar_irradiance_tables(fname, out_fname, compression='lzf'):
+    dset_name = splitext(basename(fname))[0]
+    with h5py.File(out_fname, 'a') as fid1:
+        # check for a previous run
+        if dset_name in fid:
+            del fid1[dset_name]
+
+        with h5py.File(fname, 'r') as fid2:
+            fid2.copy(dset_name, fid1)
+
+    return
