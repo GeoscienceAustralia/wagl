@@ -209,3 +209,25 @@ def write_dataframe(df, dset_name, group, compression='lzf', title='Table',
         dset[col] = df[col].values
 
     attach_table_attributes(dset, title=title, attrs=attrs)
+
+
+def attach_attributes(dataset, attrs):
+    """
+    A small utility for attaching attributes to a h5py `Dataset` or
+    `Group` object.
+
+    :param dataset:
+        The h5py `Dataset` or `Group` object on which to attach
+        attributes to.
+
+    :param attrs:
+        A `dict` of key, value pairs used to attach the atrrbutes
+        onto the h5py `Dataset` or `Group` object.
+
+    :return:
+        None.
+    """
+    for key in attrs:
+        dset.attrs[key] = attrs[key]
+
+    return
