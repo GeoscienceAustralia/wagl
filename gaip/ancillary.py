@@ -6,10 +6,9 @@ import re
 import os
 from os.path import join as pjoin, splitext, exists, abspath, dirname, pardir
 from posixpath import join as ppjoin
-import pwd
-from datetime import datetime as dtime
-from datetime import timedelta
+import datetime
 
+import h5py
 import pandas
 from geopandas import GeoSeries
 import numpy
@@ -32,8 +31,10 @@ def _collect_ancillary_data(acquisition, aerosol_path, water_vapour_path,
         value = data.pop('value')
         dset = fid.create_dataset(dataset_path, data=value)
         for key in data:
-            if type(data[key]) == datetime.datetime:
-                dset.attrs[key] = data[key].isoformat()
+            if isinstance(data[key], datetime.datetime):
+                data[key] = data[key].isoformat()
+
+        attach_attrs(dset, data)
         fid.flush()
 
         return
@@ -49,16 +50,64 @@ def _collect_ancillary_data(acquisition, aerosol_path, water_vapour_path,
                       get_ozone_data(ozone_path, geobox.centre_lonlat,
                                      acquisition.scene_center_datetime))
         _write_scalar(fid, 'elevation',
-                      get_elevation_data(geobox.centre_lonlat, dem_path)
+                      get_elevation_data(geobox.centre_lonlat, dem_path))
 
         # brdf
         group = fid.create_group('brdf-image-datasets')
-        data = gaip.get_brdf_data(acqs[0], brdf_path, brdf_premodis_path,
+        data = gaip.get_brdf_data(acquisition, brdf_path, brdf_premodis_path,
                                   group)
         dname_format = "BRDF-Band-{band}-{factor}"
         for key in data:
-        _write_scalar(fid, dname_format.format(band=key[0], factor=key[1]),
-                      data[key])
+            _write_scalar(fid, dname_format.format(band=key[0], factor=key[1]),
+                          data[key])
+
+    return
+
+
+def aggregate_ancillary(ancillary_fnames, out_fname):
+    """
+    If the acquisition is part of a `tiled` scene such as Sentinel-2a,
+    then we need to average the point measurements gathereed from
+    all tiles.
+    """
+    # initialise the mean result
+    ozone = vapour = aerosol = elevation = 0.0
+
+    n_tiles = len(ancillary_fnames)
+
+    with h5py.File(out_fname, 'w') as fid1:
+        for fname in ancillary_fnames:
+            with h5py.File(fname, 'r') as fid2:
+
+                ozone += fid2['ozone'][()]
+                vapour += fid2['water-vapour'][()]
+                aerosol += fid2['aerosol'][()]
+                elevation += fid2['elevation'][()]
+
+        ozone /= n_tiles
+        vapour /= n_tiles
+        aerosol /= n_tiles
+        elevation /= n_tiles
+
+        description = ("The {} value is an average from all the {} values "
+                       " retreived for each Granule.")
+        attrs = {'data_source': 'granule_average'}
+
+        dset = fid1.create_dataset('ozone', data=ozone)
+        attrs['Description'] = description.format('Ozone')
+        attach_attrs(dset, attrs)
+
+        dset = fid1.create_dataset('water-vapour', data=vapour)
+        attrs['Description'] = description.format('Water Vapour')
+        attach_attrs(dset, attrs)
+
+        dset = fid1.create_dataset('aerosol', data=aerosol)
+        attrs['Description'] = description.format('Aerosol')
+        attach_attrs(dset, attrs)
+
+        dset = fid1.create_dataset('elevation', data=elevation)
+        attrs['Description'] = description.format('Elevation')
+        attach_attrs(dset, attrs)
 
     return
 
@@ -84,7 +133,7 @@ def get_aerosol_data_v2(acquisition, aerosol_fname):
 
     store = pandas.HDFStore(aerosol_fname, 'r')
 
-    delta_tolerance = timedelta(days=0.5)
+    delta_tolerance = datetime.timedelta(days=0.5)
 
     value = None
     for pathname, description in zip(pathnames, descr):
@@ -250,12 +299,12 @@ def get_elevation_data(lonlat, dem_path):
     return res
 
 
-def get_ozone_data(ozone_path, lonlat, datetime):
+def get_ozone_data(ozone_path, lonlat, time):
     """
     Get ozone data for a scene. `lonlat` should be the (x,y) for the centre
     the scene.
     """
-    filename = datetime.strftime('%b').lower() + '.tif'
+    filename = time.strftime('%b').lower() + '.tif'
     datafile = pjoin(ozone_path, filename)
     value = gaip.get_pixel(datafile, lonlat)
 
