@@ -5,6 +5,7 @@ MODTRAN drivers
 """
 import os
 from os.path import join as pjoin, exists, abspath, dirname, basename, splitext
+from posixpath import join as ppjoin
 import subprocess
 
 import numpy
@@ -403,8 +404,8 @@ def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt, mod_root):
     return result, result2
 
 
-def _bilinear_interpolate(acq, factor, sat_sol_angles_fname, coefficients,
-                          out_fname, compression):
+def _bilinear_interpolate(acq, factor, sat_sol_angles_fname,
+                          coefficients_fname, out_fname, compression):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -413,7 +414,7 @@ def _bilinear_interpolate(acq, factor, sat_sol_angles_fname, coefficients,
     geobox = acq.gridded_geo_box()
 
     with h5py.File(sat_sol_angles_fname, 'r') as sat_sol,\
-        h5py.File(fname, 'r') as coef:
+        h5py.File(coefficients_fname, 'r') as coef:
 
         coord_dset = sat_sol['coordinator']
         centre_dset = sat_sol['centreline']
@@ -428,7 +429,7 @@ def _bilinear_interpolate(acq, factor, sat_sol_angles_fname, coefficients,
                                     coefficients, out_fname, compression)
 
     with h5py.File(out_fname, 'w') as fid:
-        dname = '{factor}-band-{band}'.format(factor=factor, band=band_num)
+        dset_name = splitext(basename(out_fname))[0]
         kwargs = dataset_compression_kwargs(compression=compression,
                                             chunks=(1, geobox.x_size()))
         no_data = -999
@@ -741,6 +742,11 @@ def calculate_solar_radiation(flux_fname, response_fname, transmittance=False):
 
 
 def create_solar_irradiance_tables(fname, out_fname, compression='lzf'):
+    """
+    Writes the accumulated solar irradiance table into a HDF5 file.
+    The file is opened in 'a' mode, allowing multiple tables to be
+    added. If a table already exists within the file it is removed.
+    """
     dset_name = splitext(basename(fname))[0]
     with h5py.File(out_fname, 'a') as fid1:
         # check for a previous run
@@ -749,5 +755,24 @@ def create_solar_irradiance_tables(fname, out_fname, compression='lzf'):
 
         with h5py.File(fname, 'r') as fid2:
             fid2.copy(dset_name, fid1)
+
+    return
+
+
+def link_bilinear_data(data, out_fname):
+    """
+    Links the individual bilinearly interpolated results into a
+    single file for easier access.
+    """
+    for key in data:
+        band, factor = key
+        fname = data[key]
+        base_dname = splitext(basename(fname))[0]
+
+        # do we need two group levels?
+        dset_name = ppjoin(band, factor, base_dname)
+
+        with h5py.File(out_fname, 'w') as fid:
+            fid[dset_name] = h5py.ExternalLink(fname, base_dname)
 
     return
