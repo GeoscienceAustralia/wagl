@@ -14,9 +14,8 @@ from gaip import dataset_compression_kwargs
 from gaip import attach_image_attributes
 
 
-def _self_shadow_wrapper(incident_angles_fname, exiting_angles_fname,
-                         out_fname, compression='lzf', x_tile=None,
-                         y_tile=None):
+def _self_shadow(incident_angles_fname, exiting_angles_fname, out_fname,
+                 compression='lzf', x_tile=None, y_tile=None):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
