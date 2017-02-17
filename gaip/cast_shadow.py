@@ -13,10 +13,9 @@ from gaip import dataset_compression_kwargs
 from gaip import attach_image_attributes
 
 
-def _calculate_cast_shadow_wrapper(acquisition, dsm_fname, margins,
-                                   block_height, block_width,
-                                   satellite_solar_angles_fname, out_fname,
-                                   compression='lzf', solar_source=True):
+def _calculate_cast_shadow(acquisition, dsm_fname, margins, block_height,
+                           block_width, satellite_solar_angles_fname,
+                           out_fname, compression='lzf', solar_source=True):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
