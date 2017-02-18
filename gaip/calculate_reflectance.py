@@ -1,112 +1,239 @@
 """
-Reflectance Calculations
-------------------------
+Calculates the Lambertian, BRDF corrected and BRDF + Terrain corrected
+----------------------------------------------------------------------
+
+reflectance
+-----------
 """
+
 import numpy
-import rasterio
+import h5py
 
 from gaip import as_array
 from gaip import constants
 from gaip import reflectance
+from gaip import dataset_compression_kwargs
+from gaip import attach_image_attributes
 from eotools import tiling
 
 
-def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
-                          brdf_data,
-                          self_shadow_fname, cast_shadow_sun_fname,
-                          cast_shadow_satellite_fname, solar_zenith_fname,
-                          solar_azimuth_fname, satellite_view_fname,
-                          relative_angle_fname, slope_fname, aspect_fname,
-                          incident_angle_fname, exiting_angle_fname,
-                          relative_slope_fname, reflectance_filenames,
-                          x_tile=None, y_tile=None):
+def _calculate_reflectance(acquisition, bilinear_fname,
+                           satellite_solar_angles_fname, slope_aspect_fname,
+                           relative_slope_fname, incident_angles_fname,
+                           exiting_angles_fname, self_shadow_fname,
+                           cast_shadow_sun_fname, cast_shadow_satellite_fname,
+                           rori, ancillary_fname, out_fname,
+                           compression='lzf', x_tile=None, y_tile=None):
     """
-    The workflow used to calculate lambertian, BRDF corrected and
-    terrain corrected surface reflectance.
+    A private wrapper for dealing with the internal custom workings of the
+    NBAR workflow.
+    """
+    band_num = acquisition.band_num
+    with h5py.File(bilinear_fname, 'r') as fid_bil,\
+        h5py.File(satellite_solar_angles_fname, 'r') as fid_sat_sol,\
+        h5py.File(slope_aspect_fname, 'r') as fid_slp_asp,\
+        h5py.File(relative_slope_fname, 'r') as fid_rel_slp,\
+        h5py.File(incident_angles_fname, 'r') as fid_inc,\
+        h5py.File(exiting_angles_fname, 'r') as fid_exi,\
+        h5py.File(self_shadow_fname, 'r') as fid_slf_shd,\
+        h5py.File(cast_shadow_sun_fname, 'r') as fid_cst_sun,\
+        h5py.File(cast_shadow_satellite_fname, 'r') as fid_cst_sat,\
+        h5py.File(ancillary_fname, 'r') as fid_anc:
 
-    :param acquisitions:
-        A list of acquisition class objects that will be run through
-        the terrain correction workflow.
+        fv_dset = fid_bil['fv-band-{band}'.format(band=band_num)]
+        fs_dset = fid_bil['fs-band-{band}'.format(band=band_num)]
+        b_dset = fid_bil['b-band-{band}'.format(band=band_num)]
+        s_dset = fid_bil['s-band-{band}'.format(band=band_num)]
+        a_dset = fid_bil['a-band-{band}'.format(band=band_num)]
+        dir_dset = fid_bil['dir-band-{band}'.format(band=band_num)]
+        dif_dset = fid_bil['dif-band-{band}'.format(band=band_num)]
+        ts_dset = fid_bil['ts-band-{band}'.format(band=band_num)]
+        sol_zen_dset = fid_sat_sol['solar-zenith']
+        sol_azi_dset = fid_sat_sol['solar-azimuth']
+        sat_view_dset = fid_sat_sol['satellite-view']
+        rel_ang_dset = fid_sat_sol['relative-azimuth']
+        slope_dset = fid_slp_asp['slope']
+        aspect_dset = fid_slp_asp['aspect']
+        rel_slp_dset = fid_rel_slp['relative-slope']
+        inc_dset = fid_inc['incident-angle']
+        exi_dset = fid_exi['exiting-angle']
+        slf_shad_dset = fid_slf_shd['self-shadow']
+        sun_shad_dset = fid_cst_sun['cast-shadow-sun']
+        sat_shad_dset = fid_cst_sat['cast-shadow-sat']
 
-    :param bilinear_ortho_filenames:
-        A dictionary with keys specified via a tuple of
-        (band_number, factor) and the value corresponding to a full
-        file pathname to the bilinearly interpolated float32 array.
-        Valid factor strings are:
+        dname = "BRDF-Band-{band}-{factor}"
+        brdf_iso = fid_anc[dname.format(band=band_num, factor='iso')][()]
+        brdf_vol = fid_anc[dname.format(band=band_num, factor='vol')][()]
+        brdf_geo = fid_anc[dname.format(band=band_num, factor='geo')][()]
 
-            * fv: MODTRAN output (fv).
-            * fs: MODTRAN output (fs).
-            * b: MODTRAN output (b).
-            * s: MODTRAN output (s).
-            * a: MODTRAN output (a).
-            * dir: MODTRAN output (direct irradiance).
-            * dif: MODTRAN output (diffuse irradiance).
-            * ts: MODTRAN output (ts).
+    fid = calculate_reflectance(acquisition, fv_dset, fs_dset, b_dset, s_dset,
+                                a_dset, dir_dset, dif_dset, ts_dset,
+                                sol_zen_dset, sol_azi_dset, sat_view_dset,
+                                rel_ang_dset, slope_dset, aspect_dset,
+                                rel_slp_dset, inc_dset, exi_dset,
+                                slf_shad_dset, sun_shad_dset, sat_shad_dset,
+                                rori, brdf_iso, brdf_vol, brdf_geo, out_fname,
+                                compression, x_tile, y_tile)
 
-    :param rori:
-        Threshold for terrain correction.
+    fid.close()
+    return
 
-    :param brdf_data:
-        A dictionary with keys specified via a tuple of
-        (band_number, factor), with valid factors being (iso, vol, geo).
 
-    :param self_shadow_fname:
+def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
+                          s_dataset, a_dataset, dir_dataset, dif_dataset,
+                          ts_dataset, solar_zenith_dataset,
+                          solar_azimuth_dataset, satellite_view_dataset,
+                          relative_angle_dataset, slope_dataset,
+                          aspect_dataset, relative_slope_dataset,
+                          incident_angle_dataset, exiting_angle_dataset,
+                          self_shadow_dataset, cast_shadow_sun_dataset,
+                          cast_shadow_satellite_dataset, rori, brdf_iso,
+                          brdf_vol, brdf_geo, out_fname=None,
+                          compression='lzf', x_tile=None, y_tile=None):
+    """
+    Calculates Lambertian, BRDF corrected and BRDF + terrain
+    corrected surface reflectance.
+
+    :param acquisition:
+        An instance of an acquisition object.
+
+    :param fv_dataset:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the MODTRAN
+        factor `fv` data values when indexed/sliced.
+
+    :param fs_dataset:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the MODTRAN
+        factor `fs` data values when indexed/sliced.
+
+    :param b_dataset:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the MODTRAN
+        factor `b` data values when indexed/sliced.
+
+    :param s_dataset:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the MODTRAN
+        factor `s` data values when indexed/sliced.
+
+    :param a_dataset:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the MODTRAN
+        factor `a` data values when indexed/sliced.
+
+    :param dir_dataset:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the MODTRAN
+        factor `dir` (direct irradiance) data values when
+        indexed/sliced.
+
+    :param dif_dataset:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the MODTRAN
+        factor `dif` (diffuse irradiance) data values when
+        indexed/sliced.
+
+    :param ts_dataset:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the MODTRAN
+        factor `ts` data values when indexed/sliced.
+
+    :param solar_zenith_dataset:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the solar
+        zenith angles when indexed/sliced.
+
+    :param solar_azimuth_dataset:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the solar
+        azimuth angles when indexed/sliced.
+
+    :param satellite_view_dataset:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the satellite
+        view angles when indexed/sliced.
+
+    :param relative_angle_dataset:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the relative
+        azimuth angles when indexed/sliced.
+
+    :param slope_dataset:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the slope values
+        when index/sliced.
+
+    :param aspect_dataset:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the aspect angles
+        when index/sliced.
+
+    :param relative_slope_dataset:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the relative
+        slope values when index/sliced.
+
+    :param incident_angle_dataset:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the incident angles
+        when index/sliced.
+
+    :param exiting_angle_dataset:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the exiting angles
+        when index/sliced.
+
+    :param self_shadow_dataset:
         A string containing the full file path name to the self
         shadow mask image.
 
-    :param cast_shadow_sun_fname:
-        A string containing the full file path name to the sun cast
-        shadow mask image.
+    :param cast_shadow_sun_dataset:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the cast shadow
+        mask (path back to the sun) when index/sliced.
 
-    :param cast_shadow_satellite_fname:
-        A string containing the full file path name to the satellite
-        cast shadow mask image.
+    :param cast_shadow_satellite_dataset:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the cast shadow
+        mask (path back to the sateelite) when index/sliced.
 
-    :param solar_zenith_fname:
-        A string containing the full file path name to the solar
-        zenith angle image.
+    :param rori:
+        Threshold for terrain correction. Fuqin to document.
 
-    :param solar_azimuth_fname:
-        A string containing the full file path name to the solar
-        azimuth angle image.
+    :param brdf_iso:
+        A point value representing the Bidirectional Reflectance
+        Distribution Function for the isometric scattering fraction.
 
-    :param satellite_view_fname:
-        A string containing the full file path name to the satellite
-        view angle image.
+    :param brdf_vol:
+        A point value representing the Bidirectional Reflectance
+        Distribution Function for the volumetric scattering fraction.
 
-    :param relative_angle_fname:
-        A string containing the full file path name to the relative
-        angle image.
+    :param brdf_geo:
+        A point value representing the Bidirectional Reflectance
+        Distribution Function for the geometric scattering fraction.
 
-    :param slope_fname:
-        A string containing the full file path name to the slope
-        image.
+    :param out_fname:
+        If set to None (default) then the results will be returned
+        as an in-memory hdf5 file, i.e. the `core` driver.
+        Otherwise it should be a string containing the full file path
+        name to a writeable location on disk in which to save the HDF5
+        file.
 
-    :param aspect_fname:
-        A string containing the full file path name to the aspect
-        image.
+        The dataset names will be as follows:
 
-    :param incident_angle_fname:
-        A string containing the full file path name to the incident
-        angle image.
+        * lambertian-reflectance
+        * brdf-reflectance
+        * terrain-reflectance
 
-    :param exiting_angle_fname:
-        A string containing the full file path name to the exiting
-        angle image.
+    :param compression:
+        The compression filter to use. Default is 'lzf'.
+        Options include:
 
-    :param relative_slope_fname:
-        A string containing the full file path name to the relative
-        slope image.
-
-    :param reflectance_filenames:
-        A dictionary with keys specified via a tuple of
-        (band, reflectance_level) and the value corresponding to a
-        full file pathname.
-        Valid reflectance level strings are:
-
-            * 1. lambertian -> Lambertian reflectance
-            * 2. brdf -> BRDF corrected reflectance
-            * 3. terrain -> Terrain corrected reflectance
+        * 'lzf' (Default)
+        * 'lz4'
+        * 'mafisc'
+        * An integer [1-9] (Deflate/gzip)
 
     :param x_tile:
         Defines the tile size along the x-axis. Default is None which
@@ -117,229 +244,136 @@ def calculate_reflectance(acquisitions, bilinear_ortho_filenames, rori,
         equates to all elements along the y-axis.
 
     :return:
-        None.
-        The terrain correction algorithm will output 3 files for every
-        band in the following format:
-
-            * 1. reflectance_lambertian_{band_number}.tif -> Lambertian
-                 reflectance.
-            * 2. reflectance_brdf_{band_number}.tif -> BRDF corrected
-                 reflectance.
-            * 3. reflectance_terrain_{band_number}.tid -> Terrain corrected
-                 reflectance.
-
-    :notes:
-        Arrays will be converted to the required datatype and
-        transposed. The trnasposing should prevent array copies
-        being made by F2Py. The results are transposed back before
-        being written to disk.
-        All arrays should have the same dimensions.
-        Required datatypes are as follows:
-
-            * acquisitions: `numpy.int16`
-            * self_shadow: `numpy.int16`
-            * cast_shadow_sun: `numpy.int16`
-            * cast_shadow_satellite: `numpy.int16`
-            * solar_zenith: `numpy.float32`
-            * solar_azimuth: `numpy.float32`
-            * satellite_view: `numpy.float32`
-            * relative_angle: `numpy.float32`
-            * slope: `numpy.float32`
-            * aspect: `numpy.float32`
-            * incident_angle: `numpy.float32`
-            * exiting_angle: `numpy.float32`
-            * relative_slope: `numpy.float32`
-            * MODTRAN outputs: `numpy.float32`
-
-        The acquisitions will be converted internally to int32 on a
-        row by row basis.
+        An opened `h5py.File` object, that is either in-memory using the
+        `core` driver, or on disk.
     """
-    # Specify the biliner binary files datatype
-    boo_fnames = bilinear_ortho_filenames
-
-    # Retrieve the satellite and sensor for the acquisition
-    satellite = acquisitions[0].spacecraft_id
-    sensor = acquisitions[0].sensor_id
+    # Retrieve info about the acquisition
+    satellite = acquisition.spacecraft_id
+    sensor = acquisition.sensor_id
+    rows = acquisition.lines
+    cols = acquisition.samples
+    band_number = acquisition.band_num
+    geobox = acquisition.gridded_geo_box()
 
     # Get the average reflectance values per band
     nbar_constants = constants.NBARConstants(satellite, sensor)
     avg_reflectance_values = nbar_constants.get_avg_ref_lut()
 
-    # Open all the images for reading
-    self_shadow_ds = rasterio.open(self_shadow_fname)
-    cast_shadow_sun_ds = rasterio.open(cast_shadow_sun_fname)
-    cast_shadow_satellite_ds = rasterio.open(cast_shadow_satellite_fname) 
-    solar_zenith_ds = rasterio.open(solar_zenith_fname)
-    solar_azimuth_ds = rasterio.open(solar_azimuth_fname)
-    satellite_view_ds = rasterio.open(satellite_view_fname)
-    relative_angle_ds = rasterio.open(relative_angle_fname)
-    slope_ds = rasterio.open(slope_fname)
-    aspect_ds = rasterio.open(aspect_fname)
-    incident_angle_ds = rasterio.open(incident_angle_fname)
-    exiting_angle_ds = rasterio.open(exiting_angle_fname)
-    relative_slope_ds = rasterio.open(relative_slope_fname)
+    # Initialise the output files
+    if out_fname is None:
+        fid = h5py.File('satellite-solar-angles.h5', driver='core',
+                        backing_store=False)
+    else:
+        fid = h5py.File(out_fname, 'w')
 
-    # Loop over each acquisition and compute various reflectance arrays
-    for acq in acquisitions:
-        rows = acq.lines
-        cols = acq.samples
-        band_number = acq.band_num
-        geobox = acq.gridded_geo_box()
-        crs = geobox.crs.ExportToWkt()
+    no_data = -999
+    out_dtype = 'int16'
+    kwargs = dataset_compression_kwargs(compression=compression,
+                                        chunks=(1, cols))
+    kwargs['shape'] = (rows, cols)
+    kwargs['fillvalue'] = no_data
+    kwargs['dtype'] = out_dtype
 
-        # Filenames for lambertian, brdf & terrain corrected reflectance
-        lmbrt_fname = reflectance_filenames[(band_number, 'lambertian')]
-        brdf_fname = reflectance_filenames[(band_number, 'brdf')]
-        tc_fname = reflectance_filenames[(band_number, 'terrain')]
+    lmbrt_dset = fid.create_dataset('lambertian-reflectance', **kwargs)
+    brdf_dset = fid.create_dataset('brdf-reflectance', **kwargs)
+    tc_dset = fid.create_dataset('terrain-reflectance', **kwargs)
 
-        # Initialise the output files
-        kwargs = {'driver': 'GTiff',
-                  'width': cols,
-                  'height': rows,
-                  'count': 1,
-                  'crs': crs,
-                  'transform': geobox.affine,
-                  'dtype': 'int16',
-                  'nodata': -999,
-                  'compress': 'deflate',
-                  'zlevel': 1,
-                  'predictor': 2}
-        outds_lmbrt = rasterio.open(lmbrt_fname, 'w', **kwargs)
-        outds_brdf = rasterio.open(brdf_fname, 'w', **kwargs)
-        outds_tc = rasterio.open(tc_fname, 'w', **kwargs)
+    # attach some attributes to the image datasets
+    attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
+             'geotransform': geobox.affine.to_gdal(),
+             'no_data_value': no_data,
+             'rori threshold setting': rori,
+             'sattelite': satellite,
+             'sensor': sensor,
+             'band number': band_number}
 
-        # Initialise the tiling scheme for processing
-        if x_tile is None:
-            x_tile = cols
-        if y_tile is None:
-            y_tile = rows
-        tiles = tiling.generate_tiles(cols, rows, x_tile, y_tile,
-                                      generator=False)
+    desc = "Contains the lambertian reflectance data scaled by 10000."
+    attrs['Description'] = desc
+    attach_image_attributes(lmbrt_dset, attrs)
 
-        # get the brdf values for each factor
-        brdf0 = brdf_data[(band_number, 'iso')]['value']
-        brdf1 = brdf_data[(band_number, 'vol')]['value']
-        brdf2 = brdf_data[(band_number, 'geo')]['value']
+    desc = "Contains the brdf corrected reflectance data scaled by 10000."
+    attrs['Description'] = desc
+    attach_image_attributes(brdf_dset, attrs)
 
-        # Open all the bilinear interpolated files for the current band
-        with rasterio.open(boo_fnames[(band_number, 'a')]) as a_mod_ds,\
-            rasterio.open(boo_fnames[(band_number, 'b')]) as b_mod_ds,\
-            rasterio.open(boo_fnames[(band_number, 's')]) as s_mod_ds,\
-            rasterio.open(boo_fnames[(band_number, 'fs')]) as fs_ds,\
-            rasterio.open(boo_fnames[(band_number, 'fv')]) as fv_ds,\
-            rasterio.open(boo_fnames[(band_number, 'ts')]) as ts_ds,\
-            rasterio.open(boo_fnames[(band_number, 'dir')]) as edir_h_ds,\
-            rasterio.open(boo_fnames[(band_number, 'dif')]) as edif_h_ds:
+    desc = ("Contains the brdf and terrain corrected reflectance data scaled "
+            "by 10000.")
+    attrs['Description'] = desc
+    attach_image_attributes(tc_dset, attrs)
 
-            # Loop over each tile
-            for tile in tiles:
-                # Row and column start and end locations
-                ystart = tile[0][0]
-                xstart = tile[1][0]
-                yend = tile[0][1]
-                xend = tile[1][1]
+    # Initialise the tiling scheme for processing
+    if x_tile is None:
+        x_tile = cols
+    if y_tile is None:
+        y_tile = rows
+    tiles = tiling.generate_tiles(cols, rows, x_tile, y_tile, generator=False)
 
-                # Tile size
-                ysize = yend - ystart
-                xsize = xend - xstart
+    # Loop over each tile
+    for tile in tiles:
+        # tile indices
+        idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
 
-                # define some static arguments
-                out_null = -999
-                acq_args = {'window': tile,
-                            'masked': False,
-                            'apply_gain_offset': acq.scaled_radiance,
-                            'out_no_data': out_null}
-                args = {'window': tile,
-                        'masked': False}
-                i16_args = {'dtype': numpy.int16,
-                            'transpose': True}
-                f32_args = {'dtype': numpy.float32,
-                            'transpose': True}
+        # define some static arguments
+        acq_args = {'window': tile,
+                    'masked': False,
+                    'apply_gain_offset': acquisition.scaled_radiance,
+                    'out_no_data': no_data}
+        i16_args = {'dtype': numpy.int16, 'transpose': True}
+        f32_args = {'dtype': numpy.float32, 'transpose': True}
 
-                # Read the data corresponding to the current tile for all
-                # files
-                # Convert the datatype if required and transpose
-                band_data = as_array(acq.data(**acq_args), **f32_args)
-                
-                self_shadow = as_array(self_shadow_ds.read(1, **args),
-                                       **i16_args)
-                cast_shadow_sun = as_array(cast_shadow_sun_ds.read(1, **args),
-                                           **i16_args)
-                cast_shadow_satellite = as_array(
-                    cast_shadow_satellite_ds.read(1, **args), **i16_args)
-                solar_zenith = as_array(solar_zenith_ds.read(1, **args),
-                                        **f32_args)
-                solar_azimuth = as_array(solar_azimuth_ds.read(1, **args),
-                                         **f32_args)
-                satellite_view = as_array(satellite_view_ds.read(1, **args),
-                                          **f32_args)
-                relative_angle = as_array(relative_angle_ds.read(1, **args),
-                                          **f32_args)
-                slope = as_array(slope_ds.read(1, **args), **f32_args)
-                aspect = as_array(aspect_ds.read(1, **args), **f32_args)
-                incident_angle = as_array(incident_angle_ds.read(1, **args),
-                                          **f32_args)
-                exiting_angle = as_array(exiting_angle_ds.read(1, **args),
-                                         **f32_args)
-                relative_slope = as_array(relative_slope_ds.read(1, **args),
-                                          **f32_args)
-                a_mod = as_array(a_mod_ds.read(1, **args), **f32_args)
-                b_mod = as_array(b_mod_ds.read(1, **args), **f32_args)
-                s_mod = as_array(s_mod_ds.read(1, **args), **f32_args)
-                fs = as_array(fs_ds.read(1, **args), **f32_args)
-                fv = as_array(fv_ds.read(1, **args), **f32_args)
-                ts = as_array(ts_ds.read(1, **args), **f32_args)
-                edir_h = as_array(edir_h_ds.read(1, **args), **f32_args)
-                edif_h = as_array(edif_h_ds.read(1, **args), **f32_args)
+        # Read the data corresponding to the current tile for all dataset
+        # Convert the datatype if required and transpose
+        band_data = as_array(acquisition.data(**acq_args), **f32_args)
+        
+        self_shadow = as_array(self_shadow_dataset[idx], **i16_args)
+        cast_shadow_sun = as_array(cast_shadow_sun_dataset[idx], **i16_args)
+        cast_shadow_satellite = as_array(cast_shadow_satellite_dataset[idx],
+                                         **i16_args)
+        solar_zenith = as_array(solar_zenith_dataset[idx], **f32_args)
+        solar_azimuth = as_array(solar_azimuth_dataset[idx], **f32_args)
+        satellite_view = as_array(satellite_view_dataset[idx], **f32_args)
+        relative_angle = as_array(relative_angle_dataset[idx], **f32_args)
+        slope = as_array(slope_dataset[idx], **f32_args)
+        aspect = as_array(aspect_dataset[idx], **f32_args)
+        incident_angle = as_array(incident_angle_dataset[idx], **f32_args)
+        exiting_angle = as_array(exiting_angle_dataset[idx], **f32_args)
+        relative_slope = as_array(relative_slope_dataset[idx], **f32_args)
+        a_mod = as_array(a_dataset[idx], **f32_args)
+        b_mod = as_array(b_dataset[idx], **f32_args)
+        s_mod = as_array(s_dataset[idx], **f32_args)
+        fs = as_array(fs_dataset[idx], **f32_args)
+        fv = as_array(fv_dataset[idx], **f32_args)
+        ts = as_array(ts_dataset[idx], **f32_args)
+        direct = as_array(dir_dataset[idx], **f32_args)
+        diffuse = as_array(dif_dataset[idx], **f32_args)
 
-                # Allocate the output arrays
-                # The output and work arrays could be allocated once
-                # outside of the loop. But for future proof, we may get a
-                # product where each acquisition could have different
-                # resolutions.
-                ref_lm = numpy.zeros((ysize, xsize), dtype='int16')
-                ref_brdf = numpy.zeros((ysize, xsize), dtype='int16')
-                ref_terrain = numpy.zeros((ysize, xsize), dtype='int16')
+        # Allocate the output arrays
+        ysize, xsize = band_data.shape
+        ref_lm = numpy.zeros((ysize, xsize), dtype='int16')
+        ref_brdf = numpy.zeros((ysize, xsize), dtype='int16')
+        ref_terrain = numpy.zeros((ysize, xsize), dtype='int16')
 
-                # Allocate the work arrays (single row of data)
-                ref_lm_work = numpy.zeros(xsize, dtype='float32')
-                ref_brdf_work = numpy.zeros(xsize, dtype='float32')
-                ref_terrain_work = numpy.zeros(xsize, dtype='float32')
+        # Allocate the work arrays (single row of data)
+        ref_lm_work = numpy.zeros(xsize, dtype='float32')
+        ref_brdf_work = numpy.zeros(xsize, dtype='float32')
+        ref_terrain_work = numpy.zeros(xsize, dtype='float32')
 
-                # Run terrain correction
-                reflectance(xsize, ysize, rori, brdf0, brdf1, brdf2,
-                            avg_reflectance_values[band_number], out_null,
-                            band_data, self_shadow, cast_shadow_sun,
-                            cast_shadow_satellite,
-                            solar_zenith, solar_azimuth, satellite_view,
-                            relative_angle, slope, aspect, incident_angle,
-                            exiting_angle, relative_slope, a_mod, b_mod,
-                            s_mod, fs, fv, ts, edir_h, edif_h,
-                            ref_lm_work, ref_brdf_work, ref_terrain_work,
-                            ref_lm.transpose(), ref_brdf.transpose(),
-                            ref_terrain.transpose())
+        # Run terrain correction
+        reflectance(xsize, ysize, rori, brdf_iso, brdf_vol, brdf_geo,
+                    avg_reflectance_values[band_number], no_data,
+                    band_data, self_shadow, cast_shadow_sun,
+                    cast_shadow_satellite,
+                    solar_zenith, solar_azimuth, satellite_view,
+                    relative_angle, slope, aspect, incident_angle,
+                    exiting_angle, relative_slope, a_mod, b_mod,
+                    s_mod, fs, fv, ts, direct, diffuse,
+                    ref_lm_work, ref_brdf_work, ref_terrain_work,
+                    ref_lm.transpose(), ref_brdf.transpose(),
+                    ref_terrain.transpose())
 
 
-                # Write the current tile to disk
-                outds_lmbrt.write(ref_lm, 1, window=tile)
-                outds_brdf.write(ref_brdf, 1, window=tile)
-                outds_tc.write(ref_terrain, 1, window=tile)
+        # Write the current tile to disk
+        lmbrt_dset[idx] = ref_lm
+        brdf_dset[idx] = ref_brdf
+        tc_dset[idx] = ref_terrain
 
-        # Close the files to complete the writing
-        outds_lmbrt.close()
-        outds_brdf.close()
-        outds_tc.close()
-
-    # close all the opened image files
-    self_shadow_ds.close()
-    cast_shadow_sun_ds.close()
-    cast_shadow_satellite_ds.close()
-    solar_zenith_ds.close()
-    solar_azimuth_ds.close()
-    satellite_view_ds.close()
-    relative_angle_ds.close()
-    slope_ds.close()
-    aspect_ds.close()
-    incident_angle_ds.close()
-    exiting_angle_ds.close()
-    relative_slope_ds.close()
+    return fid
