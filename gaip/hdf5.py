@@ -231,3 +231,30 @@ def attach_attributes(dataset, attrs):
         dset.attrs[key] = attrs[key]
 
     return
+
+
+def create_external_link(fname, dataset_path, out_fname, new_dataset_path):
+    """
+    Creates an external link of `fname:dataset_path` into
+    `out_fname:new_dataset_path`.
+
+    :param fname:
+        The filename of the file containing the dataset that is to
+        be linked to.
+        `type:str`
+
+    :param dataset_path:
+        A `str` containg the path to the dataset contained within `fname`.
+
+    :param out_fname:
+        A `str` for the output filename that will contain the link to
+        `fname:dataset_path`.
+
+    :param new_dataset_path:
+        A `str` containing the dataset path within `out_fname` that will
+        link to `fname:dataset_path`.
+    """
+    with h5py.File(out_fname) as fid:
+        fid[new_dataset_path] = h5py.ExternalLink(fname, dataset_path)
+
+    return
