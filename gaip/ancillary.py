@@ -27,7 +27,15 @@ def _collect_ancillary_data(acquisition, aerosol_path, water_vapour_path,
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    def _write_scalar(fid, dataset_path, data):
+    def _write_scalar(fid, dataset_path, data, factor):
+        scattering_names = {'iso': 'isometric',
+                            'vol': 'volumetric',
+                            'geo': 'geometric'}
+
+        description = ("Bidirectional Reflectance Distribution Function "
+                       "for the {} scattering fraction."
+        data['Description'] = description.format(scattering_names[factor])
+
         value = data.pop('value')
         dset = fid.create_dataset(dataset_path, data=value)
         for key in data:
@@ -38,6 +46,7 @@ def _collect_ancillary_data(acquisition, aerosol_path, water_vapour_path,
         fid.flush()
 
         return
+
 
     with h5py.File(out_fname, 'w') as fid:
         geobox = acquisition.gridded_geo_box()
@@ -58,8 +67,9 @@ def _collect_ancillary_data(acquisition, aerosol_path, water_vapour_path,
                                   group)
         dname_format = "BRDF-Band-{band}-{factor}"
         for key in data:
-            _write_scalar(fid, dname_format.format(band=key[0], factor=key[1]),
-                          data[key])
+            band, factor = key
+            _write_scalar(fid, dname_format.format(band=band, factor=factor),
+                          data[key], factor)
 
     return
 
