@@ -9,18 +9,13 @@ Workflow settings can be configured in `nbar.cfg` file.
 # pylint: disable=missing-docstring,no-init,too-many-function-args
 # pylint: disable=too-many-locals
 
-import cPickle as pickle
 import os
-from os.path import join as pjoin, basename, dirname, exists
-import subprocess
+from os.path import join as pjoin, basename, dirname, exists, splitext
 import logging
 import shutil
 import argparse
-import yaml
-from yaml.representer import Representer
 import luigi
 from pathlib import Path
-import numpy
 from eodatasets.run import package_newly_processed_data_folder
 from eodatasets.drivers import PACKAGE_DRIVERS
 from eodatasets import type as ptype
@@ -44,7 +39,7 @@ def get_tile_sizes():
     return x_tile, y_tile
 
 
-class GetAncillarData(luigi.Task):
+class GetAncillaryData(luigi.Task):
 
     """Get all ancillary data."""
 
@@ -85,7 +80,7 @@ class CalculateLonGrid(luigi.Task):
         out_path = container.get_root(self.nbar_root, group=self.group,
                                       granule=self.granule)
         out_fname = pjoin(out_path, CONFIG.get('work', 'lon_grid_fname'))
-        return {'lon': luigi.LocalTarget(out_fname)}
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         container = gaip.acquisitions(self.level1)
@@ -93,7 +88,7 @@ class CalculateLonGrid(luigi.Task):
                                           granule=self.granule)
         compression = CONFIG.get('work', 'compression')
 
-        with self.output()['lon'].temporary_path() as out_fname:
+        with self.output().temporary_path() as out_fname:
             gaip.create_lon_grid(acqs[0], out_fname, compression=compression)
 
 
@@ -111,7 +106,7 @@ class CalculateLatGrid(luigi.Task):
         out_path = container.get_root(self.nbar_root, group=self.group,
                                       granule=self.granule)
         out_fname = pjoin(out_path, CONFIG.get('work', 'lat_grid_fname'))
-        return {'lat': luigi.LocalTarget(out_fname)}
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         container = gaip.acquisitions(self.level1)
@@ -119,7 +114,7 @@ class CalculateLatGrid(luigi.Task):
                                           granule=self.granule)
         compression = CONFIG.get('work', 'compression')
 
-        with self.output()['lat'].temporary_path() as out_fname:
+        with self.output().temporary_path() as out_fname:
             gaip.create_lat_grid(acqs[0], out_fname, compression=compression)
 
 
@@ -147,8 +142,8 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
 
     def run(self):
         container = gaip.acquisitions(self.level1)
-        lat_fname = self.input()['lat']['lat'].path
-        lon_fname = self.input()['lon']['lon'].path
+        lat_fname = self.input()['lat'].path
+        lon_fname = self.input()['lon'].path
 
         acqs = container.get_acquisitions(group=self.group,
                                           granule=self.granule)
@@ -238,6 +233,11 @@ class AggregateAncillary(luigi.Task):
 
             data['value'] = elevation
             save(out_fname4, data)
+=======
+            gaip._calculate_angles(acqs[0], lon_fname, lat_fname, out_fname,
+                                   npoints=12, compression=compression,
+                                   max_angle=view_max, tle_path=tle_path)
+>>>>>>> Changes to workflow; unifying output files via ExternalLinks.
 
 
 class WriteTp5(luigi.Task):
@@ -256,24 +256,17 @@ class WriteTp5(luigi.Task):
         container = gaip.acquisitions(self.level1)
         tasks = {}
 
-        # are we dealing with tiles/granules? aggregate the ancillary values
-        if container.tiled:
-            args = [self.level1, self.nbar_root]
-            tasks['ancillary'] = AggregateAncillary(*args)
-
         for granule in container.granules:
-            # grab non-aggregated ancillary
-            if not container.tiled:
-                key = (granule, 'ancillary')
-                args = [self.level1, self.nbar_root, granule]
-                tasks[key] = GetAncillaryData(*args)
+            key1 = (granule, 'ancillary')
+            args1 = [self.level1, self.nbar_root, granule]
+            tasks[key1] = GetAncillaryData(*args1)
             for group in container.groups:
-                key = (granule, group)
-                args = [self.level1, self.nbar_root, granule, group]
-                tsks = {'sat_sol': CalculateSatelliteAndSolarGrids(*args),
-                        'lat': CalculateLatGrid(*args),
-                        'lon': CalculateLonGrid(*args)}
-                tasks[key] = tsks
+                key2 = (granule, group)
+                args2 = [self.level1, self.nbar_root, granule, group]
+                tsks = {'sat_sol': CalculateSatelliteAndSolarGrids(*args2),
+                        'lat': CalculateLatGrid(*args2),
+                        'lon': CalculateLonGrid(*args2)}
+                tasks[key2] = tsks
 
         return tasks
 
@@ -304,19 +297,21 @@ class WriteTp5(luigi.Task):
         coords = CONFIG.get('modtran', 'coords').split(',')
         albedos = CONFIG.get('modtran', 'albedos').split(',')
 
-        # input files
+        # input file
         inputs = self.input()
 
+        # all ancillary filenames from each granule
+        fnames = [inputs[key].path for key in inputs if 'ancillary' in key]
+
         if container.tiled:
-            ancillary = inputs['ancillary']
+            ancillary_fname = pjoin(self.nbar_root, 'averaged-ancillary.h5')
+            gaip.aggregate_ancillary(fnames, ancillary_fname)
         else:
-            ancillary = self.requires()[(self.granule, 'ancillary')].input()
+            ancillary_fname = fnames[0]
 
         sat_sol_fname = inputs[(self.granule, group)]['sat_sol'].path
-        lon_fname = inputs[(self.granule, group)]['lon']['lon'].path
-        lat_fname = inputs[(self.granule, group)]['lat']['lat'].path
-
-        ancillary_fname = ancillary.path
+        lon_fname = inputs[(self.granule, group)]['lon'].path
+        lat_fname = inputs[(self.granule, group)]['lat'].path
 
         # load an acquisition
         acq = container.get_acquisitions(group=group, granule=self.granule)[0]
@@ -343,13 +338,7 @@ class RunModtranCase(luigi.Task):
 
     def requires(self):
         args = [self.level1, self.nbar_root, self.granule]
-
-        # do we need to output the legacy files?
-        if CONFIG.getboolean('legacy_outputs', 'required'):
-            tasks = {'legacy': LegacyOutputs(*args),
-                     'tp5': WriteTp5(*args)}
-        else:
-            tasks = {'tp5': WriteTp5(*args)}
+        tasks = {'tp5': WriteTp5(*args)}
 
         return tasks
 
@@ -418,12 +407,12 @@ class RunAccumulateSolarIrradianceCase(luigi.Task):
         compression = CONFIG.get('work', 'compression')
 
         with self.output().temporary_path() as out_fname:
-            _calculate_solar_radiation(flux_fname, response_fname,
-                                       transmittance, out_fname, compression)
+            gaip._calculate_solar_radiation(flux_fname, response_fname,
+                                            transmittance, out_fname,
+                                            compression)
 
 
-# TODO: do we need wrapper tasks???
-class AccumulateSolarIrradiance(luigi.WrapperTask):
+class AccumulateSolarIrradiance(luigi.Task):
 
     """
     Extract the flux data from the MODTRAN outputs, and calculate
@@ -447,14 +436,11 @@ class AccumulateSolarIrradiance(luigi.WrapperTask):
         output_format = CONFIG.get('extract_flux', 'output_format')
         output_format = pjoin(modtran_root, output_format)
 
-        reqs = []
         for coord in coords:
             for albedo in albedos:
-                reqs.append(RunAccumulateSolarIrradianceCase(self.level1,
-                                                             self.nbar_root, 
-                                                             self.granule,
-                                                             coord, albedo))
-        return reqs
+                args = [self.level1, self.nbar_root, self.granule, coord,
+                        albedo]
+                yield RunAccumulateSolarIrradianceCase(*args)
 
     def output(self):
         container = gaip.acquisitions(self.level1)
@@ -465,12 +451,12 @@ class AccumulateSolarIrradiance(luigi.WrapperTask):
         return luigi.LocalTarget(out_fname)
 
     def run(self):
+        compression = CONFIG.get('work', 'compression')
         with self.output().temporary_path() as out_fname:
             for target in self.input():
-                create_solar_irradiance_tables(target.path, out_fname,
-                                               compression=compression)
+                gaip.create_solar_irradiance_tables(target.path, out_fname,
+                                                    compression=compression)
                 target.remove()
-            
 
 
 class CalculateCoefficients(luigi.Task):
@@ -486,17 +472,14 @@ class CalculateCoefficients(luigi.Task):
 
     def requires(self):
         args = [self.level1, self.nbar_root, self.granule]
-        return [AccumulateSolarIrradiance(*args)]
+        return AccumulateSolarIrradiance(*args)
 
     def output(self):
         container = gaip.acquisitions(self.level1)
         out_path = container.get_root(self.nbar_root, granule=self.granule)
         out_path = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
-        out_fname1 = pjoin(out_path, CONFIG.get('coefficients', 'out_fname1'))
-        out_fname2 = pjoin(out_path, CONFIG.get('coefficients', 'out_fname2'))
-        targets = {'coef1': luigi.LocalTarget(out_fname1),
-                   'coef2': luigi.LocalTarget(out_fname2)}
-        return targets
+        out_fname = pjoin(out_path, CONFIG.get('coefficients', 'out_fname'))
+        return luigi.LocalTarget(out_fname)
                
 
     def run(self):
@@ -505,18 +488,13 @@ class CalculateCoefficients(luigi.Task):
         workpath = pjoin(out_path, CONFIG.get('work', 'modtran_root'))
 
         coords = CONFIG.get('modtran', 'coords').split(',')
-        chn_input_format = CONFIG.get('coefficients', 'chn_input_format')
-        dir_input_format = CONFIG.get('extract_flux', 'output_format')
+        chn_input_fmt = CONFIG.get('coefficients', 'chn_input_format')
+        dir_input_fmt = CONFIG.get('extract_flux', 'output_format')
+        compression = CONFIG.get('work', 'compression')
 
-        coef1, coef2 = gaip.calculate_coefficients(coords, chn_input_format,
-                                                   dir_input_format,
-                                                   workpath)
-
-        with self.output()['coef1'].temporary_path() as out_fname1,\
-            self.output()['coef2'].temporary_path() as out_fname2:
-
-            save(out_fname1, coef1)
-            save(out_fname2, coef2)
+        with self.output().temporary_path() as out_fname:
+            gaip._calculate_coefficients(coords, chn_input_fmt, dir_input_fmt,
+                                         workpath, out_fname, compression)
 
 
 class BilinearInterpolationBand(luigi.Task):
@@ -552,21 +530,18 @@ class BilinearInterpolationBand(luigi.Task):
 
     def run(self):
         container = gaip.acquisitions(self.level1)
-        coord_fname = self.input()['satsol']['coordinator'].path
-        box_fname = self.input()['satsol']['boxline'].path
-        centre_fname = self.input()['satsol']['centreline'].path
-
-        band_num = self.band_num
-        factor = self.factor
-        coefficients = load(self.input()['coef']['coef2'])[(band_num, factor)]
+        sat_sol_angles_fname = self.input()['satsol'].path
+        coefficients_fname = self.input()['coef'].path
+        compression = CONFIG.get('work', 'compression')
 
         acqs = container.get_acquisitions(group=self.group,
                                           granule=self.granule)
+        acq = [acq for acq in acqs if acq.band_num == self.band_num][0]
 
-        acq = [acq for acq in acqs if acq.band_num == band_num][0]
         with self.output().temporary_path() as out_fname:
-            gaip.bilinear_interpolate(acq, coord_fname, box_fname,
-                                      centre_fname, coefficients, out_fname)
+            gaip._bilinear_interpolate(acq, self.factor, sat_sol_angles_fname,
+                                       coefficients_fname, out_fname,
+                                       compression)
 
 
 class BilinearInterpolation(luigi.Task):
@@ -608,19 +583,16 @@ class BilinearInterpolation(luigi.Task):
         container = gaip.acquisitions(self.level1)
         out_path = container.get_root(self.nbar_root, group=self.group,
                                       granule=self.granule)
-        out_fname = pjoin(out_path,
-                          CONFIG.get('work', 'bilinear_outputs_fname'))
+        out_fname = pjoin(out_path, CONFIG.get('bilinear', 'out_fname'))
         return luigi.LocalTarget(out_fname)
 
     def run(self):
-        # Initialise the dict to store the locations of the bilinear outputs
         bilinear_fnames = {}
-
         for key, value in self.input().items():
             bilinear_fnames[key] = value.path
 
         with self.output().temporary_path() as out_fname:
-            save(out_fname, bilinear_fnames)
+            gaip.link_bilinear_data(bilinear_fnames, out_fname)
 
 
 class DEMExctraction(luigi.Task):
@@ -644,10 +616,8 @@ class DEMExctraction(luigi.Task):
         out_path = container.get_root(self.nbar_root, group=self.group,
                                       granule=self.granule)
         out_path = pjoin(out_path, CONFIG.get('work', 'tc_root'))
-        subset_fname = CONFIG.get('extract_dsm', 'dsm_subset')
-        smoothed_fname = CONFIG.get('extract_dsm', 'dsm_smooth_subset')
-        return {'subset': luigi.LocalTarget(pjoin(out_path, subset_fname)),
-                'smoothed': luigi.LocalTarget(pjoin(out_path, smoothed_fname))}
+        out_fname = CONFIG.get('extract_dsm', 'dsm_fname')
+        return luigi.LocalTarget(pjoin(out_path, out_fname))
 
     def run(self):
         container = gaip.acquisitions(self.level1)
@@ -655,14 +625,12 @@ class DEMExctraction(luigi.Task):
                                           granule=self.granule)
 
         national_dsm = CONFIG.get('ancillary', 'dem_tc')
-        #buffer = int(CONFIG.get('extract_dsm', 'dsm_buffer_width'))
-        buffer = get_buffer(self.group)
+        margins = get_buffer(self.group)
+        compression = CONFIG.get('work', 'compression')
 
-        with self.output()['subset'].temporary_path() as subset_fname,\
-            self.output()['smoothed'].temporary_path() as smoothed_fname:
-
-            gaip.get_dsm(acqs[0], national_dsm, buffer, subset_fname,
-                         smoothed_fname)
+        with self.output().temporary_path() as out_fname:
+            _ = gaip.get_dsm(acqs[0], national_dsm, margins, out_fname,
+                             compression)
 
 
 class SlopeAndAspect(luigi.Task):
@@ -685,39 +653,26 @@ class SlopeAndAspect(luigi.Task):
         out_path = container.get_root(self.nbar_root, group=self.group,
                                       granule=self.granule)
         out_path = pjoin(out_path, CONFIG.get('work', 'tc_root'))
-        slope_fname = pjoin(out_path,
-                            CONFIG.get('self_shadow', 'slope_fname'))
-        aspect_fname = pjoin(out_path,
-                             CONFIG.get('self_shadow', 'aspect_fname'))
-        targets = {'slope': luigi.LocalTarget(slope_fname),
-                   'aspect': luigi.LocalTarget(aspect_fname)}
+        out_fname = pjoin(out_path,
+                          CONFIG.get('self_shadow', 'slope_aspect_fname'))
 
-        return targets
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         container = gaip.acquisitions(self.level1)
         out_path = container.get_root(self.nbar_root, group=self.group,
                                       granule=self.granule)
-        work_path = pjoin(out_path, CONFIG.get('work', 'tc_root'))
 
         acqs = container.get_acquisitions(group=self.group,
                                           granule=self.granule)
 
-        dsm_fname = self.input()['smoothed'].path
-
-        #margins = int(CONFIG.get('extract_dsm', 'dsm_buffer_width'))
+        dsm_fname = self.input().path
         margins = get_buffer(self.group)
+        compression = CONFIG.get('work', 'compression')
 
-        # TODO: remove header_slope file
-        # Output filenames
-        header_slope_fname = pjoin(work_path,
-                                   CONFIG.get('work', 'header_slope_fname'))
-
-        with self.output()['slope'].temporary_path() as slope_fname,\
-            self.output()['aspect'].temporary_path() as aspect_fname:
-
-            gaip.slope_aspect_arrays(acqs[0], dsm_fname, margins, slope_fname,
-                                     aspect_fname, header_slope_fname)
+        with self.output().temporary_path() as out_fname:
+            gaip._slope_aspect_arrays_wrapper(acqs[0], dsm_fname, margins,
+                                              out_fname, compression)
 
 
 class IncidentAngles(luigi.Task):
@@ -741,31 +696,22 @@ class IncidentAngles(luigi.Task):
         out_path = container.get_root(self.nbar_root, group=self.group,
                                       granule=self.granule)
         out_path = pjoin(out_path, CONFIG.get('work', 'tc_root'))
-        incident_fname = pjoin(out_path,
-                               CONFIG.get('self_shadow', 'incident_fname'))
-        azi_incident_fname = pjoin(out_path,
-                                   CONFIG.get('self_shadow',
-                                              'azimuth_incident_fname'))
-        targets = {'incident': luigi.LocalTarget(incident_fname),
-                   'azi_incident': luigi.LocalTarget(azi_incident_fname)}
-        return targets
+        out_fname = pjoin(out_path,
+                          CONFIG.get('self_shadow', 'incident_fname'))
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         # input filenames
-        sol_zen_fname = self.input()['sat_sol']['sol_zenith'].path
-        sol_azi_fname = self.input()['sat_sol']['sol_azimuth'].path
-        slope_fname = self.input()['slp_asp']['slope'].path
-        aspect_fname = self.input()['slp_asp']['aspect'].path
+        sat_sol_fname = self.input()['sat_sol'].path
+        slope_aspect_fname = self.input()['slp_asp'].path
 
         # get the processing tile sizes
         x_tile, y_tile = get_tile_sizes()
+        compression = CONFIG.get('work', 'compression')
 
-        with self.output()['incident'].temporary_path() as incident_fname,\
-            self.output()['azi_incident'].temporary_path() as azi_i_fname:
-
-            gaip.incident_angles(sol_zen_fname, sol_azi_fname, slope_fname,
-                                 aspect_fname, incident_fname, azi_i_fname,
-                                 x_tile, y_tile)
+        with self.output().temporary_path() as out_fname:
+            gaip._incident_angles(sat_sol_fname, slope_aspect_fname, out_fname,
+                                  compression, x_tile, y_tile)
 
 
 class ExitingAngles(luigi.Task):
@@ -789,32 +735,21 @@ class ExitingAngles(luigi.Task):
         out_path = container.get_root(self.nbar_root, group=self.group,
                                       granule=self.granule)
         out_path = pjoin(out_path, CONFIG.get('work', 'tc_root'))
-        exiting_fname = pjoin(out_path,
-                              CONFIG.get('self_shadow',
-                                         'exiting_fname'))
-        azi_exiting_fname = pjoin(out_path,
-                                  CONFIG.get('self_shadow',
-                                             'azimuth_exiting_fname'))
-        targets = {'exiting': luigi.LocalTarget(exiting_fname),
-                   'azi_exiting': luigi.LocalTarget(azi_exiting_fname)}
-        return targets
+        out_fname = pjoin(out_path, CONFIG.get('self_shadow', 'exiting_fname'))
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         # input filenames
-        sat_view_fname = self.input()['sat_sol']['sat_view'].path
-        sat_azi_fname = self.input()['sat_sol']['sat_azimuth'].path
-        slope_fname = self.input()['slp_asp']['slope'].path
-        aspect_fname = self.input()['slp_asp']['aspect'].path
+        sat_sol_fname = self.input()['sat_sol'].path
+        slope_aspect_fname = self.input()['slp_asp'].path
 
         # get the processing tile sizes
         x_tile, y_tile = get_tile_sizes()
+        compression = CONFIG.get('work', 'compression')
 
-        with self.output()['exiting'].temporary_path() as exiting_fname,\
-            self.output()['azi_exiting'].temporary_path() as azi_e_fname:
-
-            gaip.exiting_angles(sat_view_fname, sat_azi_fname,
-                                slope_fname, aspect_fname, exiting_fname,
-                                azi_e_fname, x_tile, y_tile)
+        with self.output().temporary_path() as out_fname:
+            gaip._exiting_angles(sat_sol_fname, slope_aspect_fname, out_fname,
+                                 compression, x_tile, y_tile)
 
 
 class RelativeAzimuthSlope(luigi.Task):
@@ -838,21 +773,23 @@ class RelativeAzimuthSlope(luigi.Task):
         out_path = container.get_root(self.nbar_root, group=self.group,
                                       granule=self.granule)
         out_path = pjoin(out_path, CONFIG.get('work', 'tc_root'))
-        out_fname = pjoin(out_path, CONFIG.get('self_shadow',
-                                               'relative_slope_fname'))
+        out_fname = pjoin(out_path,
+                          CONFIG.get('self_shadow', 'relative_slope_fname'))
         return luigi.LocalTarget(out_fname)
 
     def run(self):
         # input filenames
-        azi_incident_fname = self.input()['incident']['azi_incident'].path
-        azi_exiting_fname = self.input()['exiting']['azi_exiting'].path
+        incident_fname = self.input()['incident'].path
+        exiting_fname = self.input()['exiting'].path
 
         # get the processing tile sizes
         x_tile, y_tile = get_tile_sizes()
+        compression = CONFIG.get('work', 'compression')
 
         with self.output().temporary_path() as out_fname:
-            gaip.relative_azimuth_slope(azi_incident_fname, azi_exiting_fname,
-                                        out_fname, x_tile, y_tile)
+            gaip._relative_azimuth_slope(incident_fname, exiting_fname,
+                                         out_fname, compression, x_tile,
+                                         y_tile)
 
 
 class SelfShadow(luigi.Task):
@@ -882,15 +819,16 @@ class SelfShadow(luigi.Task):
 
     def run(self):
         # input filenames
-        incident_fname = self.input()['incident']['incident'].path
-        exiting_fname = self.input()['exiting']['exiting'].path
+        incident_fname = self.input()['incident'].path
+        exiting_fname = self.input()['exiting'].path
 
         # get the processing tile sizes
         x_tile, y_tile = get_tile_sizes()
+        compression = CONFIG.get('work', 'compression')
 
         with self.output().temporary_path() as out_fname:
-            gaip.self_shadow(incident_fname, exiting_fname, out_fname,
-                             x_tile, y_tile)
+            gaip._self_shadow(incident_fname, exiting_fname, out_fname,
+                              compression, x_tile, y_tile)
 
 
 class CalculateCastShadowSun(luigi.Task):
@@ -925,22 +863,20 @@ class CalculateCastShadowSun(luigi.Task):
                                           granule=self.granule)
 
         # input filenames
-        dsm_fname = self.input()['dsm']['smoothed'].path
-        sol_zen_fname = self.input()['sat_sol']['sol_zenith'].path
-        sol_azi_fname = self.input()['sat_sol']['sol_azimuth'].path
+        dsm_fname = self.input()['dsm'].path
+        sat_sol_fname = self.input()['sat_sol'].path
 
-        #buffer = int(CONFIG.get('extract_dsm', 'dsm_buffer_width'))
-        buffer = get_buffer(self.group)
+        margins = get_buffer(self.group)
+        compression = CONFIG.get('work', 'compression')
         window_height = CONFIG.getint('terrain_correction',
                                       'shadow_sub_matrix_height')
         window_width = CONFIG.getint('terrain_correction',
                                      'shadow_sub_matrix_width')
 
         with self.output().temporary_path() as out_fname:
-            gaip.calculate_cast_shadow(acqs[0], dsm_fname, buffer,
-                                       window_height, window_width,
-                                       sol_zen_fname, sol_azi_fname,
-                                       out_fname)
+            gaip._calculate_cast_shadow(acqs[0], dsm_fname, margins,
+                                        window_height, window_width,
+                                        sat_sol_fname, out_fname, compression)
 
 
 class CalculateCastShadowSatellite(luigi.Task):
@@ -975,22 +911,56 @@ class CalculateCastShadowSatellite(luigi.Task):
                                           granule=self.granule)
 
         # input filenames
-        dsm_fname = self.input()['dsm']['smoothed'].path
-        sat_view_fname = self.input()['sat_sol']['sat_view'].path
-        sat_azi_fname = self.input()['sat_sol']['sat_azimuth'].path
+        dsm_fname = self.input()['dsm'].path
+        sat_sol_fname = self.input()['sat_sol'].path
 
-        #buffer = int(CONFIG.get('extract_dsm', 'dsm_buffer_width'))
-        buffer = get_buffer(self.group)
+        margins = get_buffer(self.group)
+        compression = CONFIG.get('work', 'compression')
         window_height = CONFIG.getint('terrain_correction',
                                       'shadow_sub_matrix_height')
         window_width = CONFIG.getint('terrain_correction',
                                      'shadow_sub_matrix_width')
 
         with self.output().temporary_path() as out_fname:
-            gaip.calculate_cast_shadow(acqs[0], dsm_fname, buffer,
-                                       window_height, window_width,
-                                       sat_view_fname, sat_azi_fname,
-                                       out_fname)
+            gaip._calculate_cast_shadow(acqs[0], dsm_fname, margins,
+                                        window_height, window_width,
+                                        sat_sol_fname, out_fname, compression,
+                                        False)
+
+
+class CalculateShadowMasks(luigi.Task):
+
+    """
+    Issues self and cast shadow tasks for two direction sources;
+    the sun and the satellite. Acts as a helper task,
+    but combines the results into a single file.
+    """
+
+    level1 = luigi.Parameter()
+    nbar_root = luigi.Parameter()
+    granule = luigi.Parameter()
+    group = luigi.Parameter()
+
+    def requires(self):
+        args = [self.level1, self.nbar_root, self.granule, self.group]
+        return {'sun': CalculateCastShadowSun(*args),
+                'sat': CalculateCastShadowSatellite(*args),
+                'self': SelfShadow(*args)}
+
+    def output(self):
+        container = gaip.acquisitions(self.level1)
+        out_path = container.get_root(self.nbar_root, group=self.group,
+                                      granule=self.granule)
+        out_path = pjoin(out_path, CONFIG.get('work', 'tc_root'))
+        out_fname = pjoin(out_path, CONFIG.get('cast_shadow', 'out_fname'))
+        return luigi.LocalTarget(out_fname)
+
+    def run(self):
+        with self.output().temporary_path() as out_fname:
+            for key in self.input():
+                fname = self.input()[key].path
+                dname = splitext(basename(fname))[0]
+                gaip.create_external_link(fname, dname, out_fname, dname)
 
 
 class RunTCBand(luigi.Task):
@@ -1006,12 +976,10 @@ class RunTCBand(luigi.Task):
     def requires(self):
         args = [self.level1, self.nbar_root, self.granule, self.group]
         reqs = {'bilinear': BilinearInterpolation(*args),
-                'brdf': GetBrdfAncillaryData(*args[:-1]),
+                'ancillary': GetAncillaryData(*args[:-1]),
                 'dsm': DEMExctraction(*args),
                 'rel_slope': RelativeAzimuthSlope(*args),
-                'self_shadow': SelfShadow(*args),
-                'cast_shadow_sun': CalculateCastShadowSun(*args),
-                'cast_shadow_sat': CalculateCastShadowSatellite(*args),
+                'shadow': CalculateShadowMasks(*args),
                 'slp_asp': SlopeAndAspect(*args),
                 'incident': IncidentAngles(*args),
                 'exiting': ExitingAngles(*args),
@@ -1026,21 +994,9 @@ class RunTCBand(luigi.Task):
                                       granule=self.granule)
         reflectance_root = CONFIG.get('work', 'reflectance_root')
         out_path = pjoin(out_path, reflectance_root)
+        out_fname = CONFIG.get('terrain_correction', 'out_fname')
 
-        # get the reflectance levels and base output format
-        lambertian_fmt = CONFIG.get('terrain_correction', 'lambertian_format')
-        brdf_fmt = CONFIG.get('terrain_correction', 'brdf_format')
-        terrain_fmt = CONFIG.get('terrain_correction', 'terrain_format')
-
-        lambertian_fname = pjoin(out_path, lambertian_fmt.format(band=band))
-        brdf_fname = pjoin(out_path, brdf_fmt.format(band=band))
-        terrain_fname = pjoin(out_path, terrain_fmt.format(band=band))
-
-        targets = {'lambertian': luigi.LocalTarget(lambertian_fname),
-                   'brdf': luigi.LocalTarget(brdf_fname),
-                   'terrain': luigi.LocalTarget(terrain_fname)}
-
-        return targets
+        return luigi.LocalTarget(pjoin(out_path, out_fname.format(band=band)))
 
     def run(self):
         container = gaip.acquisitions(self.level1)
@@ -1049,26 +1005,17 @@ class RunTCBand(luigi.Task):
 
         # TODO: what is rori???
         rori = CONFIG.getfloat('terrain_correction', 'rori')
+        compression = CONFIG.get('work', 'compression')
 
         # inputs
         inputs = self.input()
         bilinear_fname = inputs['bilinear'].path
-        brdf_fname = inputs['brdf'].path
-        self_shadow_fname = inputs['self_shadow'].path
-        slope_fname = inputs['slp_asp']['slope'].path
-        aspect_fname = inputs['slp_asp']['aspect'].path
-        incident_fname = inputs['incident']['incident'].path
-        exiting_fname = inputs['exiting']['exiting'].path
+        slp_asp_fname = inputs['slp_asp'].path
+        incident_fname = inputs['incident'].path
+        exiting_fname = inputs['exiting'].path
         relative_slope_fname = inputs['rel_slope'].path
-        cast_shadow_sun_fname = inputs['cast_shadow_sun'].path
-        cast_shadow_sat_fname = inputs['cast_shadow_sat'].path
-        solar_zenith_fname = inputs['sat_sol']['sol_zenith'].path
-        solar_azimuth_fname = inputs['sat_sol']['sol_azimuth'].path
-        satellite_view_fname = inputs['sat_sol']['sat_view'].path
-        relative_angle_fname = inputs['sat_sol']['rel_azimuth'].path
-
-        bilinear_data = load_value(bilinear_fname)
-        brdf_data = load_value(brdf_fname)
+        shadow_fname = inputs['shadow'].path
+        sat_sol_fname = inputs['sat_sol'].path
 
         # get the processing tile sizes
         x_tile, y_tile = get_tile_sizes()
@@ -1076,45 +1023,17 @@ class RunTCBand(luigi.Task):
         # get the acquisition we wish to process
         acq = [acq for acq in acqs if acq.band_num == self.band_num][0]
 
+        if container.tiled:
+            ancillary_fname = pjoin(self.nbar_root, 'averaged-ancillary.h5')
+        else:
+            ancillary_fname = inputs['ancillary'].path
 
-        outputs = self.output()
-        with outputs['lambertian'].temporary_path() as lambertian_fname,\
-            outputs['brdf'].temporary_path() as brdf_fname,\
-            outputs['terrain'].temporary_path() as terrain_fname:
-
-            key1 = (self.band_num, 'lambertian')
-            key2 = (self.band_num, 'brdf')
-            key3 = (self.band_num, 'terrain')
-            reflectance_fnames = {key1: lambertian_fname,
-                                  key2: brdf_fname,
-                                  key3: terrain_fname}
-
-            # TODO: update reflectance function:
-            # accept single acquisition, no string formats, brdf data,
-            # no dicts of band numbers etc
-            # arguments
-            args = [[acq],
-                    bilinear_data,
-                    rori,
-                    brdf_data,
-                    self_shadow_fname,
-                    cast_shadow_sun_fname,
-                    cast_shadow_sat_fname,
-                    solar_zenith_fname,
-                    solar_azimuth_fname,
-                    satellite_view_fname,
-                    relative_angle_fname,
-                    slope_fname,
-                    aspect_fname,
-                    incident_fname,
-                    exiting_fname,
-                    relative_slope_fname,
-                    reflectance_fnames,
-                    x_tile,
-                    y_tile]
-
-            # calculate reflectance
-            gaip.calculate_reflectance(*args)
+        with self.output().temporary_path() as out_fname:
+            gaip._calculate_reflectance(acq, bilinear_fname, sat_sol_fname,
+                                        slp_asp_fname, relative_slope_fname,
+                                        incident_fname, exiting_fname,
+                                        shadow_fname, ancillary_fname, rori,
+                                        out_fname, compression, x_tile, y_tile)
 
 
 class TerrainCorrection(luigi.WrapperTask):
@@ -1142,12 +1061,9 @@ class TerrainCorrection(luigi.WrapperTask):
         bands_to_process = [bn for bn in bands if bn in avail_bands]
 
         # define the bands to compute reflectance for
-        tc_bands = []
         for band in bands_to_process:
-            tc_bands.append(RunTCBand(self.level1, self.nbar_root,
-                                      self.granule, self.group, band))
-
-        return tc_bands
+            yield RunTCBand(self.level1, self.nbar_root, self.granule,
+                            self.group, band)
 
 
 class WriteMetadata(luigi.Task):
