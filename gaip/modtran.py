@@ -770,9 +770,9 @@ def link_bilinear_data(data, out_fname):
         base_dname = splitext(basename(fname))[0]
 
         # do we need two group levels?
-        dset_name = ppjoin(band, factor, base_dname)
+        # dset_name = ppjoin(band, factor, base_dname)
 
         with h5py.File(out_fname, 'w') as fid:
-            fid[dset_name] = h5py.ExternalLink(fname, base_dname)
+            fid[base_name] = h5py.ExternalLink(fname, base_dname)
 
     return
