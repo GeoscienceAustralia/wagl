@@ -25,8 +25,7 @@ from acca_cloud_masking import calc_acca_cloud_mask
 from acca_cloud_masking import majority_filter
 from fmask_cloud_masking_wrapper import fmask_cloud_mask
 from cloud_shadow_masking import cloud_shadow
-from calculate_self_shadow import self_shadow
-from calculate_shadow_masks import self_shadow
+from dsm import *
 
 try:
     from _satellite_model import set_satmod # F2Py
@@ -40,9 +39,7 @@ try:
     from _interpolation import bilinear #F2Py
     from _start_end_coordinates import cstart_cend #F2Py
     from calculate_angles import *
-    from tc import *
-    from dsm import get_dsm
-    from calculate_shadow_masks import calculate_cast_shadow
+    from calculate_shadow_masks import *
     from calculate_reflectance import calculate_reflectance
     from calculate_incident_exiting_angles import *
     from calculate_slope_aspect import *
