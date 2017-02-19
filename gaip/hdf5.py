@@ -20,6 +20,33 @@ def dataset_compression_kwargs(compression='lzf', shuffle=True,
     * 'mafisc' which uses LZMA and shuffle filters for heavy compression
     * 'bitshuffle' which uses LZ4 and shuffle filters for fast compression
 
+    :param compression:
+        The compression filter to use. Default is 'lzf'.
+        Options include:
+
+        * 'lzf' (Default)
+        * 'lz4'
+        * 'mafisc'
+        * An integer [1-9] (Deflate/gzip)
+
+    :param shuffle:
+        A `bool` indicating whether to apply the shuffle filter
+        prior to compression. Can improve compression ratios.
+        If set in conjuction with either 'lz4' or 'mafisc',
+        then `shuffle` will be set to False as shuffle filters
+        will be handled internally by the `bitshuffle` (for 'lz4')
+        and `mafisc` filters.
+        Default is `True`.
+
+    :param chunks:
+        A `tuple` containing the desired chunks sizes for each
+        dimension axis of the dataset to be written to disk.
+        Default is (512, 512).
+
+    :param compression_opts:
+        Finer grained control over compressio filters.
+        Default is `None`.
+
     :return:
         A `dict` of key/value pairs of compression options for use
         with h5py's 'create_dataset' function.
@@ -158,18 +185,43 @@ def write_h5_image(data, dset_name, group, kwargs, attrs={}):
         dset.attrs[key] = attrs[key]
 
 
-def write_h5_table(data, dset_name, fid, compression='lzf', shuffle=True,
-                   chunks=True, title='Table', attrs={}):
+def write_h5_table(data, dset_name, group, compression='lzf', title='Table',
+                   attrs={}):
+    """
+    Writes a `NumPy` structured array to a HDF5 `compound` type
+    dataset.
 
-    compression_opts = None
-    if compression == 'mafisc':
-        compression = 32002
-        shuffle = False
-        compression_opts = (1, 0)
+    :param data:
+        The `NumPy` structured array containing the data to be
+        written to disk.
 
-    dset = fid.create_dataset(dset_name, data=data, chunks=chunks,
-                              shuffle=shuffle, compression=compression,
-                              compression_opts=compression_opts)
+    :param dset_name:
+        A `str` containing the name and location of the dataset
+        to write to.
+
+    :param group:
+        A h5py `Group` or `File` object from which to write the
+        dataset to.
+
+    :param compression:
+        The compression filter to use. Default is 'lzf'.
+        Options include:
+
+        * 'lzf' (Default)
+        * 'lz4'
+        * 'mafisc'
+        * An integer [1-9] (Deflate/gzip)
+
+    :param title:
+        A `str` containing the title name of the `Table` dataset.
+        Default is 'Table'.
+
+    :param attrs:
+        A `dict` of key, value items to be attached as attributes
+        to the `Table` dataset.
+    """
+    kwargs = dataset_compression_kwargs(compression=compression, chunks=True)
+    dset = group.create_dataset(dset_name, data=data, **kwargs)
 
     dset.attrs['CLASS'] = 'TABLE'
     dset.attrs['VERSION'] = '0.2'
@@ -184,11 +236,41 @@ def write_h5_table(data, dset_name, fid, compression='lzf', shuffle=True,
     for key in attrs:
         dset.attrs[key] = attrs[key]
 
-    fid.flush()
-
 
 def write_dataframe(df, dset_name, group, compression='lzf', title='Table',
                     attrs={}):
+    """
+    Converts a `pandas.DataFrame` to a HDF5 `Table`, stored
+    internall as a compound datatype.
+
+    :param df:
+        A `pandas.DataFrame` object.
+
+    :param dset_name:
+        A `str` containing the name and location of the dataset
+        to write to.
+
+    :param group:
+        A h5py `Group` or `File` object from which to write the
+        dataset to.
+
+    :param compression:
+        The compression filter to use. Default is 'lzf'.
+        Options include:
+
+        * 'lzf' (Default)
+        * 'lz4'
+        * 'mafisc'
+        * An integer [1-9] (Deflate/gzip)
+
+    :param title:
+        A `str` containing the title name of the `Table` dataset.
+        Default is 'Table'.
+
+    :param attrs:
+        A `dict` of key, value items to be attached as attributes
+        to the `Table` dataset.
+    """
     # check for object types, for now write fixed length strings
     dtype = []
     for i, val in enumerate(df.dtypes):
