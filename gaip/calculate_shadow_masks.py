@@ -107,7 +107,7 @@ def self_shadow(incident_dataset, exiting_dataset, geobox, out_fname,
                                         chunks=(1, geobox.x_size()))
     cols, rows = geobox.get_shape_xy()
     kwargs['shape'] = (rows, cols)
-    kwargs['dtype'] = 'uint8'
+    kwargs['dtype'] = 'bool'
 
     # output dataset
     out_dset = fid.create_dataset('self-shadow', **kwargs)
@@ -133,16 +133,12 @@ def self_shadow(incident_dataset, exiting_dataset, geobox, out_fname,
         xstart, xend = tile[1]
         idx = (slice(ystart, yend, slice(xstart, xend)))
 
-        # Tile size
-        ysize = yend - ystart
-        xsize = xend - xstart
-
         # Read the data for the current tile
         inc = numpy.radians(incident_dataset[idx])
         exi = numpy.radians(exiting_dataset[idx])
 
         # Process the tile
-        mask = numpy.ones((ysize, xsize), dtype='uint8')
+        mask = numpy.ones(inc.shape, xsize), dtype='uint8')
         mask[numpy.cos(inc) <= 0.0] = 0
         mask[numpy.cos(exi) <= 0.0] = 0
 
@@ -278,9 +274,7 @@ def calculate_cast_shadow(acquisition, dsm_dataset, margins, block_height,
 
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))
-    no_data = -999
-    kwargs['fillvalue'] = no_data
-    kwargs['no_data_value'] = no_data
+    kwargs['dtype'] = 'bool'
 
     out_dset = fid.create_dataset('cast-shadow-{}'.format(source_dir),
                                   data=mask, **kwargs)
