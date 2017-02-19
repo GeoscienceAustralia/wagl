@@ -127,7 +127,6 @@ def slope_aspect_arrays(acquisition, dsm_dataset, margins, out_fname=None,
                                         chunks=(1, geobox.x_size()))
     no_data = -999
     kwargs['fillvalue'] = no_data
-    kwargs['no_data_value'] = no_data
 
     # Define the output arrays. These will be transposed upon input
     slope = numpy.zeros((rows, cols), dtype='float32')
@@ -142,7 +141,8 @@ def slope_aspect_arrays(acquisition, dsm_dataset, margins, out_fname=None,
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
-             'geotransform': geobox.affine.to_gdal()}
+             'geotransform': geobox.affine.to_gdal(),
+             'no_data_value': no_data}
     desc = "The slope derived from the input elevation model."
     attrs['Description'] = desc
     attach_image_attributes(slope_dset, attrs)
