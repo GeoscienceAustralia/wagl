@@ -3,14 +3,34 @@
 Digital Surface Model Data extraction and smoothing.
 """
 
+import numpy
+from scipy import ndimage
 import h5py
 from rasterio.warp import RESAMPLING
 from gaip import ImageMargins
-from gaip import filter_dsm
 from gaip import GriddedGeoBox
 from gaip import reproject_file_to_array
 from gaip import dataset_compression_kwargs
 from gaip import attach_image_attributes
+
+
+def filter_dsm(array):
+    """
+    Applies a gaussian filter to array.
+
+    :param array:
+        A 2D NumPy array.
+
+    :return:
+        A 2D NumPy array.
+    """
+    # Define the kernel
+    kernel = [0.009511, 0.078501, 0.009511, 0.078501, 0.647954, 0.078501,
+              0.009511, 0.078501, 0.009511]
+    kernel = numpy.array(kernel).reshape((3, 3))
+
+    filtered = ndimage.convolve(array, kernel)
+    return filtered
 
 
 def get_dsm(acquisition, national_dsm, margins, out_fname=None,
