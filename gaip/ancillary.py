@@ -382,3 +382,12 @@ def get_water_vapour(acquisition, vapour_path, scale_factor=0.1):
         water_vapour_data[key] = md[key]
 
     return water_vapour_data
+
+
+def ecwmf_temperature_2metre()
+def ecwmf_dewpoint_temperature()
+def ecwmf_surface_pressure()
+def ecwmf_temperature()
+def ecwmf_geo_potential()
+def ecwmf_relative_humidity()
+def ecwmf_water_vapout()
