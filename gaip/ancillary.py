@@ -4,9 +4,10 @@ import logging
 import subprocess
 import re
 import os
-from os.path import join as pjoin, splitext, exists, abspath, dirname, pardir
+from os.path import join as pjoin, splitext, exists, abspath, dirname, pardir, basename
 from posixpath import join as ppjoin
 import datetime
+import glob
 
 import h5py
 import pandas
@@ -33,7 +34,7 @@ def _collect_ancillary_data(acquisition, aerosol_path, water_vapour_path,
                             'geo': 'geometric'}
 
         description = ("Bidirectional Reflectance Distribution Function "
-                       "for the {} scattering fraction."
+                       "for the {} scattering fraction.")
         data['Description'] = description.format(scattering_names[factor])
 
         value = data.pop('value')
@@ -384,94 +385,194 @@ def get_water_vapour(acquisition, vapour_path, scale_factor=0.1):
     return water_vapour_data
 
 
-def ecwmf_temperature_2metre(input_path, latlon, time):
+def ecwmf_temperature_2metre(input_path, lonlat, time):
     """
-    
+    Retrieve a pixel value from the ECWMF 2 metre Temperature
+    collection.
     """
     product = 'temperature-2metre'
     base_fmt = '{product}_{start}_{end}.grib'
-    files = glob.glob(pjoin(input_path, '{product}_*.grib'.format(product)))
+    files = glob.glob(pjoin(input_path, '{}_*.grib'.format(product)))
     value = None
     for f in files:
         start, end = splitext(basename(f)).split('_')[1:]
         start = datetime.datetime.strptime(start, '%Y-%m-%d')
         end = datetime.datetime.strptime(end, '%Y-%m-%d')
-        if not start <= time <= time:
-            continue
-        value = gaip.get_pixel(f, latlon, time.day)
+        if start <= time <= time:
+            value = gaip.get_pixel(f, lonlat, time.day)
 
-    temp_2m = {'data_source': 'ECWMF 2 metre Temperature',
-               'data_file': f,
-               'value': value}
+            data = {'data_source': 'ECWMF 2 metre Temperature',
+                    'data_file': f,
+                    'value': value}
+
+            # ancillary metadata tracking
+            md = gaip.extract_ancillary_metadata(f)
+            for key in md:
+                data[key] = md[key]
+
+            return data
 
     if value is None:
         raise IOError('No ECWMF 2 metre Temperature ancillary data found.')
 
-    # ancillary metadata tracking
-    md = gaip.extract_ancillary_metadata(datafile)
-    for key in md:
-        temp_2m[key] = md[key]
 
-    return temp_2m
-
-
-def ecwmf_dewpoint_temperature(input_path, latlon, time)
+def ecwmf_dewpoint_temperature(input_path, lonlat, time):
+    """
+    Retrieve a pixel value from the ECWMF 2 metre Dewpoint
+    Temperature collection.
+    """
     product = 'dewpoint-temperature'
     base_fmt = '{product}_{start}_{end}.grib'
-    files = glob.glob(pjoin(input_path, '{product}_*.grib'.format(product)))
+    files = glob.glob(pjoin(input_path, '{}_*.grib'.format(product)))
     value = None
     for f in files:
         start, end = splitext(basename(f)).split('_')[1:]
         start = datetime.datetime.strptime(start, '%Y-%m-%d')
         end = datetime.datetime.strptime(end, '%Y-%m-%d')
-        if not start <= time <= time:
-            continue
-        value = gaip.get_pixel(f, latlon, time.day)
+        if start <= time <= time:
+            value = gaip.get_pixel(f, lonlat, time.day)
 
-    temp_2m = {'data_source': 'ECWMF 2 metre Dewpoint Temperature ',
-               'data_file': f,
-               'value': value}
+            data = {'data_source': 'ECWMF 2 metre Dewpoint Temperature ',
+                    'data_file': f,
+                    'value': value}
+
+            # ancillary metadata tracking
+            md = gaip.extract_ancillary_metadata(f)
+            for key in md:
+                data[key] = md[key]
+
+            return data
 
     if value is None:
-        raise IOError('No ECWMF 2 metre Dewpoint Temperature ancillary data found.')
-
-    # ancillary metadata tracking
-    md = gaip.extract_ancillary_metadata(datafile)
-    for key in md:
-        temp_2m[key] = md[key]
-
-    return temp_2m
+        msg = 'No ECWMF 2 metre Dewpoint Temperature ancillary data found.'
+        raise IOError(msg)
 
 
-def ecwmf_surface_pressure(input_path, latlon, time)
+def ecwmf_surface_pressure(input_path, lonlat, time):
+    """
+    Retrieve a pixel value from the ECWMF Surface Pressure
+    collection.
+    """
     product = 'surface-pressure'
     base_fmt = '{product}_{start}_{end}.grib'
-    files = glob.glob(pjoin(input_path, '{product}_*.grib'.format(product)))
+    files = glob.glob(pjoin(input_path, '{}_*.grib'.format(product)))
     value = None
     for f in files:
         start, end = splitext(basename(f)).split('_')[1:]
         start = datetime.datetime.strptime(start, '%Y-%m-%d')
         end = datetime.datetime.strptime(end, '%Y-%m-%d')
-        if not start <= time <= time:
-            continue
-        value = gaip.get_pixel(f, latlon, time.day)
+        if start <= time <= time:
+            value = gaip.get_pixel(f, lonlat, time.day)
 
-    temp_2m = {'data_source': 'ECWMF Temperature 2 metre',
-               'data_file': f,
-               'value': value}
+            data = {'data_source': 'ECWMF Temperature 2 metre',
+                    'data_file': f,
+                    'value': value}
+
+            # ancillary metadata tracking
+            md = gaip.extract_ancillary_metadata(f)
+            for key in md:
+                data[key] = md[key]
+
+            return data
 
     if value is None:
         raise IOError('No Surface Pressure ancillary data found.')
 
-    # ancillary metadata tracking
-    md = gaip.extract_ancillary_metadata(datafile)
-    for key in md:
-        temp_2m[key] = md[key]
 
-    return temp_2m
+def ecwmf_temperature(input_path, lonlat, time, atmosphere_layer):
+    """
+    Retrieve a pixel value from the ECWMF Temperature
+    collection.
+    """
+    product = 'temperature'
+    base_fmt = '{product}_{start}_{end}.grib'
+    files = glob.glob(pjoin(input_path, '{}_*.grib'.format(product)))
+    value = None
+    for f in files:
+        start, end = splitext(basename(f))[0].split('_')[1:]
+        start = datetime.datetime.strptime(start, '%Y-%m-%d')
+        end = datetime.datetime.strptime(end, '%Y-%m-%d')
+        if start <= time <= time:
+            idx = range(atmosphere_layer, end.day * 37, 37)[end.day - 1]
+            value = gaip.get_pixel(f, lonlat, idx)
+
+            data = {'data_source': 'ECWMF Temperature',
+                    'data_file': f,
+                    'value': value}
+
+            # ancillary metadata tracking
+            md = gaip.extract_ancillary_metadata(f)
+            for key in md:
+                data[key] = md[key]
+
+            return data
+
+    if value is None:
+        raise IOError('No Temperature ancillary data found.')
 
 
-def ecwmf_temperature(input_path, latlon, time)
-def ecwmf_geo_potential(input_path, latlon, time)
-def ecwmf_relative_humidity(input_path, latlon, time)
-def ecwmf_water_vapout(input_path, latlon, time)
+def ecwmf_geo_potential(input_path, lonlat, time, atmosphere_layer):
+    """
+    Retrieve a pixel value from the ECWMF Geo-Potential
+    collection.
+    """
+    product = 'geo-potential'
+    base_fmt = '{product}_{start}_{end}.grib'
+    files = glob.glob(pjoin(input_path, '{}_*.grib'.format(product)))
+    value = None
+    for f in files:
+        start, end = splitext(basename(f))[0].split('_')[1:]
+        start = datetime.datetime.strptime(start, '%Y-%m-%d')
+        end = datetime.datetime.strptime(end, '%Y-%m-%d')
+        if start <= time <= time:
+            idx = range(atmosphere_layer, end.day * 37, 37)[end.day - 1]
+            value = gaip.get_pixel(f, lonlat, idx)
+
+            data = {'data_source': 'ECWMF Geo-Potential',
+                    'data_file': f,
+                    'value': value}
+
+            # ancillary metadata tracking
+            md = gaip.extract_ancillary_metadata(f)
+            for key in md:
+                data[key] = md[key]
+
+            return data
+
+    if value is None:
+        raise IOError('No Geo-Potential ancillary data found.')
+
+
+def ecwmf_relative_humidity(input_path, lonlat, time, atmosphere_layer):
+    """
+    Retrieve a pixel value from the ECWMF Relative Humidity
+    collection.
+    """
+    product = 'relative-humidity'
+    base_fmt = '{product}_{start}_{end}.grib'
+    files = glob.glob(pjoin(input_path, '{}_*.grib'.format(product)))
+    value = None
+    for f in files:
+        start, end = splitext(basename(f))[0].split('_')[1:]
+        start = datetime.datetime.strptime(start, '%Y-%m-%d')
+        end = datetime.datetime.strptime(end, '%Y-%m-%d')
+        if start <= time <= time:
+            idx = range(atmosphere_layer, end.day * 37, 37)[end.day - 1]
+            value = gaip.get_pixel(f, lonlat, idx)
+
+            data = {'data_source': 'ECWMF Relative Humidity',
+                    'data_file': f,
+                    'value': value}
+
+            # ancillary metadata tracking
+            md = gaip.extract_ancillary_metadata(f)
+            for key in md:
+                data[key] = md[key]
+
+            return data
+
+    if value is None:
+        raise IOError('No Relative Humidity ancillary data found.')
+
+
+# def ecwmf_water_vapout(input_path, latlon, time, atmosphere_layer):
