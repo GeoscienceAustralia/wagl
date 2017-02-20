@@ -89,7 +89,7 @@ class GetElevationAncillaryData(luigi.Task):
         container = gaip.acquisitions(self.level1)
         out_path = container.get_root(self.nbar_root, granule=self.granule)
         out_fname = pjoin(out_path, CONFIG.get('work', 'dem_fname'))
-        return {'elevation': luigi.LocalTarget(out_fname)}
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         container = gaip.acquisitions(self.level1)
@@ -99,7 +99,7 @@ class GetElevationAncillaryData(luigi.Task):
         dem_path = CONFIG.get('ancillary', 'dem_path')
         value = gaip.get_elevation_data(geobox.centre_lonlat, dem_path)
 
-        with self.output()['elevation'].temporary_path() as out_fname:
+        with self.output().temporary_path() as out_fname:
             save(out_fname, value)
 
 
@@ -118,7 +118,7 @@ class GetOzoneAncillaryData(luigi.Task):
         container = gaip.acquisitions(self.level1)
         out_path = container.get_root(self.nbar_root, granule=self.granule)
         out_fname = pjoin(out_path, CONFIG.get('work', 'ozone_fname'))
-        return {'ozone': luigi.LocalTarget(out_fname)}
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         container = gaip.acquisitions(self.level1)
@@ -130,7 +130,7 @@ class GetOzoneAncillaryData(luigi.Task):
         centre_datetime = acqs[0].scene_center_datetime
         value = gaip.get_ozone_data(ozone_path, centre, centre_datetime)
 
-        with self.output()['ozone'].temporary_path() as out_fname:
+        with self.output().temporary_path() as out_fname:
             save(out_fname, value)
 
 
@@ -149,7 +149,7 @@ class GetWaterVapourAncillaryData(luigi.Task):
         container = gaip.acquisitions(self.level1)
         out_path = container.get_root(self.nbar_root, granule=self.granule)
         out_fname = pjoin(out_path, CONFIG.get('work', 'vapour_fname'))
-        return {'vapour': luigi.LocalTarget(out_fname)}
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         container = gaip.acquisitions(self.level1)
@@ -158,7 +158,7 @@ class GetWaterVapourAncillaryData(luigi.Task):
         vapour_path = CONFIG.get('ancillary', 'vapour_path')
         value = gaip.get_water_vapour(acqs[0], vapour_path)
 
-        with self.output()['vapour'].temporary_path() as out_fname:
+        with self.output().temporary_path() as out_fname:
             save(out_fname, value)
 
 
@@ -177,7 +177,7 @@ class GetAerosolAncillaryData(luigi.Task):
         container = gaip.acquisitions(self.level1)
         out_path = container.get_root(self.nbar_root, granule=self.granule)
         out_fname = pjoin(out_path, CONFIG.get('work', 'aerosol_fname'))
-        return {'aerosol': luigi.LocalTarget(out_fname)}
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         container = gaip.acquisitions(self.level1)
@@ -188,7 +188,7 @@ class GetAerosolAncillaryData(luigi.Task):
         # aerosol_path = CONFIG.get('ancillary', 'aerosol_fname') # version 2
         # value = gaip.get_aerosol_data_v2(acqs[0], aerosol_path) # version 2
 
-        with self.output()['aerosol'].temporary_path() as out_fname:
+        with self.output().temporary_path() as out_fname:
             save(out_fname, value)
 
 
@@ -411,16 +411,16 @@ class AggregateAncillary(luigi.Task):
 
         reqs = self.requires()
         for key in reqs:
-            for _, value in reqs[key].inputs().items():
-                ozone_fname = value['ozone'].path
-                vapour_fname = value['vapour'].path
-                aerosol_fname = value['aerosol'].path
-                elevation_fname = value['elevation'].path
+            inputs = reqs[key].input()
+            ozone_fname = value['ozone'].path
+            vapour_fname = value['vapour'].path
+            aerosol_fname = value['aerosol'].path
+            elevation_fname = value['elevation'].path
 
-                ozone += load_value(ozone_fname)
-                vapour += load_value(vapour_fname)
-                aerosol += load_value(aerosol_fname)
-                elevation += load_value(elevation_fname)
+            ozone += load_value(ozone_fname)
+            vapour += load_value(vapour_fname)
+            aerosol += load_value(aerosol_fname)
+            elevation += load_value(elevation_fname)
 
         ozone /= n_tiles
         vapour /= n_tiles
@@ -513,15 +513,13 @@ class WriteTp5(luigi.Task):
         coords = CONFIG.get('modtran', 'coords').split(',')
         albedos = CONFIG.get('modtran', 'albedos').split(',')
 
-        # input file
-        # inputs = self.requires().input()
+        # input files
         inputs = self.input()
 
         if container.tiled:
             ancillary = inputs['ancillary']
         else:
             ancillary = self.requires()[(self.granule, 'ancillary')].input()
-            # ancillary = inputs[(self.granule, 'ancillary')]
 
         sat_sol = inputs[(self.granule, group)]['sat_sol']
         coord_fname = sat_sol['coordinator'].path
@@ -530,10 +528,10 @@ class WriteTp5(luigi.Task):
         lon_fname = inputs[(self.granule, group)]['lon']['lon'].path
         lat_fname = inputs[(self.granule, group)]['lat']['lat'].path
 
-        ozone_fname = ancillary['ozone']['ozone'].path
-        vapour_fname = ancillary['vapour']['vapour'].path
-        aerosol_fname = ancillary['aerosol']['aerosol'].path
-        elevation_fname = ancillary['elevation']['elevation'].path
+        ozone_fname = ancillary['ozone'].path
+        vapour_fname = ancillary['vapour'].path
+        aerosol_fname = ancillary['aerosol'].path
+        elevation_fname = ancillary['elevation'].path
 
         # load the ancillary point values
         ozone = load_value(ozone_fname)
@@ -824,8 +822,6 @@ class CalculateCoefficients(luigi.Task):
         with self.output()['coef1'].temporary_path() as out_fname1,\
             self.output()['coef2'].temporary_path() as out_fname2:
 
-            print "---out_fname1---", out_fname1
-            print "---out_fname2---", out_fname2
             save(out_fname1, coef1)
             save(out_fname2, coef2)
 
