@@ -384,10 +384,94 @@ def get_water_vapour(acquisition, vapour_path, scale_factor=0.1):
     return water_vapour_data
 
 
-def ecwmf_temperature_2metre()
-def ecwmf_dewpoint_temperature()
-def ecwmf_surface_pressure()
-def ecwmf_temperature()
-def ecwmf_geo_potential()
-def ecwmf_relative_humidity()
-def ecwmf_water_vapout()
+def ecwmf_temperature_2metre(input_path, latlon, time):
+    """
+    
+    """
+    product = 'temperature-2metre'
+    base_fmt = '{product}_{start}_{end}.grib'
+    files = glob.glob(pjoin(input_path, '{product}_*.grib'.format(product)))
+    value = None
+    for f in files:
+        start, end = splitext(basename(f)).split('_')[1:]
+        start = datetime.datetime.strptime(start, '%Y-%m-%d')
+        end = datetime.datetime.strptime(end, '%Y-%m-%d')
+        if not start <= time <= time:
+            continue
+        value = gaip.get_pixel(f, latlon, time.day)
+
+    temp_2m = {'data_source': 'ECWMF 2 metre Temperature',
+               'data_file': f,
+               'value': value}
+
+    if value is None:
+        raise IOError('No ECWMF 2 metre Temperature ancillary data found.')
+
+    # ancillary metadata tracking
+    md = gaip.extract_ancillary_metadata(datafile)
+    for key in md:
+        temp_2m[key] = md[key]
+
+    return temp_2m
+
+
+def ecwmf_dewpoint_temperature(input_path, latlon, time)
+    product = 'dewpoint-temperature'
+    base_fmt = '{product}_{start}_{end}.grib'
+    files = glob.glob(pjoin(input_path, '{product}_*.grib'.format(product)))
+    value = None
+    for f in files:
+        start, end = splitext(basename(f)).split('_')[1:]
+        start = datetime.datetime.strptime(start, '%Y-%m-%d')
+        end = datetime.datetime.strptime(end, '%Y-%m-%d')
+        if not start <= time <= time:
+            continue
+        value = gaip.get_pixel(f, latlon, time.day)
+
+    temp_2m = {'data_source': 'ECWMF 2 metre Dewpoint Temperature ',
+               'data_file': f,
+               'value': value}
+
+    if value is None:
+        raise IOError('No ECWMF 2 metre Dewpoint Temperature ancillary data found.')
+
+    # ancillary metadata tracking
+    md = gaip.extract_ancillary_metadata(datafile)
+    for key in md:
+        temp_2m[key] = md[key]
+
+    return temp_2m
+
+
+def ecwmf_surface_pressure(input_path, latlon, time)
+    product = 'surface-pressure'
+    base_fmt = '{product}_{start}_{end}.grib'
+    files = glob.glob(pjoin(input_path, '{product}_*.grib'.format(product)))
+    value = None
+    for f in files:
+        start, end = splitext(basename(f)).split('_')[1:]
+        start = datetime.datetime.strptime(start, '%Y-%m-%d')
+        end = datetime.datetime.strptime(end, '%Y-%m-%d')
+        if not start <= time <= time:
+            continue
+        value = gaip.get_pixel(f, latlon, time.day)
+
+    temp_2m = {'data_source': 'ECWMF Temperature 2 metre',
+               'data_file': f,
+               'value': value}
+
+    if value is None:
+        raise IOError('No Surface Pressure ancillary data found.')
+
+    # ancillary metadata tracking
+    md = gaip.extract_ancillary_metadata(datafile)
+    for key in md:
+        temp_2m[key] = md[key]
+
+    return temp_2m
+
+
+def ecwmf_temperature(input_path, latlon, time)
+def ecwmf_geo_potential(input_path, latlon, time)
+def ecwmf_relative_humidity(input_path, latlon, time)
+def ecwmf_water_vapout(input_path, latlon, time)
