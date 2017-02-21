@@ -21,7 +21,11 @@ def get_pixel(filename, lonlat, band=1):
     by the tuple `lonlat`. Optionally, the `band` can be specified."""
     with rasterio.open(filename) as src:
         x, y = [int(v) for v in ~src.affine * lonlat]
-        return src.read(band, window=((y, y + 1), (x, x + 1))).flat[0]
+        if isinstance(band, list):
+            data = src.read(band, window=((y, y + 1), (x, x + 1))).ravel()
+        else:
+            data = src.read(band, window=((y, y + 1), (x, x + 1))).flat[0]
+        return data
 
 
 def no_data(acq):
