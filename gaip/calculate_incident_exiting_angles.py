@@ -31,12 +31,7 @@ def _incident_angles(satellite_solar_fname, slope_aspect_fname, out_fname,
         slope_dset = slp_asp['slope']
         aspect_dset = slp_asp['aspect']
 
-        shape = solar_zen_dset.shape
-        transform = solar_zen_dset.attrs['geotransform']
-        origin = (transform[0], transform[3])
-        crs = solar_zen_dset.attrs['crs_wkt']
-        pixelsize = (abs(transform[1]), abs(transform[5]))
-        geobox = GriddedGeoBox(shape, origin, pixelsize, crs)
+        geobox = GriddedGeoBox.from_dataset(solar_zen_dset)
 
         fid = incident_angles(solar_zen_dset, solar_azi_dset, slope_dset,
                               aspect_dset, geobox, out_fname, compression,
@@ -203,12 +198,7 @@ def _exiting_angles(satellite_solar_fname, slope_aspect_fname, out_fname,
         slope_dset = slp_asp['slope']
         aspect_dset = slp_asp['aspect']
 
-        shape = sat_view_dset.shape
-        transform = sat_view_dset.attrs['geotransform']
-        origin = (transform[0], transform[3])
-        crs = sat_view_dset.attrs['crs_wkt']
-        pixelsize = (abs(transform[1]), abs(transform[5]))
-        geobox = GriddedGeoBox(shape, origin, pixelsize, crs)
+        geobox = GriddedGeoBox.from_dataset(sat_view_dset)
 
         fid = exiting_angles(sat_view_dset, sat_azi_dset, slope_dset,
                              aspect_dset, geobox, out_fname, compression,
@@ -374,12 +364,7 @@ def _relative_azimuth_slope(incident_angles_fname, exiting_angles_fname,
         azi_inci_dset = inci_angles['azimuthal-incident']
         azi_exit_dset = exit_angles['azimuthal-exiting']
 
-        shape = azi_inci_dset.shape
-        transform = azi_inci_dset.attrs['geotransform']
-        origin = (transform[0], transform[3])
-        crs = azi_inci_dset.attrs['crs_wkt']
-        pixelsize = (abs(transform[1]), abs(transform[5]))
-        geobox = GriddedGeoBox(shape, origin, pixelsize, crs)
+        geobox = GriddedGeoBox.from_dataset(azi_inci_dset)
 
         fid = relative_azimuth_slope(azi_inci_dset, azi_exit_dset, geobox,
                                      out_fname, compression, x_tile, y_tile)
