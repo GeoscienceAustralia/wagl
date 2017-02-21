@@ -69,7 +69,7 @@ def dataset_compression_kwargs(compression='lzf', shuffle=True,
     return kwargs
 
 
-def attach_image_attributes(dataset, attrs={}):
+def attach_image_attributes(dataset, attrs=None):
     """
     Attaches attributes to an HDF5 `IMAGE` Class dataset.
 
@@ -83,11 +83,12 @@ def attach_image_attributes(dataset, attrs={}):
     for key in DEFAULT_IMAGE_CLASS:
         dataset.attrs[key] = DEFAULT_IMAGE_CLASS[key]
 
-    for key in attrs:
-        dataset.attrs[key] = attrs[key]
+    if attrs is not None:
+        for key in attrs:
+            dataset.attrs[key] = attrs[key]
 
 
-def attach_table_attributes(dataset, title='Table', attrs={}):
+def attach_table_attributes(dataset, title='Table', attrs=None):
     """
     Attaches attributes to an HDF5 `TABLE` Class dataset.
 
@@ -113,12 +114,13 @@ def attach_table_attributes(dataset, title='Table', attrs={}):
     for i, col in enumerate(columns):
         dataset.attrs[col_fmt.format(i)] = col
 
-    for key in attrs:
-        dataset.attrs[key] = attrs[key]
+    if attrs is not None:
+        for key in attrs:
+            dataset.attrs[key] = attrs[key]
 
 
 def create_image_dataset(fid, dataset_name, shape, dtype, compression='lzf',
-                         shuffle=True, chunks=(512, 512), attrs={}):
+                         shuffle=True, chunks=(512, 512), attrs=None):
     """
     Initialises a HDF5 dataset populated with some basic attributes
     that detail the Image specification.
@@ -163,13 +165,14 @@ def create_image_dataset(fid, dataset_name, shape, dtype, compression='lzf',
                               compression_opts=compression_opts,
                               shuffle=shuffle)
 
-    for key in attrs:
-        dset.attrs[key] = attrs[key]
+    if attrs is not None:
+        for key in attrs:
+            dset.attrs[key] = attrs[key]
 
     return dset
 
 
-def write_h5_image(data, dset_name, group, kwargs, attrs={}):
+def write_h5_image(data, dset_name, group, attrs=None, **kwargs):
 
     dset = group.create_dataset(dset_name, data=data, **kwargs)
 
@@ -181,12 +184,13 @@ def write_h5_image(data, dset_name, group, kwargs, attrs={}):
     dset.attrs['DISPLAY_ORIGIN'] = 'UL'
     dset.attrs['IMAGE_MINMAXRANGE'] = [minv, maxv]
 
-    for key in attrs:
-        dset.attrs[key] = attrs[key]
+    if attrs is not None:
+        for key in attrs:
+            dset.attrs[key] = attrs[key]
 
 
 def write_h5_table(data, dset_name, group, compression='lzf', title='Table',
-                   attrs={}):
+                   attrs=None):
     """
     Writes a `NumPy` structured array to a HDF5 `compound` type
     dataset.
@@ -233,12 +237,13 @@ def write_h5_table(data, dset_name, group, compression='lzf', title='Table',
     for i, col in enumerate(columns):
         dset.attrs[col_fmt.format(i)] = col
 
-    for key in attrs:
-        dset.attrs[key] = attrs[key]
+    if attrs is not None:
+        for key in attrs:
+            dset.attrs[key] = attrs[key]
 
 
 def write_dataframe(df, dset_name, group, compression='lzf', title='Table',
-                    attrs={}):
+                    attrs=None):
     """
     Converts a `pandas.DataFrame` to a HDF5 `Table`, stored
     internall as a compound datatype.
@@ -293,7 +298,7 @@ def write_dataframe(df, dset_name, group, compression='lzf', title='Table',
     attach_table_attributes(dset, title=title, attrs=attrs)
 
 
-def attach_attributes(dataset, attrs):
+def attach_attributes(dataset, attrs=None):
     """
     A small utility for attaching attributes to a h5py `Dataset` or
     `Group` object.
@@ -309,8 +314,9 @@ def attach_attributes(dataset, attrs):
     :return:
         None.
     """
-    for key in attrs:
-        dset.attrs[key] = attrs[key]
+    if attrs is not None:
+        for key in attrs:
+            dataset.attrs[key] = attrs[key]
 
     return
 
