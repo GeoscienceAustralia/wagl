@@ -33,12 +33,7 @@ def _self_shadow(incident_angles_fname, exiting_angles_fname, out_fname,
         inci_dset = inci_angles['incident']
         exit_dset = exit_angles['exiting']
 
-        shape = inci_dset.shape
-        transform = inci_dset.attrs['geotransform']
-        origin = (transform[0], transform[3])
-        crs = inci_dset.attrs['crs_wkt']
-        pixelsize = (abs(transform[1]), abs(transform[5]))
-        geobox = GriddedGeoBox(shape, origin, pixelsize, crs)
+        geobox = GriddedGeoBox.from_dataset(inci_dset)
 
         fid = self_shadow(inci_dset, exit_dset, geobox, out_fname, x_tile,
                           y_tile)

@@ -1,16 +1,17 @@
 """
 Gridded Data
 """
-import gdal
-import rasterio as rio
 import math
+from math import radians
+import gdal
+import h5py
+import rasterio as rio
 import osr
 import affine
+from affine import Affine
 from  eotools.bodies.vincenty import vinc_dist
 from  eotools.bodies.bodies import earth
-from math import radians
 
-from affine import Affine
 
 # Landsat tranforms have very small determinants
 # the following setting is required, and there is a
@@ -64,6 +65,8 @@ class GriddedGeoBox(object):
             return GriddedGeoBox.from_gdal_dataset(dataset)
         elif isinstance(dataset, rio._base.DatasetReader):
             return GriddedGeoBox.from_rio_dataset(dataset)
+        elif isinstance(dataset, h5py.Dataset):
+            return GriddedGeoBox.from_h5_dataset(dataset)
         else:
             raise ValueError("GriddedGeoBox.from_dataset() expects"
                              " GDAL or rasterio dataset, not %s" %
@@ -109,6 +112,27 @@ class GriddedGeoBox(object):
         crsString = str(dataset.GetProjection())
 
         return GriddedGeoBox(bbshape, origin, pixelsize, crsString)
+
+    @staticmethod
+    def from_h5_dataset(dataset):
+        """
+        Return the GriddedGeoBox that encloses the full extent of 
+        the supplied Rasterio dataset.
+
+        :param dataset:
+            An open rasterio Dataset.
+
+        :return:
+            A GriddedGeoBox that encloses the full extent of
+            the supplied dataset.
+        """
+        bbshape = dataset.shape
+        transform = dataset.attrs['geotransform']
+        origin = (transform[0], transform[3])
+        crs = dataset.attrs['crs_wkt']
+        pixelsize = (abs(transform[1]), abs(transform[5]))
+
+        return GriddedGeoBox(bbshape, origin, pixelsize, crs)
 
     @staticmethod
     def from_corners(origin, corner, pixelsize=(0.00025, 0.00025),
@@ -184,7 +208,7 @@ class GriddedGeoBox(object):
         self.pixelsize = pixelsize
         self.shape = tuple([int(v) for v in shape])
         self.origin = origin
-	if isinstance(crs, osr.SpatialReference):
+        if isinstance(crs, osr.SpatialReference):
             self.crs = crs
         else:
             self.crs = osr.SpatialReference()
@@ -375,8 +399,8 @@ class GriddedGeoBox(object):
             one at SW corner.
         """
         result = []
-        for y_val in range(0,self.shape[1]):
-            result.append(self.get_pixelsize_metres(xy=(0,y_val)))
+        for y_val in range(0, self.shape[1]):
+            result.append(self.get_pixelsize_metres(xy=(0, y_val)))
         return result
 
     @property
