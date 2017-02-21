@@ -139,7 +139,7 @@ def self_shadow(incident_dataset, exiting_dataset, geobox, out_fname,
         exi = numpy.radians(exiting_dataset[idx])
 
         # Process the tile
-        mask = numpy.ones(inc.shape, xsize), dtype='uint8')
+        mask = numpy.ones(inc.shape, dtype='uint8')
         mask[numpy.cos(inc) <= 0.0] = 0
         mask[numpy.cos(exi) <= 0.0] = 0
 
