@@ -36,6 +36,7 @@ from gaip import constants
 from gaip import read_subset
 from gaip import extract_ancillary_metadata
 from gaip import write_h5_image
+from gaip import dataset_compression_kwargs
 
 log = logging.getLogger('root.' + __name__)
 
@@ -285,10 +286,13 @@ class BRDFLoader(object):
 
         return result
 
-    def convert_format(self, dataset_name, group, compression='lzf'):
+    def convert_format(self, dataset_name, group, attrs=None,
+                       compression='lzf'):
         """
         Convert the HDF file to a HDF5 dataset.
         """
+        if attrs is None:
+            attrs = {}
 
         # Get the UL corner of the UL pixel co-ordinate
         ul_lon = self.ul[0]
@@ -314,11 +318,10 @@ class BRDFLoader(object):
         # Write the dataset
         kwargs = dataset_compression_kwargs(compression='lzf',
                                             chunks=(1, dims[1]))
-        attrs = {'Description': 'Converted BRDF data from H4 to H5.',
-                 'crs_wkt': prj,
-                 'geotransform': geobox.affine.to_gdal()}
-        write_h5_image(self.data[0], dataset_name, group, **kwargs,
-                       attrs=attrs)
+        attrs['Description'] = 'Converted BRDF data from H4 to H5.'
+        attrs['crs_wkt'] = prj
+        attrs['geotransform'] = geobox.affine.to_gdal()
+        write_h5_image(self.data[0], dataset_name, group, attrs, **kwargs)
 
     def get_mean(self, array):
         """
@@ -439,7 +442,7 @@ def get_brdf_dirs_pre_modis(brdf_root, scene_date):
 
 
 def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
-                  hdf5_group):
+                  hdf5_group, compression='lzf', work_path=''):
     """
     Calculates the mean BRDF value for each band wavelength of your
     sensor, for each BRDF factor ['geo', 'iso', 'vol'] that covers
@@ -565,7 +568,9 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
             # out_fname = pjoin(work_path, out_fname)
 
             # Convert the file format
-            brdf_object.convert_format(out_fname, hdf5_group,
+            attrs = {'band wavelength': bandwl,
+                     'factor': factor}
+            brdf_object.convert_format(out_fname, hdf5_group, attrs,
                                        compression=compression)
 
             # Get the intersected roi
@@ -595,14 +600,14 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
 
             # Output the brdf subset
             chunks = (1, geobox.x_size())
-            kwargs = dataset_compression_kwargs(compression='lzf',
+            kwargs = dataset_compression_kwargs(compression=compression,
                                                 chunks=chunks)
             attrs = {'Description': 'Subsetted region of the BRDF image.',
-                     'crs_wkt': prj,
+                     'crs_wkt': geobox.crs.ExportToWkt(),
                      'geotransform': geobox.affine.to_gdal()}
             out_fname_subset = out_fname + '_subset'
-            write_h5_image(subset, out_fname_subset, hdf5_group, **kwargs,
-                           attrs=attrs)
+            write_h5_image(subset, out_fname_subset, hdf5_group, attrs,
+                           **kwargs)
 
             # Remove temporary unzipped file
             if hdf_file.find(work_path) == 0:
