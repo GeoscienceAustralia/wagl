@@ -1,5 +1,6 @@
 
 from metadata import *
+from hdf5 import *
 from ancillary import *
 from acquisition import *
 from data import *
