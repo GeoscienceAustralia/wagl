@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+"""
+Contains various HDF5/h5py wrapped utilities for writing various datasets
+such as images and tables, as well as attaching metadata.
+"""
+
+import datetime
 import numpy
 import h5py
 
@@ -83,9 +89,7 @@ def attach_image_attributes(dataset, attrs=None):
     for key in DEFAULT_IMAGE_CLASS:
         dataset.attrs[key] = DEFAULT_IMAGE_CLASS[key]
 
-    if attrs is not None:
-        for key in attrs:
-            dataset.attrs[key] = attrs[key]
+    attach_attributes(dataset, attrs)
 
 
 def attach_table_attributes(dataset, title='Table', attrs=None):
@@ -114,9 +118,7 @@ def attach_table_attributes(dataset, title='Table', attrs=None):
     for i, col in enumerate(columns):
         dataset.attrs[col_fmt.format(i)] = col
 
-    if attrs is not None:
-        for key in attrs:
-            dataset.attrs[key] = attrs[key]
+    attach_attributes(dataset, attrs)
 
 
 def create_image_dataset(fid, dataset_name, shape, dtype, compression='lzf',
@@ -165,9 +167,7 @@ def create_image_dataset(fid, dataset_name, shape, dtype, compression='lzf',
                               compression_opts=compression_opts,
                               shuffle=shuffle)
 
-    if attrs is not None:
-        for key in attrs:
-            dset.attrs[key] = attrs[key]
+    attach_attributes(dset, attrs)
 
     return dset
 
@@ -184,9 +184,7 @@ def write_h5_image(data, dset_name, group, attrs=None, **kwargs):
     dset.attrs['DISPLAY_ORIGIN'] = 'UL'
     dset.attrs['IMAGE_MINMAXRANGE'] = [minv, maxv]
 
-    if attrs is not None:
-        for key in attrs:
-            dset.attrs[key] = attrs[key]
+    attach_attributes(dset, attrs)
 
 
 def write_h5_table(data, dset_name, group, compression='lzf', title='Table',
@@ -237,9 +235,7 @@ def write_h5_table(data, dset_name, group, compression='lzf', title='Table',
     for i, col in enumerate(columns):
         dset.attrs[col_fmt.format(i)] = col
 
-    if attrs is not None:
-        for key in attrs:
-            dset.attrs[key] = attrs[key]
+    attach_attributes(dset, attrs)
 
 
 def write_dataframe(df, dset_name, group, compression='lzf', title='Table',
@@ -316,6 +312,8 @@ def attach_attributes(dataset, attrs=None):
     """
     if attrs is not None:
         for key in attrs:
+            if isinstance(attrs[key], datetime.datetime):
+                attrs[key] = attrs[key].isoformat()
             dataset.attrs[key] = attrs[key]
 
     return
@@ -345,4 +343,32 @@ def create_external_link(fname, dataset_path, out_fname, new_dataset_path):
     with h5py.File(out_fname) as fid:
         fid[new_dataset_path] = h5py.ExternalLink(fname, dataset_path)
 
+    return
+
+
+def write_scalar(data, dataset_name, group, attrs=None):
+    """
+    Creates a `scalar` dataset of the name given by `dataset_name`
+    attached to `group`.
+
+    :param data:
+        Contains any single valued datatype.
+
+    :param dataset_name:
+        A `str` containing the name and location of the dataset
+        to write to.
+
+    :param group:
+        A h5py `Group` or `File` object from which to write the
+        dataset to.
+
+    :param attrs:
+        A `dict` of key, value pairs used to attach the atrrbutes
+        onto the h5py `Dataset` or `Group` object.
+
+    :return:
+        None.
+    """
+    dset = group.create_dataset(dataset_name, data=data)
+    attach_attributes(dset, attrs=attrs)
     return
