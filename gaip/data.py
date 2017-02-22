@@ -712,3 +712,18 @@ def fast_read(origin_path, ssd_env_var='PBS_JOBFS', cache_scope=os.getpid()):
     # got this far, then return the path to the SSD cache copy
 
     return ssd_path
+
+
+def read_meatadata_tags(fname, bands):
+    """
+    Retrieves the metadata tags for a list of bands from a `GDAL`
+    compliant dataset.
+    """
+    with rasterio.open(fname) as ds:
+        tag_data = {k: [] for k in ds.tags(1).keys()}
+        for band in bands:
+            tags = ds.tags(band)
+                for tag in tags:
+                    tag_data[tag].append(tags[tag])
+
+    return pandas.DataFrame(tag_data)
