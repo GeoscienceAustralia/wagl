@@ -9,11 +9,8 @@ Workflow settings can be configured in `nbar.cfg` file.
 # pylint: disable=missing-docstring,no-init,too-many-function-args
 # pylint: disable=too-many-locals
 
-import os
-from os.path import join as pjoin, basename, dirname, exists, splitext
-import logging
+from os.path import join as pjoin, basename, dirname, splitext
 import shutil
-import argparse
 import luigi
 from pathlib import Path
 from eodatasets.run import package_newly_processed_data_folder
@@ -71,12 +68,19 @@ class GetAncillaryData(luigi.Task):
         acqs = container.get_acquisitions(granule=self.granule)
 
         aerosol_path = CONFIG.get('ancillary', 'aerosol_path')
-        value = gaip.get_aerosol_data(acqs[0], aerosol_path)
-        # aerosol_path = CONFIG.get('ancillary', 'aerosol_fname') # version 2
-        # value = gaip.get_aerosol_data_v2(acqs[0], aerosol_path) # version 2
+        water_vapour_path = CONFIG.get('ancillary', 'vapour_path')
+        ozone_path = CONFIG.get('ancillary', 'ozone_path')
+        dem_path = CONFIG.get('ancillary', 'dem_path')
+        brdf_path = CONFIG.get('ancillary', 'brdf_path')
+        brdf_premodis_path = CONFIG.get('ancillary', 'brdf_premodis_path')
+        compression = CONFIG.get('work', 'compression')
 
         with self.output().temporary_path() as out_fname:
-            save(out_fname, value)
+            gaip._collect_ancillary_data(acqs[0], aerosol_path,
+                                         water_vapour_path, ozone_path,
+                                         dem_path, brdf_path,
+                                         brdf_premodis_path, out_fname,
+                                         compression, self.nbar_root)
 
 
 class CalculateLonGrid(luigi.Task):
@@ -673,9 +677,6 @@ class SlopeAndAspect(luigi.Task):
 
     def run(self):
         container = gaip.acquisitions(self.level1)
-        out_path = container.get_root(self.nbar_root, group=self.group,
-                                      granule=self.granule)
-
         acqs = container.get_acquisitions(group=self.group,
                                           granule=self.granule)
 
@@ -1116,11 +1117,12 @@ class WriteMetadata(luigi.Task):
                    pjoin(out_path, CONFIG.get('work', 'dem_fname')),
                    pjoin(out_path, CONFIG.get('work', 'brdf_fname'))]
 
-        aerosol_data = load(luigi.LocalTarget(targets[0]))
-        water_vapour_data = load(luigi.LocalTarget(targets[1]))
-        ozone_data = load(luigi.LocalTarget(targets[2]))
-        elevation_data = load(luigi.LocalTarget(targets[3]))
-        brdf_data = load(luigi.LocalTarget(targets[4]))
+        # TODO: define a proper requires and read from proper sources
+        # aerosol_data = load(luigi.LocalTarget(targets[0]))
+        # water_vapour_data = load(luigi.LocalTarget(targets[1]))
+        # ozone_data = load(luigi.LocalTarget(targets[2]))
+        # elevation_data = load(luigi.LocalTarget(targets[3]))
+        # brdf_data = load(luigi.LocalTarget(targets[4]))
 
         # output
         with self.output().temporary_path() as out_fname:
@@ -1156,7 +1158,8 @@ class Packager(luigi.Task):
                   'hard_link': False}
         package_newly_processed_data_folder(**kwargs)
 
-        save(self.output(), 'completed')
+        with self.output().open('w') as src:
+            src.write('completed')
 
 
 class PackageTC(luigi.Task):
@@ -1200,9 +1203,9 @@ class RunGaip(luigi.WrapperTask):
 
     def requires(self):
         with open(self.level1_list) as src:
-           scenes = src.readlines()
+            scenes = src.readlines()
         for level1 in scenes:
-            nbar_root = pjoin(work_root, basename(level1) + ".nbar-work")
+            nbar_root = pjoin(self.work_root, basename(level1) + ".nbar-work")
             yield PackageTC(level1, self.work_root, nbar_root)
 
 
