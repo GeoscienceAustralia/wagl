@@ -173,7 +173,33 @@ def create_image_dataset(fid, dataset_name, shape, dtype, compression='lzf',
 
 
 def write_h5_image(data, dset_name, group, attrs=None, **kwargs):
+    """
+    Writes a `NumPy` array direct to a `h5py.Dataset` to the
+    HDF5 IMAGE CLASS standard.
 
+    :param data:
+        The `NumPy` structured array containing the data to be
+        written to disk.
+
+    :param dset_name:
+        A `str` containing the name and location of the dataset
+        to write to.
+
+    :param group:
+        A h5py `Group` or `File` object from which to write the
+        dataset to.
+
+    :param attrs:
+        A `dict` of key, value items to be attached as attributes
+        to the `Table` dataset.
+
+    :param kwargs:
+        A `dict` containing any additional keyword arguments which
+        will be passed directly to  `h5py's create_dataset` function.
+
+    :return:
+        None
+    """
     dset = group.create_dataset(dset_name, data=data, **kwargs)
 
     minv = data.min()
