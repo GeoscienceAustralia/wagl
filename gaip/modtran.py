@@ -16,6 +16,8 @@ import rasterio
 import gaip
 from gaip import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
 from gaip import MIDLAT_SUMMER_TRANSMITTANCE, TROPICAL_TRANSMITTANCE
+from gaip import attach_image_attributes
+from gaip import dataset_compression_kwargs
 from gaip import write_h5_image
 from gaip import write_dataframe
 
@@ -72,8 +74,8 @@ def prepare_modtran(coordinate, albedo, modtran_work, modtran_exe):
 
 
 def _format_tp5(acquisition, satellite_solar_angles_fname,
-                longitude_fname, latitude_fname, ancillary_fname, coords,
-                albedos):
+                longitude_fname, latitude_fname, ancillary_fname, out_fname,
+                npoints, albedos):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -81,7 +83,8 @@ def _format_tp5(acquisition, satellite_solar_angles_fname,
     with h5py.File(satellite_solar_angles_fname, 'r') as sat_sol,\
         h5py.File(longitude_fname, 'r') as lon_ds,\
         h5py.File(latitude_fname, 'r') as lat_ds,\
-        h5py.File(ancillary_fname, 'a') as anc_ds:
+        h5py.File(ancillary_fname, 'r') as anc_ds,\
+        h5py.File(out_fname, 'w') as fid:
 
         # angles data
         view_dset = sat_sol['satellite-view']
@@ -99,9 +102,9 @@ def _format_tp5(acquisition, satellite_solar_angles_fname,
         tp5_data, metadata = format_tp5(acquisition, coord_dset, view_dset,
                                         azi_dset, lat_dset, lon_dset, ozone,
                                         water_vapour, aerosol, elevation,
-                                        coords, albedos)
+                                        npoints, albedos)
 
-        group = anc_ds.create_group('modtran-inputs')
+        group = fid.create_group('modtran-inputs')
         iso_time = acquisition.scene_centre_date.isoformat()
         group.attrs['acquisition-datetime'] = iso_time
         dataset_fmt = '{point}/alb_{albedo}/tp5_data'
@@ -118,7 +121,7 @@ def _format_tp5(acquisition, satellite_solar_angles_fname,
 
 def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
                lat_dataset, lon_dataset, ozone, vapour, aerosol, elevation,
-               coords, albedos):
+               npoints, albedos):
     """Creates str formatted tp5 files for the albedo (0, 1) and transmittance (t)."""
     geobox = acquisition.gridded_geo_box()
     filter_file = acquisition.spectral_filter_file
@@ -127,7 +130,6 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
     altitude = acquisition.altitude / 1000.0  # in km
     dechour = acquisition.decimal_hour
 
-    npoints = len(coords)
     view = numpy.zeros(npoints, dtype='float32')
     azi = numpy.zeros(npoints, dtype='float32')
     lat = numpy.zeros(npoints, dtype='float64')
@@ -173,7 +175,7 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
     metadata = {}
 
     # write the tp5 files required for input into MODTRAN
-    for i, p in enumerate(coords):
+    for i in range(npoints):
         for alb in albedos:
             input_data = {'water': vapour,
                           'ozone': ozone,
@@ -196,8 +198,8 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
                 input_data['sat_azimuth'] = azi_cor[i]
                 data = albedo_profile.format(**input_data)
 
-            tp5_data[(p, alb)] = data
-            metadata[(p, alb)] = input_data
+            tp5_data[(i, alb)] = data
+            metadata[(i, alb)] = input_data
 
     return tp5_data, metadata
 
@@ -207,14 +209,17 @@ def run_modtran(modtran_exe, workpath):
     subprocess.check_call([modtran_exe], cwd=workpath)
 
 
-def _calculate_coefficients(coords, chn_input_fmt, dir_input_fmt, mod_root,
+def _calculate_coefficients(npoints, chn_input_fmt, accumulated_fname, mod_root,
                             out_fname, compression='lzf'):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    res1, res2 = calculate_coefficients(coords, chn_input_fmt, dir_input_fmt,
-                                        mod_root)
+    # TODO: read the accumlated data
+    # with h5py.File(accumulated_fname, 'r') as fid:
+        
+    res1, res2 = calculate_coefficients(npoints, chn_input_fmt,
+                                        accumulated_fname, mod_root)
     attrs1 = {}
     attrs1['Description'] = ("Coefficients derived from the "
                              "accumulated solar irradiation.")
@@ -236,7 +241,7 @@ def _calculate_coefficients(coords, chn_input_fmt, dir_input_fmt, mod_root,
     return
         
 
-def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt, mod_root):
+def calculate_coefficients(npoints, chn_input_fmt, dir_input_fmt, mod_root):
     """
     Calculate the atmospheric coefficients from the MODTRAN output
     and used in the BRDF and atmospheric correction.
@@ -269,22 +274,22 @@ def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt, mod_root):
         factor for each band.
     """
     result = {}
-    for coord in coords:
+    for point in range(npoints):
         # MODTRAN output .chn file (albedo 0)
-        fname1 = pjoin(mod_root, chn_input_fmt.format(coord=coord, albedo=0))
+        fname1 = pjoin(mod_root, chn_input_fmt.format(point=point, albedo=0))
 
         # **********UNUSED**********
         # MODTRAN output .chn file (albedo 1)
         # fname2 = pjoin(cwd, chn_input_fmt.format(coord=coord, albedo=1))
 
         # solar radiation file (albedo 0)
-        fname3 = pjoin(mod_root, dir_input_fmt.format(coord=coord, albedo=0))
+        fname3 = pjoin(mod_root, dir_input_fmt.format(point=point, albedo=0))
 
         # solar radiation file (albedo 1)
-        fname4 = pjoin(mod_root, dir_input_fmt.format(coord=coord, albedo=1))
+        fname4 = pjoin(mod_root, dir_input_fmt.format(point=point, albedo=1))
 
         # solar radiation file (transmittance mode)
-        fname5 = pjoin(mod_root, dir_input_fmt.format(coord=coord, albedo='t'))
+        fname5 = pjoin(mod_root, dir_input_fmt.format(point=point, albedo='t'))
 
         # read the data
         # **********UNUSED**********
@@ -346,7 +351,7 @@ def calculate_coefficients(coords, chn_input_fmt, dir_input_fmt, mod_root):
         df['dif'] = diff_0
         df['ts'] = ts_dir
 
-        result[coord] = df
+        result[point] = df
 
     # set the band numbers as a searchable index
     for key in result:
@@ -410,7 +415,7 @@ def _bilinear_interpolate(acq, factor, sat_sol_angles_fname,
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    band_num = acq.band_num
+    band = acq.band_num
     geobox = acq.gridded_geo_box()
 
     with h5py.File(sat_sol_angles_fname, 'r') as sat_sol,\
@@ -421,12 +426,12 @@ def _bilinear_interpolate(acq, factor, sat_sol_angles_fname,
         box_dset = sat_sol['boxline']
 
         coef_dset = coef['coefficients_format_2']
-        wh = ((coef_dset['band_number'] == band_num) &
+        wh = ((coef_dset['band_number'] == band) &
               (coef_dset['factor'] == factor))
         coefficients = pandas.DataFrame(coef_dset[wh])
 
         data = bilinear_interpolate(acq, coord_dset, box_dset, centre_dset,
-                                    coefficients, out_fname, compression)
+                                    coefficients)
 
     with h5py.File(out_fname, 'w') as fid:
         dset_name = splitext(basename(out_fname))[0]
@@ -440,8 +445,7 @@ def _bilinear_interpolate(acq, factor, sat_sol_angles_fname,
         desc = ("Contains the bi-linearly interpolated result of factor {}"
                 "for band {} from sensor {}.")
         attrs['Description'] = desc.format(factor, band, acq.satellite_name)
-        write_h5_image(data, dname, fid, **kwargs, attrs=attrs)
-        attach_image_attributes(dset, attrs)
+        write_h5_image(data, dset_name, fid, attrs, **kwargs)
 
     return
 
@@ -750,7 +754,7 @@ def create_solar_irradiance_tables(fname, out_fname, compression='lzf'):
     dset_name = splitext(basename(fname))[0]
     with h5py.File(out_fname, 'a') as fid1:
         # check for a previous run
-        if dset_name in fid:
+        if dset_name in fid1:
             del fid1[dset_name]
 
         with h5py.File(fname, 'r') as fid2:
@@ -765,7 +769,7 @@ def link_bilinear_data(data, out_fname):
     single file for easier access.
     """
     for key in data:
-        band, factor = key
+        # band, factor = key
         fname = data[key]
         base_dname = splitext(basename(fname))[0]
 
@@ -773,6 +777,6 @@ def link_bilinear_data(data, out_fname):
         # dset_name = ppjoin(band, factor, base_dname)
 
         with h5py.File(out_fname, 'w') as fid:
-            fid[base_name] = h5py.ExternalLink(fname, base_dname)
+            fid[base_dname] = h5py.ExternalLink(fname, base_dname)
 
     return
