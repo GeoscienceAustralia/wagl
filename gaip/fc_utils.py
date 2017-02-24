@@ -9,7 +9,6 @@ from gaip import endmembers
 from gaip import GriddedGeoBox
 from gaip import LandsatAcquisition
 from gaip import stack_data
-from gaip import unmiximage
 
 #from datacube.api.model import BANDS
 #from datacube.api.model import DatasetType, Satellite
@@ -367,6 +366,7 @@ def unmix(green, red, nir, swir1, swir2, sum_to_one_weight, endmembers_array):
     in_null = 0.0001
     out_unmix_null = -10.0
 
+    from gaip import unmiximage
     fractions = unmiximage.unmiximage(weighted_spectra, endmembers_array,
                                       in_null, out_unmix_null)
 
