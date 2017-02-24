@@ -231,41 +231,12 @@ class RunModtranCase(luigi.Task):
         out_path = acquisitions(self.level1).get_root(self.nbar_root,
                                                       granule=self.granule)
 
-        workpath_format = '{coord}/alb_{albedo}'
-        workpath = workpath_format.format(coord=self.coord, albedo=self.albedo)
+        workpath_format = '{point}/alb_{albedo}'
+        workpath = workpath_format.format(point=self.point, albedo=self.albedo)
         modtran_work = pjoin(out_path, self.base_dir, workpath)
 
         gaip.prepare_modtran(self.point, self.albedo, modtran_work, self.exe)
         gaip.run_modtran(self.exe, modtran_work)
-
-
-@requires(RunModtranCase)
-class RunAccumulateSolarIrradianceCase(luigi.Task):
-
-    """
-    Run calculate_solar_radiation for a given case, with case being
-    a given albedo and coordinate.
-    """
-
-    def output(self):
-        out_path = acquisitions(self.level1).get_root(self.nbar_root,
-                                                      granule=self.granule)
-        fname = '{}-alb-{}.h5'.format(self.coord, self.albedo)
-        out_fname = pjoin(out_path, self.base_dir, fname)
-        return luigi.LocalTarget(out_fname)
-
-    def run(self):
-        flux_fname = self.input().path
-        transmittance = True if self.albedo == 't' else False
-
-        # TODO: have filter functions within gaip code
-        satfilterpath = '/g/data/v10/eoancillarydata/lookup_tables/satellite_filter'
-        response_fname = pjoin(satfilterpath, acqs[0].spectral_filter_file)
-
-        with self.output().temporary_path() as out_fname:
-            gaip._calculate_solar_radiation(flux_fname, response_fname,
-                                            transmittance, out_fname,
-                                            self.compression)
 
 
 @inherits(WriteTp5)
@@ -276,16 +247,18 @@ class AccumulateSolarIrradiance(luigi.Task):
     the accumulative solar irradiance for a given spectral
     response function.
 
-    This is a helper class that kicks off individual coordinate albedo
-    RunAccumulateSolarIrradianceCase tasks.
+    We'll sacrifce the small gain in parallelism for less files, and
+    less target checking by accumulating all outputs within a single task.
     """
 
     def requires(self):
+        reqs = {}
         for point in range(self.npoints):
             for albedo in self.albedos:
                 args = [self.level1, self.nbar_root, self.granule, point,
                         albedo]
-                yield RunAccumulateSolarIrradianceCase(*args)
+                reqs[(point, albedo)] = RunModtranCase(*args)
+        return reqs
 
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.nbar_root,
@@ -294,11 +267,13 @@ class AccumulateSolarIrradiance(luigi.Task):
         return luigi.LocalTarget(pjoin(out_path, self.base_dir, out_fname))
 
     def run(self):
-        compression = self.compression
+        # TODO: have filter functions within gaip code
+        satfilterpath = '/g/data/v10/eoancillarydata/lookup_tables/satellite_filter'
+        response_fname = pjoin(satfilterpath, acqs[0].spectral_filter_file)
+
         with self.output().temporary_path() as out_fname:
-            for target in self.input():
-                gaip.create_solar_irradiance_tables(target.path, out_fname,
-                                                    compression=compression)
+            gaip._calculate_solar_radiation(self.input(), response_fname,
+                                            out_fname, self.compression)
 
 
 @requires(AccumulateSolarIrradiance)
