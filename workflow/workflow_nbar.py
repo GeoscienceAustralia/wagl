@@ -223,8 +223,7 @@ class RunModtranCase(luigi.Task):
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.nbar_root,
                                                       granule=self.granule)
-        output_format = '{point}/alb_{albedo}/{point}_alb_{albedo}_b.flx'
-        out_fname = output_format.format(coord=self.coord, albedo=self.albedo)
+        out_fname = 'point-{}-albedo-{}.h5'.format(self.point, self.albedo)
         return luigi.LocalTarget(pjoin(out_path, self.base_dir, out_fname))
 
     def run(self):
@@ -236,7 +235,10 @@ class RunModtranCase(luigi.Task):
         modtran_work = pjoin(out_path, self.base_dir, workpath)
 
         gaip.prepare_modtran(self.point, self.albedo, modtran_work, self.exe)
-        gaip.run_modtran(self.exe, modtran_work)
+
+        with self.output().temporary_path() as out_fname:
+            gaip._run_modtran(self.exe, modtran_work, self.point, self.albedo,
+                              out_fname, self.compression)
 
 
 @inherits(WriteTp5)
