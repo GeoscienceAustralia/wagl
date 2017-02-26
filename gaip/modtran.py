@@ -209,33 +209,15 @@ def _run_modtran(modtran_exe, workpath, point, albedo, out_fname,
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    flux_data, altitudes, channel_data = run_modtran(modtran_exe, workpath)
+    fid = run_modtran(modtran_exe, workpath, point, albedo, out_fname,
+                      compression)
 
-    # initial attributes
-    attrs = {'Point': point, 'Albedo': albedo}
-
-    with h5py.File(out_fname, 'w') as fid:
-        # ouput the flux data
-        dset_name = ppjoin(point, albedo, 'flux')
-        attrs['Description'] = 'Flux output from MODTRAN'
-        write_dataframe(flux_data, dset_name, fid, attrs=attrs)
-
-        # output the channel data
-        attrs['Description'] = 'Channel output from MODTRAN'
-        dset_name = ppjoin(point, albedo, 'channel')
-        write_dataframe(channel_data, dset_name, fid, attrs=attrs)
-
-        # output the altitude data
-        attrs['Description'] = 'Altitudes output from MODTRAN'
-        attrs['altitude levels'] = altitudes.shape[0]
-        attrs['units'] = 'km'
-        dset_name = ppjoin(point, albedo, 'altitudes')
-        write_dataframe(altitudes, dset_name, fid, attrs=attrs)
-
+    fid.close()
     return
         
 
-def run_modtran(modtran_exe, workpath):
+def run_modtran(modtran_exe, workpath, point, albedo, out_fname=None,
+                compression='lzf'):
     """
     Run MODTRAN and return the flux and channel results.
     """
@@ -247,43 +229,54 @@ def run_modtran(modtran_exe, workpath):
     chn_data = pandas.read_csv(chn_fname, skiprows=5, header=None,
                                delim_whitespace=True)
 
-    return flux_data, altitudes, chn_data
+    # initial attributes
+    attrs = {'Point': point, 'Albedo': albedo}
+
+    # Initialise the output files
+    if out_fname is None:
+        fid = h5py.File('modtran-results.h5', driver='core',
+                        backing_store=False)
+    else:
+        fid = h5py.File(out_fname, 'w')
+
+    # ouput the flux data
+    dset_name = ppjoin(point, albedo, 'flux')
+    attrs['Description'] = 'Flux output from MODTRAN'
+    write_dataframe(flux_data, dset_name, fid, attrs=attrs)
+
+    # output the channel data
+    attrs['Description'] = 'Channel output from MODTRAN'
+    dset_name = ppjoin(point, albedo, 'channel')
+    write_dataframe(channel_data, dset_name, fid, attrs=attrs)
+
+    # output the altitude data
+    attrs['Description'] = 'Altitudes output from MODTRAN'
+    attrs['altitude levels'] = altitudes.shape[0]
+    attrs['units'] = 'km'
+    dset_name = ppjoin(point, albedo, 'altitudes')
+    write_dataframe(altitudes, dset_name, fid, attrs=attrs)
+
+    return fid
 
 
-def _calculate_coefficients(npoints, chn_input_fmt, accumulated_fname, mod_root,
+def _calculate_coefficients(accumulated_fname, channel_fname, npoints,
                             out_fname, compression='lzf'):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    # TODO: read the accumlated data
-    # with h5py.File(accumulated_fname, 'r') as fid:
+    with h5py.File(accumulated_fname, 'r') as fid1,\
+        h5py.File(channel_fname, 'r') as fid2:
         
-    res1, res2 = calculate_coefficients(npoints, chn_input_fmt,
-                                        accumulated_fname, mod_root)
-    attrs1 = {}
-    attrs1['Description'] = ("Coefficients derived from the "
-                             "accumulated solar irradiation.")
-    attrs2 = {}
-    attrs2['Description'] = ("Coefficients derived from the "
-                             "accumulated solar irradiation, and formatted "
-                             "into a 4x4 grid per MODTRAN factor.")
-    attrs2['Grid Layout'] = ("TL, TM, ML, MM\n"
-                             "TM, TR, MM, MR\n"
-                             "ML, MM, BL, BM\n"
-                             "MM, MR, BM, BR")
+        fid = calculate_coefficients(fid1, fid2, npoints, out_fname,
+                                     compression)
 
-    with h5py.File(out_fname, 'w') as fid:
-        write_dataframe(res1, 'coefficients_format_1', fid, compression,
-                        attrs=attrs1)
-        write_dataframe(res2, 'coefficients_format_2', fid, compression,
-                        attrs=attrs2)
-
+    fid.close()
     return
         
 
-# TODO: rework to use h5py inputs
-def calculate_coefficients(npoints, chn_input_fmt, dir_input_fmt, mod_root):
+def calculate_coefficients(accumulation_fid, channel_fid, npoints,
+                           out_fname=None, compression='lzf'):
     """
     Calculate the atmospheric coefficients from the MODTRAN output
     and used in the BRDF and atmospheric correction.
@@ -291,57 +284,57 @@ def calculate_coefficients(npoints, chn_input_fmt, dir_input_fmt, mod_root):
     for each factor.  The factors are:
     ['fs', 'fv', 'a', 'b', 's', 'dir', 'dif', 'ts'].
 
-    :param acqs:
-        A `list` of acquisitions.
+    :param accumulation_fid:
+        An opened `h5py.File` containing the accumulated solor
+        irradiance, and formatted in the style return by the
+        `calculate_solar_radiation` function.
 
-    :param coords:
-        A `list` of `string` coordinates indicating the location
-        within an array, eg.
-        ["TL", "TM", "TR", "ML", "MM", "MR", "BL", "BM", "BR"]
+    :param channel_fid:
+        An opened `h5py.File` containing the channel output from
+        MODTRAN, and formatted in the style returned by the
+        `run_modtran` function.
 
-    :param chn_input_fmt:
-        A `string` format for the MODTRAN *.chn output file.
-        eg '{coord}/alb_{albedo}/{coord}_alb_{albedo}.chn'.
+    :param npoints:
+        An integer containing the number of location points over
+        which MODTRAN was run.
 
-    :param dir_input_fmt:
-        A `string` format for the MODTRAN *.dir output file.
-        eg '{coord}_alb_{albedo}.dir'.
+    :param out_fname:
+        If set to None (default) then the results will be returned
+        as an in-memory hdf5 file, i.e. the `core` driver.
+        Otherwise it should be a string containing the full file path
+        name to a writeable location on disk in which to save the HDF5
+        file.
 
-    :param mod_root:
-        A `string` containing the full file pathname to the MODTRAN
-        output directory.
+    :param compression:
+        The compression filter to use. Default is 'lzf'.
+        Options include:
+
+        * 'lzf' (Default)
+        * 'lz4'
+        * 'mafisc'
+        * An integer [1-9] (Deflate/gzip)
 
     :return:
-        A `pandas.DataFrame` object containing the coefficients of each
-        factor for each band.
+        An opened `h5py.File` object, that is either in-memory using the
+        `core` driver, or on disk.
     """
     result = {}
-    for point in range(npoints):
-        # MODTRAN output .chn file (albedo 0)
-        fname1 = pjoin(mod_root, chn_input_fmt.format(point=point, albedo=0))
-
-        # **********UNUSED**********
-        # MODTRAN output .chn file (albedo 1)
-        # fname2 = pjoin(cwd, chn_input_fmt.format(coord=coord, albedo=1))
+    for point in [str(i) for i in range(npoints)]:
+        # MODTRAN channel output .chn file (albedo 0)
+        dset_name = ppjoin(point, '0', 'channel')
+        data1 = pandas.DataFrame(channel_fid[dset_name][:])
 
         # solar radiation file (albedo 0)
-        fname3 = pjoin(mod_root, dir_input_fmt.format(point=point, albedo=0))
+        dset_name = ppjoin(point, '0', 'solar-irradiance')
+        data3 = pandas.DataFrame(accumulation_fid[dset_name][:])
 
         # solar radiation file (albedo 1)
-        fname4 = pjoin(mod_root, dir_input_fmt.format(point=point, albedo=1))
+        dset_name = ppjoin(point, '1', 'solar-irradiance')
+        data4 = pandas.DataFrame(accumulation_fid[dset_name][:])
 
         # solar radiation file (transmittance mode)
-        fname5 = pjoin(mod_root, dir_input_fmt.format(point=point, albedo='t'))
-
-        # read the data
-        # **********UNUSED**********
-        # data2 = pandas.read_csv(fname2, skiprows=5, header=None,
-        #                         delim_whitespace=True)
-
-        # solar radiation (albedo 0, albedo 1, transmittance mode)
-        data3 = pandas.read_csv(fname3, header=0, sep='\t')
-        data4 = pandas.read_csv(fname4, header=0, sep='\t')
-        data5 = pandas.read_csv(fname5, header=0, sep='\t')
+        dset_name = ppjoin(point, 't', 'solar-irradiance')
+        data5 = pandas.DataFrame(accumulation_fid[dset_name][:])
 
         # set the index to be the band name
         # we didn't write the index out previously as we'll try to keep
@@ -448,7 +441,31 @@ def calculate_coefficients(npoints, chn_input_fmt, dir_input_fmt, mod_root):
     result2.reset_index(level=['band_number', 'factor'], inplace=True)
     result2.reset_index(inplace=True)
 
-    return result, result2
+    attrs1 = {}
+    attrs1['Description'] = ("Coefficients derived from the "
+                             "accumulated solar irradiation.")
+    attrs2 = {}
+    attrs2['Description'] = ("Coefficients derived from the "
+                             "accumulated solar irradiation, and formatted "
+                             "into a 4x4 grid per MODTRAN factor.")
+    attrs2['Grid Layout'] = ("TL, TM, ML, MM\n"
+                             "TM, TR, MM, MR\n"
+                             "ML, MM, BL, BM\n"
+                             "MM, MR, BM, BR")
+
+    # Initialise the output files
+    if out_fname is None:
+        fid = h5py.File('coefficients.h5', driver='core',
+                        backing_store=False)
+    else:
+        fid = h5py.File(out_fname, 'w')
+
+    write_dataframe(result, 'coefficients-format-1', fid, compression,
+                    attrs=attrs1)
+    write_dataframe(result2, 'coefficients-format-2', fid, compression,
+                    attrs=attrs2)
+
+    return fid
 
 
 def _bilinear_interpolate(acq, factor, sat_sol_angles_fname,
@@ -472,28 +489,17 @@ def _bilinear_interpolate(acq, factor, sat_sol_angles_fname,
               (coef_dset['factor'] == factor))
         coefficients = pandas.DataFrame(coef_dset[wh])
 
-        data = bilinear_interpolate(acq, coord_dset, box_dset, centre_dset,
-                                    coefficients)
+        fid = bilinear_interpolate(acq, factor, coord_dset, box_dset,
+                                   centre_dset, coefficients, out_fname,
+                                   compression)
 
-    with h5py.File(out_fname, 'w') as fid:
-        dset_name = splitext(basename(out_fname))[0]
-        kwargs = dataset_compression_kwargs(compression=compression,
-                                            chunks=(1, geobox.x_size()))
-        no_data = -999
-        kwargs['fillvalue'] = no_data
-        attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
-                 'geotransform': geobox.affine.to_gdal(),
-                 'no_data_value': no_data}
-        desc = ("Contains the bi-linearly interpolated result of factor {}"
-                "for band {} from sensor {}.")
-        attrs['Description'] = desc.format(factor, band, acq.satellite_name)
-        write_h5_image(data, dset_name, fid, attrs, **kwargs)
-
+    fid.close()
     return
 
 
-def bilinear_interpolate(acq, coordinator_dataset, boxline_dataset,
-                         centreline_dataset, coefficients):
+def bilinear_interpolate(acq, factor, coordinator_dataset, boxline_dataset,
+                         centreline_dataset, coefficients, out_fname=None,
+                          compression='lzf'):
     """Perform bilinear interpolation."""
     geobox = acq.gridded_geo_box()
     cols, rows = geobox.get_shape_xy()
@@ -515,7 +521,27 @@ def bilinear_interpolate(acq, coordinator_dataset, boxline_dataset,
     gaip.bilinear(cols, rows, coord, s1, s2, s3, s4, start, end,
                   centre, res.transpose())
 
-    return res
+    # Initialise the output files
+    if out_fname is None:
+        fid = h5py.File('bilinear.h5', driver='core',
+                        backing_store=False)
+    else:
+        fid = h5py.File(out_fname, 'w')
+
+    dset_name = splitext(basename(out_fname))[0]
+    kwargs = dataset_compression_kwargs(compression=compression,
+                                        chunks=(1, geobox.x_size()))
+    no_data = -999
+    kwargs['fillvalue'] = no_data
+    attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
+             'geotransform': geobox.affine.to_gdal(),
+             'no_data_value': no_data}
+    desc = ("Contains the bi-linearly interpolated result of factor {}"
+            "for band {} from sensor {}.")
+    attrs['Description'] = desc.format(factor, band, acq.satellite_name)
+    write_h5_image(data, dset_name, fid, attrs, **kwargs)
+
+    return fid
 
 
 def read_spectral_response(fname):
@@ -601,9 +627,9 @@ def read_modtran_flux(fname):
                              ('ifwhm', 'float32')])
 
     # datatype for the dataframe containing the flux data
-    flux_dtype = numpy.dtype([('wavelength', 'float64'),
+    flux_dtype = numpy.dtype([#('wavelength', 'float64'),
                               ('upward_diffuse', 'float64'),
-                              ('downwar_diffuse', 'float64'),
+                              ('downward_diffuse', 'float64'),
                               ('direct_solar', 'float64')])
 
     with open(fname, 'rb') as src:
@@ -632,14 +658,14 @@ def read_modtran_flux(fname):
         for wv in wavelength_steps:
             data = ffile.read_record(dtype)
             df = pandas.DataFrame(numpy.zeros(levels, dtype=flux_dtype))
-            df['wavelength'] = data['wavelength'][0]
-            df['upward_difuse'] = data['flux_data'].squeeze()[:, 0]
+            #df['wavelength'] = data['wavelength'][0]
+            df['upward_diffuse'] = data['flux_data'].squeeze()[:, 0]
             df['downward_diffuse'] = data['flux_data'].squeeze()[:, 1]
             df['direct_solar'] = data['flux_data'].squeeze()[:, 2]
             flux[wv] = df
 
     # concatenate into a single table
-    flux_data = pandas.concat(flux)
+    flux_data = pandas.concat(flux, names=['wavelength', 'level'])
 
     return flux_data, altitude
 
@@ -661,7 +687,9 @@ def _calculate_solar_radiation(flux_fnames, response_fname, out_fname,
 
             # retrieve the flux data and the number of atmospheric levels
             with h5py.File(flux_fnames[key], 'r') as fid2:
-                flux_data = fid2[flux_dset_name][:]
+                flux_data = pandas.DataFrame(fid2[flux_dset_name][:])
+                flux_data.set_index(['wavelength', flux_data.index],
+                                    drop=False, inplace=True)
                 levels = fid2[atmos_dset_name].attrs['altitude levels']
 
             # accumulate solar irradiance
@@ -678,6 +706,7 @@ def _calculate_solar_radiation(flux_fnames, response_fname, out_fname,
     return
 
 
+# TODO: write to in-memory hdf5, return and copy
 def calculate_solar_radiation(flux_data, response_fname, levels=36,
                               transmittance=False):
     """
