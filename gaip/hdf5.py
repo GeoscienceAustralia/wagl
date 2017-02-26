@@ -16,6 +16,10 @@ DEFAULT_IMAGE_CLASS = {'CLASS': 'IMAGE',
 DEFAULT_TABLE_CLASS = {'CLASS': 'TABLE',
                        'VERSION': '0.2'}
 
+def _fixed_str_size(data):
+    str_sz = len(data.max())
+    return '|S{}'.format(str_sz)
+
 
 def dataset_compression_kwargs(compression='lzf', shuffle=True,
                                chunks=(512, 512), compression_opts=None):
@@ -298,26 +302,94 @@ def write_dataframe(df, dset_name, group, compression='lzf', title='Table',
         A `dict` of key, value items to be attached as attributes
         to the `Table` dataset.
     """
-    # check for object types, for now write fixed length strings
+    # get the name and datatypes for the indices, and columns
+    # check for object types, for now write fixed length strings,
+    # datetime objects can come later
+    # None names will be converted to 'level_{n}' for n in range(names)
     dtype = []
+    idx_names = []
+    default_label = 'level_{}'
+
+    # index datatypes
+    for i, idx_name in enumerate(df.index.names):
+        idx_data = df.index.get_level_values(i)
+        if idx_name is None:
+            idx_name = default_label.format(i)
+        idx_names.append(idx_name)
+        if idx_data.dtype == object:
+            dtype.append((idx_name, _fixed_str_size(idx_data)))
+        else:
+            dtype.append((idx_name, idx_data.dtype))
+
+    # column datatypes
     for i, val in enumerate(df.dtypes):
         if val == object:
-            str_sz = len(df[df.columns[i]].max())
-            dtype.append((df.columns[i], '|S{}'.format(str_sz)))
+            dtype.append((df.columns[i], _fixed_str_size(df[df.columns[i]])))
         else:
             dtype.append((df.columns[i], val))
 
     dtype = numpy.dtype(dtype)
 
     kwargs = dataset_compression_kwargs(compression=compression, chunks=True)
-    kwargs['shape'] = df.shape[0]
+    kwargs['shape'] = (df.shape[0],)
     kwargs['dtype'] = dtype
     dset = group.create_dataset(dset_name, **kwargs)
 
+    # write the data
+    # index data
+    for i, idx_name in enumerate(idx_names):
+        dset[idx_name] = df.index.get_level_values(i).values
+
+    # column data
     for col in df.columns:
         dset[col] = df[col].values
 
-    attach_table_attributes(dset, title=title, attrs=attrs)
+    # we need to attach some internal metadata as attributes
+    if attrs is None:
+        attributes = {}
+    else:
+        attrs.copy()
+
+    # insert some basic metadata
+    attributes['index_names'] = idx_names
+    attributes['metadata'] = ('`Pandas.DataFrame` converted to HDF5 compound '
+                              'datatype.')
+    attach_table_attributes(dset, title=title, attrs=attributes)
+
+
+def read_table(fid, dataset_name, dataframe=True):
+    """
+    Read a HDF5 `TABLE` as a `pandas.DataFrame`.
+
+    :param fid:
+        A h5py `Group` or `File` object from which to write the
+        dataset from.
+
+    :param dataset_name:
+        A `str` containing the pathname of the dataset location.
+
+    :param dataframe:
+        A `bool` indicating whether to return as a `pandas.DataFrame`
+        or as NumPy structured array. Default is True
+        which is to return as a `pandas.DataFrame`.
+
+    :return:
+        Either a `pandas.DataFrame` (Default) or a NumPy structured
+        array.
+    """
+    dset = fid[dataset_name]
+    idx_names = None
+
+    # grab the index names if we have them
+    if 'index_names' in dset.attrs:
+        idx_names = dset.attrs['index_names']
+
+    if dataframe:
+        data = pandas.DataFrame.from_records(dset[:], index=idx_names)
+    else:
+        data = dset[:]
+
+    return data
 
 
 def attach_attributes(dataset, attrs=None):
