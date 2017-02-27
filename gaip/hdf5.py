@@ -306,6 +306,7 @@ def write_dataframe(df, dset_name, group, compression='lzf', title='Table',
     # check for object types, for now write fixed length strings,
     # datetime objects can come later
     # None names will be converted to 'level_{n}' for n in range(names)
+    # Ensure that any numeric name is converted to bytes
     dtype = []
     idx_names = []
     default_label = 'level_{}'
@@ -315,6 +316,7 @@ def write_dataframe(df, dset_name, group, compression='lzf', title='Table',
         idx_data = df.index.get_level_values(i)
         if idx_name is None:
             idx_name = default_label.format(i)
+        idx_name = bytes(idx_name)
         idx_names.append(idx_name)
         if idx_data.dtype == object:
             dtype.append((idx_name, _fixed_str_size(idx_data)))
@@ -323,10 +325,11 @@ def write_dataframe(df, dset_name, group, compression='lzf', title='Table',
 
     # column datatypes
     for i, val in enumerate(df.dtypes):
+        col_name = bytes(df.columns[i])
         if val == object:
-            dtype.append((df.columns[i], _fixed_str_size(df[df.columns[i]])))
+            dtype.append((col_name, _fixed_str_size(df[df.columns[i]])))
         else:
-            dtype.append((df.columns[i], val))
+            dtype.append((col_name, val))
 
     dtype = numpy.dtype(dtype)
 
