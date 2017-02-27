@@ -4,7 +4,7 @@ MODTRAN drivers
 
 """
 import os
-from os.path import join as pjoin, exists, abspath, dirname, basename, splitext
+from os.path import join as pjoin, exists, dirname, basename, splitext
 from posixpath import join as ppjoin
 import subprocess
 import glob
@@ -122,7 +122,10 @@ def _format_tp5(acquisition, satellite_solar_angles_fname,
 def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
                lat_dataset, lon_dataset, ozone, vapour, aerosol, elevation,
                npoints, albedos):
-    """Creates str formatted tp5 files for the albedo (0, 1) and transmittance (t)."""
+    """
+    Creates str formatted tp5 files for the albedo (0, 1) and
+    transmittance (t).
+    """
     geobox = acquisition.gridded_geo_box()
     filter_file = acquisition.spectral_filter_file
     cdate = acquisition.scene_centre_date
@@ -210,10 +213,10 @@ def _run_modtran(modtran_exe, workpath, point, albedo, out_fname,
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    fid = run_modtran(modtran_exe, workpath, point, albedo, out_fname,
-                      compression)
+    rfid = run_modtran(modtran_exe, workpath, point, albedo, out_fname,
+                       compression)
 
-    fid.close()
+    rfid.close()
     return
         
 
@@ -265,14 +268,13 @@ def run_modtran(modtran_exe, workpath, point, albedo, out_fname=None,
     return fid
 
 
-def _calculate_coefficients(accumulated_fname, channel_fname, npoints,
-                            out_fname, compression='lzf'):
+def _calculate_coefficients(accumulated_fname, npoints, out_fname,
+                            compression='lzf'):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    with h5py.File(accumulated_fname, 'r') as fid1,\
-        h5py.File(channel_fname, 'r') as fid2:
+    with h5py.File(accumulated_fname, 'r') as fid:
 
         # initialise dicts to hold the data for each point
         accumulation_albedo_0 = {}
@@ -285,17 +287,17 @@ def _calculate_coefficients(accumulated_fname, channel_fname, npoints,
             albedo_1_path = ppjoin(point, '1', 'solar-irradiance')
             albedo_t_path = ppjoin(point, 't', 'solar-irradiance')
             channel_path = ppjoin(point, '0', 'channel')
-            accumulation_albedo_0[point] = read_table(fid1, albedo_0_path)
-            accumulation_albedo_1[point] = read_table(fid1, albedo_1_path)
-            accumulation_albedo_t[point] = read_table(fid1, albedo_t_path)
-            channel_data[point] = read_table(fid2, channel_path)
+            accumulation_albedo_0[point] = read_table(fid, albedo_0_path)
+            accumulation_albedo_1[point] = read_table(fid, albedo_1_path)
+            accumulation_albedo_t[point] = read_table(fid, albedo_t_path)
+            channel_data[point] = read_table(fid, channel_path)
         
-        fid = calculate_coefficients(accumulation_albedo_0,
-                                     accumulation_albedo_1,
-                                     accumulation_albedo_t, channel_data,
-                                     npoints, out_fname, compression)
+        rfid = calculate_coefficients(accumulation_albedo_0,
+                                      accumulation_albedo_1,
+                                      accumulation_albedo_t, channel_data,
+                                      npoints, out_fname, compression)
 
-    fid.close()
+    rfid.close()
     return
         
 
@@ -391,8 +393,7 @@ def calculate_coefficients(accumulation_albedo_0, accumulation_albedo_1,
         ts_dir = dir_0 / dir0_top
         tv_dir = dir_t / dirt_top
 
-        columns = ['band',
-                   'fs',
+        factors = ['fs',
                    'fv',
                    'a',
                    'b',
@@ -400,7 +401,7 @@ def calculate_coefficients(accumulation_albedo_0, accumulation_albedo_1,
                    'dir',
                    'dif',
                    'ts']
-        df = pd.DataFrame(columns=columns, index=data1.index)
+        df = pd.DataFrame(columns=factors, index=data1.index)
 
         df['fs'] = ts_dir / ts_total
         df['fv'] = tv_dir / tv_total
@@ -425,8 +426,6 @@ def calculate_coefficients(accumulation_albedo_0, accumulation_albedo_1,
     MM, MR, BM, BR
     """
 
-    factors = columns[1:]
-
     result2 = {}
     groups = result.groupby(result.index.get_level_values('band_id'))
     for bn, grp in groups:
@@ -448,10 +447,10 @@ def calculate_coefficients(accumulation_albedo_0, accumulation_albedo_1,
                   grp.ix[(points[7], bn)][factor],
                   grp.ix[(points[8], bn)][factor]]
 
-            sdata = {'s1': s1, 's2': s2, 's3': s3, 's4': s4}
-            df_reformat = pd.DataFrame(sdata)
-
-            result2[(bn, factor)] = df_reformat
+            result2[(bn, factor)] = pd.DataFrame({'s1': s1,
+                                                  's2': s2,
+                                                  's3': s3,
+                                                  's4': s4})
 
     result2 = pd.concat(result2, names=['band_id', 'factor'])
 
@@ -491,17 +490,17 @@ def _bilinear_interpolate(acq, factor, sat_sol_angles_fname,
     with h5py.File(sat_sol_angles_fname, 'r') as sat_sol,\
         h5py.File(coefficients_fname, 'r') as coef:
 
+        # read the relevant tables into DataFrames
         coord_dset = read_table(sat_sol, 'coordinator')
         centre_dset = read_table(sat_sol, 'centreline')
         box_dset = read_table(sat_sol, 'boxline')
-
         coef_dset = read_table(coef, 'coefficients-format-2')
 
-        fid = bilinear_interpolate(acq, factor, coord_dset, box_dset,
-                                   centre_dset, coef_dset, out_fname,
-                                   compression)
+        rfid = bilinear_interpolate(acq, factor, coord_dset, box_dset,
+                                    centre_dset, coef_dset, out_fname,
+                                    compression)
 
-    fid.close()
+    rfid.close()
     return
 
 
@@ -720,13 +719,18 @@ def _calculate_solar_radiation(flux_fnames, response_fname, out_fname,
 
     with h5py.File(out_fname, 'w') as fid:
         for key in flux_fnames:
+            flux_fname = flux_fnames[key]
             point, albedo = [bytes(k) for k in key]
             transmittance = True if albedo == 't' else False
             flux_dataset_name = ppjoin(point, albedo, 'flux')
             atmos_dataset_name = ppjoin(point, albedo, 'altitudes')
+            channel_dname = ppjoin(point, albedo, 'channel')
+
+            # link in the channel data for later easy access
+            fid[channel_dname] = h5py.ExternalLink(flux_fname, channel_dname)
 
             # retrieve the flux data and the number of atmospheric levels
-            with h5py.File(flux_fnames[key], 'r') as fid2:
+            with h5py.File(flux_fname, 'r') as fid2:
                 flux_data = read_table(fid2, flux_dataset_name)
                 levels = fid2[atmos_dataset_name].attrs['altitude levels']
 
