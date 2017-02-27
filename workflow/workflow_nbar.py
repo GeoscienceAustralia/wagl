@@ -10,13 +10,8 @@ Workflow settings can be configured in `nbar.cfg` file.
 # pylint: disable=too-many-locals
 
 from os.path import join as pjoin, basename, dirname, splitext
-import shutil
 import luigi
 from luigi.util import inherits, requires
-from pathlib import Path
-from eodatasets.run import package_newly_processed_data_folder
-from eodatasets.drivers import PACKAGE_DRIVERS
-from eodatasets import type as ptype
 import gaip
 from gaip import acquisitions
 
@@ -270,6 +265,8 @@ class AccumulateSolarIrradiance(luigi.Task):
 
     def run(self):
         # TODO: have filter functions within gaip code
+        acqs = acquisitions(self.level1).get_acquisitions(self.group,
+                                                          self.granule)
         satfilterpath = '/g/data/v10/eoancillarydata/lookup_tables/satellite_filter'
         response_fname = pjoin(satfilterpath, acqs[0].spectral_filter_file)
 
@@ -294,13 +291,10 @@ class CalculateCoefficients(luigi.Task):
                
 
     def run(self):
-        chn_input_fmt = '{coord}/alb_{albedo}/{coord}_alb_{albedo}.chn'
         accumulated_fname = self.input().path
 
-        # TODO: re-wire in the accumulated_fname rather than the dir_input_fmt
         with self.output().temporary_path() as out_fname:
-            gaip._calculate_coefficients(self.npoints, chn_input_fmt,
-                                         accumulated_fname, self.base_dir,
+            gaip._calculate_coefficients(accumulated_fname, self.npoints,
                                          out_fname, self.compression)
 
 
