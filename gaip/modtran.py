@@ -12,13 +12,14 @@ import glob
 import numpy
 from scipy.io import FortranFile
 import h5py
-import pandas
+import pandas as pd
 import gaip
 from gaip import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
 from gaip import MIDLAT_SUMMER_TRANSMITTANCE, TROPICAL_TRANSMITTANCE
 from gaip import dataset_compression_kwargs
 from gaip import write_h5_image
 from gaip import write_dataframe
+from gaip import read_table
 
 
 def create_modtran_dirs(coords, albedos, modtran_root, modtran_exe_root,
@@ -226,8 +227,9 @@ def run_modtran(modtran_exe, workpath, point, albedo, out_fname=None,
     chn_fname = glob.glob(pjoin(workpath, '*.chn'))[0]
 
     flux_data, altitudes = read_modtran_flux(flux_fname)
-    chn_data = pandas.read_csv(chn_fname, skiprows=5, header=None,
-                               delim_whitespace=True)
+
+    # read the channel file
+    channel_data = read_modtran_channel(chn_fname)
 
     # initial attributes
     attrs = {'Point': point, 'Albedo': albedo}
@@ -238,6 +240,10 @@ def run_modtran(modtran_exe, workpath, point, albedo, out_fname=None,
                         backing_store=False)
     else:
         fid = h5py.File(out_fname, 'w')
+
+    # convert any probable non str to bytes
+    point = bytes(point)
+    albedo = bytes(albedo)
 
     # ouput the flux data
     dset_name = ppjoin(point, albedo, 'flux')
@@ -267,15 +273,34 @@ def _calculate_coefficients(accumulated_fname, channel_fname, npoints,
     """
     with h5py.File(accumulated_fname, 'r') as fid1,\
         h5py.File(channel_fname, 'r') as fid2:
+
+        # initialise dicts to hold the data for each point
+        accumulation_albedo_0 = {}
+        accumulation_albedo_1 = {}
+        accumulation_albedo_t = {}
+        channel_data = {}
+
+        for point in [bytes(p) for p in range(npoints)]:
+            albedo_0_path = ppjoin(point, '0', 'solar-irradiance')
+            albedo_1_path = ppjoin(point, '1', 'solar-irradiance')
+            albedo_t_path = ppjoin(point, 't', 'solar-irradiance')
+            channel_path = ppjoin(point, '0', 'channel')
+            accumulation_albedo_0[point] = read_table(fid1, albedo_0_path)
+            accumulation_albedo_1[point] = read_table(fid1, albedo_1_path)
+            accumulation_albedo_t[point] = read_table(fid1, albedo_t_path)
+            channel_data[point] = read_table(fid2, channel_path)
         
-        fid = calculate_coefficients(fid1, fid2, npoints, out_fname,
-                                     compression)
+        fid = calculate_coefficients(accumulation_albedo_0,
+                                     accumulation_albedo_1,
+                                     accumulation_albedo_t, channel_data,
+                                     npoints, out_fname, compression)
 
     fid.close()
     return
         
 
-def calculate_coefficients(accumulation_fid, channel_fid, npoints,
+def calculate_coefficients(accumulation_albedo_0, accumulation_albedo_1,
+                           accumulation_albedo_t, channel_data, npoints,
                            out_fname=None, compression='lzf'):
     """
     Calculate the atmospheric coefficients from the MODTRAN output
@@ -284,15 +309,30 @@ def calculate_coefficients(accumulation_fid, channel_fid, npoints,
     for each factor.  The factors are:
     ['fs', 'fv', 'a', 'b', 's', 'dir', 'dif', 'ts'].
 
-    :param accumulation_fid:
-        An opened `h5py.File` containing the accumulated solor
-        irradiance, and formatted in the style return by the
-        `calculate_solar_radiation` function.
+    :param accumulation_albedo_0:
+        A `dict` containing [bytes(p) for p in range(npoints)] as the
+        keys, and the values a `pandas.DataFrame` containing the
+        solar accumulated irradiance (for albedo 0) and structured as
+        returned by the `calculate_solar_radiation` function.
 
-    :param channel_fid:
-        An opened `h5py.File` containing the channel output from
-        MODTRAN, and formatted in the style returned by the
-        `run_modtran` function.
+    :param accumulation_albedo_1:
+        A `dict` containing [bytes(p) for p in range(npoints)] as the
+        keys, and the values a `pandas.DataFrame` containing the
+        solar accumulated irradiance (for albedo 1) and structured as
+        returned by the `calculate_solar_radiation` function.
+
+    :param accumulation_albedo_t:
+        A `dict` containing [bytes(p) for p in range(npoints)] as the
+        keys, and the values a `pandas.DataFrame` containing the
+        solar accumulated irradiance (for albeod t; transmittance)
+        and structured as returned by the `calculate_solar_radiation`
+        function.
+
+    :param channel_data:
+        A `dict` containing [bytes(p) for p in range(npoints)] as the
+        keys, and the values a `pandas.DataFrame` containing the
+        channel data for that point, and structured as
+        returned by the `read_modtran_channel` function.
 
     :param npoints:
         An integer containing the number of location points over
@@ -317,40 +357,26 @@ def calculate_coefficients(accumulation_fid, channel_fid, npoints,
     :return:
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
+
+        2 datasets of the HDF5 TABLE format, named:
+
+        * coefficients-format-1
+        * coefficients-format-2
     """
     result = {}
-    for point in [str(i) for i in range(npoints)]:
+    points = [bytes(p) for p in range(npoints)]
+    for point in points:
         # MODTRAN channel output .chn file (albedo 0)
-        dset_name = ppjoin(point, '0', 'channel')
-        data1 = pandas.DataFrame(channel_fid[dset_name][:])
+        data1 = channel_data[point]
 
         # solar radiation file (albedo 0)
-        dset_name = ppjoin(point, '0', 'solar-irradiance')
-        data3 = pandas.DataFrame(accumulation_fid[dset_name][:])
+        data3 = accumulation_albedo_0[point]
 
         # solar radiation file (albedo 1)
-        dset_name = ppjoin(point, '1', 'solar-irradiance')
-        data4 = pandas.DataFrame(accumulation_fid[dset_name][:])
+        data4 = accumulation_albedo_1[point]
 
         # solar radiation file (transmittance mode)
-        dset_name = ppjoin(point, 't', 'solar-irradiance')
-        data5 = pandas.DataFrame(accumulation_fid[dset_name][:])
-
-        # set the index to be the band name
-        # we didn't write the index out previously as we'll try to keep
-        # the same format so Fuqin can use it within her code
-        data3.set_index('band', inplace=True, drop=False)
-        data4.set_index('band', inplace=True, drop=False)
-        data5.set_index('band', inplace=True, drop=False)
-
-        # MODTRAN output .chn file (albedo 0)
-        data1 = pandas.read_csv(fname1, skiprows=5, header=None,
-                                delim_whitespace=True, nrows=data3.shape[0])
-
-        fmt = 'BAND {}'
-        band_idx = [fmt.format(val) for key, val in data1[21].iteritems()]
-        data1['band'] = band_idx
-        data1.set_index('band', inplace=True, drop=False)
+        data5 = accumulation_albedo_t[point]
 
         # calculate
         diff_0 = data3['diffuse'] * 10000000.0
@@ -374,9 +400,8 @@ def calculate_coefficients(accumulation_fid, channel_fid, npoints,
                    'dir',
                    'dif',
                    'ts']
-        df = pandas.DataFrame(columns=columns, index=band_idx)
+        df = pd.DataFrame(columns=columns, index=data1.index)
 
-        df['band'] = data1[21]
         df['fs'] = ts_dir / ts_total
         df['fv'] = tv_dir / tv_total
         df['a'] = (diff_0 + dir_0) / numpy.pi * tv_total
@@ -388,13 +413,8 @@ def calculate_coefficients(accumulation_fid, channel_fid, npoints,
 
         result[point] = df
 
-    # set the band numbers as a searchable index
-    for key in result:
-        result[key].set_index('band', inplace=True, drop=False)
-
-    # combine all results into a single pandas.DataFrame
-    df = pandas.concat(result)
-    groups = df.groupby('band')
+    # combine all results into a single pd.DataFrame
+    result = pd.concat(result, names=['point'])
 
     # reformat the derived coefficients into another format layout
     # specifically a 4x4 layout, for each factor, for each band
@@ -408,38 +428,32 @@ def calculate_coefficients(accumulation_fid, channel_fid, npoints,
     factors = columns[1:]
 
     result2 = {}
+    groups = result.groupby(result.index.get_level_values('band_id'))
     for bn, grp in groups:
         for factor in factors:
-            s1 = [grp.ix[('TL', bn)][factor],
-                  grp.ix[('TM', bn)][factor],
-                  grp.ix[('ML', bn)][factor],
-                  grp.ix[('MM', bn)][factor]]
-            s2 = [grp.ix[('TM', bn)][factor],
-                  grp.ix[('TR', bn)][factor],
-                  grp.ix[('MM', bn)][factor],
-                  grp.ix[('MR', bn)][factor]]
-            s3 = [grp.ix[('ML', bn)][factor],
-                  grp.ix[('MM', bn)][factor],
-                  grp.ix[('BL', bn)][factor],
-                  grp.ix[('BM', bn)][factor]]
-            s4 = [grp.ix[('MM', bn)][factor],
-                  grp.ix[('MR', bn)][factor],
-                  grp.ix[('BM', bn)][factor],
-                  grp.ix[('BR', bn)][factor]]
+            s1 = [grp.ix[(points[0], bn)][factor],
+                  grp.ix[(points[1], bn)][factor],
+                  grp.ix[(points[3], bn)][factor],
+                  grp.ix[(points[4], bn)][factor]]
+            s2 = [grp.ix[(points[1], bn)][factor],
+                  grp.ix[(points[2], bn)][factor],
+                  grp.ix[(points[4], bn)][factor],
+                  grp.ix[(points[5], bn)][factor]]
+            s3 = [grp.ix[(points[3], bn)][factor],
+                  grp.ix[(points[4], bn)][factor],
+                  grp.ix[(points[6], bn)][factor],
+                  grp.ix[(points[7], bn)][factor]]
+            s4 = [grp.ix[(points[4], bn)][factor],
+                  grp.ix[(points[5], bn)][factor],
+                  grp.ix[(points[7], bn)][factor],
+                  grp.ix[(points[8], bn)][factor]]
 
             sdata = {'s1': s1, 's2': s2, 's3': s3, 's4': s4}
-            df_reformat = pandas.DataFrame(sdata)
+            df_reformat = pd.DataFrame(sdata)
 
             result2[(bn, factor)] = df_reformat
 
-    # re-create basic single index tables
-    result = pandas.concat(result, names=['coordinate', 'band'])
-    result.reset_index(level='coordinate')
-    result.reset_index(inplace=True)
-
-    result2 = pandas.concat(result2, names=['band_number', 'factor'])
-    result2.reset_index(level=['band_number', 'factor'], inplace=True)
-    result2.reset_index(inplace=True)
+    result2 = pd.concat(result2, names=['band_id', 'factor'])
 
     attrs1 = {}
     attrs1['Description'] = ("Coefficients derived from the "
@@ -448,12 +462,12 @@ def calculate_coefficients(accumulation_fid, channel_fid, npoints,
     attrs2['Description'] = ("Coefficients derived from the "
                              "accumulated solar irradiation, and formatted "
                              "into a 4x4 grid per MODTRAN factor.")
-    attrs2['Grid Layout'] = ("TL, TM, ML, MM\n"
-                             "TM, TR, MM, MR\n"
-                             "ML, MM, BL, BM\n"
-                             "MM, MR, BM, BR")
+    attrs2['Grid Layout'] = ("0, 1, 3, 4\n"
+                             "1, 2, 4, 5\n"
+                             "3, 4, 6, 7\n"
+                             "4, 5, 7, 8")
 
-    # Initialise the output files
+    # Initialise the output file
     if out_fname is None:
         fid = h5py.File('coefficients.h5', driver='core',
                         backing_store=False)
@@ -474,23 +488,17 @@ def _bilinear_interpolate(acq, factor, sat_sol_angles_fname,
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    band = acq.band_num
-    geobox = acq.gridded_geo_box()
-
     with h5py.File(sat_sol_angles_fname, 'r') as sat_sol,\
         h5py.File(coefficients_fname, 'r') as coef:
 
-        coord_dset = sat_sol['coordinator']
-        centre_dset = sat_sol['centreline']
-        box_dset = sat_sol['boxline']
+        coord_dset = read_table(sat_sol, 'coordinator')
+        centre_dset = read_table(sat_sol, 'centreline')
+        box_dset = read_table(sat_sol, 'boxline')
 
-        coef_dset = coef['coefficients_format_2']
-        wh = ((coef_dset['band_number'] == band) &
-              (coef_dset['factor'] == factor))
-        coefficients = pandas.DataFrame(coef_dset[wh])
+        coef_dset = read_table(coef, 'coefficients-format-2')
 
         fid = bilinear_interpolate(acq, factor, coord_dset, box_dset,
-                                   centre_dset, coefficients, out_fname,
+                                   centre_dset, coef_dset, out_fname,
                                    compression)
 
     fid.close()
@@ -499,27 +507,31 @@ def _bilinear_interpolate(acq, factor, sat_sol_angles_fname,
 
 def bilinear_interpolate(acq, factor, coordinator_dataset, boxline_dataset,
                          centreline_dataset, coefficients, out_fname=None,
-                          compression='lzf'):
+                         compression='lzf'):
+    # TODO: more docstrings
     """Perform bilinear interpolation."""
     geobox = acq.gridded_geo_box()
     cols, rows = geobox.get_shape_xy()
 
     coord = numpy.zeros((9, 2), dtype='int')
-    coord[:, 0] = coordinator_dataset['row_index'][:]
-    coord[:, 1] = coordinator_dataset['col_index'][:]
-    centre = boxline_dataset['bisection'][:]
-    start = boxline_dataset['start'][:]
-    end = boxline_dataset['end'][:]
+    coord[:, 0] = coordinator_dataset.row_index.values
+    coord[:, 1] = coordinator_dataset.col_index.values
+    centre = boxline_dataset.bisection.values
+    start = boxline_dataset.start.values
+    end = boxline_dataset.end.values
 
     # get the individual atmospheric components
-    s1 = coefficients['s1'][:]
-    s2 = coefficients['s2'][:]
-    s3 = coefficients['s3'][:]
-    s4 = coefficients['s4'][:]
+    band = acq.band_num
+    key = ('BAND {}'.format(band), factor)
+    coef_subs = coefficients.loc[key]
+    s1 = coef_subs.s1.values
+    s2 = coef_subs.s2.values
+    s3 = coef_subs.s3.values
+    s4 = coef_subs.s4.values
 
-    res = numpy.zeros((rows, cols), dtype='float32')
+    result = numpy.zeros((rows, cols), dtype='float32')
     gaip.bilinear(cols, rows, coord, s1, s2, s3, s4, start, end,
-                  centre, res.transpose())
+                  centre, result.transpose())
 
     # Initialise the output files
     if out_fname is None:
@@ -539,7 +551,7 @@ def bilinear_interpolate(acq, factor, coordinator_dataset, boxline_dataset,
     desc = ("Contains the bi-linearly interpolated result of factor {}"
             "for band {} from sensor {}.")
     attrs['Description'] = desc.format(factor, band, acq.satellite_name)
-    write_h5_image(data, dset_name, fid, attrs, **kwargs)
+    write_h5_image(result, dset_name, fid, attrs, **kwargs)
 
     return fid
 
@@ -553,7 +565,7 @@ def read_spectral_response(fname):
         A `str` containing the full file path name.
 
     :return:
-        A `pandas.DataFrame` containing the spectral response
+        A `pd.DataFrame` containing the spectral response
         function.
     """
     # open the text file
@@ -573,31 +585,32 @@ def read_spectral_response(fname):
     for i, idx in enumerate(ids[0:-1]):
         data = numpy.array([l.split('  ') for l in lines[idx+1:ids[i+1]]],
                            dtype='float')
-        df = pandas.DataFrame({'band_description': lines[idx],
-                               'wavelength': data[:, 0],
-                               'response': data[:, 1]})
+        df = pd.DataFrame({'band_id': lines[idx],
+                           'wavelength': data[:, 0],
+                           'response': data[:, 1]})
         response[lines[idx]] = df
 
     # get spectral response data for band n
     idx = ids[-1]
     data = numpy.array([l.split('  ') for l in lines[idx+1:]], dtype='float')
-    df = pandas.DataFrame({'band_description': lines[idx],
-                           'wavelength': data[:, 0],
-                           'response': data[:, 1]})
+    df = pd.DataFrame({'band_id': lines[idx],
+                       'wavelength': data[:, 0],
+                       'response': data[:, 1]})
     response[lines[idx]] = df
 
     wavelengths = range(2600, 349, -1)
     for band in response:
-        base_df = pandas.DataFrame({'wavelength': wavelengths,
-                                    'response': 0.0,
-                                    'band_description': band},
-                                   index=wavelengths)
+        base_df = pd.DataFrame({'wavelength': wavelengths,
+                                'response': 0.0,
+                                'band_id': band},
+                               index=wavelengths)
         df = response[band]
         base_df.ix[df['wavelength'], 'response'] = df['response'].values
 
         response[band] = base_df
 
-    spectral_response = pandas.concat(response)
+    spectral_response = pd.concat(response, names=['band_id', 'wavelength'])
+    spectral_response.drop(['band_id', 'wavelength'], inplace=True, axis=1)
 
     return spectral_response
 
@@ -627,8 +640,7 @@ def read_modtran_flux(fname):
                              ('ifwhm', 'float32')])
 
     # datatype for the dataframe containing the flux data
-    flux_dtype = numpy.dtype([#('wavelength', 'float64'),
-                              ('upward_diffuse', 'float64'),
+    flux_dtype = numpy.dtype([('upward_diffuse', 'float64'),
                               ('downward_diffuse', 'float64'),
                               ('direct_solar', 'float64')])
 
@@ -657,7 +669,7 @@ def read_modtran_flux(fname):
         wavelength_steps = range(2600, 349, -1)
         for wv in wavelength_steps:
             data = ffile.read_record(dtype)
-            df = pandas.DataFrame(numpy.zeros(levels, dtype=flux_dtype))
+            df = pd.DataFrame(numpy.zeros(levels, dtype=flux_dtype))
             #df['wavelength'] = data['wavelength'][0]
             df['upward_diffuse'] = data['flux_data'].squeeze()[:, 0]
             df['downward_diffuse'] = data['flux_data'].squeeze()[:, 1]
@@ -665,9 +677,34 @@ def read_modtran_flux(fname):
             flux[wv] = df
 
     # concatenate into a single table
-    flux_data = pandas.concat(flux, names=['wavelength', 'level'])
+    flux_data = pd.concat(flux, names=['wavelength', 'level'])
+
+    # setup a dataframe for the altitude
+    altitude = pd.DataFrame({'altitude': altitude})
+    altitude.index.name = 'layer'
 
     return flux_data, altitude
+
+
+def read_modtran_channel(fname):
+    """
+    Read a MODTRAN output `*.chn` ascii file.
+
+    :param fname:
+        A `str` containing the full file pathname of the channel
+        data file.
+
+    :return:
+        A `pandas.DataFrame` containing the channel data, and index
+        by the `band_id`.
+    """
+    chn_data = pd.read_csv(fname, skiprows=5, header=None,
+                           delim_whitespace=True)
+    chn_data['band_id'] = chn_data[20] + ' ' + chn_data[21].astype(str)
+    chn_data.drop([20, 21], inplace=True, axis=1)
+    chn_data.set_index('band_id', inplace=True)
+
+    return chn_data
 
 
 def _calculate_solar_radiation(flux_fnames, response_fname, out_fname,
@@ -678,36 +715,36 @@ def _calculate_solar_radiation(flux_fnames, response_fname, out_fname,
     """
     description = ("Accumulated solar irradiation for point {} "
                    "and albedo {}.")
+
+    spectral_response = read_spectral_response(response_fname)
+
     with h5py.File(out_fname, 'w') as fid:
         for key in flux_fnames:
-            point, albedo = key
+            point, albedo = [bytes(k) for k in key]
             transmittance = True if albedo == 't' else False
-            flux_dset_name = ppjoin(point, albedo, 'flux')
-            atmos_dset_name = ppjoin(point, albedo, 'altitudes')
+            flux_dataset_name = ppjoin(point, albedo, 'flux')
+            atmos_dataset_name = ppjoin(point, albedo, 'altitudes')
 
             # retrieve the flux data and the number of atmospheric levels
             with h5py.File(flux_fnames[key], 'r') as fid2:
-                flux_data = pandas.DataFrame(fid2[flux_dset_name][:])
-                flux_data.set_index(['wavelength', flux_data.index],
-                                    drop=False, inplace=True)
-                levels = fid2[atmos_dset_name].attrs['altitude levels']
+                flux_data = read_table(fid2, flux_dataset_name)
+                levels = fid2[atmos_dataset_name].attrs['altitude levels']
 
             # accumulate solar irradiance
-            df = calculate_solar_radiation(flux_data, response_fname, levels,
-                                           transmittance)
+            df = calculate_solar_radiation(flux_data, spectral_response,
+                                           levels, transmittance)
 
             # output
-            dset_name = ppjoin(point, albedo, 'solar-irradiance')
+            dataset_name = ppjoin(point, albedo, 'solar-irradiance')
             attrs = {'Description': description.format(point, albedo),
                      'Point': point,
                      'Albedo': albedo}
-            write_dataframe(df, dset_name, fid, compression, attrs=attrs)
+            write_dataframe(df, dataset_name, fid, compression, attrs=attrs)
 
     return
 
 
-# TODO: write to in-memory hdf5, return and copy
-def calculate_solar_radiation(flux_data, response_fname, levels=36,
+def calculate_solar_radiation(flux_data, spectral_response, levels=36,
                               transmittance=False):
     """
     Retreive the flux data from the MODTRAN output `*.flx`, and
@@ -717,15 +754,16 @@ def calculate_solar_radiation(flux_data, response_fname, levels=36,
     contained within the spectral response dataset.
 
     :param flux_data:
-        A `pandas.DataFrame` formatted as such read from the
+        A `pandas.DataFrame` structured as if read from the
         `read_modtran_flux` function.
+
+    :param spectral_response:
+        A `pandas.DataFrame` containing the spectral response
+        and structured as if read from the `read_spectral_response`
+        function.
 
     :param levels:
         The number of atmospheric levels. Default is 36.
-
-    :param response_fname:
-        A `str` containing the full file path name of the spectral
-        response dataset.
 
     :param transmittance:
         If set to `True`, then calculate the solar radiation in
@@ -735,61 +773,60 @@ def calculate_solar_radiation(flux_data, response_fname, levels=36,
         A `pandas.DataFrame` containing the solar radiation
         accumulation.
     """
-    # read the spectral response dataset
-    response = read_spectral_response(response_fname)
-
     # index location of the top atmospheric level
     idx = levels - 1
 
     # group via the available bands
-    groups = response.groupby('band_description')
+    band_index = spectral_response.index.get_level_values('band_id')
+    groups = spectral_response.groupby(band_index)
 
     # output dataframe
     # later on the process can be refined to only evaluate the bands
     # we wish to process
     if transmittance:
-        columns = ['band',
-                   'diffuse',
+        columns = ['diffuse',
                    'direct',
-                   'diffusetop',
-                   'directtop',
+                   'diffuse_top',
+                   'direct_top',
                    'transmittance']
     else:
-        columns = ['band',
-                   'diffuse',
-                   'direct',
-                   'directtop']
-    df = pandas.DataFrame(columns=columns, index=groups.groups.keys())
+        columns = ['diffuse', 'direct', 'direct_top']
+    df = pd.DataFrame(columns=columns, index=groups.groups.keys(),
+                      dtype='float64')
+
+    # start wavelength and end wavelength, eg 2600 & 350 respectively
+    st_wl = spectral_response.index[0][1]
+    ed_wl = spectral_response.index[-1][1]
 
     # indices for flux at bottom and top of atmosphere layers
-    wv_idx = range(2599, 350, -1)
+    wv_idx = range(st_wl - 1, ed_wl - 1, -1)
     wv_idx2 = [(i, 0) for i in wv_idx]
     wv_idx3 = [(i, idx) for i in wv_idx]
 
     # loop over each band and get the solar radiation
     for band, grp in groups:
-        df.ix[band, 'band'] = band
+        # df.ix[band, 'band_id'] = band
 
         # downward diffuse at bottom of atmospheric levels
-        diffuse_bottom = (grp.ix[band, 2600]['response'] *
-                          flux_data.ix[2600, 'downward_diffuse'][0] +
-                          grp.ix[band, 350]['response'] *
-                          flux_data.ix[350, 'downward_diffuse'][0]) / 2
+        diffuse_bottom = (grp.ix[band, st_wl]['response'] *
+                          flux_data.ix[st_wl, 'downward_diffuse'][0] +
+                          grp.ix[band, ed_wl]['response'] *
+                          flux_data.ix[ed_wl, 'downward_diffuse'][0]) / 2
 
         # direct solar at bottom of atmospheric levels
-        direct_bottom = (grp.ix[band, 2600]['response'] *
-                         flux_data.ix[2600, 'direct_solar'][0] +
-                         grp.ix[band, 350]['response'] *
-                         flux_data.ix[350, 'direct_solar'][0]) / 2
+        direct_bottom = (grp.ix[band, st_wl]['response'] *
+                         flux_data.ix[st_wl, 'direct_solar'][0] +
+                         grp.ix[band, ed_wl]['response'] *
+                         flux_data.ix[ed_wl, 'direct_solar'][0]) / 2
 
         # direct solar at top of atmospheric levels
-        direct_top = (grp.ix[band, 2600]['response'] *
-                      flux_data.ix[2600, 'direct_solar'][idx] +
-                      grp.ix[band, 350]['response'] *
-                      flux_data.ix[350, 'direct_solar'][idx]) / 2
+        direct_top = (grp.ix[band, st_wl]['response'] *
+                      flux_data.ix[st_wl, 'direct_solar'][idx] +
+                      grp.ix[band, ed_wl]['response'] *
+                      flux_data.ix[ed_wl, 'direct_solar'][idx]) / 2
 
-        response_sum = (grp.ix[band, 2600]['response'] +
-                        grp.ix[band, 350]['response']) / 2
+        response_sum = (grp.ix[band, st_wl]['response'] +
+                        grp.ix[band, ed_wl]['response']) / 2
 
         # Fuqin's code now loops over each wavelength, in -1 decrements
         # we'll use indices rather than a loop
@@ -807,22 +844,23 @@ def calculate_solar_radiation(flux_data, response_fname, levels=36,
 
         # direct solar at top of atmospheric levels
         flux_data_subs = flux_data.ix[wv_idx3]
-        df.ix[band, 'directtop'] = (((flux_data_subs['direct_solar'].values *
-                                      response_subs).sum() + direct_top) /
-                                    response_sum)
+        df.ix[band, 'direct_top'] = (((flux_data_subs['direct_solar'].values *
+                                       response_subs).sum() + direct_top) /
+                                     response_sum)
 
         if transmittance:
             # downward diffuse at top of atmospheric levels
-            diffuse_top = (grp.ix[band, 2600]['response'] *
-                           flux_data.ix[2600, 'downward_diffuse'][idx] +
-                           grp.ix[band, 350]['response'] *
-                           flux_data.ix[350, 'downward_diffuse'][idx]) / 2
+            diffuse_top = (grp.ix[band, st_wl]['response'] *
+                           flux_data.ix[st_wl, 'downward_diffuse'][idx] +
+                           grp.ix[band, ed_wl]['response'] *
+                           flux_data.ix[ed_wl, 'downward_diffuse'][idx]) / 2
 
             edo_top = flux_data_subs['downward_diffuse'].values
-            df.ix[band, 'diffusetop'] = ((edo_top * response_subs).sum() +
-                                         diffuse_top) / response_sum
+            df.ix[band, 'diffuse_top'] = ((edo_top * response_subs).sum() +
+                                          diffuse_top) / response_sum
             t_result = ((df.ix[band, 'diffuse'] + df.ix[band, 'direct']) /
-                        (df.ix[band, 'diffusetop'] + df.ix[band, 'directtop']))
+                        (df.ix[band, 'diffuse_top'] +
+                         df.ix[band, 'direct_top']))
             df.ix[band, 'transmittance'] = t_result
 
     df.sort_index(inplace=True)
