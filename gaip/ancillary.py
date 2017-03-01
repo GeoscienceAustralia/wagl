@@ -271,16 +271,16 @@ def get_aerosol_data_v2(acquisition, aerosol_fname):
     exts = ['/pix', '/cmp', '/cmp']
     pathnames = [ppjoin(ext, dt.strftime(n)) for ext, n in zip(exts, names)]
 
-    store = pandas.HDFStore(aerosol_fname, 'r')
+    fid = h5py.File(aerosol_fname, 'r')
 
     delta_tolerance = datetime.timedelta(days=0.5)
 
     value = None
     for pathname, description in zip(pathnames, descr):
-        if pathname in store.keys():
-            df = store[pathname]
-            node = store.get_node(pathname)
-            aerosol_poly = Polygon(node._v_attrs.extents)
+        if pathname in fid:
+	    dataset = fid[pathname]
+	    df = read_table(pathname)
+            aerosol_poly = Polygon(dataset.attrs['extents']
             if aerosol_poly.intersects(roi_poly):
                 if description == 'AATSR_PIX':
                     abs_diff = (df['timestamp'] - dt).abs()
@@ -300,9 +300,9 @@ def get_aerosol_data_v2(acquisition, aerosol_fname):
                     for key in md:
                         res[key] = md[key]
 
-                    store.close()
+                    fid.close()
                     return res
-    store.close()
+    fid.close()
 
     raise IOError('No aerosol ancillary data found.')
 
