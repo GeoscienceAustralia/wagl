@@ -5,7 +5,6 @@
 *.pyf
 *.in
 *.project
-*.flt
 *.py[cod]
 *.pydev*
 *_prog.f90
