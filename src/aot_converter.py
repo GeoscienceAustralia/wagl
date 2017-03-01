@@ -2,11 +2,12 @@
 
 from datetime import datetime as dt
 import glob
-from posixpath import join as pjoin
-from posixpath import basename
-from posixpath import splitext
+from os.path import join as pjoin, splitext, basename
+from posixpath import join as ppjoin
 import numpy
+import h5py
 import pandas
+from gaip import write_dataframe
 
 
 def read_pix(filename):
@@ -98,8 +99,7 @@ def main(aerosol_path, output_filename):
     func = {'pix': read_pix, 'cmp': read_cmp}
 
     # create the output file
-    hstore = pandas.HDFStore(output_filename, 'w', complevel=4,
-                             complib='bzip2')
+    fid = h5py.File(output_filename, 'w')
 
     pattern = ['*.pix', '*.cmp']
     for p in pattern:
@@ -109,23 +109,19 @@ def main(aerosol_path, output_filename):
             pth, ext = splitext(fname)
             ext = ext.split(".")[-1]
             grp_name = basename(pth)
-            out_path = pjoin(ext, grp_name)
+            out_path = ppjoin(ext, grp_name)
 
             # read/write
             df, extents = func[ext](fname)
-            hstore.append(out_path, df)
-            hstore.flush()
+            attrs = {'extents': extents,
+                     'source filename': fname}
+            write_dataframe(df, out_path, fid, attrs=attrs)
 
-            # assign extents attribute
-            nd = hstore.get_node(out_path)
-            nd._v_attrs.extents = extents
-            hstore.flush()
-
-    hstore.close()
+    fid.close()
 
 
 if __name__ == '__main__':
 
     aerosol_path = '/g/data/v10/eoancillarydata/aerosol/AATSR/2.0/'
-    out_fname = '/g/data/v10/eoancillarydata/aerosol/AATSR/2.0/aerosol.h5'
+    out_fname = '/g/data/v10/eoancillarydata/aerosol/AATSR/2.0/aerosol_h5py.h5'
     main(aerosol_path, out_fname)
