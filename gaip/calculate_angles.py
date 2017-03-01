@@ -170,6 +170,10 @@ def create_boxline_coordinator(view_angle_dataset, line, ncentre, npoints,
     # calculate the column start and end indices
     istart, iend = swathe_edges(max_angle, view_angle)
 
+    # allocate the output arrays
+    istart = np.zeros(rows, dtype='int')
+    iend = np.zeros(rows, dtype='int')
+
     # TODO: Fuqin to document, and these results are only used for
     # granules that do not contain the satellite track path
     kk = ll = -1

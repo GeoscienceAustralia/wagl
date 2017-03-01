@@ -60,7 +60,7 @@ class GetAncillaryData(luigi.Task):
     def output(self):
         container = gaip.acquisitions(self.level1)
         out_path = container.get_root(self.nbar_root, granule=self.granule)
-        out_fname = pjoin(out_path, CONFIG.get('work', 'aerosol_fname'))
+        out_fname = pjoin(out_path, CONFIG.get('work', 'ancillary_fname'))
         return luigi.LocalTarget(out_fname)
 
     def run(self):
@@ -250,11 +250,6 @@ class AggregateAncillary(luigi.Task):
 
             data['value'] = elevation
             save(out_fname4, data)
-=======
-            gaip._calculate_angles(acqs[0], lon_fname, lat_fname, out_fname,
-                                   npoints=12, compression=compression,
-                                   max_angle=view_max, tle_path=tle_path)
->>>>>>> Changes to workflow; unifying output files via ExternalLinks.
 
 
 class WriteTp5(luigi.Task):
