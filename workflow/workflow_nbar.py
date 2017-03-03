@@ -49,12 +49,12 @@ class GetAncillaryData(luigi.Task):
                                                           self.granule)
 
         with self.output().temporary_path() as out_fname:
-            gaip._collect_ancillary_data(acqs[0], self.aerosol_path,
-                                         self.water_vapour_path,
-                                         self.ozone_path, self.dem_path,
-                                         self.brdf_path,
-                                         self.brdf_premodis_path, out_fname,
-                                         self.compression, self.nbar_root)
+            gaip.collect_ancillary_data(acqs[0], self.aerosol_path,
+                                        self.water_vapour_path,
+                                        self.ozone_path, self.dem_path,
+                                        self.brdf_path,
+                                        self.brdf_premodis_path, out_fname,
+                                        self.compression, self.nbar_root)
 
 
 class CalculateLonGrid(luigi.Task):
