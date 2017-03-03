@@ -24,6 +24,7 @@ from gaip import attach_attributes
 from gaip import write_scalar
 from gaip import write_dataframe
 from gaip import read_meatadata_tags
+from gaip import read_table
 
 
 log = logging.getLogger()
@@ -275,36 +276,43 @@ def get_aerosol_data_v2(acquisition, aerosol_fname):
 
     delta_tolerance = datetime.timedelta(days=0.5)
 
-    value = None
+    data = None
     for pathname, description in zip(pathnames, descr):
         if pathname in fid:
-	    dataset = fid[pathname]
-	    df = read_table(pathname)
-            aerosol_poly = Polygon(dataset.attrs['extents']
+            dataset = fid[pathname]
+            df = read_table(fid, pathname)
+            aerosol_poly = Polygon(dataset.attrs['extents'])
             if aerosol_poly.intersects(roi_poly):
                 if description == 'AATSR_PIX':
                     abs_diff = (df['timestamp'] - dt).abs()
                     df = df[abs_diff < delta_tolerance]
+                    df.reset_index(inplace=True, drop=True)
                 intersection = aerosol_poly.intersection(roi_poly)
+                print intersection
                 pts = GeoSeries([Point(x, y) for x, y in
                                  zip(df['lon'], df['lat'])])
                 idx = pts.intersects(intersection)
-                value = df[idx]['aerosol'].mean()
-                if numpy.isfinite(value):
-                    res = {'data_source': description,
-                           'data_file': pathname,
-                           'value': value}
+                data = df[idx]['aerosol'].mean()
+                if numpy.isfinite(data):
+                    metadata = {'data_source': description,
+                                'data_file': pathname,
+                                'Date used for querying': dt}
 
                     # ancillary metadata tracking
                     md = gaip.extract_ancillary_metadata(aerosol_fname)
                     for key in md:
-                        res[key] = md[key]
+                        metadata[key] = md[key]
 
                     fid.close()
-                    return res
-    fid.close()
+                    return data, metadata
+    # default aerosol value
+    # assumes we are only processing Australia in which case it it should
+    # be a coastal scene
+    data = 0.06
+    metadata = {'data_source': 'Default value used; Assumed a coastal scene'}
 
-    raise IOError('No aerosol ancillary data found.')
+    fid.close()
+    return data, metadata
 
 
 def get_aerosol_data(acquisition, aerosol_path, aot_loader_path=None):
@@ -399,8 +407,9 @@ def run_aot_loader(filename, dt, ll_lat, ll_lon, ur_lat, ur_lon,
     task = [cmd, '--' + filetype, filename, '--west', str(ll_lon),
             '--east', str(ur_lon), '--south', str(ll_lat),
             '--north', str(ur_lat), '--date', dt.strftime('%Y-%m-%d'),
-            '--t', dt.strftime('%H:%M:%S')]
+            '--t', dt.strftime('%H:%M:%S'), '--print-values']
     task = ' '.join(task)
+    print task
     result = subprocess.check_output(task, shell=True)
 
     m = re.search(r'AOT AATSR value:\s+(.+)$', result, re.MULTILINE)
