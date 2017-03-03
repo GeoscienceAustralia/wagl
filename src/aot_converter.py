@@ -7,6 +7,8 @@ from posixpath import join as ppjoin
 import numpy
 import h5py
 import pandas
+from shapely.geometry import Polygon
+from shapely import wkt
 from gaip import write_dataframe
 
 
@@ -52,7 +54,7 @@ def read_pix(filename):
     ur = (df['lon'].max(), df['lat'].max())
     lr = (df['lon'].max(), df['lat'].min())
     ll = (df['lon'].min(), df['lat'].min())
-    extents = [ul, ur, lr, ll]
+    extents = Polygon([ul, ur, lr, ll])
 
     return df, extents
 
@@ -89,7 +91,7 @@ def read_cmp(filename):
     ur = (df['lon'].max(), df['lat'].max())
     lr = (df['lon'].max(), df['lat'].min())
     ll = (df['lon'].min(), df['lat'].min())
-    extents = [ul, ur, lr, ll]
+    extents = Polygon([ul, ur, lr, ll])
 
     return df, extents
 
@@ -113,7 +115,7 @@ def main(aerosol_path, output_filename):
 
             # read/write
             df, extents = func[ext](fname)
-            attrs = {'extents': extents,
+            attrs = {'extents': wkt.dumps(extents),
                      'source filename': fname}
             write_dataframe(df, out_path, fid, attrs=attrs)
 
@@ -123,5 +125,5 @@ def main(aerosol_path, output_filename):
 if __name__ == '__main__':
 
     aerosol_path = '/g/data/v10/eoancillarydata/aerosol/AATSR/2.0/'
-    out_fname = '/g/data/v10/eoancillarydata/aerosol/AATSR/2.0/aerosolpy.h5'
+    out_fname = '/g/data/v10/eoancillarydata/aerosol/AATSR/2.0/aerosol_h5py.h5'
     main(aerosol_path, out_fname)
