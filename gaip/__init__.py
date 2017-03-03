@@ -1,9 +1,9 @@
 
-from metadata import *
 from hdf5 import *
+from data import *
+from metadata import *
 from ancillary import *
 from acquisition import *
-from data import *
 from mtl import *
 from geobox import GriddedGeoBox
 from tle import *
