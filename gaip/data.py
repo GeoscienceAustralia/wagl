@@ -723,7 +723,7 @@ def read_meatadata_tags(fname, bands):
         tag_data = {k: [] for k in ds.tags(1).keys()}
         for band in bands:
             tags = ds.tags(band)
-                for tag in tags:
-                    tag_data[tag].append(tags[tag])
+            for tag in tags:
+                tag_data[tag].append(tags[tag])
 
     return pandas.DataFrame(tag_data)
