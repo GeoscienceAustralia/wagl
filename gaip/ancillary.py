@@ -19,6 +19,7 @@ import numpy
 import rasterio
 from shapely.geometry import Point
 from shapely.geometry import Polygon
+from shapely import wkt
 import gaip
 from gaip import attach_attributes
 from gaip import write_scalar
@@ -279,24 +280,26 @@ def get_aerosol_data_v2(acquisition, aerosol_fname):
     data = None
     for pathname, description in zip(pathnames, descr):
         if pathname in fid:
-            dataset = fid[pathname]
             df = read_table(fid, pathname)
-            aerosol_poly = Polygon(dataset.attrs['extents'])
+            aerosol_poly = wkt.loads(fid[pathname].attrs['extents'])
+
             if aerosol_poly.intersects(roi_poly):
                 if description == 'AATSR_PIX':
                     abs_diff = (df['timestamp'] - dt).abs()
                     df = df[abs_diff < delta_tolerance]
                     df.reset_index(inplace=True, drop=True)
+
                 intersection = aerosol_poly.intersection(roi_poly)
-                print intersection
                 pts = GeoSeries([Point(x, y) for x, y in
                                  zip(df['lon'], df['lat'])])
                 idx = pts.intersects(intersection)
                 data = df[idx]['aerosol'].mean()
+
                 if numpy.isfinite(data):
                     metadata = {'data_source': description,
-                                'data_file': pathname,
-                                'Date used for querying': dt}
+                                'dataset_name': pathname,
+                                'query_date': dt,
+                                'extents': wkt.dumps(intersection)}
 
                     # ancillary metadata tracking
                     md = gaip.extract_ancillary_metadata(aerosol_fname)
@@ -305,6 +308,7 @@ def get_aerosol_data_v2(acquisition, aerosol_fname):
 
                     fid.close()
                     return data, metadata
+
     # default aerosol value
     # assumes we are only processing Australia in which case it it should
     # be a coastal scene
