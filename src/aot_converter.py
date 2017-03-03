@@ -45,7 +45,7 @@ def read_pix(filename):
     # throw away bad data
     wh = (df['aerosol'] > 0.0) & (df['aerosol'] <= 1.0)
     df = df[wh]
-    df.reset_index(inplace=True)
+    df.reset_index(inplace=True, drop=True)
 
     # get the minimum bounding box
     ul = (df['lon'].min(), df['lat'].max())
@@ -82,7 +82,7 @@ def read_cmp(filename):
     # throw away bad data
     wh = (df['aerosol'] > 0.0) & (df['aerosol'] <= 1.0)
     df = df[wh]
-    df.reset_index(inplace=True)
+    df.reset_index(inplace=True, drop=True)
 
     # get the minimum bounding box
     ul = (df['lon'].min(), df['lat'].max())
@@ -123,5 +123,5 @@ def main(aerosol_path, output_filename):
 if __name__ == '__main__':
 
     aerosol_path = '/g/data/v10/eoancillarydata/aerosol/AATSR/2.0/'
-    out_fname = '/g/data/v10/eoancillarydata/aerosol/AATSR/2.0/aerosol_h5py.h5'
+    out_fname = '/g/data/v10/eoancillarydata/aerosol/AATSR/2.0/aerosolpy.h5'
     main(aerosol_path, out_fname)
