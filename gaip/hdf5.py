@@ -8,6 +8,7 @@ such as images and tables, as well as attaching metadata.
 import datetime
 import numpy
 import h5py
+import pandas
 
 DEFAULT_IMAGE_CLASS = {'CLASS': 'IMAGE',
                        'IMAGE_VERSION': '1.2',
@@ -310,24 +311,33 @@ def write_dataframe(df, dset_name, group, compression='lzf', title='Table',
     dtype = []
     idx_names = []
     default_label = 'level_{}'
+    dtype_metadata = {}
 
     # index datatypes
     for i, idx_name in enumerate(df.index.names):
         idx_data = df.index.get_level_values(i)
-        if idx_name is None:
+        if idx_name is None and len(df.index.names) == 1:
+            idx_name = 'index'
+        else:
             idx_name = default_label.format(i)
         idx_name = bytes(idx_name)
         idx_names.append(idx_name)
-        if idx_data.dtype == object:
+        dtype_metadata['{}_dtype'.format(idx_name)] = idx_data.dtype.name
+        if idx_data.dtype.name == 'object':
             dtype.append((idx_name, _fixed_str_size(idx_data)))
+        elif 'datetime64' in idx_data.dtype.name:
+            dtype.append((idx_name, 'int64'))
         else:
             dtype.append((idx_name, idx_data.dtype))
 
     # column datatypes
     for i, val in enumerate(df.dtypes):
         col_name = bytes(df.columns[i])
-        if val == object:
+        dtype_metadata['{}_dtype'.format(col_name)] = val.name
+        if val.name == 'object':
             dtype.append((col_name, _fixed_str_size(df[df.columns[i]])))
+        elif 'datetime64' in val.name:
+            dtype.append((col_name, 'int64'))
         else:
             dtype.append((col_name, val))
 
@@ -351,12 +361,16 @@ def write_dataframe(df, dset_name, group, compression='lzf', title='Table',
     if attrs is None:
         attributes = {}
     else:
-        attrs.copy()
+        attributes = attrs.copy()
 
     # insert some basic metadata
     attributes['index_names'] = idx_names
     attributes['metadata'] = ('`Pandas.DataFrame` converted to HDF5 compound '
                               'datatype.')
+    attributes['nrows'] = df.shape[0]
+    attributes['python_type'] = '`Pandas.DataFrame`'
+    for key in dtype_metadata:
+        attributes[key] = dtype_metadata[key]
     attach_table_attributes(dset, title=title, attrs=attributes)
 
 
@@ -384,11 +398,18 @@ def read_table(fid, dataset_name, dataframe=True):
     idx_names = None
 
     # grab the index names if we have them
-    if 'index_names' in dset.attrs:
-        idx_names = dset.attrs['index_names']
+    idx_names = dset.attrs.get('index_names')
 
     if dataframe:
-        data = pandas.DataFrame.from_records(dset[:], index=idx_names)
+        if dset.attrs.get('python_type') == '`Pandas.DataFrame`':
+            col_names = dset.dtype.names
+            dtypes = [dset.attrs['{}_dtype'.format(name)] for name in
+                      col_names]
+            dtype = numpy.dtype(zip(col_names, dtypes))
+            data = pandas.DataFrame.from_records(dset[:].astype(dtype),
+                                                 index=idx_names)
+        else:
+            data = pandas.DataFrame.from_records(dset[:], index=idx_names)
     else:
         data = dset[:]
 
