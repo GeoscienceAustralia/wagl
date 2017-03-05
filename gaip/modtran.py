@@ -567,9 +567,12 @@ def read_spectral_response(fname):
         A `pd.DataFrame` containing the spectral response
         function.
     """
-    # open the text file
-    with open(fname, 'r') as src:
-        lines = src.readlines()
+    if type(fname) == file:
+        lines = fname.readlines()
+    else:
+        # open the text file
+        with open(fname, 'r') as src:
+            lines = src.readlines()
 
     lines = [line.strip() for line in lines]
 
