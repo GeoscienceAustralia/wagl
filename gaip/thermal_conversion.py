@@ -81,9 +81,6 @@ def get_landsat_temperature(l1t_stack, acquisitions, pq_const):
 
     :return:
         A 2D Numpy array containing degrees Kelvin.
-
-    :author:
-        Josh Sixsmith, joshua.sixsmith@ga.gov.au
     """
     acqs = acquisitions
     thermal_band = pq_const.thermal_band
