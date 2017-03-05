@@ -289,6 +289,9 @@ def get_aerosol_data_v2(acquisition, aerosol_fname):
                     df = df[abs_diff < delta_tolerance]
                     df.reset_index(inplace=True, drop=True)
 
+                if df.shape[0] == 0:
+                    continue
+
                 intersection = aerosol_poly.intersection(roi_poly)
                 pts = GeoSeries([Point(x, y) for x, y in
                                  zip(df['lon'], df['lat'])])
