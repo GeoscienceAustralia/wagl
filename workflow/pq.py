@@ -103,7 +103,7 @@ class PixelQualityTask(luigi.Task):
 
         # read L1T data
         logging.debug("Getting L1T acquisition data")
-        l1t_acqs = gaip.acquisitions(self.l1t_path)
+        l1t_acqs = gaip.acquisitions(self.l1t_path).get_acquisitions(group='product')
 
         # get the selected acquisitions and assciated band data and 
         # GriddedGeoBox. The latter provides the spatial context for the
@@ -206,7 +206,7 @@ class PixelQualityTask(luigi.Task):
 
         # read NBAR data
         logging.debug("Getting NBAR acquisition data")
-        nbar_acqs = gaip.acquisitions(self.nbar_path)
+        nbar_acqs = gaip.acquisitions(self.nbar_path).get_acquisitions(group='product')
 
         # get the selected acquisitions and associated band data and 
         # GriddedGeoBox. The latter provides the spatial context for the
