@@ -11,6 +11,7 @@ def configuration(parent_package='', top_path=None):
 
     config = Configuration('gaip', parent_package, top_path)
     config.add_data_files('sensors.json')
+    config.add_data_dir('spectral_response')
     config.add_extension(
         '_cast_shadow_mask',
         [
