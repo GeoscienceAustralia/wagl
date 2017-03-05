@@ -9,10 +9,13 @@ import json
 import datetime
 import glob
 import pandas
+from pkg_resources import resource_stream
 
 from functools import total_ordering
 from os.path import isdir, join as pjoin, dirname, basename, exists
 import pdb
+
+#RESPONSE_PATH = resource_filename('gaip', 'spectral_response')
 
 REF, THM, PAN, ATM, BQA = range(5)
 
@@ -56,7 +59,7 @@ class AcquisitionsContainer(object):
     @property
     def tiled(self):
         """
-        Indicates whether or not a scene is partitioned into severl
+        Indicates whether or not a scene is partitioned into several
         tiles referred to as granules.
         """
         return self._tiled
@@ -239,6 +242,12 @@ class Acquisition(object):
         the bias and gain properties.
         """
         return False
+
+    def read_spectral_reponse(self):
+        fname = 'spectral_response/%s' % self.spectral_filter_file
+        with resource_stream(__name__, fname) as src:
+            df = gaip.read_spectral_response(src)
+        return df
 
 
 class LandsatAcquisition(Acquisition):
