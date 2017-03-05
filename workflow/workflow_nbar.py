@@ -31,7 +31,7 @@ class GetAncillaryData(luigi.Task):
     level1 = luigi.Parameter()
     nbar_root = luigi.Parameter()
     granule = luigi.Parameter()
-    aerosol_path = luigi.Parameter(significant=False)
+    aerosol_fname = luigi.Parameter(significant=False)
     brdf_path = luigi.Parameter(significant=False)
     brdf_premodis_path = luigi.Parameter(significant=False)
     ozone_path = luigi.Parameter(significant=False)
@@ -49,7 +49,7 @@ class GetAncillaryData(luigi.Task):
                                                           self.granule)
 
         with self.output().temporary_path() as out_fname:
-            gaip.collect_ancillary_data(acqs[0], self.aerosol_path,
+            gaip.collect_ancillary_data(acqs[0], self.aerosol_fname,
                                         self.water_vapour_path,
                                         self.ozone_path, self.dem_path,
                                         self.brdf_path,

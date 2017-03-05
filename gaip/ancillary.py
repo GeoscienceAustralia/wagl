@@ -141,7 +141,7 @@ def collect_thermal_ancillary(acquisition, dewpoint_path, temperature_2m_path,
     return fid
 
 
-def collect_ancillary_data(acquisition, aerosol_path, water_vapour_path,
+def collect_ancillary_data(acquisition, aerosol_fname, water_vapour_path,
                            ozone_path, dem_path, brdf_path,
                            brdf_premodis_path, out_fname=None,
                            compression='lzf', work_path=''):
@@ -171,7 +171,7 @@ def collect_ancillary_data(acquisition, aerosol_path, water_vapour_path,
     dt = acquisition.scene_center_datetime
     geobox = acquisition.gridded_geo_box()
 
-    aerosol = get_aerosol_data(acquisition, aerosol_path)
+    aerosol = get_aerosol_data_v2(acquisition, aerosol_fname)
     write_scalar(aerosol[0], 'aerosol', fid, aerosol[1])
 
     wv = get_water_vapour(acquisition, water_vapour_path)
