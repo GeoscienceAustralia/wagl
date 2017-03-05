@@ -96,7 +96,7 @@
                         "wavelength": [2.08, 2.35]
                     }
                 },
-                "description": "Thermatic Mapper",
+                "description": "Thematic Mapper",
                 "K1": 607.76,
                 "K2": 1260.56,
                 "name": "TM"
