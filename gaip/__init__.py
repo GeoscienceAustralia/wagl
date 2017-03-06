@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 from hdf5 import *
 from data import *
@@ -44,7 +45,6 @@ try:
     from calculate_incident_exiting_angles import *
     from calculate_slope_aspect import *
 except ImportError:
-    msg = ('Run Makefile to build the Fortran modules.\n'
+    msg = ('FORTRAN modules have not been built.\n'
            'Some functionality in library is disabled')
-    import sys
-    print sys.stderr, msg
+    print(msg)
