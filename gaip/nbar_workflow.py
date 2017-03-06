@@ -8,8 +8,9 @@ Workflow settings can be configured in `nbar.cfg` file.
 """
 # pylint: disable=missing-docstring,no-init,too-many-function-args
 # pylint: disable=too-many-locals
+# pylint: disable=protected-access
 
-from os.path import join as pjoin, basename, dirname, splitext
+from os.path import join as pjoin, basename, splitext
 import luigi
 from luigi.util import inherits, requires
 import gaip
@@ -268,8 +269,8 @@ class AccumulateSolarIrradiance(luigi.Task):
                                                          self.granule)[0]
 
         with self.output().temporary_path() as out_fname:
-            gaip._calculate_solar_radiation(acq, self.input(), response_fname,
-                                            out_fname, self.compression)
+            gaip._calculate_solar_radiation(acq, self.input(), out_fname,
+                                            self.compression)
 
 
 @requires(AccumulateSolarIrradiance)
@@ -730,5 +731,28 @@ class TerrainCorrection(luigi.WrapperTask):
         for band in bands_to_process:
             yield RunTCBand(self.level1, self.nbar_root, self.granule,
                             self.group, band)
+
+
+class NBAR(luigi.WrapperTask):
+
+    """Kicks off NBAR tasks for each level1 entry."""
+
+    level1_csv = luigi.Parameter()
+    output_directory = luigi.Parameter()
+    work_extension = luigi.Parameter(default='.nbar-work', significant=False)
+
+    def requires(self):
+        with open(self.level1_csv) as src:
+            level1_scenes = src.readlines()
+
+        for scene in level1_scenes:
+            work_name = basename(scene) + self.work_extension
+            nbar_root = pjoin(self.output_directory, work_name)
+            container = acquisitions(scene)
+            for granule in container.granules:
+                for group in container.groups:
+                    yield TerrainCorrection(scene, nbar_root, granule, group)
+
+        
 if __name__ == '__main__':
     luigi.run()
