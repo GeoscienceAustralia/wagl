@@ -710,8 +710,8 @@ def read_modtran_channel(fname):
     return chn_data
 
 
-def _calculate_solar_radiation(acquisition, flux_fnames, response_fname,
-                              out_fname, compression='lzf'):
+def _calculate_solar_radiation(acquisition, flux_fnames, out_fname,
+                               compression='lzf'):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
