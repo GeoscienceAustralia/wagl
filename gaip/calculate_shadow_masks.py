@@ -15,7 +15,6 @@ from eotools import tiling
 from gaip import GriddedGeoBox
 from gaip import ImageMargins
 from gaip import setup_spheroid
-from gaip import run_castshadow
 from gaip import cast_shadow_main
 from gaip import dataset_compression_kwargs
 from gaip import attach_image_attributes
@@ -168,7 +167,7 @@ class FortranError(Exception):
 class CastShadowError(FortranError):
 
     """
-    Class that deals with errors from :py:func:`run_castshadow`.
+    Class that deals with errors from :py:func:`calculate_cast_shadow`.
     """
 
     def __init__(self, code):
