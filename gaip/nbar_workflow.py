@@ -30,7 +30,7 @@ class GetAncillaryData(luigi.Task):
     """Get all ancillary data."""
 
     level1 = luigi.Parameter()
-    nbar_root = luigi.Parameter()
+    work_root = luigi.Parameter()
     granule = luigi.Parameter()
     aerosol_fname = luigi.Parameter(significant=False)
     brdf_path = luigi.Parameter(significant=False)
@@ -41,7 +41,7 @@ class GetAncillaryData(luigi.Task):
     compression = luigi.Parameter(significant=False)
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.nbar_root,
+        out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
         return luigi.LocalTarget(pjoin(out_path, 'ancillary.h5'))
 
@@ -55,7 +55,7 @@ class GetAncillaryData(luigi.Task):
                                         self.ozone_path, self.dem_path,
                                         self.brdf_path,
                                         self.brdf_premodis_path, out_fname,
-                                        self.compression, self.nbar_root)
+                                        self.compression, self.work_root)
 
 
 class CalculateLonGrid(luigi.Task):
@@ -63,13 +63,13 @@ class CalculateLonGrid(luigi.Task):
     """Calculate the longitude grid."""
 
     level1 = luigi.Parameter()
-    nbar_root = luigi.Parameter()
+    work_root = luigi.Parameter()
     granule = luigi.Parameter()
     group = luigi.Parameter()
     compression = luigi.Parameter(default='lzf', significant=False)
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.nbar_root,
+        out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
         return luigi.LocalTarget(pjoin(out_path, 'longitude.h5'))
 
@@ -87,7 +87,7 @@ class CalculateLatGrid(luigi.Task):
     """Calculate the latitude grid."""
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.nbar_root,
+        out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
         return luigi.LocalTarget(pjoin(out_path, 'latitude.h5'))
 
@@ -107,12 +107,12 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
     tle_path = luigi.Parameter()
 
     def requires(self):
-        args = [self.level1, self.nbar_root, self.granule, self.group]
+        args = [self.level1, self.work_root, self.granule, self.group]
         return {'lat': CalculateLatGrid(*args),
                 'lon': CalculateLonGrid(*args)}
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.nbar_root,
+        out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
         return luigi.LocalTarget(pjoin(out_path, 'satellite-solar.h5'))
 
@@ -133,7 +133,7 @@ class WriteTp5(luigi.Task):
     """Output the `tp5` formatted files."""
 
     level1 = luigi.Parameter()
-    nbar_root = luigi.Parameter()
+    work_root = luigi.Parameter()
     granule = luigi.Parameter()
     npoints = luigi.IntParameter(default=9, significant=False)
     albeods = luigi.ListParameter(default=[0, 1, 't'], significant=False)
@@ -149,11 +149,11 @@ class WriteTp5(luigi.Task):
 
         for granule in container.granules:
             key1 = (granule, 'ancillary')
-            args1 = [self.level1, self.nbar_root, granule]
+            args1 = [self.level1, self.work_root, granule]
             tasks[key1] = GetAncillaryData(*args1)
             for group in container.groups:
                 key2 = (granule, group)
-                args2 = [self.level1, self.nbar_root, granule, group]
+                args2 = [self.level1, self.work_root, granule, group]
                 tsks = {'sat_sol': CalculateSatelliteAndSolarGrids(*args2),
                         'lat': CalculateLatGrid(*args2),
                         'lon': CalculateLonGrid(*args2)}
@@ -163,7 +163,7 @@ class WriteTp5(luigi.Task):
 
     def output(self):
         container = gaip.acquisitions(self.level1)
-        out_path = container.get_root(self.nbar_root, granule=self.granule)
+        out_path = container.get_root(self.work_root, granule=self.granule)
         out_fname = pjoin(out_path, self.base_dir, 'atmospheric-inputs.h5')
         return luigi.LocalTarget(out_fname)
 
@@ -183,7 +183,7 @@ class WriteTp5(luigi.Task):
         fnames = [inputs[key].path for key in inputs if 'ancillary' in key]
 
         if container.tiled:
-            ancillary_fname = pjoin(self.nbar_root, 'averaged-ancillary.h5')
+            ancillary_fname = pjoin(self.work_root, 'averaged-ancillary.h5')
             gaip.aggregate_ancillary(fnames, ancillary_fname)
         else:
             ancillary_fname = fnames[0]
@@ -217,13 +217,13 @@ class RunModtranCase(luigi.Task):
     exe = luigi.Parameter(significant=False)
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.nbar_root,
+        out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       granule=self.granule)
         out_fname = 'point-{}-albedo-{}.h5'.format(self.point, self.albedo)
         return luigi.LocalTarget(pjoin(out_path, self.base_dir, out_fname))
 
     def run(self):
-        out_path = acquisitions(self.level1).get_root(self.nbar_root,
+        out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       granule=self.granule)
 
         workpath_format = '{point}/alb_{albedo}'
@@ -253,13 +253,13 @@ class AccumulateSolarIrradiance(luigi.Task):
         reqs = {}
         for point in range(self.npoints):
             for albedo in self.albedos:
-                args = [self.level1, self.nbar_root, self.granule, point,
+                args = [self.level1, self.work_root, self.granule, point,
                         albedo]
                 reqs[(point, albedo)] = RunModtranCase(*args)
         return reqs
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.nbar_root,
+        out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       granule=self.granule)
         out_fname = 'accumulated-solar-irradiance.h5'
         return luigi.LocalTarget(pjoin(out_path, self.base_dir, out_fname))
@@ -282,7 +282,7 @@ class CalculateCoefficients(luigi.Task):
     """
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.nbar_root,
+        out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       granule=self.granule)
         out_fname = pjoin(out_path, self.base_dir, 'coefficients.h5')
         return luigi.LocalTarget(out_fname)
@@ -307,12 +307,12 @@ class BilinearInterpolationBand(luigi.Task):
     base_dir = luigi.Parameter(default='atmospherics', significant=False)
 
     def requires(self):
-        args = [self.level1, self.nbar_root, self.granule, self.group]
+        args = [self.level1, self.work_root, self.granule, self.group]
         return {'coef': CalculateCoefficients(*args[:-1]),
                 'satsol': CalculateSatelliteAndSolarGrids(*args)}
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.nbar_root,
+        out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
         out_fname = '{}-band-{}.h5'.format(self.factor, self.band)
         return luigi.LocalTarget(pjoin(out_path, self.base_dir, out_fname))
@@ -364,13 +364,13 @@ class BilinearInterpolation(luigi.Task):
         for factor in self.factors:
             for band in bands:
                 key = (band, factor)
-                args = [self.level1, self.nbar_root, self.granule, self.group,
+                args = [self.level1, self.work_root, self.granule, self.group,
                         band, factor]
                 tasks[key] = BilinearInterpolationBand(*args)
         return tasks
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.nbar_root,
+        out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
         return luigi.LocalTarget(out_path, 'bilinearly-interpolated-data.h5')
 
@@ -395,7 +395,7 @@ class DEMExctraction(luigi.Task):
     dsm_fname = luigi.Parameter(significant=False)
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.nbar_root,
+        out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
         return luigi.LocalTarget(pjoin(out_path, 'dsm-extract.h5'))
 
@@ -417,7 +417,7 @@ class SlopeAndAspect(luigi.Task):
     """
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.nbar_root,
+        out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
         return luigi.LocalTarget(pjoin(out_path, 'slope-aspect.h5'))
 
@@ -443,12 +443,12 @@ class IncidentAngles(luigi.Task):
     y_tile = luigi.IntParameter(default=100, significant=False)
 
     def requires(self):
-        args = [self.level1, self.nbar_root, self.granule, self.group]
+        args = [self.level1, self.work_root, self.granule, self.group]
         return {'sat_sol': CalculateSatelliteAndSolarGrids(*args),
                 'slp_asp': SlopeAndAspect(*args)}
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.nbar_root,
+        out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
         return luigi.LocalTarget(pjoin(out_path, 'incident-angles.h5'))
 
@@ -470,12 +470,12 @@ class ExitingAngles(luigi.Task):
     """
 
     def requires(self):
-        args = [self.level1, self.nbar_root, self.granule, self.group]
+        args = [self.level1, self.work_root, self.granule, self.group]
         return {'sat_sol': CalculateSatelliteAndSolarGrids(*args),
                 'slp_asp': SlopeAndAspect(*args)}
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.nbar_root,
+        out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
         return luigi.LocalTarget(pjoin(out_path, 'exiting-angles.h5'))
 
@@ -497,12 +497,12 @@ class RelativeAzimuthSlope(luigi.Task):
     """
 
     def requires(self):
-        args = [self.level1, self.nbar_root, self.granule, self.group]
+        args = [self.level1, self.work_root, self.granule, self.group]
         return {'incident': IncidentAngles(*args),
                 'exiting': ExitingAngles(*args)}
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.nbar_root,
+        out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
         return luigi.LocalTarget(pjoin(out_path, 'relative-slope.h5'))
 
@@ -525,12 +525,12 @@ class SelfShadow(luigi.Task):
     """
 
     def requires(self):
-        args = [self.level1, self.nbar_root, self.granule, self.group]
+        args = [self.level1, self.work_root, self.granule, self.group]
         return {'incident': IncidentAngles(*args),
                 'exiting': ExitingAngles(*args)}
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.nbar_root,
+        out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
         return luigi.LocalTarget(pjoin(out_path, 'self-shadow.h5'))
 
@@ -553,12 +553,12 @@ class CalculateCastShadowSun(luigi.Task):
     """
 
     def requires(self):
-        args = [self.level1, self.nbar_root, self.granule, self.group]
+        args = [self.level1, self.work_root, self.granule, self.group]
         return {'sat_sol': CalculateSatelliteAndSolarGrids(*args),
                 'dsm': DEMExctraction(*args)}
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.nbar_root,
+        out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
         return luigi.LocalTarget(pjoin(out_path, 'cast-shadow-sun.h5'))
 
@@ -591,12 +591,12 @@ class CalculateCastShadowSatellite(luigi.Task):
     """
 
     def requires(self):
-        args = [self.level1, self.nbar_root, self.granule, self.group]
+        args = [self.level1, self.work_root, self.granule, self.group]
         return {'sat_sol': CalculateSatelliteAndSolarGrids(*args),
                 'dsm': DEMExctraction(*args)}
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.nbar_root,
+        out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
         return luigi.LocalTarget(pjoin(out_path, 'cast-shadow-satellite.h5'))
 
@@ -630,13 +630,13 @@ class CalculateShadowMasks(luigi.Task):
     """
 
     def requires(self):
-        args = [self.level1, self.nbar_root, self.granule, self.group]
+        args = [self.level1, self.work_root, self.granule, self.group]
         return {'sun': CalculateCastShadowSun(*args),
                 'sat': CalculateCastShadowSatellite(*args),
                 'self': SelfShadow(*args)}
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.nbar_root,
+        out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
         return luigi.LocalTarget(pjoin(out_path, 'shadow-masks.h5'))
 
@@ -658,7 +658,7 @@ class RunTCBand(luigi.Task):
     rori = luigi.FloatParameter(default=0.52, significant=False)
 
     def requires(self):
-        args = [self.level1, self.nbar_root, self.granule, self.group]
+        args = [self.level1, self.work_root, self.granule, self.group]
         reqs = {'bilinear': BilinearInterpolation(*args),
                 'ancillary': GetAncillaryData(*args[:-1]),
                 'dsm': DEMExctraction(*args),
@@ -672,7 +672,7 @@ class RunTCBand(luigi.Task):
         return reqs
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.nbar_root,
+        out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
         fname = 'reflectance-{band}.h5'.format(band=self.band_num)
         return luigi.LocalTarget(pjoin(out_path, 'reflectance', fname))
@@ -695,7 +695,7 @@ class RunTCBand(luigi.Task):
         acq = [acq for acq in acqs if acq.band_num == self.band_num][0]
 
         if container.tiled:
-            ancillary_fname = pjoin(self.nbar_root, 'averaged-ancillary.h5')
+            ancillary_fname = pjoin(self.work_root, 'averaged-ancillary.h5')
         else:
             ancillary_fname = inputs['ancillary'].path
 
@@ -729,7 +729,7 @@ class TerrainCorrection(luigi.WrapperTask):
 
         # define the bands to compute reflectance for
         for band in bands_to_process:
-            yield RunTCBand(self.level1, self.nbar_root, self.granule,
+            yield RunTCBand(self.level1, self.work_root, self.granule,
                             self.group, band)
 
 
@@ -739,7 +739,7 @@ class NBAR(luigi.WrapperTask):
 
     level1_csv = luigi.Parameter()
     output_directory = luigi.Parameter()
-    work_extension = luigi.Parameter(default='.nbar-work', significant=False)
+    work_extension = luigi.Parameter(default='.gaip-work', significant=False)
 
     def requires(self):
         with open(self.level1_csv) as src:
@@ -747,11 +747,11 @@ class NBAR(luigi.WrapperTask):
 
         for scene in level1_scenes:
             work_name = basename(scene) + self.work_extension
-            nbar_root = pjoin(self.output_directory, work_name)
+            work_root = pjoin(self.output_directory, work_name)
             container = acquisitions(scene)
             for granule in container.granules:
                 for group in container.groups:
-                    yield TerrainCorrection(scene, nbar_root, granule, group)
+                    yield TerrainCorrection(scene, work_root, granule, group)
 
         
 if __name__ == '__main__':
