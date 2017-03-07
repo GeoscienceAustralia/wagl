@@ -1,7 +1,17 @@
+#!/usr/bin/env python
+
+"""
+A module to contain information collected during the Pixel Quality
+Assessment.
+"""
+
 import os
 import logging
 import numpy
+import h5py
 import rasterio as rio
+from gaip import dataset_compression_kwargs
+from gaip import write_h5_image
 
 
 class PQAResult(object):
@@ -36,7 +46,7 @@ class PQAResult(object):
         self.dtype = dtype
         self.bitcount = self.array.itemsize * 8
         self.aux_data = aux_data
-        self.geoBox = aGriddedGeoBox
+        self.geobox = aGriddedGeoBox
 
     def set_mask(self, mask, bit_index, unset_bits=False):
         '''Takes a boolean mask array and sets the bit in the result array.
@@ -73,18 +83,36 @@ class PQAResult(object):
         self.aux_data.update(new_data)
 
     def save_as_tiff(self, path, crs=None):
+        """
+        Save the PQ result and attribute information in a GeoTiff.
+        """
         os.makedirs(os.path.dirname(path))
         (height, width) = self.array.shape
         with rio.open(path, mode='w', driver='GTiff', \
             width=width, \
             height=height, \
             count=1, \
-            crs=self.geoBox.crs.ExportToWkt(), \
-            transform=self.geoBox.affine, \
+            crs=self.geobox.crs.ExportToWkt(), \
+            transform=self.geobox.affine, \
             dtype=rio.uint16) as ds:
 
             ds.write_band(1, self.array)
             ds.update_tags(1, **self.aux_data)
+
+    def save_as_h5_dataset(self, out_fname, compression):
+        """
+        Save the PQ result and attribute information in a HDF5
+        `IMAGE` Class dataset.
+        """
+        with h5py.File(out_fname) as fid:
+            chunks = (1, self.geobox.x_size())
+            kwargs = dataset_compression_kwargs(compression=compression,
+                                                chunks=chunks)
+            attrs = self.aux_data.copy()
+            attrs['crs_wkt'] = self.geobox.crs.ExportToWkt()
+            attrs['geotransform'] = self.geobox.affine.to_gdal()
+            write_h5_image(self.array, 'pixel-quality-assessment', fid,
+                           attrs=attrs, **kwargs)
        
     @property
     def test_list(self):
