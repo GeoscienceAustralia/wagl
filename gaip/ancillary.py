@@ -171,7 +171,7 @@ def collect_ancillary_data(acquisition, aerosol_fname, water_vapour_path,
     dt = acquisition.scene_center_datetime
     geobox = acquisition.gridded_geo_box()
 
-    aerosol = get_aerosol_data_v2(acquisition, aerosol_fname)
+    aerosol = get_aerosol_data(acquisition, aerosol_fname)
     write_scalar(aerosol[0], 'aerosol', fid, aerosol[1])
 
     wv = get_water_vapour(acquisition, water_vapour_path)
@@ -254,7 +254,7 @@ def aggregate_ancillary(ancillary_fnames, out_fname):
     return fid1
 
 
-def get_aerosol_data_v2(acquisition, aerosol_fname):
+def get_aerosol_data(acquisition, aerosol_fname):
     """
     Extract the aerosol value for an acquisition.
     The version 2 retrieves the data from a HDF5 file, and provides
@@ -320,111 +320,6 @@ def get_aerosol_data_v2(acquisition, aerosol_fname):
 
     fid.close()
     return data, metadata
-
-
-def get_aerosol_data(acquisition, aerosol_path, aot_loader_path=None):
-    """Extract the aerosol value for an acquisition.
-    """
-
-    dt = acquisition.scene_center_datetime
-    geobox = acquisition.gridded_geo_box()
-    ll_lon, ll_lat = geobox.ll_lonlat
-    ur_lon, ur_lat = geobox.ur_lonlat
-
-    descr = ['AATSR_PIX', 'AATSR_CMP_YEAR_MONTH', 'AATSR_CMP_MONTH']
-    names = ['ATSR_LF_%Y%m.pix', 'aot_mean_%b_%Y_All_Aerosols.cmp',
-             'aot_mean_%b_All_Aerosols.cmp']
-    filenames = [pjoin(aerosol_path, dt.strftime(n)) for n in names]
-
-    for filename, description in zip(filenames, descr):
-        data = run_aot_loader(filename, dt, ll_lat, ll_lon, ur_lat,
-                              ur_lon, aot_loader_path)
-        if data:
-            metadata = {'data_source': description,
-                        'data_file': filename,
-                        'Date used for querying': dt}
-
-            # ancillary metadata tracking
-            md = gaip.extract_ancillary_metadata(filename)
-            for key in md:
-                metadata[key] = md[key]
-
-            return data, metadata
-
-    # default aerosol value
-    # assumes we are only processing Australia in which case it it should
-    # be a coastal scene
-    data = 0.06
-    metadata = {'data_source': 'Default value used; Assumed a coastal scene'}
-
-    return data, metadata
-
-
-def run_aot_loader(filename, dt, ll_lat, ll_lon, ur_lat, ur_lon,
-                   aot_loader_path=None):
-    """Load aerosol data for a specified `AATSR.
-    <http://www.leos.le.ac.uk/aatsr/howto/index.html>`_ data file.  This uses
-    the executable ``aot_loader``.
-    :param filename:
-        The full path to the `AATSR
-        <http://www.leos.le.ac.uk/aatsr/howto/index.html>`_ file to load the
-        data from.
-    :type filename:
-        :py:class:`str`
-    :param dt:
-        The date and time to extract the value for.
-    :type dt:
-        :py:class:`datetime.datetime`
-    :param ll_lat:
-        The latitude of the lower left corner of the region ('ll' for 'Lower
-        Left').
-    :type ll_lat:
-        :py:class:`float`
-    :param ll_lon:
-        The longitude of the lower left corner of the region ('ll' for 'Lower
-        Left').
-    :type ll_lon:
-        :py:class:`float`
-    :param ur_lat:
-        The latitude of the upper right corner of the region ('ur' for 'Upper
-        Right').
-    :type ur_lat:
-        :py:class:`float`
-    :param ur_lon:
-        The longitude of the upper right corner of the region ('ur' for 'Upper
-        Right').
-    :type ur_lon:
-        :py:class:`float`
-    :param aot_loader_path:
-        The directory where the executable ``aot_loader`` can be found.
-    :type aot_loader_path:
-        :py:class:`str`
-    """
-    filetype = splitext(filename)[1][1:]
-    if not exists(filename):
-        log.warning('Aerosol %s file (%s) not found', filetype, filename)
-        return None
-
-    if not aot_loader_path:
-        aot_loader_path = abspath(pjoin(dirname(__file__), pardir, 'bin'))
-
-    cmd = pjoin(aot_loader_path, 'aot_loader')
-    if not exists(cmd):
-        log.error('%s not found.', cmd)
-    task = [cmd, '--' + filetype, filename, '--west', str(ll_lon),
-            '--east', str(ur_lon), '--south', str(ll_lat),
-            '--north', str(ur_lat), '--date', dt.strftime('%Y-%m-%d'),
-            '--t', dt.strftime('%H:%M:%S'), '--print-values']
-    task = ' '.join(task)
-    print task
-    result = subprocess.check_output(task, shell=True)
-
-    m = re.search(r'AOT AATSR value:\s+(.+)$', result, re.MULTILINE)
-    if m and m.group(1):
-        return float(m.group(1).rstrip())
-
-    log.warning('Aerosol file %s could not be parsed', filename)
-    return None
 
 
 def get_elevation_data(lonlat, dem_path):
