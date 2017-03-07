@@ -105,6 +105,21 @@ def create_centreline_dataset(geobox, y, x, n):
     return data
 
 
+def first_and_last(array):
+    """
+    Utility to find indices of first and last true value in an array.
+
+    Example:
+                            0 1 2 3 4 5 6 7 8 9
+                                |       |
+        >>> first_and_last([0,0,1,1,0,1,1,0,0,0])
+        (2, 6)
+        >>> first_and_last([0,0,0]) # if no element of truth:
+        (-1, -1)
+    """
+    i, = np.nonzero(array) # assume array only has one dimension to unpack
+    return (i[0], i[-1]) if len(i) else (-1,-1)
+
 def swathe_edges(threshold, array):
     """
     Find left and right edges of swathe.
@@ -116,9 +131,7 @@ def swathe_edges(threshold, array):
     start = np.empty(array.shape[0], dtype='int')
     end   = np.empty(array.shape[0], dtype='int')
     for i, row in enumerate(array):
-        indices, = np.nonzero(row <= threshold)
-        start[i] = indices[0]
-        end[i] = indices[-1]
+        start[i], end[i] = first_and_last(row <= threshold)
     return start+1, end+1 # index not from zero
 
 
@@ -170,18 +183,10 @@ def create_boxline_coordinator(view_angle_dataset, line, ncentre, npoints,
     # calculate the column start and end indices
     istart, iend = swathe_edges(max_angle, view_angle)
 
-    # allocate the output arrays
-    istart = np.zeros(rows, dtype='int')
-    iend = np.zeros(rows, dtype='int')
-
     # TODO: Fuqin to document, and these results are only used for
     # granules that do not contain the satellite track path
-    kk = ll = -1
-    for i in range(rows):
-        if npoints[i] > 0.5:
-            if kk == -1:
-                kk = i
-            ll = i
+    kk, ll = first_and_last(npoints > 0.5)
+
 
     coordinator = np.zeros((9, 2), dtype='int64')
     mid_col = cols // 2
