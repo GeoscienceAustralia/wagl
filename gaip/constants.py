@@ -29,7 +29,6 @@ class PQAConstants(object):
         self.set_run_cloud()
         self.set_olitirs()
         self.set_thermal_band()
-        self.set_band_num_sequence()
 
     def set_saturation_bands(self):
         """
@@ -38,11 +37,11 @@ class PQAConstants(object):
         may change to be an ordered list, ie 1-n_bands.
         """
         saturation = {
-            'TM': [1, 2, 3, 4, 5, 6, 7],
-            'ETM+': [1, 2, 3, 4, 5, 61, 62, 7],
-            'OLI_TIRS': [2, 3, 4, 5, 6, 7, 10, 11],
-            'OLI': [2, 3, 4, 5, 6, 7],
-            'TIRS': [10, 11]
+            'TM': ['1', '2', '3', '4', '5', '6', '7'],
+            'ETM+': ['1', '2', '3', '4', '5', '61', '62', '7'],
+            'OLI_TIRS': ['2', '3', '4', '5', '6', '7', '10', '11'],
+            'OLI': ['2', '3', '4', '5', '6', '7'],
+            'TIRS': ['10', '11']
         }
 
         self.saturation_bands = saturation[self.sensor]
@@ -141,11 +140,11 @@ class PQAConstants(object):
         Set the availble bands for a given sensor.
         """
         band_numbers = {
-            'TM': [1, 2, 3, 4, 5, 6, 7],
-            'ETM+': [1, 2, 3, 4, 5, 61, 62, 7],
-            'OLI_TIRS': [1, 2, 3, 4, 5, 6, 7, 9, 10, 11],
-            'OLI': [1, 2, 3, 4, 5, 6, 7, 9],
-            'TIRS': [10, 11]
+            'TM': ['1', '2', '3', '4', '5', '6', '7'],
+            'ETM+': ['1', '2', '3', '4', '5', '61', '62', '7'],
+            'OLI_TIRS': ['1', '2', '3', '4', '5', '6', '7', '9', '10', '11'],
+            'OLI': ['1', '2', '3', '4', '5', '6', '7', '9'],
+            'TIRS': ['10', '11']
         }
 
         self.available_bands = band_numbers[self.sensor]
@@ -205,68 +204,10 @@ class PQAConstants(object):
         If no band is found, then a string is returned.
         """
         self.thermal_band = {
-            'TM': 6,
-            'ETM+': 61,
-            'OLI_TIRS': 10
+            'TM': '6',
+            'ETM+': '61',
+            'OLI_TIRS': '10'
         }.get(self.sensor, 'Error! No Thermal Band Found.')
-
-    def set_band_num_sequence(self):
-        """
-        Set the band numbering sequence 1:n for a given sensor.
-        This is intended to be used with the SceneDataset class's
-        gain and bias method.
-        """
-        sequence = {
-            'TM': {
-                1: 1,
-                2: 2,
-                3: 3,
-                4: 4,
-                5: 5,
-                6: 6,
-                7: 7
-            },
-            'ETM+': {
-                1: 1,
-                2: 2,
-                3: 3,
-                4: 4,
-                5: 5,
-                61: 6,
-                62: 7,
-                7: 8
-            },
-            'OLI_TIRS': {
-                1: 1,
-                2: 2,
-                3: 3,
-                4: 4,
-                5: 5,
-                6: 6,
-                7: 7,
-                8: 8,
-                9: 9,
-                10: 10,
-                11: 11
-            },
-            'OLI': {
-                1: 1,
-                2: 2,
-                3: 3,
-                4: 4,
-                5: 5,
-                6: 6,
-                7: 7,
-                8: 8,
-                9: 9
-            },
-            'TIRS': {
-                10: 10,
-                11: 11
-            }
-        }
-        self.band_num_sequence = sequence[self.sensor]
-
 
 def brdf_wavelength_lut(satellite_sensor):
     """
@@ -288,32 +229,32 @@ def brdf_wavelength_lut(satellite_sensor):
 
     input_str = str(satellite_sensor)
 
-    brdf_lut = {'landsat5tm': {1: '0459_0479nm',
-                               2: '0545_0565nm',
-                               3: '0620_0670nm',
-                               4: '0841_0876nm',
-                               5: '1628_1652nm',
-                               7: '2105_2155nm'},
-                'landsat7etm+': {1: '0459_0479nm',
-                                 2: '0545_0565nm',
-                                 3: '0620_0670nm',
-                                 4: '0841_0876nm',
-                                 5: '1628_1652nm',
-                                 7: '2105_2155nm'},
-                'landsat8oli': {1: '0459_0479nm',
-                                2: '0459_0479nm',
-                                3: '0545_0565nm',
-                                4: '0620_0670nm',
-                                5: '0841_0876nm',
-                                6: '1628_1652nm',
-                                7: '2105_2155nm'},
-                'landsat8olitirs': {1: '0459_0479nm',
-                                    2: '0459_0479nm',
-                                    3: '0545_0565nm',
-                                    4: '0620_0670nm',
-                                    5: '0841_0876nm',
-                                    6: '1628_1652nm',
-                                    7: '2105_2155nm'},
+    brdf_lut = {'landsat5tm': {'1': '0459_0479nm',
+                               '2': '0545_0565nm',
+                               '3': '0620_0670nm',
+                               '4': '0841_0876nm',
+                               '5': '1628_1652nm',
+                               '7': '2105_2155nm'},
+                'landsat7etm+': {'1': '0459_0479nm',
+                                 '2': '0545_0565nm',
+                                 '3': '0620_0670nm',
+                                 '4': '0841_0876nm',
+                                 '5': '1628_1652nm',
+                                 '7': '2105_2155nm'},
+                'landsat8oli': {'1': '0459_0479nm',
+                                '2': '0459_0479nm',
+                                '3': '0545_0565nm',
+                                '4': '0620_0670nm',
+                                '5': '0841_0876nm',
+                                '6': '1628_1652nm',
+                                '7': '2105_2155nm'},
+                'landsat8olitirs': {'1': '0459_0479nm',
+                                    '2': '0459_0479nm',
+                                    '3': '0545_0565nm',
+                                    '4': '0620_0670nm',
+                                    '5': '0841_0876nm',
+                                    '6': '1628_1652nm',
+                                    '7': '2105_2155nm'},
                 'sentinel2amsi': {'1': '0459_0479nm',
                                   '2': '0459_0479nm',
                                   '3': '0545_0565nm',
@@ -349,10 +290,10 @@ def nbar_bands_lut(satellite_sensor):
 
     input_str = str(satellite_sensor)
 
-    nbar_lut = {'landsat5tm': [1, 2, 3, 4, 5, 7],
-                'landsat7etm+': [1, 2, 3, 4, 5, 7],
-                'landsat8oli': [1, 2, 3, 4, 5, 6, 7],
-                'landsat8olitirs': [1, 2, 3, 4, 5, 6, 7],
+    nbar_lut = {'landsat5tm': ['1', '2', '3', '4', '5', '7'],
+                'landsat7etm+': ['1', '2', '3', '4', '5', '7'],
+                'landsat8oli': ['1', '2', '3', '4', '5', '6', '7'],
+                'landsat8olitirs': ['1', '2', '3', '4', '5', '6', '7'],
                 'sentinel2amsi': ['1',
                                   '2',
                                   '3',
@@ -396,32 +337,32 @@ def avg_reflectance_lut(satellite_sensor):
 
     input_str = str(satellite_sensor)
 
-    avg_reflectance_values = {'landsat5tm': {1: 0.0365,
-                                             2: 0.0667,
-                                             3: 0.0880,
-                                             4: 0.2231,
-                                             5: 0.2512,
-                                             7: 0.1648},
-                              'landsat7etm+': {1: 0.0365,
-                                               2: 0.0667,
-                                               3: 0.0880,
-                                               4: 0.2231,
-                                               5: 0.2512,
-                                               7: 0.1648},
-                              'landsat8oli': {1: 0.0365,
-                                              2: 0.0365,
-                                              3: 0.0667,
-                                              4: 0.0880,
-                                              5: 0.2231,
-                                              6: 0.2512,
-                                              7: 0.1648},
-                              'landsat8olitirs': {1: 0.0365,
-                                                  2: 0.0365,
-                                                  3: 0.0667,
-                                                  4: 0.0880,
-                                                  5: 0.2231,
-                                                  6: 0.2512,
-                                                  7: 0.1648},
+    avg_reflectance_values = {'landsat5tm': {'1': 0.0365,
+                                             '2': 0.0667,
+                                             '3': 0.0880,
+                                             '4': 0.2231,
+                                             '5': 0.2512,
+                                             '7': 0.1648},
+                              'landsat7etm+': {'1': 0.0365,
+                                               '2': 0.0667,
+                                               '3': 0.0880,
+                                               '4': 0.2231,
+                                               '5': 0.2512,
+                                               '7': 0.1648},
+                              'landsat8oli': {'1': 0.0365,
+                                              '2': 0.0365,
+                                              '3': 0.0667,
+                                              '4': 0.0880,
+                                              '5': 0.2231,
+                                              '6': 0.2512,
+                                              '7': 0.1648},
+                              'landsat8olitirs': {'1': 0.0365,
+                                                  '2': 0.0365,
+                                                  '3': 0.0667,
+                                                  '4': 0.0880,
+                                                  '5': 0.2231,
+                                                  '6': 0.2512,
+                                                  '7': 0.1648},
                               'sentinel2amsi': {'1': 0.0365,
                                                 '2': 0.0365,
                                                 '3': 0.0667,
