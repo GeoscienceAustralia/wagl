@@ -94,7 +94,13 @@
                         "resolution": 25.0,
                         "type_desc": "Reflective",
                         "wavelength": [2.08, 2.35]
-                    }
+                    },
+                    "quality": {
+                        "desc": "Quality",
+                        "resolution": 25.0,
+                        "type_desc": "Quality",
+                        "wavelength": [0, 0]
+                   }
                 },
                 "description": "Thematic Mapper",
                 "K1": 607.76,
@@ -180,7 +186,13 @@
                         "resolution": 12.5,
                         "type_desc": "Panchromatic",
                         "wavelength": [0.52, 0.90]
-                    }
+                    },
+                    "quality": {
+                        "desc": "Quality",
+                        "resolution": 25.0,
+                        "type_desc": "Quality",
+                        "wavelength": [0, 0]
+                   }
                 },
                 "description": "Enhanced Thermatic Mapper Plus",
                 "K1": 666.09,
