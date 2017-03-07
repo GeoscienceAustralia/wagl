@@ -1,4 +1,6 @@
+luigi>=2.4.0
 numpy>=1.8
+numexpr>=2.4.6
 pyephem>=3.7.5.3
 scipy>=0.14
 numexpr>=2.2
@@ -6,4 +8,11 @@ proj>=4.8.0
 scikit-image>=0.8.2
 GDAL>=1.9.2
 rasterio
+fiona>=1.7.0
+shapely>=1.5.13
 h5py>=2.5.0
+bitshuffle>=0.2.3
+tables>=3.2.2
+pandas>=0.17.1
+geopandas>=0.1.1
+pyyaml>=3.11
