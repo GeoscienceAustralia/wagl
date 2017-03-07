@@ -709,7 +709,7 @@ class RunTCBand(luigi.Task):
 
 
 @inherits(CalculateLonGrid)
-class TerrainCorrection(luigi.WrapperTask):
+class TerrainCorrection(luigi.Task):
 
     """Perform the terrain correction."""
 
@@ -728,9 +728,20 @@ class TerrainCorrection(luigi.WrapperTask):
         bands_to_process = [bn for bn in bands if bn in avail_bands]
 
         # define the bands to compute reflectance for
+        reqs = []
         for band in bands_to_process:
-            yield RunTCBand(self.level1, self.work_root, self.granule,
-                            self.group, band)
+            reqs.append(RunTCBand(self.level1, self.work_root, self.granule,
+                                  self.group, band))
+
+    def output(self):
+        out_path = acquisitions(self.level1).get_root(self.work_root,
+                                                      self.group, self.granule)
+        return luigi.LocalTarget(pjoin(out_path, 'reflectance.h5'))
+
+    def run(self):
+        with self.output().temporary_path() as out_fname:
+            fnames = [target.path for target in self.input()]
+            gaip.link_reflectance_data(fnames, out_fname)
 
 
 class NBAR(luigi.WrapperTask):
