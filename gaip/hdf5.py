@@ -23,7 +23,7 @@ def _fixed_str_size(data):
 
 
 def dataset_compression_kwargs(compression='lzf', shuffle=True,
-                               chunks=(512, 512), compression_opts=None):
+                               chunks=True, compression_opts=None):
     """
     A helper function that aids in setting up the use of different
     compression filters for HDF5.
