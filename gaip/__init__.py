@@ -30,15 +30,15 @@ from cloud_shadow_masking import cloud_shadow
 from dsm import *
 
 try:
-    from _satellite_model import set_satmod # F2Py
-    from _track_time_info import set_times # F2Py
-    from _sat_sol_angles import angle # F2Py
-    from _cast_shadow_mask import cast_shadow_main # F2Py
-    from _exiting_angle import exiting_angle # F2Py
-    from _incident_angle import incident_angle # F2Py
-    from _slope_aspect import slope_aspect # F2Py
-    from _surface_reflectance import reflectance # F2Py
-    from _interpolation import bilinear #F2Py
+    from __satellite_model import set_satmod # F2Py
+    from __track_time_info import set_times # F2Py
+    from __sat_sol_angles import angle # F2Py
+    from __cast_shadow_mask import cast_shadow_main # F2Py
+    from __exiting_angle import exiting_angle # F2Py
+    from __incident_angle import incident_angle # F2Py
+    from __slope_aspect import slope_aspect # F2Py
+    from __surface_reflectance import reflectance # F2Py
+    from __interpolation import bilinear #F2Py
     from calculate_angles import *
     from calculate_shadow_masks import *
     from calculate_reflectance import calculate_reflectance
