@@ -301,7 +301,7 @@ def create_lat_grid(acquisition, out_fname=None, compression='lzf', depth=7,
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))
 
-    lat_grid = create_grid(geobox, get_lon_coordinate, depth, dtype)
+    lat_grid = create_grid(geobox, get_lat_coordinate, depth, dtype)
 
     dset = fid.create_dataset('latitude', data=lat_grid, **kwargs)
     attach_image_attributes(dset, attrs)
