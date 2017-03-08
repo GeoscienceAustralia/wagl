@@ -688,12 +688,12 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, npoints=12,
 
         The dataset names will be as follows:
 
-        * satellite-view-angles
-        * satellite-azimuth-angles
-        * solar-zenith-angles
-        * solar-azimuth-angles
-        * relative-azimuth-angles
-        * acquisition-times
+        * satellite-view
+        * satellite-azimuth
+        * solar-zenith
+        * solar-azimuth
+        * relative-azimuth
+        * acquisition-time
         * centreline
         * boxline
         * coordinator
