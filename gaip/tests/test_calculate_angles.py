@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
-import argparse
-import os
 import unittest
+import argparse
+from argparse import RawTextHelpFormatter
 
-import numpy
 import numpy.testing as npt
 import h5py
 
@@ -30,104 +29,266 @@ class TestCalculateAngles(ParameterisedTestCase):
         * coordinator
     """
 
-    reference_fid = h5py.File(self.reference_fname, 'r')
-    test_fid = h5py.File(self.test_fname, 'r')
-
     def test_satellite_view(self):
         """
         Test the satellite view angle array.
         """
-        ref_dset = self.reference_fid['satellite-view']
-        test_dset = self.test_fid['satellite-view']
+        with h5py.File(self.reference_fname, 'r') as reference_fid,\
+            h5py.File(self.test_fname, 'r') as test_fid:
 
-        npt.assert_almost_equal(test_dset, ref_dset,
-                                decimal=self.decimal_precision)
+            ref_dset = reference_fid['satellite-view']
+            test_dset = test_fid['satellite-view']
+
+            npt.assert_almost_equal(test_dset, ref_dset,
+                                    decimal=self.decimal_precision)
 
     def test_satellite_azimuth(self):
         """
         Test the satellite azimuth angle array.
         """
-        ref_dset = self.reference_fid['satellite-azimuth']
-        test_dset = self.test_fid['satellite-azimuth']
+        with h5py.File(self.reference_fname, 'r') as reference_fid,\
+            h5py.File(self.test_fname, 'r') as test_fid:
 
-        npt.assert_almost_equal(test_dset, ref_dset,
-                                decimal=self.decimal_precision)
+            ref_dset = reference_fid['satellite-azimuth']
+            test_dset = test_fid['satellite-azimuth']
+
+            npt.assert_almost_equal(test_dset, ref_dset,
+                                    decimal=self.decimal_precision)
 
     def test_solar_zenith(self):
         """
         Test the solar zenith angle array.
         """
-        ref_dset = self.reference_fid['solar-zenith']
-        test_dset = self.test_fid['solar-zenith']
+        with h5py.File(self.reference_fname, 'r') as reference_fid,\
+            h5py.File(self.test_fname, 'r') as test_fid:
 
-        npt.assert_almost_equal(test_dset, ref_dset,
-                                decimal=self.decimal_precision)
+            ref_dset = reference_fid['solar-zenith']
+            test_dset = test_fid['solar-zenith']
+
+            npt.assert_almost_equal(test_dset, ref_dset,
+                                    decimal=self.decimal_precision)
 
     def test_solar_azimuth(self):
         """
         Test the solar azimuth angle array.
         """
-        ref_dset = self.reference_fid['solar-azimuth']
-        test_dset = self.test_fid['solar-azimuth']
+        with h5py.File(self.reference_fname, 'r') as reference_fid,\
+            h5py.File(self.test_fname, 'r') as test_fid:
 
-        npt.assert_almost_equal(test_dset, ref_dset,
-                                decimal=self.decimal_precision)
+            ref_dset = reference_fid['solar-azimuth']
+            test_dset = test_fid['solar-azimuth']
+
+            npt.assert_almost_equal(test_dset, ref_dset,
+                                    decimal=self.decimal_precision)
 
     def test_relative_azimuth(self):
         """
         Test the relative azimuth angle array.
         """
-        ref_dset = self.reference_fid['relative-azimuth']
-        test_dset = self.test_fid['relative-azimuth']
+        with h5py.File(self.reference_fname, 'r') as reference_fid,\
+            h5py.File(self.test_fname, 'r') as test_fid:
 
-        npt.assert_almost_equal(test_dset, ref_dset,
-                                decimal=self.decimal_precision)
+            ref_dset = reference_fid['relative-azimuth']
+            test_dset = test_fid['relative-azimuth']
+
+            npt.assert_almost_equal(test_dset, ref_dset,
+                                    decimal=self.decimal_precision)
 
     def test_time_array(self):
         """
         Test the time array.
         """
-        ref_dset = self.reference_fid['acquisition-time']
-        test_dset = self.test_fid['acquisition-time']
+        with h5py.File(self.reference_fname, 'r') as reference_fid,\
+            h5py.File(self.test_fname, 'r') as test_fid:
 
-        npt.assert_almost_equal(test_dset, ref_dset,
-                                decimal=self.decimal_precision)
+            ref_dset = reference_fid['acquisition-time']
+            test_dset = test_fid['acquisition-time']
 
-    def test_centreline_points(self):
+            npt.assert_almost_equal(test_dset, ref_dset,
+                                    decimal=self.decimal_precision)
+
+    def test_centreline_dataset(self):
         """
-        Test that the centreline points are roughly the same.
-        These start at the third line of the centreline file and
-        contain 5 elements. We'll allow for variation by 1 integer.
-
-        eg ['1742','4624','1.00000', '-33.608469649266', '150.080204768921']
-        We'll only test the 1st three elements.
+        Test the centreline dataset exactly using the
+        `pandas.DataFrame` equality test.
         """
-        # TODO:
-        # ref_df = read_table(self.reference_fid, 'centreline')
-        # test_df = read_table(self.test_fid, 'centreline')
-        # test_df.equals(ref_df) ???
+        with h5py.File(self.reference_fname, 'r') as reference_fid,\
+            h5py.File(self.test_fname, 'r') as test_fid:
 
-        # self.assertIsNone(npt.assert_allclose(test_points, ref_points,
-        #     atol=int_prec))
+            ref_data = read_table(reference_fid, 'centreline')
+            test_data = read_table(test_fid, 'centreline')
 
+            self.assertTrue(test_data.equals(ref_data))
 
-    def test_centreline_lonlat_points(self):
+    def test_centreline_row_index(self):
         """
-        Test that the centreline longitude and latitude points are
-        roughly the same.
-        These start at the third line of the centreline file and
-        contain 5 elements. We'll allow for variation at the 6th
-        decimal place.
-
-        eg ['1742','4624','1.00000', '-33.608469649266', '150.080204768921']
-        We'll only test the last two elements.
+        Test the `row_index` column of the centreline dataset.
         """
-        # self.assertIsNone(npt.assert_almost_equal(test_points, ref_points,
-        #     decimal=6))
+        with h5py.File(self.reference_fname, 'r') as reference_fid,\
+            h5py.File(self.test_fname, 'r') as test_fid:
 
-    # TODO
-    # def test_boxline(self):
-    # def test_coordinator(self):
+            ref_data = reference_fid['centreline']['row_index']
+            test_data = test_fid['centreline']['row_index']
+
+            npt.assert_allclose(test_data, ref_data,
+                                atol=self.integer_precision)
+
+    def test_centreline_col_index(self):
+        """
+        Test the `col_index` column of the centreline dataset.
+        """
+        with h5py.File(self.reference_fname, 'r') as reference_fid,\
+            h5py.File(self.test_fname, 'r') as test_fid:
+
+            ref_data = reference_fid['centreline']['col_index']
+            test_data = test_fid['centreline']['col_index']
+
+            npt.assert_allclose(test_data, ref_data,
+                                atol=self.integer_precision)
+
+    def test_centreline_n_pixels(self):
+        """
+        Test the `n_pixels` column of the centreline dataset.
+        """
+        with h5py.File(self.reference_fname, 'r') as reference_fid,\
+            h5py.File(self.test_fname, 'r') as test_fid:
+
+            ref_data = reference_fid['centreline']['n_pixels']
+            test_data = test_fid['centreline']['n_pixels']
+
+            npt.assert_allclose(test_data, ref_data,
+                                atol=self.integer_precision)
+
+    def test_centreline_latitude(self):
+        """
+        Test the `latitude` column of the centreline dataset.
+        """
+        with h5py.File(self.reference_fname, 'r') as reference_fid,\
+            h5py.File(self.test_fname, 'r') as test_fid:
+
+            ref_data = reference_fid['centreline']['latitude']
+            test_data = test_fid['centreline']['latitude']
+
+            npt.assert_almost_equal(test_data, ref_data,
+                                    decimal=self.decimal_precision)
+
+    def test_centreline_longitude(self):
+        """
+        Test the `longitude` column of the centreline dataset.
+        """
+        with h5py.File(self.reference_fname, 'r') as reference_fid,\
+             h5py.File(self.test_fname, 'r') as test_fid:
+
+            ref_data = reference_fid['centreline']['longitude']
+            test_data = test_fid['centreline']['longitude']
+
+            npt.assert_almost_equal(test_data, ref_data,
+                                    decimal=self.decimal_precision)
+
+    def test_boxline_dataset(self):
+        """
+        Test the boxline dataset exactly using the
+        `pandas.DataFrame` equality test.
+        """
+        with h5py.File(self.reference_fname, 'r') as reference_fid,\
+            h5py.File(self.test_fname, 'r') as test_fid:
+
+            ref_data = read_table(reference_fid, 'boxline')
+            test_data = read_table(test_fid, 'boxline')
+
+            self.assertTrue(test_data.equals(ref_data))
+
+    def test_boxline_row_index(self):
+        """
+        Test the `row_index` column of the boxline dataset.
+        """
+        with h5py.File(self.reference_fname, 'r') as reference_fid,\
+            h5py.File(self.test_fname, 'r') as test_fid:
+
+            ref_data = reference_fid['boxline']['row_index']
+            test_data = test_fid['boxline']['row_index']
+
+            npt.assert_allclose(test_data, ref_data,
+                                atol=self.integer_precision)
+
+    def test_boxline_bisection_index(self):
+        """
+        Test the `bisection_index` column of the boxline dataset.
+        """
+        with h5py.File(self.reference_fname, 'r') as reference_fid,\
+            h5py.File(self.test_fname, 'r') as test_fid:
+
+            ref_data = reference_fid['boxline']['bisection_index']
+            test_data = test_fid['boxline']['bisection_index']
+
+            npt.assert_allclose(test_data, ref_data,
+                                atol=self.integer_precision)
+
+    def test_boxline_start_index(self):
+        """
+        Test the `start_index` column of the boxline dataset.
+        """
+        with h5py.File(self.reference_fname, 'r') as reference_fid,\
+            h5py.File(self.test_fname, 'r') as test_fid:
+
+            ref_data = reference_fid['boxline']['start_index']
+            test_data = test_fid['boxline']['start_index']
+
+            npt.assert_allclose(test_data, ref_data,
+                                atol=self.integer_precision)
+
+    def test_boxline_end_index(self):
+        """
+        Test the `end_index` column of the boxline dataset.
+        """
+        with h5py.File(self.reference_fname, 'r') as reference_fid,\
+            h5py.File(self.test_fname, 'r') as test_fid:
+
+            ref_data = reference_fid['boxline']['end_index']
+            test_data = test_fid['boxline']['end_index']
+
+            npt.assert_allclose(test_data, ref_data,
+                                atol=self.integer_precision)
+
+    def test_coordinator_dataset(self):
+        """
+        Test the boxline dataset exactly using the
+        `pandas.DataFrame` equality test.
+        """
+        with h5py.File(self.reference_fname, 'r') as reference_fid,\
+            h5py.File(self.test_fname, 'r') as test_fid:
+
+            ref_data = read_table(reference_fid, 'coordinator')
+            test_data = read_table(test_fid, 'coordinator')
+
+            self.assertTrue(test_data.equals(ref_data))
+
+    def test_coordinator_row_index(self):
+        """
+        Test the `row_index` column of the boxline dataset.
+        """
+        with h5py.File(self.reference_fname, 'r') as reference_fid,\
+            h5py.File(self.test_fname, 'r') as test_fid:
+
+            ref_data = reference_fid['coordinator']['row_index']
+            test_data = test_fid['coordinator']['row_index']
+
+            npt.assert_allclose(test_data, ref_data,
+                                atol=self.integer_precision)
+
+    def test_coordinator_col_index(self):
+        """
+        Test the `col_index` column of the boxline dataset.
+        """
+        with h5py.File(self.reference_fname, 'r') as reference_fid,\
+            h5py.File(self.test_fname, 'r') as test_fid:
+
+            ref_data = reference_fid['coordinator']['col_index']
+            test_data = test_fid['coordinator']['col_index']
+
+            npt.assert_allclose(test_data, ref_data,
+                                atol=self.integer_precision)
+
 
 if __name__ == '__main__':
     description = ("Unittests for `gaip.calculate_angles` function.\n"
@@ -143,7 +304,8 @@ if __name__ == '__main__':
                    "\t* boxline\n"
                    "\t* coordinator\n")
                    
-    parser = argparse.ArgumentParser(description=description)
+    parser = argparse.ArgumentParser(description=description,
+                                     formatter_class=RawTextHelpFormatter)
     parser.add_argument('--reference_fname', requried=True,
                         help=('The filename containing the reference datasets '
                               'to be used as a baseline.'))
@@ -166,8 +328,10 @@ if __name__ == '__main__':
     integer_precision = parsed_args.integer_precision
 
     suite = unittest.TestSuite()
-    suite.addTest(ParameterisedTestCase.parameterise(TestCalculateAngles,
-                  reference_fname=reference_fname, test_fname=test_fname,
-                  decimal_precision=decimal_precision,
-                  integer_precision=integer_precision))
+    test_case = ParameterisedTestCase()
+    suite.addTest(test_case.parameterise(TestCalculateAngles,
+                                         reference_fname=reference_fname,
+                                         test_fname=test_fname,
+                                         decimal_precision=decimal_precision,
+                                         integer_precision=integer_precision))
     unittest.TextTestRunner(verbosity=2).run(suite)
