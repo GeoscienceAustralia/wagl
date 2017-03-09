@@ -277,7 +277,7 @@ def exiting_angles(satellite_view_dataset, satellite_azimuth_dataset,
 
     # Initialise the output files
     if out_fname is None:
-        fid = h5py.File('incident-angles.h5', driver='core',
+        fid = h5py.File('exiting-angles.h5', driver='core',
                         backing_store=False)
     else:
         fid = h5py.File(out_fname, 'w')
