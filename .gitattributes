@@ -12,3 +12,4 @@ gaip/version.py  export-subst
 *.bin binary
 *.tif binary
 
+gaip/_version.py export-subst

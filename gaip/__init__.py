@@ -1,6 +1,6 @@
 from __future__ import print_function
-
 from __future__ import absolute_import
+
 from .hdf5 import *
 from .data import *
 from .metadata import *
@@ -22,7 +22,6 @@ from .saturation_masking import set_saturation_bits
 from .contiguity_masking import set_contiguity_bit
 from .fc_utils import *
 from .endmembers import *
-from .version import get_version
 from .thermal_conversion import get_landsat_temperature
 from .acca_cloud_masking import calc_acca_cloud_mask
 from .acca_cloud_masking import majority_filter
@@ -49,3 +48,8 @@ except ImportError:
     msg = ('FORTRAN modules have not been built.\n'
            'Some functionality in library is disabled')
     print(msg)
+
+from ._version import get_versions
+
+__version__ = get_versions()['version']
+del get_versions

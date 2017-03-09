@@ -3,11 +3,11 @@
 *.swp
 *.bak
 *.pyf
-*.in
 *.project
 *.py[cod]
 *.pydev*
 *_prog.f90
+MANIFEST
 docs/build/
 docs/source/modules.rst
 gaip/build
