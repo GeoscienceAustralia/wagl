@@ -10,6 +10,8 @@
 #     + added skimage library
 #     + better handling for imagery of different resolutions
 
+from __future__ import absolute_import
+from __future__ import print_function
 import sys
 import re
 import gc
@@ -786,7 +788,7 @@ def nd2toarbt(filename, images=None):
         # This formulae is similar to that used for LS 4,5,7. But is different to that given by
         # https://landsat.usgs.gov/Landsat8_Using_Product.php : Noted JS
         # 2013/11/28
-        print 'From DNs to TOA ref & BT\n'
+        print('From DNs to TOA ref & BT\n')
         im_B2 = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B2 - Qmi) + Rmi", {
                                  'Rma': Refmax[0], 'Rmi': Refmin[0], 'Qma': Qcalmax[0], 'Qmi': Qcalmin[0]}, locals())
         im_B3 = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B3 - Qmi) + Rmi", {
@@ -1689,12 +1691,12 @@ if __name__ == '__main__':
     zen, azi, ptm, Temp, t_templ, t_temph, WT, Snow, Cloud, Shadow, dim, ul, resolu, zc, geoT, prj = plcloud(
         mtl, cldprob, num_Lst=Lnum, shadow_prob=True, log_filename=log_fname)
     et = datetime.datetime.now()
-    print 'time taken for plcloud function: ', et - st
+    print('time taken for plcloud function: ', et - st)
     st = datetime.datetime.now()
     similar_num, cspt, shadow_cal, cs_final = fcssm(
         zen, azi, ptm, Temp, t_templ, t_temph, WT, Snow, Cloud, Shadow, dim, resolu, zc, cldpix, sdpix, snpix)
     et = datetime.datetime.now()
-    print 'time taken for fcssm function: ', et - st
+    print('time taken for fcssm function: ', et - st)
 
     c = gdal.GetDriverByName('ENVI').Create(
         cloud_fname, Cloud.shape[1], Cloud.shape[0], 1, gdal.GDT_Byte)

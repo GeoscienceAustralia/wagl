@@ -8,6 +8,7 @@ as source directions, as well as self shadow masks.
 ---------------------------------------------------
 """
 
+from __future__ import absolute_import
 import numpy
 import h5py
 

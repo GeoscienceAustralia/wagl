@@ -2,6 +2,8 @@
 #
 # get Land/Sea mask from UTM dataset
 #-----------------------------------
+from __future__ import absolute_import
+from __future__ import print_function
 import rasterio as rio
 from rasterio.crs import from_string
 import osr
@@ -80,9 +82,9 @@ if __name__ == "__main__":
 
     flindersGGB = GriddedGeoBox.from_corners(flindersOrigin, flindersCorner)
     mask = get_land_sea_mask(flindersGGB)
-    print "geobox_shape=%s" % str(flindersGGB.shape)
-    print "mask_shape=%s" % str(mask.shape)
-    print mask
+    print("geobox_shape=%s" % str(flindersGGB.shape))
+    print("mask_shape=%s" % str(mask.shape))
+    print(mask)
 
     # same test for AGDC cell around  Darwin area
 
@@ -92,12 +94,12 @@ if __name__ == "__main__":
 
     corner = (shape[1]*scale+origin[0], origin[1]-shape[0]*scale)
     ggb = GriddedGeoBox(shape, origin, pixelsize=(scale, scale))
-    print ggb
+    print(ggb)
 
     # now get UTM equilavent
 
     geo_box = ggb.copy(crs="EPSG:32752")
-    print geo_box
+    print(geo_box)
 
 
     # and get the mask
@@ -110,16 +112,16 @@ if __name__ == "__main__":
     sea_pct = 100.0 * sea_pixels / total_pixels
     land_pct = 100.0 * land_pixels / total_pixels
 
-    print "ggb_shape=%s" % str(ggb.shape)
-    print "geobox_shape=%s" % str(geo_box.shape)
-    print "mask_shape=%s" % str(mask.shape)
-    print "total_pixels=%d" % total_pixels
-    print "land_pixels=%d" % land_pixels
-    print "sea_pixels=%d" % sea_pixels
+    print("ggb_shape=%s" % str(ggb.shape))
+    print("geobox_shape=%s" % str(geo_box.shape))
+    print("mask_shape=%s" % str(mask.shape))
+    print("total_pixels=%d" % total_pixels)
+    print("land_pixels=%d" % land_pixels)
+    print("sea_pixels=%d" % sea_pixels)
     # self.assertEqual(land_pixels, 14554858)
     # self.assertEqual(sea_pixels, 1445142)
     # self.assertEqual(total_pixels, 16000000)
 
-    print "land=%f%%, sea=%f%%" % (land_pct, sea_pct)
+    print("land=%f%%, sea=%f%%" % (land_pct, sea_pct))
 #    write_img(mask.astype('uint8'), 'mask.tif', fmt="GTiff", geobox=ggb)
     write_img(mask, 'mask.tif', fmt="GTiff", geobox=ggb)

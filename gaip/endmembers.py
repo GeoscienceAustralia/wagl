@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 
+from __future__ import absolute_import
+from __future__ import print_function
 import numpy
 
 """
@@ -52,11 +54,11 @@ def sum_weight(date, help=False):
     #2012_12_07
     #2009_08_10
     if help:
-        print 'Available dates for the sum to one weighting constraints  are:'
-        print '2009_08_10'
-        print '2012_12_07'
-        print '2013_01_08'
-        print '2014_07_23'
+        print('Available dates for the sum to one weighting constraints  are:')
+        print('2009_08_10')
+        print('2012_12_07')
+        print('2013_01_08')
+        print('2014_07_23')
 
         return
 
@@ -371,11 +373,11 @@ def endmember_version(date='', help=False):
                }.get(instr, 'Error')
 
     if help:
-        print 'Available dates for the endmember versions are:'
-        print '2009_08_10'
-        print '2012_12_07'
-        print '2013_01_08'
-        print '2014_07_23'
+        print('Available dates for the endmember versions are:')
+        print('2009_08_10')
+        print('2012_12_07')
+        print('2013_01_08')
+        print('2014_07_23')
 
         return
 

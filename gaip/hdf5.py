@@ -5,6 +5,7 @@ Contains various HDF5/h5py wrapped utilities for writing various datasets
 such as images and tables, as well as attaching metadata.
 """
 
+from __future__ import absolute_import
 import datetime
 import numpy
 import h5py

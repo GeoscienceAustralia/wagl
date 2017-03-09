@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
 from datetime import datetime as dtime
 import os
 import pwd

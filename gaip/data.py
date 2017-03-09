@@ -3,6 +3,8 @@ Data access functions
 ---------------------
 """
 
+from __future__ import absolute_import
+from __future__ import print_function
 import subprocess
 import numpy as np
 import rasterio
@@ -229,7 +231,7 @@ def write_img(array, filename, fmt='ENVI', geobox=None, nodata=None,
         lines = dims[1]
         bands = dims[0]
     else:
-        print 'Input array is not of 2 or 3 dimensions!!!'
+        print('Input array is not of 2 or 3 dimensions!!!')
         err = 'Array dimensions: {dims}'.format(dims=ndims)
         raise IndexError(err)
 

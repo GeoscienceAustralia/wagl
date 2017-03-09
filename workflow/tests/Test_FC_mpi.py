@@ -1,6 +1,7 @@
 #!/bin/env python
 
 #import luigi
+from __future__ import absolute_import
 import luigi.contrib.mpi as mpi
 from fc import FractionalCoverTask
 import os

@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import unittest
 import datetime
 import gaip
@@ -70,88 +71,88 @@ class Landsat5MTL1ParserTest(unittest.TestCase):
     def test_load(self):
         tree = gaip.load_mtl(L5_MTL1)
         self.assertEqual(len(tree), 9)
-        self.assertTrue(tree.has_key('METADATA_FILE_INFO'))
-        self.assertTrue(tree.has_key('PRODUCT_METADATA'))
-        self.assertTrue(tree.has_key('MIN_MAX_RADIANCE'))
-        self.assertTrue(tree.has_key('MIN_MAX_PIXEL_VALUE'))
-        self.assertTrue(tree.has_key('PRODUCT_PARAMETERS'))
-        self.assertTrue(tree.has_key('CORRECTIONS_APPLIED'))
-        self.assertTrue(tree.has_key('PROJECTION_PARAMETERS'))
-        self.assertTrue(tree.has_key('UTM_PARAMETERS'))
+        self.assertTrue('METADATA_FILE_INFO' in tree)
+        self.assertTrue('PRODUCT_METADATA' in tree)
+        self.assertTrue('MIN_MAX_RADIANCE' in tree)
+        self.assertTrue('MIN_MAX_PIXEL_VALUE' in tree)
+        self.assertTrue('PRODUCT_PARAMETERS' in tree)
+        self.assertTrue('CORRECTIONS_APPLIED' in tree)
+        self.assertTrue('PROJECTION_PARAMETERS' in tree)
+        self.assertTrue('UTM_PARAMETERS' in tree)
 
 class Landsat5MTL2ParserTest(unittest.TestCase):
 
     def test_load(self):
         tree = gaip.load_mtl(L5_MTL2)
         self.assertEqual(len(tree), 10)
-        self.assertTrue(tree.has_key('METADATA_FILE_INFO'))
-        self.assertTrue(tree.has_key('PRODUCT_METADATA'))
-        self.assertTrue(tree.has_key('MIN_MAX_RADIANCE'))
-        self.assertTrue(tree.has_key('MIN_MAX_REFLECTANCE'))
-        self.assertTrue(tree.has_key('MIN_MAX_PIXEL_VALUE'))
-        self.assertTrue(tree.has_key('PRODUCT_PARAMETERS'))
-        self.assertTrue(tree.has_key('PROJECTION_PARAMETERS'))
-        self.assertTrue(tree.has_key('IMAGE_ATTRIBUTES'))
-        self.assertTrue(tree.has_key('THERMAL_CONSTANTS'))
+        self.assertTrue('METADATA_FILE_INFO' in tree)
+        self.assertTrue('PRODUCT_METADATA' in tree)
+        self.assertTrue('MIN_MAX_RADIANCE' in tree)
+        self.assertTrue('MIN_MAX_REFLECTANCE' in tree)
+        self.assertTrue('MIN_MAX_PIXEL_VALUE' in tree)
+        self.assertTrue('PRODUCT_PARAMETERS' in tree)
+        self.assertTrue('PROJECTION_PARAMETERS' in tree)
+        self.assertTrue('IMAGE_ATTRIBUTES' in tree)
+        self.assertTrue('THERMAL_CONSTANTS' in tree)
 
 class Landsat7MTL1ParserTest(unittest.TestCase):
 
     def test_load(self):
         tree = gaip.load_mtl(L7_MTL1)
         self.assertEqual(len(tree), 8)
-        self.assertTrue(tree.has_key('METADATA_FILE_INFO'))
-        self.assertTrue(tree.has_key('PRODUCT_METADATA'))
-        self.assertTrue(tree.has_key('MIN_MAX_RADIANCE'))
-        self.assertTrue(tree.has_key('MIN_MAX_PIXEL_VALUE'))
-        self.assertTrue(tree.has_key('PRODUCT_PARAMETERS'))
-        self.assertTrue(tree.has_key('CORRECTIONS_APPLIED'))
-        self.assertTrue(tree.has_key('PROJECTION_PARAMETERS'))
-        self.assertTrue(tree.has_key('UTM_PARAMETERS'))
+        self.assertTrue('METADATA_FILE_INFO' in tree)
+        self.assertTrue('PRODUCT_METADATA' in tree)
+        self.assertTrue('MIN_MAX_RADIANCE' in tree)
+        self.assertTrue('MIN_MAX_PIXEL_VALUE' in tree)
+        self.assertTrue('PRODUCT_PARAMETERS' in tree)
+        self.assertTrue('CORRECTIONS_APPLIED' in tree)
+        self.assertTrue('PROJECTION_PARAMETERS' in tree)
+        self.assertTrue('UTM_PARAMETERS' in tree)
 
 class Landsat7MTL2ParserTest(unittest.TestCase):
 
     def test_load(self):
         tree = gaip.load_mtl(L7_MTL2)
         self.assertEqual(len(tree), 10)
-        self.assertTrue(tree.has_key('METADATA_FILE_INFO'))
-        self.assertTrue(tree.has_key('PRODUCT_METADATA'))
-        self.assertTrue(tree.has_key('MIN_MAX_RADIANCE'))
-        self.assertTrue(tree.has_key('MIN_MAX_REFLECTANCE'))
-        self.assertTrue(tree.has_key('MIN_MAX_PIXEL_VALUE'))
-        self.assertTrue(tree.has_key('PRODUCT_PARAMETERS'))
-        self.assertTrue(tree.has_key('PROJECTION_PARAMETERS'))
-        self.assertTrue(tree.has_key('IMAGE_ATTRIBUTES'))
-        self.assertTrue(tree.has_key('THERMAL_CONSTANTS'))
+        self.assertTrue('METADATA_FILE_INFO' in tree)
+        self.assertTrue('PRODUCT_METADATA' in tree)
+        self.assertTrue('MIN_MAX_RADIANCE' in tree)
+        self.assertTrue('MIN_MAX_REFLECTANCE' in tree)
+        self.assertTrue('MIN_MAX_PIXEL_VALUE' in tree)
+        self.assertTrue('PRODUCT_PARAMETERS' in tree)
+        self.assertTrue('PROJECTION_PARAMETERS' in tree)
+        self.assertTrue('IMAGE_ATTRIBUTES' in tree)
+        self.assertTrue('THERMAL_CONSTANTS' in tree)
 
 class Landsat8MTL1ParserTest(unittest.TestCase):
 
     def test_load(self):
         tree = gaip.load_mtl(L8_MTL1)
         self.assertEqual(len(tree), 9)
-        self.assertTrue(tree.has_key('METADATA_FILE_INFO'))
-        self.assertTrue(tree.has_key('PRODUCT_METADATA'))
-        self.assertTrue(tree.has_key('IMAGE_ATTRIBUTES'))
-        self.assertTrue(tree.has_key('MIN_MAX_RADIANCE'))
-        self.assertTrue(tree.has_key('MIN_MAX_REFLECTANCE'))
-        self.assertTrue(tree.has_key('MIN_MAX_PIXEL_VALUE'))
-        self.assertTrue(tree.has_key('RADIOMETRIC_RESCALING'))
-        self.assertTrue(tree.has_key('TIRS_THERMAL_CONSTANTS'))
-        self.assertTrue(tree.has_key('PROJECTION_PARAMETERS'))
+        self.assertTrue('METADATA_FILE_INFO' in tree)
+        self.assertTrue('PRODUCT_METADATA' in tree)
+        self.assertTrue('IMAGE_ATTRIBUTES' in tree)
+        self.assertTrue('MIN_MAX_RADIANCE' in tree)
+        self.assertTrue('MIN_MAX_REFLECTANCE' in tree)
+        self.assertTrue('MIN_MAX_PIXEL_VALUE' in tree)
+        self.assertTrue('RADIOMETRIC_RESCALING' in tree)
+        self.assertTrue('TIRS_THERMAL_CONSTANTS' in tree)
+        self.assertTrue('PROJECTION_PARAMETERS' in tree)
 
 class Landsat8MTL2ParserTest(unittest.TestCase):
 
     def test_load(self):
         tree = gaip.load_mtl(L8_MTL2)
         self.assertEqual(len(tree), 9)
-        self.assertTrue(tree.has_key('METADATA_FILE_INFO'))
-        self.assertTrue(tree.has_key('PRODUCT_METADATA'))
-        self.assertTrue(tree.has_key('IMAGE_ATTRIBUTES'))
-        self.assertTrue(tree.has_key('MIN_MAX_RADIANCE'))
-        self.assertTrue(tree.has_key('MIN_MAX_REFLECTANCE'))
-        self.assertTrue(tree.has_key('MIN_MAX_PIXEL_VALUE'))
-        self.assertTrue(tree.has_key('RADIOMETRIC_RESCALING'))
-        self.assertTrue(tree.has_key('TIRS_THERMAL_CONSTANTS'))
-        self.assertTrue(tree.has_key('PROJECTION_PARAMETERS'))
+        self.assertTrue('METADATA_FILE_INFO' in tree)
+        self.assertTrue('PRODUCT_METADATA' in tree)
+        self.assertTrue('IMAGE_ATTRIBUTES' in tree)
+        self.assertTrue('MIN_MAX_RADIANCE' in tree)
+        self.assertTrue('MIN_MAX_REFLECTANCE' in tree)
+        self.assertTrue('MIN_MAX_PIXEL_VALUE' in tree)
+        self.assertTrue('RADIOMETRIC_RESCALING' in tree)
+        self.assertTrue('TIRS_THERMAL_CONSTANTS' in tree)
+        self.assertTrue('PROJECTION_PARAMETERS' in tree)
 
 if __name__ == '__main__':
     unittest.main()

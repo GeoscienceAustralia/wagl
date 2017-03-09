@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
 import luigi
 from os.path import join as pjoin, dirname
 import cPickle as pickle

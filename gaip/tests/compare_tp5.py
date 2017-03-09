@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
+from __future__ import print_function
 from os.path import join as pjoin, exists
 import argparse
 import numpy
@@ -14,13 +16,13 @@ def main(ref_dir, test_dir, scenes, files):
             test_fname = pjoin(pjoin(test_scene, 'mod'), f)
             if not exists(ref_fname):
                 continue
-            print "Testing\nScene: {}\n File: {}".format(scene, f)
+            print("Testing\nScene: {}\n File: {}".format(scene, f))
             with open(ref_fname, 'r') as ref, open(test_fname) as test:
                 ref_data = ref.readlines()
                 test_data = test.readlines()
                 for i in range(len(ref_data)):
                     if not ref_data[i] == test_data[i]:
-                        print "Line {} not equivilent".format(i)
+                        print("Line {} not equivilent".format(i))
 
 
 if __name__ == '__main__':

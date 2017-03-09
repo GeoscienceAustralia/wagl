@@ -1,9 +1,10 @@
+from __future__ import absolute_import
 import os
 import logging
 import numpy
 import numexpr
-from pqa_result import PQAResult
-import constants
+from .pqa_result import PQAResult
+from . import constants
 
 
 def saturation_mask(band_array, under_sat=1, over_sat=255, use_numexpr=True):

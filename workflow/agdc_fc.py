@@ -1,5 +1,6 @@
 #!/bin/env python
 
+from __future__ import absolute_import
 import luigi
 import os
 from os.path import join as pjoin, dirname, exists, splitext, basename

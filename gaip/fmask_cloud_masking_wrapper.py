@@ -1,9 +1,10 @@
+from __future__ import absolute_import
 import os
 from glob import glob
 import logging
 from scipy import ndimage
 import numexpr
-import fmask_cloud_masking as _fmask
+from . import fmask_cloud_masking as _fmask
 from gaip import majority_filter
 
 def fmask_cloud_mask(mtl, null_mask=None, cloud_prob=None, wclr_max=None,
