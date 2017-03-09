@@ -15,8 +15,8 @@ from gaip import dataset_compression_kwargs
 from gaip import attach_image_attributes
 
 
-def _slope_aspect_arrays_wrapper(acquisition, dsm_fname, margins, out_fname,
-                                 compression='lzf'):
+def _slope_aspect_arrays(acquisition, dsm_fname, margins, out_fname,
+                         compression='lzf'):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
