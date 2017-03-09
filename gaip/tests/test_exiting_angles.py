@@ -1,236 +1,92 @@
 #!/usr/bin/env python
+"""
+Unittesting framework for the `gaip.exiting_angles` function.
+"""
 
 from __future__ import absolute_import
-from __future__ import print_function
-import argparse
-import os
-from os.path import join as pjoin
-from os.path import exists as pexists
 import unittest
+import argparse
+from argparse import RawTextHelpFormatter
 
 import numpy.testing as npt
+import h5py
 
-from gaip import acquisitions
-from gaip import exiting_angles
-from gaip import find_file
-from gaip import read_img
 from gaip.tests.unittesting_tools import ParameterisedTestCase
 
-#TODO Filename to be determined from the nbar.cfg file
 
-def compute_exiting_angles(ref_dir, out_dir):
+class TestExitingAngles(ParameterisedTestCase):
     """
-    A small wrapper for executing the exiting_angles
-    function prior to unittesting.
+    Unittesting for the satellite and solar angles computation
+    found in `gaip.exiting_angles`.
+
+    Unittests will occur for the following datasets:
+
+        * exiting
+        * azimuthal-exiting
     """
-    # TC_Intermediates directory
-    tc_dir = pjoin(ref_dir, 'TC_Intermediates')
-    tc_outdir = pjoin(out_dir, 'TC_Intermediates')
-    if not pexists(tc_outdir):
-        os.makedirs(tc_outdir)
-
-    # Check and load the required files from disk
-    satellite_view_fname = find_file(ref_dir, 'SATELLITE_VIEW.bin')
-    satellite_azimuth_fname = find_file(ref_dir, 'SATELLITE_AZIMUTH.bin')
-    slope_fname = find_file(tc_dir, 'slope.bin')
-    aspect_fname = find_file(tc_dir, 'aspect.bin')
-
-    # Output filenames
-    exiting_out_fname = pjoin(tc_outdir, 'exiting_angle.bin')
-    azimuth_exiting_out_fname = pjoin(tc_outdir, 'azimuth_exiting_angle.bin')
-    
-    exiting_angles(satellite_view_fname, satellite_azimuth_fname, slope_fname,
-                   aspect_fname, exiting_out_fname,
-                   azimuth_exiting_out_fname)
-
-
-class TestExitingAngleFileNames(ParameterisedTestCase):
-
-    """
-    Unittests will occur for the following files:
-        * exiting_angle.bin
-        * azimuth_exiting_angle.bin
-    """
-
-    ParameterisedTestCase.fname_exiting_angle = 'exiting_angle.bin'
-    ParameterisedTestCase.fname_azi_exit_angle = 'azimuth_exiting_angle.bin'
-
-
-    def test_exiting_angle_ref(self):
-        """
-        Check that the exiting angle reference file exists.
-        """
-        # TC_Intermediates directory
-        tc_dir = pjoin(self.reference_dir, 'TC_Intermediates')
-
-        fname = pjoin(tc_dir, self.fname_exiting_angle)
-        msg = 'Reference file does not exist: {fname}'.format(fname=fname)
-        self.assertIs(pexists(fname), True, msg)
-
-
-    def test_exiting_angle_tst(self):
-        """
-        Check that the exiting angle test file exists.
-        """
-        # TC_Intermediates directory
-        tc_dir = pjoin(self.test_dir, 'TC_Intermediates')
-
-        fname = pjoin(tc_dir, self.fname_exiting_angle)
-        msg = 'Reference file does not exist: {fname}'.format(fname=fname)
-        self.assertIs(pexists(fname), True, msg)
-
-
-    def test_azimuth_exiting_angle_ref(self):
-        """
-        Check that the azimuth exiting angle reference file exists.
-        """
-        # TC_Intermediates directory
-        tc_dir = pjoin(self.reference_dir, 'TC_Intermediates')
-
-        fname = pjoin(tc_dir, self.fname_azi_exit_angle)
-        msg = 'Reference file does not exist: {fname}'.format(fname=fname)
-        self.assertIs(pexists(fname), True, msg)
-
-
-    def test_azimuth_exiting_angle_tst(self):
-        """
-        Check that the azimuth exiting angle test file exists.
-        """
-        # TC_Intermediates directory
-        tc_dir = pjoin(self.test_dir, 'TC_Intermediates')
-
-        fname = pjoin(tc_dir, self.fname_azi_exit_angle)
-        msg = 'Reference file does not exist: {fname}'.format(fname=fname)
-        self.assertIs(pexists(fname), True, msg)
-
-
-class TestExitingAngleOutputs(ParameterisedTestCase):
-
-    """
-    Unittests will occur for the following files:
-        * exiting_angle.bin
-        * azimuth_exiting_angle.bin
-    """
-
-    ParameterisedTestCase.fname_exiting_angle = 'exiting_angle.bin'
-    ParameterisedTestCase.fname_azi_exit_angle = 'azimuth_exiting_angle.bin'
-
 
     def test_exiting_angle(self):
         """
-        Test the exiting angle image against the reference image.
+        Test the exiting angle array.
         """
-        # TC_Intermediates directory (reference and test)
-        tc_ref_dir = pjoin(self.reference_dir, 'TC_Intermediates')
-        tc_tst_dir = pjoin(self.test_dir, 'TC_Intermediates')
+        with h5py.File(self.reference_fname, 'r') as reference_fid,\
+            h5py.File(self.test_fname, 'r') as test_fid:
 
-        # Get the filenames for both the reference and test files
-        ref_fname = find_file(tc_ref_dir, self.fname_exiting_angle)
-        test_fname = find_file(tc_tst_dir, self.fname_exiting_angle)
+            ref_dset = reference_fid['exiting']
+            test_dset = test_fid['exiting']
 
-        # Get the image data
-        ref_img  = read_img(ref_fname)
-        test_img = read_img(test_fname)
+            npt.assert_almost_equal(test_dset, ref_dset,
+                                    decimal=self.decimal_precision)
 
-        # Precision
-        dp = self.decimal_precision
-
-        self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
-                                                  decimal=dp))
-
-
-    def test_azimuth_exiting_angle(self):
+    def test_azimuthal_exiting_angle(self):
         """
-        Test the azimuth exiting angle image against the reference
-        image.
+        Test the azimuthal exiting angle array.
         """
-        # TC_Intermediates directory (reference and test)
-        tc_ref_dir = pjoin(self.reference_dir, 'TC_Intermediates')
-        tc_tst_dir = pjoin(self.test_dir, 'TC_Intermediates')
+        with h5py.File(self.reference_fname, 'r') as reference_fid,\
+            h5py.File(self.test_fname, 'r') as test_fid:
 
-        # Get the filenames for both the reference and test files
-        ref_fname = find_file(tc_ref_dir, self.fname_azi_exit_angle)
-        test_fname = find_file(tc_tst_dir, self.fname_azi_exit_angle)
+            ref_dset = reference_fid['azimuthal-exiting']
+            test_dset = test_fid['azimuthal-exiting']
 
-        # Get the image data
-        ref_img = read_img(ref_fname)
-        test_img = read_img(test_fname)
-
-        # Precision
-        dp = self.decimal_precision
-
-        self.assertIsNone(npt.assert_almost_equal(test_img, ref_img,
-                                                  decimal=dp))
+            npt.assert_almost_equal(test_dset, ref_dset,
+                                    decimal=self.decimal_precision)
 
 
 if __name__ == '__main__':
-
-    parser = argparse.ArgumentParser()
-    parser = argparse.ArgumentParser(description=('Perform unittesting for '
-                                                  'the exiting angles.'))
-
-    parser.add_argument('--L1T_dir', required=True,
-                        help='A directory path of a L1T scene.')
-    parser.add_argument('--nbar_work_dir', required=True,
-                        help=('A directory path to the associated NBAR '
-                              'working directory.'))
-    parser.add_argument('--outdir', required=True,
-                        help=('A directory path that will contain the output '
-                              'files.'))
-    parser.add_argument('--dec_precision', default=4, type=int,
-                        help='The decimal precision used for array comparison')
-    parser.add_argument('--int_precision', default=1, type=int,
-                        help='The integer precision used for array comparison')
-    parser.add_argument('--compute', action='store_true',
-                        help=('If set then the self shadow array will be '
-                              'computed before running the unittests.'))
+    description = ("Unittests for `gaip.exiting_angles` function.\n"
+                   "Comparisons tests will occur for the following "
+                   "datasets: \n"
+                   "\t* exiting\n"
+                   "\t* azimuthal-exiting\n")
+                   
+    parser = argparse.ArgumentParser(description=description,
+                                     formatter_class=RawTextHelpFormatter)
+    parser.add_argument('--reference_fname', requried=True,
+                        help=('The filename containing the reference datasets '
+                              'to be used as a baseline.'))
+    parser.add_argument('--test_fname', require=True,
+                        help=('The filename containing the test datasets '
+                              'to be used in comparing against the '
+                              'base/reference datasets.'))
+    parser.add_argument('--decimal_precision', default=4, type=int,
+                        help=('The decimal precision used for the comparison '
+                              'of images.'))
+    parser.add_argument('--integer_precision', default=1, type=int,
+                        help=('The integer precision used for the comparison '
+                              'of images.'))
 
     parsed_args = parser.parse_args()
 
-    L1T_dir = parsed_args.L1T_dir
-    nbar_work_dir = parsed_args.nbar_work_dir
-    outdir = parsed_args.outdir
-    dec_precision = parsed_args.dec_precision
-    int_precision = parsed_args.int_precision
-    compute = parsed_args.compute
+    reference_fname = parsed_args.reference_fname
+    test_fname = parsed_args.test_fname
+    decimal_precision = parsed_args.decimal_precision
+    integer_precision = parsed_args.integer_precision
 
-    if compute:
-        # Check the output directory
-        if not pexists(outdir):
-            os.makedirs(outdir)
-
-        # Get the current directory
-        cwd = os.getcwd()
-
-        # Change to the output directory that will contain the results
-        os.chdir(outdir)
-
-        # Open the L1T dataset
-        acqs = acquisitions(L1T_dir)
-
-        # Compute the angles
-        compute_exiting_angles(nbar_work_dir, outdir)
-
-        # Close the L1T dataset
-        acqs = None
-
-        # Change back to the original directory
-        os.chdir(cwd)
-
-    print("Checking that we have the reference and test data files.")
     suite = unittest.TestSuite()
-    suite.addTest(ParameterisedTestCase.parameterise(
-                  TestExitingAngleFileNames,
-                  reference_dir=nbar_work_dir, test_dir=outdir,
-                  decimal_precision=dec_precision,
-                  integer_precision=int_precision))
-    unittest.TextTestRunner(verbosity=2).run(suite)
-
-    print("Comparing the reference and test exiting angle outputs.")
-    suite = unittest.TestSuite()
-    suite.addTest(ParameterisedTestCase.parameterise(
-                  TestExitingAngleOutputs,
-                  reference_dir=nbar_work_dir, test_dir=outdir,
-                  decimal_precision=dec_precision,
-                  integer_precision=int_precision))
+    test_case = ParameterisedTestCase()
+    suite.addTest(test_case.parameterise(TestExitingAngles,
+                                         reference_fname=reference_fname,
+                                         test_fname=test_fname,
+                                         decimal_precision=decimal_precision,
+                                         integer_precision=integer_precision))
     unittest.TextTestRunner(verbosity=2).run(suite)
