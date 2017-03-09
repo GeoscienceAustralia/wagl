@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
+from __future__ import print_function
 from gaip import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
 from gaip import MIDLAT_SUMMER_TRANSMITTANCE, TROPICAL_TRANSMITTANCE
 
@@ -71,10 +73,10 @@ def main():
     with open('data/test-midlat-summer.tp5', 'r') as src:
         test_albedo = src.readlines()
 
-    print "Testing mid lat albedo"
+    print("Testing mid lat albedo")
     for i in range(len(ref_albedo)):
         if not ref_albedo[i] == test_albedo[i]:
-            print "Line {} not equivilent".format(i)
+            print("Line {} not equivilent".format(i))
 
     with open('data/TL_alb_t.tp5', 'r') as src:
         ref_trans = src.readlines()
@@ -82,10 +84,10 @@ def main():
     with open('data/test-midlat-summer-trans.tp5', 'r') as src:
         test_trans = src.readlines()
 
-    print "Testing mid lat transmittance"
+    print("Testing mid lat transmittance")
     for i in range(len(ref_trans)):
         if not ref_trans[i] == test_trans[i]:
-            print "Line {} not equivilent".format(i)
+            print("Line {} not equivilent".format(i))
 
 
 if __name__ == '__main__':

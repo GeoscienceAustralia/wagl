@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
+from __future__ import print_function
 import argparse
 from collections import OrderedDict
 import datetime
@@ -436,7 +438,7 @@ if __name__ == '__main__':
     out_dir = parsed_args.out_directory
 
 
-    print "Testing the Fractional cover products."
+    print("Testing the Fractional cover products.")
     suite = unittest.TestSuite()
     suite.addTest(ParameterisedTestCaseFiles.parameterise(TestFCProducts,
                   reference_fname=reference_fname, test_fname=test_fname,

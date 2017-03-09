@@ -4,6 +4,7 @@
 Satellite and Solar angle claculations over a 2D grid.
 """
 
+from __future__ import absolute_import
 import math
 import ephem
 import numpy as np
@@ -319,7 +320,7 @@ def calculate_julian_century(datetime):
     jdate = ephem.julian_date(d)
 
     # Get the J2000 epoch
-    epoch = ephem.date((2000, 01, 01, 12.00))
+    epoch = ephem.date((2000, 1, 1, 12.00))
     j2_epoch = ephem.julian_date(epoch)
 
     # Note:

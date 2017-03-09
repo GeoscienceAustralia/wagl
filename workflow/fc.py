@@ -1,5 +1,6 @@
 #!/bin/env python
 
+from __future__ import absolute_import
 import luigi
 import argparse
 import os

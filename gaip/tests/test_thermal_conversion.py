@@ -1,5 +1,7 @@
 #!/bin/env python
 
+from __future__ import absolute_import
+from __future__ import print_function
 import unittest
 import numpy
 import logging
@@ -30,9 +32,9 @@ class TestThermalConversion(unittest.TestCase):
     def test_dataset_creation(self):
         path = '/g/data/v10/L1/2009-01/LS5_TM_OTH_P51_GALPGS01-002_092_086_20090115'
         l1t_sd = SceneDataset(path)
-        print  "l1t_sd.satellite.k=", l1t_sd.satellite.k
-        print  "l1t_sd.gain=", l1t_sd.gain
-        print  "l1t_sd.bias=", l1t_sd.bias
+        print("l1t_sd.satellite.k=", l1t_sd.satellite.k)
+        print("l1t_sd.gain=", l1t_sd.gain)
+        print("l1t_sd.bias=", l1t_sd.bias)
     
     def test_conversion(self):
         sensor = "TM"
@@ -46,9 +48,9 @@ class TestThermalConversion(unittest.TestCase):
         l1t_data = numpy.array([b1, b1, b1, b1, b1, b1, b1])
 
         kelvin = get_landsat_temperature(l1t_data, MockDataset(), pq_const)
-        print l1t_data.shape
-        print kelvin.shape
-        print kelvin
+        print(l1t_data.shape)
+        print(kelvin.shape)
+        print(kelvin)
         self.assertAlmostEqual(215.08184814, kelvin[0][0])
         
 

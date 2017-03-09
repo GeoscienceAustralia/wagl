@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
+from __future__ import print_function
 from os.path import join as pjoin, exists
 import argparse
 import numpy
@@ -14,7 +16,7 @@ def main(ref_dir, test_dir, scenes, files):
             test_fname = pjoin(pjoin(test_scene, 'mod'), f)
             if not exists(ref_fname):
                 continue
-            print "Testing\nScene: {}\n File: {}".format(scene, f)
+            print("Testing\nScene: {}\n File: {}".format(scene, f))
             with open(ref_fname, 'r') as ref, open(test_fname) as test:
                 ref_data = ref.readlines()
                 ref_data = [rd.strip() for rd in ref_data]
@@ -26,11 +28,11 @@ def main(ref_dir, test_dir, scenes, files):
                         if not numpy.isclose(float(ref_data[i]),
                                              float(test_data[i])):
                             msg = "Line {} is not equivilent.".format(i)
-                            print msg
+                            print(msg)
                     except ValueError:
                         if ref_data[i] != test_data[i]:
                             msg = "Line {} is not equivilent.".format(i)
-                            print msg
+                            print(msg)
 
 if __name__ == '__main__':
 

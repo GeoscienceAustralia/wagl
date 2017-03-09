@@ -18,6 +18,8 @@ estimates is required.
 
 """
 
+from __future__ import absolute_import
+from __future__ import print_function
 import subprocess
 import datetime
 import logging
@@ -546,7 +548,7 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
                 with open(hdfFile, 'rb') as f:
                     pass
             except IOError:
-                print "Unable to open file %s" % hdfFile
+                print("Unable to open file %s" % hdfFile)
 
             # Unzip if we need to
             if hdfFile.endswith(".hdf.gz"):

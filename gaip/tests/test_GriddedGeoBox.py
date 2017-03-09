@@ -1,5 +1,7 @@
 #!/bin/env python
 
+from __future__ import absolute_import
+from __future__ import print_function
 import unittest
 from gaip import GriddedGeoBox
 import affine
@@ -182,29 +184,29 @@ class TestGriddedGeoBox(unittest.TestCase):
             flindersGGB = getFlindersIsletGGB()
 
             window = datasetGGB.window(flindersGGB)
-            print 'window=', window
+            print('window=', window)
             
             windowShape=(window[1][1]-window[1][0], window[0][1]-window[0][0])
-            print windowShape
+            print(windowShape)
 
             # transform the origin of the window
 
             windowOriginXY = (window[1][0], window[0][0])
-            print 'windowOriginXY=', windowOriginXY
+            print('windowOriginXY=', windowOriginXY)
 
             windowOriginUTM = datasetGGB.affine * windowOriginXY
-            print 'windowOriginUTM=', windowOriginUTM
+            print('windowOriginUTM=', windowOriginUTM)
 
             utm2wgs84 = osr.CoordinateTransformation( datasetGGB.crs, flindersGGB.crs)
 
             windowOrigin = utm2wgs84.TransformPoint(windowOriginUTM[0], windowOriginUTM[1])
-            print 'windowOrigin=', windowOrigin
+            print('windowOrigin=', windowOrigin)
 
             flindersOrigin = (150.927659, -34.453309)
-            print 'flindersOrigin=', flindersOrigin
+            print('flindersOrigin=', flindersOrigin)
 
             diff = (flindersOrigin[0]-windowOrigin[0], flindersOrigin[1]-windowOrigin[1])
-            print 'diff=', diff
+            print('diff=', diff)
 
             wgs842utm = osr.CoordinateTransformation(flindersGGB.crs, datasetGGB.crs)
 
@@ -212,8 +214,8 @@ class TestGriddedGeoBox(unittest.TestCase):
 
             (xWgs84, yWgs84, zzz) = utm2wgs84.TransformPoint(xUtm, yUtm)
 
-            print '(xUtm, yUtm)=    ', (xUtm, yUtm)
-            print '(xWgs84, yWgs84)=', (xWgs84, yWgs84)
+            print('(xUtm, yUtm)=    ', (xUtm, yUtm))
+            print('(xWgs84, yWgs84)=', (xWgs84, yWgs84))
 
   
 

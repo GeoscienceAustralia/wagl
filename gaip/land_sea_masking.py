@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import os, numpy, logging
 from osgeo import gdal
 from osgeo import osr

@@ -2,6 +2,7 @@
 Satellite TLE (two-line element) Loading
 ----------------------------------------
 """
+from __future__ import absolute_import
 import datetime
 import ephem
 import re

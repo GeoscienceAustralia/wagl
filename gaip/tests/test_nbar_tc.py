@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
+from __future__ import print_function
 import argparse
 from collections import OrderedDict
 import glob
@@ -742,7 +744,7 @@ if __name__ == '__main__':
     out_dir = parsed_args.out_directory
 
 
-    print "\nChecking that we have all the reference and test data files.\n"
+    print("\nChecking that we have all the reference and test data files.\n")
     suite = unittest.TestSuite()
     suite.addTest(ParameterisedTestCase.parameterise(TestProductFileNames,
                   reference_dir=reference_dir, test_dir=test_dir))
@@ -750,13 +752,13 @@ if __name__ == '__main__':
 
 
     # Run the difference tests
-    print "\nTesting Lambertian\n"
+    print("\nTesting Lambertian\n")
     test_compare_lmbrt_files(reference_dir, test_dir, out_dir, tolerance)
 
-    print "\nTesting BRDF\n"
+    print("\nTesting BRDF\n")
     test_compare_brdf_files(reference_dir, test_dir, out_dir, tolerance)
 
-    print "\nTesting Terrain\n"
+    print("\nTesting Terrain\n")
     test_compare_tc_files(reference_dir, test_dir, out_dir, tolerance)
 
     # Produce the markdown and html docs

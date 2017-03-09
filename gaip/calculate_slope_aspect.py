@@ -4,6 +4,7 @@
 Calculates the slope and aspect for a given elevation dataset.
 """
 
+from __future__ import absolute_import
 import numpy
 import h5py
 

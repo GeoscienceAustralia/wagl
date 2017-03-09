@@ -9,6 +9,7 @@ Workflow settings can be configured in `nbar.cfg` file.
 # pylint: disable=missing-docstring,no-init,too-many-function-args
 # pylint: disable=too-many-locals
 
+from __future__ import absolute_import
 from os.path import join as pjoin, basename, dirname, splitext
 import shutil
 import luigi

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
 import unittest
 import argparse
 from argparse import RawTextHelpFormatter

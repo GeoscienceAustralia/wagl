@@ -6,6 +6,7 @@ reflectance
 -----------
 """
 
+from __future__ import absolute_import
 import numpy
 import h5py
 

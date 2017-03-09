@@ -4,6 +4,7 @@
 Longitude and Latitude 2D grid creation.
 """
 
+from __future__ import absolute_import
 from functools import partial
 import numpy
 import osr

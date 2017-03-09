@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
+from __future__ import print_function
 from os.path import join as pjoin, exists
 import argparse
 import numpy
@@ -17,7 +19,7 @@ def main(ref_dir, test_dir, scenes, files):
                 continue
             with rasterio.open(ref_fname) as ref_ds,\
                 rasterio.open(test_fname) as test_ds:
-                print "Testing\nScene: {}\n File: {}".format(scene, f)
+                print("Testing\nScene: {}\n File: {}".format(scene, f))
                 diff = ref_ds.read(1).astype('float32') - test_ds.read(1)
                 min_ = diff.min()
                 max_ = diff.max()
@@ -26,7 +28,7 @@ def main(ref_dir, test_dir, scenes, files):
                        "Min Difference: {}\n"
                        "Max Difference: {}\n"
                        "No. Pixels Different: {}\n")
-                print msg.format(ref_fname, test_fname, min_, max_, n_pixels)
+                print(msg.format(ref_fname, test_fname, min_, max_, n_pixels))
 
 
 if __name__ == '__main__':

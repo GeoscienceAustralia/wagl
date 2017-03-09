@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
+from __future__ import print_function
 import argparse
 import os
 from os.path import join as pjoin
@@ -157,7 +159,7 @@ if __name__ == '__main__':
         # Change back to the original directory
         os.chdir(cwd)
 
-    print "Checking that we have all the reference and test data files."
+    print("Checking that we have all the reference and test data files.")
     suite = unittest.TestSuite()
     suite.addTest(ParameterisedTestCase.parameterise(
                   TestRelativeAzimuthSlopeFileName,
@@ -166,7 +168,7 @@ if __name__ == '__main__':
                   integer_precision=int_precision))
     unittest.TextTestRunner(verbosity=2).run(suite)
 
-    print "Comparing the reference and test relative azimuth slope outputs."
+    print("Comparing the reference and test relative azimuth slope outputs.")
     suite = unittest.TestSuite()
     suite.addTest(ParameterisedTestCase.parameterise(
                   TestRelativeAzimuthSlopeOutput,
