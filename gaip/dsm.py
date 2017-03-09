@@ -7,7 +7,7 @@ from __future__ import absolute_import
 import numpy
 from scipy import ndimage
 import h5py
-from rasterio.warp import RESAMPLING
+from rasterio.warp import Resampling
 from gaip import ImageMargins
 from gaip import GriddedGeoBox
 from gaip import reproject_file_to_array
@@ -101,7 +101,7 @@ def get_dsm(acquisition, national_dsm, margins, out_fname=None,
 
     # Retrive the DSM data
     dsm_data = reproject_file_to_array(national_dsm, dst_geobox=dem_geobox,
-                                       resampling=RESAMPLING.bilinear)
+                                       resampling=Resampling.bilinear)
 
     # Output the reprojected result
     # Initialise the output files

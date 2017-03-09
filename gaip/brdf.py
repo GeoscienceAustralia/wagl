@@ -140,7 +140,6 @@ class BRDFLoader(object):
             i_lr = (intersection.bounds[2], intersection.bounds[1])
             self.roi = {'UL': i_ul, 'LR': i_lr}
 
-
     def load(self):
         """
         Open file and load data arrays and required metadata.
