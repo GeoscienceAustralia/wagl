@@ -16,7 +16,7 @@ from gaip.tests.unittesting_tools import ParameterisedTestCase
 
 class TestIncidentAngles(ParameterisedTestCase):
     """
-    Unittesting for the satellite and solar angles computation
+    Unittesting for the incident angles computation
     found in `gaip.incident_angles`.
 
     Unittests will occur for the following datasets:

@@ -16,7 +16,7 @@ from gaip.tests.unittesting_tools import ParameterisedTestCase
 
 class TestExitingAngles(ParameterisedTestCase):
     """
-    Unittesting for the satellite and solar angles computation
+    Unittesting for the exiting angles computation
     found in `gaip.exiting_angles`.
 
     Unittests will occur for the following datasets:
