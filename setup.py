@@ -27,4 +27,7 @@ setup(
     configuration=configuration,
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
+    url='https://github.com/GeoscienceAustralia/gaip',
+    maintainer='Josh Sixsmith',
+    maintainer_email='joshua.sixsmith@ga.gov.au'
 )
