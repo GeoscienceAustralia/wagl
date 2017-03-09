@@ -15,6 +15,15 @@ import luigi
 from luigi.util import inherits, requires
 import gaip
 from gaip import acquisitions
+from gaip.calculate_angles import _calculate_angles
+from gaip.calculate_incident_exiting_angles import _incident_angles
+from gaip.calculate_incident_exiting_angles import _exiting_angles
+from gaip.calculate_incident_exiting_angles import _relative_azimuth_slope
+from gaip.calculate_reflectance import _calculate_reflectance
+from gaip.calculate_shadow_masks import _self_shadow, _calculate_cast_shadow
+from gaip.calculate_slope_aspect import _slope_aspect_arrays
+from gaip.modtran import _format_tp5, _run_modtran, _calculate_solar_radiation
+from gaip.modtran import _calculate_coefficients, _bilinear_interpolate
 
 
 def get_buffer(group):
@@ -123,10 +132,10 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
         lon_fname = self.input()['lon'].path
 
         with self.output().temporary_path() as out_fname:
-            gaip._calculate_angles(acqs[0], lon_fname, lat_fname, out_fname,
-                                   npoints=12, compression=self.compression,
-                                   max_angle=acqs[0].maximum_view_angle,
-                                   tle_path=self.tle_path)
+            _calculate_angles(acqs[0], lon_fname, lat_fname, out_fname,
+                              npoints=12, compression=self.compression,
+                              max_angle=acqs[0].maximum_view_angle,
+                              tle_path=self.tle_path)
 
 class WriteTp5(luigi.Task):
 
@@ -193,9 +202,9 @@ class WriteTp5(luigi.Task):
         lat_fname = inputs[(self.granule, group)]['lat'].path
 
         with self.output().temporary_path() as out_fname:
-            tp5_data = gaip._format_tp5(acq, sat_sol_fname, lon_fname,
-                                        lat_fname, ancillary_fname, out_fname,
-                                        self.npoints, self.albedos)
+            tp5_data = _format_tp5(acq, sat_sol_fname, lon_fname,
+                                   lat_fname, ancillary_fname, out_fname,
+                                   self.npoints, self.albedos)
 
             # keep this as an indented block, that way the target will remain
             # atomic and be moved upon closing
@@ -233,8 +242,8 @@ class RunModtranCase(luigi.Task):
         gaip.prepare_modtran(self.point, self.albedo, modtran_work, self.exe)
 
         with self.output().temporary_path() as out_fname:
-            gaip._run_modtran(self.exe, modtran_work, self.point, self.albedo,
-                              out_fname, self.compression)
+            _run_modtran(self.exe, modtran_work, self.point, self.albedo,
+                         out_fname, self.compression)
 
 
 @inherits(WriteTp5)
@@ -269,8 +278,8 @@ class AccumulateSolarIrradiance(luigi.Task):
                                                          self.granule)[0]
 
         with self.output().temporary_path() as out_fname:
-            gaip._calculate_solar_radiation(acq, self.input(), out_fname,
-                                            self.compression)
+            _calculate_solar_radiation(acq, self.input(), out_fname,
+                                       self.compression)
 
 
 @requires(AccumulateSolarIrradiance)
@@ -292,8 +301,8 @@ class CalculateCoefficients(luigi.Task):
         accumulated_fname = self.input().path
 
         with self.output().temporary_path() as out_fname:
-            gaip._calculate_coefficients(accumulated_fname, self.npoints,
-                                         out_fname, self.compression)
+            _calculate_coefficients(accumulated_fname, self.npoints,
+                                    out_fname, self.compression)
 
 
 @inherits(CalculateSatelliteAndSolarGrids)
@@ -326,9 +335,9 @@ class BilinearInterpolationBand(luigi.Task):
         acq = [acq for acq in acqs if acq.band_num == self.band_num][0]
 
         with self.output().temporary_path() as out_fname:
-            gaip._bilinear_interpolate(acq, self.factor, sat_sol_angles_fname,
-                                       coefficients_fname, out_fname,
-                                       self.compression)
+            _bilinear_interpolate(acq, self.factor, sat_sol_angles_fname,
+                                  coefficients_fname, out_fname,
+                                  self.compression)
 
 
 @inherits(CalculateLonGrid)
@@ -428,8 +437,8 @@ class SlopeAndAspect(luigi.Task):
         margins = get_buffer(self.group)
 
         with self.output().temporary_path() as out_fname:
-            gaip._slope_aspect_arrays_wrapper(acqs[0], dsm_fname, margins,
-                                              out_fname, self.compression)
+            _slope_aspect_arrays(acqs[0], dsm_fname, margins, out_fname,
+                                 self.compression)
 
 
 @inherits(CalculateLonGrid)
@@ -458,8 +467,8 @@ class IncidentAngles(luigi.Task):
         slope_aspect_fname = self.input()['slp_asp'].path
 
         with self.output().temporary_path() as out_fname:
-            gaip._incident_angles(sat_sol_fname, slope_aspect_fname, out_fname,
-                                  self.compression, self.x_tile, self.y_tile)
+            _incident_angles(sat_sol_fname, slope_aspect_fname, out_fname,
+                             self.compression, self.x_tile, self.y_tile)
 
 
 @inherits(IncidentAngles)
@@ -485,8 +494,8 @@ class ExitingAngles(luigi.Task):
         slope_aspect_fname = self.input()['slp_asp'].path
 
         with self.output().temporary_path() as out_fname:
-            gaip._exiting_angles(sat_sol_fname, slope_aspect_fname, out_fname,
-                                 self.compression, self.x_tile, self.y_tile)
+            _exiting_angles(sat_sol_fname, slope_aspect_fname, out_fname,
+                            self.compression, self.x_tile, self.y_tile)
 
 
 @inherits(IncidentAngles)
@@ -512,9 +521,9 @@ class RelativeAzimuthSlope(luigi.Task):
         exiting_fname = self.input()['exiting'].path
 
         with self.output().temporary_path() as out_fname:
-            gaip._relative_azimuth_slope(incident_fname, exiting_fname,
-                                         out_fname, self.compression,
-                                         self.x_tile, self.y_tile)
+            _relative_azimuth_slope(incident_fname, exiting_fname,
+                                    out_fname, self.compression,
+                                    self.x_tile, self.y_tile)
 
 
 @inherits(IncidentAngles)
@@ -540,8 +549,8 @@ class SelfShadow(luigi.Task):
         exiting_fname = self.input()['exiting'].path
 
         with self.output().temporary_path() as out_fname:
-            gaip._self_shadow(incident_fname, exiting_fname, out_fname,
-                              self.compression, self.x_tile, self.y_tile)
+            _self_shadow(incident_fname, exiting_fname, out_fname,
+                         self.compression, self.x_tile, self.y_tile)
 
 
 @inherits(CalculateLonGrid)
@@ -576,10 +585,9 @@ class CalculateCastShadowSun(luigi.Task):
         window_width = 500
 
         with self.output().temporary_path() as out_fname:
-            gaip._calculate_cast_shadow(acqs[0], dsm_fname, margins,
-                                        window_height, window_width,
-                                        sat_sol_fname, out_fname,
-                                        self.compression)
+            _calculate_cast_shadow(acqs[0], dsm_fname, margins, window_height,
+                                   window_width, sat_sol_fname, out_fname,
+                                   self.compression)
 
 
 @inherits(CalculateLonGrid)
@@ -614,10 +622,9 @@ class CalculateCastShadowSatellite(luigi.Task):
         window_width = 500
 
         with self.output().temporary_path() as out_fname:
-            gaip._calculate_cast_shadow(acqs[0], dsm_fname, margins,
-                                        window_height, window_width,
-                                        sat_sol_fname, out_fname,
-                                        self.compression, False)
+            _calculate_cast_shadow(acqs[0], dsm_fname, margins, window_height,
+                                   window_width, sat_sol_fname, out_fname,
+                                   self.compression, False)
 
 
 @inherits(CalculateLonGrid)
@@ -700,12 +707,12 @@ class RunTCBand(luigi.Task):
             ancillary_fname = inputs['ancillary'].path
 
         with self.output().temporary_path() as out_fname:
-            gaip._calculate_reflectance(acq, bilinear_fname, sat_sol_fname,
-                                        slp_asp_fname, relative_slope_fname,
-                                        incident_fname, exiting_fname,
-                                        shadow_fname, ancillary_fname,
-                                        self.rori, out_fname, self.compression,
-                                        self.x_tile, self.y_tile)
+            _calculate_reflectance(acq, bilinear_fname, sat_sol_fname,
+                                   slp_asp_fname, relative_slope_fname,
+                                   incident_fname, exiting_fname,
+                                   shadow_fname, ancillary_fname,
+                                   self.rori, out_fname, self.compression,
+                                   self.x_tile, self.y_tile)
 
 
 @inherits(CalculateLonGrid)
