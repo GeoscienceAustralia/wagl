@@ -22,6 +22,10 @@ class TestRelativeSlope(ParameterisedTestCase):
     Unittests will occur for the following datasets:
 
         * relative-slope
+
+    We're not explicitly testing the function, but implicitly
+    testing the function by comparing against an existing
+    dataset.
     """
 
     def test_relative_slope(self):

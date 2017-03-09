@@ -23,6 +23,10 @@ class TestIncidentAngles(ParameterisedTestCase):
 
         * incident
         * azimuthal-incident
+
+    We're not explicitly testing the function, but implicitly
+    testing the function by comparing against an existing
+    dataset.
     """
 
     def test_incident_angle(self):

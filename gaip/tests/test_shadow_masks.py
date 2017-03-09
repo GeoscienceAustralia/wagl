@@ -27,6 +27,10 @@ class TestShadowMasks(ParameterisedTestCase):
         * cast-shadow-sun
         * cast-shadow-satellite
         * combined-shadow
+
+    We're not explicitly testing the function, but implicitly
+    testing the function by comparing against an existing
+    dataset.
     """
 
     def test_self_shadow(self):

@@ -23,6 +23,10 @@ class TestExitingAngles(ParameterisedTestCase):
 
         * exiting
         * azimuthal-exiting
+
+    We're not explicitly testing the function, but implicitly
+    testing the function by comparing against an existing
+    dataset.
     """
 
     def test_exiting_angle(self):
