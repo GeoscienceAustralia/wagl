@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+"""
+Unittesting framework for the `gaip.calculate_shadow_masks` module.
+"""
 
 from __future__ import absolute_import
 import unittest
@@ -36,7 +39,7 @@ class TestShadowMasks(ParameterisedTestCase):
             ref_dset = reference_fid['self-shadow']
             test_dset = test_fid['self-shadow']
 
-            self.assertTrue(numpy.array_equal(ref_dset, test_dset)
+            self.assertTrue(numpy.array_equal(ref_dset, test_dset))
 
     def test_cast_shadow_sun(self):
         """
@@ -48,7 +51,7 @@ class TestShadowMasks(ParameterisedTestCase):
             ref_dset = reference_fid['cast-shadow-sun']
             test_dset = test_fid['cast-shadow-sun']
 
-            self.assertTrue(numpy.array_equal(ref_dset, test_dset)
+            self.assertTrue(numpy.array_equal(ref_dset, test_dset))
 
     def test_cast_shadow_satelite(self):
         """
@@ -60,7 +63,7 @@ class TestShadowMasks(ParameterisedTestCase):
             ref_dset = reference_fid['cast-shadow-satellite']
             test_dset = test_fid['cast-shadow-satellite']
 
-            self.assertTrue(numpy.array_equal(ref_dset, test_dset)
+            self.assertTrue(numpy.array_equal(ref_dset, test_dset))
 
     def test_combined_shadow(self):
         """
@@ -72,11 +75,11 @@ class TestShadowMasks(ParameterisedTestCase):
             ref_dset = reference_fid['combined-shadow']
             test_dset = test_fid['combined-shadow']
 
-            self.assertTrue(numpy.array_equal(ref_dset, test_dset)
+            self.assertTrue(numpy.array_equal(ref_dset, test_dset))
 
 
 if __name__ == '__main__':
-    description = ("Unittests for `gaip.calculate_shadow_masks` function.\n"
+    description = ("Unittests for `gaip.calculate_shadow_masks` module.\n"
                    "Comparisons tests will occur for the following "
                    "datasets: \n"
                    "\t* self-shadow\n"
