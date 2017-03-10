@@ -30,8 +30,8 @@ class TestLonLatArrays(unittest.TestCase):
         # Initialise the test data
         img, geobox = ut.create_test_image()
         fid = create_lon_lat_grids(geobox, depth=3)
-        lon = fid['longitude']
-        ids = ut.randomPixelLocations(img.shape)
+        lon = fid['longitude'][:]
+        ids = ut.random_pixel_locations(img.shape)
 
         # We'll transform (reproject) to WGS84
         sr = osr.SpatialReference()
@@ -71,8 +71,8 @@ class TestLonLatArrays(unittest.TestCase):
         # Initialise the test data
         img, geobox = ut.create_test_image()
         fid = create_lon_lat_grids(geobox, depth=3)
-        lat = fid['latitude']
-        ids = ut.randomPixelLocations(img.shape)
+        lat = fid['latitude'][:]
+        ids = ut.random_pixel_locations(img.shape)
 
         # We'll transform (reproject) to WGS84
         sr = osr.SpatialReference()
