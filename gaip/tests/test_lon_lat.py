@@ -28,7 +28,7 @@ class TestLonLatArrays(unittest.TestCase):
         level should probably be increased.
         """
         # Initialise the test data
-        img, geobox = ut.createTestImage()
+        img, geobox = ut.create_test_image()
         lon, _ = create_lon_lat_grids(geobox, depth=3, to_disk=False)
         ids = ut.randomPixelLocations(img.shape)
 
@@ -68,7 +68,7 @@ class TestLonLatArrays(unittest.TestCase):
         level should probably be increased.
         """
         # Initialise the test data
-        img, geobox = ut.createTestImage()
+        img, geobox = ut.create_test_image()
         _, lat = create_lon_lat_grids(geobox, depth=3, to_disk=False)
         ids = ut.randomPixelLocations(img.shape)
 

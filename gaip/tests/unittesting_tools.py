@@ -84,8 +84,8 @@ class ParameterisedTestCase(unittest.TestCase):
         return suite
 
 
-def createTestImage(dimensions=(1000,1000), geotransform=None,
-        projection=None, resolution=(25.0,25.0), dtype='uint8'):
+def create_test_image(dimensions=(1000,1000), geotransform=None,
+                      projection=None, resolution=(25.0,25.0), dtype='uint8'):
     """
     Creates an image with geo-location information.
 
