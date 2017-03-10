@@ -5,7 +5,7 @@ import numpy
 import numexpr
 import gdal
 
-#from eotools import tiling
+from gaip import tiling
 from gaip import endmembers
 from gaip import GriddedGeoBox
 from gaip import LandsatAcquisition
@@ -107,7 +107,7 @@ def fractional_cover(acquisitions, x_tile, y_tile, out_fnames):
         x_tile = cols
     if y_tile is None:
         y_tile = rows
-    tiles = tiling.generate_tiles(cols, rows, x_tile, y_tile, generator=False)
+    tiles = generate_tiles(cols, rows, x_tile, y_tile)
 
 
     # Scarth 20090810 14:06:35 CEST

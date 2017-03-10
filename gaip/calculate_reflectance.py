@@ -10,7 +10,7 @@ from __future__ import absolute_import
 import numpy
 import h5py
 
-from eotools import tiling
+from gaip.tiling import generate_tiles
 from gaip import as_array
 from gaip import constants
 from gaip import reflectance
@@ -312,7 +312,7 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
         x_tile = cols
     if y_tile is None:
         y_tile = rows
-    tiles = tiling.generate_tiles(cols, rows, x_tile, y_tile, generator=False)
+    tiles = generate_tiles(cols, rows, x_tile, y_tile)
 
     # Loop over each tile
     for tile in tiles:

@@ -12,7 +12,7 @@ from __future__ import absolute_import
 import numpy
 import h5py
 
-from eotools import tiling
+from gaip.tiling import generate_tiles
 from gaip import GriddedGeoBox
 from gaip import ImageMargins
 from gaip import setup_spheroid
@@ -120,7 +120,7 @@ def self_shadow(incident_dataset, exiting_dataset, geobox, out_fname,
         x_tile = cols
     if y_tile is None:
         y_tile = rows
-    tiles = tiling.generate_tiles(cols, rows, x_tile, y_tile, generator=False)
+    tiles = generate_tiles(cols, rows, x_tile, y_tile)
 
     # Loop over each tile
     for tile in tiles:

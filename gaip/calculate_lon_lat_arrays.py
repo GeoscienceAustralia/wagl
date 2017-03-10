@@ -10,7 +10,7 @@ import numpy
 import osr
 import h5py
 
-from eotools.blrb import interpolate_grid
+from gaip.blrb import interpolate_grid
 from gaip import dataset_compression_kwargs
 from gaip import attach_image_attributes
 

@@ -8,8 +8,8 @@ from __future__ import absolute_import
 import numpy
 import h5py
 
-from eotools.geobox import GriddedGeoBox
-from eotools import tiling
+from gaip.geobox import GriddedGeoBox
+from gaip.tiling import generate_tiles
 from gaip import as_array
 from gaip import GriddedGeoBox
 from gaip import exiting_angle
@@ -143,7 +143,7 @@ def incident_angles(solar_zenith_dataset, solar_azimuth_dataset, slope_datset,
         x_tile = cols
     if y_tile is None:
         y_tile = rows
-    tiles = tiling.generate_tiles(cols, rows, x_tile, y_tile, generator=False)
+    tiles = generate_tiles(cols, rows, x_tile, y_tile)
 
     # Loop over each tile
     for tile in tiles:
@@ -310,7 +310,7 @@ def exiting_angles(satellite_view_dataset, satellite_azimuth_dataset,
         x_tile = cols
     if y_tile is None:
         y_tile = rows
-    tiles = tiling.generate_tiles(cols, rows, x_tile, y_tile, generator=False)
+    tiles = generate_tiles(cols, rows, x_tile, y_tile)
 
     # Loop over each tile
     for tile in tiles:
@@ -460,7 +460,7 @@ def relative_azimuth_slope(azimuth_incident_dataset,
         x_tile = cols
     if y_tile is None:
         y_tile = rows
-    tiles = tiling.generate_tiles(cols, rows, x_tile, y_tile, generator=False)
+    tiles = generate_tiles(cols, rows, x_tile, y_tile)
 
     # Loop over each tile
     for tile in tiles:

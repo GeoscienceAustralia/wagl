@@ -12,7 +12,7 @@ import h5py
 import pandas
 
 from osgeo import osr
-from eotools import tiling
+from gaip.tiling import generate_tiles
 from gaip import gridded_geo_box
 from gaip import load_tle
 from gaip import angle
@@ -858,7 +858,7 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, npoints=12,
 
     # Initialise the tile generator for processing
     # Process 1 row of data at a time
-    tiles = tiling.generate_tiles(cols, rows, cols, 1)
+    tiles = generate_tiles(cols, rows, cols, 1)
 
     for i, tile in enumerate(tiles):
         idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
