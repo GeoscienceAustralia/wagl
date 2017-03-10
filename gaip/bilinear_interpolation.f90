@@ -183,7 +183,7 @@ SUBROUTINE bilinear_interpolation(nrow, ncol, coordinator, s1, s2, s3, s4, &
           enddo
         enddo
         return
-END SUBROUTINE bilinear
+END SUBROUTINE bilinear_interpolation
 
 !------------------------------------------------------
 
