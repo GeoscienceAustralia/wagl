@@ -29,7 +29,8 @@ class TestLonLatArrays(unittest.TestCase):
         """
         # Initialise the test data
         img, geobox = ut.create_test_image()
-        lon, _ = create_lon_lat_grids(geobox, depth=3, to_disk=False)
+        fid = create_lon_lat_grids(geobox, depth=3)
+        lon = fid['longitude']
         ids = ut.randomPixelLocations(img.shape)
 
         # We'll transform (reproject) to WGS84
@@ -69,7 +70,8 @@ class TestLonLatArrays(unittest.TestCase):
         """
         # Initialise the test data
         img, geobox = ut.create_test_image()
-        _, lat = create_lon_lat_grids(geobox, depth=3, to_disk=False)
+        fid = create_lon_lat_grids(geobox, depth=3)
+        lat = fid['latitude']
         ids = ut.randomPixelLocations(img.shape)
 
         # We'll transform (reproject) to WGS84
