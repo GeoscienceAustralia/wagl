@@ -370,7 +370,7 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, bands=1):
         subs = src.read(bands, window=((ystart, yend), (xstart, xend)))
 
         # Get the projection as WKT
-        prj = bytes(src.crs_wkt)  # rasterio returns a unicode
+        prj = bytes(src.crs.wkt)  # rasterio returns a unicode
 
         # Get the new UL co-ordinates of the array
         ul_x, ul_y = src.affine * (xstart, ystart)
