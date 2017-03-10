@@ -6,7 +6,7 @@ import unittest
 import numpy
 import osr
 
-from gaip import GriddedGeoBox
+from gaip.geobox import GriddedGeoBox
 
 # GDA94/ MGA Zone 55
 CRS = "EPSG:28355"

@@ -86,7 +86,7 @@ class TestGriddedGeoBox(unittest.TestCase):
 
     def test_ggb_from_rio_dataset(self):
         img, geobox = ut.create_test_image()
-        kwargs = {'driver': 'Memory',
+        kwargs = {'driver': 'MEM',
                   'width': img.shape[1],
                   'height': img.shape[0],
                   'count': 1,
@@ -97,10 +97,10 @@ class TestGriddedGeoBox(unittest.TestCase):
         with rio.open('tmp.tif', 'w', **kwargs) as ds:
             new_geobox = GriddedGeoBox.from_rio_dataset(ds)
 
-            self.assrtTrue(new_geobox.affine == geobox.affine)
-            self.assrtTrue(new_geobox.crs.ExportToWkt() ==
+            self.assertTrue(new_geobox.affine == geobox.affine)
+            self.assertTrue(new_geobox.crs.ExportToWkt() ==
                            geobox.crs.ExportToWkt())
-            self.assrtTrue(new_geobox.shape == img.shape)
+            self.assertTrue(new_geobox.shape == img.shape)
 
 
     def test_ggb_from_gdal_dataset(self):
@@ -111,10 +111,10 @@ class TestGriddedGeoBox(unittest.TestCase):
         ds.SetProjection(geobox.crs.ExportToWkt())
 
         new_geobox = GriddedGeoBox.from_gdal_dataset(ds)
-        self.assrtTrue(new_geobox.affine == geobox.affine)
-        self.assrtTrue(new_geobox.crs.ExportToWkt() ==
+        self.assertTrue(new_geobox.affine == geobox.affine)
+        self.assertTrue(new_geobox.crs.ExportToWkt() ==
                        geobox.crs.ExportToWkt())
-        self.assrtTrue(new_geobox.shape == img.shape)
+        self.assertTrue(new_geobox.shape == img.shape)
         drv = None
         ds = None
 
@@ -127,10 +127,10 @@ class TestGriddedGeoBox(unittest.TestCase):
             ds.attrs['crs_wkt'] = geobox.crs.ExportToWkt()
 
             new_geobox = GriddedGeoBox.from_h5_dataset(ds)
-            self.assrtTrue(new_geobox.affine == geobox.affine)
-            self.assrtTrue(new_geobox.crs.ExportToWkt() ==
+            self.assertTrue(new_geobox.affine == geobox.affine)
+            self.assertTrue(new_geobox.crs.ExportToWkt() ==
                            geobox.crs.ExportToWkt())
-            self.assrtTrue(new_geobox.shape == img.shape)
+            self.assertTrue(new_geobox.shape == img.shape)
 
 
     def test_convert_coordinate_to_map(self):
