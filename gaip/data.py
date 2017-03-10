@@ -109,16 +109,6 @@ def data_and_box(acq, out=None, window=None, masked=False):
         return (fo.read(1, out=out, window=window, masked=masked), box)
 
 
-def gridded_geo_box(acq):
-    """Return a GriddedGeoBox instance representing the spatial extent and 
-    grid associated with the acquisition `acq`. 
-    The parameter `acq` should behave like a `gaip.Acquisition` object."""
-    dirname = acq.dir_name
-    filename = acq.file_name
-    with rasterio.open(pjoin(dirname, filename), 'r') as fo:
-        return GriddedGeoBox.from_dataset(fo)
-
-
 def select_acquisitions(acqs_list, fn=(lambda acq: True)):
     """
     Given a list of acquisitions, apply the supplied fn to select the

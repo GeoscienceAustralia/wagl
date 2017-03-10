@@ -13,7 +13,9 @@ from pkg_resources import resource_stream
 
 from functools import total_ordering
 from os.path import isdir, join as pjoin, dirname, basename, exists
-from gaip.data import data, data_and_box, gridded_geo_box, no_data
+import rasterio
+from gaip.data import data, data_and_box, no_data
+from gaip.geobox import GriddedGeoBox
 from gaip.modtran import read_spectral_response
 from gaip.mtl import load_mtl
 
@@ -222,7 +224,8 @@ class Acquisition(object):
 
     def gridded_geo_box(self):
         """Return the `GriddedGeoBox` for this acquisition."""
-        return gridded_geo_box(self)
+        with rasterio.open(pjoin(acq.dir_name, acq.file_name), 'r') as src:
+            return GriddedGeoBox.from_dataset(fo)
 
     @property
     def no_data(self):

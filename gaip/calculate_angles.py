@@ -13,7 +13,6 @@ import pandas
 
 from osgeo import osr
 from gaip.tiling import generate_tiles
-from gaip.data import gridded_geo_box
 from gaip.tle import load_tle
 from gaip.hdf5 import dataset_compression_kwargs
 from gaip.hdf5 import attach_image_attributes
@@ -721,7 +720,7 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, npoints=12,
     dt = acquisition.scene_center_datetime
 
     # Compute the geobox
-    geobox = gridded_geo_box(acquisition)
+    geobox = acquisition.gridded_geo_box()
 
     # Image projection
     prj = geobox.crs.ExportToWkt()
