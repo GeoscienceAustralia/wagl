@@ -7,8 +7,8 @@ import numpy
 import numpy.testing as npt
 import osr
 
-from gaip import create_lon_lat_grids
-from gaip.tests import unittesting_tools as ut
+from gaip.calculate_lat_lon_arrays import create_lon_lat_grids
+from gaip import unittesting_tools as ut
 
 # WGS84
 CRS = "EPSG:4326"

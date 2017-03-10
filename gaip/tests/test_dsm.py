@@ -11,7 +11,7 @@ from argparse import RawTextHelpFormatter
 import numpy.testing as npt
 import h5py
 
-from gaip.tests.unittesting_tools import ParameterisedTestCase
+from gaip.unittesting_tools import ParameterisedTestCase
 
 
 class TestDsm(ParameterisedTestCase):

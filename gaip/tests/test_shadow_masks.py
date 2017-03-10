@@ -11,8 +11,8 @@ from argparse import RawTextHelpFormatter
 import numpy
 import h5py
 
-from gaip import read_table
-from gaip.tests.unittesting_tools import ParameterisedTestCase
+from gaip.hdf5 import read_table
+from gaip.unittesting_tools import ParameterisedTestCase
 
 
 class TestShadowMasks(ParameterisedTestCase):
