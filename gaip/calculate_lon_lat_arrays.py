@@ -97,14 +97,14 @@ def get_lat_coordinate(y, x, geobox, geo_crs=None, centre=False):
     return y
 
 
-def create_lon_lat_grids(acquisition, depth=7, dtype='float64',
+def create_lon_lat_grids(geobox, depth=7, dtype='float64',
                          out_fname=None, compression='lzf'):
     """
     Creates 2 by 2D NumPy arrays containing longitude and latitude
     co-ordinates for each array element.
 
-    :param acquisition:
-        An instance of an acquisitions object.
+    :param geobox:
+        An instance of an `GriddedGeoBox` object.
 
     :param out_fname:
         If set to None (default) then the results will be returned
@@ -131,9 +131,6 @@ def create_lon_lat_grids(acquisition, depth=7, dtype='float64',
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
     """
-    # retrieve the geobox
-    geobox = acquisition.gridded_geo_box()
-
     # Define the lon and lat transform funtions
     lon_func = partial(get_lon_coordinate, geobox=geobox, centre=True)
     lat_func = partial(get_lat_coordinate, geobox=geobox, centre=True)
@@ -203,9 +200,12 @@ def create_grid(geobox, coord_fn, depth=7, dtype='float64'):
     return arr
 
 
-def create_lon_grid(acquisition, out_fname=None, compression='lzf', depth=7,
+def create_lon_grid(geobox, out_fname=None, compression='lzf', depth=7,
                     dtype='float64'):
     """Create longitude grid.
+
+    :param geobox:
+        An instance of an `GriddedGeoBox` object.
 
     :param out_fname:
         If set to None (default) then the results will be returned
@@ -231,9 +231,6 @@ def create_lon_grid(acquisition, out_fname=None, compression='lzf', depth=7,
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
     """
-    # retrieve the geobox
-    geobox = acquisition.gridded_geo_box()
-
     # Initialise the output files
     if out_fname is None:
         fid = h5py.File('longitude.h5', driver='core',
@@ -257,9 +254,12 @@ def create_lon_grid(acquisition, out_fname=None, compression='lzf', depth=7,
     return fid
 
 
-def create_lat_grid(acquisition, out_fname=None, compression='lzf', depth=7,
+def create_lat_grid(geobox, out_fname=None, compression='lzf', depth=7,
                     dtype='float64'):
     """Create latitude grid.
+
+    :param geobox:
+        An instance of an `GriddedGeoBox` object.
 
     :param out_fname:
         If set to None (default) then the results will be returned
@@ -285,9 +285,6 @@ def create_lat_grid(acquisition, out_fname=None, compression='lzf', depth=7,
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
     """
-    # retrieve the geobox
-    geobox = acquisition.gridded_geo_box()
-
     # Initialise the output files
     if out_fname is None:
         fid = h5py.File('latitude.h5', driver='core',

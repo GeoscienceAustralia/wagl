@@ -90,11 +90,11 @@ class CalculateLonGrid(luigi.Task):
         return luigi.LocalTarget(pjoin(out_path, 'longitude.h5'))
 
     def run(self):
-        acqs = acquisitions(self.level1).get_acquisitions(self.group,
-                                                          self.granule)
+        acq = acquisitions(self.level1).get_acquisitions(self.group,
+                                                         self.granule)[0]
 
         with self.output().temporary_path() as out_fname:
-            create_lon_grid(acqs[0], out_fname, self.compression)
+            create_lon_grid(acq.gridded_geo_box(), out_fname, self.compression)
 
 
 @inherits(CalculateLonGrid)
@@ -108,11 +108,11 @@ class CalculateLatGrid(luigi.Task):
         return luigi.LocalTarget(pjoin(out_path, 'latitude.h5'))
 
     def run(self):
-        acqs = acquisitions(self.level1).get_acquisitions(self.group,
-                                                          self.granule)
+        acq = acquisitions(self.level1).get_acquisitions(self.group,
+                                                         self.granule)[0]
 
         with self.output().temporary_path() as out_fname:
-            create_lat_grid(acqs[0], out_fname, self.compression)
+            create_lat_grid(acq.gridded_geo_box(), out_fname, self.compression)
 
 
 @inherits(CalculateLonGrid)
