@@ -37,10 +37,10 @@ class TestReadSubset(unittest.TestCase):
         LL = geobox.convert_coordinates((-9, 10))
     
         kwds = {'fname': fname,
-                 'ULxy': UL,
-                 'URxy': UR,
-                 'LRxy': LR,
-                 'LLxy': LL}
+                 'ul xy': UL,
+                 'ur xy': UR,
+                 'lr xy': LR,
+                 'll xy': LL}
 
         self.assertRaises(IndexError, read_subset, **kwds)
     
@@ -71,10 +71,10 @@ class TestReadSubset(unittest.TestCase):
         LL = geobox.convert_coordinates((cols-9, 10))
     
         kwds = {'fname': fname,
-                 'ULxy': UL,
-                 'URxy': UR,
-                 'LRxy': LR,
-                 'LLxy': LL}
+                 'ul_xy': UL,
+                 'ur_xy': UR,
+                 'lr_xy': LR,
+                 'll_xy': LL}
 
         self.assertRaises(IndexError, read_subset, **kwds)
     
@@ -103,10 +103,10 @@ class TestReadSubset(unittest.TestCase):
         LL = geobox.convert_coordinates((0, 10))
     
         kwds = {'fname': fname,
-                 'ULxy': UL,
-                 'URxy': UR,
-                 'LRxy': LR,
-                 'LLxy': LL}
+                 'ul_xy': UL,
+                 'ur_xy': UR,
+                 'lr_xy': LR,
+                 'll_xy': LL}
 
         self.assertRaises(IndexError, read_subset, **kwds)
     
@@ -137,10 +137,10 @@ class TestReadSubset(unittest.TestCase):
         LL = geobox.convert_coordinates((0, rows+10))
     
         kwds = {'fname': fname,
-                 'ULxy': UL,
-                 'URxy': UR,
-                 'LRxy': LR,
-                 'LLxy': LL}
+                 'ul_xy': UL,
+                 'ur_xy': UR,
+                 'lr_xy': LR,
+                 'll_xy': LL}
 
         self.assertRaises(IndexError, read_subset, **kwds)
     
@@ -169,10 +169,10 @@ class TestReadSubset(unittest.TestCase):
         LL = geobox.convert_coordinates((0, 9))
     
         kwds = {'fname': fname,
-                 'ULxy': UL,
-                 'URxy': UR,
-                 'LRxy': LR,
-                 'LLxy': LL}
+                 'ul_xy': UL,
+                 'ur_xy': UR,
+                 'lr_xy': LR,
+                 'll_xy': LL}
 
         subs, geobox = read_subset(**kwds)
 
