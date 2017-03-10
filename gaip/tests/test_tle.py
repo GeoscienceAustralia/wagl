@@ -5,32 +5,47 @@ import ephem
 import os
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
-
-L5_DIR = os.path.join(DATA_DIR, 'L1T', 'LS5_90-84_1996-08-25', 'UTM',
-                      'LS5_TM_OTH_P51_GALPGS01-002_090_084_19960825')
-L7_DIR = os.path.join(DATA_DIR, 'L1T', 'LS7_90-84_2000-09-13', 'UTM',
-                      'LS7_ETM_OTH_P51_GALPGS01-002_090_084_20000913')
-L8_DIR = os.path.join(DATA_DIR, 'L1T', 'LS8_90_84_2013-10-11', 'UTM',
-                      'LS8_OLITIRS_OTH_P51_GALPGS01-002_090_084_20131011')
+L5_MTL1 = os.path.join(DATA_DIR, 'L5090081_08120090407_MTL.txt')
+L5_MTL2 = os.path.join(DATA_DIR, 'LT05_L1TP_095066_20100601_20170222_01_T1_MTL.txt')
+L7_MTL1 = os.path.join(DATA_DIR, 'L71090081_08120090415_MTL.txt')
+L7_MTL2 = os.path.join(DATA_DIR, 'LE07_L1TP_112066_20020218_20170221_01_T1_MTL.txt')
+L8_MTL1 = os.path.join(DATA_DIR, 'LO80900842013284ASA00_MTL.txt')
+L8_MTL2 = os.path.join(DATA_DIR, 'LO80900842013284ASA00_MTL.txt')
 
 TLE_DIR = '/g/data/v10/eoancillarydata/sensor-specific'
 
 class TLELoadingTest(unittest.TestCase):
 
-    def test_load_tle_landsat5(self):
-        acq = gaip.acquisitions(L5_DIR).get_acquisitions(group='product')[0]
+    def test_load_tle_l5_mtl1(self):
+        acq = gaip.acquisitions(L5_MTL1).get_acquisitions()[0]
         data = gaip.load_tle(acq, TLE_DIR)
         self.assertIsInstance(data, ephem.EarthSatellite)
 
-    def test_load_tle_landsat7(self):
-        acq = gaip.acquisitions(L7_DIR).get_acquisitions(group='product')[0]
+    def test_load_tle_l5_mtl2(self):
+        acq = gaip.acquisitions(L5_MTL2).get_acquisitions()[0]
         data = gaip.load_tle(acq, TLE_DIR)
         self.assertIsInstance(data, ephem.EarthSatellite)
 
-    def test_load_tle_landsat8(self):
-        acq = gaip.acquisitions(L8_DIR).get_acquisitions(group='product')[0]
+    def test_load_tle_l7_mtl1(self):
+        acq = gaip.acquisitions(L7_MTL1).get_acquisitions()[0]
         data = gaip.load_tle(acq, TLE_DIR)
         self.assertIsInstance(data, ephem.EarthSatellite)
+
+    def test_load_tle_l7_mtl2(self):
+        acq = gaip.acquisitions(L7_MTL2).get_acquisitions()[0]
+        data = gaip.load_tle(acq, TLE_DIR)
+        self.assertIsInstance(data, ephem.EarthSatellite)
+
+    def test_load_tle_l8_mtl1(self):
+        acq = gaip.acquisitions(L8_MTL1).get_acquisitions()[0]
+        data = gaip.load_tle(acq, TLE_DIR)
+        self.assertIsInstance(data, ephem.EarthSatellite)
+
+    def test_load_tle_l8_mtl2(self):
+        acq = gaip.acquisitions(L8_MTL2).get_acquisitions()[0]
+        data = gaip.load_tle(acq, TLE_DIR)
+        self.assertIsInstance(data, ephem.EarthSatellite)
+
 
 if __name__ == '__main__':
     unittest.main()
