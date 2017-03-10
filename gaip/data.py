@@ -8,7 +8,6 @@ from __future__ import print_function
 import subprocess
 import numpy as np
 import rasterio
-import gaip
 import os
 
 from osgeo import gdal
@@ -16,6 +15,7 @@ from rasterio import crs
 from rasterio.warp import reproject
 from rasterio.warp import Resampling
 from os.path import join as pjoin
+from gaip.geobox import GriddedGeoBox
 
 
 def get_pixel(filename, lonlat, band=1):
@@ -96,7 +96,7 @@ def data_and_box(acq, out=None, window=None, masked=False):
     dirname = acq.dir_name
     filename = acq.file_name
     with rasterio.open(pjoin(dirname, filename), 'r') as fo:
-        box = gaip.GriddedGeoBox.from_dataset(fo)
+        box = GriddedGeoBox.from_dataset(fo)
         if window is not None:
             rows = window[0][1] - window[0][0]
             cols = window[1][1] - window[1][0]
@@ -104,8 +104,8 @@ def data_and_box(acq, out=None, window=None, masked=False):
             res = fo.res
             # Get the new UL co-ordinates of the array
             ul_x, ul_y = fo.affine * (window[1][0], window[0][0])
-            box = gaip.GriddedGeoBox(shape=(rows, cols), origin=(ul_x, ul_y),
-                                     pixelsize=res, crs=prj)
+            box = GriddedGeoBox(shape=(rows, cols), origin=(ul_x, ul_y),
+                                pixelsize=res, crs=prj)
         return (fo.read(1, out=out, window=window, masked=masked), box)
 
 
@@ -116,7 +116,7 @@ def gridded_geo_box(acq):
     dirname = acq.dir_name
     filename = acq.file_name
     with rasterio.open(pjoin(dirname, filename), 'r') as fo:
-        return gaip.GriddedGeoBox.from_dataset(fo)
+        return GriddedGeoBox.from_dataset(fo)
 
 
 def select_acquisitions(acqs_list, fn=(lambda acq: True)):
@@ -378,8 +378,8 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, bands=1):
         # Get the x & y pixel resolution
         res = src.res
 
-        geobox = gaip.GriddedGeoBox(shape=subs.shape, origin=(ul_x, ul_y),
-                                    pixelsize=res, crs=prj)
+        geobox = GriddedGeoBox(shape=subs.shape, origin=(ul_x, ul_y),
+                               pixelsize=res, crs=prj)
 
     return (subs, geobox)
 
@@ -463,7 +463,7 @@ def reproject_file_to_array(src_filename, src_band=1, dst_geobox=None,
         A NumPy array containing the reprojected result.
     """
 
-    if not isinstance(dst_geobox, gaip.GriddedGeoBox):
+    if not isinstance(dst_geobox, GriddedGeoBox):
         msg = 'dst_geobox must be an instance of a GriddedGeoBox! Type: {}'
         msg = msg.format(type(dst_geobox))
         raise TypeError(msg)
@@ -510,12 +510,12 @@ def reproject_img_to_img(src_img, src_geobox, dst_geobox,
         A NumPy array containing the reprojected result.
     """
 
-    if not isinstance(dst_geobox, gaip.GriddedGeoBox):
+    if not isinstance(dst_geobox, GriddedGeoBox):
         msg = 'dst_geobox must be an instance of a GriddedGeoBox! Type: {}'
         msg = msg.format(type(dst_geobox))
         raise TypeError(msg)
 
-    if not isinstance(src_geobox, gaip.GriddedGeoBox):
+    if not isinstance(src_geobox, GriddedGeoBox):
         msg = 'src_geobox must be an instance of a GriddedGeoBox! Type: {}'
         msg = msg.format(type(src_geobox))
         raise TypeError(msg)
