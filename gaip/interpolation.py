@@ -9,8 +9,14 @@ makes some of the code harder to follow.
 """
 
 from __future__ import absolute_import
+from os.path import basename, splitext
 import numpy
+import h5py
 import logging
+import gaip
+from gaip import dataset_compression_kwargs
+from gaip import write_h5_image
+from gaip import read_table
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +55,8 @@ def bilinear(shape, fUL, fUR, fLR, fLL, dtype=numpy.float64):
     s /= (shape[0] - 1.0)
     t /= (shape[1] - 1.0)
 
-    result = s * (t * fLR + (1.0 - t) * fLL) + (1.0 - s) *
-             (t * fUR + (1.0 - t) * fUL)
+    result = (s * (t * fLR + (1.0 - t) * fLL) + (1.0 - s) *
+              (t * fUR + (1.0 - t) * fUL))
 
     return result
 
@@ -185,3 +191,77 @@ def interpolate_grid(depth=0, origin=DEFAULT_ORIGIN, shape=DEFAULT_SHAPE,
         for (kUL, kUR, kLL, kLR) in blocks.itervalues():
             block_shape = (kLR[0] - kUL[0] + 1, kLR[1] - kUL[1] + 1)
             interpolate_grid(depth - 1, kUL, block_shape, eval_func, grid)
+
+
+def _bilinear_interpolate(acq, factor, sat_sol_angles_fname,
+                          coefficients_fname, out_fname, compression):
+    """
+    A private wrapper for dealing with the internal custom workings of the
+    NBAR workflow.
+    """
+    with h5py.File(sat_sol_angles_fname, 'r') as sat_sol,\
+        h5py.File(coefficients_fname, 'r') as coef:
+
+        # read the relevant tables into DataFrames
+        coord_dset = read_table(sat_sol, 'coordinator')
+        centre_dset = read_table(sat_sol, 'centreline')
+        box_dset = read_table(sat_sol, 'boxline')
+        coef_dset = read_table(coef, 'coefficients-format-2')
+
+        rfid = bilinear_interpolate(acq, factor, coord_dset, box_dset,
+                                    centre_dset, coef_dset, out_fname,
+                                    compression)
+
+    rfid.close()
+    return
+
+
+def bilinear_interpolate(acq, factor, coordinator_dataset, boxline_dataset,
+                         centreline_dataset, coefficients, out_fname=None,
+                         compression='lzf'):
+    # TODO: more docstrings
+    """Perform bilinear interpolation."""
+    geobox = acq.gridded_geo_box()
+    cols, rows = geobox.get_shape_xy()
+
+    coord = numpy.zeros((9, 2), dtype='int')
+    coord[:, 0] = coordinator_dataset.row_index.values
+    coord[:, 1] = coordinator_dataset.col_index.values
+    centre = boxline_dataset.bisection.values
+    start = boxline_dataset.start.values
+    end = boxline_dataset.end.values
+
+    # get the individual atmospheric components
+    band = acq.band_num
+    key = ('BAND {}'.format(band), factor)
+    coef_subs = coefficients.loc[key]
+    s1 = coef_subs.s1.values
+    s2 = coef_subs.s2.values
+    s3 = coef_subs.s3.values
+    s4 = coef_subs.s4.values
+
+    result = numpy.zeros((rows, cols), dtype='float32')
+    gaip.bilinear_interpolation(cols, rows, coord, s1, s2, s3, s4, start, end,
+                                centre, result.transpose())
+
+    # Initialise the output files
+    if out_fname is None:
+        fid = h5py.File('bilinear.h5', driver='core',
+                        backing_store=False)
+    else:
+        fid = h5py.File(out_fname, 'w')
+
+    dset_name = splitext(basename(out_fname))[0]
+    kwargs = dataset_compression_kwargs(compression=compression,
+                                        chunks=(1, geobox.x_size()))
+    no_data = -999
+    kwargs['fillvalue'] = no_data
+    attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
+             'geotransform': geobox.affine.to_gdal(),
+             'no_data_value': no_data}
+    desc = ("Contains the bi-linearly interpolated result of factor {}"
+            "for band {} from sensor {}.")
+    attrs['Description'] = desc.format(factor, band, acq.satellite_name)
+    write_h5_image(result, dset_name, fid, attrs, **kwargs)
+
+    return fid
