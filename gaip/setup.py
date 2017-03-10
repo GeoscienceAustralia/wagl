@@ -87,7 +87,7 @@ def configuration(parent_package='', top_path=None):
         ]
     ),
     config.add_extension(
-        '__interpolation',
+        '__bilinear_interpolation',
         [
             'bilinear_interpolation.f90',
         ]

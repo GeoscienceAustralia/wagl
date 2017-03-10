@@ -38,7 +38,7 @@ try:
     from __incident_angle import incident_angle # F2Py
     from __slope_aspect import slope_aspect # F2Py
     from __surface_reflectance import reflectance # F2Py
-    from __interpolation import bilinear #F2Py
+    from __bilinear_interpolation import bilinear_interpolation #F2Py
     from .calculate_angles import *
     from .calculate_shadow_masks import *
     from .calculate_reflectance import calculate_reflectance

@@ -1,5 +1,5 @@
-SUBROUTINE bilinear(nrow, ncol, coordinator, s1, s2, s3, s4, &
-                    cstart, cend, centreline, res)
+SUBROUTINE bilinear_interpolation(nrow, ncol, coordinator, s1, s2, s3, s4, &
+                                  cstart, cend, centreline, res)
 
         integer, intent(in) :: nrow, ncol
         integer, dimension(9, 2), intent(in) :: coordinator
