@@ -2,7 +2,7 @@ from __future__ import absolute_import
 import os, numpy, logging
 from osgeo import gdal
 from osgeo import osr
-from gaip import extract_ancillary_metadata
+from gaip.metadata import extract_ancillary_metadata
 
 
 

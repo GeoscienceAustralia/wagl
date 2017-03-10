@@ -5,7 +5,7 @@ import logging
 from scipy import ndimage
 import numexpr
 from . import fmask_cloud_masking as _fmask
-from gaip import majority_filter
+from gaip.acca_cloud_masking import majority_filter
 
 def fmask_cloud_mask(mtl, null_mask=None, cloud_prob=None, wclr_max=None,
                    sat_tag=None, aux_data={}):

@@ -13,14 +13,14 @@ import pandas
 
 from osgeo import osr
 from gaip.tiling import generate_tiles
-from gaip import gridded_geo_box
-from gaip import load_tle
-from gaip import angle
-from gaip import set_satmod
-from gaip import set_times
-from gaip import dataset_compression_kwargs
-from gaip import attach_image_attributes
-from gaip import attach_table_attributes
+from gaip.data import gridded_geo_box
+from gaip.tle import load_tle
+from gaip.hdf5 import dataset_compression_kwargs
+from gaip.hdf5 import attach_image_attributes
+from gaip.hdf5 import attach_table_attributes
+from gaip.__sat_sol_angles import angle
+from gaip.__satellite_model import set_satmod
+from gaip.__track_time_info import set_times
 
 CRS = "EPSG:4326"
 

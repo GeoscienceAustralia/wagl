@@ -12,13 +12,13 @@ from __future__ import absolute_import
 import numpy
 import h5py
 
+from gaip.geobox import GriddedGeoBox
+from gaip.margins import ImageMargins
+from gaip.calculate_angles import setup_spheroid
+from gaip.hdf5 import dataset_compression_kwargs
+from gaip.hdf5 import attach_image_attributes
 from gaip.tiling import generate_tiles
-from gaip import GriddedGeoBox
-from gaip import ImageMargins
-from gaip import setup_spheroid
-from gaip import cast_shadow_main
-from gaip import dataset_compression_kwargs
-from gaip import attach_image_attributes
+from gaip.__cast_shadow_mask import cast_shadow_main
 
 
 def _self_shadow(incident_angles_fname, exiting_angles_fname, out_fname,

@@ -13,10 +13,10 @@ from os.path import basename, splitext
 import numpy
 import h5py
 import logging
-import gaip
-from gaip import dataset_compression_kwargs
-from gaip import write_h5_image
-from gaip import read_table
+from gaip.hdf5 import dataset_compression_kwargs
+from gaip.hdf5 import write_h5_image
+from gaip.hdf5 import read_table
+from gaip.__bilinear_interpolation import bilinear_interpolation
 
 logger = logging.getLogger(__name__)
 
@@ -241,8 +241,8 @@ def bilinear_interpolate(acq, factor, coordinator_dataset, boxline_dataset,
     s4 = coef_subs.s4.values
 
     result = numpy.zeros((rows, cols), dtype='float32')
-    gaip.bilinear_interpolation(cols, rows, coord, s1, s2, s3, s4, start, end,
-                                centre, result.transpose())
+    bilinear_interpolation(cols, rows, coord, s1, s2, s3, s4, start, end,
+                           centre, result.transpose())
 
     # Initialise the output files
     if out_fname is None:
@@ -265,3 +265,22 @@ def bilinear_interpolate(acq, factor, coordinator_dataset, boxline_dataset,
     write_h5_image(result, dset_name, fid, attrs, **kwargs)
 
     return fid
+
+
+def link_bilinear_data(data, out_fname):
+    """
+    Links the individual bilinearly interpolated results into a
+    single file for easier access.
+    """
+    for key in data:
+        # band, factor = key
+        fname = data[key]
+        base_dname = splitext(basename(fname))[0]
+
+        # do we need two group levels?
+        # dset_name = ppjoin(band, factor, base_dname)
+
+        with h5py.File(out_fname, 'w') as fid:
+            fid[base_dname] = h5py.ExternalLink(fname, base_dname)
+
+    return

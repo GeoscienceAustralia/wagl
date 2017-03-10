@@ -33,12 +33,12 @@ from osgeo import gdal
 from osgeo import gdalconst
 from osgeo import osr
 from shapely.geometry import Polygon
-from gaip import GriddedGeoBox
+from gaip.geobox import GriddedGeoBox
 from gaip import constants
-from gaip import read_subset
-from gaip import extract_ancillary_metadata
-from gaip import write_h5_image
-from gaip import dataset_compression_kwargs
+from gaip.data import read_subset
+from gaip.data import extract_ancillary_metadata
+from gaip.hdf5 import write_h5_image
+from gaip.hdf5 import dataset_compression_kwargs
 
 log = logging.getLogger('root.' + __name__)
 

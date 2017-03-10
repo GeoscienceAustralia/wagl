@@ -11,7 +11,7 @@ import gc
 
 from scipy import ndimage
 from idl_functions import histogram
-from gaip import majority_filter
+from gaip.acca_cloud_masking import majority_filter
 
 
 def cloud_shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg,

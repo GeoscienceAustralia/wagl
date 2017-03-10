@@ -10,13 +10,13 @@ from __future__ import absolute_import
 import numpy
 import h5py
 
-from gaip.tiling import generate_tiles
-from gaip import as_array
 from gaip import constants
-from gaip import reflectance
-from gaip import dataset_compression_kwargs
-from gaip import attach_image_attributes
-from gaip import create_external_link
+from gaip.data import as_array
+from gaip.hdf5 import dataset_compression_kwargs
+from gaip.hdf5 import attach_image_attributes
+from gaip.hdf5 import create_external_link
+from gaip.tiling import generate_tiles
+from gaip.__surface_reflectance import reflectance
 
 
 DATASET_NAME_FMT = '{product}-reflectance-band-{band}'

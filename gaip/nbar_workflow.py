@@ -14,17 +14,23 @@ from __future__ import absolute_import
 from os.path import join as pjoin, basename, splitext
 import luigi
 from luigi.util import inherits, requires
-import gaip
-from gaip import acquisitions
+from gaip.acquisition import acquisitions
+from gaip.ancillary import collect_ancillary_data, aggregate_ancillary
 from gaip.calculate_angles import _calculate_angles
 from gaip.calculate_incident_exiting_angles import _incident_angles
 from gaip.calculate_incident_exiting_angles import _exiting_angles
 from gaip.calculate_incident_exiting_angles import _relative_azimuth_slope
+from gaip.calculate_lat_lon_arrays import create_lat_grid, create_lon_grid
 from gaip.calculate_reflectance import _calculate_reflectance
+from gaip.calculate_reflectance import link_reflectance_data
 from gaip.calculate_shadow_masks import _self_shadow, _calculate_cast_shadow
 from gaip.calculate_slope_aspect import _slope_aspect_arrays
+from gaip import constants
+from gaip.dsm import get_dsm
+from gaip.hdf5 import create_external_link
 from gaip.modtran import _format_tp5, _run_modtran, _calculate_solar_radiation
-from gaip.modtran import _calculate_coefficients, _bilinear_interpolate
+from gaip.modtran import _calculate_coefficients, prepare_modtran
+from gaip.interpolation import _bilinear_interpolate, link_bilinear_data
 
 
 def get_buffer(group):
@@ -60,12 +66,12 @@ class GetAncillaryData(luigi.Task):
                                                           self.granule)
 
         with self.output().temporary_path() as out_fname:
-            gaip.collect_ancillary_data(acqs[0], self.aerosol_fname,
-                                        self.water_vapour_path,
-                                        self.ozone_path, self.dem_path,
-                                        self.brdf_path,
-                                        self.brdf_premodis_path, out_fname,
-                                        self.compression, self.work_root)
+            collect_ancillary_data(acqs[0], self.aerosol_fname,
+                                   self.water_vapour_path,
+                                   self.ozone_path, self.dem_path,
+                                   self.brdf_path,
+                                   self.brdf_premodis_path, out_fname,
+                                   self.compression, self.work_root)
 
 
 class CalculateLonGrid(luigi.Task):
@@ -88,7 +94,7 @@ class CalculateLonGrid(luigi.Task):
                                                           self.granule)
 
         with self.output().temporary_path() as out_fname:
-            gaip.create_lon_grid(acqs[0], out_fname, self.compression)
+            create_lon_grid(acqs[0], out_fname, self.compression)
 
 
 @inherits(CalculateLonGrid)
@@ -106,7 +112,7 @@ class CalculateLatGrid(luigi.Task):
                                                           self.granule)
 
         with self.output().temporary_path() as out_fname:
-            gaip.create_lat_grid(acqs[0], out_fname, self.compression)
+            create_lat_grid(acqs[0], out_fname, self.compression)
 
 
 @inherits(CalculateLonGrid)
@@ -154,7 +160,7 @@ class WriteTp5(luigi.Task):
         # groups of acquisitions
         # current method requires to compute an average from all granules
         # if the scene is tiled up that way
-        container = gaip.acquisitions(self.level1)
+        container = acquisitions(self.level1)
         tasks = {}
 
         for granule in container.granules:
@@ -172,13 +178,13 @@ class WriteTp5(luigi.Task):
         return tasks
 
     def output(self):
-        container = gaip.acquisitions(self.level1)
+        container = acquisitions(self.level1)
         out_path = container.get_root(self.work_root, granule=self.granule)
         out_fname = pjoin(out_path, self.base_dir, 'atmospheric-inputs.h5')
         return luigi.LocalTarget(out_fname)
 
     def run(self):
-        container = gaip.acquisitions(self.level1)
+        container = acquisitions(self.level1)
         acq = container.get_acquisitions(self.group, granule=self.granule)[0]
 
         # as we have an all granules groups dependency, it doesn't matter which
@@ -194,7 +200,7 @@ class WriteTp5(luigi.Task):
 
         if container.tiled:
             ancillary_fname = pjoin(self.work_root, 'averaged-ancillary.h5')
-            gaip.aggregate_ancillary(fnames, ancillary_fname)
+            aggregate_ancillary(fnames, ancillary_fname)
         else:
             ancillary_fname = fnames[0]
 
@@ -240,7 +246,7 @@ class RunModtranCase(luigi.Task):
         workpath = workpath_format.format(point=self.point, albedo=self.albedo)
         modtran_work = pjoin(out_path, self.base_dir, workpath)
 
-        gaip.prepare_modtran(self.point, self.albedo, modtran_work, self.exe)
+        prepare_modtran(self.point, self.albedo, modtran_work, self.exe)
 
         with self.output().temporary_path() as out_fname:
             _run_modtran(self.exe, modtran_work, self.point, self.albedo,
@@ -357,7 +363,7 @@ class BilinearInterpolation(luigi.Task):
 
     def requires(self):
         # TODO: how to handle factors
-        container = gaip.acquisitions(self.level1)
+        container = acquisitions(self.level1)
         acqs = container.get_acquisitions(group=self.group,
                                           granule=self.granule)
 
@@ -366,7 +372,7 @@ class BilinearInterpolation(luigi.Task):
         sensor = acqs[0].sensor_id
 
         # Get the required nbar bands list for processing
-        nbar_constants = gaip.constants.NBARConstants(satellite, sensor)
+        nbar_constants = constants.NBARConstants(satellite, sensor)
         bands_to_process = nbar_constants.get_nbar_lut()
 
         bands = [a.band_num for a in acqs if a.band_num in bands_to_process]
@@ -390,7 +396,7 @@ class BilinearInterpolation(luigi.Task):
             bilinear_fnames[key] = value.path
 
         with self.output().temporary_path() as out_fname:
-            gaip.link_bilinear_data(bilinear_fnames, out_fname)
+            link_bilinear_data(bilinear_fnames, out_fname)
 
 
 @inherits(CalculateLonGrid)
@@ -415,8 +421,8 @@ class DEMExctraction(luigi.Task):
         margins = get_buffer(self.group)
 
         with self.output().temporary_path() as out_fname:
-            _ = gaip.get_dsm(acqs[0], self.dsm_fname, margins, out_fname,
-                             self.compression)
+            _ = get_dsm(acqs[0], self.dsm_fname, margins, out_fname,
+                        self.compression)
 
 
 @requires(DEMExctraction)
@@ -610,8 +616,8 @@ class CalculateCastShadowSatellite(luigi.Task):
         return luigi.LocalTarget(pjoin(out_path, 'cast-shadow-satellite.h5'))
 
     def run(self):
-        acqs = gaip.acquisitions(self.level1).get_acquisitions(self.group,
-                                                               self.granule)
+        acqs = acquisitions(self.level1).get_acquisitions(self.group,
+                                                          self.granule)
 
         # input filenames
         dsm_fname = self.input()['dsm'].path
@@ -654,7 +660,7 @@ class CalculateShadowMasks(luigi.Task):
             for key in inputs:
                 fname = inputs[key].path
                 dname = splitext(basename(fname))[0]
-                gaip.create_external_link(fname, dname, out_fname, dname)
+                create_external_link(fname, dname, out_fname, dname)
 
 
 @inherits(IncidentAngles)
@@ -722,8 +728,8 @@ class TerrainCorrection(luigi.Task):
     """Perform the terrain correction."""
 
     def requires(self):
-        acqs = gaip.acquisitions(self.level1).get_acquisitions(self.group,
-                                                               self.granule)
+        acqs = acquisitions(self.level1).get_acquisitions(self.group,
+                                                          self.granule)
 
         # Retrieve the satellite and sensor for the acquisition
         satellite = acqs[0].spacecraft_id
@@ -731,7 +737,7 @@ class TerrainCorrection(luigi.Task):
         bands = [acq.band_num for acq in acqs]
 
         # Get the required nbar bands list for processing
-        nbar_constants = gaip.constants.NBARConstants(satellite, sensor)
+        nbar_constants = constants.NBARConstants(satellite, sensor)
         avail_bands = nbar_constants.get_nbar_lut()
         bands_to_process = [bn for bn in bands if bn in avail_bands]
 
@@ -749,7 +755,7 @@ class TerrainCorrection(luigi.Task):
     def run(self):
         with self.output().temporary_path() as out_fname:
             fnames = [target.path for target in self.input()]
-            gaip.link_reflectance_data(fnames, out_fname)
+            link_reflectance_data(fnames, out_fname)
 
 
 class NBAR(luigi.WrapperTask):

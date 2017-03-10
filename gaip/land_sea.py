@@ -6,7 +6,8 @@ from __future__ import absolute_import
 from __future__ import print_function
 import rasterio as rio
 import osr
-from gaip import GriddedGeoBox, write_img
+from gaip.geobox import GriddedGeoBox
+from gaip.data import write_img
 import numpy
 
 

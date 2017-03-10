@@ -8,7 +8,7 @@ import subprocess
 import numpy
 import yaml
 from yaml.representer import Representer
-import gaip
+from gaip import constants
 
 
 def extract_ancillary_metadata(fname):
@@ -60,7 +60,7 @@ def write_nbar_yaml(acquisition, level1_path, ozone_data, aerosol_data,
     ancillary['elevation'] = elevation_data
 
     # Get the required BRDF LUT & factors list
-    nbar_constants = gaip.constants.NBARConstants(acquisition.spacecraft_id,
+    nbar_constants = constants.NBARConstants(acquisition.spacecraft_id,
                                                   acquisition.sensor_id)
 
     bands = nbar_constants.get_brdf_lut()

@@ -819,22 +819,3 @@ def create_solar_irradiance_tables(fname, out_fname, compression='lzf'):
             fid2.copy(dset_name, fid1)
 
     return
-
-
-def link_bilinear_data(data, out_fname):
-    """
-    Links the individual bilinearly interpolated results into a
-    single file for easier access.
-    """
-    for key in data:
-        # band, factor = key
-        fname = data[key]
-        base_dname = splitext(basename(fname))[0]
-
-        # do we need two group levels?
-        # dset_name = ppjoin(band, factor, base_dname)
-
-        with h5py.File(out_fname, 'w') as fid:
-            fid[base_dname] = h5py.ExternalLink(fname, base_dname)
-
-    return

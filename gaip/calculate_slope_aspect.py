@@ -8,12 +8,12 @@ from __future__ import absolute_import
 import numpy
 import h5py
 
-from gaip import as_array
-from gaip import ImageMargins
-from gaip import setup_spheroid
-from gaip import slope_aspect
-from gaip import dataset_compression_kwargs
-from gaip import attach_image_attributes
+from gaip.data import as_array
+from gaip.margins import ImageMargins
+from gaip.calculate_angles import setup_spheroid
+from gaip.hdf5 import dataset_compression_kwargs
+from gaip.hdf5 import attach_image_attributes
+from gaip.__slope_aspect import slope_aspect
 
 
 def _slope_aspect_arrays(acquisition, dsm_fname, margins, out_fname,

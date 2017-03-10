@@ -4,29 +4,25 @@ Ancillary dataset retrieval and storage
 
 from __future__ import absolute_import
 import logging
-import subprocess
-import re
-import os
-from os.path import join as pjoin, splitext, exists, abspath, dirname
-from os.path import pardir, basename
+from os.path import join as pjoin, basename, splitext
 from posixpath import join as ppjoin
 import datetime
 import glob
-
+import numpy
 import h5py
 import pandas
 from geopandas import GeoSeries
-import numpy
 import rasterio
 from shapely.geometry import Point
 from shapely.geometry import Polygon
 from shapely import wkt
-import gaip
-from gaip import attach_attributes
-from gaip import write_scalar
-from gaip import write_dataframe
-from gaip import read_meatadata_tags
-from gaip import read_table
+from gaip.brdf import get_brdf_data
+from gaip.data import read_meatadata_tags, get_pixel
+from gaip.hdf5 import attach_attributes
+from gaip.hdf5 import write_scalar
+from gaip.hdf5 import write_dataframe
+from gaip.hdf5 import read_table
+from gaip.metadata import extract_ancillary_metadata
 
 
 log = logging.getLogger()
@@ -186,9 +182,9 @@ def collect_ancillary_data(acquisition, aerosol_fname, water_vapour_path,
 
     # brdf
     group = fid.create_group('brdf-image-datasets')
-    data = gaip.get_brdf_data(acquisition, brdf_path, brdf_premodis_path,
-                              group, compression=compression,
-                              work_path=work_path)
+    data = get_brdf_data(acquisition, brdf_path, brdf_premodis_path,
+                         group, compression=compression,
+                         work_path=work_path)
     dname_format = "BRDF-Band-{band}-{factor}"
     for key in data:
         band, factor = key
@@ -306,7 +302,7 @@ def get_aerosol_data(acquisition, aerosol_fname):
                                 'extents': wkt.dumps(intersection)}
 
                     # ancillary metadata tracking
-                    md = gaip.extract_ancillary_metadata(aerosol_fname)
+                    md = extract_ancillary_metadata(aerosol_fname)
                     for key in md:
                         metadata[key] = md[key]
 
@@ -338,13 +334,13 @@ def get_elevation_data(lonlat, dem_path):
         str
     """
     datafile = pjoin(dem_path, "DEM_one_deg.tif")
-    data = gaip.get_pixel(datafile, lonlat) * 0.001  # scale to correct units
+    data = get_pixel(datafile, lonlat) * 0.001  # scale to correct units
 
     metadata = {'data_source': 'Elevation',
                 'data_file': datafile}
 
     # ancillary metadata tracking
-    md = gaip.extract_ancillary_metadata(datafile)
+    md = extract_ancillary_metadata(datafile)
     for key in md:
         metadata[key] = md[key]
 
@@ -358,14 +354,14 @@ def get_ozone_data(ozone_path, lonlat, time):
     """
     filename = time.strftime('%b').lower() + '.tif'
     datafile = pjoin(ozone_path, filename)
-    data = gaip.get_pixel(datafile, lonlat)
+    data = get_pixel(datafile, lonlat)
 
     metadata = {'data_source': 'Ozone',
                 'data_file': datafile,
                 'Date used for querying': time}
 
     # ancillary metadata tracking
-    md = gaip.extract_ancillary_metadata(datafile)
+    md = extract_ancillary_metadata(datafile)
     for key in md:
         metadata[key] = md[key]
 
@@ -382,7 +378,7 @@ def get_water_vapour(acquisition, vapour_path, scale_factor=0.1):
 
     year = dt.strftime('%Y')
     filename = "pr_wtr.eatm.{year}.tif".format(year=year)
-    datafile = os.path.join(vapour_path, filename)
+    datafile = pjoin(vapour_path, filename)
 
     # calculate the water vapour band number based on the datetime
 
@@ -405,7 +401,7 @@ def get_water_vapour(acquisition, vapour_path, scale_factor=0.1):
             band = (int(rasterdoy) - 1) * 4 + int((hour + 3) / 6)
 
     try:
-        data = gaip.get_pixel(datafile, geobox.centre_lonlat, band=band)
+        data = get_pixel(datafile, geobox.centre_lonlat, band=band)
     except IndexError:
         msg = "Invalid water vapour band number: {band}".format(band=band)
         raise IndexError(msg)
@@ -417,7 +413,7 @@ def get_water_vapour(acquisition, vapour_path, scale_factor=0.1):
                 'Date used for querying': dt}
 
     # ancillary metadata tracking
-    md = gaip.extract_ancillary_metadata(datafile)
+    md = extract_ancillary_metadata(datafile)
     for key in md:
         metadata[key] = md[key]
 
@@ -430,13 +426,13 @@ def ecwmf_elevation(datafile, lonlat):
     dataset.
     Converts to Geo-Potential height in KM.
     """
-    data = gaip.get_pixel(datafile, lonlat) / 9.80665 / 1000.0
+    data = get_pixel(datafile, lonlat) / 9.80665 / 1000.0
 
     metadata = {'data_source': 'ECWMF Invariant Geo-Potential',
                 'data_file': datafile}
 
     # ancillary metadata tracking
-    md = gaip.extract_ancillary_metadata(datafile)
+    md = extract_ancillary_metadata(datafile)
     for key in md:
         metadata[key] = md[key]
 
@@ -456,14 +452,14 @@ def ecwmf_temperature_2metre(input_path, lonlat, time):
         start = datetime.datetime.strptime(start, '%Y-%m-%d')
         end = datetime.datetime.strptime(end, '%Y-%m-%d')
         if start <= time <= end:
-            data = gaip.get_pixel(f, lonlat, time.day)
+            data = get_pixel(f, lonlat, time.day)
 
             metadata = {'data_source': 'ECWMF 2 metre Temperature',
                         'data_file': f,
                         'Date used for querying ECWMF': time}
 
             # ancillary metadata tracking
-            md = gaip.extract_ancillary_metadata(f)
+            md = extract_ancillary_metadata(f)
             for key in md:
                 metadata[key] = md[key]
 
@@ -486,14 +482,14 @@ def ecwmf_dewpoint_temperature(input_path, lonlat, time):
         start = datetime.datetime.strptime(start, '%Y-%m-%d')
         end = datetime.datetime.strptime(end, '%Y-%m-%d')
         if start <= time <= end:
-            data = gaip.get_pixel(f, lonlat, time.day)
+            data = get_pixel(f, lonlat, time.day)
 
             metadata = {'data_source': 'ECWMF 2 metre Dewpoint Temperature ',
                         'data_file': f,
                         'Date used for querying ECWMF': time}
 
             # ancillary metadata tracking
-            md = gaip.extract_ancillary_metadata(f)
+            md = extract_ancillary_metadata(f)
             for key in md:
                 metadata[key] = md[key]
 
@@ -518,14 +514,14 @@ def ecwmf_surface_pressure(input_path, lonlat, time):
         start = datetime.datetime.strptime(start, '%Y-%m-%d')
         end = datetime.datetime.strptime(end, '%Y-%m-%d')
         if start <= time <= end:
-            data = gaip.get_pixel(f, lonlat, time.day) / 100.0
+            data = get_pixel(f, lonlat, time.day) / 100.0
 
             metadata = {'data_source': 'ECWMF Surface Pressure',
                         'data_file': f,
                         'Date used for querying ECWMF': time}
 
             # ancillary metadata tracking
-            md = gaip.extract_ancillary_metadata(f)
+            md = extract_ancillary_metadata(f)
             for key in md:
                 metadata[key] = md[key]
 
@@ -548,14 +544,14 @@ def ecwmf_water_vapour(input_path, lonlat, time):
         start = datetime.datetime.strptime(start, '%Y-%m-%d')
         end = datetime.datetime.strptime(end, '%Y-%m-%d')
         if start <= time <= time:
-            data = gaip.get_pixel(f, lonlat, time.day)
+            data = get_pixel(f, lonlat, time.day)
 
             metadata = {'data_source': 'ECWMF Total Column Water Vapour',
                         'data_file': f,
                         'Date used for querying ECWMF': time}
 
             # ancillary metadata tracking
-            md = gaip.extract_ancillary_metadata(f)
+            md = extract_ancillary_metadata(f)
             for key in md:
                 metadata[key] = md[key]
 
@@ -584,14 +580,14 @@ def ecwmf_temperature(input_path, lonlat, time):
         end = datetime.datetime.strptime(end, '%Y-%m-%d')
         if start <= time <= end:
             bands = get_4d_idx(time.day)
-            data = gaip.get_pixel(f, lonlat, bands)[::-1]
+            data = get_pixel(f, lonlat, bands)[::-1]
 
             metadata = {'data_source': 'ECWMF Temperature',
                         'data_file': f,
                         'Date used for querying ECWMF': time}
 
             # ancillary metadata tracking
-            md = gaip.extract_ancillary_metadata(f)
+            md = extract_ancillary_metadata(f)
             for key in md:
                 metadata[key] = md[key]
 
@@ -624,7 +620,7 @@ def ecwmf_geo_potential(input_path, lonlat, time):
         end = datetime.datetime.strptime(end, '%Y-%m-%d')
         if start <= time <= end:
             bands = get_4d_idx(time.day)
-            data = gaip.get_pixel(f, lonlat, bands)[::-1]
+            data = get_pixel(f, lonlat, bands)[::-1]
             scaled_data = data / 9.80665 / 1000.0
 
             metadata = {'data_source': 'ECWMF Geo-Potential',
@@ -632,7 +628,7 @@ def ecwmf_geo_potential(input_path, lonlat, time):
                         'Date used for querying ECWMF': time}
 
             # ancillary metadata tracking
-            md = gaip.extract_ancillary_metadata(f)
+            md = extract_ancillary_metadata(f)
             for key in md:
                 metadata[key] = md[key]
 
@@ -665,14 +661,14 @@ def ecwmf_relative_humidity(input_path, lonlat, time):
         end = datetime.datetime.strptime(end, '%Y-%m-%d')
         if start <= time <= end:
             bands = get_4d_idx(time.day)
-            data = gaip.get_pixel(f, lonlat, bands)[::-1]
+            data = get_pixel(f, lonlat, bands)[::-1]
 
             metadata = {'data_source': 'ECWMF Relative Humidity',
                         'data_file': f,
                         'Date used for querying ECWMF': time}
 
             # file level metadata
-            md = gaip.extract_ancillary_metadata(f)
+            md = extract_ancillary_metadata(f)
             for key in md:
                 metadata[key] = md[key]
 

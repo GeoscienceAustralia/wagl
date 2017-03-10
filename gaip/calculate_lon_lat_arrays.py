@@ -10,9 +10,9 @@ import numpy
 import osr
 import h5py
 
-from gaip.blrb import interpolate_grid
-from gaip import dataset_compression_kwargs
-from gaip import attach_image_attributes
+from gaip.interpolation import interpolate_grid
+from gaip.hdf5 import dataset_compression_kwargs
+from gaip.hdf5 import attach_image_attributes
 
 CRS = "EPSG:4326"
 LON_DESC = "Contains the longitude values for each pixel."

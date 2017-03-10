@@ -10,12 +10,11 @@ import h5py
 
 from gaip.geobox import GriddedGeoBox
 from gaip.tiling import generate_tiles
-from gaip import as_array
-from gaip import GriddedGeoBox
-from gaip import exiting_angle
-from gaip import incident_angle
-from gaip import dataset_compression_kwargs
-from gaip import attach_image_attributes
+from gaip.data import as_array
+from gaip.hdf5 import dataset_compression_kwargs
+from gaip.hdf5 import attach_image_attributes
+from gaip.__exiting_angle import exiting_angle
+from gaip.__incident_angle import incident_angle
 
 
 def _incident_angles(satellite_solar_fname, slope_aspect_fname, out_fname,

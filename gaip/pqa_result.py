@@ -11,8 +11,8 @@ import logging
 import numpy
 import h5py
 import rasterio as rio
-from gaip import dataset_compression_kwargs
-from gaip import write_h5_image
+from gaip.hdf5 import dataset_compression_kwargs
+from gaip.hdf5 import write_h5_image
 
 
 class PQAResult(object):
