@@ -15,8 +15,9 @@ from scipy.io import FortranFile
 import h5py
 import pandas as pd
 import gaip
-from gaip import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
-from gaip import MIDLAT_SUMMER_TRANSMITTANCE, TROPICAL_TRANSMITTANCE
+from gaip.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
+from gaip.modtran_profiles import MIDLAT_SUMMER_TRANSMITTANCE
+from gaip.modtran_profiles import TROPICAL_TRANSMITTANCE
 from gaip import dataset_compression_kwargs
 from gaip import write_h5_image
 from gaip import write_dataframe
