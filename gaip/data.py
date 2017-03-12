@@ -374,57 +374,6 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, bands=1):
     return (subs, geobox)
 
 
-def read_img(fname):
-    """
-    A small and simple routine to read a GDAL compliant image.
-    This is only intended for reading the raw file into a NumPy memory
-    variable.
-    Largely used in the unittesting suite.
-
-    :param fname:
-        A string containing the full file pathname to an image on
-        disk.
-
-    :return:
-        A NumPy array containing the full dimensions and specific
-        datatype of the image represented on disk.
-    """
-
-    ds = gdal.Open(fname)
-
-    img = ds.ReadAsArray()
-
-    ds = None
-
-    return img
-
-
-def find_file(path, filename):
-    """
-    A simple routine for checking existance of files on disk.
-    No error catching, it'll bail out of the main level program
-    as it is designed for the unittests.
-
-    :param path:
-        A string containing the directory to search.
-
-    :param filename:
-        A string containing the name of the file to search within the
-        given directory.
-
-    :return:
-        If the file exists, then a full filepath name for the file of
-        interest will be returned. If the file is not found then an
-        IOError will be raised.
-    """
-    fname = os.path.join(path, filename)
-    if os.path.isfile(fname):
-        return fname
-    else:
-        err = "Error! file not found: {filename}".format(filename=fname)
-        raise IOError(err)
-
-
 def reproject_file_to_array(src_filename, src_band=1, dst_geobox=None,
                             resampling=Resampling.nearest):
     """
