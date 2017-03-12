@@ -1,4 +1,5 @@
 # GAIP
+------
 
 Geoscience Australia Image Processor is a Python package for producing standarised imagery in the form of
 Nadir Bi-directional Reflectance Distribution Function Adjusted Reflectance (NBAR).
@@ -39,20 +40,31 @@ See [requirements.txt](requirements.txt) for specific version details.
 
 ### Requirements
 Installing the base requirements is done via pip:
-`pip install -r /path/to/requirements.txt`
+`$ pip install -r /path/to/requirements.txt`
 
 ### Mafisc compression filter
 To install the `mafisc` compression filter, follow these [instructions](https://wr.informatik.uni-hamburg.de/research/projects/icomex/mafisc).
 Or basic instructions are:
 
-`make install --prefix={prefix}` to install into your own `{prefix}`.
-If specifying your own `{prefix}`, then set the following path:
+`$ make install --prefix=<prefix>` to install into your own `<prefix>`.
+If specifying your own `<prefix>`, then set the following path:
 
-`export HDF5_PLUGIN_PATH={prefix}`
+`$ export HDF5_PLUGIN_PATH=<prefix>`
 
 This allows HDF5 to use [dynamically loaded filters](https://support.hdfgroup.org/HDF5/doc/Advanced/DynamicallyLoadedFilters/HDF5DynamicallyLoadedFilters.pdf).
 
 ### gaip Package
 The gaip pacakage can be installed via:
 
-`python setup.py install`
+`$ python setup.py install --prefix=<prefix>`
+
+## Basic commanline useage
+--------------------------
+Using the [local scheduler](http://luigi.readthedocs.io/en/stable/command_line.html):
+
+`$ luigi --module gaip.NBAR --level1_-csv scenes.txt --output-directory /some/path --local-scheduler --workers 4`
+
+Using the [central scheduler](http://luigi.readthedocs.io/en/stable/central_scheduler.html):
+
+`$ luigid --background --pidfile <PATH_TO_PIDFILE> --logdir <PATH_TO_LOGDIR> --state-path <PATH_TO_STATEFILE>`
+`$ luigi --module gaip.NBAR --level1_-csv scenes.txt --output-directory /some/path --workers 4`
