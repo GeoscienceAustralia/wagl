@@ -12,11 +12,11 @@ import h5py
 import pandas
 
 from osgeo import osr
-from gaip.tiling import generate_tiles
-from gaip.tle import load_tle
 from gaip.hdf5 import dataset_compression_kwargs
 from gaip.hdf5 import attach_image_attributes
 from gaip.hdf5 import attach_table_attributes
+from gaip.tiling import generate_tiles
+from gaip.tle import load_tle
 from gaip.__sat_sol_angles import angle
 from gaip.__satellite_model import set_satmod
 from gaip.__track_time_info import set_times
