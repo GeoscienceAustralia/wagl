@@ -66,5 +66,6 @@ Using the [local scheduler](http://luigi.readthedocs.io/en/stable/command_line.h
 
 Using the [central scheduler](http://luigi.readthedocs.io/en/stable/central_scheduler.html):
 
-`$ luigid --background --pidfile <PATH_TO_PIDFILE> --logdir <PATH_TO_LOGDIR> --state-path <PATH_TO_STATEFILE>`
+    `$ luigid --background --pidfile <PATH_TO_PIDFILE> --logdir <PATH_TO_LOGDIR> --state-path <PATH_TO_STATEFILE>`
+
 `$ luigi --module gaip.NBAR --level1_-csv scenes.txt --output-directory /some/path --workers 4`
