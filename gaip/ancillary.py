@@ -17,12 +17,12 @@ from shapely.geometry import Point
 from shapely.geometry import Polygon
 from shapely import wkt
 from gaip.brdf import get_brdf_data
-from gaip.data import read_meatadata_tags, get_pixel
+from gaip.data import get_pixel
 from gaip.hdf5 import attach_attributes
 from gaip.hdf5 import write_scalar
 from gaip.hdf5 import write_dataframe
 from gaip.hdf5 import read_table
-from gaip.metadata import extract_ancillary_metadata
+from gaip.metadata import extract_ancillary_metadata, read_meatadata_tags
 
 
 log = logging.getLogger()

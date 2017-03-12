@@ -14,14 +14,14 @@ import numpy
 from scipy.io import FortranFile
 import h5py
 import pandas as pd
-import gaip
+
+from gaip.hdf5 import dataset_compression_kwargs
+from gaip.hdf5 import write_h5_image
+from gaip.hdf5 import write_dataframe
+from gaip.hdf5 import read_table
 from gaip.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
 from gaip.modtran_profiles import MIDLAT_SUMMER_TRANSMITTANCE
 from gaip.modtran_profiles import TROPICAL_TRANSMITTANCE
-from gaip import dataset_compression_kwargs
-from gaip import write_h5_image
-from gaip import write_dataframe
-from gaip import read_table
 
 
 def create_modtran_dirs(coords, albedos, modtran_root, modtran_exe_root,
