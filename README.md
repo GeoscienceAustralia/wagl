@@ -3,8 +3,16 @@
 Geoscience Australia Image Processor is a Python package for producing standarised imagery in the form of
 Nadir Bi-directional Reflectance Distribution Function Adjusted Reflectance (NBAR).
 
-Requirements
-------------
+## Supported Satellites and Sensors
+-----------------------------------
+* Landsat 5 TM
+* Landsat 7 ETM
+* Landsat 8 OLI
+* Landsat 8 TIRS
+* Sentinel-2a
+
+## Requirements
+---------------
 * [luigi](https://github.com/spotify/luigi)
 * [numpy](https://github.com/numpy/numpy)
 * [scipy](https://github.com/scipy/scipy)
@@ -25,3 +33,26 @@ Requirements
 * [mafisc compression](https://wr.informatik.uni-hamburg.de/research/projects/icomex/mafisc)
 
 See [requirements.txt](requirements.txt) for specific version details.
+
+## Installation
+---------------
+
+### Requirements
+Installing the base requirements is done via pip:
+`pip install -r /path/to/requirements.txt`
+
+### Mafisc compression filter
+To install the `mafisc` compression filter, follow these [instructions](https://wr.informatik.uni-hamburg.de/research/projects/icomex/mafisc).
+Or basic instructions are:
+
+`make install --prefix={prefix}` to install into your own `{prefix}`.
+If specifying your own `{prefix}`, then set the following path:
+
+`export HDF5_PLUGIN_PATH={prefix}`
+
+This allows HDF5 to use [dynamically loaded filters](https://support.hdfgroup.org/HDF5/doc/Advanced/DynamicallyLoadedFilters/HDF5DynamicallyLoadedFilters.pdf).
+
+### gaip Package
+The gaip pacakage can be installed via:
+
+`python setup.py install`
