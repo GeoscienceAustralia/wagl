@@ -563,18 +563,3 @@ def as_array(array, dtype, transpose=False):
             return array.transpose()
         else:
             return array
-
-
-def read_meatadata_tags(fname, bands):
-    """
-    Retrieves the metadata tags for a list of bands from a `GDAL`
-    compliant dataset.
-    """
-    with rasterio.open(fname) as ds:
-        tag_data = {k: [] for k in ds.tags(1).keys()}
-        for band in bands:
-            tags = ds.tags(band)
-            for tag in tags:
-                tag_data[tag].append(tags[tag])
-
-    return pandas.DataFrame(tag_data)

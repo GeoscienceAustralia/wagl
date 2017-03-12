@@ -33,6 +33,32 @@ def extract_ancillary_metadata(fname):
     return res
 
 
+def read_meatadata_tags(fname, bands):
+    """
+    Retrieves the metadata tags for a list of bands from a `GDAL`
+    compliant dataset.
+
+    :param fname:
+        A string containing the full file pathname to a file
+        on disk.
+
+    :param bands:
+        A `list` containing the band numbers (1 -> n) from which
+	to retreive the metadata tags.
+
+    :return:
+        A `pandas.DataFrame`.
+    """
+    with rasterio.open(fname) as ds:
+        tag_data = {k: [] for k in ds.tags(1).keys()}
+        for band in bands:
+            tags = ds.tags(band)
+            for tag in tags:
+                tag_data[tag].append(tags[tag])
+
+    return pandas.DataFrame(tag_data)
+
+
 def write_nbar_yaml(acquisition, level1_path, ozone_data, aerosol_data,
                     water_vapour_data, elevation_data, brdf_data, out_fname):
     """
