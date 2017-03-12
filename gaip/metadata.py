@@ -1,11 +1,17 @@
 #!/usr/bin/env python
 
+"""
+Various metadata extraction and creation, and writing tools.
+"""
+
 from __future__ import absolute_import
 from datetime import datetime as dtime
 import os
 import pwd
 import subprocess
 import numpy
+import pandas
+import rasterio
 import yaml
 from yaml.representer import Representer
 from gaip import constants
@@ -87,7 +93,7 @@ def write_nbar_yaml(acquisition, level1_path, ozone_data, aerosol_data,
 
     # Get the required BRDF LUT & factors list
     nbar_constants = constants.NBARConstants(acquisition.spacecraft_id,
-                                                  acquisition.sensor_id)
+                                             acquisition.sensor_id)
 
     bands = nbar_constants.get_brdf_lut()
     brdf_factors = nbar_constants.get_brdf_factors()
