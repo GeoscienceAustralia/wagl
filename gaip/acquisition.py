@@ -3,6 +3,7 @@ Core code.
 """
 from __future__ import absolute_import
 import os
+from os.path import isdir, join as pjoin, dirname, basename, exists
 import re
 import copy
 import json
@@ -12,7 +13,6 @@ import pandas
 from pkg_resources import resource_stream
 
 from functools import total_ordering
-from os.path import isdir, join as pjoin, dirname, basename, exists
 import rasterio
 from gaip.data import data, data_and_box, no_data
 from gaip.geobox import GriddedGeoBox
@@ -224,8 +224,8 @@ class Acquisition(object):
 
     def gridded_geo_box(self):
         """Return the `GriddedGeoBox` for this acquisition."""
-        with rasterio.open(pjoin(acq.dir_name, acq.file_name), 'r') as src:
-            return GriddedGeoBox.from_dataset(fo)
+        with rasterio.open(pjoin(self.dir_name, self.file_name), 'r') as src:
+            return GriddedGeoBox.from_dataset(src)
 
     @property
     def no_data(self):
@@ -307,11 +307,6 @@ class LandsatAcquisition(Acquisition):
     def width(self):
         """The width of the acquisition (aka. `samples`)."""
         return self.samples
-
-    @property
-    def resolution(self):
-        """The resolution of the acquisition (aka. `grid_cell_size`)."""
-        return self.grid_cell_size
 
     @property
     def scene_center_date(self):
@@ -722,7 +717,7 @@ def acquisitions_via_geotiff(path):
                 # get sensor info from SENSORS
 
                 new['SENSOR_INFO'] = {}
-                sensor =  md['sensor_id']
+                sensor = md['sensor_id']
                 db = db['sensors'][sensor]
                 for k, v in db.iteritems():
                     if k is not 'bands':
