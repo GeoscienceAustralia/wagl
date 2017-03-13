@@ -17,6 +17,7 @@ from gaip.margins import ImageMargins
 from gaip.calculate_angles import setup_spheroid
 from gaip.hdf5 import dataset_compression_kwargs
 from gaip.hdf5 import attach_image_attributes
+from gaip.hdf5 import create_external_link
 from gaip.tiling import generate_tiles
 from gaip.__cast_shadow_mask import cast_shadow_main
 
@@ -296,7 +297,7 @@ def _calculate_cast_shadow(acquisition, dsm_fname, margins, block_height,
             zenith_name = 'satellite-view'
             azimuth_name = 'satellite-azimuth'
 
-        view_dset = sat_sol[view_name]
+        zenith_dset = sat_sol[zenith_name]
         azi_dset = sat_sol[azimuth_name]
 
     fid = calculate_cast_shadow(acquisition, dsm_dset, margins, block_height,
@@ -462,6 +463,145 @@ def calculate_cast_shadow(acquisition, dsm_dataset, margins, block_height,
             "as the source direction.").format(source_dir)
     attrs['Description'] = desc
     attach_image_attributes(out_dset, attrs)
+
+    fid.flush()
+    return fid
+
+
+def _combine_shadow(self_shadow_fname, cast_shadow_sun_fname,
+                    cast_shadow_satellite_fname, out_fname,
+                    compression='lzf', x_tile=None, y_tile=None):
+    """
+    A private wrapper for dealing with the internal custom workings of the
+    NBAR workflow.
+    """
+    with h5py.File(self_shadow_fname, 'r') as fid_self,\
+        h5py.File(cast_shadow_sun_fname, 'r') as fid_sun,\
+        h5py.File(cast_shadow_satellite_fname, 'r') as fid_sat:
+
+        self_shadow = fid_self['self-shadow']
+        cast_sun = fid_sun['cast-shadow-sun']
+        cast_sat = fid_sat['cast-shadow-sat']
+
+        geobox = GriddedGeoBox.from_dataset(fid_self)
+
+        fid = combine_shadow_masks(self_shadow, cast_sun, cast_sat, geobox,
+                                   out_fname, x_tile, y_tile)
+
+    fid.close()
+
+    # link in the other shadow masks for easy access
+    dname = 'self-shadow'
+    create_external_link(self_shadow_fname, dname, out_fname, dname)
+
+    dname = 'cast-shadow-sun'
+    create_external_link(cast_shadow_sun_fname, dname, out_fname, dname)
+
+    dname = 'cast-shadow-sat'
+    create_external_link(cast_shadow_satellite_fname, dname, out_fname, dname)
+
+    return
+
+
+def combine_shadow_masks(self_shadow, cast_shadow_sun, cast_shadow_satellite,
+                         geobox, out_fname=None, compression='lzf',
+                         x_tile=None, y_tile=None):
+    """
+    A convienice function for combining the shadow masks into a single
+    boolean array.
+
+    :param self_shadow:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the self shadow
+        mask when index/sliced.
+
+    :param cast_shadow_sun:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the cast shadow
+        (solar direction) mask when index/sliced.
+
+    :param cast_shadow_satellite:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the cast shadow
+        (satellite direction) mask when index/sliced.
+
+    :param geobox:
+        An instance of a `GriddedGeoBox` object.
+
+    :param out_fname:
+        If set to None (default) then the results will be returned
+        as an in-memory hdf5 file, i.e. the `core` driver.
+        Otherwise it should be a string containing the full file path
+        name to a writeable location on disk in which to save the HDF5
+        file.
+
+        The dataset names will be as follows:
+
+        * combined-shadow
+
+    :param compression:
+        The compression filter to use. Default is 'lzf'.
+        Options include:
+
+        * 'lzf' (Default)
+        * 'lz4'
+        * 'mafisc'
+        * An integer [1-9] (Deflate/gzip)
+
+    :param x_tile:
+        Defines the tile size along the x-axis. Default is None which
+        equates to all elements along the x-axis.
+
+    :param y_tile:
+        Defines the tile size along the y-axis. Default is None which
+        equates to all elements along the y-axis.
+
+    :return:
+        An opened `h5py.File` object, that is either in-memory using the
+        `core` driver, or on disk.
+    """
+    # Initialise the output files
+    if out_fname is None:
+        fid = h5py.File('combined-shadow.h5', driver='core',
+                        backing_store=False)
+    else:
+        fid = h5py.File(out_fname, 'w')
+
+    kwargs = dataset_compression_kwargs(compression=compression,
+                                        chunks=(1, geobox.x_size()))
+    cols, rows = geobox.get_shape_xy()
+    kwargs['shape'] = (rows, cols)
+    kwargs['dtype'] = 'bool'
+
+    # output dataset
+    out_dset = fid.create_dataset('combined-shadow', **kwargs)
+
+    # attach some attributes to the image datasets
+    attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
+             'geotransform': geobox.affine.to_gdal()}
+    desc = ("Combined shadow masks: 1. self shadow, "
+            "2. cast shadow (solar direction), "
+            "3. cast shadow (satellite direction).")
+    attrs['Description'] = desc
+    attrs['mask values'] = "False = Shadow; True = Non Shadow"
+    attach_image_attributes(out_dset, attrs)
+
+    # Initialise the tiling scheme for processing
+    if x_tile is None:
+        x_tile = cols
+    if y_tile is None:
+        y_tile = rows
+    tiles = generate_tiles(cols, rows, x_tile, y_tile)
+
+    # Loop over each tile
+    for tile in tiles:
+        # Row and column start locations
+        ystart, yend = tile[0]
+        xstart, xend = tile[1]
+        idx = (slice(ystart, yend, slice(xstart, xend)))
+
+        out_dset[idx] = (self_shadow[idx] & cast_shadow_sun[idx] &
+                         cast_shadow_satellite[idx])
 
     fid.flush()
     return fid
