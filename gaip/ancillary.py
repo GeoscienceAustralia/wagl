@@ -292,7 +292,7 @@ def get_aerosol_data(acquisition, aerosol_fname):
                 intersection = aerosol_poly.intersection(roi_poly)
                 pts = GeoSeries([Point(x, y) for x, y in
                                  zip(df['lon'], df['lat'])])
-                idx = pts.intersects(intersection)
+                idx = pts.within(intersection)
                 data = df[idx]['aerosol'].mean()
 
                 if numpy.isfinite(data):
