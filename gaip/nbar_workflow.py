@@ -20,7 +20,7 @@ from gaip.calculate_angles import _calculate_angles
 from gaip.calculate_incident_exiting_angles import _incident_angles
 from gaip.calculate_incident_exiting_angles import _exiting_angles
 from gaip.calculate_incident_exiting_angles import _relative_azimuth_slope
-from gaip.calculate_lat_lon_arrays import create_lat_grid, create_lon_grid
+from gaip.calculate_lon_lat_arrays import create_lon_grid, create_lat_grid
 from gaip.calculate_reflectance import _calculate_reflectance
 from gaip.calculate_reflectance import link_reflectance_data
 from gaip.calculate_shadow_masks import _self_shadow, _calculate_cast_shadow
@@ -48,7 +48,7 @@ class GetAncillaryData(luigi.Task):
 
     level1 = luigi.Parameter()
     work_root = luigi.Parameter()
-    granule = luigi.Parameter()
+    granule = luigi.Parameter(default=None)
     aerosol_fname = luigi.Parameter(significant=False)
     brdf_path = luigi.Parameter(significant=False)
     brdf_premodis_path = luigi.Parameter(significant=False)
@@ -59,12 +59,11 @@ class GetAncillaryData(luigi.Task):
 
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      self.group, self.granule)
+                                                      self.granule)
         return luigi.LocalTarget(pjoin(out_path, 'ancillary.h5'))
 
     def run(self):
-        acqs = acquisitions(self.level1).get_acquisitions(self.group,
-                                                          self.granule)
+        acqs = acquisitions(self.level1).get_acquisitions(self.granule)
 
         with self.output().temporary_path() as out_fname:
             collect_ancillary_data(acqs[0], self.aerosol_fname,
@@ -80,7 +79,7 @@ class CalculateLonGrid(luigi.Task):
     """Calculate the longitude grid."""
 
     level1 = luigi.Parameter()
-    work_root = luigi.Parameter()
+    work_root = luigi.Parameter(significant=False)
     granule = luigi.Parameter()
     group = luigi.Parameter()
     compression = luigi.Parameter(default='lzf', significant=False)
@@ -319,7 +318,7 @@ class BilinearInterpolationBand(luigi.Task):
     Runs the bilinear interpolation function for a given band.
     """
 
-    band_num = luigi.IntParameter(significant=False)
+    band_num = luigi.Parameter(significant=False)
     factor = luigi.Parameter(significant=False)
     base_dir = luigi.Parameter(default='atmospherics', significant=False)
 
@@ -668,7 +667,7 @@ class RunTCBand(luigi.Task):
 
     """Run the terrain correction over a given band."""
 
-    band_num = luigi.IntParameter()
+    band_num = luigi.Parameter()
     rori = luigi.FloatParameter(default=0.52, significant=False)
 
     def requires(self):
@@ -745,7 +744,8 @@ class TerrainCorrection(luigi.Task):
         reqs = []
         for band in bands_to_process:
             reqs.append(RunTCBand(self.level1, self.work_root, self.granule,
-                                  self.group, band))
+                            self.group, band_num=band))
+        return reqs
 
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
@@ -768,7 +768,7 @@ class NBAR(luigi.WrapperTask):
 
     def requires(self):
         with open(self.level1_csv) as src:
-            level1_scenes = src.readlines()
+            level1_scenes = [scene.strip() for scene in src.readlines()]
 
         for scene in level1_scenes:
             work_name = basename(scene) + self.work_extension
