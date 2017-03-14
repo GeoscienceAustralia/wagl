@@ -24,6 +24,10 @@ from gaip.modtran_profiles import MIDLAT_SUMMER_TRANSMITTANCE
 from gaip.modtran_profiles import TROPICAL_TRANSMITTANCE
 
 
+POINT_FMT = 'point-{p}'
+ALBEDO_FMT = 'albedo-{a}'
+POINT_ALBEDO_FMT = ''.join([POINT_FMT, '-', ALBEDO_FMT])
+
 def create_modtran_dirs(coords, albedos, modtran_root, modtran_exe_root,
                         workpath_format, input_format):
     """Create all modtran subdirectories. and input files."""
@@ -66,7 +70,7 @@ def prepare_modtran(coordinate, albedo, modtran_work, modtran_exe):
     out_fname = pjoin(modtran_work, 'mod5root.in')
 
     with open(out_fname, 'w') as src:
-        src.write(coordinate + '_alb_' + albedo + '\n')
+        src.write(POINT_ALBEDO_FMT.format(p=coordinate, a=albedo) + '\n')
 
     symlink_dir = pjoin(modtran_work, 'DATA')
     if exists(symlink_dir):
@@ -109,10 +113,10 @@ def _format_tp5(acquisition, satellite_solar_angles_fname,
         group = fid.create_group('modtran-inputs')
         iso_time = acquisition.scene_centre_date.isoformat()
         group.attrs['acquisition-datetime'] = iso_time
-        dataset_fmt = '{point}/alb_{albedo}/tp5_data'
 
         for key in metadata:
-            dname = dataset_fmt.format(point=key[0], albedo=key[1])
+            dname = ppjoin(POINT_FMT.format(p=key[0]),
+                           ALBEDO_FMT.format(a=key[1]), 'tp5_data')
             str_data = numpy.string_(tp5_data[key])
             dset = group.create_dataset(dname, data=str_data)
             for k in metadata[key]:
@@ -140,7 +144,7 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
     lat = numpy.zeros(npoints, dtype='float64')
     lon = numpy.zeros(npoints, dtype='float64')
 
-    for i in range(1, npoints + 1):
+    for i in range(npoints):
         yidx = coordinator['row_index'][i]
         xidx = coordinator['col_index'][i]
         idx = (slice(yidx -1, yidx), slice(xidx -1, xidx))
@@ -246,25 +250,24 @@ def run_modtran(modtran_exe, workpath, point, albedo, out_fname=None,
     else:
         fid = h5py.File(out_fname, 'w')
 
-    # convert any probable non str to bytes
-    point = bytes(point)
-    albedo = bytes(albedo)
+    # base group pathname
+    group_path = ppjoin(POINT_FMT.format(p=point), ALBEDO_FMT.format(a=albedo))
 
     # ouput the flux data
-    dset_name = ppjoin(point, albedo, 'flux')
+    dset_name = ppjoin(group_path, 'flux')
     attrs['Description'] = 'Flux output from MODTRAN'
     write_dataframe(flux_data, dset_name, fid, attrs=attrs)
 
     # output the channel data
     attrs['Description'] = 'Channel output from MODTRAN'
-    dset_name = ppjoin(point, albedo, 'channel')
+    dset_name = ppjoin(group_path, 'channel')
     write_dataframe(channel_data, dset_name, fid, attrs=attrs)
 
     # output the altitude data
     attrs['Description'] = 'Altitudes output from MODTRAN'
     attrs['altitude levels'] = altitudes.shape[0]
     attrs['units'] = 'km'
-    dset_name = ppjoin(point, albedo, 'altitudes')
+    dset_name = ppjoin(group_path, 'altitudes')
     write_dataframe(altitudes, dset_name, fid, attrs=attrs)
 
     return fid
@@ -408,7 +411,7 @@ def calculate_coefficients(accumulation_albedo_0, accumulation_albedo_1,
         df['fs'] = ts_dir / ts_total
         df['fv'] = tv_dir / tv_total
         df['a'] = (diff_0 + dir_0) / numpy.pi * tv_total
-        df['b'] = data1[3] * 10000000
+        df['b'] = data1['3'] * 10000000
         df['s'] = 1 - (diff_0 + dir_0) / (diff_1 + dir_1)
         df['dir'] = dir_0
         df['dif'] = diff_0
@@ -634,6 +637,7 @@ def read_modtran_channel(fname):
     chn_data['band_id'] = chn_data[20] + ' ' + chn_data[21].astype(str)
     chn_data.drop([20, 21], inplace=True, axis=1)
     chn_data.set_index('band_id', inplace=True)
+    chn_data.columns = chn_data.columns.astype(str)
 
     return chn_data
 
@@ -652,11 +656,13 @@ def _calculate_solar_radiation(acquisition, flux_fnames, out_fname,
     with h5py.File(out_fname, 'w') as fid:
         for key in flux_fnames:
             flux_fname = flux_fnames[key]
-            point, albedo = [bytes(k) for k in key]
+            point, albedo = key
+            group_path = ppjoin(POINT_FMT.format(p=point),
+                                ALBEDO_FMT.format(a=albedo))
             transmittance = True if albedo == 't' else False
-            flux_dataset_name = ppjoin(point, albedo, 'flux')
-            atmos_dataset_name = ppjoin(point, albedo, 'altitudes')
-            channel_dname = ppjoin(point, albedo, 'channel')
+            flux_dataset_name = ppjoin(group_path, 'flux')
+            atmos_dataset_name = ppjoin(group_path, 'altitudes')
+            channel_dname = ppjoin(group_path, 'channel')
 
             # link in the channel data for later easy access
             fid[channel_dname] = h5py.ExternalLink(flux_fname, channel_dname)
@@ -671,7 +677,7 @@ def _calculate_solar_radiation(acquisition, flux_fnames, out_fname,
                                            levels, transmittance)
 
             # output
-            dataset_name = ppjoin(point, albedo, 'solar-irradiance')
+            dataset_name = ppjoin(group_path, 'solar-irradiance')
             attrs = {'Description': description.format(point, albedo),
                      'Point': point,
                      'Albedo': albedo}
