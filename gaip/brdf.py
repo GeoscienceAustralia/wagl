@@ -589,7 +589,7 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
             ll_lon, ll_lat = (roi['UL'][0], roi['LR'][1])
 
             # Read the subset and geotransform that corresponds to the subset
-            subset, geobox_subset = read_subset(out_fname + '.tif',
+            subset, geobox_subset = read_subset(hdf5_group[out_fname],
                                                 (ul_lon, ul_lat),
                                                 (ur_lon, ur_lat),
                                                 (lr_lon, lr_lat),
@@ -600,12 +600,12 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
             brdf_mean_value = brdf_object.get_mean(subset)
 
             # Output the brdf subset
-            chunks = (1, geobox.x_size())
+            chunks = (1, geobox_subset.x_size())
             kwargs = dataset_compression_kwargs(compression=compression,
                                                 chunks=chunks)
             attrs = {'Description': 'Subsetted region of the BRDF image.',
-                     'crs_wkt': geobox.crs.ExportToWkt(),
-                     'geotransform': geobox.affine.to_gdal()}
+                     'crs_wkt': geobox_subset.crs.ExportToWkt(),
+                     'geotransform': geobox_subset.affine.to_gdal()}
             out_fname_subset = out_fname + '_subset'
             write_h5_image(subset, out_fname_subset, hdf5_group, attrs,
                            **kwargs)

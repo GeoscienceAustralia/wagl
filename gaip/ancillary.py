@@ -174,7 +174,7 @@ def collect_ancillary_data(acquisition, aerosol_fname, water_vapour_path,
     wv = get_water_vapour(acquisition, water_vapour_path)
     write_scalar(wv[0], 'water-vapour', fid, wv[1])
 
-    ozone = get_ozone_data(acquisition, geobox.centre_lonlat, dt)
+    ozone = get_ozone_data(ozone_path, geobox.centre_lonlat, dt)
     write_scalar(ozone[0], 'ozone', fid, ozone[1])
 
     elev = get_elevation_data(geobox.centre_lonlat, dem_path)
