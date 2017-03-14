@@ -116,9 +116,22 @@ def first_and_last(array):
         (2, 6)
         >>> first_and_last([0,0,0]) # if no element of truth:
         (-1, -1)
+        >>> first_and_last([1])
+        (0, 0)
     """
     i, = np.nonzero(array) # assume array only has one dimension to unpack
     return (i[0], i[-1]) if len(i) else (-1,-1)
+
+def assymetric_linspace(start, stop, num, midpoint):
+    """
+    Utility like numpy.linspace but with custom midpoint.
+
+        >>> assymetric_linspace(start=10, stop=20, num=5, midpoint=18)
+        [10, 14, 18, 19, 20]
+    """
+    front = np.linspace(start, midpoint, num//2, endpoint=False)
+    back = np.linspace(midpoint, stop, num//2 + 1)
+    return list(front)+list(back)
 
 def swathe_edges(threshold, array):
     """
@@ -136,7 +149,7 @@ def swathe_edges(threshold, array):
 
 
 def create_boxline_coordinator(view_angle_dataset, line, ncentre, npoints,
-                               max_angle=9.0):
+                               max_angle=9.0, vertices=(3,3)):
     """
     Creates the boxline and coordinator datasets.
 
@@ -156,9 +169,17 @@ def create_boxline_coordinator(view_angle_dataset, line, ncentre, npoints,
     :param npoints:
         A 1D NumPy array containing the values for the number of points
         used to determine the pixel index.
+        That is, a count for each row of how many columns are within tolerance
+        of the satellite track (the "central" index).
+        In practice the values are 0, 1, or 2.
 
     :param max_angle:
         The maximum viewing angle. Default is 9.0 degrees.
+
+    :param vertices:
+        An integer 2-tuple indicating the number of rows and columns
+        of sample-locations ("coordinator") to produce.
+        The vertex columns should be an odd number.
 
     :return:
         2 `NumPy` datasets:
@@ -177,128 +198,59 @@ def create_boxline_coordinator(view_angle_dataset, line, ncentre, npoints,
                                 ('bisection_index', 'int64'),
                                 ('start_index', 'int64'),
                                 ('end_index', 'int64')]
+
     """
+
     rows, cols = view_angle_dataset.shape
 
+    assert (line == np.arange(start=1, end=rows+1)).all()
+    # TODO: refactor out "line" argument
+
     # calculate the column start and end indices
+    # (for filtering out pixels of the ortho' array where no observations
+    # are expected because the sensor look-angle would be too peripheral.)
+    # TODO: similar filtering for pixels where the line acquisition time would
+    # be outside of the scene aquisition window.
     istart, iend = swathe_edges(max_angle, view_angle_dataset)
 
-    # TODO: Fuqin to document, and these results are only used for
-    # granules that do not contain the satellite track path
-    kk, ll = first_and_last(npoints > 0.5)
-
-
-    coordinator = np.zeros((9, 2), dtype='int64')
     mid_col = cols // 2
     mid_row = rows // 2
-    mid_row_idx = mid_row - 1
+    mid_row_idx = mid_row - 1 # TODO: justify or eliminate -1
+
+    # special handling if the satellite track does not intersect both ends
+    # of the raster
+    special = set(first_and_last(npoints)) - {0, rows-1, -1}
+    if special: # if track still intersects scene
+        mid_row_idx = special.pop() + 1 # or take average?
+        special = ({ncenter[0],ncenter[-1]} - {0,1,rows,rows-1,-1}).pop()
+
+    grid_rows = assymetric_linspace(1, rows, vertices[0], midpoint=mid_row_idx)
 
     # Sentinel-2a doesn't require a start end index, but Landsat does
     # the following should satisfy both use cases, that way we don't
     # require two separate bilinear functions, and two separate boxline
     # (or bisection co-ordinator functions)
     # only used for the case "normal center line"
-    start_col = np.zeros(ncentre.shape, dtype='int')
-    end_col = np.zeros(ncentre.shape, dtype='int')
-    start_col.fill(1)
-    end_col.fill(cols)
+    start_col = np.maximum(istart, 1)
+    end_col = np.minimum(iend, cols)
 
-    np.maximum(istart, start_col, out=start_col)
-    np.minimum(iend, end_col, out=end_col)
+    locations = np.empty((vertices[0], vertices[1], 2), dtype='int64')
+    for ig, ir in enumerate(grid_rows): # row indices for sample-grid & raster
+        grid_line = assymetric_linspace(
+            start_col[ir], end_col[ir], vertices[1], special or ncentre[i])
+        locations[ig,:,0] = ir
+        locations[ig,:,1] = grid_line
+    locations = locations.reshape(verices[0] * vertices[1], 2)
 
-    df = pandas.DataFrame({'line': line,
-                           'bisection': ncentre,
-                           'npoints': npoints})
-
-    # do we have a hit with the satellite track falling within the granule
-    if npoints[0] > 0.5:
-        if npoints[-1] >= 0.5:
-            # normal center line
-            coordinator[0] = [line[0], start_col[0]]
-            coordinator[1] = [line[0], ncentre[0]]
-            coordinator[2] = [line[0], end_col[0]]
-            coordinator[3] = [line[mid_row_idx], start_col[mid_row_idx]]
-            coordinator[4] = [line[mid_row_idx], ncentre[mid_row_idx]]
-            coordinator[5] = [line[mid_row_idx], end_col[mid_row_idx]]
-            coordinator[6] = [line[-1], start_col[-1]]
-            coordinator[7] = [line[-1], ncentre[-1]]
-            coordinator[8] = [line[-1], end_col[-1]]
-
-            data = df[['line', 'bisection']].copy()
-            data['start'] = start_col
-            data['end'] = end_col
-        elif npoints[-1] < 0.5:
-            # first half centerline
-            coordinator[0] = [line[0], 1]
-            coordinator[1] = [line[0], ncentre[0]]
-            coordinator[2] = [line[0], cols]
-            coordinator[3] = [line[ll], 1]
-            coordinator[4] = [line[ll], ncentre[0]]
-            coordinator[5] = [line[ll], cols]
-            coordinator[6] = [line[-1], cols]
-            coordinator[7] = [line[-1], cols]
-            coordinator[8] = [line[-1], cols]
-
-            data = df[['line']].copy()
-            data['bisection'] = ncentre[0]
-            data['start'] = start_col
-            data['end'] = end_col
-        elif npoints[-1] >= 0.5:
-            # last half of center line
-            coordinator[0] = [line[0], 1]
-            coordinator[1] = [line[0], ncentre[ll]]
-            coordinator[2] = [line[0], cols]
-            coordinator[3] = [line[kk], 1]
-            coordinator[4] = [line[kk], ncentre[ll]]
-            coordinator[5] = [line[kk], cols]
-            coordinator[6] = [line[-1], 1]
-            coordinator[7] = [line[-1], ncentre[ll]]
-            coordinator[8] = [line[-1], cols]
-
-            data = df[['line']].copy()
-            data['bisection'] = ncentre[ll]
-            data['start'] = start_col
-            data['end'] = end_col
-    else:
-        # no centre line
-        coordinator[0] = [line[0], 1]
-        coordinator[1] = [line[0], mid_col]
-        coordinator[2] = [line[0], cols]
-        coordinator[3] = [line[mid_row_idx], 1]
-        coordinator[4] = [line[mid_row_idx], mid_col]
-        coordinator[5] = [line[mid_row_idx], cols]
-        coordinator[6] = [line[-1], 1]
-        coordinator[7] = [line[-1], mid_col]
-        coordinator[8] = [line[-1], cols]
-
-        data = df[['line']].copy()
-        data['bisection'] = mid_col
-        data['start'] = start_col
-        data['end'] = end_col
-
-    columns = ['row_index', 'bisection_index', 'start_index', 'end_index']
-    boxline_dtype = np.dtype([(col, 'int64') for col in columns])
-    coordinator_dtype = np.dtype([('row_index', 'int64'),
-                                  ('col_index', 'int64')])
-
-    boxline_dset = np.zeros(rows, dtype=boxline_dtype)
-    boxline_dset['row_index'] = data['line'].values
-    boxline_dset['bisection_index'] = data['bisection'].values
-    boxline_dset['start_index'] = data['start'].values
-    boxline_dset['end_index'] = data['end'].values
-
-    coordinator_dset = np.zeros(9, dtype=coordinator_dtype)
-    coordinator_dset[0] = coordinator[0]
-    coordinator_dset[1] = coordinator[1]
-    coordinator_dset[2] = coordinator[2]
-    coordinator_dset[3] = coordinator[3]
-    coordinator_dset[4] = coordinator[4]
-    coordinator_dset[5] = coordinator[5]
-    coordinator_dset[6] = coordinator[6]
-    coordinator_dset[7] = coordinator[7]
-    coordinator_dset[8] = coordinator[8]
-
-    return boxline_dset, coordinator_dset
+    # record curves for parcellation (of the raster into interpolation cells)
+    boxline = np.empty((rows,4), dtype='int64')
+    boxline[:,0] = np.arange(1, 1+rows) # rows indexed not from zero
+    boxline[:,1] = ncentre
+    boxline[:,2] = start_col
+    boxline[:,3] = end_col
+    # note, option to fill out the entire linspace into additional columns
+    # of the boxline
+    return boxline, locations
 
 
 def calculate_julian_century(datetime):
