@@ -7,6 +7,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 import subprocess
 import numpy as np
+import h5py
 import rasterio
 import os
 
@@ -323,55 +324,55 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, bands=1):
         i.e. xend = 270 + 1
         to account for Python's [inclusive, exclusive) index notation.
     """
+    if isinstance(fname, h5py.Dataset):
+        geobox = GriddedGeoBox.from_dataset(fname)
+        prj = bytes(fname.attrs['crs_wkt'])
+    else:
+        # Open the file
+        with rasterio.open(fname) as src:
 
-    # Open the file
-    with rasterio.open(fname) as src:
+            # Get the inverse transform of the affine co-ordinate reference
+            geobox = GriddedGeoBox.from_dataset(src)
+            prj = bytes(src.crs.wkt)  # rasterio returns a unicode
 
-        # Get the inverse transform of the affine co-ordinate reference
-        inv = ~src.affine
+    inv = ~geobox.affine
+    rows, cols = geobox.shape
 
-        # Get the dimensions
-        cols = src.width
-        rows = src.height
+    # Convert each map co-ordinate to image/array co-ordinates
+    img_ul_x, img_ul_y = [int(v) for v in inv * ul_xy]
+    img_ur_x, img_ur_y = [int(v) for v in inv * ur_xy]
+    img_lr_x, img_lr_y = [int(v) for v in inv * lr_xy]
+    img_ll_x, img_ll_y = [int(v) for v in inv * ll_xy]
 
-        # Convert each map co-ordinate to image/array co-ordinates
-        img_ul_x, img_ul_y = [int(v) for v in inv * ul_xy]
-        img_ur_x, img_ur_y = [int(v) for v in inv * ur_xy]
-        img_lr_x, img_lr_y = [int(v) for v in inv * lr_xy]
-        img_ll_x, img_ll_y = [int(v) for v in inv * ll_xy]
+    # Calculate the min and max array extents
+    # The ending array extents have +1 to account for Python's
+    # [inclusive, exclusive) index notation.
+    xstart = min(img_ul_x, img_ll_x)
+    ystart = min(img_ul_y, img_ur_y)
+    xend = max(img_ur_x, img_lr_x) + 1
+    yend = max(img_ll_y, img_lr_y) + 1
 
-        # Calculate the min and max array extents
-        # The ending array extents have +1 to account for Python's
-        # [inclusive, exclusive) index notation.
-        xstart = min(img_ul_x, img_ll_x)
-        ystart = min(img_ul_y, img_ur_y)
-        xend = max(img_ur_x, img_lr_x) + 1
-        yend = max(img_ll_y, img_lr_y) + 1
+    # Check for out of bounds
+    if (((xstart < 0) or (ystart < 0)) or
+        ((xend -1 > cols) or (yend -1 > rows))):
+        msg = ("Error! Attempt to read a subset that is outside of the"
+               "image domain. Index: ({ys}, {ye}), ({xs}, {xe}))")
+        msg = msg.format(ys=ystart, ye=yend, xs=xstart, xe=xend)
+        raise IndexError(msg)
 
-        # Check for out of bounds
-        if (((xstart < 0) or (ystart < 0)) or
-            ((xend -1 > cols) or (yend -1 > rows))):
-            msg = ("Error! Attempt to read a subset that is outside of the"
-                   "image domain. Index: ({ys}, {ye}), ({xs}, {xe}))")
-            msg = msg.format(ys=ystart, ye=yend, xs=xstart, xe=xend)
-            raise IndexError(msg)
+    if isinstance(fname, h5py.Dataset):
+        subs = fname[ystart:yend, xstart:xend]
+    else:
+        with rasterio.open(fname) as src:
+            subs = src.read(bands, window=((ystart, yend), (xstart, xend)))
 
-        # Read the subset
-        subs = src.read(bands, window=((ystart, yend), (xstart, xend)))
+    # Get the new UL co-ordinates of the array
+    ul_x, ul_y = geobox.affine * (xstart, ystart)
 
-        # Get the projection as WKT
-        prj = bytes(src.crs.wkt)  # rasterio returns a unicode
+    geobox_subs = GriddedGeoBox(shape=subs.shape, origin=(ul_x, ul_y),
+                                pixelsize=geobox.pixelsize, crs=prj)
 
-        # Get the new UL co-ordinates of the array
-        ul_x, ul_y = src.affine * (xstart, ystart)
-
-        # Get the x & y pixel resolution
-        res = src.res
-
-        geobox = GriddedGeoBox(shape=subs.shape, origin=(ul_x, ul_y),
-                               pixelsize=res, crs=prj)
-
-    return (subs, geobox)
+    return (subs, geobox_subs)
 
 
 def reproject_file_to_array(src_filename, src_band=1, dst_geobox=None,
