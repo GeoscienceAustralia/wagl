@@ -12,7 +12,7 @@ import rasterio
 import os
 
 from osgeo import gdal
-from rasterio import crs
+from rasterio.crs import CRS
 from rasterio.warp import reproject
 from rasterio.warp import Resampling
 from os.path import join as pjoin
@@ -416,7 +416,7 @@ def reproject_file_to_array(src_filename, src_band=1, dst_geobox=None,
         dst_arr = np.zeros(dst_geobox.shape, dtype=src.dtypes[0])
 
         # Get the rasterio proj4 styled dict
-        prj = crs.from_string(dst_geobox.crs.ExportToProj4())
+        prj = CRS.from_string(dst_geobox.crs.ExportToProj4())
 
         reproject(rio_band, dst_arr, dst_transform=dst_geobox.affine,
                   dst_crs=prj, resampling=resampling)
@@ -461,8 +461,8 @@ def reproject_img_to_img(src_img, src_geobox, dst_geobox,
         raise TypeError(msg)
 
     # Get the source and destination projections in Proj4 styled dicts
-    src_prj = crs.from_string(src_geobox.crs.ExportToProj4())
-    dst_prj = crs.from_string(dst_geobox.crs.ExportToProj4())
+    src_prj = CRS.from_string(src_geobox.crs.ExportToProj4())
+    dst_prj = CRS.from_string(dst_geobox.crs.ExportToProj4())
 
     # Get the source and destination transforms
     src_trans = src_geobox.affine
