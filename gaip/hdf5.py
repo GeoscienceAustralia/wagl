@@ -19,7 +19,7 @@ DEFAULT_TABLE_CLASS = {'CLASS': 'TABLE',
                        'VERSION': '0.2'}
 
 def _fixed_str_size(data):
-    str_sz = len(data.max())
+    str_sz = data.str.len().max()
     return '|S{}'.format(str_sz)
 
 
