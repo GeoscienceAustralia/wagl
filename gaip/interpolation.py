@@ -227,9 +227,9 @@ def bilinear_interpolate(acq, factor, coordinator_dataset, boxline_dataset,
     coord = numpy.zeros((9, 2), dtype='int')
     coord[:, 0] = coordinator_dataset.row_index.values
     coord[:, 1] = coordinator_dataset.col_index.values
-    centre = boxline_dataset.bisection.values
-    start = boxline_dataset.start.values
-    end = boxline_dataset.end.values
+    centre = boxline_dataset.bisection_index.values
+    start = boxline_dataset.start_index.values
+    end = boxline_dataset.end_index.values
 
     # get the individual atmospheric components
     band = acq.band_num
