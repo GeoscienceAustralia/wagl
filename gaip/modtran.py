@@ -15,8 +15,6 @@ from scipy.io import FortranFile
 import h5py
 import pandas as pd
 
-from gaip.hdf5 import dataset_compression_kwargs
-from gaip.hdf5 import write_h5_image
 from gaip.hdf5 import write_dataframe
 from gaip.hdf5 import read_table
 from gaip.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
@@ -27,6 +25,7 @@ from gaip.modtran_profiles import TROPICAL_TRANSMITTANCE
 POINT_FMT = 'point-{p}'
 ALBEDO_FMT = 'albedo-{a}'
 POINT_ALBEDO_FMT = ''.join([POINT_FMT, '-', ALBEDO_FMT])
+
 
 def create_modtran_dirs(coords, albedos, modtran_root, modtran_exe_root,
                         workpath_format, input_format):
@@ -59,7 +58,8 @@ def create_modtran_dirs(coords, albedos, modtran_root, modtran_exe_root,
             os.symlink(data_dir, symlink_dir)
 
 
-def prepare_modtran(coordinate, albedo, modtran_work, modtran_exe):
+def prepare_modtran(acquisition, coordinate, albedo, modtran_work,
+                    modtran_exe):
     """
     Prepares the working directory for a MODTRAN execution.
     """
@@ -77,6 +77,12 @@ def prepare_modtran(coordinate, albedo, modtran_work, modtran_exe):
         os.unlink(symlink_dir)
 
     os.symlink(data_dir, symlink_dir)
+
+    # TODO: write the spectral response function
+    out_fname = pjoin(modtran_work, acquisition.spectral_filter_file)
+    response = acquisition.spectral_response(as_list=True)
+    with open(out_fname, 'w') as src:
+        src.writelines(response)
 
 
 def _format_tp5(acquisition, satellite_solar_angles_fname,
@@ -287,15 +293,21 @@ def _calculate_coefficients(accumulated_fname, npoints, out_fname,
         accumulation_albedo_t = {}
         channel_data = {}
 
-        for point in [bytes(p) for p in range(npoints)]:
-            albedo_0_path = ppjoin(point, '0', 'solar-irradiance')
-            albedo_1_path = ppjoin(point, '1', 'solar-irradiance')
-            albedo_t_path = ppjoin(point, 't', 'solar-irradiance')
-            channel_path = ppjoin(point, '0', 'channel')
-            accumulation_albedo_0[point] = read_table(fid, albedo_0_path)
-            accumulation_albedo_1[point] = read_table(fid, albedo_1_path)
-            accumulation_albedo_t[point] = read_table(fid, albedo_t_path)
-            channel_data[point] = read_table(fid, channel_path)
+        for point in range(npoints):
+            grp_path = ppjoin(POINT_FMT, ALBEDO_FMT)
+            albedo_0_path = ppjoin(grp_path.format(p=point, a='0'),
+                                   'solar-irradiance')
+            albedo_1_path = ppjoin(grp_path.format(p=point, a='1'),
+                                   'solar-irradiance')
+            albedo_t_path = ppjoin(grp_path.format(p=point, a='t'),
+                                   'solar-irradiance')
+            channel_path = ppjoin(grp_path.format(p=point, a='0'), 'channel')
+
+            key = POINT_FMT.format(p=point)
+            accumulation_albedo_0[key] = read_table(fid, albedo_0_path)
+            accumulation_albedo_1[key] = read_table(fid, albedo_1_path)
+            accumulation_albedo_t[key] = read_table(fid, albedo_t_path)
+            channel_data[key] = read_table(fid, channel_path)
         
         rfid = calculate_coefficients(accumulation_albedo_0,
                                       accumulation_albedo_1,
@@ -317,27 +329,27 @@ def calculate_coefficients(accumulation_albedo_0, accumulation_albedo_1,
     ['fs', 'fv', 'a', 'b', 's', 'dir', 'dif', 'ts'].
 
     :param accumulation_albedo_0:
-        A `dict` containing [bytes(p) for p in range(npoints)] as the
-        keys, and the values a `pandas.DataFrame` containing the
+        A `dict` containing [POINT_FMT.format(p=p) for p in range(npoints)]
+        as the keys, and the values a `pandas.DataFrame` containing the
         solar accumulated irradiance (for albedo 0) and structured as
         returned by the `calculate_solar_radiation` function.
 
     :param accumulation_albedo_1:
-        A `dict` containing [bytes(p) for p in range(npoints)] as the
-        keys, and the values a `pandas.DataFrame` containing the
+        A `dict` containing [POINT_FMT.format(p=p) for p in range(npoints)]
+        as the keys, and the values a `pandas.DataFrame` containing the
         solar accumulated irradiance (for albedo 1) and structured as
         returned by the `calculate_solar_radiation` function.
 
     :param accumulation_albedo_t:
-        A `dict` containing [bytes(p) for p in range(npoints)] as the
-        keys, and the values a `pandas.DataFrame` containing the
+        A `dict` containing [POINT_FMT.format(p=p) for p in range(npoints)]
+        as the keys, and the values a `pandas.DataFrame` containing the
         solar accumulated irradiance (for albeod t; transmittance)
         and structured as returned by the `calculate_solar_radiation`
         function.
 
     :param channel_data:
-        A `dict` containing [bytes(p) for p in range(npoints)] as the
-        keys, and the values a `pandas.DataFrame` containing the
+        A `dict` containing [POINT_FMT.format(p=p) for p in range(npoints)]
+        as the keys, and the values a `pandas.DataFrame` containing the
         channel data for that point, and structured as
         returned by the `read_modtran_channel` function.
 
@@ -371,7 +383,7 @@ def calculate_coefficients(accumulation_albedo_0, accumulation_albedo_1,
         * coefficients-format-2
     """
     result = {}
-    points = [bytes(p) for p in range(npoints)]
+    points = [POINT_FMT.format(p=p) for p in range(npoints)]
     for point in points:
         # MODTRAN channel output .chn file (albedo 0)
         data1 = channel_data[point]
@@ -391,8 +403,8 @@ def calculate_coefficients(accumulation_albedo_0, accumulation_albedo_1,
         dir_0 = data3['direct'] * 10000000.0
         dir_1 = data4['direct'] * 10000000.0
         dir_t = data5['direct']
-        dir0_top = data3['directtop'] * 10000000.0
-        dirt_top = data5['directtop']
+        dir0_top = data3['direct_top'] * 10000000.0
+        dirt_top = data5['direct_top']
         tv_total = data5['transmittance']
         ts_total = (diff_0 + dir_0) / dir0_top
         ts_dir = dir_0 / dir0_top
@@ -486,7 +498,7 @@ def calculate_coefficients(accumulation_albedo_0, accumulation_albedo_1,
     return fid
 
 
-def read_spectral_response(fname):
+def read_spectral_response(fname, as_list=False):
     """
     Read the spectral response function text file used during
     MODTRAN processing.
@@ -495,16 +507,24 @@ def read_spectral_response(fname):
         A `str` containing the full file path name, or an opened
         `file` buffer.
 
+    :param as_list:
+        A `bool` indicating whether or not to return the spectral
+        response data as a list instead of a `pd.DataFrame`.
+        Default is `False` which returns a `pd.DataFrame`.
+
     :return:
         A `pd.DataFrame` containing the spectral response
         function.
     """
-    if type(fname) == file:
+    if isinstance(fname, file):
         lines = fname.readlines()
     else:
         # open the text file
         with open(fname, 'r') as src:
             lines = src.readlines()
+
+    if as_list:
+        return lines
 
     lines = [line.strip() for line in lines]
 
@@ -655,7 +675,7 @@ def _calculate_solar_radiation(acquisition, flux_fnames, out_fname,
 
     with h5py.File(out_fname, 'w') as fid:
         for key in flux_fnames:
-            flux_fname = flux_fnames[key]
+            flux_fname = flux_fnames[key].path
             point, albedo = key
             group_path = ppjoin(POINT_FMT.format(p=point),
                                 ALBEDO_FMT.format(a=albedo))

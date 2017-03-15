@@ -244,14 +244,15 @@ class RunModtranCase(luigi.Task):
         return luigi.LocalTarget(pjoin(out_path, self.base_dir, out_fname))
 
     def run(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      granule=self.granule)
+        container = acquisitions(self.level1)
+        out_path = container.get_root(self.work_root, granule=self.granule)
+        acq = container.get_acquisitions(granule=self.granule)[0]
 
         workpath = pjoin(POINT_FMT.format(p=self.point),
                          ALBEDO_FMT.format(a=self.albedo))
         modtran_work = pjoin(out_path, self.base_dir, workpath)
 
-        prepare_modtran(self.point, self.albedo, modtran_work, self.exe)
+        prepare_modtran(acq, self.point, self.albedo, modtran_work, self.exe)
 
         with self.output().temporary_path() as out_fname:
             _run_modtran(self.exe, modtran_work, self.point, self.albedo,
@@ -274,9 +275,9 @@ class AccumulateSolarIrradiance(luigi.Task):
         reqs = {}
         for point in range(self.npoints):
             for albedo in self.albedos:
-                args = [self.level1, self.work_root, self.granule, point,
-                        albedo]
-                reqs[(point, albedo)] = RunModtranCase(*args)
+                args = [self.level1, self.work_root, self.granule]
+                reqs[(point, albedo)] = RunModtranCase(*args, point=point,
+                                                       albedo=albedo)
         return reqs
 
     def output(self):
@@ -286,11 +287,10 @@ class AccumulateSolarIrradiance(luigi.Task):
         return luigi.LocalTarget(pjoin(out_path, self.base_dir, out_fname))
 
     def run(self):
-        acq = acquisitions(self.level1).get_acquisitions(self.group,
-                                                         self.granule)[0]
+        acqs = acquisitions(self.level1).get_acquisitions(granule=self.granule)
 
         with self.output().temporary_path() as out_fname:
-            _calculate_solar_radiation(acq, self.input(), out_fname,
+            _calculate_solar_radiation(acqs[0], self.input(), out_fname,
                                        self.compression)
 
 
@@ -679,7 +679,6 @@ class RunTCBand(luigi.Task):
         args = [self.level1, self.work_root, self.granule, self.group]
         reqs = {'bilinear': BilinearInterpolation(*args),
                 'ancillary': GetAncillaryData(*args[:-1]),
-                'dsm': DEMExctraction(*args),
                 'rel_slope': RelativeAzimuthSlope(*args),
                 'shadow': CalculateShadowMasks(*args),
                 'slp_asp': SlopeAndAspect(*args),

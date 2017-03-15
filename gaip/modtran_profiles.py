@@ -22,7 +22,7 @@ Parameters to be inserted are:
 MIDLAT_SUMMER_ALBEDO = (
 """TM{binary} 2    2    2    1    2    2    2    2    2    2    1    1    0  10.000{albedo:7.2f}
 TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0.3         0      0.70         0         0
-DATA/{filter_function:<75}
+{filter_function:<75}
     1    0    0    0    0    0{visibility:10.3f}     0.000     0.000     0.000{elevation:10.3f}
 {sat_height:10.3f}{elevation:10.3f}{sat_view:10.3f}     0.000     0.000     0.000    0          0.000
     1    0{doy:5d}    0
@@ -34,7 +34,7 @@ DATA/{filter_function:<75}
 TROPICAL_ALBEDO = (
 """TM{binary} 1    2    2    1    1    1    1    1    1    1    1    1    0  10.000{albedo:7.2f}
 TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0.3         0      0.70         0         0
-DATA/{filter_function:<75}
+{filter_function:<75}
     1    0    0    0    0    0{visibility:10.3f}     0.000     0.000     0.000{elevation:10.3f}
 {sat_height:10.3f}{elevation:10.3f}{sat_view:10.3f}     0.000     0.000     0.000    0          0.000
     1    0{doy:5d}    0
@@ -46,7 +46,7 @@ DATA/{filter_function:<75}
 MIDLAT_SUMMER_TRANSMITTANCE = (
 """TM{binary} 2    2    2    1    2    2    2    2    2    2    1    1    0  10.000{albedo:7.2f}
 TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0.3         0      0.70         0         0
-DATA/{filter_function:<75}
+{filter_function:<75}
     1    0    0    0    0    0{visibility:10.5f}     0.000     0.000     0.000{elevation:10.3f}
 {sat_height:10.3f}{elevation:10.3f}{sat_view:10.3f}     0.000     0.000     0.000    0          0.000
     2    0{doy:5d}    0
@@ -58,7 +58,7 @@ DATA/{filter_function:<75}
 TROPICAL_TRANSMITTANCE = (
 """TM{binary} 1    2    2    1    1    1    1    1    1    1    1    1    0  10.000{albedo:7.2f}
 TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0.3         0      0.70         0         0
-DATA/{filter_function:<75}
+{filter_function:<75}
     1    0    0    0    0    0{visibility:10.5f}     0.000     0.000     0.000{elevation:10.3f}
 {sat_height:10.3f}{elevation:10.3f}{sat_view:10.3f}     0.000     0.000     0.000    0          0.000
     2    0{doy:5d}    0
@@ -70,7 +70,7 @@ DATA/{filter_function:<75}
 THERMAL_TRANSMITTANCE = (
 """T {binary} 7    2    1    0    2    2    2    2    2    2    1    1    0  10.000   0.00
 F   0F   0   375.000       1.0    a{ozone:5.3f} 4   T                       
-DATA/{filter_function:<75}
+{filter_function:<75}
     1    0    0    0    0    0{visibility:10.3f}     0.000     0.000     0.000{elevation:10.3f}
 {n:5d}    0    0                               {data_array}
     50.000 9.510E-01 2.550E+00 7.127E-05 0.000E+00 0.000E+00ABH

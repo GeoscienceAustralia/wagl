@@ -319,7 +319,7 @@ def write_dataframe(df, dset_name, group, compression='lzf', title='Table',
         idx_data = df.index.get_level_values(i)
         if idx_name is None and len(df.index.names) == 1:
             idx_name = 'index'
-        else:
+        elif idx_name is None:
             idx_name = default_label.format(i)
         idx_name = bytes(idx_name)
         idx_names.append(idx_name)
