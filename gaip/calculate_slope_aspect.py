@@ -80,7 +80,7 @@ def slope_aspect_arrays(acquisition, dsm_dataset, margins, out_fname=None,
 
     # Retrive the spheroid parameters
     # (used in calculating pixel size in metres per lat/lon)
-    spheroid = setup_spheroid(geobox.crs.ExportToWkt())
+    spheroid, _ = setup_spheroid(geobox.crs.ExportToWkt())
 
     # Are we in projected or geographic space
     is_utm = not geobox.crs.IsGeographic()
@@ -134,7 +134,7 @@ def slope_aspect_arrays(acquisition, dsm_dataset, margins, out_fname=None,
     aspect = numpy.zeros((rows, cols), dtype='float32')
 
     slope_aspect(ncol, nrow, cols, rows, x_res, y_res, spheroid, alat, is_utm,
-                 dsm_subset.transpose(), slope.transpose(), aspect.transpose())
+                 dsm_subset, slope.transpose(), aspect.transpose())
 
     # output datasets
     slope_dset = fid.create_dataset('slope', data=slope, **kwargs)

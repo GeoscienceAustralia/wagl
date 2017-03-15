@@ -36,8 +36,8 @@ def _self_shadow(incident_angles_fname, exiting_angles_fname, out_fname,
 
         geobox = GriddedGeoBox.from_dataset(inci_dset)
 
-        fid = self_shadow(inci_dset, exit_dset, geobox, out_fname, x_tile,
-                          y_tile)
+        fid = self_shadow(inci_dset, exit_dset, geobox, out_fname, compression,
+                          x_tile, y_tile)
 
     fid.close()
     return
@@ -288,7 +288,7 @@ def _calculate_cast_shadow(acquisition, dsm_fname, margins, block_height,
     with h5py.File(dsm_fname, 'r') as dsm_src,\
         h5py.File(satellite_solar_angles_fname, 'r') as sat_sol:
 
-        dsm_dset = dsm_src['dsm-smoothed']
+        dsm_dset = dsm_src['dsm-smoothed'][:]
 
         if solar_source:
             zenith_name = 'solar-zenith'
@@ -297,8 +297,8 @@ def _calculate_cast_shadow(acquisition, dsm_fname, margins, block_height,
             zenith_name = 'satellite-view'
             azimuth_name = 'satellite-azimuth'
 
-        zenith_dset = sat_sol[zenith_name]
-        azi_dset = sat_sol[azimuth_name]
+        zenith_dset = sat_sol[zenith_name][:]
+        azi_dset = sat_sol[azimuth_name][:]
 
     fid = calculate_cast_shadow(acquisition, dsm_dset, margins, block_height,
                                 block_width, zenith_dset, azi_dset, out_fname,
@@ -420,19 +420,15 @@ def calculate_cast_shadow(acquisition, dsm_dataset, margins, block_height,
 
     # Retrive the spheroid parameters
     # (used in calculating pixel size in metres per lat/lon)
-    spheroid = setup_spheroid(geobox.crs.ExportToWkt())
-
-    # Read the dsm and angle arrays into memory
-    dsm = dsm_dataset[:]
-    zenith_angle = zenith_angle_dataset[:]
-    azimuth_angle = azimuth_angle_dataset[:]
+    spheroid, _ = setup_spheroid(geobox.crs.ExportToWkt())
 
     # Define Top, Bottom, Left, Right pixel buffer margins
     pixel_buf = ImageMargins(margins)
 
     # Compute the cast shadow mask
-    ierr, mask = cast_shadow_main(dsm, zenith_angle, azimuth_angle, x_res,
-                                  y_res, spheroid, y_origin, x_origin,
+    ierr, mask = cast_shadow_main(dsm_dataset, zenith_angle_dataset,
+                                  azimuth_angle_dataset, x_res, y_res,
+                                  spheroid, y_origin, x_origin,
                                   pixel_buf.left, pixel_buf.right,
                                   pixel_buf.top, pixel_buf.bottom,
                                   block_height, block_width, is_utm)
@@ -481,12 +477,12 @@ def _combine_shadow(self_shadow_fname, cast_shadow_sun_fname,
 
         self_shadow = fid_self['self-shadow']
         cast_sun = fid_sun['cast-shadow-sun']
-        cast_sat = fid_sat['cast-shadow-sat']
+        cast_sat = fid_sat['cast-shadow-satellite']
 
-        geobox = GriddedGeoBox.from_dataset(fid_self)
+        geobox = GriddedGeoBox.from_dataset(self_shadow)
 
         fid = combine_shadow_masks(self_shadow, cast_sun, cast_sat, geobox,
-                                   out_fname, x_tile, y_tile)
+                                   out_fname, compression, x_tile, y_tile)
 
     fid.close()
 
@@ -497,7 +493,7 @@ def _combine_shadow(self_shadow_fname, cast_shadow_sun_fname,
     dname = 'cast-shadow-sun'
     create_external_link(cast_shadow_sun_fname, dname, out_fname, dname)
 
-    dname = 'cast-shadow-sat'
+    dname = 'cast-shadow-satellite'
     create_external_link(cast_shadow_satellite_fname, dname, out_fname, dname)
 
     return
