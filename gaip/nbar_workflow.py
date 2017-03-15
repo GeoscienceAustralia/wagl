@@ -13,6 +13,7 @@ Workflow settings can be configured in `nbar.cfg` file.
 from __future__ import absolute_import
 from os.path import join as pjoin, basename, splitext
 import luigi
+from luigi.local_target import LocalFileSystem
 from luigi.util import inherits, requires
 from gaip.acquisition import acquisitions
 from gaip.ancillary import collect_ancillary_data, aggregate_ancillary
@@ -41,6 +42,32 @@ def get_buffer(group):
            'R20m': 350,
            'R60m': 120}
     return buf[group]
+
+
+class WorkRoot(luigi.Task):
+
+    """
+    Create the work root directory space, and sub directories that
+    could compete later in a race condition of creation.
+    """
+
+    level1 = luigi.Parameter()
+    work_root = luigi.Parameter(significant=False)
+    reflectance_dir = '_reflectance'
+    shadow_dir = '_shadow'
+
+    def output(self):
+        container = acquisitions(self.level1)
+        for granule in container.granules:
+            for group in container.groups:
+                pth = container.get_root(self.work_root, granule, group)
+                for out_dir in [self.reflectance_dir, self.shadow_dir]:
+                    yield luigi.LocalTarget(pjoin(pth, out_dir))
+
+    def run(self):
+    local_fs = LocalFileSystem()
+    for target in self.output():
+        local_fs.mkdir(target.path)
 
 
 class GetAncillaryData(luigi.Task):
