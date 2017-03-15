@@ -317,7 +317,7 @@ class CalculateCoefficients(luigi.Task):
                                     out_fname, self.compression)
 
 
-@inherits(CalculateSatelliteAndSolarGrids)
+@inherits(CalculateLonGrid)
 class BilinearInterpolationBand(luigi.Task):
     """
     Runs the bilinear interpolation function for a given band.
@@ -335,7 +335,7 @@ class BilinearInterpolationBand(luigi.Task):
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
-        out_fname = '{}-band-{}.h5'.format(self.factor, self.band)
+        out_fname = '{}-band-{}.h5'.format(self.factor, self.band_num)
         return luigi.LocalTarget(pjoin(out_path, self.base_dir, out_fname))
 
     def run(self):
@@ -379,21 +379,23 @@ class BilinearInterpolation(luigi.Task):
         # Get the required nbar bands list for processing
         nbar_constants = constants.NBARConstants(satellite, sensor)
         bands_to_process = nbar_constants.get_nbar_lut()
-
         bands = [a.band_num for a in acqs if a.band_num in bands_to_process]
+
         tasks = {}
         for factor in self.factors:
             for band in bands:
                 key = (band, factor)
-                args = [self.level1, self.work_root, self.granule, self.group,
-                        band, factor]
-                tasks[key] = BilinearInterpolationBand(*args)
+                kwargs = {'level1': self.level1, 'work_root': self.work_root,
+                          'granule': self.granule, 'group': self.group,
+                          'band_num': band, 'factor': factor}
+                tasks[key] = BilinearInterpolationBand(**kwargs)
         return tasks
 
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
-        return luigi.LocalTarget(out_path, 'bilinearly-interpolated-data.h5')
+        out_fname = pjoin(out_path, 'bilinearly-interpolated-data.h5')
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         bilinear_fnames = {}
@@ -413,7 +415,7 @@ class DEMExctraction(luigi.Task):
     filter.
     """
 
-    dsm_fname = luigi.Parameter(significant=False)
+    dsm_fname = luigi.Parameter(default='dsm.tif', significant=False)
 
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
@@ -639,7 +641,7 @@ class CalculateCastShadowSatellite(luigi.Task):
                                    self.compression, False)
 
 
-@inherits(CalculateLonGrid)
+@inherits(IncidentAngles)
 class CalculateShadowMasks(luigi.Task):
 
     """
@@ -662,9 +664,9 @@ class CalculateShadowMasks(luigi.Task):
     def run(self):
         with self.output().temporary_path() as out_fname:
             inputs = self.input()
-            _combine_shadow(inputs['self'], inputs['sun'], inputs['sat'],
-                            out_fname, self.compression, self.x_tile,
-                            self.y_tile)
+            _combine_shadow(inputs['self'].path, inputs['sun'].path,
+                            inputs['sat'].path, out_fname, self.compression,
+                            self.x_tile, self.y_tile)
 
 
 @inherits(IncidentAngles)
