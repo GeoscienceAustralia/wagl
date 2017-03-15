@@ -154,7 +154,7 @@ class WriteTp5(luigi.Task):
     granule = luigi.Parameter(default=None)
     npoints = luigi.IntParameter(default=9, significant=False)
     albedos = luigi.ListParameter(default=[0, 1, 't'], significant=False)
-    base_dir = luigi.Parameter(default='atmospherics', significant=False)
+    base_dir = luigi.Parameter(default='_atmospherics', significant=False)
     compression = luigi.Parameter(default='lzf', significant=False)
 
     def requires(self):
@@ -283,8 +283,8 @@ class AccumulateSolarIrradiance(luigi.Task):
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       granule=self.granule)
-        out_fname = 'accumulated-solar-irradiance.h5'
-        return luigi.LocalTarget(pjoin(out_path, self.base_dir, out_fname))
+        out_fname = pjoin(out_path, 'accumulated-solar-irradiance.h5')
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         acqs = acquisitions(self.level1).get_acquisitions(granule=self.granule)
@@ -305,7 +305,7 @@ class CalculateCoefficients(luigi.Task):
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       granule=self.granule)
-        out_fname = pjoin(out_path, self.base_dir, 'coefficients.h5')
+        out_fname = pjoin(out_path,  'coefficients.h5')
         return luigi.LocalTarget(out_fname)
                
 
@@ -325,7 +325,7 @@ class BilinearInterpolationBand(luigi.Task):
 
     band_num = luigi.Parameter()
     factor = luigi.Parameter()
-    base_dir = luigi.Parameter(default='atmospherics', significant=False)
+    base_dir = luigi.Parameter(default='_atmospherics', significant=False)
 
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.group]
@@ -547,6 +547,8 @@ class SelfShadow(luigi.Task):
     Calculate the self shadow mask.
     """
 
+    base_dir = luigi.Parameter(default='_shadow', significant=False)
+
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.group]
         return {'incident': IncidentAngles(*args),
@@ -555,7 +557,8 @@ class SelfShadow(luigi.Task):
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
-        return luigi.LocalTarget(pjoin(out_path, 'self-shadow.h5'))
+        out_fname = pjoin(out_path, self.base_dir, 'self-shadow.h5')
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         # input filenames
@@ -567,7 +570,7 @@ class SelfShadow(luigi.Task):
                          self.compression, self.x_tile, self.y_tile)
 
 
-@inherits(CalculateLonGrid)
+@inherits(SelfShadow)
 class CalculateCastShadowSun(luigi.Task):
 
     """
@@ -583,7 +586,8 @@ class CalculateCastShadowSun(luigi.Task):
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
-        return luigi.LocalTarget(pjoin(out_path, 'cast-shadow-sun.h5'))
+        out_fname = pjoin(out_path, self.base_dir, 'cast-shadow-sun.h5')
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         acqs = acquisitions(self.level1).get_acquisitions(self.group,
@@ -604,7 +608,7 @@ class CalculateCastShadowSun(luigi.Task):
                                    self.compression)
 
 
-@inherits(CalculateLonGrid)
+@inherits(SelfShadow)
 class CalculateCastShadowSatellite(luigi.Task):
 
     """
@@ -620,7 +624,8 @@ class CalculateCastShadowSatellite(luigi.Task):
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
-        return luigi.LocalTarget(pjoin(out_path, 'cast-shadow-satellite.h5'))
+        out_fname = pjoin(out_path, self.base_dir, 'cast-shadow-satellite.h5')
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         acqs = acquisitions(self.level1).get_acquisitions(self.group,
@@ -676,6 +681,7 @@ class RunTCBand(luigi.Task):
 
     band_num = luigi.Parameter()
     rori = luigi.FloatParameter(default=0.52, significant=False)
+    base_dir = luigi.Parameter(default='_reflectance', significant=False)
 
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.group]
@@ -694,7 +700,7 @@ class RunTCBand(luigi.Task):
         out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
         fname = 'reflectance-{band}.h5'.format(band=self.band_num)
-        return luigi.LocalTarget(pjoin(out_path, 'reflectance', fname))
+        return luigi.LocalTarget(pjoin(out_path, self.base_dir, fname))
 
     def run(self):
         container = acquisitions(self.level1)
