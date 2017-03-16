@@ -377,14 +377,13 @@ def calculate_coefficients(accumulation_albedo_0, accumulation_albedo_1,
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
 
-        2 datasets of the HDF5 TABLE format, named:
+        Containing a dataset formatted to the HDF5 TABLE specification
+        named:
 
-        * coefficients-format-1
-        * coefficients-format-2
+        * coefficients
     """
-    result = {}
-    points = [POINT_FMT.format(p=p) for p in range(npoints)]
-    for point in points:
+    result = pd.DataFrame()
+    for point in [POINT_FMT.format(p=p) for p in range(npoints)]:
         # MODTRAN channel output .chn file (albedo 0)
         data1 = channel_data[point]
 
@@ -410,7 +409,8 @@ def calculate_coefficients(accumulation_albedo_0, accumulation_albedo_1,
         ts_dir = dir_0 / dir0_top
         tv_dir = dir_t / dirt_top
 
-        factors = ['fs',
+        columns = ['point',
+                   'fs',
                    'fv',
                    'a',
                    'b',
@@ -418,8 +418,9 @@ def calculate_coefficients(accumulation_albedo_0, accumulation_albedo_1,
                    'dir',
                    'dif',
                    'ts']
-        df = pd.DataFrame(columns=factors, index=data1.index)
+        df = pd.DataFrame(columns=columns, index=data1.index)
 
+        df['point'] = point
         df['fs'] = ts_dir / ts_total
         df['fv'] = tv_dir / tv_total
         df['a'] = (diff_0 + dir_0) / numpy.pi * tv_total
@@ -429,59 +430,14 @@ def calculate_coefficients(accumulation_albedo_0, accumulation_albedo_1,
         df['dif'] = diff_0
         df['ts'] = ts_dir
 
-        result[point] = df
+        result = result.append(df)
 
-    # combine all results into a single pd.DataFrame
-    result = pd.concat(result, names=['point'])
+    result.reset_index(inplace=True)
 
-    # reformat the derived coefficients into another format layout
-    # specifically a 4x4 layout, for each factor, for each band
-    """
-    TL, TM, ML, MM
-    TM, TR, MM, MR
-    ML, MM, BL, BM
-    MM, MR, BM, BR
-    """
-
-    result2 = {}
-    groups = result.groupby(result.index.get_level_values('band_id'))
-    for bn, grp in groups:
-        for factor in factors:
-            s1 = [grp.ix[(points[0], bn)][factor],
-                  grp.ix[(points[1], bn)][factor],
-                  grp.ix[(points[3], bn)][factor],
-                  grp.ix[(points[4], bn)][factor]]
-            s2 = [grp.ix[(points[1], bn)][factor],
-                  grp.ix[(points[2], bn)][factor],
-                  grp.ix[(points[4], bn)][factor],
-                  grp.ix[(points[5], bn)][factor]]
-            s3 = [grp.ix[(points[3], bn)][factor],
-                  grp.ix[(points[4], bn)][factor],
-                  grp.ix[(points[6], bn)][factor],
-                  grp.ix[(points[7], bn)][factor]]
-            s4 = [grp.ix[(points[4], bn)][factor],
-                  grp.ix[(points[5], bn)][factor],
-                  grp.ix[(points[7], bn)][factor],
-                  grp.ix[(points[8], bn)][factor]]
-
-            result2[(bn, factor)] = pd.DataFrame({'s1': s1,
-                                                  's2': s2,
-                                                  's3': s3,
-                                                  's4': s4})
-
-    result2 = pd.concat(result2, names=['band_id', 'factor'])
-
-    attrs1 = {}
-    attrs1['Description'] = ("Coefficients derived from the "
-                             "accumulated solar irradiation.")
-    attrs2 = {}
-    attrs2['Description'] = ("Coefficients derived from the "
-                             "accumulated solar irradiation, and formatted "
-                             "into a 4x4 grid per MODTRAN factor.")
-    attrs2['Grid Layout'] = ("0, 1, 3, 4\n"
-                             "1, 2, 4, 5\n"
-                             "3, 4, 6, 7\n"
-                             "4, 5, 7, 8")
+    attrs = {}
+    attrs['Description'] = ("Coefficients derived from the "
+                            "accumulated solar irradiation.")
+    attrs['npoints'] = npoints
 
     # Initialise the output file
     if out_fname is None:
@@ -490,10 +446,8 @@ def calculate_coefficients(accumulation_albedo_0, accumulation_albedo_1,
     else:
         fid = h5py.File(out_fname, 'w')
 
-    write_dataframe(result, 'coefficients-format-1', fid, compression,
-                    attrs=attrs1)
-    write_dataframe(result2, 'coefficients-format-2', fid, compression,
-                    attrs=attrs2)
+    write_dataframe(result, 'coefficients', fid, compression,
+                    attrs=attrs)
 
     return fid
 
