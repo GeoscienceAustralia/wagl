@@ -61,14 +61,12 @@ class WorkRoot(luigi.Task):
         for granule in container.granules:
             for group in container.groups:
                 pth = container.get_root(self.work_root, group, granule)
-                print "****** pth ******\n{}".format(pth)
                 for out_dir in [self.reflectance_dir, self.shadow_dir]:
                     yield luigi.LocalTarget(pjoin(pth, out_dir))
 
     def run(self):
         local_fs = LocalFileSystem()
         for target in self.output():
-            print "****** targe.path ******\n{}".format(target.path)
             local_fs.mkdir(target.path)
 
 
