@@ -60,14 +60,16 @@ class WorkRoot(luigi.Task):
         container = acquisitions(self.level1)
         for granule in container.granules:
             for group in container.groups:
-                pth = container.get_root(self.work_root, granule, group)
+                pth = container.get_root(self.work_root, group, granule)
+                print "****** pth ******\n{}".format(pth)
                 for out_dir in [self.reflectance_dir, self.shadow_dir]:
                     yield luigi.LocalTarget(pjoin(pth, out_dir))
 
     def run(self):
-    local_fs = LocalFileSystem()
-    for target in self.output():
-        local_fs.mkdir(target.path)
+        local_fs = LocalFileSystem()
+        for target in self.output():
+            print "****** targe.path ******\n{}".format(target.path)
+            local_fs.mkdir(target.path)
 
 
 class GetAncillaryData(luigi.Task):
@@ -84,6 +86,9 @@ class GetAncillaryData(luigi.Task):
     water_vapour_path = luigi.Parameter(significant=False)
     dem_path = luigi.Parameter(significant=False)
     compression = luigi.Parameter(significant=False)
+
+    def requires(self):
+        return WorkRoot(self.level1, self.work_root)
 
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
@@ -112,6 +117,9 @@ class CalculateLonGrid(luigi.Task):
     group = luigi.Parameter()
     compression = luigi.Parameter(default='lzf', significant=False)
 
+    def requires(self):
+        return WorkRoot(self.level1, self.work_root)
+
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
@@ -129,6 +137,9 @@ class CalculateLonGrid(luigi.Task):
 class CalculateLatGrid(luigi.Task):
 
     """Calculate the latitude grid."""
+
+    def requires(self):
+        return WorkRoot(self.level1, self.work_root)
 
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
