@@ -122,7 +122,7 @@ def first_and_last(array):
     i, = np.nonzero(array) # assume array only has one dimension to unpack
     return (i[0], i[-1]) if len(i) else (-1, -1)
 
-def assymetric_linspace(start, stop, num, midpoint):
+def asymetric_linspace(start, stop, num, midpoint):
     """
     Utility like numpy.linspace but with custom midpoint.
 
@@ -145,7 +145,7 @@ def swathe_edges(threshold, array):
     end = np.empty(array.shape[0], dtype='int')
     for i, row in enumerate(array):
         start[i], end[i] = first_and_last(row <= threshold)
-    return start+1, end+1 # index not from zero
+    return start, end 
 
 
 def create_boxline_coordinator(view_angle_dataset, line, ncentre, npoints,
@@ -203,31 +203,26 @@ def create_boxline_coordinator(view_angle_dataset, line, ncentre, npoints,
     # be outside of the scene aquisition window.
     istart, iend = swathe_edges(max_angle, view_angle_dataset)
 
-    mid_col = cols // 2
-    mid_row = rows // 2
-    mid_row_idx = mid_row - 1 # TODO: justify or eliminate -1
-
     # special handling if the satellite track does not intersect both ends
     # of the raster
     special = set(first_and_last(npoints)) - {0, rows-1, -1}
-    if special: # if track still intersects scene
-        mid_row_idx = special.pop() + 1 # or take average?
+    mid_row = rows // 2
+    if special: # if track partially intersects scene
+        mid_row = special.pop()  # or take average?
         special = ({ncentre[0], ncentre[-1]} - {0, 1, rows, rows-1, -1}).pop()
 
-    grid_rows = assymetric_linspace(1, rows, vertices[0], midpoint=mid_row_idx)
+    grid_rows = asymetric_linspace(0, rows-1, vertices[0], midpoint=mid_row)
 
     # Sentinel-2a doesn't require a start end index, but Landsat does
     # the following should satisfy both use cases, that way we don't
     # require two separate bilinear functions, and two separate boxline
     # (or bisection co-ordinator functions)
     # only used for the case "normal center line"
-    start_col = np.maximum(istart, 1)
-    end_col = np.minimum(iend, cols)
 
     locations = np.empty((vertices[0], vertices[1], 2), dtype='int64')
     for ig, ir in enumerate(grid_rows): # row indices for sample-grid & raster
-        grid_line = assymetric_linspace(
-            start_col[ir], end_col[ir], vertices[1], special or ncentre[ir])
+        grid_line = asymetric_linspace(
+            istart[ir], iend[ir], vertices[1], special or ncentre[ir])
         locations[ig, :, 0] = ir
         locations[ig, :, 1] = grid_line
     locations = locations.reshape(vertices[0] * vertices[1], 2)
@@ -236,8 +231,8 @@ def create_boxline_coordinator(view_angle_dataset, line, ncentre, npoints,
     coordinator_dtype = np.dtype([('row_index', 'int64'),
                                   ('col_index', 'int64')])
     coordinator = np.empty(locations.shape[0], dtype=coordinator_dtype)
-    coordinator['row_index'] = locations[0]
-    coordinator['col_index'] = locations[1]
+    coordinator['row_index'] = locations[:, 0]
+    coordinator['col_index'] = locations[:, 1]
 
     # record curves for parcellation (of the raster into interpolation cells)
     boxline_dtype = [('row_index', 'int64'),
@@ -247,8 +242,8 @@ def create_boxline_coordinator(view_angle_dataset, line, ncentre, npoints,
     boxline = np.empty(rows, dtype=boxline_dtype)
     boxline['row_index'] = np.arange(1, 1+rows) # rows indexed not from zero
     boxline['bisection_index'] = ncentre
-    boxline['start_index'] = start_col
-    boxline['end_index'] = end_col
+    boxline['start_index'] = istart
+    boxline['end_index'] = iend
     # note, option to fill out the entire linspace into additional columns
     # of the boxline
 
@@ -883,6 +878,7 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, npoints=12,
     desc = ("Contains the bi-section, column start and column end array "
             "coordinates.")
     attrs['Description'] = desc
+    attrs['array_coordinate_offset'] = 0
     box_dset = fid.create_dataset('boxline', data=boxline, **kwargs)
     attach_table_attributes(box_dset, title='Boxline', attrs=attrs)
 
