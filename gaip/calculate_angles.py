@@ -9,7 +9,6 @@ import math
 import ephem
 import numpy as np
 import h5py
-import pandas
 
 from osgeo import osr
 from gaip.hdf5 import dataset_compression_kwargs
@@ -122,6 +121,7 @@ def first_and_last(array):
     i, = np.nonzero(array) # assume array only has one dimension to unpack
     return (i[0], i[-1]) if len(i) else (-1, -1)
 
+
 def asymetric_linspace(start, stop, num, midpoint):
     """
     Utility like numpy.linspace but with custom midpoint.
@@ -132,6 +132,7 @@ def asymetric_linspace(start, stop, num, midpoint):
     front = np.linspace(start, midpoint, num//2, endpoint=False)
     back = np.linspace(midpoint, stop, num//2 + 1)
     return list(front)+list(back)
+
 
 def swathe_edges(threshold, array):
     """
@@ -191,7 +192,7 @@ def create_boxline_coordinator(view_angle_dataset, line, ncentre, npoints,
         * coordinator_dtype = np.dtype([('row_index', 'int64'),
                                         ('col_index', 'int64')])
     """
-    rows, cols = view_angle_dataset.shape
+    rows, _ = view_angle_dataset.shape
 
     assert (line == np.arange(start=1, stop=rows+1)).all()
     # TODO: refactor out "line" argument
