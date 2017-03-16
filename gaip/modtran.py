@@ -153,11 +153,11 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
     for i in range(npoints):
         yidx = coordinator['row_index'][i]
         xidx = coordinator['col_index'][i]
-        idx = (slice(yidx -1, yidx), slice(xidx -1, xidx))
-        view[i-1] = view_dataset[idx][0, 0]
-        azi[i-1] = azi_dataset[idx][0, 0]
-        lat[i-1] = lat_dataset[idx][0, 0]
-        lon[i-1] = lon_dataset[idx][0, 0]
+        idx = (slice(yidx, yidx + 1), slice(xidx, xidx + 1))
+        view[i] = view_dataset[idx][0, 0]
+        azi[i] = azi_dataset[idx][0, 0]
+        lat[i] = lat_dataset[idx][0, 0]
+        lon[i] = lon_dataset[idx][0, 0]
 
     view_cor = 180 - view
     azi_cor = azi + 180
