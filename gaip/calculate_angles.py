@@ -120,7 +120,7 @@ def first_and_last(array):
         (0, 0)
     """
     i, = np.nonzero(array) # assume array only has one dimension to unpack
-    return (i[0], i[-1]) if len(i) else (-1,-1)
+    return (i[0], i[-1]) if len(i) else (-1, -1)
 
 def assymetric_linspace(start, stop, num, midpoint):
     """
@@ -142,14 +142,14 @@ def swathe_edges(threshold, array):
     each row of the array.
     """
     start = np.empty(array.shape[0], dtype='int')
-    end   = np.empty(array.shape[0], dtype='int')
+    end = np.empty(array.shape[0], dtype='int')
     for i, row in enumerate(array):
         start[i], end[i] = first_and_last(row <= threshold)
     return start+1, end+1 # index not from zero
 
 
 def create_boxline_coordinator(view_angle_dataset, line, ncentre, npoints,
-                               max_angle=9.0, vertices=(3,3)):
+                               max_angle=9.0, vertices=(3, 3)):
     """
     Creates the boxline and coordinator datasets.
 
@@ -182,25 +182,15 @@ def create_boxline_coordinator(view_angle_dataset, line, ncentre, npoints,
         The vertex columns should be an odd number.
 
     :return:
-        2 `NumPy` datasets:
+        2 `NumPy` datasets of the following datatypes:
 
-    boxline_dtype = np.dtype([('row_index', 'int64'),
-                                 ('bisection_index', 'int64'),
-                                 ('start_index', 'int64'),
-                                 ('end_index', 'int64')])
-    coordinator_dtype = np.dtype([('row_index', 'int64'),
-                                  ('col_index', 'int64')])
-        * boxline; dtype = [('row_index', 'int64'),
-                            ('bisection_index', 'int64'),
-                            ('start_index', 'int64'),
-                            ('end_index', 'int64')]
-        * coordinator; dtype = [('row_index', 'int64'),
-                                ('bisection_index', 'int64'),
-                                ('start_index', 'int64'),
-                                ('end_index', 'int64')]
-
+        * boxline_dtype = np.dtype([('row_index', 'int64'),
+                                    ('bisection_index', 'int64'),
+                                    ('start_index', 'int64'),
+                                    ('end_index', 'int64')])
+        * coordinator_dtype = np.dtype([('row_index', 'int64'),
+                                        ('col_index', 'int64')])
     """
-
     rows, cols = view_angle_dataset.shape
 
     assert (line == np.arange(start=1, stop=rows+1)).all()
@@ -222,7 +212,7 @@ def create_boxline_coordinator(view_angle_dataset, line, ncentre, npoints,
     special = set(first_and_last(npoints)) - {0, rows-1, -1}
     if special: # if track still intersects scene
         mid_row_idx = special.pop() + 1 # or take average?
-        special = ({ncenter[0],ncenter[-1]} - {0,1,rows,rows-1,-1}).pop()
+        special = ({ncentre[0], ncentre[-1]} - {0, 1, rows, rows-1, -1}).pop()
 
     grid_rows = assymetric_linspace(1, rows, vertices[0], midpoint=mid_row_idx)
 
@@ -237,20 +227,32 @@ def create_boxline_coordinator(view_angle_dataset, line, ncentre, npoints,
     locations = np.empty((vertices[0], vertices[1], 2), dtype='int64')
     for ig, ir in enumerate(grid_rows): # row indices for sample-grid & raster
         grid_line = assymetric_linspace(
-            start_col[ir], end_col[ir], vertices[1], special or ncentre[i])
-        locations[ig,:,0] = ir
-        locations[ig,:,1] = grid_line
-    locations = locations.reshape(verices[0] * vertices[1], 2)
+            start_col[ir], end_col[ir], vertices[1], special or ncentre[ir])
+        locations[ig, :, 0] = ir
+        locations[ig, :, 1] = grid_line
+    locations = locations.reshape(vertices[0] * vertices[1], 2)
+
+    # custom datatype for coordinator
+    coordinator_dtype = np.dtype([('row_index', 'int64'),
+                                  ('col_index', 'int64')])
+    coordinator = np.empty(locations.shape[0], dtype=coordinator_dtype)
+    coordinator['row_index'] = locations[0]
+    coordinator['col_index'] = locations[1]
 
     # record curves for parcellation (of the raster into interpolation cells)
-    boxline = np.empty((rows,4), dtype='int64')
-    boxline[:,0] = np.arange(1, 1+rows) # rows indexed not from zero
-    boxline[:,1] = ncentre
-    boxline[:,2] = start_col
-    boxline[:,3] = end_col
+    boxline_dtype = [('row_index', 'int64'),
+                     ('bisection_index', 'int64'),
+                     ('start_index', 'int64'),
+                     ('end_index', 'int64')]
+    boxline = np.empty(rows, dtype=boxline_dtype)
+    boxline['row_index'] = np.arange(1, 1+rows) # rows indexed not from zero
+    boxline['bisection_index'] = ncentre
+    boxline['start_index'] = start_col
+    boxline['end_index'] = end_col
     # note, option to fill out the entire linspace into additional columns
     # of the boxline
-    return boxline, locations
+
+    return boxline, coordinator
 
 
 def calculate_julian_century(datetime):
@@ -315,9 +317,6 @@ def setup_spheroid(proj_wkt):
                       ('eccentricity_squared', 'float64'),
                       ('earth_rotational_angular_velocity', 'float64')])
     dset = np.zeros(1, dtype=dtype)
-
-    # Initialise the spheroid array
-    spheroid = np.zeros((4))
 
     # Define the spatial reference
     sr = osr.SpatialReference()
