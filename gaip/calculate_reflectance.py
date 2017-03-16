@@ -70,7 +70,7 @@ def _calculate_reflectance(acquisition, bilinear_fname,
                                 a_dset, dir_dset, dif_dset, ts_dset,
                                 sol_zen_dset, sol_azi_dset, sat_view_dset,
                                 rel_ang_dset, slope_dset, aspect_dset,
-                                rel_slp_dset, inc_dset, exi_dset, shad_dset
+                                rel_slp_dset, inc_dset, exi_dset, shad_dset,
                                 rori, brdf_iso, brdf_vol, brdf_geo, out_fname,
                                 compression, x_tile, y_tile)
 
