@@ -361,7 +361,7 @@ class BilinearInterpolationBand(luigi.Task):
 
     band_num = luigi.Parameter()
     factor = luigi.Parameter()
-    base_dir = luigi.Parameter(default='_atmospherics', significant=False)
+    base_dir = luigi.Parameter(default='_bilinear', significant=False)
 
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.group]
