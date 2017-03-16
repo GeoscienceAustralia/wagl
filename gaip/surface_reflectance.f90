@@ -6,9 +6,7 @@ SUBROUTINE reflectance( &
     ref_adj, &
     no_data, &
     radiance, &
-    mask_self, &
-    mask_castsun, &
-    mask_castview, &
+    shadow_mask, &
     solar_angle, &
     sazi_angle, &
     view_angle, &
@@ -43,9 +41,7 @@ SUBROUTINE reflectance( &
     real*4 ref_adj ! average reflectance for terrain correction
     real*4 no_data ! input & output no data value
     real*4 radiance(nrow, ncol) ! at sensor radiance image
-    integer*2 mask_self(nrow, ncol) ! mask
-    integer*2 mask_castsun(nrow, ncol) ! self shadow mask
-    integer*2 mask_castview(nrow, ncol) ! cast shadow mask
+    integer*1 shadow_mask(nrow, ncol) ! shadow mask
     real*4 solar_angle(nrow, ncol) ! solar zenith angle
     real*4 sazi_angle(nrow, ncol) ! solar azimuth angle
     real*4 view_angle(nrow, ncol) ! view angle (for flat surface)
@@ -73,14 +69,14 @@ SUBROUTINE reflectance( &
     real*4 ref_terrain(nrow)
 
 !f2py depend(nrow), ref_lm, ref_brdf, ref_terrain
-!f2py depend(nrow, ncol), radiance, mask_self, mask_castsun, mask_castview
+!f2py depend(nrow, ncol), radiance, shadow_mask
 !f2py depend(nrow, ncol), solar_angle, sazi_angle, view_angle, rela_angle
 !f2py depend(nrow, ncol), slope_angle,, aspect_angle, it_angle, et_angle
 !f2py depend(nrow, ncol), rela_slope, a_mod, b_mod, s_mod, fv, fs, ts
 !f2py depend(nrow, ncol), edir_h, edif_h
 !f2py depend(nrow, ncol), iref_lm, iref_brdf, iref_terrain
 !f2py intent(in) rori, brdf0, brdf1, brdf2, ref_adj, no_data
-!f2py intent(in) dn_1, mask_self, mask_castsun, mask_castview, solar_angle,
+!f2py intent(in) dn_1, shadow_mask, solar_angle,
 !f2py intent(in) sazi_angle, view_angle, rela_angle, slope_angle, aspect_angle
 !f2py intent(in) it_angle, et_angle, rela_slope, a_mod, b_mod, s_mod, fv, fs, ts, edir_h, edif_h
 !f2py intent(in) ref_lm, ref_brdf, ref_terrain, dn
@@ -228,9 +224,8 @@ SUBROUTINE reflectance( &
             endif
 !-------------------------------------------------------------------
 !           conduct terrain correction
-            if ((mask_self(i, j) .gt. 0) .and. &
-                (mask_castsun(i, j).gt. 0) .and. &
-                (mask_castview(i, j) .gt. 0) .and. (it_angle(i, j) .lt. 90.0) &
+            if ((shadow_mask(i, j) .gt. 0) .and. &
+                (it_angle(i, j) .lt. 90.0) &
                 .and. (et_angle(i, j) .lt. 90.0)) then
 !----------------------------------------------------------
                 cosslope = cos(slope)

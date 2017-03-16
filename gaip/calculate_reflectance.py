@@ -59,9 +59,7 @@ def _calculate_reflectance(acquisition, bilinear_fname,
         rel_slp_dset = fid_rel_slp['relative-slope']
         inc_dset = fid_inc['incident-angle']
         exi_dset = fid_exi['exiting-angle']
-        slf_shad_dset = fid_shadow['self-shadow']
-        sun_shad_dset = fid_shadow['cast-shadow-sun']
-        sat_shad_dset = fid_shadow['cast-shadow-sat']
+        shad_dset = fid_shadow['combined-shadow']
 
         dname = "BRDF-Band-{band}-{factor}"
         brdf_iso = fid_anc[dname.format(band=band_num, factor='iso')][()]
@@ -72,8 +70,7 @@ def _calculate_reflectance(acquisition, bilinear_fname,
                                 a_dset, dir_dset, dif_dset, ts_dset,
                                 sol_zen_dset, sol_azi_dset, sat_view_dset,
                                 rel_ang_dset, slope_dset, aspect_dset,
-                                rel_slp_dset, inc_dset, exi_dset,
-                                slf_shad_dset, sun_shad_dset, sat_shad_dset,
+                                rel_slp_dset, inc_dset, exi_dset, shad_dset
                                 rori, brdf_iso, brdf_vol, brdf_geo, out_fname,
                                 compression, x_tile, y_tile)
 
@@ -88,8 +85,7 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
                           relative_angle_dataset, slope_dataset,
                           aspect_dataset, relative_slope_dataset,
                           incident_angle_dataset, exiting_angle_dataset,
-                          self_shadow_dataset, cast_shadow_sun_dataset,
-                          cast_shadow_satellite_dataset, rori, brdf_iso,
+                          shadow_dataset, rori, brdf_iso,
                           brdf_vol, brdf_geo, out_fname=None,
                           compression='lzf', x_tile=None, y_tile=None):
     """
@@ -186,19 +182,10 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
         and returns a `NumPy` dataset containing the exiting angles
         when index/sliced.
 
-    :param self_shadow_dataset:
-        A string containing the full file path name to the self
-        shadow mask image.
-
-    :param cast_shadow_sun_dataset:
+    :param shadow_dataset:
         A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the cast shadow
-        mask (path back to the sun) when index/sliced.
-
-    :param cast_shadow_satellite_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the cast shadow
-        mask (path back to the sateelite) when index/sliced.
+        and returns a `NumPy` dataset containing the shadow
+        mask when index/sliced.
 
     :param rori:
         Threshold for terrain correction. Fuqin to document.
@@ -331,10 +318,7 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
         # Convert the datatype if required and transpose
         band_data = as_array(acquisition.data(**acq_args), **f32_args)
         
-        self_shadow = as_array(self_shadow_dataset[idx], **i16_args)
-        cast_shadow_sun = as_array(cast_shadow_sun_dataset[idx], **i16_args)
-        cast_shadow_satellite = as_array(cast_shadow_satellite_dataset[idx],
-                                         **i16_args)
+        shadow = as_array(shadow_dataset[idx], numpy.int8, transpose=True)
         solar_zenith = as_array(solar_zenith_dataset[idx], **f32_args)
         solar_azimuth = as_array(solar_azimuth_dataset[idx], **f32_args)
         satellite_view = as_array(satellite_view_dataset[idx], **f32_args)
@@ -367,8 +351,7 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
         # Run terrain correction
         reflectance(xsize, ysize, rori, brdf_iso, brdf_vol, brdf_geo,
                     avg_reflectance_values[acquisition.band_num],
-                    kwargs['fillvalue'], band_data, self_shadow,
-                    cast_shadow_sun, cast_shadow_satellite,
+                    kwargs['fillvalue'], band_data, shadow,
                     solar_zenith, solar_azimuth, satellite_view,
                     relative_angle, slope, aspect, incident_angle,
                     exiting_angle, relative_slope, a_mod, b_mod,
