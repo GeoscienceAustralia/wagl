@@ -303,11 +303,10 @@ def _calculate_coefficients(accumulated_fname, npoints, out_fname,
                                    'solar-irradiance')
             channel_path = ppjoin(grp_path.format(p=point, a='0'), 'channel')
 
-            key = POINT_FMT.format(p=point)
-            accumulation_albedo_0[key] = read_table(fid, albedo_0_path)
-            accumulation_albedo_1[key] = read_table(fid, albedo_1_path)
-            accumulation_albedo_t[key] = read_table(fid, albedo_t_path)
-            channel_data[key] = read_table(fid, channel_path)
+            accumulation_albedo_0[point] = read_table(fid, albedo_0_path)
+            accumulation_albedo_1[point] = read_table(fid, albedo_1_path)
+            accumulation_albedo_t[point] = read_table(fid, albedo_t_path)
+            channel_data[point] = read_table(fid, channel_path)
         
         rfid = calculate_coefficients(accumulation_albedo_0,
                                       accumulation_albedo_1,
@@ -329,29 +328,28 @@ def calculate_coefficients(accumulation_albedo_0, accumulation_albedo_1,
     ['fs', 'fv', 'a', 'b', 's', 'dir', 'dif', 'ts'].
 
     :param accumulation_albedo_0:
-        A `dict` containing [POINT_FMT.format(p=p) for p in range(npoints)]
-        as the keys, and the values a `pandas.DataFrame` containing the
-        solar accumulated irradiance (for albedo 0) and structured as
-        returned by the `calculate_solar_radiation` function.
+        A `dict` containing range(npoints) as the keys, and the values
+        a `pandas.DataFrame` containing the solar accumulated
+        irradiance (for albedo 0) and structured as returned by the
+        `calculate_solar_radiation` function.
 
     :param accumulation_albedo_1:
-        A `dict` containing [POINT_FMT.format(p=p) for p in range(npoints)]
-        as the keys, and the values a `pandas.DataFrame` containing the
-        solar accumulated irradiance (for albedo 1) and structured as
-        returned by the `calculate_solar_radiation` function.
+        A `dict` containing range(npoints) as the keys, and the values
+        a `pandas.DataFrame` containing the solar accumulated
+        irradiance (for albedo 1) and structured as returned by the
+        `calculate_solar_radiation` function.
 
     :param accumulation_albedo_t:
-        A `dict` containing [POINT_FMT.format(p=p) for p in range(npoints)]
-        as the keys, and the values a `pandas.DataFrame` containing the
-        solar accumulated irradiance (for albeod t; transmittance)
-        and structured as returned by the `calculate_solar_radiation`
-        function.
+        A `dict` containing range(npoints) as the keys, and the values
+        a `pandas.DataFrame` containing the solar accumulated
+        irradiance (for albeod t; transmittance) and structured as
+        returned by the `calculate_solar_radiation` function.
 
     :param channel_data:
-        A `dict` containing [POINT_FMT.format(p=p) for p in range(npoints)]
-        as the keys, and the values a `pandas.DataFrame` containing the
-        channel data for that point, and structured as
-        returned by the `read_modtran_channel` function.
+        A `dict` containing range(npoints) as the keys, and the values
+        a `pandas.DataFrame` containing the channel data for that
+        point, and structured as returned by the
+        `read_modtran_channel` function.
 
     :param npoints:
         An integer containing the number of location points over
@@ -383,7 +381,7 @@ def calculate_coefficients(accumulation_albedo_0, accumulation_albedo_1,
         * coefficients
     """
     result = pd.DataFrame()
-    for point in [POINT_FMT.format(p=p) for p in range(npoints)]:
+    for point in range(npoints):
         # MODTRAN channel output .chn file (albedo 0)
         data1 = channel_data[point]
 
@@ -437,7 +435,7 @@ def calculate_coefficients(accumulation_albedo_0, accumulation_albedo_1,
     attrs = {}
     attrs['Description'] = ("Coefficients derived from the "
                             "accumulated solar irradiation.")
-    attrs['npoints'] = npoints
+    attrs['Number of atmospheric points'] = npoints
 
     # Initialise the output file
     if out_fname is None:
