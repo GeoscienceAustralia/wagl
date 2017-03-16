@@ -55,13 +55,15 @@ class WorkRoot(luigi.Task):
     work_root = luigi.Parameter(significant=False)
     reflectance_dir = '_reflectance'
     shadow_dir = '_shadow'
+    bilinear_dir = '_bilinear'
 
     def output(self):
+        out_dirs = [self.reflectance_dir, self.shadow_dir, self.bilinear_dir]
         container = acquisitions(self.level1)
         for granule in container.granules:
             for group in container.groups:
                 pth = container.get_root(self.work_root, group, granule)
-                for out_dir in [self.reflectance_dir, self.shadow_dir]:
+                for out_dir in out_dirs:
                     yield luigi.LocalTarget(pjoin(pth, out_dir))
 
     def run(self):
