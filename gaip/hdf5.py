@@ -25,7 +25,7 @@ def _fixed_str_size(data):
     return '|S{}'.format(str_sz)
 
 
-def _safeguard_dtype(datatype):
+def safeguard_dtype(datatype):
     try:
         dtype = numpy.dtype(datatype)
     except TypeError:

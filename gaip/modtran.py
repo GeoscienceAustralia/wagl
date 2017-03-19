@@ -15,8 +15,7 @@ from scipy.io import FortranFile
 import h5py
 import pandas as pd
 
-from gaip.hdf5 import write_dataframe
-from gaip.hdf5 import read_table
+from gaip.hdf5 import write_dataframe, read_table, safeguard_dtype
 from gaip.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
 from gaip.modtran_profiles import MIDLAT_SUMMER_TRANSMITTANCE
 from gaip.modtran_profiles import TROPICAL_TRANSMITTANCE
@@ -535,20 +534,20 @@ def read_modtran_flux(fname):
         levels in km.
     """
     # define a datatype for the hdr info
-    hdr_dtype = numpy.dtype([('record_length', 'int32'),
-                             ('spectral_unit', 'S1'),
-                             ('relabs', 'S1'),
-                             ('linefeed', 'S1'),
-                             ('mlflx', 'int32'),
-                             ('iv1', 'float32'),
-                             ('band_width', 'float32'),
-                             ('fwhm', 'float32'),
-                             ('ifwhm', 'float32')])
+    hdr_dtype = safeguard_dtype([('record_length', 'int32'),
+                                 ('spectral_unit', 'S1'),
+                                 ('relabs', 'S1'),
+                                 ('linefeed', 'S1'),
+                                 ('mlflx', 'int32'),
+                                 ('iv1', 'float32'),
+                                 ('band_width', 'float32'),
+                                 ('fwhm', 'float32'),
+                                 ('ifwhm', 'float32')])
 
     # datatype for the dataframe containing the flux data
-    flux_dtype = numpy.dtype([('upward_diffuse', 'float64'),
-                              ('downward_diffuse', 'float64'),
-                              ('direct_solar', 'float64')])
+    flux_dtype = safeguard_dtype([('upward_diffuse', 'float64'),
+                                  ('downward_diffuse', 'float64'),
+                                  ('direct_solar', 'float64')])
 
     with open(fname, 'rb') as src:
         # read the hdr record
@@ -558,8 +557,8 @@ def read_modtran_flux(fname):
         levels = hdr_data['mlflx'][0] + 1
 
         # define a datatype to read a record containing flux data
-        dtype = numpy.dtype([('wavelength', 'float64'),
-                             ('flux_data', 'float64', (levels, 3))])
+        dtype = safeguard_dtype([('wavelength', 'float64'),
+                                 ('flux_data', 'float64', (levels, 3))])
 
         # read the rest of the hdr which contains the altitude data
         altitude = numpy.fromfile(src, dtype='float32', count=levels)
