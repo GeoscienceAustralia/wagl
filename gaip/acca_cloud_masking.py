@@ -7,7 +7,7 @@ Irish, R et al, October 2006, Photogrammetric Engineering & Remote
 Sensing, Vol. 72, No. 10, October 2006, pp. 1179-1188.
 
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function, unicode_literals
 import datetime
 import logging
 import numexpr

@@ -3,7 +3,7 @@
 Unittesting framework for the `gaip.calculate_shadow_masks` module.
 """
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function, unicode_literals
 import unittest
 import argparse
 from argparse import RawTextHelpFormatter

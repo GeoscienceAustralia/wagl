@@ -18,8 +18,7 @@ estimates is required.
 
 """
 
-from __future__ import absolute_import
-from __future__ import print_function
+from __future__ import absolute_import, print_function, unicode_literals
 import subprocess
 import datetime
 import logging

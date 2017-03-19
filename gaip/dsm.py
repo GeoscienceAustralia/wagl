@@ -3,7 +3,7 @@
 Digital Surface Model Data extraction and smoothing.
 """
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function, unicode_literals
 import numpy
 from scipy import ndimage
 import h5py

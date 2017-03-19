@@ -5,7 +5,7 @@ A module to contain information collected during the Pixel Quality
 Assessment.
 """
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function, unicode_literals
 import os
 import logging
 import numpy

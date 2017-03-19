@@ -1,7 +1,7 @@
 """
 Core code.
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function, unicode_literals
 import os
 from os.path import isdir, join as pjoin, dirname, basename, exists
 import re
