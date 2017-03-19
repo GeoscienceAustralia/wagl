@@ -62,10 +62,10 @@ The gaip pacakage can be installed via:
 --------------------------
 Using the [local scheduler](http://luigi.readthedocs.io/en/stable/command_line.html):
 
-    $ luigi --module gaip.NBAR --level1-csv scenes.txt --output-directory /some/path --local-scheduler --workers 4
+    $ luigi --module gaip.nbar_workflow NBAR --level1-csv scenes.txt --output-directory /some/path --local-scheduler --workers 4
 
 Using the [central scheduler](http://luigi.readthedocs.io/en/stable/central_scheduler.html):
 
     $ luigid --background --pidfile <PATH_TO_PIDFILE> --logdir <PATH_TO_LOGDIR> --state-path <PATH_TO_STATEFILE>
 
-    $ luigi --module gaip.NBAR --level1-csv scenes.txt --output-directory /some/path --workers 4
+    $ luigi --module gaip.nbar_workflow NBAR --level1-csv scenes.txt --output-directory /some/path --workers 4
