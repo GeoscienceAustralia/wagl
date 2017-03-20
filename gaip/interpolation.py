@@ -96,8 +96,8 @@ def subdivide(origin=DEFAULT_ORIGIN, shape=DEFAULT_SHAPE):
               'LR': <list of 2-tuples> }
     """
     i0, ie, j0, je = indices(origin, shape)
-    ic = origin[0] + shape[0] / 2
-    jc = origin[1] + shape[1] / 2
+    ic = origin[0] + shape[0] // 2
+    jc = origin[1] + shape[1] // 2
 
     return {
         'UL': [(i0, j0), (i0, jc), (ic, j0), (ic, jc)],
