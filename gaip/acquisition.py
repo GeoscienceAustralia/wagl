@@ -74,7 +74,7 @@ class AcquisitionsContainer(object):
         If `AcquisitionsContainer.tiled` is False, then [None] is
         returned.
         """
-        return self._granules.keys() if self.tiled else [None]
+        return list(self._granules.keys()) if self.tiled else [None]
 
     @property
     def groups(self):
@@ -82,9 +82,9 @@ class AcquisitionsContainer(object):
         Lists the available groups within a scene.
         """
         if self.tiled:
-            grps = self._granules.get(self.granules[0]).keys()
+            grps = list(self._granules.get(self.granules[0]).keys())
         else:
-            grps = self._groups.keys()
+            grps = list(self._groups.keys())
         return grps
 
     def get_acquisitions(self, group=None, granule=None):
@@ -689,7 +689,7 @@ def acquisitions_via_geotiff(path):
                 # find the spacecraft based on the tag
                 #tag = fixname(md['spacecraft_id'])
                 tag = md['spacecraft_id']
-                for k, v in SENSORS.iteritems():
+                for k, v in SENSORS.items():
                     if v['tag'] == tag:
                         md['spacecraft_id'] = fixname(k)
                         #md['spacecraft_id'] = k
@@ -699,12 +699,12 @@ def acquisitions_via_geotiff(path):
                 spacecraft = md['spacecraft_id']
                 new['SPACECRAFT'] = {}
                 db = SENSORS[spacecraft]
-                for k, v in db.iteritems():
+                for k, v in db.items():
                     if k is not 'sensors':
                         try:
-                            new['SPACECRAFT'][k.encode('ascii')] = v.encode('ascii')
+                            new['SPACECRAFT'][k] = v
                         except AttributeError:
-                            new['SPACECRAFT'][k.encode('ascii')] = v
+                            new['SPACECRAFT'][k] = v
 
             
                 # map sensor_id for consistency with SENSOR keys
@@ -719,9 +719,9 @@ def acquisitions_via_geotiff(path):
                 new['SENSOR_INFO'] = {}
                 sensor = md['sensor_id']
                 db = db['sensors'][sensor]
-                for k, v in db.iteritems():
+                for k, v in db.items():
                     if k is not 'bands':
-                        new['SENSOR_INFO'][k.encode('ascii')] = v
+                        new['SENSOR_INFO'][k] = v
  
                 # normalise the band number
 
@@ -736,8 +736,8 @@ def acquisitions_via_geotiff(path):
                 bandname = str(bn)
                 new['BAND_INFO'] = {}
                 db = db['bands'][bandname]
-                for k, v in db.iteritems():
-                    new['BAND_INFO'][k.encode('ascii')] = v
+                for k, v in db.items():
+                    new['BAND_INFO'][k] = v
                 band_type = db['type_desc']
                 new['BAND_INFO']['band_type'] = BAND_TYPE[band_type]
 
@@ -807,8 +807,8 @@ def acquisitions_via_mtl(path):
         new = copy.deepcopy(data)
 
         # remove unnecessary values
-        for kv in new.values():
-            for k in kv.keys():
+        for kv in list(new.values()):
+            for k in list(kv.keys()):
                 if 'vcid' in k:
                     nk = k.replace('_vcid_', '')
                     kv[nk] = kv.pop(k)
@@ -863,26 +863,26 @@ def acquisitions_via_mtl(path):
 
         new['SPACECRAFT'] = {}
         db = SENSORS[spacecraft]
-        for k, v in db.iteritems():
+        for k, v in db.items():
             if k is not 'sensors':
                 try:
-                    new['SPACECRAFT'][k.encode('ascii')] = v.encode('ascii')
+                    new['SPACECRAFT'][k] = v
                 except AttributeError:
-                    new['SPACECRAFT'][k.encode('ascii')] = v
+                    new['SPACECRAFT'][k] = v
 
         new['SENSOR_INFO'] = {}
         db = db['sensors'][sensor]
 
-        for k, v in db.iteritems():
+        for k, v in db.items():
             if k is not 'bands':
-                new['SENSOR_INFO'][k.encode('ascii')] = v
+                new['SENSOR_INFO'][k] = v
 
         bandname = band.replace('band', '').strip('_')
         new['BAND_INFO'] = {}
         db = db['bands'][bandname]
 
-        for k, v in db.iteritems():
-            new['BAND_INFO'][k.encode('ascii')] = v
+        for k, v in db.items():
+            new['BAND_INFO'][k] = v
         band_type = db['type_desc']
         new['BAND_INFO']['band_type'] = BAND_TYPE[band_type]
   
@@ -988,19 +988,19 @@ def acquisitions_via_safe(path):
             #metadata['SPACECRAFT'] = {}
             data['SPACECRAFT'] = {}
             db = SENSORS[spacecraft]
-            for k, v in db.iteritems():
+            for k, v in db.items():
                 if k is not 'sensors':
                     try:
-                        data['SPACECRAFT'][k.encode('ascii')] = v.encode('ascii')
+                        data['SPACECRAFT'][k] = v
                     except AttributeError:
-                        data['SPACECRAFT'][k.encode('ascii')] = v
+                        data['SPACECRAFT'][k] = v
 
             data['SENSOR_INFO'] = {}
             db = db['sensors'][sensor]
 
-            for k, v in db.iteritems():
+            for k, v in db.items():
                 if k is not 'bands':
-                    data['SENSOR_INFO'][k.encode('ascii')] = v
+                    data['SENSOR_INFO'][k] = v
 
             for band in bands:
                 dname = dirname(band)
@@ -1016,8 +1016,8 @@ def acquisitions_via_safe(path):
                 db_copy = copy.deepcopy(db)
                 db_copy = db_copy['bands'][band_name]
 
-                for k, v in db_copy.iteritems():
-                    band_md['BAND_INFO'][k.encode('ascii')] = v
+                for k, v in db_copy.items():
+                    band_md['BAND_INFO'][k] = v
 
                 band_type = db_copy['type_desc']
                 band_md['BAND_INFO']['band_type'] = BAND_TYPE[band_type]
