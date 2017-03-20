@@ -80,7 +80,7 @@ def prepare_modtran(acquisition, coordinate, albedo, modtran_work,
     # TODO: write the spectral response function
     out_fname = pjoin(modtran_work, acquisition.spectral_filter_file)
     response = acquisition.spectral_response(as_list=True)
-    with open(out_fname, 'w') as src:
+    with open(out_fname, 'wb') as src:
         src.writelines(response)
 
 
@@ -467,12 +467,11 @@ def read_spectral_response(fname, as_list=False):
         A `pd.DataFrame` containing the spectral response
         function.
     """
-    if isinstance(fname, file):
-        lines = fname.readlines()
-    else:
-        # open the text file
+    if isinstance(fname, str):
         with open(fname, 'r') as src:
             lines = src.readlines()
+    else:
+        lines = fname.readlines()
 
     if as_list:
         return lines
@@ -545,7 +544,7 @@ def read_modtran_flux(fname):
                              ('ifwhm', 'float32')])
 
     # datatype for the dataframe containing the flux data
-    flux_dtype = numpy.dtyp([('upward_diffuse', 'float64'),
+    flux_dtype = numpy.dtype([('upward_diffuse', 'float64'),
                              ('downward_diffuse', 'float64'),
                              ('direct_solar', 'float64')])
 
