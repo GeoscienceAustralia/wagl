@@ -87,7 +87,7 @@ class GriddedGeoBox(object):
             the supplied dataset.
         """
         bbshape = dataset.shape
-        origin = (dataset.affine[2], dataset.affine[5])
+        origin = (dataset.transform[2], dataset.transform[5])
         pixelsize = dataset.res
         crs_wkt = dataset.crs.wkt
 
