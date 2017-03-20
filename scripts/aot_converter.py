@@ -126,5 +126,5 @@ def main(aerosol_path, output_filename):
 if __name__ == '__main__':
 
     aerosol_path = '/g/data/v10/eoancillarydata/aerosol/AATSR/2.0/'
-    out_fname = '/g/data/v10/eoancillarydata/aerosol/AATSR/2.0/aerosol_h5py.h5'
+    out_fname = '/g/data/v10/eoancillarydata/aerosol/AATSR/2.0/aerosol.h5'
     main(aerosol_path, out_fname)
