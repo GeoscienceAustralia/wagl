@@ -99,7 +99,7 @@
                         "type_desc": "Thermal",
                         "wavelength": [10.4, 12.5],
                         "spectral_filter_file": "landsat5_thermal.flt",
-                        "spectral_range": [14100, 7000, -1]
+                        "spectral_range": [14100, 6999, -1]
                     },
                     "7": {
                         "desc": "Middle Infrared 2",
@@ -200,7 +200,7 @@
                         "type_desc": "Thermal",
                         "wavelength": [10.4, 12.5],
                         "spectral_filter_file": "landsat7_thermal.flt",
-                        "spectral_range": [14100, 7000, -1]
+                        "spectral_range": [14100, 6999, -1]
                     },
                     "7": {
                         "desc": "Middle Infrared 2",
@@ -350,7 +350,7 @@
                         "type_desc": "Thermal",
                         "wavelength": [10.3, 11.3],
                         "spectral_filter_file": "landsat8_thermal.flt",
-                        "spectral_range": [14100, 7000, -1]
+                        "spectral_range": [14100, 6999, -1]
                     },
                     "11": {
                         "desc": "Thermal Infrared 2",
@@ -358,7 +358,7 @@
                         "type_desc": "Thermal",
                         "wavelength": [11.5, 12.5],
                         "spectral_filter_file": "landsat8_thermal.flt",
-                        "spectral_range": [14100, 7000, -1]
+                        "spectral_range": [14100, 6999, -1]
                     },
                     "2": {
                         "desc": "Visible Blue",
