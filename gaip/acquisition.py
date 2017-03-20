@@ -252,8 +252,9 @@ class Acquisition(object):
         Reads the spectral response for the sensor.
         """
         fname = 'spectral_response/%s' % self.spectral_filter_file
+        spectral_range = range(*self.spectral_range)
         with resource_stream(__name__, fname) as src:
-            df = read_spectral_response(src, as_list=as_list)
+            df = read_spectral_response(src, as_list, spectral_range)
         return df
 
 

@@ -449,7 +449,7 @@ def calculate_coefficients(accumulation_albedo_0, accumulation_albedo_1,
     return fid
 
 
-def read_spectral_response(fname, as_list=False):
+def read_spectral_response(fname, as_list=False, spectral_range=None):
     """
     Read the spectral response function text file used during
     MODTRAN processing.
@@ -462,6 +462,11 @@ def read_spectral_response(fname, as_list=False):
         A `bool` indicating whether or not to return the spectral
         response data as a list instead of a `pd.DataFrame`.
         Default is `False` which returns a `pd.DataFrame`.
+
+    :param spectral_range:
+        A `list` or `generator` of the [start, stop, step] for the
+        spectral range to be used in defining the spectral response.
+        Default is [2600, 349, -1].
 
     :return:
         A `pd.DataFrame` containing the spectral response
@@ -502,7 +507,11 @@ def read_spectral_response(fname, as_list=False):
                        'response': data[:, 1]})
     response[lines[idx]] = df
 
-    wavelengths = range(2600, 349, -1)
+    if spectral_range is None:
+        wavelengths = range(2600, 349, -1)
+    else:
+        wavelengths = list(spectral_range)
+
     for band in response:
         base_df = pd.DataFrame({'wavelength': wavelengths,
                                 'response': 0.0,
