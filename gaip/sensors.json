@@ -57,43 +57,57 @@
                         "desc": "Visible Blue",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [0.45, 0.52]
+                        "wavelength": [0.45, 0.52],
+                        "spectral_filter_file": "landsat5_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "2": {
                         "desc": "Visible Green",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [0.52, 0.60]
+                        "wavelength": [0.52, 0.60],
+                        "spectral_filter_file": "landsat5_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "3": {
                         "desc": "Visible Red",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [0.63, 0.69]
+                        "wavelength": [0.63, 0.69],
+                        "spectral_filter_file": "landsat5_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "4": {
                         "desc": "Near Infrared",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [0.76, 0.90]
+                        "wavelength": [0.76, 0.90],
+                        "spectral_filter_file": "landsat5_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "5": {
                         "desc": "Middle Infrared 1",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [1.55, 1.75]
+                        "wavelength": [1.55, 1.75],
+                        "spectral_filter_file": "landsat5_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "6": {
                         "desc": "Thermal Infrared",
                         "resolution": 100.0,
                         "type_desc": "Thermal",
-                        "wavelength": [10.4, 12.5]
+                        "wavelength": [10.4, 12.5],
+                        "spectral_filter_file": "landsat5_thermal.flt",
+                        "spectral_range": [14100, 7000, -1]
                     },
                     "7": {
                         "desc": "Middle Infrared 2",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [2.08, 2.35]
+                        "wavelength": [2.08, 2.35],
+                        "spectral_filter_file": "landsat5_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "quality": {
                         "desc": "Quality",
@@ -109,7 +123,6 @@
             }
         },
         "solar_irrad_file": "solar_irrad_landsat5.txt",
-        "spectral_filter_file": "landsat5_vsir.flt",
         "sweep_period": 0.07342143906020558002936857562408,
         "tag": "LS5",
         "tle_format": "l5_%4d%s_norad.txt"
@@ -137,49 +150,65 @@
                         "desc": "Visible Blue",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [0.45, 0.52]
+                        "wavelength": [0.45, 0.52],
+                        "spectral_filter_file": "landsat7_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "2": {
                         "desc": "Visible Green",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [0.52, 0.60]
+                        "wavelength": [0.52, 0.60],
+                        "spectral_filter_file": "landsat7_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "3": {
                         "desc": "Visible Red",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [0.63, 0.69]
+                        "wavelength": [0.63, 0.69],
+                        "spectral_filter_file": "landsat7_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "4": {
                         "desc": "Near Infrared",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [0.76, 0.90]
+                        "wavelength": [0.76, 0.90],
+                        "spectral_filter_file": "landsat7_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "5": {
                         "desc": "Middle Infrared 1",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [1.55, 1.75]
+                        "wavelength": [1.55, 1.75],
+                        "spectral_filter_file": "landsat7_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "61": {
                         "desc": "Thermal Infrared [Low Gain]",
                         "resolution": 50.0,
                         "type_desc": "Thermal",
-                        "wavelength": [10.4, 12.5]
+                        "wavelength": [10.4, 12.5],
+                        "spectral_filter_file": "landsat7_thermal.flt",
+                        "spectral_range": [14100, 7000, -1]
                     },
                     "62": {
                         "desc": "Thermal Infrared [High Gain]",
                         "resolution": 50.0,
                         "type_desc": "Thermal",
-                        "wavelength": [10.4, 12.5]
+                        "wavelength": [10.4, 12.5],
+                        "spectral_filter_file": "landsat7_thermal.flt",
+                        "spectral_range": [14100, 7000, -1]
                     },
                     "7": {
                         "desc": "Middle Infrared 2",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [2.08, 2.35]
+                        "wavelength": [2.08, 2.35],
+                        "spectral_filter_file": "landsat5_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "8": {
                         "desc": "Panchromatic",
@@ -201,7 +230,6 @@
             }
         },
         "solar_irrad_file": "solar_irrad_landsat7.txt",
-        "spectral_filter_file": "landsat7_vsir.flt",
         "sweep_period": 0.07342143906020558002936857562408,
         "tag": "LS7",
         "tle_format": "L7%4d%sASNNOR.S00"
@@ -229,43 +257,57 @@
                         "desc": "Coastal Aerosol",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [0.433, 0.453]
+                        "wavelength": [0.433, 0.453],
+                        "spectral_filter_file": "landsat8_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "2": {
                         "desc": "Visible Blue",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [0.45, 0.515]
+                        "wavelength": [0.45, 0.515],
+                        "spectral_filter_file": "landsat8_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "3": {
                         "desc": "Visible Green",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [0.525, 0.60]
+                        "wavelength": [0.525, 0.60],
+                        "spectral_filter_file": "landsat8_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "4": {
                         "desc": "Visible Red",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [0.63, 0.68]
+                        "wavelength": [0.63, 0.68],
+                        "spectral_filter_file": "landsat8_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "5": {
                         "desc": "Near Infrared",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [0.845, 0.885]
+                        "wavelength": [0.845, 0.885],
+                        "spectral_filter_file": "landsat8_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "6": {
                         "desc": "Short-wave Infrared 1",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [1.56,1.66]
+                        "wavelength": [1.56,1.66],
+                        "spectral_filter_file": "landsat8_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "7": {
                         "desc": "Short-wave Infrared 2",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [2.1, 2.3]
+                        "wavelength": [2.1, 2.3],
+                        "spectral_filter_file": "landsat8_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "8": {
                         "desc": "Panchromatic",
@@ -298,55 +340,73 @@
                         "desc": "Coastal Aerosol",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [0.433, 0.453]
+                        "wavelength": [0.433, 0.453],
+                        "spectral_filter_file": "landsat8_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "10": {
                         "desc": "Thermal Infrared 1",
                         "resolution": 25.0,
                         "type_desc": "Thermal",
-                        "wavelength": [10.3, 11.3]
+                        "wavelength": [10.3, 11.3],
+                        "spectral_filter_file": "landsat8_thermal.flt",
+                        "spectral_range": [14100, 7000, -1]
                     },
                     "11": {
                         "desc": "Thermal Infrared 2",
                         "resolution": 25.0,
                         "type_desc": "Thermal",
-                        "wavelength": [11.5, 12.5]
+                        "wavelength": [11.5, 12.5],
+                        "spectral_filter_file": "landsat8_thermal.flt",
+                        "spectral_range": [14100, 7000, -1]
                     },
                     "2": {
                         "desc": "Visible Blue",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [0.45, 0.515]
+                        "wavelength": [0.45, 0.515],
+                        "spectral_filter_file": "landsat8_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "3": {
                         "desc": "Visible Green",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [0.525, 0.60]
+                        "wavelength": [0.525, 0.60],
+                        "spectral_filter_file": "landsat8_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "4": {
                         "desc": "Visible Red",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [0.63, 0.68]
+                        "wavelength": [0.63, 0.68],
+                        "spectral_filter_file": "landsat8_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "5": {
                         "desc": "Near Infrared",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [0.845, 0.885]
+                        "wavelength": [0.845, 0.885],
+                        "spectral_filter_file": "landsat8_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "6": {
                         "desc": "Short-wave Infrared 1",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [1.56, 1.66]
+                        "wavelength": [1.56, 1.66],
+                        "spectral_filter_file": "landsat8_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "7": {
                         "desc": "Short-wave Infrared 2",
                         "resolution": 25.0,
                         "type_desc": "Reflective",
-                        "wavelength": [2.1, 2.3]
+                        "wavelength": [2.1, 2.3],
+                        "spectral_filter_file": "landsat8_vsir.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "8": {
                         "desc": "Panchromatic",
@@ -374,7 +434,6 @@
             }
         },
         "solar_irrad_file": "solar_irrad_landsat8.txt",
-        "spectral_filter_file": "landsat8_vsir.flt",
         "sweep_period": 0.07342143906020558002936857562408,
         "tag": "LS8",
         "tle_format": "L8%4d%sASNNOR.S00"
@@ -392,52 +451,72 @@
                     "1": {
                         "desc": "Aerosols",
                         "type_desc": "Reflective",
-                        "wavelength": [0.433, 0.453]
+                        "wavelength": [0.433, 0.453],
+                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "2": {
                         "desc": "Visible Blue",
                         "type_desc": "Reflective",
-                        "wavelength": [0.4575, 0.5225]
+                        "wavelength": [0.4575, 0.5225],
+                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "3": {
                         "desc": "Visible Green",
                         "type_desc": "Reflective",
-                        "wavelength": [0.5425, 0.5775]
+                        "wavelength": [0.5425, 0.5775],
+                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "4": {
                         "desc": "Visible Red",
                         "type_desc": "Reflective",
-                        "wavelength": [0.650, 0.680]
+                        "wavelength": [0.650, 0.680],
+                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "5": {
                         "desc": "Red Edge 1",
                         "type_desc": "Reflective",
-                        "wavelength": [0.6975, 0.7125]
+                        "wavelength": [0.6975, 0.7125],
+                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "6": {
                         "desc": "Red Edge 2",
                         "type_desc": "Reflective",
-                        "wavelength": [0.7325, 0.7475]
+                        "wavelength": [0.7325, 0.7475],
+                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "7": {
                         "desc": "Red Edge 3",
                         "type_desc": "Reflective",
-                        "wavelength": [0.773, 0.793]
+                        "wavelength": [0.773, 0.793],
+                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "8": {
                         "desc": "Near Infrared",
                         "type_desc": "Reflective",
-                        "wavelength": [0.7845, 0.8995]
+                        "wavelength": [0.7845, 0.8995],
+                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "8a": {
                         "desc": "Red Edge 4",
                         "type_desc": "Reflective",
-                        "wavelength": [0.855, 0.875]
+                        "wavelength": [0.855, 0.875],
+                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "9": {
                         "desc": "Water Vapour",
                         "type_desc": "Reflective",
-                        "wavelength": [0.935, 0.955]
+                        "wavelength": [0.935, 0.955],
+                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "10": {
                         "desc": "Cirrus",
@@ -447,17 +526,20 @@
                     "11": {
                         "desc": "Short-wave Infrared 1",
                         "type_desc": "Reflective",
-                        "wavelength": [1.565, 1.655]
+                        "wavelength": [1.565, 1.655],
+                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_range": [2600, 349, -1]
                     },
                     "12": {
                         "desc": "Short-wave Infrared 2",
                         "type_desc": "Reflective",
-                        "wavelength": [2.10, 2.280]
+                        "wavelength": [2.10, 2.280],
+                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_range": [2600, 349, -1]
                     }
                 }
             }
         },
-        "spectral_filter_file": "sentinel2a_all.flt",
         "tag": "S2A",
         "tle_format": "S2A%4d%sASNNOR.S00"
     }
