@@ -188,7 +188,7 @@ def interpolate_grid(depth=0, origin=DEFAULT_ORIGIN, shape=DEFAULT_SHAPE,
         interpolate_block(origin, shape, eval_func, grid)
     else:
         blocks = subdivide(origin, shape)
-        for (kUL, kUR, kLL, kLR) in blocks.itervalues():
+        for (kUL, kUR, kLL, kLR) in blocks.values():
             block_shape = (kLR[0] - kUL[0] + 1, kLR[1] - kUL[1] + 1)
             interpolate_grid(depth - 1, kUL, block_shape, eval_func, grid)
 

@@ -100,7 +100,7 @@ def data_and_box(acq, out=None, window=None, masked=False):
         if window is not None:
             rows = window[0][1] - window[0][0]
             cols = window[1][1] - window[1][0]
-            prj = bytes(fo.crs_wkt)
+            prj = fo.crs_wkt
             res = fo.res
             # Get the new UL co-ordinates of the array
             ul_x, ul_y = fo.affine * (window[1][0], window[0][0])
@@ -228,7 +228,7 @@ def write_img(array, filename, fmt='ENVI', geobox=None, nodata=None,
     # If we have a geobox, then retrieve the geotransform and projection
     if geobox is not None:
         transform = geobox.affine
-        projection = bytes(geobox.crs.ExportToWkt())
+        projection = geobox.crs.ExportToWkt()
     else:
         transform = None
         projection = None
@@ -325,14 +325,14 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, bands=1):
     """
     if isinstance(fname, h5py.Dataset):
         geobox = GriddedGeoBox.from_dataset(fname)
-        prj = bytes(fname.attrs['crs_wkt'])
+        prj = fname.attrs['crs_wkt']
     else:
         # Open the file
         with rasterio.open(fname) as src:
 
             # Get the inverse transform of the affine co-ordinate reference
             geobox = GriddedGeoBox.from_dataset(src)
-            prj = bytes(src.crs.wkt)  # rasterio returns a unicode
+            prj = src.crs.wkt  # rasterio returns a unicode
 
     inv = ~geobox.affine
     rows, cols = geobox.shape
