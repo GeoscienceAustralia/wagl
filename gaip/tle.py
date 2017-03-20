@@ -7,6 +7,7 @@ import datetime
 import ephem
 import re
 import os
+from functools import cmp_to_key
 
 TLE_ENTRY_RE = (r'^([1])(\s+)([%(NUMBER)s%(CLASSIFICATION)s]+)(\s+)'
                 r'([%(INTL_DESIGNATOR)s]+)(\s+)%(YYDDD)s(\.)(\d+)(\s+)'
@@ -47,7 +48,7 @@ def load_tle_from_archive(acquisition, data_root, day_radius=45):
     center_datetime = acquisition.scene_center_datetime
 
     offsets = sorted(range(-day_radius, day_radius),
-                     cmp=lambda x, y: abs(x) - abs(y))
+                     key=cmp_to_key(lambda x, y: abs(x) - abs(y)))
     tds = [datetime.timedelta(days=d) for d in offsets]
     yyddd_list = [(center_datetime + d).strftime('%02y%03j') for d in tds]
 
