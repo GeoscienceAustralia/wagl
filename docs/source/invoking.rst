@@ -5,16 +5,18 @@ The gaip image processor can be called directly from the command line.
 It uses `luigi's command line tool <http://luigi.readthedocs.io/en/stable/command_line.html>`_ to execute the workflow.
 
 To run the entire NBAR workflow using luigi's local scheduler:
+
 .. code-block:: bash
 
-    $ luigi --module gaip.nbar_workflow NBAR --level1-csv scenes.txt --output-directory /some/path --local-scheduler --workers 4
+   $ luigi --module gaip.nbar_workflow NBAR --level1-csv scenes.txt --output-directory /some/path --local-scheduler --workers 4
 
 To run using luigi's `central scheduler <http://luigi.readthedocs.io/en/stable/central_scheduler.html>`_:
+
 .. code-block:: bash
 
-    $ luigid --background --pidfile <PATH_TO_PIDFILE> --logdir <PATH_TO_LOGDIR> --state-path <PATH_TO_STATEFILE>
+   $ luigid --background --pidfile <PATH_TO_PIDFILE> --logdir <PATH_TO_LOGDIR> --state-path <PATH_TO_STATEFILE>
 
-    $ luigi --module gaip.nbar_workflow NBAR --level1-csv scenes.txt --output-directory /some/path --workers 4
+   $ luigi --module gaip.nbar_workflow NBAR --level1-csv scenes.txt --output-directory /some/path --workers 4
 
 Luigi will then execute, and manage, the entire NBAR workflow for every Level-1 scene listed in `scenes.txt`.
 
@@ -30,9 +32,10 @@ specify the following arguments:
 --compression the compression filter used when writing the outputs to disk; Default is lzf
 
 An example of running the `CalculateCoefficients` task using the local scehduler is:
+
 .. code-block:: bash
 
-    $ luigi --module gaip.nbar_workflow CalculateCoefficients --level1 /path/to/LS5_TM_OTH_P51_GALPGS01-007_111_068_20000707 --work-root /my/work/LS5_TM_OTH_P51_GALPGS01-007_111_068_20000707.gaip-work --workers 4 --local-scheduler
+   $ luigi --module gaip.nbar_workflow CalculateCoefficients --level1 /path/to/LS5_TM_OTH_P51_GALPGS01-007_111_068_20000707 --work-root /my/work/LS5_TM_OTH_P51_GALPGS01-007_111_068_20000707.gaip-work --workers 4 --local-scheduler
 
 The Tasks callable from the command line are:
 
@@ -64,13 +67,13 @@ and luigi will re-run the task without re-running any of the prior dependencies,
 
 Help on executing a Task can be retrieved, for example:
 
-.. code-block:: bash
-    $ luigi --module gaip.nbar_workflow CalculateCoefficients --help
+.. code-block:: console
+   $ luigi --module gaip.nbar_workflow CalculateCoefficients --help
 
 or
 
 .. code-block:: bash
-    $ luigi --module gaip.nbar_workflow CalculateCoefficients --help-all
+   $ luigi --module gaip.nbar_workflow CalculateCoefficients --help-all
 
 The number of workers to assign to the Task tree `--workers` tells luigi how many Tasks to run in parallel (for those tasks that don't depend on each other).
 While not making the best use of luigi (for such a quick and simple workflow), it does aid in quick research and development for a single scene to 100's of scenes,
