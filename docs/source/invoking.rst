@@ -67,12 +67,9 @@ and luigi will re-run the task without re-running any of the prior dependencies,
 
 Help on executing a Task can be retrieved, for example:
 
-.. code-block:: console
+.. code-block:: bash
    $ luigi --module gaip.nbar_workflow CalculateCoefficients --help
 
-or
-
-.. code-block:: bash
    $ luigi --module gaip.nbar_workflow CalculateCoefficients --help-all
 
 The number of workers to assign to the Task tree `--workers` tells luigi how many Tasks to run in parallel (for those tasks that don't depend on each other).
