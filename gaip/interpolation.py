@@ -16,7 +16,7 @@ import logging
 from gaip.hdf5 import dataset_compression_kwargs
 from gaip.hdf5 import write_h5_image
 from gaip.hdf5 import read_table
-from gaip.__bilinear_interpolation import bilinear_interpolation
+from gaip.interpolate import interpolate
 
 logger = logging.getLogger(__name__)
 
@@ -231,20 +231,11 @@ def bilinear_interpolate(acq, factor, coordinator_dataset, boxline_dataset,
     start = boxline_dataset.start_index.values + 1
     end = boxline_dataset.end_index.values + 1
 
-    # get the individual atmospheric components
-    # TODO: Ben to access the point values for a given band and factor
-    # eg df[df['band_id' == 'BAND x']]['some_factor']
     band = acq.band_num
-    key = ('BAND {}'.format(band), factor)
-    coef_subs = coefficients.loc[key]
-    s1 = coef_subs.s1.values
-    s2 = coef_subs.s2.values
-    s3 = coef_subs.s3.values
-    s4 = coef_subs.s4.values
+    band_records = coefficients.band_id == 'BAND {}'.format(band)
+    samples = coefficients[factor][band_records].values
 
-    result = numpy.zeros((rows, cols), dtype='float32')
-    bilinear_interpolation(cols, rows, coord, s1, s2, s3, s4, start, end,
-                           centre, result.transpose())
+    result = interpolate(cols, rows, coord, samples, start, end, centre)
 
     # Initialise the output files
     if out_fname is None:
