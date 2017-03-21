@@ -22,7 +22,7 @@ def fortran_bilinear_interpolate(cols, rows, locations, samples,
     output = np.empty((rows, cols), dtype=np.float32)
 
     fortran(cols, rows, locations, s1, s2, s3, s4,
-            row_start+1, row_end+1, row_centre+1, output.T)
+            row_start, row_end, row_centre, output.T)
 
     return output
 

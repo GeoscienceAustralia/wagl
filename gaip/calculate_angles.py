@@ -61,7 +61,7 @@ def create_centreline_dataset(geobox, y, x, n):
 
     :param y:
         A 1D np array of type int with the same shape as x & n.
-        Details the row number starting at 1.
+        Details the row number starting at 0.
 
     :param x:
         A 1D np array of type int with the same shape as y & n.
@@ -86,19 +86,22 @@ def create_centreline_dataset(geobox, y, x, n):
     sr.SetFromUserInput(CRS)
 
     dtype = np.dtype([('row_index', 'int64'), ('col_index', 'int64'),
-                      ('n_pixels', 'float'), ('latitude', 'float'),
-                      ('longitude', 'float')])
+                      ('n_pixels', 'float'), ('latitude', 'float64'),
+                      ('longitude', 'float64')])
     data = np.zeros(rows, dtype=dtype)
+    lon = lat = np.zeros(rows, dtype='float64')
 
     for r in range(rows):
-        # We offset by -1 to get the zero based col and row id
-        mapXY = geobox.convert_coordinates((x[r] - 1, y[r] - 1))
-        lon, lat = geobox.transform_coordinates(mapXY, to_crs=sr)
-        data['row_index'][r] = y[r]
-        data['col_index'][r] = x[r]
-        data['n_pixels'][r] = n[r]
-        data['latitude'][r] = lat
-        data['longitude'][r] = lon
+        mapXY = geobox.convert_coordinates((x[r], y[r]))
+        lonlat = geobox.transform_coordinates(mapXY, to_crs=sr)
+        lon[r] = lonlat[0]
+        lat[r] = lonlat[1]
+
+    data['row_index'] = y
+    data['col_index'] = x
+    data['n_pixels'] = n
+    data['latitude'] = lat
+    data['longitude'] = lon
 
     return data
 
@@ -160,11 +163,11 @@ def create_boxline_coordinator(view_angle_dataset, line, ncentre, npoints,
 
     :param line:
         A 1D NumPy array containing the values 1->n for n lines.
-        1 based index.
+        0 based index.
 
     :param ncentre:
         A 1D NumPy array containing the values for the column
-        coordinate for the central index; 1 based index.
+        coordinate for the central index; 0 based index.
 
     :param npoints:
         A 1D NumPy array containing the values for the number of points
@@ -240,7 +243,7 @@ def create_boxline_coordinator(view_angle_dataset, line, ncentre, npoints,
                               ('start_index', 'int64'),
                               ('end_index', 'int64')])
     boxline = np.empty(rows, dtype=boxline_dtype)
-    boxline['row_index'] = np.arange(1, 1+rows) # rows indexed not from zero
+    boxline['row_index'] = np.arange(rows)
     boxline['bisection_index'] = ncentre
     boxline['start_index'] = istart
     boxline['end_index'] = iend
@@ -856,8 +859,9 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, npoints=12,
         x_cent[0] = temp[1]
 
     # convert X & Y centre points to integers (basically array co-ordinates)
-    y_cent = np.rint(y_cent)
-    x_cent = np.rint(x_cent)
+    # and correct for FORTRAN offset
+    y_cent = np.rint(y_cent) - 1
+    x_cent = np.rint(x_cent) - 1 
 
     # create the dataset and save to the HDF5 file
     centreline_dataset = create_centreline_dataset(geobox, y_cent, x_cent,
@@ -868,7 +872,7 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, npoints=12,
     desc = ("Contains the array, latitude and longitude coordinates of the "
             "satellite track path.")
     attrs = {'Description': desc,
-             'array_coordinate_offset': -1}
+             'array_coordinate_offset': 0}
     attach_table_attributes(cent_dset, title='Centreline', attrs=attrs)
 
     # boxline and coordinator
