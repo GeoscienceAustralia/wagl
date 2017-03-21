@@ -196,7 +196,7 @@ def create_boxline_coordinator(view_angle_dataset, line, ncentre, npoints,
     """
     rows, _ = view_angle_dataset.shape
 
-    assert (line == np.arange(start=1, stop=rows+1)).all()
+    assert (line == np.arange(rows)).all()
     # TODO: refactor out "line" argument
 
     # calculate the column start and end indices
