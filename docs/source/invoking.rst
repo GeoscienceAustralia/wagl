@@ -19,13 +19,13 @@ Luigi will then execute, and manage, the entire NBAR workflow for every Level-1 
 If however, you want to run just a specific part of the workflow, say for example `CalculateCoefficients`, then you would need to
 specify the following arguments:
 
---level1 </path/to/level1/scene>
---work-root <path/to/working/directory>
---granule <granule id name; Default is None; and can be ignored for Landsat>
---npoints <the number of points atmospherical calculations will run across the scene; Default is 9>
---albedos <the albedo measurementsl Default is '[0, 1, "t"]'>
---base-dir <the base directory to contain the atmospheric calculations; Default is _atmospherics>
---compression <the compression filter used when writing the outputs to disk; Default is lzf>
+--level1      /path/to/level1/scene
+--work-root   path/to/working/directory
+--granule     granule id name; Default is None; and can be ignored for Landsat
+--npoints     the number of points atmospherical calculations will run across the scene; Default is 9
+--albedos     the albedo measurementsl Default is '[0, 1, "t"]'
+--base-dir    the base directory to contain the atmospheric calculations; Default is _atmospherics
+--compression the compression filter used when writing the outputs to disk; Default is lzf
 
 An example of running the `CalculateCoefficients` task using the local scehduler is:
 
