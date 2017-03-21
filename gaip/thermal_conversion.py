@@ -10,21 +10,12 @@ import numexpr
 
 def radiance_conversion(band_array, gain, bias):
     """
-    Converts the input image into radiance.
-
-    Two methods could be used; the gain and bias or the spectral
-    radiance scaling. Defined to use the gain and bias method.
-
-    :gain and bias method:
-        * B6_gain = (LMAX_BAND6 - LMIN_BAND6) / (QCALMAX_Band6 - QCALMIN_Band6)
-        * B6_bias = LMIN_BAND6 - (B6_gain * QCALMIN_Band6)
-        * rad = gain * image + bias
-
-    :spectral radiance scaling method:
-        * rad = ((LMAX - LMIN)/(QCALMAX - QCALMIN)) * (image - QCALMIN) + LMIN
+    Converts the input image into radiance using the gain and bias
+    method.
 
     :param band_array:
-        The Thermal band to be converted to radiance, requires DN.
+        A `NumPy` array containing the scaled DN to be converted
+        to radiance at sensor.
 
     :param gain:
         Floating point value.
