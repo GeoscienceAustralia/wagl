@@ -117,10 +117,6 @@ def self_shadow(incident_dataset, exiting_dataset, geobox, out_fname,
     attach_image_attributes(out_dset, attrs)
 
     # Initialise the tiling scheme for processing
-    if x_tile is None:
-        x_tile = cols
-    if y_tile is None:
-        y_tile = rows
     tiles = generate_tiles(cols, rows, x_tile, y_tile)
 
     # Loop over each tile
@@ -128,7 +124,7 @@ def self_shadow(incident_dataset, exiting_dataset, geobox, out_fname,
         # Row and column start locations
         ystart, yend = tile[0]
         xstart, xend = tile[1]
-        idx = (slice(ystart, yend, slice(xstart, xend)))
+        idx = (slice(ystart, yend), slice(xstart, xend))
 
         # Read the data for the current tile
         inc = numpy.radians(incident_dataset[idx])
@@ -583,10 +579,6 @@ def combine_shadow_masks(self_shadow, cast_shadow_sun, cast_shadow_satellite,
     attach_image_attributes(out_dset, attrs)
 
     # Initialise the tiling scheme for processing
-    if x_tile is None:
-        x_tile = cols
-    if y_tile is None:
-        y_tile = rows
     tiles = generate_tiles(cols, rows, x_tile, y_tile)
 
     # Loop over each tile
@@ -594,7 +586,7 @@ def combine_shadow_masks(self_shadow, cast_shadow_sun, cast_shadow_satellite,
         # Row and column start locations
         ystart, yend = tile[0]
         xstart, xend = tile[1]
-        idx = (slice(ystart, yend, slice(xstart, xend)))
+        idx = (slice(ystart, yend), slice(xstart, xend))
 
         out_dset[idx] = (self_shadow[idx] & cast_shadow_sun[idx] &
                          cast_shadow_satellite[idx])

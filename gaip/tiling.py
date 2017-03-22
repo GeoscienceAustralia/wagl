@@ -21,7 +21,7 @@ import gdal
 import numpy
 
 
-def generate_tiles(samples, lines, xtile=100, ytile=100):
+def generate_tiles(samples, lines, xtile=None, ytile=None):
     """
     Generates a list of tile indices for a 2D array.
 
@@ -33,11 +33,11 @@ def generate_tiles(samples, lines, xtile=100, ytile=100):
 
     :param xtile:
         (Optional) The desired size of the tile in the x-direction.
-        Default is 100.
+        Default is all samples
 
     :param ytile:
         (Optional) The desired size of the tile in the y-direction.
-        Default is 100.
+        Default is min(100, lines) lines.
 
     :return:
         Each tuple in the generator contains
@@ -79,6 +79,12 @@ def generate_tiles(samples, lines, xtile=100, ytile=100):
                 else:
                     xend = samples
                 yield ((ystep, yend), (xstep, xend))
+
+    # check for default or out of bounds
+    if xtile is None or xtile < 0:
+        xtile = samples
+    if ytile is None or ytile < 0:
+        ytile = min(100, lines)
 
     xstart = numpy.arange(0, samples, xtile)
     ystart = numpy.arange(0, lines, ytile)

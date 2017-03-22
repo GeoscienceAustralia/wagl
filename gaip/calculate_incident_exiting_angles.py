@@ -138,10 +138,6 @@ def incident_angles(solar_zenith_dataset, solar_azimuth_dataset, slope_datset,
     attach_image_attributes(azi_inc_dset, attrs)
 
     # Initialise the tiling scheme for processing
-    if x_tile is None:
-        x_tile = cols
-    if y_tile is None:
-        y_tile = rows
     tiles = generate_tiles(cols, rows, x_tile, y_tile)
 
     # Loop over each tile
@@ -151,7 +147,7 @@ def incident_angles(solar_zenith_dataset, solar_azimuth_dataset, slope_datset,
         xstart = tile[1][0]
         yend = tile[0][1]
         xend = tile[1][1]
-        idx = (slice(ystart, yend, slice(xstart, xend)))
+        idx = (slice(ystart, yend), slice(xstart, xend))
 
         # Tile size
         ysize = yend - ystart
@@ -305,10 +301,6 @@ def exiting_angles(satellite_view_dataset, satellite_azimuth_dataset,
     attach_image_attributes(azi_exit_dset, attrs)
 
     # Initialise the tiling scheme for processing
-    if x_tile is None:
-        x_tile = cols
-    if y_tile is None:
-        y_tile = rows
     tiles = generate_tiles(cols, rows, x_tile, y_tile)
 
     # Loop over each tile
@@ -318,7 +310,7 @@ def exiting_angles(satellite_view_dataset, satellite_azimuth_dataset,
         xstart = tile[1][0]
         yend = tile[0][1]
         xend = tile[1][1]
-        idx = (slice(ystart, yend, slice(xstart, xend)))
+        idx = (slice(ystart, yend), slice(xstart, xend))
 
         # Tile size
         ysize = yend - ystart
@@ -455,10 +447,6 @@ def relative_azimuth_slope(azimuth_incident_dataset,
     attach_image_attributes(out_dset, attrs)
 
     # Initialise the tiling scheme for processing
-    if x_tile is None:
-        x_tile = cols
-    if y_tile is None:
-        y_tile = rows
     tiles = generate_tiles(cols, rows, x_tile, y_tile)
 
     # Loop over each tile
@@ -466,7 +454,7 @@ def relative_azimuth_slope(azimuth_incident_dataset,
         # Row and column start and end locations
         ystart, yend = tile[0]
         xstart, xend = tile[1]
-        idx = (slice(ystart, yend, slice(xstart, xend)))
+        idx = (slice(ystart, yend), slice(xstart, xend))
 
         # Read the data for the current tile
         azi_inc = azimuth_incident_dataset[idx]

@@ -273,7 +273,7 @@ def link_bilinear_data(data, out_fname):
         # do we need two group levels?
         # dset_name = ppjoin(band, factor, base_dname)
 
-        with h5py.File(out_fname, 'w') as fid:
+        with h5py.File(out_fname, 'a') as fid:
             fid[base_dname] = h5py.ExternalLink(fname, base_dname)
 
     return
