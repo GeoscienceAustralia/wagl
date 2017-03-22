@@ -335,7 +335,7 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
         diffuse = as_array(dif_dataset[idx], **f32_args)
 
         # Allocate the output arrays
-        ysize, xsize = band_data.shape
+        xsize, ysize = band_data.shape # band_data has been transposed
         ref_lm = numpy.zeros((ysize, xsize), dtype='int16')
         ref_brdf = numpy.zeros((ysize, xsize), dtype='int16')
         ref_terrain = numpy.zeros((ysize, xsize), dtype='int16')
@@ -375,6 +375,6 @@ def link_reflectance_data(input_fnames, out_fname):
     """
     for fname in input_fnames:
         with h5py.File(fname, 'r') as fid:
-            dataset_names = fid.keys()
+            dataset_names = list(fid.keys())
         for dname in dataset_names:
             create_external_link(fname, dname, out_fname, dname)
