@@ -2,7 +2,7 @@
 Ancillary dataset retrieval and storage
 """
 
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, print_function
 import logging
 from os.path import join as pjoin, basename, splitext
 from posixpath import join as ppjoin

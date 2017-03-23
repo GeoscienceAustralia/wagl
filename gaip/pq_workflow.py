@@ -4,7 +4,7 @@
 #
 #
 
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, print_function
 from datetime import datetime as dt
 import os
 from os.path import join as pjoin

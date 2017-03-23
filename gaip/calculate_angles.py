@@ -4,7 +4,7 @@
 Satellite and Solar angle claculations over a 2D grid.
 """
 
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, print_function
 import math
 import ephem
 import numpy as np

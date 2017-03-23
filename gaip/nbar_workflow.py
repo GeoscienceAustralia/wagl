@@ -10,7 +10,7 @@ Workflow settings can be configured in `nbar.cfg` file.
 # pylint: disable=too-many-locals
 # pylint: disable=protected-access
 
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, print_function
 from os.path import join as pjoin, basename, splitext
 import luigi
 from luigi.local_target import LocalFileSystem

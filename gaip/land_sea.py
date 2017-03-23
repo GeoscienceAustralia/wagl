@@ -2,7 +2,7 @@
 #
 # get Land/Sea mask from UTM dataset
 #-----------------------------------
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, print_function
 import rasterio as rio
 import osr
 from gaip.geobox import GriddedGeoBox

@@ -3,7 +3,7 @@ Data access functions
 ---------------------
 """
 
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, print_function
 import subprocess
 import numpy as np
 import h5py

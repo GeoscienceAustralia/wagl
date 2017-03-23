@@ -50,7 +50,7 @@ Calculate: the ellipsoidal distance (s) and
 forward and reverse azimuths between the points (alpha12, alpha21).
 '''
 
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, print_function
 import math
 
 import numpy
