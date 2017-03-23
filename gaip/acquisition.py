@@ -109,7 +109,7 @@ class AcquisitionsContainer(object):
         if self.tiled:
             groups = self.get_granule(granule=granule)
             if group is None:
-                acqs = groups[groups.keys()[0]]
+                acqs = groups[list(groups.keys())[0]]
             else:
                 acqs = groups[group]
         else:
