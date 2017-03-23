@@ -1020,15 +1020,15 @@ def acquisitions_via_safe(path):
                 bnum = fname.split('_')[2]
                 band_name = bnum
 
-                band_md['BAND_INFO'] = {}
+                md['BAND_INFO'] = {}
                 db_copy = copy.deepcopy(db)
                 db_copy = db_copy['bands'][band_name]
 
                 for k, v in db_copy.items():
-                    band_md['BAND_INFO'][k] = v
+                    md['BAND_INFO'][k] = v
 
                 band_type = db_copy['type_desc']
-                band_md['BAND_INFO']['band_type'] = BAND_TYPE[band_type]
+                md['BAND_INFO']['band_type'] = BAND_TYPE[band_type]
                 band_md['band_type'] = BAND_TYPE[band_type]
 
                 band_md['band_name'] = 'band_{}'.format(bnum)
