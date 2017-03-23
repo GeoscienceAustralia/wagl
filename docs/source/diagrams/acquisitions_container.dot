@@ -1,0 +1,35 @@
+digraph AcquisitionsContainer {
+       orientation=landscape; size="7.5,7.5";
+       
+       subgraph cluster_0 { 
+           label="Scene"
+               "Granule-1";
+               "Granule-2";
+               "Granule-n";
+       }
+       subgraph cluster_1 {
+           label="Granule-1"
+             "Granule-1" -> "Granule-1: Group-1";
+             "Granule-1" -> "Granule-1: Group-2";
+             "Granule-1" -> "Granule-1: Group-n";
+       }
+       subgraph cluster_2 {
+           label="Granule-2"
+             "Granule-2" -> "Granule-2: Group-1";
+             "Granule-2" -> "Granule-2: Group-2";
+             "Granule-2" -> "Granule-2: Group-n";
+       }
+       subgraph cluster_3 {
+           label="Granule-n"
+             "Granule-n" -> "Granule-n: Group-1";
+             "Granule-n" -> "Granule-n: Group-2";
+             "Granule-n" -> "Granule-n: Group-n";
+       }
+       subgraph cluster_4 {
+           label="Bands"
+             "Granule-1: Group-1" -> "Band-1";
+             "Granule-1: Group-1" -> "Band-2";
+             "Granule-1: Group-1" -> "Band-n";
+       }
+}
+
