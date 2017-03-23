@@ -229,23 +229,23 @@ def aggregate_ancillary(ancillary_fnames, out_fname):
     elevation /= n_tiles
 
     description = ("The {} value is an average from all the {} values "
-                   " retreived for each Granule.")
+                   "retreived for each Granule.")
     attrs = {'data_source': 'granule_average'}
 
     dset = fid1.create_dataset('ozone', data=ozone)
-    attrs['Description'] = description.format('Ozone')
+    attrs['Description'] = description.format(*(2*['Ozone']))
     attach_attributes(dset, attrs)
 
     dset = fid1.create_dataset('water-vapour', data=vapour)
-    attrs['Description'] = description.format('Water Vapour')
+    attrs['Description'] = description.format(*(2*['Water Vapour']))
     attach_attributes(dset, attrs)
 
     dset = fid1.create_dataset('aerosol', data=aerosol)
-    attrs['Description'] = description.format('Aerosol')
+    attrs['Description'] = description.format(*(2*['Aerosol']))
     attach_attributes(dset, attrs)
 
     dset = fid1.create_dataset('elevation', data=elevation)
-    attrs['Description'] = description.format('Elevation')
+    attrs['Description'] = description.format(*(2*['Elevation']))
     attach_attributes(dset, attrs)
 
     return fid1
