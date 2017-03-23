@@ -16,7 +16,7 @@ for that resolution group.
 
 The following picture describes the rough layout of an *AcquisitionsContainer*.
 
-.. image:: acq.png
+.. image:: diagrams/acquisitions_container.png
 
 The *AcquisitionsContainer* will detail whether or not it tiled, in which case how many *Granules* make up the entire geospatial footprint of the scene,
 and how many *Groups* are contained within each *Granule*.
