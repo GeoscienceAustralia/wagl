@@ -7,6 +7,39 @@ import logging
 import numpy
 import numexpr
 
+def surface_brightness_temperature(acq, observation, transmittance, background):
+    """
+    Convert IR band raster to SBT raster.
+
+    T[Kelvin] = k2 / ln( 1 + (k1 / I[0]) )
+
+    where T is the surface brightness temperature (the surface temperature
+    if the surface is assumed to be an ideal black body i.e. unit emissivity),
+    k1 & k2 are calibration constants specific to the platform/sensor/band,
+    and I[0] is the surface radiance (the integrated band radiance, in
+    Watts per square metre per steradian per thousand nanometres).
+
+    I = t I[0] + d
+
+    where I is the radiance at the sensor, t is the transmittance (through
+    the atmosphere), and d is radiance from the atmosphere itself.
+
+    """
+
+    # constants
+    k1 = acq.K1
+    k2 = acq.K2
+
+    # rasters interpolated from atmospheric radiative transfer modelling
+    t = transmittance
+    d = background
+
+    # sensor image band raster
+    I = observation
+
+    # thermal raster
+    return k2 / ln( d*k1/(I - d) + 1 )
+
 
 def radiance_conversion(band_array, gain, bias):
     """
