@@ -1,3 +1,16 @@
+gaip 5.0 release notes
+======================
+
+Version 5.0 has extra satellite/sensor functionality with the inclusion of Sentinel-2a.
+HDF5 is used as the backend file format which has resulted in a simplified workflow, reduction in the number of files output during a process run, consolodated the file I/O,
+and various other advantages.
+Surface Brightness Temperature (SBT) is now available as an accompanying product to NBAR and PQ.
+
+Python compatibility
+--------------------
+Support for Python 2.7* has been dropped, and gaip now requires Python 3.5 or later.
+
+
 gaip 4.0 release notes
 ======================
 
