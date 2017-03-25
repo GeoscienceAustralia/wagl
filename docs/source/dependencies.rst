@@ -7,6 +7,7 @@ Software requirements
 
 * `NumPy <http://www.numpy.org/>`_,
 * `SciPy <http://www.scipy.org/>`_,
+* `F2py <http://www.scipy.org/F2py>`_ (which should be included with `SciPy <http://www.scipy.org/>`_)
 * `GDAL <https://pypi.python.org/pypi/GDAL/>`_,
 * `Luigi <https://github.com/spotify/luigi/>`_,
 * `numexpr <https://github.com/pydata/numexpr>`_,
@@ -55,5 +56,4 @@ Documentation
 Building
 --------
 
-* `F2py <http://www.scipy.org/F2py>`_ (which should be included with `SciPy <http://www.scipy.org/>`_), and
-* `GCC <http://gcc.gnu.org/>`_ or some other suitable suite of (C and Fortran) compilers.
+* python setup.py install --prefix=<prefix>
