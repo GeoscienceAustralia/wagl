@@ -27,7 +27,7 @@ and how many *Groups* are contained within each *Granule*.
 * *AcquisitionContainer.granules* Returns the *Granule* names associated with the scene. Returns *[None]* if there are no *Granules*.
 * *AcquisitionContainer.groups* Returns the *Group* names associated with the scene. **Note!**:
 
-       A *Group* name is required for every scene.
+       **A *Group* name is required when defining a new satellite/sensor acquisitions read routine.**
 
 * *AcquisitionsContainer.get_acquisitions* Given a *Granule* and *Group*, return a list of *Acquisition* objects.
 * *AcquisitionsContainer.get_granule* Returns a *dictionary* containing lists of *Acquisition* objects for each *Group* associated with the given *Granule*.
