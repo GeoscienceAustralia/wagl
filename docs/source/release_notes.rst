@@ -6,6 +6,10 @@ HDF5 is used as the backend file format which has resulted in a simplified workf
 and various other advantages.
 Surface Brightness Temperature (SBT) is now available as an accompanying product to NBAR and PQ.
 
+* Extra layers of hierarchy have been added to the return of what originally was a single list of *Acquisitions*. An *AcquisitionsContainer* is now returned instead, as it was
+necessary in order to handle scenes comprising of multiple *Granules*, and multiple *Resolutions*.
+
+
 Python compatibility
 --------------------
 Support for Python 2.7* has been dropped, and gaip now requires Python 3.5 or later.
