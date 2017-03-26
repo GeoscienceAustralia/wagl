@@ -456,6 +456,9 @@ class DEMExctraction(luigi.Task):
 
     dsm_fname = luigi.Parameter(default='dsm.tif', significant=False)
 
+    def requires(self):
+        return WorkRoot(self.level1, self.work_root)
+
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
