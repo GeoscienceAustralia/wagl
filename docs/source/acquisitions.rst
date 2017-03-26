@@ -33,7 +33,7 @@ and how many *Groups* are contained within each *Granule*.
 * *AcquisitionsContainer.get_granule* Returns a *dictionary* containing lists of *Acquisition* objects for each *Group* associated with the given *Granule*.
 * *AcquisitionsContainer.get_root* Return a *str* to the root level for a given *Granule* and *Group*. Example:
 
-       :: code-block:: python
+       .. code-block:: python
 
-          scene = acquisitions('S2A_USER_PRD_MSIL2A_PDMC_20160120T071902_R016_V20160120T003331_20160120T003331.SAFE')
-          print(scene.get_root('my/work/directory', granule='S2A_USER_MSI_L2A_TL_SGS__20160120T053143_A003016_T55KBQ_N02.01', group='R10m')
+          >>> scene = acquisitions('S2A_USER_PRD_MSIL2A_PDMC_20160120T071902_R016_V20160120T003331_20160120T003331.SAFE')
+          >>> print(scene.get_root('my/work/directory', granule='S2A_USER_MSI_L2A_TL_SGS__20160120T053143_A003016_T55KBQ_N02.01', group='R10m')
