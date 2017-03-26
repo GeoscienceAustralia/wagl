@@ -60,11 +60,12 @@ class AcquisitionsContainer(object):
         self._granules = granules
 
     def __repr__(self):
-        fmt = ("Tiled scene: {tiled}\n"
-               "Granules: {granules}\n"
-               "Groups: {groups}")
-        return fmt.format(tiled=self.tiled, granules=self.granules,
-                          groups=self.groups)
+        fmt = ("****Tiled scene****:\n{tiled}\n"
+               "****Granules****:\n{granules}\n"
+               "****Groups****:\n{groups}")
+        granules = "\n".join(self.granules)
+        groups = "\n".join(self.groups)
+        return fmt.format(tiled=self.tiled, granules=granules, groups=groups)
 
     @property
     def tiled(self):
