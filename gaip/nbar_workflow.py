@@ -3,7 +3,7 @@
 NBAR Workflow
 -------------
 
-Workflow settings can be configured in `nbar.cfg` file.
+Workflow settings can be configured in `luigi.cfg` file.
 
 """
 # pylint: disable=missing-docstring,no-init,too-many-function-args
