@@ -71,12 +71,11 @@ def relative_humdity(surface_temp, dewpoint_temp, kelvin=True):
     return rh
 
 
-def _collect_thermal_ancillary(acquisition, satellite_solar_fname,
-                               dewpoint_path, temperature_2m_path,
-                               surface_pressure_path, geopotential_path,
-                               temperature_path, relative_humidity_path,
-                               invariant_fname, out_fname=None,
-                               compression='lzf'):
+def _collect_sbt_ancillary(acquisition, satellite_solar_fname, dewpoint_path,
+                           temperature_2m_path, surface_pressure_path,
+                           geopotential_path, temperature_path,
+                           relative_humidity_path, invariant_fname,
+                           out_fname=None, compression='lzf'):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -85,21 +84,21 @@ def _collect_thermal_ancillary(acquisition, satellite_solar_fname,
         coord_dset = fid['coordinator']
         lonlats = zip(coord_dset['longitude'], coord_dset['latitude'])
 
-    rfid = collect_thermal_ancillary(acquisition, lonlats, dewpoint_path,
-                                     temperature_2m_path,
-                                     surface_pressure_path, geopotential_path,
-                                     temperature_path, relative_humidity_path,
-                                     invariant_fname, out_fname, compression)
+    rfid = collect_sbt_ancillary(acquisition, lonlats, dewpoint_path,
+                                 temperature_2m_path, surface_pressure_path,
+                                 geopotential_path, temperature_path,
+                                 relative_humidity_path, invariant_fname,
+                                 out_fname, compression)
 
     rfid.close()
     return
 
 
-def collect_thermal_ancillary(acquisition, lonlats, dewpoint_path,
-                              temperature_2m_path, surface_pressure_path,
-                              geopotential_path, temperature_path,
-                              relative_humidity_path, invariant_fname,
-                              out_fname=None, compression='lzf'):
+def collect_sbt_ancillary(acquisition, lonlats, dewpoint_path,
+                          temperature_2m_path, surface_pressure_path,
+                          geopotential_path, temperature_path,
+                          relative_humidity_path, invariant_fname,
+                          out_fname=None, compression='lzf'):
     """
     Collects the ancillary data required for surface brightness
     temperature.

@@ -16,7 +16,7 @@ import luigi
 from luigi.local_target import LocalFileSystem
 from luigi.util import inherits, requires
 from gaip.acquisition import acquisitions
-from gaip.ancillary import collect_ancillary_data, collect_thermal_ancillary
+from gaip.ancillary import collect_ancillary_data, _collect_sbt_ancillary
 from gaip.calculate_angles import _calculate_angles
 from gaip.calculate_incident_exiting_angles import _incident_angles
 from gaip.calculate_incident_exiting_angles import _exiting_angles
@@ -59,16 +59,14 @@ class ThermalAncillary(luigi.Task):
         sat_sol_fname = self.input().path
 
         with self.output().temporary_path() as out_fname:
-            _collect_thermal_ancillary(acqs[0], sat_sol_fname,
-                                       self.dewpoint_path,
-                                       self.temp_2m_path,
-                                       self.surface_pressure_path,
-                                       self.geopotential_path,
-                                       self.temperature_path,
-                                       self.relative_humidity_path,
-                                       self.invariant_height_fname,
-                                       out_fname, self.compression)
-
+            _collect_sbt_ancillary(acqs[0], sat_sol_fname, self.dewpoint_path,
+                                   self.temp_2m_path,
+                                   self.surface_pressure_path,
+                                   self.geopotential_path,
+                                   self.temperature_path,
+                                   self.relative_humidity_path,
+                                   self.invariant_height_fname,
+                                   out_fname, self.compression)
 
 
 class ThermalTp5(WriteTp5):
