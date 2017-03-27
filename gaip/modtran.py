@@ -86,7 +86,7 @@ def prepare_modtran(acquisition, coordinate, albedo, modtran_work,
 
 def _format_tp5(acquisition, satellite_solar_angles_fname,
                 longitude_fname, latitude_fname, ancillary_fname, out_fname,
-                npoints, albedos):
+                albedos):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -113,7 +113,7 @@ def _format_tp5(acquisition, satellite_solar_angles_fname,
         tp5_data, metadata = format_tp5(acquisition, coord_dset, view_dset,
                                         azi_dset, lat_dset, lon_dset, ozone,
                                         water_vapour, aerosol, elevation,
-                                        npoints, albedos)
+                                        coord_dset.shape[0], albedos)
 
         group = fid.create_group('modtran-inputs')
         iso_time = acquisition.scene_centre_date.isoformat()
@@ -278,8 +278,7 @@ def run_modtran(modtran_exe, workpath, point, albedo, out_fname=None,
     return fid
 
 
-def _calculate_coefficients(accumulated_fname, npoints, out_fname,
-                            compression='lzf'):
+def _calculate_coefficients(accumulated_fname, out_fname, compression='lzf'):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -292,6 +291,7 @@ def _calculate_coefficients(accumulated_fname, npoints, out_fname,
         accumulation_albedo_t = {}
         channel_data = {}
 
+        npoints = len(fid.keys())
         for point in range(npoints):
             grp_path = ppjoin(POINT_FMT, ALBEDO_FMT)
             albedo_0_path = ppjoin(grp_path.format(p=point, a='0'),
@@ -554,8 +554,8 @@ def read_modtran_flux(fname):
 
     # datatype for the dataframe containing the flux data
     flux_dtype = numpy.dtype([('upward_diffuse', 'float64'),
-                             ('downward_diffuse', 'float64'),
-                             ('direct_solar', 'float64')])
+                              ('downward_diffuse', 'float64'),
+                              ('direct_solar', 'float64')])
 
     with open(fname, 'rb') as src:
         # read the hdr record
