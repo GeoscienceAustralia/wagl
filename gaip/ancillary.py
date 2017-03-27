@@ -117,16 +117,17 @@ def collect_thermal_ancillary(acquisition, dewpoint_path, temperature_2m_path,
     # combine the surface and higher pressure layers into a single array
     cols = ['GeoPotential_Height', 'Pressure', 'Temperature',
             'Relative_Humidity']
-    df = pandas.DataFrame(columns=cols, index=range(rh_df.shape[0]+1))
-    df['GeoPotential_Height'].iloc[1:] = gph_df['GeoPotential_Height'].copy()
-    df['Pressure'].iloc[1:] = ECWMF_LEVELS
-    df['Temperature'].iloc[1:] = tmp_df['Temperature'].copy()
-    df['Relative_Humidity'].iloc[1:] = rh_df['Relative_Humidity'].copy()
+    df = pandas.DataFrame(columns=cols, index=range(rh_df.shape[0]+1),
+                          dtype='float64')
+    df['GeoPotential_Height'].iloc[1:] = gph_df['GeoPotential_Height'].values
+    df['Pressure'].iloc[1:] = ECWMF_LEVELS[::-1]
+    df['Temperature'].iloc[1:] = tmp_df['Temperature'].values
+    df['Relative_Humidity'].iloc[1:] = rh_df['Relative_Humidity'].values
 
     # insert the surface level
     df['GeoPotential_Height'].iloc[0] = sfc_hgt[0]
     df['Pressure'].iloc[0] = sfc_prs[0]
-    df['Temperature'].iloc[0] = t2m[0]
+    df['Temperature'].iloc[0] = kelvin_2_celcius(t2m[0])
     df['Relative_Humidity'].iloc[0] = rh
 
     description = ('Combined Surface and Pressure Layer data retrieved from '
