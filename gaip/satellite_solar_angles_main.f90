@@ -27,7 +27,7 @@ subroutine angle(ncol,nrow,row_num,alat,alon,spheroid,orb_elements, &
 !           3. Angular velocity (rad sec-1)
 !       hours
 !       century
-!       ntpoints
+!       ntpoints (number of time points created in determining the satellite track)
 !       smodel
 !           1. phi0
 !           2. phi0_p
