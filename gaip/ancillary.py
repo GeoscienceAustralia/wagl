@@ -42,7 +42,7 @@ def get_4d_idx(day):
     """
     start = 1 + 37 * (day - 1)
     stop = start + 37
-    return range(start, stop, 1)
+    return list(range(start, stop, 1))
 
 
 def kelvin_2_celcius(kelvin):
