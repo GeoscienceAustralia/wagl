@@ -33,44 +33,42 @@ from gaip.nbar_workflow import CalculateSatelliteAndSolarGrids
 from gaip.nbar_workflow import RunModtranCase, WriteTp5, GetAncillaryData
 
 
-class ThermalAncillary(GetAncillaryData):
-    """ Collect the ancillary data required for SBT."""
+@requires(CalculateSatelliteAndSolarGrids)
+class ThermalAncillary(luigi.Task):
+
+    """Collect the ancillary data required for SBT."""
 
     dewpoint_path = luigi.Parameter(significant=False)
     temp_2m_path = luigi.Parameter(significant=False)
-    surface_presure_path = luigi.Parameter(significant=False)
+    surface_pressure_path = luigi.Parameter(significant=False)
     geopotential_path = luigi.Parameter(significant=False)
     temperature_path = luigi.Parameter(significant=False)
     relative_humidity_path = luigi.Parameter(significant=False)
     invariant_height_fname = luigi.Parameter(significant=False)
-    compression = luigi.Parameter(significant=False)
+
+    def output(self):
+        out_path = acquisitions(self.level1).get_root(self.work_root,
+                                                      granule=self.granule)
+        return luigi.LocalTarget(pjoin(out_path, 'sbt-ancillary.h5'))
 
     def run(self):
         container = acquisitions(self.level1)
         acqs = container.get_acquisitions(granule=self.granule)
         work_root =  container.get_root(self.work_root, granule=self.granule)
 
+        sat_sol_fname = self.input().path
+
         with self.output().temporary_path() as out_fname:
-            fid = collect_ancillary_data(acqs[0], self.aerosol_fname,
-                                         self.water_vapour_path,
-                                         self.ozone_path, self.dem_path,
-                                         self.brdf_path,
-                                         self.brdf_premodis_path, out_fname,
-                                         self.compression, work_root)
+            _collect_thermal_ancillary(acqs[0], sat_sol_fname,
+                                       self.dewpoint_path,
+                                       self.temp_2m_path,
+                                       self.surface_pressure_path,
+                                       self.geopotential_path,
+                                       self.temperature_path,
+                                       self.relative_humidity_path,
+                                       self.invariant_height_fname,
+                                       out_fname, self.compression)
 
-            mfid = collect_thermal_ancillary(acqs[0], self.dewpoint_path,
-                                             self.temp_2m_path,
-                                             self.surface_presure_path,
-                                             self.geopotential_path,
-                                             self.temperature_path,
-                                             self.relative_humidity_path,
-                                             self.invariant_height_fname,
-                                             compression=self.compression)
-
-            # copy across the thermal ancillary
-            mfid.copy(mfid, fid)
-            mfid.close()
-            fid.close()
 
 
 class ThermalTp5(WriteTp5):
