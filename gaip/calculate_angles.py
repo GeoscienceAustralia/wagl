@@ -784,7 +784,7 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, vertices=(3, 3),
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
-             'geotransform': geobox.affine.to_gdal(),
+             'geotransform': geobox.transform.to_gdal(),
              'no_data_value': no_data}
     desc = "Contains the satellite viewing angle in degrees."
     attrs['Description'] = desc

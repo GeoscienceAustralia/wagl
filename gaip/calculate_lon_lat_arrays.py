@@ -152,7 +152,7 @@ def create_lon_lat_grids(geobox, depth=7, dtype='float64',
 
     # define some base attributes for the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
-             'geotransform': geobox.affine.to_gdal()}
+             'geotransform': geobox.transform.to_gdal()}
 
     attrs['Description'] = LON_DESC
     kwargs = dataset_compression_kwargs(compression=compression,
@@ -240,7 +240,7 @@ def create_lon_grid(geobox, out_fname=None, compression='lzf', depth=7,
 
     # define some base attributes for the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
-             'geotransform': geobox.affine.to_gdal()}
+             'geotransform': geobox.transform.to_gdal()}
     attrs['Description'] = LON_DESC
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))
@@ -294,7 +294,7 @@ def create_lat_grid(geobox, out_fname=None, compression='lzf', depth=7,
 
     # define some base attributes for the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
-             'geotransform': geobox.affine.to_gdal()}
+             'geotransform': geobox.transform.to_gdal()}
     attrs['Description'] = LAT_DESC
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))

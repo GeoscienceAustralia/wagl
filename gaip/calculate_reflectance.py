@@ -275,7 +275,7 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
-             'geotransform': geobox.affine.to_gdal(),
+             'geotransform': geobox.transform.to_gdal(),
              'no_data_value': kwargs['fillvalue'],
              'rori threshold setting': rori,
              'sattelite': acquisition.spacecraft_id,

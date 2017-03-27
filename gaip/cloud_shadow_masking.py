@@ -79,7 +79,7 @@ def cloud_shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg,
     if cloud_mask == None:
         raise Exception('Cloud Layer input is not valid')
 
-    geoTransform = geo_box.affine.to_gdal()
+    geoTransform = geo_box.transform.to_gdal()
 
     # Filter Thresholds:
     # wt_ndvi = 0.1

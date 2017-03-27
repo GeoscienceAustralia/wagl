@@ -215,9 +215,9 @@ class GriddedGeoBox(object):
             self.crs = osr.SpatialReference()
             if self.crs == self.crs.SetFromUserInput(crs):
                 raise ValueError("Invalid crs: %s" % (crs, ))
-        self.affine = Affine(self.pixelsize[0], 0, self.origin[0], 0,
-                             -self.pixelsize[1], self.origin[1])
-        self.corner = self.affine * self.get_shape_xy()
+        self.transform = Affine(self.pixelsize[0], 0, self.origin[0], 0,
+                                -self.pixelsize[1], self.origin[1])
+        self.corner = self.transform * self.get_shape_xy()
 
     def get_shape_xy(self):
         """Get the shape as a tuple (x,y)."""
@@ -282,8 +282,8 @@ class GriddedGeoBox(object):
         pos = enclosed2self.TransformPoint(areaCorner[0], areaCorner[1])
         areaCornerT = (pos[0], pos[1])
 
-        areaOriginXY = [int(math.floor(v)) for v in ~self.affine * originT]
-        areaCornerXY = [int(math.ceil(v)) for v in ~self.affine * areaCornerT]
+        areaOriginXY = [int(math.floor(v)) for v in ~self.transform * originT]
+        areaCornerXY = [int(math.ceil(v)) for v in ~self.transform * areaCornerT]
 
         return ((areaOriginXY[1], areaCornerXY[1]),
                 (areaOriginXY[0], areaCornerXY[0]))
@@ -326,9 +326,9 @@ class GriddedGeoBox(object):
         if to_map:
             if centre:
                 xy = tuple(v + 0.5 for v in xy)
-            x, y = xy * self.affine
+            x, y = xy * self.transform
         else:
-            inv = ~self.affine
+            inv = ~self.transform
             x, y = [int(v) for v in inv * xy]
 
         return (x, y)
@@ -378,14 +378,14 @@ class GriddedGeoBox(object):
 
         spheroid, _ = setup_spheroid(self.crs.ExportToWkt())
 
-        (lon1, lat1) = self.affine * (x, y+0.5)
-        (lon2, lat2) = self.affine * (x+1, y+0.5)
+        (lon1, lat1) = self.transform * (x, y+0.5)
+        (lon2, lat2) = self.transform * (x+1, y+0.5)
         x_size, _az_to, _az_from = vinc_dist(spheroid[1], spheroid[0],
                                              radians(lat1), radians(lon1),
                                              radians(lat2), radians(lon2))
 
-        (lon1, lat1) = self.affine * (x+0.5, y)
-        (lon2, lat2) = self.affine * (x+0.5, y+1)
+        (lon1, lat1) = self.transform * (x+0.5, y)
+        (lon2, lat2) = self.transform * (x+0.5, y+1)
         y_size, _az_to, _az_from = vinc_dist(spheroid[1], spheroid[0],
                                              radians(lat1), radians(lon1),
                                              radians(lat2), radians(lon2))
