@@ -38,6 +38,7 @@ class ThermalAncillary(luigi.Task):
 
     """Collect the ancillary data required for SBT."""
 
+    vertices = luigi.TupleParameter(default=(5, 5), significant=False)
     dewpoint_path = luigi.Parameter(significant=False)
     temp_2m_path = luigi.Parameter(significant=False)
     surface_pressure_path = luigi.Parameter(significant=False)
