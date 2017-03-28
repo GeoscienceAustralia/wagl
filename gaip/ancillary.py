@@ -178,19 +178,19 @@ def collect_sbt_ancillary(acquisition, lonlats, dewpoint_path,
         sfc_rh = relative_humdity(t2m[0], dew[0])
 
         # output the scalar data along with the attrs
-        dname = ppjoin(POINT_FMT.format(i), 'dewpoint-temperature-2metre')
+        dname = ppjoin(POINT_FMT.format(p=i), 'dewpoint-temperature-2metre')
         write_scalar(dew[0], dname, fid, dew[1])
 
-        dname = ppjoin(POINT_FMT.format(i), 'temperature-2metre')
+        dname = ppjoin(POINT_FMT.format(p=i), 'temperature-2metre')
         write_scalar(t2m[0], dname, fid, t2m[1])
 
-        dname = ppjoin(POINT_FMT.format(i), 'surface-pressure')
+        dname = ppjoin(POINT_FMT.format(p=i), 'surface-pressure')
         write_scalar(sfc_prs[0], dname, fid, sfc_prs[1])
 
-        dname = ppjoin(POINT_FMT.format(i), 'surface-geopotential-height')
+        dname = ppjoin(POINT_FMT.format(p=i), 'surface-geopotential-height')
         write_scalar(sfc_hgt[0], dname, fid, sfc_hgt[1])
 
-        dname = ppjoin(POINT_FMT.format(i), 'surface-relative-humidity')
+        dname = ppjoin(POINT_FMT.format(p=i), 'surface-relative-humidity')
         attrs = {'Description': 'Relative Humidity calculated at the surface'}
         write_scalar(sfc_rh, dname, fid, attrs)
 
@@ -199,13 +199,13 @@ def collect_sbt_ancillary(acquisition, lonlats, dewpoint_path,
         tmp = ecwmf_temperature(temperature_path, lonlat, dt)
         rh = ecwmf_relative_humidity(relative_humidity_path, lonlat, dt)
 
-        dname = ppjoin(POINT_FMT.format(i), 'geopotential')
+        dname = ppjoin(POINT_FMT.format(p=i), 'geopotential')
         write_dataframe(gph[0], dname, fid, compression, attrs=gph[1])
 
-        dname = ppjoin(POINT_FMT.format(i), 'temperature')
+        dname = ppjoin(POINT_FMT.format(p=i), 'temperature')
         write_dataframe(tmp[0], dname, fid, compression, attrs=tmp[1])
 
-        dname = ppjoin(POINT_FMT.format(i), 'relative-humidity')
+        dname = ppjoin(POINT_FMT.format(p=i), 'relative-humidity')
         write_dataframe(rh[0], dname, fid, compression, attrs=rh[1])
 
         # combine the surface and higher pressure layers into a single array
@@ -231,7 +231,7 @@ def collect_sbt_ancillary(acquisition, lonlats, dewpoint_path,
         df['Temperature'].iloc[0] = kelvin_2_celcius(t2m[0])
         df['Relative_Humidity'].iloc[0] = sfc_rh
 
-        dname = ppjoin(POINT_FMT.format(i), 'atmospheric-profile')
+        dname = ppjoin(POINT_FMT.format(p=i), 'atmospheric-profile')
         write_dataframe(df, dname, fid, compression, attrs=attrs)
 
     return fid
