@@ -17,8 +17,8 @@ import pandas as pd
 
 from gaip.hdf5 import write_dataframe, read_table
 from gaip.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
-from gaip.modtran_profiles import MIDLAT_SUMMER_TRANSMITTANCE
-from gaip.modtran_profiles import TROPICAL_TRANSMITTANCE
+from gaip.modtran_profiles import MIDLAT_SUMMER_TRANSMITTANCE, SBT_FORMAT
+from gaip.modtran_profiles import TROPICAL_TRANSMITTANCE, THERMAL_TRANSMITTANCE
 
 
 POINT_FMT = 'point-{p}'
@@ -86,7 +86,7 @@ def prepare_modtran(acquisition, coordinate, albedo, modtran_work,
 
 def _format_tp5(acquisition, satellite_solar_angles_fname,
                 longitude_fname, latitude_fname, ancillary_fname, out_fname,
-                albedos):
+                albedos, sbt_ancillary_fname=None):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -127,12 +127,15 @@ def _format_tp5(acquisition, satellite_solar_angles_fname,
             for k in metadata[key]:
                 dset.attrs[k] = metadata[key][k]
 
+        if sbt_ancillary_fname is not None:
+            format_sbt_tp5(acquisition, 
+
     return tp5_data
 
 
 def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
                lat_dataset, lon_dataset, ozone, vapour, aerosol, elevation,
-               npoints, albedos):
+               npoints, albedos, sbt_dataset=None):
     """
     Creates str formatted tp5 files for the albedo (0, 1) and
     transmittance (t).
@@ -214,6 +217,20 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
 
             tp5_data[(i, alb)] = data
             metadata[(i, alb)] = input_data
+
+    # tp5 for sbt; the current logic for NBAR uses 9 coordinator points
+    # and sbt uses 25 coordinator points
+    # as such points [0, 9) in nbar will not be the same [0, 9) points in
+    # the sbt coordinator
+    # hopefully the science side of the algorithm will be re-engineered
+    # so as to ensure a consistant logic between the two products
+
+    if sbt_dataset is not None:
+        for i in range(npoints):
+            trans_profile = THERMAL_TRANSMITTANCE
+            atmos_profile = []
+            # TODO: check for ascending geopotential height and remove
+            # rows if it is not the case
 
     return tp5_data, metadata
 
