@@ -544,7 +544,7 @@ def ecwmf_temperature_2metre(input_path, lonlat, time):
     collection.
     """
     product = 'temperature-2metre'
-    files = glob.glob(pjoin(input_path, '{}_*.grib'.format(product)))
+    files = glob.glob(pjoin(input_path, '{}_*.tif'.format(product)))
     data = None
     for f in files:
         start, end = splitext(basename(f))[0].split('_')[1:]
@@ -574,7 +574,7 @@ def ecwmf_dewpoint_temperature(input_path, lonlat, time):
     Temperature collection.
     """
     product = 'dewpoint-temperature'
-    files = glob.glob(pjoin(input_path, '{}_*.grib'.format(product)))
+    files = glob.glob(pjoin(input_path, '{}_*.tif'.format(product)))
     data = None
     for f in files:
         start, end = splitext(basename(f))[0].split('_')[1:]
@@ -606,7 +606,7 @@ def ecwmf_surface_pressure(input_path, lonlat, time):
     Scales the result by 100 before returning.
     """
     product = 'surface-pressure'
-    files = glob.glob(pjoin(input_path, '{}_*.grib'.format(product)))
+    files = glob.glob(pjoin(input_path, '{}_*.tif'.format(product)))
     data = None
     for f in files:
         start, end = splitext(basename(f))[0].split('_')[1:]
@@ -636,7 +636,7 @@ def ecwmf_water_vapour(input_path, lonlat, time):
     collection.
     """
     product = 'water-vapour'
-    files = glob.glob(pjoin(input_path, '{}_*.grib'.format(product)))
+    files = glob.glob(pjoin(input_path, '{}_*.tif'.format(product)))
     data = None
     for f in files:
         start, end = splitext(basename(f)).split('_')[1:]
@@ -671,7 +671,7 @@ def ecwmf_temperature(input_path, lonlat, time):
     (1000 -> 1 mb, rather than 1 -> 1000 mb) before returning.
     """
     product = 'temperature'
-    files = glob.glob(pjoin(input_path, '{}_*.grib'.format(product)))
+    files = glob.glob(pjoin(input_path, '{}_*.tif'.format(product)))
     data = None
     for f in files:
         start, end = splitext(basename(f))[0].split('_')[1:]
@@ -711,7 +711,7 @@ def ecwmf_geo_potential(input_path, lonlat, time):
     returning.
     """
     product = 'geo-potential'
-    files = glob.glob(pjoin(input_path, '{}_*.grib'.format(product)))
+    files = glob.glob(pjoin(input_path, '{}_*.tif'.format(product)))
     data = None
     for f in files:
         start, end = splitext(basename(f))[0].split('_')[1:]
@@ -752,7 +752,7 @@ def ecwmf_relative_humidity(input_path, lonlat, time):
     (1000 -> 1 mb, rather than 1 -> 1000 mb) before returning.
     """
     product = 'relative-humidity'
-    files = glob.glob(pjoin(input_path, '{}_*.grib'.format(product)))
+    files = glob.glob(pjoin(input_path, '{}_*.tif'.format(product)))
     data = None
     for f in files:
         start, end = splitext(basename(f))[0].split('_')[1:]
