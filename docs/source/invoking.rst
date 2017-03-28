@@ -23,20 +23,22 @@ Luigi will then execute, and manage, the entire NBAR workflow for every Level-1 
 If however, you want to run just a specific part of the workflow, say for example *CalculateCoefficients*, then you would need to
 specify the following arguments:
 
---level1      /path/to/level1/scene
---work-root   path/to/working/directory
---granule     granule id name; Default is None; and can be ignored for Landsat
---npoints     the number of points atmospherical calculations will run across the scene; Default is 9
---albedos     the albedo measurementsl Default is *"[0, 1, 't']"*
---base-dir    the base directory to contain the atmospheric calculations; Default is _atmospherics
---compression the compression filter used when writing the outputs to disk; Default is lzf
+--level1       /path/to/level1/scene
+--work-root    path/to/working/directory
+--granule      granule id name; Default is None; and can be ignored for Landsat
+--npoints      the number of points atmospherical calculations will run across the scene; Default is 9
+--albedos      the albedo measurementsl Default is *"[0, 1, 't']"*
+--base-dir     the base directory to contain the atmospheric calculations; Default is _atmospherics
+--compression  the compression filter used when writing the outputs to disk; Default is lzf
 
 An example of running the *CalculateCoefficients* Task using the local scehduler is:
 
 .. code-block:: bash
 
-   $ luigi --module gaip.nbar_workflow CalculateCoefficients --level1 /path/to/LS5_TM_OTH_P51_GALPGS01-007_111_068_20000707 --work-root /my/work/LS5_TM_OTH_P51_GALPGS01-007_111_068_20000707.gaip-work --workers 4 --local-scheduler
-
+   $ luigi --module gaip.nbar_workflow CalculateCoefficients \
+     --level1 /path/to/LS5_TM_OTH_P51_GALPGS01-007_111_068_20000707 \
+     --work-root /my/work/LS5_TM_OTH_P51_GALPGS01-007_111_068_20000707.gaip-work --workers 4 --local-scheduler
+   
 The Tasks callable from the command line are:
 
 * **NBAR** (Issues full NBAR workflows for each level-1 in a list)
