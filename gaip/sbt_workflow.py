@@ -34,7 +34,7 @@ from gaip.nbar_workflow import RunModtranCase, WriteTp5, GetAncillaryData
 
 
 @requires(CalculateSatelliteAndSolarGrids)
-class ThermalAncillary(luigi.Task):
+class SBTAncillary(luigi.Task):
 
     """Collect the ancillary data required for SBT."""
 
@@ -85,16 +85,15 @@ class ThermalTp5(WriteTp5):
         tasks = {}
 
         for granule in container.granules:
-            key1 = (granule, 'ancillary')
             args1 = [self.level1, self.work_root, granule]
-            tasks[key1] = ThermalAncillary(*args1)
+            tasks[(granule, 'sbt-ancillary')] = SBTAncillary(*args1)
+            tasks[(granule, 'ancillary')] = GetAncillaryData(*args1)
             for group in container.groups:
-                key2 = (granule, group)
                 args2 = [self.level1, self.work_root, granule, group]
                 tsks = {'sat_sol': CalculateSatelliteAndSolarGrids(*args2),
                         'lat': CalculateLatGrid(*args2),
                         'lon': CalculateLonGrid(*args2)}
-                tasks[key2] = tsks
+                tasks[(granule, group)] = tsks
 
         return tasks
 
