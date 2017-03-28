@@ -110,10 +110,20 @@ def _format_tp5(acquisition, satellite_solar_angles_fname,
         ozone = anc_ds['ozone'][()]
         elevation = anc_ds['elevation'][()]
 
+        if sbt_ancillary_fname is not None:
+            sbt_ancillary = {}
+            with h5py.File(sbt_ancillary_fname, 'r') as sbt_fid:
+                dname = ppjoin(POINT_FMT, 'atmospheric-profile')
+                for i in range(coord_dset.shape[0]):
+                    sbt_ancillary[i] = read_table(sbt_fid, dname.format(p=i))
+        else:
+            sbt_ancillary = None
+
         tp5_data, metadata = format_tp5(acquisition, coord_dset, view_dset,
                                         azi_dset, lat_dset, lon_dset, ozone,
                                         water_vapour, aerosol, elevation,
-                                        coord_dset.shape[0], albedos)
+                                        coord_dset.shape[0], albedos,
+                                        sbt_ancillary)
 
         group = fid.create_group('modtran-inputs')
         iso_time = acquisition.scene_centre_date.isoformat()
@@ -127,15 +137,12 @@ def _format_tp5(acquisition, satellite_solar_angles_fname,
             for k in metadata[key]:
                 dset.attrs[k] = metadata[key][k]
 
-        if sbt_ancillary_fname is not None:
-            format_sbt_tp5(acquisition, 
-
     return tp5_data
 
 
 def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
                lat_dataset, lon_dataset, ozone, vapour, aerosol, elevation,
-               npoints, albedos, sbt_dataset=None):
+               npoints, albedos, sbt_ancillary=None):
     """
     Creates str formatted tp5 files for the albedo (0, 1) and
     transmittance (t).
@@ -194,6 +201,9 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
     # write the tp5 files required for input into MODTRAN
     for i in range(npoints):
         for alb in albedos:
+            if alb == 'th':
+                # ignore and handle later; TODO: re-design this section
+                continue 
             input_data = {'water': vapour,
                           'ozone': ozone,
                           'filter_function': filter_file,
@@ -225,10 +235,33 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
     # hopefully the science side of the algorithm will be re-engineered
     # so as to ensure a consistant logic between the two products
 
-    if sbt_dataset is not None:
+    if sbt_ancillary is not None:
         for i in range(npoints):
-            trans_profile = THERMAL_TRANSMITTANCE
-            atmos_profile = []
+            atmospheric_profile = []
+            atmos_profile = sbt_ancillary[i]
+            n_layers = atmos_profile.shape[0]
+            elevation = atmos_profile.iloc[0]['GeoPotential_Height']
+            for i, row in atmos_profile.iterrows():
+                input_data = {'gpheight': row['GeoPotential_Height'],
+                              'pressure': row['Pressure'],
+                              'airtemp': row['Temperature'],
+                              'humidity': row['Relative_Humidity'],
+                              'zero': 0.0}
+                atmospheric_profile.append(SBT_FORMAT.format(**input_data))
+            
+            input_data = {'ozone': ozone,
+                          'filter_function': filter_file,
+                          'visibility': -aerosol,
+                          'gpheight': elevation,
+                          'n': n_layers,
+                          'sat_height': altitude,
+                          'sat_view': view_cor[i],
+                          'binary': binary,
+                          'data_array': atmos_profile}
+
+            data = THERMAL_TRANSMITTANCE.format(**input_data)
+            tp5_data[(i, 'th')] = data
+            metadata[(i, 'th')] = input_data
             # TODO: check for ascending geopotential height and remove
             # rows if it is not the case
 
