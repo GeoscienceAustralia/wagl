@@ -53,6 +53,38 @@ def _calculate_angles(acquisition, lon_fname, lat_fname, out_fname,
     return
 
 
+def convert_to_latlon(geobox, row_index, col_index):
+    """
+    Converts arrays of row and column indices into latitude and
+    longitude (WGS84 datum).
+
+    :param geobox:
+        An instance of a GriddedGeoBox object.
+
+    :param row_index:
+        A 1D `NumPy` array of integers representing the row indices.
+
+    :param col_index:
+        A 1D `NumPy` array of integers representing the column indices.
+
+    :return:
+        2x 1D `NumPy` arrays, of type float64, containing the
+        (longitude, latitude) coordinates.
+    """
+    # Define the TO_CRS for lon & lat outputs
+    sr = osr.SpatialReference()
+
+    lon = lat = np.zeros(row_index.shape, dtype='float64')
+
+    for i, coord in enumerate(zip(col_index, row_index)):
+        map_xy = geobox.convert_coordinates(coord)
+        lonlat = geobox.transform_coordinates(map_xy, to_crs=sr)
+        lon[i] = lonlat[0]
+        lat[i] = lonlat[1]
+
+    return lon, lat
+    
+
 def create_centreline_dataset(geobox, y, x, n):
     """
     Creates the centre line dataset.
@@ -90,13 +122,7 @@ def create_centreline_dataset(geobox, y, x, n):
                       ('n_pixels', 'float'), ('latitude', 'float64'),
                       ('longitude', 'float64')])
     data = np.zeros(rows, dtype=dtype)
-    lon = lat = np.zeros(rows, dtype='float64')
-
-    for r in range(rows):
-        mapXY = geobox.convert_coordinates((x[r], y[r]))
-        lonlat = geobox.transform_coordinates(mapXY, to_crs=sr)
-        lon[r] = lonlat[0]
-        lat[r] = lonlat[1]
+    lon, lat = convert_to_latlon(geobox, x, y)
 
     data['row_index'] = y
     data['col_index'] = x
@@ -152,8 +178,8 @@ def swathe_edges(threshold, array):
     return start, end
 
 
-def create_boxline_coordinator(view_angle_dataset, line, xcentre, npoints,
-                               max_angle=9.0, vertices=(3, 3)):
+def create_boxline_coordinator(geobox, view_angle_dataset, line, xcentre,
+                               npoints, max_angle=9.0, vertices=(3, 3)):
     """
     Creates the boxline and coordinator datasets.
 
@@ -242,10 +268,16 @@ def create_boxline_coordinator(view_angle_dataset, line, xcentre, npoints,
 
     # custom datatype for coordinator
     coordinator_dtype = np.dtype([('row_index', 'int64'),
-                                  ('col_index', 'int64')])
+                                  ('col_index', 'int64'),
+                                  ('latitude', 'float64'),
+                                  ('longitude', 'float64')])
     coordinator = np.empty(locations.shape[0], dtype=coordinator_dtype)
     coordinator['row_index'] = locations[:, 0]
     coordinator['col_index'] = locations[:, 1]
+
+    lon, lat = convert_to_latlon(geobox, x, y)
+    coordinator['latitude'] = lat
+    coordinator['longitude'] = lon
 
     # record curves for parcellation (of the raster into interpolation cells)
     boxline_dtype = np.dtype([('row_index', 'int64'),
@@ -888,9 +920,9 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, vertices=(3, 3),
     attach_table_attributes(cent_dset, title='Centreline', attrs=attrs)
 
     # boxline and coordinator
-    boxline, coordinator = create_boxline_coordinator(sat_v_ds, y_cent, x_cent,
-                                                      n_cent, max_angle,
-                                                      vertices)
+    boxline, coordinator = create_boxline_coordinator(geobox, sat_v_ds, y_cent,
+                                                      x_cent, n_cent,
+                                                      max_angle, vertices)
     desc = ("Contains the bi-section, column start and column end array "
             "coordinates.")
     attrs['Description'] = desc
