@@ -75,7 +75,8 @@ def convert_to_lonlat(geobox, col_index, row_index):
     sr = osr.SpatialReference()
     sr.SetFromUserInput(CRS)
 
-    lon = lat = np.zeros(row_index.shape, dtype='float64')
+    lon = np.zeros(row_index.shape, dtype='float64')
+    lat = np.zeros(row_index.shape, dtype='float64')
 
     for i, coord in enumerate(zip(col_index, row_index)):
         map_xy = geobox.convert_coordinates(coord)
