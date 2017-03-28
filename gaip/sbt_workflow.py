@@ -74,7 +74,6 @@ class ThermalTp5(WriteTp5):
 
     """Output the `tp5` formatted files."""
 
-    npoints = luigi.IntParameter(default=25, significant=False)
     albedos = luigi.ListParameter(default=['th'], significant=False)
 
     def requires(self):
