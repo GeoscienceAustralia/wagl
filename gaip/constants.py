@@ -7,6 +7,10 @@ Constants
 from __future__ import absolute_import, print_function
 import re
 
+# TODO: Re-work this entire file, and the class structures
+#       A pain but required as this file contains neccessary
+#       band exclusions, and hardwired BRDF wavelength matchups.
+
 class PQAConstants(object):
 
     """
@@ -433,3 +437,30 @@ class NBARConstants(object):
         avg_ref_lut = avg_reflectance_lut(self.sat_sensor)
 
         return avg_ref_lut
+
+
+def combine_satellite_sensor(satellite, sensor):
+    """
+    A small utility to deal with GA's and USGS's various naming
+    conventions.
+    This joins the two strings into an ugly looking string.
+    """
+    # NOTE: GA Landsat products use both '-' and '_' as a seperator
+    # Remove any occurences of - and _ then convert to lowercase
+    satellite_name = re.sub('[-_]', '', satellite).lower()
+    sensor_name = re.sub('[-_]', '', sensor).lower()
+    return ''.join((satellite_name, sensor_name))
+
+
+def sbt_bands(satellite, sensor):
+    """
+    Retrieve the thermal bands to be processed through to SBT for
+    a given satellite sensor.
+    """
+    combined = combine_satellite_sensor(satellite, sensor)
+
+    lookup = {'landsat5tm': ['6'],
+              'landsat7etm+': ['61', '62'],
+              'landsat8olitirs': ['10']} # band 11 is not stable
+
+    return lookup.get(combined, [])
