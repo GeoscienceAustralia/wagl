@@ -236,10 +236,10 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
     # so as to ensure a consistant logic between the two products
 
     if sbt_ancillary is not None:
-        for i in range(npoints):
+        for p in range(npoints):
             atmospheric_profile = []
-            atmos_profile = sbt_ancillary[i]
-            n_layers = atmos_profile.shape[0]
+            atmos_profile = sbt_ancillary[p]
+            n_layers = atmos_profile.shape[0] + 6
             elevation = atmos_profile.iloc[0]['GeoPotential_Height']
             for i, row in atmos_profile.iterrows():
                 input_data = {'gpheight': row['GeoPotential_Height'],
@@ -255,13 +255,13 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
                           'gpheight': elevation,
                           'n': n_layers,
                           'sat_height': altitude,
-                          'sat_view': view_cor[i],
+                          'sat_view': view_cor[p],
                           'binary': binary,
-                          'data_array': atmos_profile}
+                          'data_array': ''.join(atmospheric_profile)}
 
             data = THERMAL_TRANSMITTANCE.format(**input_data)
-            tp5_data[(i, 'th')] = data
-            metadata[(i, 'th')] = input_data
+            tp5_data[(p, 'th')] = data
+            metadata[(p, 'th')] = input_data
             # TODO: check for ascending geopotential height and remove
             # rows if it is not the case
 
