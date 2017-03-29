@@ -116,7 +116,7 @@ class CalculateLonGrid(luigi.Task):
     level1 = luigi.Parameter()
     work_root = luigi.Parameter(significant=False)
     granule = luigi.Parameter(default=None)
-    group = luigi.Parameter(default=None)
+    group = luigi.Parameter()
     compression = luigi.Parameter(default='lzf', significant=False)
 
     def requires(self):
