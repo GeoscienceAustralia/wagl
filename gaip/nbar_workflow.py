@@ -255,9 +255,16 @@ class WriteTp5(luigi.Task):
         lon_fname = inputs[(self.granule, group)]['lon'].path
         lat_fname = inputs[(self.granule, group)]['lat'].path
 
+        # required for the sbt workflow
+        if (self.granule, 'sbt-ancillary') not in inputs:
+            sbt_ancillary_fname = None
+        else:
+            sbt_ancillary_fname = inputs[(self.granule, 'sbt-ancillary')].path
+
         with self.output().temporary_path() as out_fname:
             tp5_data = _format_tp5(acq, sat_sol_fname, lon_fname, lat_fname,
-                                   ancillary_fname, out_fname, self.albedos)
+                                   ancillary_fname, out_fname, self.albedos,
+                                   sbt_ancillary_fname)
 
             # keep this as an indented block, that way the target will remain
             # atomic and be moved upon closing

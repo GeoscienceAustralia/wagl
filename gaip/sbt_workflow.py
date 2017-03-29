@@ -74,6 +74,7 @@ class ThermalTp5(WriteTp5):
 
     """Output the `tp5` formatted files."""
 
+    vertices = luigi.TupleParameter(default=(5, 5), significant=False)
     albedos = luigi.ListParameter(default=['th'], significant=False)
 
     def requires(self):
@@ -86,16 +87,62 @@ class ThermalTp5(WriteTp5):
 
         for granule in container.granules:
             args1 = [self.level1, self.work_root, granule]
-            tasks[(granule, 'sbt-ancillary')] = SBTAncillary(*args1)
+            kwargs = {'level1': self.level1,
+                      'work_root': self.work_root,
+                      'granule': granule,
+                      'group': container.groups[0],
+                      'vertices': self.vertices}
+            tasks[(granule, 'sbt-ancillary')] = SBTAncillary(**kwargs)
             tasks[(granule, 'ancillary')] = GetAncillaryData(*args1)
             for group in container.groups:
                 args2 = [self.level1, self.work_root, granule, group]
-                tsks = {'sat_sol': CalculateSatelliteAndSolarGrids(*args2),
+                kwargs['group'] = group
+                tsks = {'sat_sol': CalculateSatelliteAndSolarGrids(**kwargs),
                         'lat': CalculateLatGrid(*args2),
                         'lon': CalculateLonGrid(*args2)}
                 tasks[(granule, group)] = tsks
 
         return tasks
+
+    # def run(self):
+    #     container = acquisitions(self.level1)
+    #     # as we have an all granules groups dependency, it doesn't matter which
+    #     # group, so just get the first and use it to retrieve the angles
+    #     group = container.groups[0]
+    #     acq = container.get_acquisitions(group, granule=self.granule)[0]
+
+    #     # input data files, and the output format
+    #     inputs = self.input()
+    #     output_fmt = pjoin(POINT_FMT, ALBEDO_FMT,
+    #                        ''.join([POINT_ALBEDO_FMT, '.tp5']))
+
+    #     # all ancillary filenames from each granule
+    #     fnames = [inputs[key].path for key in inputs if 'ancillary' in key]
+
+    #     if container.tiled:
+    #         ancillary_fname = pjoin(self.work_root, 'averaged-ancillary.h5')
+    #         aggregate_ancillary(fnames, ancillary_fname)
+    #     else:
+    #         ancillary_fname = fnames[0]
+
+    #     sat_sol_fname = inputs[(self.granule, group)]['sat_sol'].path
+    #     lon_fname = inputs[(self.granule, group)]['lon'].path
+    #     lat_fname = inputs[(self.granule, group)]['lat'].path
+    #     sbt_ancillary_fname = inputs[(self.granule, 'sbt-ancillary')].path
+
+    #     with self.output().temporary_path() as out_fname:
+    #         tp5_data = _format_tp5(acq, sat_sol_fname, lon_fname, lat_fname,
+    #                                ancillary_fname, out_fname, self.albedos,
+    #                                sbt_ancillary_fname)
+
+    #         # keep this as an indented block, that way the target will remain
+    #         # atomic and be moved upon closing
+    #         for key in tp5_data:
+    #             point, albedo = key
+    #             tp5_out_fname = output_fmt.format(p=point, a=albedo)
+    #             target = pjoin(dirname(out_fname), tp5_out_fname)
+    #             with luigi.LocalTarget(target).open('w') as src:
+    #                 src.writelines(tp5_data[key])
 
 
 @requires(ThermalTp5)
