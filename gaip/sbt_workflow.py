@@ -33,6 +33,10 @@ from gaip.nbar_workflow import CalculateSatelliteAndSolarGrids
 from gaip.nbar_workflow import RunModtranCase, WriteTp5, GetAncillaryData
 
 
+# TODO: Remove the dpendency on the satelite solar grids.
+#       This means moving the coordinator calculator out of sat sol grids.
+#       It'll clean up the workflow and streamline it a little
+
 @requires(CalculateSatelliteAndSolarGrids)
 class SBTAncillary(luigi.Task):
 
@@ -70,6 +74,10 @@ class SBTAncillary(luigi.Task):
                                    out_fname, self.compression)
 
 
+# TODO: Remove albedos as a command option.
+#       We should default to calculate all.
+#       We could still put a switch to say 3 or 4 modtran calls per point??
+
 class ThermalTp5(WriteTp5):
 
     """Output the `tp5` formatted files."""
@@ -104,54 +112,64 @@ class ThermalTp5(WriteTp5):
 
         return tasks
 
-    # def run(self):
-    #     container = acquisitions(self.level1)
-    #     # as we have an all granules groups dependency, it doesn't matter which
-    #     # group, so just get the first and use it to retrieve the angles
-    #     group = container.groups[0]
-    #     acq = container.get_acquisitions(group, granule=self.granule)[0]
 
-    #     # input data files, and the output format
-    #     inputs = self.input()
-    #     output_fmt = pjoin(POINT_FMT, ALBEDO_FMT,
-    #                        ''.join([POINT_ALBEDO_FMT, '.tp5']))
+class SBTAccumulateSolarIrradiance(AccumulateSolarIrradiance):
 
-    #     # all ancillary filenames from each granule
-    #     fnames = [inputs[key].path for key in inputs if 'ancillary' in key]
+    """
+    Accumulate the solar irradiance specifically for the SBT workflow.
+    """
 
-    #     if container.tiled:
-    #         ancillary_fname = pjoin(self.work_root, 'averaged-ancillary.h5')
-    #         aggregate_ancillary(fnames, ancillary_fname)
-    #     else:
-    #         ancillary_fname = fnames[0]
-
-    #     sat_sol_fname = inputs[(self.granule, group)]['sat_sol'].path
-    #     lon_fname = inputs[(self.granule, group)]['lon'].path
-    #     lat_fname = inputs[(self.granule, group)]['lat'].path
-    #     sbt_ancillary_fname = inputs[(self.granule, 'sbt-ancillary')].path
-
-    #     with self.output().temporary_path() as out_fname:
-    #         tp5_data = _format_tp5(acq, sat_sol_fname, lon_fname, lat_fname,
-    #                                ancillary_fname, out_fname, self.albedos,
-    #                                sbt_ancillary_fname)
-
-    #         # keep this as an indented block, that way the target will remain
-    #         # atomic and be moved upon closing
-    #         for key in tp5_data:
-    #             point, albedo = key
-    #             tp5_out_fname = output_fmt.format(p=point, a=albedo)
-    #             target = pjoin(dirname(out_fname), tp5_out_fname)
-    #             with luigi.LocalTarget(target).open('w') as src:
-    #                 src.writelines(tp5_data[key])
+    albedos = luigi.ListParameter(default=['th'], significant=False)
 
 
-@requires(ThermalTp5)
-class SBTModtranCase(RunModtranCase):
-    pass
+@requires(SBTAccumulateSolarIrradiance)
+class SBTCoefficients(CalculateCoefficients):
+
+
+class SBTBilinearInterpolation(BilinearInterpolation):
+
+    # TODO: which factors to use
+
+    factors = luigi.ListParameter(default=[], significant=False)
+
+    def requires(self):
+        container = acquisitions(self.level1)
+        acqs = container.get_acquisitions(group=self.group,
+                                          granule=self.granule)
+
+        # Retrieve the satellite and sensor for the acquisition
+        satellite = acqs[0].spacecraft_id
+        sensor = acqs[0].sensor_id
+
+        # Get the required thermal bands list for processing
+        bands_to_process = constants.sbt_bands(satellite, sensor)
+        bands = [a.band_num for a in acqs if a.band_num in bands_to_process]
+
+        tasks = {}
+        for factor in self.factors:
+            for band in bands:
+                key = (band, factor)
+                kwargs = {'level1': self.level1, 'work_root': self.work_root,
+                          'granule': self.granule, 'group': self.group,
+                          'band_num': band, 'factor': factor}
+                tasks[key] = BilinearInterpolationBand(**kwargs)
+        return tasks
 
 
 class SurfaceTemperature(luigi.Task):
+
     """Calculates surface brightness temperature."""
+
+    # TODO: Re-write the class contents (output, run)
+
+    def requires(self):
+
+        # TODO: add other upstream tasks as needed
+
+        args = [self.level1, self.work_root, self.granule, self.group]
+        reqs = {'bilinear': SBTBilinearInterpolation(*args),
+                'sat_sol': self.clone(CalculateSatelliteAndSolarGrids)}
+        return reqs
 
 
 class SBT(luigi.WrapperTask):
