@@ -87,4 +87,4 @@ F   0F   0   375.000       1.0    a{ozone:5.3f} 4   T
     0                                                                          
 """)
 
-SBT_FORMAT = '\n{gpheight:10.3f}{pressure:10.3E}{airtemp:10.3E}{humidity:10.3E}{zero:10.3E){zero:10.3E}ABH'
+SBT_FORMAT = '\n{gpheight:10.3f}{pressure:10.3E}{airtemp:10.3E}{humidity:10.3E}{zero:10.3E}{zero:10.3E}ABH'
