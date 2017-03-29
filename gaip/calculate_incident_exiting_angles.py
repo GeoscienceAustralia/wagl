@@ -127,7 +127,7 @@ def incident_angles(solar_zenith_dataset, solar_azimuth_dataset, slope_datset,
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': crs,
-             'geotransform': geobox.affine.to_gdal(),
+             'geotransform': geobox.transform.to_gdal(),
              'no_data_value': no_data}
     desc = "Contains the incident angles in degrees."
     attrs['Description'] = desc
@@ -290,7 +290,7 @@ def exiting_angles(satellite_view_dataset, satellite_azimuth_dataset,
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': crs,
-             'geotransform': geobox.affine.to_gdal(),
+             'geotransform': geobox.transform.to_gdal(),
              'no_data_value': no_data}
     desc = "Contains the exiting angles in degrees."
     attrs['Description'] = desc
@@ -439,7 +439,7 @@ def relative_azimuth_slope(azimuth_incident_dataset,
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': crs,
-             'geotransform': geobox.affine.to_gdal(),
+             'geotransform': geobox.transform.to_gdal(),
              'no_data_value': no_data}
     desc = ("Contains the relative azimuth angles on the slope surface in "
             "degrees.")

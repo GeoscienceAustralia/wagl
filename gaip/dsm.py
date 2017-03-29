@@ -125,7 +125,7 @@ def get_dsm(acquisition, national_dsm, margins, out_fname=None,
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
-             'geotransform': dem_geobox.affine.to_gdal()}
+             'geotransform': dem_geobox.transform.to_gdal()}
     desc = "A subset of a Digital Surface Model."
     attrs['Description'] = desc
     attach_image_attributes(out_dset, attrs)

@@ -94,7 +94,7 @@ class PQAResult(object):
             height=height, \
             count=1, \
             crs=self.geobox.crs.ExportToWkt(), \
-            transform=self.geobox.affine, \
+            transform=self.geobox.transform, \
             dtype=rio.uint16) as ds:
 
             ds.write_band(1, self.array)
@@ -111,7 +111,7 @@ class PQAResult(object):
                                                 chunks=chunks)
             attrs = self.aux_data.copy()
             attrs['crs_wkt'] = self.geobox.crs.ExportToWkt()
-            attrs['geotransform'] = self.geobox.affine.to_gdal()
+            attrs['geotransform'] = self.geobox.transform.to_gdal()
             write_h5_image(self.array, 'pixel-quality-assessment', fid,
                            attrs=attrs, **kwargs)
        

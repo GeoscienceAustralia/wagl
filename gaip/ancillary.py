@@ -23,6 +23,7 @@ from gaip.hdf5 import write_scalar
 from gaip.hdf5 import write_dataframe
 from gaip.hdf5 import read_table
 from gaip.metadata import extract_ancillary_metadata, read_meatadata_tags
+from gaip.modtran import POINT_FMT
 
 
 log = logging.getLogger()
@@ -70,71 +71,172 @@ def relative_humdity(surface_temp, dewpoint_temp, kelvin=True):
     return rh
 
 
-def collect_thermal_ancillary(acquisition, dewpoint_path, temperature_2m_path,
-                              surface_pressure_path, geopotential_path,
-                              temperature_path, relative_humidity_path,
-                              invariant_fname, out_fname=None,
-                              compression='lzf'):
+def _collect_sbt_ancillary(acquisition, satellite_solar_fname, dewpoint_path,
+                           temperature_2m_path, surface_pressure_path,
+                           geopotential_path, temperature_path,
+                           relative_humidity_path, invariant_fname,
+                           out_fname=None, compression='lzf'):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
+    with h5py.File(satellite_solar_fname, 'r') as fid:
+        coord_dset = fid['coordinator']
+        lonlats = zip(coord_dset['longitude'], coord_dset['latitude'])
+
+    rfid = collect_sbt_ancillary(acquisition, lonlats, dewpoint_path,
+                                 temperature_2m_path, surface_pressure_path,
+                                 geopotential_path, temperature_path,
+                                 relative_humidity_path, invariant_fname,
+                                 out_fname, compression)
+
+    rfid.close()
+    return
+
+
+def collect_sbt_ancillary(acquisition, lonlats, dewpoint_path,
+                          temperature_2m_path, surface_pressure_path,
+                          geopotential_path, temperature_path,
+                          relative_humidity_path, invariant_fname,
+                          out_fname=None, compression='lzf'):
+    """
+    Collects the ancillary data required for surface brightness
+    temperature.
+
+    :param acquisition:
+        An instance of an `Acquisition` object.
+
+    :param lonlats:
+        A `list` of tuples containing (longitude, latitude) coordinates.
+
+    :param dewpoint_path:
+        A `str` containing the directory pathname to the dewpoint data.
+
+    :param temperature_2m_path:
+        A `str` containing the directory pathname to the 2m surface
+        temperature data.
+
+    :param surface_pressure_path:
+        A `str` containing the directory pathname to the surface
+        pressure data.
+
+    :param geopotential_path:
+        A `str` containing the directory pathname to the geopotential
+        data.
+
+    :param temperature_path:
+        A `str` containing the directory pathname to the pressure layer
+        temperature data.
+
+    :param relative_humidity_path:
+        A `str` containing the directory pathname to the pressure layer
+        relative humidity data.
+
+    :param invariant_fname:
+        A `str` containing the file pathname to the invariant geopotential
+        data.
+
+    :param out_fname:
+        If set to None (default) then the results will be returned
+        as an in-memory hdf5 file, i.e. the `core` driver.
+        Otherwise it should be a string containing the full file path
+        name to a writeable location on disk in which to save the HDF5
+        file.
+
+    :param compression:
+        The compression filter to use. Default is 'lzf'.
+        Options include:
+
+        * 'lzf' (Default)
+        * 'lz4'
+        * 'mafisc'
+        * An integer [1-9] (Deflate/gzip)
+
+    :return:
+        An opened `h5py.File` object, that is either in-memory using the
+        `core` driver, or on disk.
+    """
     # Initialise the output files
     if out_fname is None:
-        fid = h5py.File('ecwmf-ancillary.h5', driver='core',
-                        backing_store=False)
+        fid = h5py.File('sbt-ancillary.h5', driver='core', backing_store=False)
     else:
         fid = h5py.File(out_fname, 'w')
 
     dt = acquisition.scene_center_datetime
-    geobox = acquisition.gridded_geo_box()
-    lonlat = geobox.centre_lonlat
-
-    # get data located at the surface
-    dew = ecwmf_dewpoint_temperature(dewpoint_path, lonlat, dt)
-    t2m = ecwmf_temperature_2metre(temperature_2m_path, lonlat, dt)
-    sfc_prs = ecwmf_surface_pressure(surface_pressure_path, lonlat, dt)
-    sfc_hgt = ecwmf_elevation(invariant_fname, lonlat)
-    rh = relative_humdity(t2m[0], dew[0])
-
-    # output the scalar data along with the attrs
-    write_scalar(dew[0], 'dewpoint-temperature-2metre', fid, dew[1])
-    write_scalar(t2m[0], 'temperature-2metre', fid, t2m[1])
-    write_scalar(sfc_prs[0], 'surface-pressure', fid, sfc_prs[1])
-    write_scalar(sfc_hgt[0], 'surface-geopotential-height', fid, sfc_hgt[1])
-    attrs = {'Description': 'Relative Humidity calculated at the surface'}
-    write_scalar(rh, 'surface-relative-humidity', fid, attrs)
-
-    # get the data from each of the pressure levels (1 -> 1000 ISBL)
-    gph_df, gph_md = ecwmf_geo_potential(geopotential_path, lonlat, dt)
-    tmp_df, tmp_md = ecwmf_temperature(temperature_path, lonlat, dt)
-    rh_df, rh_md = ecwmf_relative_humidity(relative_humidity_path, lonlat, dt)
-
-    write_dataframe(gph_df, 'geopotential', fid, compression, attrs=gph_md)
-    write_dataframe(tmp_df, 'temperature', fid, compression, attrs=tmp_md)
-    write_dataframe(rh_df, 'relative-humidity', fid, compression, attrs=rh_md)
-
-    # combine the surface and higher pressure layers into a single array
-    cols = ['GeoPotential_Height', 'Pressure', 'Temperature',
-            'Relative_Humidity']
-    df = pandas.DataFrame(columns=cols, index=range(rh_df.shape[0]+1),
-                          dtype='float64')
-    df['GeoPotential_Height'].iloc[1:] = gph_df['GeoPotential_Height'].values
-    df['Pressure'].iloc[1:] = ECWMF_LEVELS[::-1]
-    df['Temperature'].iloc[1:] = tmp_df['Temperature'].values
-    df['Relative_Humidity'].iloc[1:] = rh_df['Relative_Humidity'].values
-
-    # insert the surface level
-    df['GeoPotential_Height'].iloc[0] = sfc_hgt[0]
-    df['Pressure'].iloc[0] = sfc_prs[0]
-    df['Temperature'].iloc[0] = kelvin_2_celcius(t2m[0])
-    df['Relative_Humidity'].iloc[0] = rh
 
     description = ('Combined Surface and Pressure Layer data retrieved from '
                    'the ECWMF catalogue.')
     attrs = {'Description': description,
              'Date used for querying ECWMF': dt}
-    write_dataframe(df, 'atmospheric-profile', fid, compression, attrs=attrs)
+
+    for i, lonlat in enumerate(lonlats):
+        # get data located at the surface
+        dew = ecwmf_dewpoint_temperature(dewpoint_path, lonlat, dt)
+        t2m = ecwmf_temperature_2metre(temperature_2m_path, lonlat, dt)
+        sfc_prs = ecwmf_surface_pressure(surface_pressure_path, lonlat, dt)
+        sfc_hgt = ecwmf_elevation(invariant_fname, lonlat)
+        sfc_rh = relative_humdity(t2m[0], dew[0])
+
+        # output the scalar data along with the attrs
+        dname = ppjoin(POINT_FMT.format(p=i), 'dewpoint-temperature-2metre')
+        write_scalar(dew[0], dname, fid, dew[1])
+
+        dname = ppjoin(POINT_FMT.format(p=i), 'temperature-2metre')
+        write_scalar(t2m[0], dname, fid, t2m[1])
+
+        dname = ppjoin(POINT_FMT.format(p=i), 'surface-pressure')
+        write_scalar(sfc_prs[0], dname, fid, sfc_prs[1])
+
+        dname = ppjoin(POINT_FMT.format(p=i), 'surface-geopotential-height')
+        write_scalar(sfc_hgt[0], dname, fid, sfc_hgt[1])
+
+        dname = ppjoin(POINT_FMT.format(p=i), 'surface-relative-humidity')
+        attrs = {'Description': 'Relative Humidity calculated at the surface'}
+        write_scalar(sfc_rh, dname, fid, attrs)
+
+        # get the data from each of the pressure levels (1 -> 1000 ISBL)
+        gph = ecwmf_geo_potential(geopotential_path, lonlat, dt)
+        tmp = ecwmf_temperature(temperature_path, lonlat, dt)
+        rh = ecwmf_relative_humidity(relative_humidity_path, lonlat, dt)
+
+        dname = ppjoin(POINT_FMT.format(p=i), 'geopotential')
+        write_dataframe(gph[0], dname, fid, compression, attrs=gph[1])
+
+        dname = ppjoin(POINT_FMT.format(p=i), 'temperature')
+        write_dataframe(tmp[0], dname, fid, compression, attrs=tmp[1])
+
+        dname = ppjoin(POINT_FMT.format(p=i), 'relative-humidity')
+        write_dataframe(rh[0], dname, fid, compression, attrs=rh[1])
+
+        # combine the surface and higher pressure layers into a single array
+        cols = ['GeoPotential_Height', 'Pressure', 'Temperature',
+                'Relative_Humidity']
+        df = pandas.DataFrame(columns=cols, index=range(rh[0].shape[0]+1),
+                              dtype='float64')
+
+        col = 'GeoPotential_Height'
+        df[col].iloc[1:] = gph[0][col].values / 10000
+
+        df['Pressure'].iloc[1:] = ECWMF_LEVELS[::-1]
+
+        col = 'Temperature'
+        df[col].iloc[1:] = tmp[0][col].values
+
+        col = 'Relative_Humidity'
+        df[col].iloc[1:] = rh[0][col].values
+
+        # insert the surface level
+        df['GeoPotential_Height'].iloc[0] = sfc_hgt[0]
+        df['Pressure'].iloc[0] = sfc_prs[0]
+        df['Temperature'].iloc[0] = kelvin_2_celcius(t2m[0])
+        df['Relative_Humidity'].iloc[0] = sfc_rh
+
+        # MODTRAN requires the height to be ascending
+        # remove any records that are less than the surface level
+        subset = df[df['GeoPotential_Height'] >= sfc_hgt[0]]
+
+        dname = ppjoin(POINT_FMT.format(p=i), 'atmospheric-profile')
+        write_dataframe(subset, dname, fid, compression, attrs=attrs)
 
     return fid
 
@@ -446,7 +548,7 @@ def ecwmf_temperature_2metre(input_path, lonlat, time):
     collection.
     """
     product = 'temperature-2metre'
-    files = glob.glob(pjoin(input_path, '{}_*.grib'.format(product)))
+    files = glob.glob(pjoin(input_path, '{}_*.tif'.format(product)))
     data = None
     for f in files:
         start, end = splitext(basename(f))[0].split('_')[1:]
@@ -476,7 +578,7 @@ def ecwmf_dewpoint_temperature(input_path, lonlat, time):
     Temperature collection.
     """
     product = 'dewpoint-temperature'
-    files = glob.glob(pjoin(input_path, '{}_*.grib'.format(product)))
+    files = glob.glob(pjoin(input_path, '{}_*.tif'.format(product)))
     data = None
     for f in files:
         start, end = splitext(basename(f))[0].split('_')[1:]
@@ -508,7 +610,7 @@ def ecwmf_surface_pressure(input_path, lonlat, time):
     Scales the result by 100 before returning.
     """
     product = 'surface-pressure'
-    files = glob.glob(pjoin(input_path, '{}_*.grib'.format(product)))
+    files = glob.glob(pjoin(input_path, '{}_*.tif'.format(product)))
     data = None
     for f in files:
         start, end = splitext(basename(f))[0].split('_')[1:]
@@ -538,7 +640,7 @@ def ecwmf_water_vapour(input_path, lonlat, time):
     collection.
     """
     product = 'water-vapour'
-    files = glob.glob(pjoin(input_path, '{}_*.grib'.format(product)))
+    files = glob.glob(pjoin(input_path, '{}_*.tif'.format(product)))
     data = None
     for f in files:
         start, end = splitext(basename(f)).split('_')[1:]
@@ -573,7 +675,7 @@ def ecwmf_temperature(input_path, lonlat, time):
     (1000 -> 1 mb, rather than 1 -> 1000 mb) before returning.
     """
     product = 'temperature'
-    files = glob.glob(pjoin(input_path, '{}_*.grib'.format(product)))
+    files = glob.glob(pjoin(input_path, '{}_*.tif'.format(product)))
     data = None
     for f in files:
         start, end = splitext(basename(f))[0].split('_')[1:]
@@ -613,7 +715,7 @@ def ecwmf_geo_potential(input_path, lonlat, time):
     returning.
     """
     product = 'geo-potential'
-    files = glob.glob(pjoin(input_path, '{}_*.grib'.format(product)))
+    files = glob.glob(pjoin(input_path, '{}_*.tif'.format(product)))
     data = None
     for f in files:
         start, end = splitext(basename(f))[0].split('_')[1:]
@@ -654,7 +756,7 @@ def ecwmf_relative_humidity(input_path, lonlat, time):
     (1000 -> 1 mb, rather than 1 -> 1000 mb) before returning.
     """
     product = 'relative-humidity'
-    files = glob.glob(pjoin(input_path, '{}_*.grib'.format(product)))
+    files = glob.glob(pjoin(input_path, '{}_*.tif'.format(product)))
     data = None
     for f in files:
         start, end = splitext(basename(f))[0].split('_')[1:]

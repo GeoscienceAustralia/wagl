@@ -17,8 +17,8 @@ import pandas as pd
 
 from gaip.hdf5 import write_dataframe, read_table
 from gaip.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
-from gaip.modtran_profiles import MIDLAT_SUMMER_TRANSMITTANCE
-from gaip.modtran_profiles import TROPICAL_TRANSMITTANCE
+from gaip.modtran_profiles import MIDLAT_SUMMER_TRANSMITTANCE, SBT_FORMAT
+from gaip.modtran_profiles import TROPICAL_TRANSMITTANCE, THERMAL_TRANSMITTANCE
 
 
 POINT_FMT = 'point-{p}'
@@ -86,7 +86,7 @@ def prepare_modtran(acquisition, coordinate, albedo, modtran_work,
 
 def _format_tp5(acquisition, satellite_solar_angles_fname,
                 longitude_fname, latitude_fname, ancillary_fname, out_fname,
-                npoints, albedos):
+                albedos, sbt_ancillary_fname=None):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -110,10 +110,20 @@ def _format_tp5(acquisition, satellite_solar_angles_fname,
         ozone = anc_ds['ozone'][()]
         elevation = anc_ds['elevation'][()]
 
+        if sbt_ancillary_fname is not None:
+            sbt_ancillary = {}
+            with h5py.File(sbt_ancillary_fname, 'r') as sbt_fid:
+                dname = ppjoin(POINT_FMT, 'atmospheric-profile')
+                for i in range(coord_dset.shape[0]):
+                    sbt_ancillary[i] = read_table(sbt_fid, dname.format(p=i))
+        else:
+            sbt_ancillary = None
+
         tp5_data, metadata = format_tp5(acquisition, coord_dset, view_dset,
                                         azi_dset, lat_dset, lon_dset, ozone,
                                         water_vapour, aerosol, elevation,
-                                        npoints, albedos)
+                                        coord_dset.shape[0], albedos,
+                                        sbt_ancillary)
 
         group = fid.create_group('modtran-inputs')
         iso_time = acquisition.scene_centre_date.isoformat()
@@ -132,7 +142,7 @@ def _format_tp5(acquisition, satellite_solar_angles_fname,
 
 def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
                lat_dataset, lon_dataset, ozone, vapour, aerosol, elevation,
-               npoints, albedos):
+               npoints, albedos, sbt_ancillary=None):
     """
     Creates str formatted tp5 files for the albedo (0, 1) and
     transmittance (t).
@@ -191,6 +201,9 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
     # write the tp5 files required for input into MODTRAN
     for i in range(npoints):
         for alb in albedos:
+            if alb == 'th':
+                # ignore and handle later; TODO: re-design this section
+                continue 
             input_data = {'water': vapour,
                           'ozone': ozone,
                           'filter_function': filter_file,
@@ -214,6 +227,43 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
 
             tp5_data[(i, alb)] = data
             metadata[(i, alb)] = input_data
+
+    # tp5 for sbt; the current logic for NBAR uses 9 coordinator points
+    # and sbt uses 25 coordinator points
+    # as such points [0, 9) in nbar will not be the same [0, 9) points in
+    # the sbt coordinator
+    # hopefully the science side of the algorithm will be re-engineered
+    # so as to ensure a consistant logic between the two products
+
+    if sbt_ancillary is not None:
+        for p in range(npoints):
+            atmospheric_profile = []
+            atmos_profile = sbt_ancillary[p]
+            n_layers = atmos_profile.shape[0] + 6
+            elevation = atmos_profile.iloc[0]['GeoPotential_Height']
+            for i, row in atmos_profile.iterrows():
+                input_data = {'gpheight': row['GeoPotential_Height'],
+                              'pressure': row['Pressure'],
+                              'airtemp': row['Temperature'],
+                              'humidity': row['Relative_Humidity'],
+                              'zero': 0.0}
+                atmospheric_profile.append(SBT_FORMAT.format(**input_data))
+            
+            input_data = {'ozone': ozone,
+                          'filter_function': filter_file,
+                          'visibility': -aerosol,
+                          'gpheight': elevation,
+                          'n': n_layers,
+                          'sat_height': altitude,
+                          'sat_view': view_cor[p],
+                          'binary': binary,
+                          'data_array': ''.join(atmospheric_profile)}
+
+            data = THERMAL_TRANSMITTANCE.format(**input_data)
+            tp5_data[(p, 'th')] = data
+            metadata[(p, 'th')] = input_data
+            # TODO: check for ascending geopotential height and remove
+            # rows if it is not the case
 
     return tp5_data, metadata
 
@@ -278,8 +328,7 @@ def run_modtran(modtran_exe, workpath, point, albedo, out_fname=None,
     return fid
 
 
-def _calculate_coefficients(accumulated_fname, npoints, out_fname,
-                            compression='lzf'):
+def _calculate_coefficients(accumulated_fname, out_fname, compression='lzf'):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -292,6 +341,7 @@ def _calculate_coefficients(accumulated_fname, npoints, out_fname,
         accumulation_albedo_t = {}
         channel_data = {}
 
+        npoints = len(fid.keys())
         for point in range(npoints):
             grp_path = ppjoin(POINT_FMT, ALBEDO_FMT)
             albedo_0_path = ppjoin(grp_path.format(p=point, a='0'),
@@ -554,8 +604,8 @@ def read_modtran_flux(fname):
 
     # datatype for the dataframe containing the flux data
     flux_dtype = numpy.dtype([('upward_diffuse', 'float64'),
-                             ('downward_diffuse', 'float64'),
-                             ('direct_solar', 'float64')])
+                              ('downward_diffuse', 'float64'),
+                              ('direct_solar', 'float64')])
 
     with open(fname, 'rb') as src:
         # read the hdr record

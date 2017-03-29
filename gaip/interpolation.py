@@ -250,7 +250,7 @@ def bilinear_interpolate(acq, factor, coordinator_dataset, boxline_dataset,
     no_data = -999
     kwargs['fillvalue'] = no_data
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
-             'geotransform': geobox.affine.to_gdal(),
+             'geotransform': geobox.transform.to_gdal(),
              'no_data_value': no_data}
     desc = ("Contains the bi-linearly interpolated result of factor {}"
             "for band {} from sensor {}.")
