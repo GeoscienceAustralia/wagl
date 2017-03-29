@@ -231,8 +231,12 @@ def collect_sbt_ancillary(acquisition, lonlats, dewpoint_path,
         df['Temperature'].iloc[0] = kelvin_2_celcius(t2m[0])
         df['Relative_Humidity'].iloc[0] = sfc_rh
 
+        # MODTRAN requires the height to be ascending
+        # remove any records that are less than the surface level
+        subset = df[df['GeoPotential_Height'] >= sfc_hgt[0]]
+
         dname = ppjoin(POINT_FMT.format(p=i), 'atmospheric-profile')
-        write_dataframe(df, dname, fid, compression, attrs=attrs)
+        write_dataframe(subset, dname, fid, compression, attrs=attrs)
 
     return fid
 
