@@ -180,19 +180,13 @@ def swathe_edges(threshold, array):
     return start, end
 
 
-def create_boxline_coordinator(geobox, view_angle_dataset, line, xcentre,
-                               npoints, max_angle=9.0, vertices=(3, 3)):
+def create_boxline(view_angle_dataset, line, xcentre, npoints, max_angle=9.0):
     """
-    Creates the boxline and coordinator datasets.
-
+    Creates the boxline (satellite track bi-section) dataset.
     :param view_angle_dataset:
         A `NumPy` or `NumPy` like dataset that allows indexing
         and returns a `NumPy` dataset containing the satellite view
         angles when index/sliced.
-
-    :param line:
-        A 1D NumPy array containing the values 1->n for n lines.
-        0 based index.
 
     :param xcentre:
         A 1D NumPy array containing the values for the column
@@ -208,29 +202,17 @@ def create_boxline_coordinator(geobox, view_angle_dataset, line, xcentre,
     :param max_angle:
         The maximum viewing angle. Default is 9.0 degrees.
 
-    :param vertices:
-        An integer 2-tuple indicating the number of rows and columns
-        of sample-locations ("coordinator") to produce.
-        The vertex columns should be an odd number.
-        Default is (3, 3).
-
     :return:
         2 `NumPy` datasets of the following datatypes:
 
         * boxline_dtype = np.dtype([('row_index', 'int64'),
                                     ('bisection_index', 'int64'),
+                                    ('npoints', 'int64'),
                                     ('start_index', 'int64'),
                                     ('end_index', 'int64')])
-        * coordinator_dtype = np.dtype([('row_index', 'int64'),
-                                        ('col_index', 'int64'),
-                                        ('latitude', 'float64'),
-                                        ('longitude', 'float64')])
     """
-    rows, cols = view_angle_dataset.shape
-
-    assert (line == np.arange(rows)).all()
-    # TODO: refactor out "line" argument
-
+    rows, _ = view_angle_dataset.shape
+    
     # calculate the column start and end indices
     # (for filtering out pixels of the ortho' array where no observations
     # are expected because the sensor look-angle would be too peripheral.)
@@ -238,7 +220,60 @@ def create_boxline_coordinator(geobox, view_angle_dataset, line, xcentre,
     # be outside of the scene aquisition window.
     istart, iend = swathe_edges(max_angle, view_angle_dataset)
 
-    assert cols >= 3 and rows >= 3
+    # record curves for parcellation (of the raster into interpolation cells)
+    boxline_dtype = np.dtype([('row_index', 'int64'),
+                              ('bisection_index', 'int64'),
+                              ('npoints', 'int64'),
+                              ('start_index', 'int64'),
+                              ('end_index', 'int64')])
+    boxline = np.empty(rows, dtype=boxline_dtype)
+    boxline['row_index'] = np.arange(rows)
+    boxline['bisection_index'] = xcentre
+    boxline['npoints'] = npoints
+    boxline['start_index'] = istart
+    boxline['end_index'] = iend
+    # note, option to fill out the entire linspace into additional columns
+    # of the boxline
+
+    return boxline
+
+
+def create_vertices(acquisition, boxline_dataset, vertices=(3, 3)):
+    """
+    Defines the point locations, and the number of points, across a
+    spatial grid.
+
+    :param acquisition:
+        An instance of an `Acquisition` object.
+
+    :param boxline:
+        The dataset containing the bi-section (satellite track)
+        coordinates. The datatype should be the same as that returned
+        by the `calculate_angles.create_boxline` function.
+    :type boxline:
+        [('row_index', 'int64'), ('bisection_index', 'int64'),
+         ('npoints', 'int64'), ('start_index', 'int64'),
+         ('end_index', 'int64')]
+
+    :param vertices:
+        An integer 2-tuple indicating the number of rows and columns
+        of sample-locations ("coordinator") to produce.
+        The vertex columns should be an odd number.
+        Default is (3, 3).
+    """
+    cols = acquisition.samples
+    rows = acquisition.lines
+
+    if rows < vertices[0] | cols < vertices[1]:
+        msg = ("Vertices must be >= to the acquisition dimensions! "
+               "Acquisition dimensions: {}, Vertices: {}")
+        raise ValueError(msg.format((rows, cols), vertices))
+
+    xcentre = boxline_dataset['bisection']
+    npoints = boxline_dataset['npoints']
+    istart = boxline_dataset['start_index']
+    iend = boxline['end_index']
+
     # special handling if the satellite track does not intersect both ends
     # of the raster
     track_end_rows = set(first_and_last(npoints))
@@ -251,16 +286,11 @@ def create_boxline_coordinator(geobox, view_angle_dataset, line, xcentre,
         mid_row = partial_track.pop()
     else: # track fully available for deference
         mid_col = None
+
     # Note, assumes that if track intersects two rows then it also
     # intersects all intervening rows.
 
     grid_rows = asymetric_linspace(0, rows-1, vertices[0], midpoint=mid_row)
-
-    # Sentinel-2a doesn't require a start end index, but Landsat does
-    # the following should satisfy both use cases, that way we don't
-    # require two separate bilinear functions, and two separate boxline
-    # (or bisection co-ordinator functions)
-    # only used for the case "normal center line"
 
     locations = np.empty((vertices[0], vertices[1], 2), dtype='int64')
     for ig, ir in enumerate(grid_rows): # row indices for sample-grid & raster
@@ -283,20 +313,121 @@ def create_boxline_coordinator(geobox, view_angle_dataset, line, xcentre,
     coordinator['latitude'] = lat
     coordinator['longitude'] = lon
 
-    # record curves for parcellation (of the raster into interpolation cells)
-    boxline_dtype = np.dtype([('row_index', 'int64'),
-                              ('bisection_index', 'int64'),
-                              ('start_index', 'int64'),
-                              ('end_index', 'int64')])
-    boxline = np.empty(rows, dtype=boxline_dtype)
-    boxline['row_index'] = np.arange(rows)
-    boxline['bisection_index'] = xcentre
-    boxline['start_index'] = istart
-    boxline['end_index'] = iend
-    # note, option to fill out the entire linspace into additional columns
-    # of the boxline
+    return coordinator
 
-    return boxline, coordinator
+# def create_boxline_coordinator(geobox, view_angle_dataset, xcentre,
+#                                npoints, max_angle=9.0, vertices=(3, 3)):
+#     """
+#     Creates the boxline and coordinator datasets.
+# 
+#     :param view_angle_dataset:
+#         A `NumPy` or `NumPy` like dataset that allows indexing
+#         and returns a `NumPy` dataset containing the satellite view
+#         angles when index/sliced.
+# 
+#     :param xcentre:
+#         A 1D NumPy array containing the values for the column
+#         coordinate for the central index; 0 based index.
+# 
+#     :param npoints:
+#         A 1D NumPy array containing the values for the number of points
+#         used to determine the pixel index.
+#         That is, a count for each row of how many columns are within tolerance
+#         of the satellite track (the "central" index).
+#         In practice the values are 0, 1, or 2.
+# 
+#     :param max_angle:
+#         The maximum viewing angle. Default is 9.0 degrees.
+# 
+#     :param vertices:
+#         An integer 2-tuple indicating the number of rows and columns
+#         of sample-locations ("coordinator") to produce.
+#         The vertex columns should be an odd number.
+#         Default is (3, 3).
+# 
+#     :return:
+#         2 `NumPy` datasets of the following datatypes:
+# 
+#         * boxline_dtype = np.dtype([('row_index', 'int64'),
+#                                     ('bisection_index', 'int64'),
+#                                     ('start_index', 'int64'),
+#                                     ('end_index', 'int64')])
+#         * coordinator_dtype = np.dtype([('row_index', 'int64'),
+#                                         ('col_index', 'int64'),
+#                                         ('latitude', 'float64'),
+#                                         ('longitude', 'float64')])
+#     """
+#     rows, cols = view_angle_dataset.shape
+# 
+#     assert (line == np.arange(rows)).all()
+#     # TODO: refactor out "line" argument
+# 
+#     # calculate the column start and end indices
+#     # (for filtering out pixels of the ortho' array where no observations
+#     # are expected because the sensor look-angle would be too peripheral.)
+#     # TODO: similar filtering for pixels where the line acquisition time would
+#     # be outside of the scene aquisition window.
+#     istart, iend = swathe_edges(max_angle, view_angle_dataset)
+# 
+#     assert cols >= 3 and rows >= 3
+#     # special handling if the satellite track does not intersect both ends
+#     # of the raster
+#     track_end_rows = set(first_and_last(npoints))
+#     partial_track = track_end_rows - {0, rows-1, -1}
+#     mid_row = rows // 2
+#     if -1 in track_end_rows: # track doesn't intersect raster
+#         mid_col = cols // 2
+#     elif partial_track: # track intersects only part of raster
+#         mid_col = ({xcentre[0], xcentre[1]} - {0, cols-1, 1, cols, -1}).pop() # TODO: omit 1,cols if not one-indexing ncentre
+#         mid_row = partial_track.pop()
+#     else: # track fully available for deference
+#         mid_col = None
+#     # Note, assumes that if track intersects two rows then it also
+#     # intersects all intervening rows.
+# 
+#     grid_rows = asymetric_linspace(0, rows-1, vertices[0], midpoint=mid_row)
+# 
+#     # Sentinel-2a doesn't require a start end index, but Landsat does
+#     # the following should satisfy both use cases, that way we don't
+#     # require two separate bilinear functions, and two separate boxline
+#     # (or bisection co-ordinator functions)
+#     # only used for the case "normal center line"
+# 
+#     locations = np.empty((vertices[0], vertices[1], 2), dtype='int64')
+#     for ig, ir in enumerate(grid_rows): # row indices for sample-grid & raster
+#         grid_line = asymetric_linspace(
+#             istart[ir], iend[ir], vertices[1], mid_row or xcentre[ir])
+#         locations[ig, :, 0] = ir
+#         locations[ig, :, 1] = grid_line
+#     locations = locations.reshape(vertices[0] * vertices[1], 2)
+# 
+#     # custom datatype for coordinator
+#     coordinator_dtype = np.dtype([('row_index', 'int64'),
+#                                   ('col_index', 'int64'),
+#                                   ('latitude', 'float64'),
+#                                   ('longitude', 'float64')])
+#     coordinator = np.empty(locations.shape[0], dtype=coordinator_dtype)
+#     coordinator['row_index'] = locations[:, 0]
+#     coordinator['col_index'] = locations[:, 1]
+# 
+#     lon, lat = convert_to_lonlat(geobox, locations[:, 1], locations[:, 0])
+#     coordinator['latitude'] = lat
+#     coordinator['longitude'] = lon
+# 
+#     # record curves for parcellation (of the raster into interpolation cells)
+#     boxline_dtype = np.dtype([('row_index', 'int64'),
+#                               ('bisection_index', 'int64'),
+#                               ('start_index', 'int64'),
+#                               ('end_index', 'int64')])
+#     boxline = np.empty(rows, dtype=boxline_dtype)
+#     boxline['row_index'] = np.arange(rows)
+#     boxline['bisection_index'] = xcentre
+#     boxline['start_index'] = istart
+#     boxline['end_index'] = iend
+#     # note, option to fill out the entire linspace into additional columns
+#     # of the boxline
+# 
+#     return boxline, coordinator
 
 
 def calculate_julian_century(datetime):
@@ -924,9 +1055,10 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, vertices=(3, 3),
     attach_table_attributes(cent_dset, title='Centreline', attrs=attrs)
 
     # boxline and coordinator
-    boxline, coordinator = create_boxline_coordinator(geobox, sat_v_ds, y_cent,
-                                                      x_cent, n_cent,
-                                                      max_angle, vertices)
+    boxline = create_boxline(sat_v_ds, x_cent, max_angle)
+    # boxline, coordinator = create_boxline_coordinator(geobox, sat_v_ds, y_cent,
+    #                                                   x_cent, n_cent,
+    #                                                   max_angle, vertices)
     desc = ("Contains the bi-section, column start and column end array "
             "coordinates.")
     attrs['Description'] = desc
@@ -934,11 +1066,11 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, vertices=(3, 3),
     box_dset = fid.create_dataset('boxline', data=boxline, **kwargs)
     attach_table_attributes(box_dset, title='Boxline', attrs=attrs)
 
-    desc = ("Contains the row and column array coordinates used for the "
-            "atmospheric calculations.")
-    attrs['Description'] = desc
-    coord_dset = fid.create_dataset('coordinator', data=coordinator, **kwargs)
-    attach_table_attributes(coord_dset, title='Coordinator', attrs=attrs)
+    # desc = ("Contains the row and column array coordinates used for the "
+    #         "atmospheric calculations.")
+    # attrs['Description'] = desc
+    # coord_dset = fid.create_dataset('coordinator', data=coordinator, **kwargs)
+    # attach_table_attributes(coord_dset, title='Coordinator', attrs=attrs)
 
     fid.flush()
     return fid

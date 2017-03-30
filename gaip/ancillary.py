@@ -18,12 +18,11 @@ from shapely.geometry import Polygon
 from shapely import wkt
 from gaip.brdf import get_brdf_data
 from gaip.data import get_pixel
-from gaip.hdf5 import attach_attributes
-from gaip.hdf5 import write_scalar
-from gaip.hdf5 import write_dataframe
-from gaip.hdf5 import read_table
+from gaip.hdf5 import attach_attributes, write_scalar, write_dataframe
+from gaip.hdf5 import read_table, dataset_compression_kwargs
 from gaip.metadata import extract_ancillary_metadata, read_meatadata_tags
 from gaip.modtran import POINT_FMT
+from gaip.calculate_angles import create_vertices
 
 
 log = logging.getLogger()
@@ -71,33 +70,121 @@ def relative_humdity(surface_temp, dewpoint_temp, kelvin=True):
     return rh
 
 
-def _collect_sbt_ancillary(acquisition, satellite_solar_fname, dewpoint_path,
-                           temperature_2m_path, surface_pressure_path,
-                           geopotential_path, temperature_path,
-                           relative_humidity_path, invariant_fname,
-                           out_fname=None, compression='lzf'):
+def _collect_ancillary(acquisition, satellite_solar_fname):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
     with h5py.File(satellite_solar_fname, 'r') as fid:
-        coord_dset = fid['coordinator']
-        lonlats = zip(coord_dset['longitude'], coord_dset['latitude'])
+        boxline_dset = fid['boxline'][:]
 
-    rfid = collect_sbt_ancillary(acquisition, lonlats, dewpoint_path,
-                                 temperature_2m_path, surface_pressure_path,
-                                 geopotential_path, temperature_path,
-                                 relative_humidity_path, invariant_fname,
-                                 out_fname, compression)
+    rfid = collect_ancillary(acquisition, boxline_dset)
 
     rfid.close()
     return
 
 
-def collect_sbt_ancillary(acquisition, lonlats, dewpoint_path,
-                          temperature_2m_path, surface_pressure_path,
-                          geopotential_path, temperature_path,
-                          relative_humidity_path, invariant_fname,
+def collect_ancillary(acquisition, boxline_dataset, nbar_paths, sbt_paths=None,
+                      out_fname=None, compression='lzf', work_path=''):
+    """
+    Collects the ancillary required for NBAR and optionally SBT.
+    This could be better handled if using the `opendatacube` project
+    to handle ancillary retrieval, rather than directory passing,
+    and filename grepping.
+
+    :param acquisition:
+        An instance of an `Acquisition` object.
+
+    :param boxline:
+        The dataset containing the bi-section (satellite track)
+        coordinates. The datatype should be the same as that returned
+        by the `calculate_angles.create_boxline` function.
+    :type boxline:
+        [('row_index', 'int64'), ('bisection_index', 'int64'),
+         ('npoints', 'int64'), ('start_index', 'int64'),
+         ('end_index', 'int64')]
+
+    :param nbar_paths:
+        A `dict` containing the ancillary pathnames required for
+        retrieving the NBAR ancillary data. Required keys:
+
+        * aerosol_fname
+        * water_vapour_path
+        * ozone_path
+        * dem_path
+        * brdf_path
+        * brdf_premodis_path
+
+    :param sbt_paths:
+        A `dict` containing the ancillary pathnames required for
+        retrieving the SBT ancillary data. Required keys:
+
+        * dewpoint_path
+        * temperature_2m_path
+        * surface_pressure_path
+        * geopotential_path
+        * temperature_path
+        * relative_humidity_path
+        * invariant_fname
+
+    :param out_fname:
+        If set to None (default) then the results will be returned
+        as an in-memory hdf5 file, i.e. the `core` driver.
+        Otherwise it should be a string containing the full file path
+        name to a writeable location on disk in which to save the HDF5
+        file.
+
+    :param compression:
+        The compression filter to use. Default is 'lzf'.
+        Options include:
+
+        * 'lzf' (Default)
+        * 'lz4'
+        * 'mafisc'
+        * An integer [1-9] (Deflate/gzip)
+
+    :param work_path:
+        A `str` containing the pathname to the work directory to be
+        used for temporary files. Default is the current directory.
+
+    :return:
+        An opened `h5py.File` object, that is either in-memory using the
+        `core` driver, or on disk.
+    """
+    coordinator = create_vertices(acquisition, boxline_dataset, vertices)
+    lonlats = zip(coordinator['longitude'], coordinator['latitude'])
+
+    if sbt:
+        sbt_fid = collect_sbt_ancillary(acquisition, lonlats,
+                                        out_fname=out_fname,
+                                        compression=compression, **sbt_paths)
+
+    # close if we have a file on disk
+    if sbt and out_fname is not None:
+        sbt_fid.close()
+
+    rfid = collect_nbar_ancillary(acquisition, out_fname=out_fname,
+                                  compression=compression, work_path=work_path,
+                                  **nbar_paths)
+    
+    desc = ("Contains the row and column array coordinates used for the "
+            "atmospheric calculations.")
+    attrs['Description'] = desc
+    kwargs = dataset_compression_kwargs(compression=compression)
+    coord_dset = rfid.create_dataset('coordinator', data=coordinator, **kwargs)
+    attach_table_attributes(coord_dset, title='Coordinator', attrs=attrs)
+
+    # copy if we don't have a file on disk
+    if sbt and out_fname is None:
+        rfid.copy(sbt_fid, rfid)
+
+    return rfid
+
+
+def collect_sbt_ancillary(acquisition, lonlats, dewpoint_path=None,
+                          temperature_2m_path=None, surface_pressure_path=None,
+                          geopotential_path=None, temperature_path=None,
+                          relative_humidity_path=None, invariant_fname=None,
                           out_fname=None, compression='lzf'):
     """
     Collects the ancillary data required for surface brightness
@@ -241,13 +328,13 @@ def collect_sbt_ancillary(acquisition, lonlats, dewpoint_path,
     return fid
 
 
-def collect_ancillary_data(acquisition, aerosol_fname, water_vapour_path,
-                           ozone_path, dem_path, brdf_path,
-                           brdf_premodis_path, out_fname=None,
+def collect_nbar_ancillary(acquisition, aerosol_fname=None,
+                           water_vapour_path=None, ozone_path=None,
+                           dem_path=None, brdf_path=None,
+                           brdf_premodis_path=None, out_fname=None,
                            compression='lzf', work_path=''):
     """
-    A private wrapper for dealing with the internal custom workings of the
-    NBAR workflow.
+    TODO: Document
     """
     def _format_brdf_attrs(factor):
         """Converts BRDF shortnames to longnames"""
