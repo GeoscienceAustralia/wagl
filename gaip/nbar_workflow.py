@@ -16,7 +16,7 @@ import luigi
 from luigi.local_target import LocalFileSystem
 from luigi.util import inherits, requires
 from gaip.acquisition import acquisitions
-from gaip.ancillary import collect_nbar_ancillary, aggregate_ancillary
+from gaip.ancillary import _collect_ancillary, aggregate_ancillary
 from gaip.calculate_angles import _calculate_angles
 from gaip.calculate_incident_exiting_angles import _incident_angles
 from gaip.calculate_incident_exiting_angles import _exiting_angles
@@ -112,7 +112,7 @@ class GetAncillaryData(luigi.Task):
 
         with self.output().temporary_path() as out_fname:
             _collect_ancillary(acq, self.input().path, nbar_paths,
-                               vertices=self.vertices,  out_fname=out_fname,
+                               vertices=self.vertices, out_fname=out_fname,
                                work_path=work_root,
                                compression=self.compression)
 
