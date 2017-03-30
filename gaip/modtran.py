@@ -25,6 +25,9 @@ POINT_FMT = 'point-{p}'
 ALBEDO_FMT = 'albedo-{a}'
 POINT_ALBEDO_FMT = ''.join([POINT_FMT, '-', ALBEDO_FMT])
 
+NBAR_ALBEDOS = [0, 1, 't']
+SBT_ALBEDO = 'th'
+
 
 def create_modtran_dirs(coords, albedos, modtran_root, modtran_exe_root,
                         workpath_format, input_format):
@@ -85,8 +88,7 @@ def prepare_modtran(acquisition, coordinate, albedo, modtran_work,
 
 
 def _format_tp5(acquisition, satellite_solar_angles_fname,
-                longitude_fname, latitude_fname, ancillary_fname, out_fname,
-                albedos, sbt_ancillary_fname=None):
+                longitude_fname, latitude_fname, ancillary_fname, out_fname):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -110,20 +112,18 @@ def _format_tp5(acquisition, satellite_solar_angles_fname,
         ozone = anc_ds['ozone'][()]
         elevation = anc_ds['elevation'][()]
 
-        if sbt_ancillary_fname is not None:
+        if anc_ds.attrs.get('sbt-ancillary'):
             sbt_ancillary = {}
-            with h5py.File(sbt_ancillary_fname, 'r') as sbt_fid:
-                dname = ppjoin(POINT_FMT, 'atmospheric-profile')
-                for i in range(coord_dset.shape[0]):
-                    sbt_ancillary[i] = read_table(sbt_fid, dname.format(p=i))
+            dname = ppjoin(POINT_FMT, 'atmospheric-profile')
+            for i in range(coord_dset.shape[0]):
+                sbt_ancillary[i] = read_table(sbt_fid, dname.format(p=i))
         else:
             sbt_ancillary = None
 
         tp5_data, metadata = format_tp5(acquisition, coord_dset, view_dset,
                                         azi_dset, lat_dset, lon_dset, ozone,
                                         water_vapour, aerosol, elevation,
-                                        coord_dset.shape[0], albedos,
-                                        sbt_ancillary)
+                                        coord_dset.shape[0], sbt_ancillary)
 
         group = fid.create_group('modtran-inputs')
         iso_time = acquisition.scene_centre_date.isoformat()
@@ -142,7 +142,7 @@ def _format_tp5(acquisition, satellite_solar_angles_fname,
 
 def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
                lat_dataset, lon_dataset, ozone, vapour, aerosol, elevation,
-               npoints, albedos, sbt_ancillary=None):
+               npoints, sbt_ancillary=None):
     """
     Creates str formatted tp5 files for the albedo (0, 1) and
     transmittance (t).
@@ -200,10 +200,7 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
 
     # write the tp5 files required for input into MODTRAN
     for i in range(npoints):
-        for alb in albedos:
-            if alb == 'th':
-                # ignore and handle later; TODO: re-design this section
-                continue 
+        for alb in NBAR_ALBEDOS:
             input_data = {'water': vapour,
                           'ozone': ozone,
                           'filter_function': filter_file,
@@ -260,10 +257,8 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
                           'data_array': ''.join(atmospheric_profile)}
 
             data = THERMAL_TRANSMITTANCE.format(**input_data)
-            tp5_data[(p, 'th')] = data
-            metadata[(p, 'th')] = input_data
-            # TODO: check for ascending geopotential height and remove
-            # rows if it is not the case
+            tp5_data[(p, SBT_ALBEDO)] = data
+            metadata[(p, SBT_ALBEDO)] = input_data
 
     return tp5_data, metadata
 
@@ -341,16 +336,17 @@ def _calculate_coefficients(accumulated_fname, out_fname, compression='lzf'):
         accumulation_albedo_t = {}
         channel_data = {}
 
-        npoints = len(fid.keys())
+        npoints = fid.attrs['npoints']
         for point in range(npoints):
             grp_path = ppjoin(POINT_FMT, ALBEDO_FMT)
-            albedo_0_path = ppjoin(grp_path.format(p=point, a='0'),
+            albedo_0_path = ppjoin(grp_path.format(p=point, a=NBAR_ALBEDOS[0]),
                                    'solar-irradiance')
-            albedo_1_path = ppjoin(grp_path.format(p=point, a='1'),
+            albedo_1_path = ppjoin(grp_path.format(p=point, a=NBAR_ALBEDOS[1]),
                                    'solar-irradiance')
-            albedo_t_path = ppjoin(grp_path.format(p=point, a='t'),
+            albedo_t_path = ppjoin(grp_path.format(p=point, a=NBAR_ALBEDOS[2]),
                                    'solar-irradiance')
-            channel_path = ppjoin(grp_path.format(p=point, a='0'), 'channel')
+            channel_path = ppjoin(grp_path.format(p=point, a=NBAR_ALBEDOS[0]),
+                                  'channel')
 
             accumulation_albedo_0[point] = read_table(fid, albedo_0_path)
             accumulation_albedo_1[point] = read_table(fid, albedo_1_path)
@@ -671,7 +667,7 @@ def read_modtran_channel(fname):
     return chn_data
 
 
-def _calculate_solar_radiation(acquisition, flux_fnames, out_fname,
+def _calculate_solar_radiation(acquisition, flux_fnames, out_fname, npoints
                                compression='lzf'):
     """
     A private wrapper for dealing with the internal custom workings of the
@@ -683,12 +679,13 @@ def _calculate_solar_radiation(acquisition, flux_fnames, out_fname,
     spectral_response = acquisition.spectral_response()
 
     with h5py.File(out_fname, 'w') as fid:
+        fid.attrs['npoints'] = npoints
         for key in flux_fnames:
             flux_fname = flux_fnames[key].path
             point, albedo = key
             group_path = ppjoin(POINT_FMT.format(p=point),
                                 ALBEDO_FMT.format(a=albedo))
-            transmittance = True if albedo == 't' else False
+            transmittance = True if albedo == NBAR_ALBEDOS[2] else False
             flux_dataset_name = ppjoin(group_path, 'flux')
             atmos_dataset_name = ppjoin(group_path, 'altitudes')
             channel_dname = ppjoin(group_path, 'channel')
