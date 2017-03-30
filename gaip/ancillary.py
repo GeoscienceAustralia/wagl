@@ -70,7 +70,9 @@ def relative_humdity(surface_temp, dewpoint_temp, kelvin=True):
     return rh
 
 
-def _collect_ancillary(acquisition, satellite_solar_fname):
+def _collect_ancillary(acquisition, satellite_solar_fname, nbar_paths,
+                       sbt_paths=None, vertices=(3, 3), out_fname=None,
+                       compression='lzf', work_path=''):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -78,14 +80,16 @@ def _collect_ancillary(acquisition, satellite_solar_fname):
     with h5py.File(satellite_solar_fname, 'r') as fid:
         boxline_dset = fid['boxline'][:]
 
-    rfid = collect_ancillary(acquisition, boxline_dset)
+    rfid = collect_ancillary(acquisition, boxline_dset, nbar_paths, sbt_paths,
+                             vertices, out_fname, compression, work_path)
 
     rfid.close()
     return
 
 
 def collect_ancillary(acquisition, boxline_dataset, nbar_paths, sbt_paths=None,
-                      out_fname=None, compression='lzf', work_path=''):
+                      vertices=(3, 3), out_fname=None, compression='lzf',
+                      work_path=''):
     """
     Collects the ancillary required for NBAR and optionally SBT.
     This could be better handled if using the `opendatacube` project
@@ -126,6 +130,12 @@ def collect_ancillary(acquisition, boxline_dataset, nbar_paths, sbt_paths=None,
         * temperature_path
         * relative_humidity_path
         * invariant_fname
+
+    :param vertices:
+        An integer 2-tuple indicating the number of rows and columns
+        of sample-locations ("coordinator") to produce.
+        The vertex columns should be an odd number.
+        Default is (3, 3).
 
     :param out_fname:
         If set to None (default) then the results will be returned
@@ -248,6 +258,8 @@ def collect_sbt_ancillary(acquisition, lonlats, dewpoint_path=None,
         fid = h5py.File('sbt-ancillary.h5', driver='core', backing_store=False)
     else:
         fid = h5py.File(out_fname, 'w')
+
+    fid.attrs['sbt-ancillary'] = True
 
     dt = acquisition.scene_center_datetime
 
