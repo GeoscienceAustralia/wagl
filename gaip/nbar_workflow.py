@@ -16,7 +16,7 @@ import luigi
 from luigi.local_target import LocalFileSystem
 from luigi.util import inherits, requires
 from gaip.acquisition import acquisitions
-from gaip.ancillary import collect_ancillary_data, aggregate_ancillary
+from gaip.ancillary import collect_nbar_ancillary, aggregate_ancillary
 from gaip.calculate_angles import _calculate_angles
 from gaip.calculate_incident_exiting_angles import _incident_angles
 from gaip.calculate_incident_exiting_angles import _exiting_angles
@@ -101,7 +101,7 @@ class GetAncillaryData(luigi.Task):
         work_root = container.get_root(self.work_root, granule=self.granule)
 
         with self.output().temporary_path() as out_fname:
-            collect_ancillary_data(acqs[0], self.aerosol_fname,
+            collect_nbar_ancillary(acqs[0], self.aerosol_fname,
                                    self.water_vapour_path,
                                    self.ozone_path, self.dem_path,
                                    self.brdf_path,
