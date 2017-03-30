@@ -16,7 +16,7 @@ import luigi
 from luigi.local_target import LocalFileSystem
 from luigi.util import inherits, requires
 from gaip.acquisition import acquisitions
-from gaip.ancillary import collect_ancillary_data, _collect_sbt_ancillary
+from gaip.ancillary import _collect_ancillary
 from gaip.calculate_angles import _calculate_angles
 from gaip.calculate_incident_exiting_angles import _incident_angles
 from gaip.calculate_incident_exiting_angles import _exiting_angles
@@ -33,12 +33,7 @@ from gaip.nbar_workflow import CalculateSatelliteAndSolarGrids
 from gaip.nbar_workflow import RunModtranCase, WriteTp5, GetAncillaryData
 
 
-# TODO: Remove the dpendency on the satelite solar grids.
-#       This means moving the coordinator calculator out of sat sol grids.
-#       It'll clean up the workflow and streamline it a little
-
-@requires(CalculateSatelliteAndSolarGrids)
-class SBTAncillary(luigi.Task):
+class SBTAncillary(GetAncillaryData):
 
     """Collect the ancillary data required for SBT."""
 
@@ -51,61 +46,47 @@ class SBTAncillary(luigi.Task):
     relative_humidity_path = luigi.Parameter(significant=False)
     invariant_height_fname = luigi.Parameter(significant=False)
 
-    def output(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      granule=self.granule)
-        return luigi.LocalTarget(pjoin(out_path, 'sbt-ancillary.h5'))
-
     def run(self):
         container = acquisitions(self.level1)
         acqs = container.get_acquisitions(granule=self.granule)
         work_root =  container.get_root(self.work_root, granule=self.granule)
 
-        sat_sol_fname = self.input().path
+        nbar_paths = {'aerosol_fname': self.aerosol_fname,
+                      'water_vapour_path': self.water_vapour_path,
+                      'ozone_path': self.ozone_path,
+                      'dem_path': self.dem_path,
+                      'brdf_path': self.brdf_path,
+                      'brdf_premodis_path': self.brdf_premodis_path}
+
+        sbt_paths = {'dewpoint_path': self.dewpoint_path,
+                     'temperature_2m_path': self.temp_2m_path,
+                     'surface_pressure_path': self.surface_pressure_path,
+                     'geopotential_path': self.geopotential_path,
+                     'temperature_path': self.temperature_path,
+                     'relative_humidity_path': self.relative_humidity_path,
+                     'invariant_fname': self.invariant_height_fname}
 
         with self.output().temporary_path() as out_fname:
-            _collect_sbt_ancillary(acqs[0], sat_sol_fname, self.dewpoint_path,
-                                   self.temp_2m_path,
-                                   self.surface_pressure_path,
-                                   self.geopotential_path,
-                                   self.temperature_path,
-                                   self.relative_humidity_path,
-                                   self.invariant_height_fname,
-                                   out_fname, self.compression)
+            _collect_ancillary(acq, self.input().path, nbar_paths, sbt_paths,
+                               vertices=self.vertices, out_fname=out_fname,
+                               work_path=work_root,
+                               compression=self.compression)
 
-
-# TODO: Remove albedos as a command option.
-#       We should default to calculate all.
-#       We could still put a switch to say 3 or 4 modtran calls per point??
 
 class ThermalTp5(WriteTp5):
 
     """Output the `tp5` formatted files."""
 
-    vertices = luigi.TupleParameter(default=(5, 5), significant=False)
-    albedos = luigi.ListParameter(default=['th'], significant=False)
-
     def requires(self):
-        # for consistancy, we'll wait for dependencies on all granules and
-        # groups of acquisitions
-        # current method requires to compute an average from all granules
-        # if the scene is tiled up that way
         container = acquisitions(self.level1)
         tasks = {}
 
         for granule in container.granules:
             args1 = [self.level1, self.work_root, granule]
-            kwargs = {'level1': self.level1,
-                      'work_root': self.work_root,
-                      'granule': granule,
-                      'group': container.groups[0],
-                      'vertices': self.vertices}
-            tasks[(granule, 'sbt-ancillary')] = SBTAncillary(**kwargs)
-            tasks[(granule, 'ancillary')] = GetAncillaryData(*args1)
+            tasks[(granule, 'ancillary')] = SBTAncillary(*args1)
             for group in container.groups:
                 args2 = [self.level1, self.work_root, granule, group]
-                kwargs['group'] = group
-                tsks = {'sat_sol': CalculateSatelliteAndSolarGrids(**kwargs),
+                tsks = {'sat_sol': CalculateSatelliteAndSolarGrids(*args2),
                         'lat': CalculateLatGrid(*args2),
                         'lon': CalculateLonGrid(*args2)}
                 tasks[(granule, group)] = tsks
@@ -118,8 +99,6 @@ class SBTAccumulateSolarIrradiance(AccumulateSolarIrradiance):
     """
     Accumulate the solar irradiance specifically for the SBT workflow.
     """
-
-    albedos = luigi.ListParameter(default=['th'], significant=False)
 
 
 @requires(SBTAccumulateSolarIrradiance)
