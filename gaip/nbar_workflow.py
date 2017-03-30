@@ -357,6 +357,7 @@ class CalculateCoefficients(luigi.Task):
                                     self.compression)
 
 
+# TODO: need to also retreive the ancillary to get the coordinator dataset
 @inherits(CalculateSatelliteAndSolarGrids)
 class BilinearInterpolationBand(luigi.Task):
     """
