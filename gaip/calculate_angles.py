@@ -23,8 +23,7 @@ CRS = "EPSG:4326"
 
 
 def _calculate_angles(acquisition, lon_fname, lat_fname, out_fname,
-                      vertices=(3, 3), compression='lzf', max_angle=9.0,
-                      tle_path=None):
+                      compression='lzf', max_angle=9.0, tle_path=None):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -35,18 +34,16 @@ def _calculate_angles(acquisition, lon_fname, lat_fname, out_fname,
         with h5py.File(lon_fname, 'r') as src:
             lon_ds = src[lon_dset_name]
             lat_ds = src[lat_dset_name]
-            fid = calculate_angles(acquisition, lon_ds, lat_ds, vertices,
-                                   out_fname, compression, max_angle=max_angle,
-                                   tle_path=tle_path)
+            fid = calculate_angles(acquisition, lon_ds, lat_ds, out_fname,
+                                   compression, max_angle, tle_path)
     else:
         with h5py.File(lon_fname, 'r') as lon_src,\
             h5py.File(lat_fname, 'r') as lat_src:
 
             lon_ds = lon_src[lon_dset_name]
             lat_ds = lat_src[lat_dset_name]
-            fid = calculate_angles(acquisition, lon_ds, lat_ds, vertices,
-                                   out_fname, compression, max_angle=max_angle,
-                                   tle_path=tle_path)
+            fid = calculate_angles(acquisition, lon_ds, lat_ds, out_fname,
+                                   compression, max_angle, tle_path)
 
     fid.close()
 
@@ -775,9 +772,8 @@ def _store_parameter_settings(fid, spheriod, orbital_elements,
     fid.flush()
 
 
-def calculate_angles(acquisition, lon_dataset, lat_dataset, vertices=(3, 3),
-                     out_fname=None, compression='lzf', max_angle=9.0,
-                     tle_path=None):
+def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
+                     compression='lzf', max_angle=9.0, tle_path=None):
     """
     Calculate the satellite view, satellite azimuth, solar zenith,
     solar azimuth, and relative aziumth angle grids, as well as the
@@ -801,12 +797,6 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, vertices=(3, 3),
         values when index/sliced.
         The dimensions must match that of the `acquisition` objects's
         samples (x) and lines (y) parameters.
-
-    :param vertices:
-        An integer 2-tuple indicating the number of rows and columns
-        of sample-locations ("coordinator") to produce.
-        The vertex columns should be an odd number.
-        Default is (3, 3).
 
     :param out_fname:
         If set to None (default) then the results will be returned
