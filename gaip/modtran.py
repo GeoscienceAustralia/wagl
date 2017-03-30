@@ -210,7 +210,7 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
                           'sat_view': view_cor[i],
                           'doy': doy,
                           'binary': binary}
-            if alb == 't':
+            if alb == NBAR_ALBEDOS[2]:
                 input_data['albedo'] = 0.0
                 input_data['sat_view_offset'] = 180.0-view_cor[i]
                 data = trans_profile.format(**input_data)
