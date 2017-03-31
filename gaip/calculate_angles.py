@@ -155,8 +155,8 @@ def asymetric_linspace(start, stop, num, midpoint):
         >>> assymetric_linspace(start=10, stop=20, num=5, midpoint=18)
         [10, 14, 18, 19, 20]
     """
-    front = np.linspace(start, midpoint, num//2, endpoint=False)
-    back = np.linspace(midpoint, stop, num//2 + 1)
+    front = np.linspace(start, midpoint, num//2, endpoint=False, dtype='int64')
+    back = np.linspace(midpoint, stop, num//2 + 1, dtype='int64')
     return list(front)+list(back)
 
 
