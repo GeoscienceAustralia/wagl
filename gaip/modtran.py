@@ -313,9 +313,6 @@ def run_modtran(modtran_exe, workpath, point, albedo, lonlat=None,
     else:
         fid = h5py.File(out_fname, 'w')
 
-    # meaningful location description
-    fid[POINT_FMT.format(p=point)].attrs['lonlat'] = lonlat
-
     # base group pathname
     group_path = ppjoin(POINT_FMT.format(p=point), ALBEDO_FMT.format(a=albedo))
 
@@ -335,6 +332,9 @@ def run_modtran(modtran_exe, workpath, point, albedo, lonlat=None,
     attrs['units'] = 'km'
     dset_name = ppjoin(group_path, 'altitudes')
     write_dataframe(altitudes, dset_name, fid, attrs=attrs)
+
+    # meaningful location description
+    fid[POINT_FMT.format(p=point)].attrs['lonlat'] = lonlat
 
     return fid
 
