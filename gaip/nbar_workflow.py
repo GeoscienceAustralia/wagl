@@ -193,11 +193,14 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
                               self.tle_path)
 
 
-@inherits(GetAncillaryData)
 class WriteTp5(luigi.Task):
 
     """Output the `tp5` formatted files."""
 
+    level1 = luigi.Parameter()
+    work_root = luigi.Parameter(significant=False)
+    granule = luigi.Parameter(default=None)
+    vertices = luigi.TupleParameter(default=(3, 3), significant=False)
     base_dir = luigi.Parameter(default='_atmospherics', significant=False)
     compression = luigi.Parameter(default='lzf', significant=False)
 
@@ -286,6 +289,7 @@ class RunModtranCase(luigi.Task):
         container = acquisitions(self.level1)
         out_path = container.get_root(self.work_root, granule=self.granule)
         acq = container.get_acquisitions(granule=self.granule)[0]
+        atmospheric_inputs_fname = self.input().path
 
         workpath = pjoin(POINT_FMT.format(p=self.point),
                          ALBEDO_FMT.format(a=self.albedo))
@@ -295,7 +299,7 @@ class RunModtranCase(luigi.Task):
 
         with self.output().temporary_path() as out_fname:
             _run_modtran(self.exe, modtran_work, self.point, self.albedo,
-                         out_fname, self.compression)
+                         atmospheric_inputs_fname, out_fname, self.compression)
 
 
 @inherits(WriteTp5)
@@ -371,7 +375,8 @@ class BilinearInterpolationBand(luigi.Task):
     def requires(self):
         args = [self.level1, self.work_root, self.granule]
         return {'coef': CalculateCoefficients(*args),
-                'satsol': self.clone(CalculateSatelliteAndSolarGrids)}
+                'satsol': self.clone(CalculateSatelliteAndSolarGrids),
+                'ancillary': GetAncillaryData(*args)}
 
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
@@ -384,13 +389,14 @@ class BilinearInterpolationBand(luigi.Task):
                                                           self.granule)
         sat_sol_angles_fname = self.input()['satsol'].path
         coefficients_fname = self.input()['coef'].path
+        ancillary_fname = self.input()['ancillary'].path
 
         acq = [acq for acq in acqs if acq.band_num == self.band_num][0]
 
         with self.output().temporary_path() as out_fname:
             _bilinear_interpolate(acq, self.factor, sat_sol_angles_fname,
-                                  coefficients_fname, out_fname,
-                                  self.compression)
+                                  coefficients_fname, ancillary_fname,
+                                  out_fname, self.compression)
 
 
 @inherits(CalculateLonGrid)

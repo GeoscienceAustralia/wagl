@@ -102,11 +102,11 @@ def _format_tp5(acquisition, satellite_solar_angles_fname,
         # angles data
         view_dset = sat_sol['satellite-view']
         azi_dset = sat_sol['satellite-azimuth']
-        coord_dset = sat_sol['coordinator']
         lon_dset = lon_ds['longitude']
         lat_dset = lat_ds['latitude']
 
         # ancillary data
+        coord_dset = anc_ds['coordinator']
         aerosol = anc_ds['aerosol'][()]
         water_vapour = anc_ds['water-vapour'][()]
         ozone = anc_ds['ozone'][()]
@@ -683,7 +683,7 @@ def read_modtran_channel(fname):
     return chn_data
 
 
-def _calculate_solar_radiation(acquisition, flux_fnames, out_fname, npoints
+def _calculate_solar_radiation(acquisition, flux_fnames, out_fname, npoints,
                                compression='lzf'):
     """
     A private wrapper for dealing with the internal custom workings of the

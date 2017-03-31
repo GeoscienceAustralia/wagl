@@ -84,23 +84,20 @@ def convert_to_lonlat(geobox, col_index, row_index):
     return lon, lat
     
 
-def create_centreline_dataset(geobox, y, x, n):
+def create_centreline_dataset(geobox, x, n):
     """
     Creates the centre line dataset.
 
     :param geobox:
         An instance of a GriddedGeoBox object.
 
-    :param y:
-        A 1D np array of type int with the same shape as x & n.
-        Details the row number starting at 0.
-
     :param x:
-        A 1D np array of type int with the same shape as y & n.
+        A 1D np array of type int with the same shape as
+        `geobox.shape[0]`.
         Details the column number starting at 0.
 
     :param n:
-        A 1D np array of type int with the same shape as y & x.
+        A 1D np array of type int with the same shape as x.
         Details whether or not the track point coordinate is
         averaged.
 
@@ -111,7 +108,8 @@ def create_centreline_dataset(geobox, y, x, n):
            ('n_pixels', 'float'), ('latitude', 'float'),
            ('longitude', 'float')]
     """
-    rows = y.shape[0]
+    rows, _ = geobox.shape
+    y = np.arange(rows)
 
     # Define the TO_CRS for lon & lat outputs
     sr = osr.SpatialReference()
@@ -177,7 +175,7 @@ def swathe_edges(threshold, array):
     return start, end
 
 
-def create_boxline(view_angle_dataset, line, xcentre, npoints, max_angle=9.0):
+def create_boxline(view_angle_dataset, xcentre, npoints, max_angle=9.0):
     """
     Creates the boxline (satellite track bi-section) dataset.
     :param view_angle_dataset:
@@ -268,18 +266,18 @@ def create_vertices(acquisition, boxline_dataset, vertices=(3, 3)):
                     ('map_y', 'int64'),
                     ('map_x', 'int64')])
     """
-    cols = acquisition.samples
-    rows = acquisition.lines
+    geobox = acquisition.gridded_geo_box()
+    rows, cols = geobox.shape
 
     if rows < vertices[0] | cols < vertices[1]:
         msg = ("Vertices must be >= to the acquisition dimensions! "
                "Acquisition dimensions: {}, Vertices: {}")
         raise ValueError(msg.format((rows, cols), vertices))
 
-    xcentre = boxline_dataset['bisection']
+    xcentre = boxline_dataset['bisection_index']
     npoints = boxline_dataset['npoints']
     istart = boxline_dataset['start_index']
-    iend = boxline['end_index']
+    iend = boxline_dataset['end_index']
 
     # special handling if the satellite track does not intersect both ends
     # of the raster
@@ -870,7 +868,6 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
     attach_image_attributes(time_ds, attrs)
 
     # Initialise centre line variables
-    y_cent = np.arange(1, rows + 1).astype('float32')
     x_cent = np.zeros((rows), dtype='float32')
     n_cent = np.zeros((rows), dtype='float32')
 
@@ -928,14 +925,12 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
     if wh[0]:
         x_cent[0] = temp[1]
 
-    # convert X & Y centre points to integers (basically array co-ordinates)
+    # convert X centre points to integers (basically array co-ordinates)
     # and correct for FORTRAN offset
-    y_cent = np.rint(y_cent) - 1
     x_cent = np.rint(x_cent) - 1
 
     # create the dataset and save to the HDF5 file
-    centreline_dataset = create_centreline_dataset(geobox, y_cent, x_cent,
-                                                   n_cent)
+    centreline_dataset = create_centreline_dataset(geobox, x_cent, n_cent)
     kwargs = dataset_compression_kwargs(compression=compression)
     cent_dset = fid.create_dataset('centreline', data=centreline_dataset,
                                    **kwargs)
@@ -946,10 +941,7 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
     attach_table_attributes(cent_dset, title='Centreline', attrs=attrs)
 
     # boxline and coordinator
-    boxline = create_boxline(sat_v_ds, x_cent, max_angle)
-    # boxline, coordinator = create_boxline_coordinator(geobox, sat_v_ds, y_cent,
-    #                                                   x_cent, n_cent,
-    #                                                   max_angle, vertices)
+    boxline = create_boxline(sat_v_ds, x_cent, n_cent, max_angle)
     desc = ("Contains the bi-section, column start and column end array "
             "coordinates.")
     attrs['Description'] = desc
