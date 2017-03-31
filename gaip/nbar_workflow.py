@@ -262,8 +262,8 @@ class WriteTp5(luigi.Task):
             # atomic and be moved upon closing
             for key in tp5_data:
                 point, albedo = key
-                tp5_out_fname = output_fmt.format(p=point, a=albedo)
-                target = pjoin(dirname(out_fname), tp5_out_fname)
+                tp5_fname = output_fmt.format(p=point, a=albedo)
+                target = pjoin(dirname(out_fname), self.base_dir, tp5_fname)
                 with luigi.LocalTarget(target).open('w') as src:
                     src.writelines(tp5_data[key])
 
