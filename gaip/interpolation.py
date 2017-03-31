@@ -194,16 +194,18 @@ def interpolate_grid(depth=0, origin=DEFAULT_ORIGIN, shape=DEFAULT_SHAPE,
 
 
 def _bilinear_interpolate(acq, factor, sat_sol_angles_fname,
-                          coefficients_fname, out_fname, compression):
+                          coefficients_fname, ancillary_fname, out_fname,
+                          compression):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
     with h5py.File(sat_sol_angles_fname, 'r') as sat_sol,\
-        h5py.File(coefficients_fname, 'r') as coef:
+        h5py.File(coefficients_fname, 'r') as coef,\
+        h5py.File(ancillary_fname, 'r') as anc:
 
         # read the relevant tables into DataFrames
-        coord_dset = read_table(sat_sol, 'coordinator')
+        coord_dset = read_table(anc, 'coordinator')
         centre_dset = read_table(sat_sol, 'centreline')
         box_dset = read_table(sat_sol, 'boxline')
         coef_dset = read_table(coef, 'coefficients')
@@ -224,9 +226,10 @@ def bilinear_interpolate(acq, factor, coordinator_dataset, boxline_dataset,
     geobox = acq.gridded_geo_box()
     cols, rows = geobox.get_shape_xy()
 
-    coord = numpy.zeros((9, 2), dtype='int')
-    coord[:, 0] = coordinator_dataset.row_index.values + 1
-    coord[:, 1] = coordinator_dataset.col_index.values + 1
+    coord = numpy.zeros((coordinator_dataset.shape[0], 2), dtype='int')
+    map_x = coordinator_dataset.map_x.values
+    map_y = coordinator_dataset.map_y.values
+    coord[:, 1], coord[:, 0] = (map_x, map_y) * ~geobox.transform
     centre = boxline_dataset.bisection_index.values + 1
     start = boxline_dataset.start_index.values + 1
     end = boxline_dataset.end_index.values + 1

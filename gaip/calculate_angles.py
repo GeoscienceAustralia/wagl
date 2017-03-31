@@ -200,7 +200,7 @@ def create_boxline(view_angle_dataset, line, xcentre, npoints, max_angle=9.0):
         The maximum viewing angle. Default is 9.0 degrees.
 
     :return:
-        2 `NumPy` datasets of the following datatypes:
+        A `NumPy` dataset of the following datatype:
 
         * boxline_dtype = np.dtype([('row_index', 'int64'),
                                     ('bisection_index', 'int64'),
@@ -257,6 +257,16 @@ def create_vertices(acquisition, boxline_dataset, vertices=(3, 3)):
         of sample-locations ("coordinator") to produce.
         The vertex columns should be an odd number.
         Default is (3, 3).
+
+    :return:
+        A `NumPy` dataset of the following datatype:
+
+        * np.dtype([('row_index', 'int64'),
+                    ('col_index', 'int64'),
+                    ('latitude', 'float64'),
+                    ('longitude', 'float64'),
+                    ('map_y', 'int64'),
+                    ('map_x', 'int64')])
     """
     cols = acquisition.samples
     rows = acquisition.lines
@@ -301,10 +311,16 @@ def create_vertices(acquisition, boxline_dataset, vertices=(3, 3)):
     coordinator_dtype = np.dtype([('row_index', 'int64'),
                                   ('col_index', 'int64'),
                                   ('latitude', 'float64'),
-                                  ('longitude', 'float64')])
+                                  ('longitude', 'float64'),
+                                  ('map_y', 'int64'),
+                                  ('map_x', 'int64')])
     coordinator = np.empty(locations.shape[0], dtype=coordinator_dtype)
     coordinator['row_index'] = locations[:, 0]
     coordinator['col_index'] = locations[:, 1]
+
+    map_xy = (locations[:, 1], locations[:, 0]) * geobox.transform
+    coordinator['map_y'] = map_xy[1]
+    coordinator['map_x'] = map_xy[0]
 
     lon, lat = convert_to_lonlat(geobox, locations[:, 1], locations[:, 0])
     coordinator['latitude'] = lat
