@@ -699,6 +699,7 @@ def _calculate_solar_radiation(acquisition, flux_fnames, out_fname, npoints,
         for key in flux_fnames:
             flux_fname = flux_fnames[key].path
             point, albedo = key
+            point_path = POINT_FMT.format(p=point)
             group_path = ppjoin(POINT_FMT.format(p=point),
                                 ALBEDO_FMT.format(a=albedo))
             transmittance = True if albedo == NBAR_ALBEDOS[2] else False
@@ -713,11 +714,8 @@ def _calculate_solar_radiation(acquisition, flux_fnames, out_fname, npoints,
             with h5py.File(flux_fname, 'r') as fid2:
                 flux_data = read_table(fid2, flux_dataset_name)
                 levels = fid2[atmos_dataset_name].attrs['altitude levels']
+                lonlat = fid2[point_path].attrs['lonlat']
 
-                # meaningful location description
-                pnt_path = POINT_FMT.format(p=point)
-                if not fid[pnt_path].attrs.get('lonlat'):
-                    fid[pnt_path].attrs['lonlat'] = fid2[pnt_path]['lonlat']
 
             # accumulate solar irradiance
             df = calculate_solar_radiation(flux_data, spectral_response,
@@ -728,8 +726,12 @@ def _calculate_solar_radiation(acquisition, flux_fnames, out_fname, npoints,
             attrs = {'Description': description.format(point, albedo),
                      'Point': point,
                      'Albedo': albedo,
-                     'lonlat': fid[pnt_path].attrs['lonlat']}
+                     'lonlat': lonlat}
             write_dataframe(df, dataset_name, fid, compression, attrs=attrs)
+
+            # meaningful location description
+            if fid[point_path].attrs.get('lonlat') is None:
+                fid[point_path].attrs['lonlat'] = lonlat
 
     return
 
