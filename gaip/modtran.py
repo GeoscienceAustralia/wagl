@@ -137,6 +137,12 @@ def _format_tp5(acquisition, satellite_solar_angles_fname,
             for k in metadata[key]:
                 dset.attrs[k] = metadata[key][k]
 
+        # attach some meaningful location information to the point groups
+        lon = coord_dset['longitude']
+        lat = coord_dset['latitude']
+        for i in range(coord_dset.shape[0]):
+            group[POINT_FMT.format(p=i)].attrs['lonlat'] = (lon[i], lat[i])
+
     return tp5_data
 
 
@@ -263,21 +269,25 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
     return tp5_data, metadata
 
 
-def _run_modtran(modtran_exe, workpath, point, albedo, out_fname,
-                 compression='lzf'):
+def _run_modtran(modtran_exe, workpath, point, albedo,
+                 atmospheric_inputs_fname, out_fname, compression='lzf'):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    rfid = run_modtran(modtran_exe, workpath, point, albedo, out_fname,
+    with h5py.File(atmospheric_inputs_fname, 'r') as fid:
+        grp_path = ppjoin('modtran-inputs', POINT_FMT.format(p=point))
+        lonlat = fid[grp_path].attrs['lonlat']
+
+    rfid = run_modtran(modtran_exe, workpath, point, albedo, lonlat, out_fname,
                        compression)
 
     rfid.close()
     return
         
 
-def run_modtran(modtran_exe, workpath, point, albedo, out_fname=None,
-                compression='lzf'):
+def run_modtran(modtran_exe, workpath, point, albedo, lonlat=None,
+                out_fname=None, compression='lzf'):
     """
     Run MODTRAN and return the flux and channel results.
     """
@@ -290,8 +300,11 @@ def run_modtran(modtran_exe, workpath, point, albedo, out_fname=None,
     # read the channel file
     channel_data = read_modtran_channel(chn_fname)
 
+    if lonlat is None:
+        lonlat = (numpy.nan, numpy.nan)
+
     # initial attributes
-    attrs = {'Point': point, 'Albedo': albedo}
+    attrs = {'Point': point, 'Albedo': albedo, 'lonlat': lonlat}
 
     # Initialise the output files
     if out_fname is None:
@@ -299,6 +312,9 @@ def run_modtran(modtran_exe, workpath, point, albedo, out_fname=None,
                         backing_store=False)
     else:
         fid = h5py.File(out_fname, 'w')
+
+    # meaningful location description
+    fid[POINT_FMT.format(p=point)].attrs['lonlat'] = lonlat
 
     # base group pathname
     group_path = ppjoin(POINT_FMT.format(p=point), ALBEDO_FMT.format(a=albedo))
@@ -698,6 +714,11 @@ def _calculate_solar_radiation(acquisition, flux_fnames, out_fname, npoints
                 flux_data = read_table(fid2, flux_dataset_name)
                 levels = fid2[atmos_dataset_name].attrs['altitude levels']
 
+                # meaningful location description
+                pnt_path = POINT_FMT.format(p=point)
+                if not fid[pnt_path].attrs.get('lonlat'):
+                    fid[pnt_path].attrs['lonlat'] = fid2[pnt_path]['lonlat']
+
             # accumulate solar irradiance
             df = calculate_solar_radiation(flux_data, spectral_response,
                                            levels, transmittance)
@@ -706,7 +727,8 @@ def _calculate_solar_radiation(acquisition, flux_fnames, out_fname, npoints
             dataset_name = ppjoin(group_path, 'solar-irradiance')
             attrs = {'Description': description.format(point, albedo),
                      'Point': point,
-                     'Albedo': albedo}
+                     'Albedo': albedo,
+                     'lonlat': fid[pnt_path].attrs['lonlat']}
             write_dataframe(df, dataset_name, fid, compression, attrs=attrs)
 
     return
