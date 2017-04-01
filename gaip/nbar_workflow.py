@@ -72,49 +72,6 @@ class WorkRoot(luigi.Task):
             local_fs.mkdir(target.path)
 
 
-class GetAncillaryData(luigi.Task):
-
-    """Get all ancillary data."""
-
-    level1 = luigi.Parameter()
-    work_root = luigi.Parameter(significant=False)
-    granule = luigi.Parameter(default=None)
-    vertices = luigi.TupleParameter(default=(3, 3), significant=False)
-    aerosol_fname = luigi.Parameter(significant=False)
-    brdf_path = luigi.Parameter(significant=False)
-    brdf_premodis_path = luigi.Parameter(significant=False)
-    ozone_path = luigi.Parameter(significant=False)
-    water_vapour_path = luigi.Parameter(significant=False)
-    dem_path = luigi.Parameter(significant=False)
-    compression = luigi.Parameter(significant=False)
-
-    def requires(self):
-        group = acquisitions(self.level1).groups[0]
-        args = [self.level1, self.work_root, self.granule, group]
-        return CalculateSatelliteAndSolarGrids(*args)
-
-    def output(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      granule=self.granule)
-        return luigi.LocalTarget(pjoin(out_path, 'ancillary.h5'))
-
-    def run(self):
-        container = acquisitions(self.level1)
-        acq = container.get_acquisitions(granule=self.granule)[0]
-        work_root = container.get_root(self.work_root, granule=self.granule)
-
-        nbar_paths = {'aerosol_fname': self.aerosol_fname,
-                      'water_vapour_path': self.water_vapour_path,
-                      'ozone_path': self.ozone_path,
-                      'dem_path': self.dem_path,
-                      'brdf_path': self.brdf_path,
-                      'brdf_premodis_path': self.brdf_premodis_path}
-
-        with self.output().temporary_path() as out_fname:
-            _collect_ancillary(acq, self.input().path, nbar_paths,
-                               vertices=self.vertices, out_fname=out_fname,
-                               work_path=work_root,
-                               compression=self.compression)
 
 
 class CalculateLonGrid(luigi.Task):
@@ -191,6 +148,51 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
             _calculate_angles(acqs[0], lon_fname, lat_fname, out_fname,
                               self.compression, acqs[0].maximum_view_angle,
                               self.tle_path)
+
+
+class GetAncillaryData(luigi.Task):
+
+    """Get all ancillary data."""
+
+    level1 = luigi.Parameter()
+    work_root = luigi.Parameter(significant=False)
+    granule = luigi.Parameter(default=None)
+    vertices = luigi.TupleParameter(default=(3, 3), significant=False)
+    aerosol_fname = luigi.Parameter(significant=False)
+    brdf_path = luigi.Parameter(significant=False)
+    brdf_premodis_path = luigi.Parameter(significant=False)
+    ozone_path = luigi.Parameter(significant=False)
+    water_vapour_path = luigi.Parameter(significant=False)
+    dem_path = luigi.Parameter(significant=False)
+    compression = luigi.Parameter(significant=False)
+
+    def requires(self):
+        group = acquisitions(self.level1).groups[0]
+        args = [self.level1, self.work_root, self.granule, group]
+        return CalculateSatelliteAndSolarGrids(*args)
+
+    def output(self):
+        out_path = acquisitions(self.level1).get_root(self.work_root,
+                                                      granule=self.granule)
+        return luigi.LocalTarget(pjoin(out_path, 'ancillary.h5'))
+
+    def run(self):
+        container = acquisitions(self.level1)
+        acq = container.get_acquisitions(granule=self.granule)[0]
+        work_root = container.get_root(self.work_root, granule=self.granule)
+
+        nbar_paths = {'aerosol_fname': self.aerosol_fname,
+                      'water_vapour_path': self.water_vapour_path,
+                      'ozone_path': self.ozone_path,
+                      'dem_path': self.dem_path,
+                      'brdf_path': self.brdf_path,
+                      'brdf_premodis_path': self.brdf_premodis_path}
+
+        with self.output().temporary_path() as out_fname:
+            _collect_ancillary(acq, self.input().path, nbar_paths,
+                               vertices=self.vertices, out_fname=out_fname,
+                               work_path=work_root,
+                               compression=self.compression)
 
 
 class WriteTp5(luigi.Task):
