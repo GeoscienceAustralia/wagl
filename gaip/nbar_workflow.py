@@ -11,7 +11,7 @@ Workflow settings can be configured in `luigi.cfg` file.
 # pylint: disable=protected-access
 
 from __future__ import absolute_import, print_function
-from os.path import join as pjoin, basename, splitext, dirname
+from os.path import join as pjoin, basename, dirname
 import luigi
 from luigi.local_target import LocalFileSystem
 from luigi.util import inherits, requires
@@ -21,7 +21,7 @@ from gaip.calculate_angles import _calculate_angles
 from gaip.calculate_incident_exiting_angles import _incident_angles
 from gaip.calculate_incident_exiting_angles import _exiting_angles
 from gaip.calculate_incident_exiting_angles import _relative_azimuth_slope
-from gaip.calculate_lon_lat_arrays import create_lon_grid, create_lat_grid
+from gaip.calculate_lon_lat_arrays import create_lon_lat_grids
 from gaip.calculate_reflectance import _calculate_reflectance
 from gaip.calculate_reflectance import link_reflectance_data
 from gaip.calculate_shadow_masks import _self_shadow, _calculate_cast_shadow
@@ -29,7 +29,6 @@ from gaip.calculate_shadow_masks import _combine_shadow
 from gaip.calculate_slope_aspect import _slope_aspect_arrays
 from gaip import constants
 from gaip.dsm import get_dsm
-from gaip.hdf5 import create_external_link
 from gaip.modtran import _format_tp5, _run_modtran, _calculate_solar_radiation
 from gaip.modtran import _calculate_coefficients, prepare_modtran
 from gaip.modtran import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT, NBAR_ALBEDOS
@@ -72,11 +71,9 @@ class WorkRoot(luigi.Task):
             local_fs.mkdir(target.path)
 
 
+class CalculateLonLatGrids(luigi.Task):
 
-
-class CalculateLonGrid(luigi.Task):
-
-    """Calculate the longitude grid."""
+    """Calculates the longitude and latitude grids."""
 
     level1 = luigi.Parameter()
     work_root = luigi.Parameter(significant=False)
@@ -90,38 +87,18 @@ class CalculateLonGrid(luigi.Task):
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
-        return luigi.LocalTarget(pjoin(out_path, 'longitude.h5'))
+        return luigi.LocalTarget(pjoin(out_path, 'longitude-latitude.h5'))
 
     def run(self):
         acq = acquisitions(self.level1).get_acquisitions(self.group,
                                                          self.granule)[0]
 
         with self.output().temporary_path() as out_fname:
-            create_lon_grid(acq.gridded_geo_box(), out_fname, self.compression)
+            create_lon_lat_grids(acq.gridded_geo_box(), out_fname,
+                                 self.compression)
 
 
-@inherits(CalculateLonGrid)
-class CalculateLatGrid(luigi.Task):
-
-    """Calculate the latitude grid."""
-
-    def requires(self):
-        return WorkRoot(self.level1, self.work_root)
-
-    def output(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      self.group, self.granule)
-        return luigi.LocalTarget(pjoin(out_path, 'latitude.h5'))
-
-    def run(self):
-        acq = acquisitions(self.level1).get_acquisitions(self.group,
-                                                         self.granule)[0]
-
-        with self.output().temporary_path() as out_fname:
-            create_lat_grid(acq.gridded_geo_box(), out_fname, self.compression)
-
-
-@inherits(CalculateLonGrid)
+@inherits(CalculateLonLatGrids)
 class CalculateSatelliteAndSolarGrids(luigi.Task):
 
     """Calculate the satellite and solar grids."""
@@ -130,8 +107,7 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
 
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.group]
-        return {'lat': CalculateLatGrid(*args),
-                'lon': CalculateLonGrid(*args)}
+        return CalculateLonLatGrids(*args)
 
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
@@ -141,11 +117,9 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
     def run(self):
         acqs = acquisitions(self.level1).get_acquisitions(self.group,
                                                           self.granule)
-        lat_fname = self.input()['lat'].path
-        lon_fname = self.input()['lon'].path
 
         with self.output().temporary_path() as out_fname:
-            _calculate_angles(acqs[0], lon_fname, lat_fname, out_fname,
+            _calculate_angles(acqs[0], self.input().path, out_fname,
                               self.compression, acqs[0].maximum_view_angle,
                               self.tle_path)
 
@@ -220,8 +194,7 @@ class WriteTp5(luigi.Task):
             for group in container.groups:
                 args2 = [self.level1, self.work_root, granule, group]
                 tsks = {'sat_sol': CalculateSatelliteAndSolarGrids(*args2),
-                        'lat': CalculateLatGrid(*args2),
-                        'lon': CalculateLonGrid(*args2)}
+                        'lon_lat': CalculateLonLatGrids(*args2)}
                 tasks[(granule, group)] = tsks
 
         return tasks
@@ -253,11 +226,10 @@ class WriteTp5(luigi.Task):
             ancillary_fname = fnames[0]
 
         sat_sol_fname = inputs[(self.granule, group)]['sat_sol'].path
-        lon_fname = inputs[(self.granule, group)]['lon'].path
-        lat_fname = inputs[(self.granule, group)]['lat'].path
+        lon_lat_fname = inputs[(self.granule, group)]['lon_lat'].path
 
         with self.output().temporary_path() as out_fname:
-            tp5_data = _format_tp5(acq, sat_sol_fname, lon_fname, lat_fname,
+            tp5_data = _format_tp5(acq, sat_sol_fname, lon_lat_fname,
                                    ancillary_fname, out_fname)
 
             # keep this as an indented block, that way the target will remain
@@ -401,7 +373,7 @@ class BilinearInterpolationBand(luigi.Task):
                                   out_fname, self.compression)
 
 
-@inherits(CalculateLonGrid)
+@inherits(CalculateLonLatGrids)
 class BilinearInterpolation(luigi.Task):
 
     """
@@ -455,7 +427,7 @@ class BilinearInterpolation(luigi.Task):
             link_bilinear_data(bilinear_fnames, out_fname)
 
 
-@inherits(CalculateLonGrid)
+@inherits(CalculateLonLatGrids)
 class DEMExctraction(luigi.Task):
 
     """
@@ -779,7 +751,7 @@ class RunTCBand(luigi.Task):
                                    self.x_tile, self.y_tile)
 
 
-@inherits(CalculateLonGrid)
+@inherits(CalculateLonLatGrids)
 class TerrainCorrection(luigi.Task):
 
     """Perform the terrain correction."""

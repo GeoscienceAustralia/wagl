@@ -88,22 +88,21 @@ def prepare_modtran(acquisition, coordinate, albedo, modtran_work,
 
 
 def _format_tp5(acquisition, satellite_solar_angles_fname,
-                longitude_fname, latitude_fname, ancillary_fname, out_fname):
+                longitude_latitude_fname, ancillary_fname, out_fname):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
     with h5py.File(satellite_solar_angles_fname, 'r') as sat_sol,\
-        h5py.File(longitude_fname, 'r') as lon_ds,\
-        h5py.File(latitude_fname, 'r') as lat_ds,\
+        h5py.File(longitude_latitude_fname, 'r') as lon_lat_ds,\
         h5py.File(ancillary_fname, 'r') as anc_ds,\
         h5py.File(out_fname, 'w') as fid:
 
         # angles data
         view_dset = sat_sol['satellite-view']
         azi_dset = sat_sol['satellite-azimuth']
-        lon_dset = lon_ds['longitude']
-        lat_dset = lat_ds['latitude']
+        lon_dset = lon_lat_ds['longitude']
+        lat_dset = lon_lat_ds['latitude']
 
         # ancillary data
         coord_dset = anc_ds['coordinator']

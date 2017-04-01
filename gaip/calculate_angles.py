@@ -22,28 +22,17 @@ from gaip.__track_time_info import set_times
 CRS = "EPSG:4326"
 
 
-def _calculate_angles(acquisition, lon_fname, lat_fname, out_fname,
+def _calculate_angles(acquisition, lon_lat_fname, out_fname=None,
                       compression='lzf', max_angle=9.0, tle_path=None):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    lon_dset_name = 'longitude'
-    lat_dset_name = 'latitude'
-    if lon_fname == lat_fname:
-        with h5py.File(lon_fname, 'r') as src:
-            lon_ds = src[lon_dset_name]
-            lat_ds = src[lat_dset_name]
-            fid = calculate_angles(acquisition, lon_ds, lat_ds, out_fname,
-                                   compression, max_angle, tle_path)
-    else:
-        with h5py.File(lon_fname, 'r') as lon_src,\
-            h5py.File(lat_fname, 'r') as lat_src:
-
-            lon_ds = lon_src[lon_dset_name]
-            lat_ds = lat_src[lat_dset_name]
-            fid = calculate_angles(acquisition, lon_ds, lat_ds, out_fname,
-                                   compression, max_angle, tle_path)
+    with h5py.File(lon_lat_fname, 'r') as src:
+        lon_ds = src['longitude']
+        lat_ds = src['latitude']
+        fid = calculate_angles(acquisition, lon_ds, lat_ds, out_fname,
+                               compression, max_angle, tle_path)
 
     fid.close()
 

@@ -97,8 +97,8 @@ def get_lat_coordinate(y, x, geobox, geo_crs=None, centre=False):
     return y
 
 
-def create_lon_lat_grids(geobox, depth=7, dtype='float64',
-                         out_fname=None, compression='lzf'):
+def create_lon_lat_grids(geobox, out_fname=None, compression='lzf', depth=7,
+                         dtype='float64'):
     """
     Creates 2 by 2D NumPy arrays containing longitude and latitude
     co-ordinates for each array element.
