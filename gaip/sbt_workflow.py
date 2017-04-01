@@ -21,7 +21,7 @@ from gaip.calculate_angles import _calculate_angles
 from gaip.calculate_incident_exiting_angles import _incident_angles
 from gaip.calculate_incident_exiting_angles import _exiting_angles
 from gaip.calculate_incident_exiting_angles import _relative_azimuth_slope
-from gaip.calculate_lon_lat_arrays import create_lon_grid, create_lat_grid
+from gaip.calculate_lon_lat_arrays import create_lon_lat_grids 
 from gaip import constants
 from gaip.hdf5 import create_external_link
 from gaip.modtran import _format_tp5, _run_modtran, _calculate_solar_radiation
@@ -103,6 +103,7 @@ class SBTAccumulateSolarIrradiance(AccumulateSolarIrradiance):
 
 @requires(SBTAccumulateSolarIrradiance)
 class SBTCoefficients(CalculateCoefficients):
+    pass
 
 
 class SBTBilinearInterpolation(BilinearInterpolation):
