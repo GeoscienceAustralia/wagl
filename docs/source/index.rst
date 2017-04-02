@@ -18,6 +18,8 @@ Contents:
    directories
    modules
    invoking
+   acquisitions
+   hdf5
    nbar_sop
    pq_sop
    fc_sop
