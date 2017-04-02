@@ -20,13 +20,81 @@ Some of the main reasons behind moving to HDF5 are:
 * Datasets can be stored in a hierarchical fashion, for instance, creating a hierarchical layout based on resolution, or the same dataset name stored in different locations based on a given attribute.
   For example, the ancillary data required for surface brightness temperature, gathers data at a minimum of 25 points across a scene or granule.
   The point id is used as the group label to differentiate between the same ancillary data gathered at different locations. i.e.:
-
     * /point-0/temperature
     * /point-1/temperature
     * /point-2/temperature
-
 * Metadata; gaip can now store a lot more metadata such as longitude and latitude information with each ancillary point location, as opposed to a plain text label.
   Parameter settings used for a given algorithm such as for the satellite and solar angles calculation can be stored alongside the results, potentially making it easier for validation, and archive comparisons to be undertaken.
 * Utilise a consistant library for data I/O, rather than a dozen or so different libraries. This helps to simplify the gaip data model, and have fewer library dependencies.
 
 Dataset names for each output are as follows:
+
+* ancillary.h5
+  * /aerosol
+  * /coordinator
+  * /elevation
+  * /ozone
+  * /water-vapour
+  * /BRDF-Band-{band_id}-geo (combinations based on band_id)
+  * /BRDF-Band-{band_id}-iso
+  * /BRDF-Band-{band_id}-vol
+  * /brdf-image-datasets/Band_{band_id)_0459_0479nm_geo (combinations based on band_id and lower/upper brdf wavelength)
+  * /brdf-image-datasets/Band_{band_id)_0459_0479nm_iso
+  * /brdf-image-datasets/Band_{band_id)_0459_0479nm_vol
+* atmospheric-inputs.h5
+  * /modtran-inputs/point-0/albedo-0/tp5_data (combinations based on point labe;, albedo label)
+  * /modtran-inputs/point-1/albedo-1/tp5_data
+  * /modtran-inputs/point-2/albedo-t/tp5_data
+  * /modtran-inputs/point-3/albedo-th/tp5_data
+* accumulated-solar-irradiance.h5
+  * /point-0/albedo-0/channel (combinations based on point label, albedo label)
+  * /point-0/albedo-0/solar-irradiance (combinations based on point label, albedo label)
+* coefficients.h5
+  * /coefficients
+* bilinearly-interpolated-data.h5
+  * /a-band-{band_id} (combinations based on the band_id)
+  * /b-band-{band_id} (combinations based on the band_id)
+  * /dif-band-{band_id} (combinations based on the band_id)
+  * /dir-band-{band_id} (combinations based on the band_id)
+  * /fs-band-{band_id} (combinations based on the band_id)
+  * /fv-band-{band_id} (combinations based on the band_id)
+  * /s-band-{band_id} (combinations based on the band_id)
+  * /ts-band-{band_id} (combinations based on the band_id)
+* dsm-extract.h5
+  * /dsm
+  * /dsm-smoothed
+* exiting-angles.h5
+  * /azimuthal-exiting
+  * /exiting
+* incident-angles.h5
+  * /azimuthal-incident
+  * /incident
+* longitude-latitude.h5
+  * /longitude
+  * /latitude
+* relative-slope.h5
+  * /relative-slope
+* satellite-solar.h5
+  * /boxline
+  * /centreline
+  * /parameters/orbital-elements
+  * /parameters/satellite-model
+  * /parameters/satellite-track
+  * /parameters/spheroid
+  * /relative-azimuth
+  * /satellite-azimuth
+  * /satellite-view
+  * /solar-azimuth
+  * /solar-zenith
+* shadow-masks.h5
+  * /cast-shadow-satellite
+  * /cast-shadow-sun
+  * /combined-shadow
+  * /self-shadow
+* slope-aspect.h5
+  * /aspect
+  * /slope
+* reflectance.h5
+  * /brdf-reflectance-band-{band_id} (combinations based on the band_id)
+  * /lambertian-reflectance-band-{band_id} (combinations based on the band_id)
+  * /terrain-reflectance-band-{band_id} (combinations based on the band_id)
