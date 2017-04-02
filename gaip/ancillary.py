@@ -347,7 +347,59 @@ def collect_nbar_ancillary(acquisition, aerosol_fname=None,
                            brdf_premodis_path=None, out_fname=None,
                            compression='lzf', work_path=''):
     """
-    TODO: Document
+    Collects the ancillary information required to create NBAR.
+
+    :param acquisition:
+        An instance of an `Acquisition` object.
+
+    :param aerosol_fname:
+        A `str` containing the full file pathname to the `HDF5` file
+        containing the aerosol data.
+
+    :param water_vapour_path:
+        A `str` containing the full file pathname to the directory
+        containing the water vapour data.
+
+    :param ozone_path:
+        A `str` containing the full file pathname to the directory
+        containing the ozone data.
+
+    :param dem_path:
+        A `str` containing the full file pathname to the directory
+        containing the digital elevation model data.
+
+    :param brdf_path:
+        A `str` containing the full file pathname to the directory
+        containing the BRDF image mosaics.
+
+    :param brdf_premodis_path:
+        A `str` containing the full file pathname to the directory
+        containing the premodis BRDF image mosaics.
+
+    :param out_fname:
+        If set to None (default) then the results will be returned
+        as an in-memory hdf5 file, i.e. the `core` driver.
+        Otherwise it should be a string containing the full file path
+        name to a writeable location on disk in which to save the HDF5
+        file.
+
+    :param compression:
+        The compression filter to use. Default is 'lzf'.
+        Options include:
+
+        * 'lzf' (Default)
+        * 'lz4'
+        * 'mafisc'
+        * An integer [1-9] (Deflate/gzip)
+
+    :param work_path:
+        A `str` containing the path to a temporary directory where
+        any BRDF images will be extracted to. Defaults to the current
+        working directory.
+
+    :return:
+        An opened `h5py.File` object, that is either in-memory using the
+        `core` driver, or on disk.
     """
     def _format_brdf_attrs(factor):
         """Converts BRDF shortnames to longnames"""
