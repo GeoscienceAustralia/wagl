@@ -374,7 +374,7 @@ def setup_spheroid(proj_wkt):
 
     # Eccentricity squared
     dset['eccentricity_squared'] = 1.0 - (1.0 - 1.0 /
-                                          dset['inverse_flattening']) ** 2
+                                          dset['inverse_flattening'])**2
 
     # Earth rotational angular velocity rad/sec
     # Other sources such as:
@@ -433,7 +433,7 @@ def setup_orbital_elements(ephemeral, datetime, acquisition):
         ephemeral.compute(datetime)
         pi = np.pi
         n = ephemeral._n  # number or orbits per day
-        s = 24 * 60 * 60  # Seconds in a day
+        s = 24*60*60  # Seconds in a day
         mu = 398600441800000.0  # Earth Gravitational parameter m^3s^-2
 
         # orbital inclination (degrees)
@@ -441,10 +441,10 @@ def setup_orbital_elements(ephemeral, datetime, acquisition):
 
         # semi_major radius (m)
         # http://smallsats.org/2012/12/06/two-line-element-set-tle/
-        dset['semi_major_radius'] = (mu / (2 * pi * n / s) ** 2) ** (1. / 3)
+        dset['semi_major_radius'] = (mu / (2*pi*n/s)**2)**(1/3)
 
         # angular velocity (rad sec-1)
-        dset['angular_velocity'] = (2 * pi * n) / s
+        dset['angular_velocity'] = (2*pi*n) / s
 
     return np.array(dset.tolist()).squeeze(), dset
 
