@@ -271,7 +271,7 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
     return tp5_data, metadata
 
 
-def _run_modtran(modtran_exe, workpath, point, albedo,
+def _run_modtran(acquisition, modtran_exe, workpath, point, albedo,
                  atmospheric_inputs_fname, out_fname, compression='lzf'):
     """
     A private wrapper for dealing with the internal custom workings of the
@@ -281,14 +281,14 @@ def _run_modtran(modtran_exe, workpath, point, albedo,
         grp_path = ppjoin('modtran-inputs', POINT_FMT.format(p=point))
         lonlat = fid[grp_path].attrs['lonlat']
 
-    rfid = run_modtran(modtran_exe, workpath, point, albedo, lonlat, out_fname,
-                       compression)
+    rfid = run_modtran(acquisition, modtran_exe, workpath, point, albedo,
+                       lonlat, out_fname, compression)
 
     rfid.close()
     return
         
 
-def run_modtran(modtran_exe, workpath, point, albedo, lonlat=None,
+def run_modtran(acquisition, modtran_exe, workpath, point, albedo, lonlat=None,
                 out_fname=None, compression='lzf'):
     """
     Run MODTRAN and return the flux and channel results.
@@ -311,7 +311,7 @@ def run_modtran(modtran_exe, workpath, point, albedo, lonlat=None,
     # initial attributes
     attrs = {'Point': point, 'Albedo': albedo, 'lonlat': lonlat}
 
-    try:
+    if albedo != SBT_ALBEDO:
         flux_fname = glob.glob(pjoin(workpath, '*_b.flx'))[0]
         flux_data, altitudes = read_modtran_flux(flux_fname)
 
@@ -326,21 +326,25 @@ def run_modtran(modtran_exe, workpath, point, albedo, lonlat=None,
         attrs['units'] = 'km'
         dset_name = ppjoin(group_path, 'altitudes')
         write_dataframe(altitudes, dset_name, fid, attrs=attrs)
-    except IndexError:
-        pass
 
-    try:
-        chn_fname = glob.glob(pjoin(workpath, '*.chn'))[0]
-        channel_data = read_modtran_channel(chn_fname)
+    chn_fname = glob.glob(pjoin(workpath, '*.chn'))[0]
+    channel_data = read_modtran_channel(chn_fname, acquisition, albedo)
 
+    if albedo == SBT_ALBEDO:
+        # upward radiation
+        attrs['Description'] = 'Upward radiation channel output from MODTRAN'
+        dset_name = ppjoin(group_path, 'upward-radiation-channel')
+        write_dataframe(channel_data[0], dset_name, fid, attrs=attrs)
+
+        # downward radiation
+        attrs['Description'] = 'Downward radiation channel output from MODTRAN'
+        dset_name = ppjoin(group_path, 'downward-radiation-channel')
+        write_dataframe(channel_data[1], dset_name, fid, attrs=attrs)
+    else:
         # output the channel data
         attrs['Description'] = 'Channel output from MODTRAN'
         dset_name = ppjoin(group_path, 'channel')
         write_dataframe(channel_data, dset_name, fid, attrs=attrs)
-    except IndexError:
-        # if we have a failure here, then something is very wrong
-        # TODO: need better handling
-        raise
 
     # meaningful location description
     fid[POINT_FMT.format(p=point)].attrs['lonlat'] = lonlat
@@ -670,7 +674,7 @@ def read_modtran_flux(fname):
     return flux_data, altitude
 
 
-def read_modtran_channel(fname):
+def read_modtran_channel(fname, acquisition, albedo):
     """
     Read a MODTRAN output `*.chn` ascii file.
 
@@ -678,18 +682,45 @@ def read_modtran_channel(fname):
         A `str` containing the full file pathname of the channel
         data file.
 
+    :param acquisition:
+        An instance of an acquisition object.
+
+    :param albedo:
+        An albedo identifier from either NBAR_ALBEDOS or SBT_ALBEDO
+
     :return:
         A `pandas.DataFrame` containing the channel data, and index
         by the `band_id`.
     """
-    chn_data = pd.read_csv(fname, skiprows=5, header=None,
-                           delim_whitespace=True)
-    chn_data['band_id'] = chn_data[20] + ' ' + chn_data[21].astype(str)
-    chn_data.drop([20, 21], inplace=True, axis=1)
-    chn_data.set_index('band_id', inplace=True)
-    chn_data.columns = chn_data.columns.astype(str)
+    if albedo == SBT_ALBEDO:
+        response = acquisition.spectral_response()
+        nbands = response.index.get_level_values('band_id').unique().shape[0]
+        upward_radiation = pd.read_csv(fname, skiprows=5, header=None,
+                                       delim_whitespace=True, nrows=nbands)
+        downward_radiation = pd.read_csv(fname, skiprows=10+nbands,
+                                         header=None, delim_whitespace=True,
+                                         nrows=nbands)
+        upward_radiation['band_id'] = (upward_radiation[16] + ' ' + 
+                                       upward_radiation[17].astype(str))
+        downward_radiation['band_id'] = (downward_radiation[16] + ' ' +
+                                         downward_radiation[17].astype(str))
+        upward_radiation.drop([16, 17], inplace=True, axis=1)
+        downward_radiation.drop([16, 17], inplace=True, axis=1)
+        upward_radiation.set_index('band_id', inplace=True)
+        downward_radiation.set_index('band_id', inplace=True)
+        upward_radiation.columns = upward_radiation.columns.astype(str)
+        downward_radiation.columns = downward_radiation.columns.astype(str)
 
-    return chn_data
+        return upward_radiation, downward_radiation
+    else:
+        chn_data = pd.read_csv(fname, skiprows=5, header=None,
+                               delim_whitespace=True)
+        chn_data['band_id'] = chn_data[20] + ' ' + chn_data[21].astype(str)
+        chn_data.drop([20, 21], inplace=True, axis=1)
+        chn_data.set_index('band_id', inplace=True)
+        chn_data.columns = chn_data.columns.astype(str)
+
+        return chn_data
 
 
 def _calculate_solar_radiation(acquisition, flux_fnames, out_fname, npoints,

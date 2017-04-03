@@ -278,7 +278,7 @@ class RunModtranCase(luigi.Task):
         prepare_modtran(acq, self.point, self.albedo, modtran_work, self.exe)
 
         with self.output().temporary_path() as out_fname:
-            _run_modtran(self.exe, modtran_work, self.point, self.albedo,
+            _run_modtran(acq, self.exe, modtran_work, self.point, self.albedo,
                          atmospheric_inputs_fname, out_fname, self.compression)
 
 
