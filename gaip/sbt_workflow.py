@@ -81,7 +81,6 @@ class ThermalTp5(WriteTp5):
     """Output the `tp5` formatted files."""
 
     vertices = luigi.TupleParameter(default=(5, 5), significant=False)
-    nbar_tp5 = luigi.BoolParameter(default=False, significant=False)
 
     def requires(self):
         container = acquisitions(self.level1)
@@ -119,7 +118,8 @@ class RunAtmospherics(luigi.WrapperTask):
     def requires(self):
         for point in range(self.vertices[0] * self.vertices[1]):
             args = [self.level1, self.work_root, self.granule]
-            yield RunAtmosphericsCase(*args, point=point, albedo=SBT_ALBEDO)
+            yield RunAtmosphericsCase(*args, point=point, albedo=SBT_ALBEDO,
+                                      nbar_tp5=False)
 
     # def output(self):
     #     out_path = acquisitions(self.level1).get_root(self.work_root,
