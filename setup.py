@@ -1,8 +1,9 @@
 """
 Setup gaip
 """
-
 from __future__ import absolute_import
+
+import setuptools
 
 import versioneer
 from numpy.distutils.core import setup
