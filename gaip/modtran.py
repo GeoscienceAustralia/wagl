@@ -294,19 +294,6 @@ def run_modtran(modtran_exe, workpath, point, albedo, lonlat=None,
     Run MODTRAN and return the flux and channel results.
     """
     subprocess.check_call([modtran_exe], cwd=workpath)
-    flux_fname = glob.glob(pjoin(workpath, '*_b.flx'))[0]
-    chn_fname = glob.glob(pjoin(workpath, '*.chn'))[0]
-
-    flux_data, altitudes = read_modtran_flux(flux_fname)
-
-    # read the channel file
-    channel_data = read_modtran_channel(chn_fname)
-
-    if lonlat is None:
-        lonlat = (numpy.nan, numpy.nan)
-
-    # initial attributes
-    attrs = {'Point': point, 'Albedo': albedo, 'lonlat': lonlat}
 
     # Initialise the output files
     if out_fname is None:
@@ -318,22 +305,42 @@ def run_modtran(modtran_exe, workpath, point, albedo, lonlat=None,
     # base group pathname
     group_path = ppjoin(POINT_FMT.format(p=point), ALBEDO_FMT.format(a=albedo))
 
-    # ouput the flux data
-    dset_name = ppjoin(group_path, 'flux')
-    attrs['Description'] = 'Flux output from MODTRAN'
-    write_dataframe(flux_data, dset_name, fid, attrs=attrs)
+    if lonlat is None:
+        lonlat = (numpy.nan, numpy.nan)
 
-    # output the channel data
-    attrs['Description'] = 'Channel output from MODTRAN'
-    dset_name = ppjoin(group_path, 'channel')
-    write_dataframe(channel_data, dset_name, fid, attrs=attrs)
+    # initial attributes
+    attrs = {'Point': point, 'Albedo': albedo, 'lonlat': lonlat}
 
-    # output the altitude data
-    attrs['Description'] = 'Altitudes output from MODTRAN'
-    attrs['altitude levels'] = altitudes.shape[0]
-    attrs['units'] = 'km'
-    dset_name = ppjoin(group_path, 'altitudes')
-    write_dataframe(altitudes, dset_name, fid, attrs=attrs)
+    try:
+        flux_fname = glob.glob(pjoin(workpath, '*_b.flx'))[0]
+        flux_data, altitudes = read_modtran_flux(flux_fname)
+
+        # ouput the flux data
+        dset_name = ppjoin(group_path, 'flux')
+        attrs['Description'] = 'Flux output from MODTRAN'
+        write_dataframe(flux_data, dset_name, fid, attrs=attrs)
+
+        # output the altitude data
+        attrs['Description'] = 'Altitudes output from MODTRAN'
+        attrs['altitude levels'] = altitudes.shape[0]
+        attrs['units'] = 'km'
+        dset_name = ppjoin(group_path, 'altitudes')
+        write_dataframe(altitudes, dset_name, fid, attrs=attrs)
+    except IndexError:
+        pass
+
+    try:
+        chn_fname = glob.glob(pjoin(workpath, '*.chn'))[0]
+        channel_data = read_modtran_channel(chn_fname)
+
+        # output the channel data
+        attrs['Description'] = 'Channel output from MODTRAN'
+        dset_name = ppjoin(group_path, 'channel')
+        write_dataframe(channel_data, dset_name, fid, attrs=attrs)
+    except IndexError:
+        # if we have a failure here, then something is very wrong
+        # TODO: need better handling
+        raise
 
     # meaningful location description
     fid[POINT_FMT.format(p=point)].attrs['lonlat'] = lonlat
