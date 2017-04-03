@@ -418,7 +418,7 @@ def collect_nbar_ancillary(acquisition, aerosol_fname=None,
     if out_fname is None:
         fid = h5py.File('ancillary.h5', driver='core', backing_store=False)
     else:
-        fid = h5py.File(out_fname, 'w')
+        fid = h5py.File(out_fname, 'a')
 
     dt = acquisition.scene_center_datetime
     geobox = acquisition.gridded_geo_box()
