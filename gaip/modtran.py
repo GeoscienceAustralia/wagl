@@ -15,7 +15,7 @@ from scipy.io import FortranFile
 import h5py
 import pandas as pd
 
-from gaip.hdf5 import write_dataframe, read_table
+from gaip.hdf5 import write_dataframe, read_table, create_external_link
 from gaip.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
 from gaip.modtran_profiles import MIDLAT_SUMMER_TRANSMITTANCE, SBT_FORMAT
 from gaip.modtran_profiles import TROPICAL_TRANSMITTANCE, THERMAL_TRANSMITTANCE
@@ -949,21 +949,22 @@ def sbt_coefficients(fname, out_fname, compression='lzf'):
     with h5py.File(fname, 'r') as fid,\
         h5py.File(out_fname, 'w') as out_fid:
         for i in range(fid.attrs['npoints']):
-            grp_path = ppjoin(POINT_FMT.format(p=point) albedo_fmt)
+            grp_path = ppjoin(POINT_FMT.format(p=i), albedo_fmt)
             dname = ppjoin(grp_path, 'upward-radiation-channel')
             upward[i] = read_table(fid, dname)
 
             dname = ppjoin(grp_path, 'downward-radiation-channel')
             downward[i] = read_table(fid, dname)
 
-        upward_radiation = pd.concat(upward, names=['band_id', 'point'])
-        downward_radiation = pd.concat(downward, names=['band_id', 'point'])
+        upward_radiation = pd.concat(upward, names=['point'])
+        downward_radiation = pd.concat(downward, names=['point'])
 
-        df = upward_radiation[columns]
+        df = pd.DataFrame(index=upward_radiation.index)
         df['path_up'] = upward_radiation['3'] * 10000000
-        df['transmittance_upward'] = upward_radiation['14']
+        df['transmittance_up'] = upward_radiation['14']
         df['path_down'] = downward_radiation['3'] * 10000000
-        df['transmittance_downward'] = downward_radiation['14']
+        df['transmittance_down'] = downward_radiation['14']
+        df.reset_index(inplace=True)
 
         attrs = {}
         attrs['Description'] = ("Coefficients derived from the "

@@ -27,6 +27,7 @@ from gaip.hdf5 import create_external_link
 from gaip.modtran import _format_tp5, _run_modtran, _calculate_solar_radiation
 from gaip.modtran import _calculate_coefficients, prepare_modtran
 from gaip.modtran import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT, SBT_ALBEDO
+from gaip.modtran import link_sbt_atmospheric_results, sbt_coefficients
 from gaip.interpolation import _bilinear_interpolate, link_bilinear_data
 from gaip.nbar_workflow import CalculateLonLatGrids
 from gaip.nbar_workflow import CalculateSatelliteAndSolarGrids
@@ -122,6 +123,7 @@ class RunAtmospherics(luigi.Task):
             reqs[point] = RunAtmosphericsCase(*args, point=point,
                                               albedo=SBT_ALBEDO,
                                               nbar_tp5=False)
+        return reqs
 
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
@@ -132,7 +134,7 @@ class RunAtmospherics(luigi.Task):
         inputs = self.input()
         nvertices = self.vertices[0] * self.vertices[1]
         with self.output().temporary_path() as out_fname:
-            link_sbt_atmospheric_results(inputs, out_fname, npoints)
+            link_sbt_atmospheric_results(inputs, out_fname, nvertices)
 
 
 class SBTAccumulateSolarIrradiance(AccumulateSolarIrradiance):
