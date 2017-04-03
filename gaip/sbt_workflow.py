@@ -21,7 +21,7 @@ from gaip.calculate_angles import _calculate_angles
 from gaip.calculate_incident_exiting_angles import _incident_angles
 from gaip.calculate_incident_exiting_angles import _exiting_angles
 from gaip.calculate_incident_exiting_angles import _relative_azimuth_slope
-from gaip.calculate_lon_lat_arrays import create_lon_lat_grids 
+from gaip.calculate_lon_lat_arrays import create_lon_lat_grids
 from gaip import constants
 from gaip.hdf5 import create_external_link
 from gaip.modtran import _format_tp5, _run_modtran, _calculate_solar_radiation
@@ -33,7 +33,7 @@ from gaip.nbar_workflow import CalculateSatelliteAndSolarGrids
 from gaip.nbar_workflow import RunModtranCase, WriteTp5, GetAncillaryData
 from gaip.nbar_workflow import AccumulateSolarIrradiance
 from gaip.nbar_workflow import CalculateCoefficients
-from gaip.nbar_workflow import BilinearInterpolation
+from gaip.nbar_workflow import BilinearInterpolation, BilinearInterpolationBand
 
 
 class SBTAncillary(GetAncillaryData):
@@ -130,7 +130,7 @@ class RunAtmospherics(luigi.WrapperTask):
     #     inputs = self.input()
     #     with self.output().temporary_path() as out_fname:
     #         with h5py.File(out_fname, 'w') as fid:
-                
+
 
 class SBTAccumulateSolarIrradiance(AccumulateSolarIrradiance):
 
@@ -148,8 +148,8 @@ class SBTBilinearInterpolation(BilinearInterpolation):
 
     # TODO: which factors to use
 
-    factors = luigi.ListParameter(default=[], significant=False)
-
+    factors = luigi.ListParameter(default=['thermalradiance', 'tr'],
+                                  significant=False)
     def requires(self):
         container = acquisitions(self.level1)
         acqs = container.get_acquisitions(group=self.group,
@@ -171,14 +171,19 @@ class SBTBilinearInterpolation(BilinearInterpolation):
                           'granule': self.granule, 'group': self.group,
                           'band_num': band, 'factor': factor}
                 tasks[key] = BilinearInterpolationBand(**kwargs)
+                break # TODO: remove (debugging)
+            break # TODO: remove (debugging)
         return tasks
 
-
+@inherits(CalculateLonLatGrids)
 class SurfaceTemperature(luigi.Task):
 
     """Calculates surface brightness temperature."""
 
-    # TODO: Re-write the class contents (output, run)
+    def run(self):
+        raise NotImplementedError
+    def output(self):
+        pass
 
     def requires(self):
 
@@ -209,7 +214,7 @@ class SBT(luigi.WrapperTask):
             for granule in container.granules:
                 for group in container.groups:
                     yield SurfaceTemperature(scene, work_root, granule, group)
-
+                    raise StopIteration # TODO: remove (debugging)
 
 if __name__ == '__main__':
     luigi.run()

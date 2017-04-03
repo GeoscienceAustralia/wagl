@@ -1,8 +1,9 @@
 """
 Setup gaip
 """
-
 from __future__ import absolute_import
+
+import setuptools
 
 import versioneer
 from numpy.distutils.core import setup
@@ -37,5 +38,6 @@ setup(
              'scripts/test_relative_slope.py',
              'scripts/test_shadow_masks.py',
              'scripts/test_slope_aspect.py',
-             'scripts/aot_converter.py']
+             'scripts/aot_converter.py'],
+    install_requires=['bitshuffle>=0.2.3']
 )
