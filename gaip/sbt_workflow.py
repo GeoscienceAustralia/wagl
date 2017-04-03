@@ -15,7 +15,7 @@ from os.path import join as pjoin, basename, splitext, dirname
 import luigi
 from luigi.local_target import LocalFileSystem
 from luigi.util import inherits, requires
-from gaip.acquisition import acquisitions
+from gaip.acquisition import acquisitions, THM
 from gaip.ancillary import _collect_ancillary
 from gaip.calculate_angles import _calculate_angles
 from gaip.calculate_incident_exiting_angles import _incident_angles
@@ -26,7 +26,7 @@ from gaip import constants
 from gaip.hdf5 import create_external_link
 from gaip.modtran import _format_tp5, _run_modtran, _calculate_solar_radiation
 from gaip.modtran import _calculate_coefficients, prepare_modtran
-from gaip.modtran import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
+from gaip.modtran import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT, SBT_ALBEDO
 from gaip.interpolation import _bilinear_interpolate, link_bilinear_data
 from gaip.nbar_workflow import CalculateLonLatGrids
 from gaip.nbar_workflow import CalculateSatelliteAndSolarGrids
@@ -81,6 +81,7 @@ class ThermalTp5(WriteTp5):
     """Output the `tp5` formatted files."""
 
     vertices = luigi.TupleParameter(default=(5, 5), significant=False)
+    nbar_tp5 = luigi.BoolParameter(default=False, significant=False)
 
     def requires(self):
         container = acquisitions(self.level1)
@@ -97,6 +98,39 @@ class ThermalTp5(WriteTp5):
 
         return tasks
 
+
+@requires(ThermalTp5)
+class RunAtmosphericsCase(RunModtranCase):
+
+    """
+    Kicks of modtran/(or an alternative) for a given point.
+    """
+
+    band_type = luigi.IntParameter(default=THM)
+
+
+@inherits(ThermalTp5)
+class RunAtmospherics(luigi.WrapperTask):
+
+    """
+    Kicks of modtran/(or an alternative) for a all points.
+    """
+
+    def requires(self):
+        for point in range(self.vertices[0] * self.vertices[1]):
+            args = [self.level1, self.work_root, self.granule]
+            yield RunAtmosphericsCase(*args, point=point, albedo=SBT_ALBEDO)
+
+    # def output(self):
+    #     out_path = acquisitions(self.level1).get_root(self.work_root,
+    #                                                   granule=self.granule)
+    #     return luigi.LocalTarget(pjion(out_path, 'atmospherics-results.h5'))
+
+    # def run(self):
+    #     inputs = self.input()
+    #     with self.output().temporary_path() as out_fname:
+    #         with h5py.File(out_fname, 'w') as fid:
+                
 
 class SBTAccumulateSolarIrradiance(AccumulateSolarIrradiance):
 

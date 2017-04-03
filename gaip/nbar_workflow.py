@@ -15,7 +15,7 @@ from os.path import join as pjoin, basename, dirname
 import luigi
 from luigi.local_target import LocalFileSystem
 from luigi.util import inherits, requires
-from gaip.acquisition import acquisitions
+from gaip.acquisition import acquisitions, REF
 from gaip.ancillary import _collect_ancillary, aggregate_ancillary
 from gaip.calculate_angles import _calculate_angles
 from gaip.calculate_incident_exiting_angles import _incident_angles
@@ -179,6 +179,7 @@ class WriteTp5(luigi.Task):
     vertices = luigi.TupleParameter(default=(3, 3), significant=False)
     base_dir = luigi.Parameter(default='_atmospherics', significant=False)
     compression = luigi.Parameter(default='lzf', significant=False)
+    nbar_tp5 = luigi.BoolParameter(default=True, significant=False)
 
     def requires(self):
         # for consistancy, we'll wait for dependencies on all granules and
@@ -230,7 +231,7 @@ class WriteTp5(luigi.Task):
 
         with self.output().temporary_path() as out_fname:
             tp5_data = _format_tp5(acq, sat_sol_fname, lon_lat_fname,
-                                   ancillary_fname, out_fname)
+                                   ancillary_fname, out_fname, self.nbar_tp5)
 
             # keep this as an indented block, that way the target will remain
             # atomic and be moved upon closing
@@ -251,6 +252,7 @@ class RunModtranCase(luigi.Task):
     point = luigi.Parameter()
     albedo = luigi.Parameter()
     exe = luigi.Parameter(significant=False)
+    band_type = luigi.IntParameter(default=REF)
 
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
@@ -262,8 +264,10 @@ class RunModtranCase(luigi.Task):
     def run(self):
         container = acquisitions(self.level1)
         out_path = container.get_root(self.work_root, granule=self.granule)
-        acq = container.get_acquisitions(granule=self.granule)[0]
+        acqs = container.get_acquisitions(granule=self.granule)
         atmospheric_inputs_fname = self.input().path
+
+        acq = [acq for acq in acqs if acq.band_type == self.band_type][0]
 
         workpath = pjoin(POINT_FMT.format(p=self.point),
                          ALBEDO_FMT.format(a=self.albedo))
