@@ -28,9 +28,12 @@ from gaip.modtran import _format_tp5, _run_modtran, _calculate_solar_radiation
 from gaip.modtran import _calculate_coefficients, prepare_modtran
 from gaip.modtran import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
 from gaip.interpolation import _bilinear_interpolate, link_bilinear_data
-from gaip.nbar_workflow import CalculateLonGrid, CalculateLatGrid, WorkRoot
+from gaip.nbar_workflow import CalculateLonLatGrids
 from gaip.nbar_workflow import CalculateSatelliteAndSolarGrids
 from gaip.nbar_workflow import RunModtranCase, WriteTp5, GetAncillaryData
+from gaip.nbar_workflow import AccumulateSolarIrradiance
+from gaip.nbar_workflow import CalculateCoefficients
+from gaip.nbar_workflow import BilinearInterpolation
 
 
 class SBTAncillary(GetAncillaryData):
@@ -48,7 +51,7 @@ class SBTAncillary(GetAncillaryData):
 
     def run(self):
         container = acquisitions(self.level1)
-        acqs = container.get_acquisitions(granule=self.granule)
+        acq = container.get_acquisitions(granule=self.granule)[0]
         work_root =  container.get_root(self.work_root, granule=self.granule)
 
         nbar_paths = {'aerosol_fname': self.aerosol_fname,
@@ -77,6 +80,8 @@ class ThermalTp5(WriteTp5):
 
     """Output the `tp5` formatted files."""
 
+    vertices = luigi.TupleParameter(default=(5, 5), significant=False)
+
     def requires(self):
         container = acquisitions(self.level1)
         tasks = {}
@@ -87,8 +92,7 @@ class ThermalTp5(WriteTp5):
             for group in container.groups:
                 args2 = [self.level1, self.work_root, granule, group]
                 tsks = {'sat_sol': CalculateSatelliteAndSolarGrids(*args2),
-                        'lat': CalculateLatGrid(*args2),
-                        'lon': CalculateLonGrid(*args2)}
+                        'lon_lat': CalculateLonLatGrids(*args2)}
                 tasks[(granule, group)] = tsks
 
         return tasks
