@@ -180,6 +180,7 @@ class WriteTp5(luigi.Task):
     base_dir = luigi.Parameter(default='_atmospherics', significant=False)
     compression = luigi.Parameter(default='lzf', significant=False)
     nbar_tp5 = luigi.BoolParameter(default=True, significant=False)
+    band_type = luigi.IntParameter(default=REF)
 
     def requires(self):
         # for consistancy, we'll wait for dependencies on all granules and
@@ -210,7 +211,8 @@ class WriteTp5(luigi.Task):
         # as we have an all granules groups dependency, it doesn't matter which
         # group, so just get the first and use it to retrieve the angles
         group = container.groups[0]
-        acq = container.get_acquisitions(group, granule=self.granule)[0]
+        acqs = container.get_acquisitions(group, granule=self.granule)
+        acq = [acq for acq in acqs if acq.band_type == self.band_type][0]
 
         # input data files, and the output format
         inputs = self.input()
