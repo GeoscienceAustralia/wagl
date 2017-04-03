@@ -109,27 +109,30 @@ class RunAtmosphericsCase(RunModtranCase):
 
 
 @inherits(ThermalTp5)
-class RunAtmospherics(luigi.WrapperTask):
+class RunAtmospherics(luigi.Task):
 
     """
     Kicks of modtran/(or an alternative) for a all points.
     """
 
     def requires(self):
+        reqs = {}
         for point in range(self.vertices[0] * self.vertices[1]):
             args = [self.level1, self.work_root, self.granule]
-            yield RunAtmosphericsCase(*args, point=point, albedo=SBT_ALBEDO,
-                                      nbar_tp5=False)
+            reqs[point] = RunAtmosphericsCase(*args, point=point,
+                                              albedo=SBT_ALBEDO,
+                                              nbar_tp5=False)
 
-    # def output(self):
-    #     out_path = acquisitions(self.level1).get_root(self.work_root,
-    #                                                   granule=self.granule)
-    #     return luigi.LocalTarget(pjion(out_path, 'atmospherics-results.h5'))
+    def output(self):
+        out_path = acquisitions(self.level1).get_root(self.work_root,
+                                                      granule=self.granule)
+        return luigi.LocalTarget(pjoin(out_path, 'sbt-atmospherics-results.h5'))
 
-    # def run(self):
-    #     inputs = self.input()
-    #     with self.output().temporary_path() as out_fname:
-    #         with h5py.File(out_fname, 'w') as fid:
+    def run(self):
+        inputs = self.input()
+        nvertices = self.vertices[0] * self.vertices[1]
+        with self.output().temporary_path() as out_fname:
+            link_sbt_atmospheric_results(inputs, out_fname, npoints)
 
 
 class SBTAccumulateSolarIrradiance(AccumulateSolarIrradiance):
@@ -139,9 +142,20 @@ class SBTAccumulateSolarIrradiance(AccumulateSolarIrradiance):
     """
 
 
-@requires(SBTAccumulateSolarIrradiance)
-class SBTCoefficients(CalculateCoefficients):
-    pass
+@requires(RunAtmospherics)
+class SBTCoefficients(luigi.Task):
+
+    """Creates the coefficients table."""
+
+    def output(self):
+        out_path = acquisitions(self.level1).get_root(self.work_root,
+                                                      granule=self.granule)
+        return luigi.LocalTarget(pjoin(out_path, 'sbt-coefficients.h5'))
+
+    def run(self):
+        input_fname = self.input().path
+        with self.output().temporary_path() as out_fname:
+            sbt_coefficients(input_fname, out_fname, self.compression)
 
 
 class SBTBilinearInterpolation(BilinearInterpolation):

@@ -916,3 +916,60 @@ def create_solar_irradiance_tables(fname, out_fname, compression='lzf'):
             fid2.copy(dset_name, fid1)
 
     return
+
+
+def link_sbt_atmospheric_results(input_targets, out_fname, npoints):
+    """
+    Uses h5py's ExternalLink to combine the atmospheric results into
+    a single file.
+    """
+    albedo_fmt = ALBEDO_FMT.format(a=SBT_ALBEDO)
+    datasets = ['upward-radiation-channel', 'downward-radiation-channel']
+    for point, fname in input_targets.items():
+        for dset in datasets:
+            dname = ppjoin(POINT_FMT.format(p=point), albedo_fmt, dset)
+            create_external_link(fname.path, dname, out_fname, dname)
+
+    with h5py.File(out_fname) as fid:
+        fid.attrs['npoints'] = npoints
+
+    return
+
+
+def sbt_coefficients(fname, out_fname, compression='lzf'):
+    """
+    Calcualtes the coefficients for SBT.
+    """
+    albedo_fmt = ALBEDO_FMT.format(a=SBT_ALBEDO)
+    datasets = {'upward': 'upward-radiation-channel',
+                'downward': 'downward-radiation-channel'}
+    columns = ['band_id', 'point']
+    upward = {}
+    downward = {}
+    with h5py.File(fname, 'r') as fid,\
+        h5py.File(out_fname, 'w') as out_fid:
+        for i in range(fid.attrs['npoints']):
+            grp_path = ppjoin(POINT_FMT.format(p=point) albedo_fmt)
+            dname = ppjoin(grp_path, 'upward-radiation-channel')
+            upward[i] = read_table(fid, dname)
+
+            dname = ppjoin(grp_path, 'downward-radiation-channel')
+            downward[i] = read_table(fid, dname)
+
+        upward_radiation = pd.concat(upward, names=['band_id', 'point'])
+        downward_radiation = pd.concat(downward, names=['band_id', 'point'])
+
+        df = upward_radiation[columns]
+        df['path_up'] = upward_radiation['3'] * 10000000
+        df['transmittance_upward'] = upward_radiation['14']
+        df['path_down'] = downward_radiation['3'] * 10000000
+        df['transmittance_downward'] = downward_radiation['14']
+
+        attrs = {}
+        attrs['Description'] = ("Coefficients derived from the "
+                                "solar irradiation.")
+        attrs['Number of atmospheric points'] = fid.attrs['npoints']
+
+        write_dataframe(df, 'coefficients', out_fid, compression, attrs=attrs)
+
+    return
