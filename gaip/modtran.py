@@ -206,31 +206,32 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
     metadata = {}
 
     # write the tp5 files required for input into MODTRAN
-    for i in range(npoints):
-        for alb in NBAR_ALBEDOS:
-            input_data = {'water': vapour,
-                          'ozone': ozone,
-                          'filter_function': filter_file,
-                          'visibility': -aerosol,
-                          'elevation': elevation,
-                          'sat_height': altitude,
-                          'sat_view': view_cor[i],
-                          'doy': doy,
-                          'binary': binary}
-            if alb == NBAR_ALBEDOS[2]:
-                input_data['albedo'] = 0.0
-                input_data['sat_view_offset'] = 180.0-view_cor[i]
-                data = trans_profile.format(**input_data)
-            else:
-                input_data['albedo'] = float(alb)
-                input_data['lat'] = lat[i]
-                input_data['lon'] = rlon[i]
-                input_data['time'] = dechour
-                input_data['sat_azimuth'] = azi_cor[i]
-                data = albedo_profile.format(**input_data)
+    if nbar_tp5:
+        for i in range(npoints):
+            for alb in NBAR_ALBEDOS:
+                input_data = {'water': vapour,
+                              'ozone': ozone,
+                              'filter_function': filter_file,
+                              'visibility': -aerosol,
+                              'elevation': elevation,
+                              'sat_height': altitude,
+                              'sat_view': view_cor[i],
+                              'doy': doy,
+                              'binary': binary}
+                if alb == NBAR_ALBEDOS[2]:
+                    input_data['albedo'] = 0.0
+                    input_data['sat_view_offset'] = 180.0-view_cor[i]
+                    data = trans_profile.format(**input_data)
+                else:
+                    input_data['albedo'] = float(alb)
+                    input_data['lat'] = lat[i]
+                    input_data['lon'] = rlon[i]
+                    input_data['time'] = dechour
+                    input_data['sat_azimuth'] = azi_cor[i]
+                    data = albedo_profile.format(**input_data)
 
-            tp5_data[(i, alb)] = data
-            metadata[(i, alb)] = input_data
+                tp5_data[(i, alb)] = data
+                metadata[(i, alb)] = input_data
 
     # tp5 for sbt; the current logic for NBAR uses 9 coordinator points
     # and sbt uses 25 coordinator points
