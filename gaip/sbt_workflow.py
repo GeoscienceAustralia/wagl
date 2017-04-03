@@ -33,7 +33,7 @@ from gaip.nbar_workflow import CalculateSatelliteAndSolarGrids
 from gaip.nbar_workflow import RunModtranCase, WriteTp5, GetAncillaryData
 from gaip.nbar_workflow import AccumulateSolarIrradiance
 from gaip.nbar_workflow import CalculateCoefficients
-from gaip.nbar_workflow import BilinearInterpolation
+from gaip.nbar_workflow import BilinearInterpolation, BilinearInterpolationBand
 
 
 class SBTAncillary(GetAncillaryData):
@@ -148,8 +148,8 @@ class SBTBilinearInterpolation(BilinearInterpolation):
 
     # TODO: which factors to use
 
-    factors = luigi.ListParameter(default=[], significant=False)
-
+    factors = luigi.ListParameter(default=['thermalradiance', 'tr'],
+                                  significant=False)
     def requires(self):
         container = acquisitions(self.level1)
         acqs = container.get_acquisitions(group=self.group,
