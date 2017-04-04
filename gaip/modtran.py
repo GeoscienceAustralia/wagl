@@ -25,8 +25,9 @@ POINT_FMT = 'point-{p}'
 ALBEDO_FMT = 'albedo-{a}'
 POINT_ALBEDO_FMT = ''.join([POINT_FMT, '-', ALBEDO_FMT])
 
-NBAR_ALBEDOS = [0, 1, 't']
-SBT_ALBEDO = 'th'
+ALL_ALBEDOS = [0, 1, 't', 'th']
+NBAR_ALBEDOS = ALL_ALBEDOS[0:-1]
+SBT_ALBEDO = ALL_ALBEDOS[-1]
 
 
 def create_modtran_dirs(coords, albedos, modtran_root, modtran_exe_root,
@@ -302,6 +303,9 @@ def run_modtran(acquisition, modtran_exe, workpath, point, albedo, lonlat=None,
     else:
         fid = h5py.File(out_fname, 'w')
 
+    fid.attrs['point'] = point
+    fid.attrs['albedo'] = albedo
+
     # base group pathname
     group_path = ppjoin(POINT_FMT.format(p=point), ALBEDO_FMT.format(a=albedo))
 
@@ -327,6 +331,19 @@ def run_modtran(acquisition, modtran_exe, workpath, point, albedo, lonlat=None,
         dset_name = ppjoin(group_path, 'altitudes')
         write_dataframe(altitudes, dset_name, fid, attrs=attrs)
 
+        # accumulate the solar irradiance
+        transmittance = True if albedo == NBAR_ALBEDOS[2] else False
+        response = acquisition.spectral_response()
+        accumulated = calculate_solar_radiation(flux_data, response,
+                                                altitudes.shape[0],
+                                                transmittance)
+
+        dset_name = ppjoin(group_path, 'solar-irradiance')
+        description = ("Accumulated solar irradiation for point {} "
+                       "and albedo {}.")
+        attrs['Description'] = description.format(point, albedo),
+        write_dataframe(accumulated, dset_name, fid, compression, attrs=attrs)
+
     chn_fname = glob.glob(pjoin(workpath, '*.chn'))[0]
     channel_data = read_modtran_channel(chn_fname, acquisition, albedo)
 
@@ -345,6 +362,7 @@ def run_modtran(acquisition, modtran_exe, workpath, point, albedo, lonlat=None,
         attrs['Description'] = 'Channel output from MODTRAN'
         dset_name = ppjoin(group_path, 'channel')
         write_dataframe(channel_data, dset_name, fid, attrs=attrs)
+
 
     # meaningful location description
     fid[POINT_FMT.format(p=point)].attrs['lonlat'] = lonlat
@@ -723,59 +741,6 @@ def read_modtran_channel(fname, acquisition, albedo):
         return chn_data
 
 
-def _calculate_solar_radiation(acquisition, flux_fnames, out_fname, npoints,
-                               compression='lzf'):
-    """
-    A private wrapper for dealing with the internal custom workings of the
-    NBAR workflow.
-    """
-    description = ("Accumulated solar irradiation for point {} "
-                   "and albedo {}.")
-
-    spectral_response = acquisition.spectral_response()
-
-    with h5py.File(out_fname, 'w') as fid:
-        fid.attrs['npoints'] = npoints
-        for key in flux_fnames:
-            flux_fname = flux_fnames[key].path
-            point, albedo = key
-            point_path = POINT_FMT.format(p=point)
-            group_path = ppjoin(POINT_FMT.format(p=point),
-                                ALBEDO_FMT.format(a=albedo))
-            transmittance = True if albedo == NBAR_ALBEDOS[2] else False
-            flux_dataset_name = ppjoin(group_path, 'flux')
-            atmos_dataset_name = ppjoin(group_path, 'altitudes')
-            channel_dname = ppjoin(group_path, 'channel')
-
-            # link in the channel data for later easy access
-            fid[channel_dname] = h5py.ExternalLink(flux_fname, channel_dname)
-
-            # retrieve the flux data and the number of atmospheric levels
-            with h5py.File(flux_fname, 'r') as fid2:
-                flux_data = read_table(fid2, flux_dataset_name)
-                levels = fid2[atmos_dataset_name].attrs['altitude levels']
-                lonlat = fid2[point_path].attrs['lonlat']
-
-
-            # accumulate solar irradiance
-            df = calculate_solar_radiation(flux_data, spectral_response,
-                                           levels, transmittance)
-
-            # output
-            dataset_name = ppjoin(group_path, 'solar-irradiance')
-            attrs = {'Description': description.format(point, albedo),
-                     'Point': point,
-                     'Albedo': albedo,
-                     'lonlat': lonlat}
-            write_dataframe(df, dataset_name, fid, compression, attrs=attrs)
-
-            # meaningful location description
-            if fid[point_path].attrs.get('lonlat') is None:
-                fid[point_path].attrs['lonlat'] = lonlat
-
-    return
-
-
 def calculate_solar_radiation(flux_data, spectral_response, levels=36,
                               transmittance=False):
     """
@@ -918,16 +883,44 @@ def create_solar_irradiance_tables(fname, out_fname, compression='lzf'):
     return
 
 
-def link_sbt_atmospheric_results(input_targets, out_fname, npoints):
+def link_atmospheric_results(input_targets, out_fname, npoints):
     """
     Uses h5py's ExternalLink to combine the atmospheric results into
     a single file.
+
+    :param input_targets:
+        A `list` of luigi.LocalTargets.
+
+    :param out_fname:
+        A `str` containing the output filename.
+
+    :param npoints:
+        An `int` containing the number of points (vertices) used for
+        evaluating the atmospheric conditions.
+
+    :return:
+        None. Results from each file in `input_targets` are linked
+        into the output file.
     """
-    albedo_fmt = ALBEDO_FMT.format(a=SBT_ALBEDO)
-    datasets = ['upward-radiation-channel', 'downward-radiation-channel']
-    for point, fname in input_targets.items():
+    for fname in input_targets:
+        with h5py.File(fname.path, 'r') as fid:
+            point = fid.attrs['point']
+            albedo = fid.attrs['albedo']
+
+        if albedo == SBT_ALBEDO:
+            datasets = ['upward-radiation-channel',
+                        'downward-radiation-channel']
+        else:
+            datasets = ['flux',
+                        'altitudes',
+                        'solar-irradiance',
+                        'channel']
+
+        grp_path = ppjoin(POINT_FMT.format(p=point),
+                          ALBEDO_FMT.format(a=albedo))
+
         for dset in datasets:
-            dname = ppjoin(POINT_FMT.format(p=point), albedo_fmt, dset)
+            dname = ppjoin(grp_path, dset)
             create_external_link(fname.path, dname, out_fname, dname)
 
     with h5py.File(out_fname) as fid:
