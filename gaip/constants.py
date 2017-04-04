@@ -505,3 +505,11 @@ class Model(Enum):
                 Model.nbar: ALL_ALBEDOS[0:-1],
                 Model.sbt: ALL_ALBEDOS[-1]}
         return amap.get(self)
+
+
+class BandType(Enum):
+    Reflective = 0
+    Thermal = 1
+    Panchromatic = 2
+    Atmosphere = 3
+    Quality = 4

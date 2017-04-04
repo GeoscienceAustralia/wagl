@@ -15,7 +15,7 @@ from os.path import join as pjoin, basename, dirname
 import luigi
 from luigi.local_target import LocalFileSystem
 from luigi.util import inherits, requires
-from gaip.acquisition import acquisitions, REF
+from gaip.acquisition import acquisitions
 from gaip.ancillary import _collect_ancillary, aggregate_ancillary
 from gaip.calculate_angles import _calculate_angles
 from gaip.calculate_incident_exiting_angles import _incident_angles
@@ -28,7 +28,8 @@ from gaip.calculate_shadow_masks import _self_shadow, _calculate_cast_shadow
 from gaip.calculate_shadow_masks import _combine_shadow
 from gaip.calculate_slope_aspect import _slope_aspect_arrays
 from gaip import constants
-from gaip.constants import Model, POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
+from gaip.constants import Model, BandType
+from gaip.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
 from gaip.dsm import get_dsm
 from gaip.modtran import _format_tp5, _run_modtran, _calculate_solar_radiation
 from gaip.modtran import _calculate_coefficients, prepare_modtran
@@ -180,7 +181,7 @@ class WriteTp5(luigi.Task):
     base_dir = luigi.Parameter(default='_atmospherics', significant=False)
     compression = luigi.Parameter(default='lzf', significant=False)
     nbar_tp5 = luigi.BoolParameter(default=True, significant=False)
-    band_type = luigi.IntParameter(default=REF)
+    band_type = luigi.EnumParameter(enum=BandType, default=BandType.Reflective)
 
     def requires(self):
         # for consistancy, we'll wait for dependencies on all granules and
@@ -254,7 +255,7 @@ class RunModtranCase(luigi.Task):
     point = luigi.Parameter()
     albedo = luigi.Parameter()
     exe = luigi.Parameter(significant=False)
-    band_type = luigi.IntParameter(default=REF)
+    band_type = luigi.EnumParameter(enum=BandType, default=BandType.Reflective)
 
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,

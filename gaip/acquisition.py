@@ -18,17 +18,8 @@ from gaip.data import data, data_and_box, no_data
 from gaip.geobox import GriddedGeoBox
 from gaip.modtran import read_spectral_response
 from gaip.mtl import load_mtl
+from gaip.constants import BandType
 
-
-REF, THM, PAN, ATM, BQA = range(5)
-
-BAND_TYPE = {
-    'Reflective': REF,
-    'Thermal': THM,
-    'Panchromatic': PAN,
-    'Atmosphere': ATM,
-    'Quality': BQA
-}
 
 with open(pjoin(dirname(__file__), 'sensors.json')) as fo:
     SENSORS = json.load(fo)
@@ -276,35 +267,35 @@ class LandsatAcquisition(Acquisition):
     @property
     def samples(self):
         """The number of samples (aka. `width`)."""
-        if self.band_type == REF:
+        if self.band_type == BandType.Reflective:
             return self.product_samples_ref
-        if self.band_type == THM:
+        if self.band_type == BandType.Thermal:
             return self.product_samples_thm
-        if self.band_type == PAN:
+        if self.band_type == BandType.Panchromatic:
             return self.product_samples_pan
-        if self.band_type == BQA:
+        if self.band_type == BandType.Quality:
             return self.product_samples_ref
 
     @property
     def lines(self):
         """The number of lines (aka. `height`)."""
-        if self.band_type == REF:
+        if self.band_type == BandType.Reflective:
             return self.product_lines_ref
-        if self.band_type == THM:
+        if self.band_type == BandType.Thermal:
             return self.product_lines_thm
-        if self.band_type == PAN:
+        if self.band_type == BandType.Panchromatic:
             return self.product_lines_pan
-        if self.band_type == BQA:
+        if self.band_type == BandType.Quality:
             return self.product_lines_ref
 
     @property
     def grid_cell_size(self):
         """The resolution of the cell."""
-        if self.band_type == REF:
+        if self.band_type == BandType.Reflective:
             return self.grid_cell_size_ref
-        if self.band_type == THM:
+        if self.band_type == BandType.Thermal:
             return self.grid_cell_size_thm
-        if self.band_type == PAN:
+        if self.band_type == BandType.Panchromatic:
             return self.grid_cell_size_pan
 
     @property
@@ -495,43 +486,43 @@ class Landsat8Acquisition(LandsatAcquisition):
     @property
     def samples(self):
         """The number of samples (aka. `width`)."""
-        if self.band_type == REF:
+        if self.band_type == BandType.Reflective:
             return self.reflective_samples
-        if self.band_type == ATM:
+        if self.band_type == BandType.Atmosphere:
             return self.reflective_samples
-        if self.band_type == BQA:
+        if self.band_type == BandType.Quality:
             return self.reflective_samples
-        if self.band_type == PAN:
+        if self.band_type == BandType.Panchromatic:
             return self.panchromatic_samples
-        if self.band_type == THM:
+        if self.band_type == BandType.Thermal:
             return self.thermal_samples
 
     @property
     def lines(self):
         """The number of lines (aka. `height`)."""
-        if self.band_type == REF:
+        if self.band_type == BandType.Reflective:
             return self.reflective_lines
-        if self.band_type == ATM:
+        if self.band_type == BandType.Atmosphere:
             return self.reflective_lines
-        if self.band_type == BQA:
+        if self.band_type == BandType.Quality:
             return self.reflective_lines
-        if self.band_type == PAN:
+        if self.band_type == BandType.Panchromatic:
             return self.panchromatic_lines
-        if self.band_type == THM:
+        if self.band_type == BandType.Thermal:
             return self.thermal_lines
 
     @property
     def grid_cell_size(self):
         """The resolution of the cell."""
-        if self.band_type == REF:
+        if self.band_type == BandType.Reflective:
             return self.grid_cell_size_reflective
-        if self.band_type == ATM:
+        if self.band_type == BandType.Atmosphere:
             return self.grid_cell_size_reflective
-        if self.band_type == BQA:
+        if self.band_type == BandType.Quality:
             return self.grid_cell_size_reflective
-        if self.band_type == PAN:
+        if self.band_type == BandType.Panchromatic:
             return self.grid_cell_size_panchromatic
-        if self.band_type == THM:
+        if self.band_type == BandType.Thermal:
             return self.grid_cell_size_thermal
 
     @property
@@ -748,7 +739,7 @@ def acquisitions_via_geotiff(path):
                 for k, v in db.items():
                     new['BAND_INFO'][k] = v
                 band_type = db['type_desc']
-                new['BAND_INFO']['band_type'] = BAND_TYPE[band_type]
+                new['BAND_INFO']['band_type'] = BandType[band_type]
 
                 # convert acquisition_date to a datetime
 
@@ -893,7 +884,7 @@ def acquisitions_via_mtl(path):
         for k, v in db.items():
             new['BAND_INFO'][k] = v
         band_type = db['type_desc']
-        new['BAND_INFO']['band_type'] = BAND_TYPE[band_type]
+        new['BAND_INFO']['band_type'] = BandType[band_type]
   
         try:
             acqtype = ACQUISITION_TYPE[spacecraft + '_' + sensor]
@@ -1029,8 +1020,8 @@ def acquisitions_via_safe(path):
                     md['BAND_INFO'][k] = v
 
                 band_type = db_copy['type_desc']
-                md['BAND_INFO']['band_type'] = BAND_TYPE[band_type]
-                band_md['band_type'] = BAND_TYPE[band_type]
+                md['BAND_INFO']['band_type'] = BandType[band_type]
+                band_md['band_type'] = BandType[band_type]
 
                 band_md['band_name'] = 'band_{}'.format(bnum)
                 band_md['band_num'] = bnum

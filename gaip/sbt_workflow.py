@@ -15,7 +15,7 @@ from os.path import join as pjoin, basename, splitext, dirname
 import luigi
 from luigi.local_target import LocalFileSystem
 from luigi.util import inherits, requires
-from gaip.acquisition import acquisitions, THM
+from gaip.acquisition import acquisitions
 from gaip.ancillary import _collect_ancillary
 from gaip.calculate_angles import _calculate_angles
 from gaip.calculate_incident_exiting_angles import _incident_angles
@@ -23,7 +23,8 @@ from gaip.calculate_incident_exiting_angles import _exiting_angles
 from gaip.calculate_incident_exiting_angles import _relative_azimuth_slope
 from gaip.calculate_lon_lat_arrays import create_lon_lat_grids
 from gaip import constants
-from gaip.constans import Model, POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
+from gaip.constants import Model, BandType
+from gaip.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
 from gaip.hdf5 import create_external_link
 from gaip.modtran import _format_tp5, _run_modtran, _calculate_solar_radiation
 from gaip.modtran import _calculate_coefficients, prepare_modtran
@@ -106,7 +107,7 @@ class RunAtmosphericsCase(RunModtranCase):
     Kicks of modtran/(or an alternative) for a given point.
     """
 
-    band_type = luigi.IntParameter(default=THM)
+    band_type = luigi.EnumParameter(enum=BandType, default=BandType.Thermal)
 
 
 @inherits(ThermalTp5)
