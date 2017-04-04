@@ -25,11 +25,6 @@ logger = logging.getLogger(__name__)
 DEFAULT_ORIGIN = (0, 0)
 DEFAULT_SHAPE = (8, 8)
 
-class Model(Enum):
-    standard = 1
-    nbar = 2
-    sbt = 3
-
 ALL_FACTORS = ['fv',
                'fs',
                'b',
@@ -41,12 +36,19 @@ ALL_FACTORS = ['fv',
                'path_up',
                'path_down',
                'transmittance_up']
-NBAR_FACTORS = ALL_FACTORS[0:8]
-SBT_FACTORS = ALL_FACTORS[8:]
+
+class Model(Enum):
+    standard = 1
+    nbar = 2
+    sbt = 3
+
+    @property
+    def factors(self):
+        return FACTORS.get(self)
 
 FACTORS = {Model.standard: ALL_FACTORS,
-           Model.nbar: NBAR_FACTORS,
-           Model.sbt: SBT_FACTORS}
+           Model.nbar: ALL_FACTORS[0:8],
+           Model.sbt: ALL_FACTORS[8:]}
 
 
 def bilinear(shape, fUL, fUR, fLR, fLL, dtype=numpy.float64):
