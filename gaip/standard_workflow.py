@@ -342,10 +342,8 @@ class CalculateCoefficients(luigi.Task):
         return luigi.LocalTarget(out_fname)
 
     def run(self):
-        accumulated_fname = self.input().path
-
         with self.output().temporary_path() as out_fname:
-            _calculate_coefficients(accumulated_fname, out_fname,
+            _calculate_coefficients(self.input().path, out_fname,
                                     self.compression)
 
 
