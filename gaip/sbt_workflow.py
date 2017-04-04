@@ -23,10 +23,10 @@ from gaip.calculate_incident_exiting_angles import _exiting_angles
 from gaip.calculate_incident_exiting_angles import _relative_azimuth_slope
 from gaip.calculate_lon_lat_arrays import create_lon_lat_grids
 from gaip import constants
+from gaip.constans import Model, POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
 from gaip.hdf5 import create_external_link
 from gaip.modtran import _format_tp5, _run_modtran, _calculate_solar_radiation
 from gaip.modtran import _calculate_coefficients, prepare_modtran
-from gaip.modtran import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT, SBT_ALBEDO
 from gaip.modtran import link_sbt_atmospheric_results, sbt_coefficients
 from gaip.interpolation import _bilinear_interpolate, link_bilinear_data
 from gaip.nbar_workflow import CalculateLonLatGrids
@@ -121,7 +121,7 @@ class RunAtmospherics(luigi.Task):
         for point in range(self.vertices[0] * self.vertices[1]):
             args = [self.level1, self.work_root, self.granule]
             reqs[point] = RunAtmosphericsCase(*args, point=point,
-                                              albedo=SBT_ALBEDO,
+                                              albedo=Model.sbt.albedos,
                                               nbar_tp5=False)
         return reqs
 

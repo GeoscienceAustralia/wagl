@@ -28,10 +28,10 @@ from gaip.calculate_shadow_masks import _self_shadow, _calculate_cast_shadow
 from gaip.calculate_shadow_masks import _combine_shadow
 from gaip.calculate_slope_aspect import _slope_aspect_arrays
 from gaip import constants
+from gaip.constants import Model, POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
 from gaip.dsm import get_dsm
 from gaip.modtran import _format_tp5, _run_modtran, _calculate_solar_radiation
 from gaip.modtran import _calculate_coefficients, prepare_modtran
-from gaip.modtran import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT, NBAR_ALBEDOS
 from gaip.interpolation import _bilinear_interpolate, link_bilinear_data
 
 
@@ -297,7 +297,7 @@ class AccumulateSolarIrradiance(luigi.Task):
     def requires(self):
         reqs = {}
         for point in range(self.vertices[0] * self.vertices[1]):
-            for albedo in NBAR_ALBEDOS:
+            for albedo in Model.nbar.albedos:
                 args = [self.level1, self.work_root, self.granule]
                 reqs[(point, albedo)] = RunModtranCase(*args, point=point,
                                                        albedo=albedo)

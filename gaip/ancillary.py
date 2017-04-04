@@ -22,7 +22,7 @@ from gaip.hdf5 import attach_attributes, write_scalar, write_dataframe
 from gaip.hdf5 import read_table, dataset_compression_kwargs
 from gaip.hdf5 import attach_table_attributes
 from gaip.metadata import extract_ancillary_metadata, read_meatadata_tags
-from gaip.modtran import POINT_FMT
+from gaip.constants import POINT_FMT
 from gaip.calculate_angles import create_vertices
 
 

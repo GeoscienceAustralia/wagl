@@ -15,19 +15,11 @@ from scipy.io import FortranFile
 import h5py
 import pandas as pd
 
+from gaip.constants import Model, POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
 from gaip.hdf5 import write_dataframe, read_table, create_external_link
 from gaip.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
 from gaip.modtran_profiles import MIDLAT_SUMMER_TRANSMITTANCE, SBT_FORMAT
 from gaip.modtran_profiles import TROPICAL_TRANSMITTANCE, THERMAL_TRANSMITTANCE
-
-
-POINT_FMT = 'point-{p}'
-ALBEDO_FMT = 'albedo-{a}'
-POINT_ALBEDO_FMT = ''.join([POINT_FMT, '-', ALBEDO_FMT])
-
-ALL_ALBEDOS = [0, 1, 't', 'th']
-NBAR_ALBEDOS = ALL_ALBEDOS[0:-1]
-SBT_ALBEDO = ALL_ALBEDOS[-1]
 
 
 def create_modtran_dirs(coords, albedos, modtran_root, modtran_exe_root,
@@ -209,7 +201,7 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
     # write the tp5 files required for input into MODTRAN
     if nbar_tp5:
         for i in range(npoints):
-            for alb in NBAR_ALBEDOS:
+            for alb in Model.nbar.albedos:
                 input_data = {'water': vapour,
                               'ozone': ozone,
                               'filter_function': filter_file,
@@ -219,7 +211,7 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
                               'sat_view': view_cor[i],
                               'doy': doy,
                               'binary': binary}
-                if alb == NBAR_ALBEDOS[2]:
+                if alb == Model.nbar.albedos[2]:
                     input_data['albedo'] = 0.0
                     input_data['sat_view_offset'] = 180.0-view_cor[i]
                     data = trans_profile.format(**input_data)
@@ -266,8 +258,8 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
                           'data_array': ''.join(atmospheric_profile)}
 
             data = THERMAL_TRANSMITTANCE.format(**input_data)
-            tp5_data[(p, SBT_ALBEDO)] = data
-            metadata[(p, SBT_ALBEDO)] = input_data
+            tp5_data[(p, Model.sbt.albedos)] = data
+            metadata[(p, Model.sbt.albedos)] = input_data
 
     return tp5_data, metadata
 
@@ -315,7 +307,7 @@ def run_modtran(acquisition, modtran_exe, workpath, point, albedo, lonlat=None,
     # initial attributes
     attrs = {'Point': point, 'Albedo': albedo, 'lonlat': lonlat}
 
-    if albedo != SBT_ALBEDO:
+    if albedo != Model.sbt.albedos:
         flux_fname = glob.glob(pjoin(workpath, '*_b.flx'))[0]
         flux_data, altitudes = read_modtran_flux(flux_fname)
 
@@ -332,7 +324,7 @@ def run_modtran(acquisition, modtran_exe, workpath, point, albedo, lonlat=None,
         write_dataframe(altitudes, dset_name, fid, attrs=attrs)
 
         # accumulate the solar irradiance
-        transmittance = True if albedo == NBAR_ALBEDOS[2] else False
+        transmittance = True if albedo == Model.nbar.albedos[2] else False
         response = acquisition.spectral_response()
         accumulated = calculate_solar_radiation(flux_data, response,
                                                 altitudes.shape[0],
@@ -347,7 +339,7 @@ def run_modtran(acquisition, modtran_exe, workpath, point, albedo, lonlat=None,
     chn_fname = glob.glob(pjoin(workpath, '*.chn'))[0]
     channel_data = read_modtran_channel(chn_fname, acquisition, albedo)
 
-    if albedo == SBT_ALBEDO:
+    if albedo == Model.sbt.albedos:
         # upward radiation
         attrs['Description'] = 'Upward radiation channel output from MODTRAN'
         dset_name = ppjoin(group_path, 'upward-radiation-channel')
@@ -375,6 +367,7 @@ def _calculate_coefficients(atmospheric_fname, out_fname, compression='lzf'):
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
+    nbar_albedos = Model.nbar.albedos
     with h5py.File(atmospheric_fname, 'r') as fid:
         nbar_atmos = fid.attrs['nbar atmospherics']
         sbt_atmos = fid.attrs['sbt atmospherics']
@@ -390,13 +383,13 @@ def _calculate_coefficients(atmospheric_fname, out_fname, compression='lzf'):
         for point in range(fid.attrs['npoints']):
             grp_path = ppjoin(POINT_FMT.format(p=point), ALBEDO_FMT)
             if nbar_atmos:
-                albedo_0_path = ppjoin(grp_path.format(a=NBAR_ALBEDOS[0]),
+                albedo_0_path = ppjoin(grp_path.format(a=nbar_albedos[0]),
                                        'solar-irradiance')
-                albedo_1_path = ppjoin(grp_path.format(a=NBAR_ALBEDOS[1]),
+                albedo_1_path = ppjoin(grp_path.format(a=nbar_albedos[1]),
                                        'solar-irradiance')
-                albedo_t_path = ppjoin(grp_path.format(a=NBAR_ALBEDOS[2]),
+                albedo_t_path = ppjoin(grp_path.format(a=nbar_albedos[2]),
                                        'solar-irradiance')
-                channel_path = ppjoin(grp_path.format(a=NBAR_ALBEDOS[0]),
+                channel_path = ppjoin(grp_path.format(a=nbar_albedos[0]),
                                       'channel')
 
                 accumulation_albedo_0[point] = read_table(fid, albedo_0_path)
@@ -404,10 +397,10 @@ def _calculate_coefficients(atmospheric_fname, out_fname, compression='lzf'):
                 accumulation_albedo_t[point] = read_table(fid, albedo_t_path)
                 channel_data[point] = read_table(fid, channel_path)
             if sbt_atmos:
-                dname = ppjoin(grp_path.format(a=SBT_ALBEDO),
+                dname = ppjoin(grp_path.format(a=Model.sbt.albedos),
                                'upward-radiation-channel')
                 upward[point] = read_table(fid, dname)
-                dname = ppjoin(grp_path.format(a=SBT_ALBEDO),
+                dname = ppjoin(grp_path.format(a=Model.sbt.albedos),
                                'downward-radiation-channel')
                 downward[point] = read_table(fid, dname)
         
@@ -770,13 +763,14 @@ def read_modtran_channel(fname, acquisition, albedo):
         An instance of an acquisition object.
 
     :param albedo:
-        An albedo identifier from either NBAR_ALBEDOS or SBT_ALBEDO
+        An albedo identifier from either Model.nbar.albedos or
+        Model.sbt.albedos
 
     :return:
         A `pandas.DataFrame` containing the channel data, and index
         by the `band_id`.
     """
-    if albedo == SBT_ALBEDO:
+    if albedo == Model.sbt.albedos:
         response = acquisition.spectral_response()
         nbands = response.index.get_level_values('band_id').unique().shape[0]
         upward_radiation = pd.read_csv(fname, skiprows=5, header=None,
@@ -975,7 +969,7 @@ def link_atmospheric_results(input_targets, out_fname, npoints):
             point = fid.attrs['point']
             albedo = fid.attrs['albedo']
 
-        if albedo == SBT_ALBEDO:
+        if albedo == Model.sbt.albedos:
             datasets = ['upward-radiation-channel',
                         'downward-radiation-channel']
             sbt_atmospherics = True
@@ -997,45 +991,5 @@ def link_atmospheric_results(input_targets, out_fname, npoints):
         fid.attrs['npoints'] = npoints
         fid.attrs['nbar atmospherics'] = nbar_atmospherics
         fid.attrs['sbt atmospherics'] = sbt_atmospherics
-
-    return
-
-
-def sbt_coefficients(fname, out_fname, compression='lzf'):
-    """
-    Calcualtes the coefficients for SBT.
-    """
-    albedo_fmt = ALBEDO_FMT.format(a=SBT_ALBEDO)
-    datasets = {'upward': 'upward-radiation-channel',
-                'downward': 'downward-radiation-channel'}
-    columns = ['band_id', 'point']
-    upward = {}
-    downward = {}
-    with h5py.File(fname, 'r') as fid,\
-        h5py.File(out_fname, 'w') as out_fid:
-        for i in range(fid.attrs['npoints']):
-            grp_path = ppjoin(POINT_FMT.format(p=i), albedo_fmt)
-            dname = ppjoin(grp_path, 'upward-radiation-channel')
-            upward[i] = read_table(fid, dname)
-
-            dname = ppjoin(grp_path, 'downward-radiation-channel')
-            downward[i] = read_table(fid, dname)
-
-        upward_radiation = pd.concat(upward, names=['point'])
-        downward_radiation = pd.concat(downward, names=['point'])
-
-        df = pd.DataFrame(index=upward_radiation.index)
-        df['path_up'] = upward_radiation['3'] * 10000000
-        df['transmittance_up'] = upward_radiation['14']
-        df['path_down'] = downward_radiation['3'] * 10000000
-        df['transmittance_down'] = downward_radiation['14']
-        df.reset_index(inplace=True)
-
-        attrs = {}
-        attrs['Description'] = ("Coefficients derived from the "
-                                "solar irradiation.")
-        attrs['Number of atmospheric points'] = fid.attrs['npoints']
-
-        write_dataframe(df, 'coefficients', out_fid, compression, attrs=attrs)
 
     return
