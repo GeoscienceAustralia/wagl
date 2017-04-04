@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+# TODO: move comments into the BLRB code block
 """
 Author: Roger Edberg (roger.edberg@ga.gov.au)
 Functions for BiLinear Recursive Bisection (BLRB).
@@ -10,6 +11,7 @@ makes some of the code harder to follow.
 
 from __future__ import absolute_import
 from os.path import basename, splitext
+from enum import Enum
 import numpy
 import h5py
 import logging
@@ -22,6 +24,29 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_ORIGIN = (0, 0)
 DEFAULT_SHAPE = (8, 8)
+
+class Model(Enum):
+    standard = 1
+    nbar = 2
+    sbt = 3
+
+ALL_FACTORS = ['fv',
+               'fs',
+               'b',
+               's',
+               'a',
+               'dir',
+               'dif',
+               'ts',
+               'path_up',
+               'path_down',
+               'transmittance_up']
+NBAR_FACTORS = ALL_FACTORS[0:8]
+SBT_FACTORS = ALL_FACTORS[8:]
+
+FACTORS = {Model.standard: ALL_FACTORS,
+           Model.nbar: NBAR_FACTORS,
+           Model.sbt: SBT_FACTORS}
 
 
 def bilinear(shape, fUL, fUR, fLR, fLL, dtype=numpy.float64):

@@ -34,6 +34,7 @@ from gaip.modtran import _calculate_coefficients, prepare_modtran
 from gaip.modtran import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
 from gaip.modtran import ALL_ALBEDOS, NBAR_ALBEDOS, SBT_ALBEDO
 from gaip.interpolation import _bilinear_interpolate, link_bilinear_data
+from gaip.interpolation import MODEL, FACTORS
 
 
 def get_buffer(group):
@@ -347,7 +348,6 @@ class CalculateCoefficients(luigi.Task):
                                     self.compression)
 
 
-# TODO: need to also retreive the ancillary to get the coordinator dataset
 @inherits(CalculateSatelliteAndSolarGrids)
 class BilinearInterpolationBand(luigi.Task):
     """
@@ -362,7 +362,7 @@ class BilinearInterpolationBand(luigi.Task):
         args = [self.level1, self.work_root, self.granule]
         return {'coef': CalculateCoefficients(*args),
                 'satsol': self.clone(CalculateSatelliteAndSolarGrids),
-                'ancillary': GetAncillaryData(*args)}
+                'ancillary': AncillaryData(*args)}
 
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
@@ -395,12 +395,10 @@ class BilinearInterpolation(luigi.Task):
     as single file for easy access.
     """
 
-    factors = luigi.ListParameter(default=['fv', 'fs', 'b', 's', 'a', 'dir',
-                                           'dif', 'ts'],
-                                  significant=False)
+    model = luigi.EnumParameter(enum=MODEL)
 
     def requires(self):
-        # TODO: how to handle factors
+        bands = []
         container = acquisitions(self.level1)
         acqs = container.get_acquisitions(group=self.group,
                                           granule=self.granule)
@@ -409,13 +407,19 @@ class BilinearInterpolation(luigi.Task):
         satellite = acqs[0].spacecraft_id
         sensor = acqs[0].sensor_id
 
-        # Get the required nbar bands list for processing
-        nbar_constants = constants.NBARConstants(satellite, sensor)
-        bands_to_process = nbar_constants.get_nbar_lut()
-        bands = [a.band_num for a in acqs if a.band_num in bands_to_process]
+        # NBAR band id's
+        if self.model == MODEL.standard | self.model == MODEL.nbar:
+            nbar_constants = constants.NBARConstants(satellite, sensor)
+            band_ids = nbar_constants.get_nbar_lut()
+            bands.extend([a.band_num for a in acqs if a.band_num in band_ids])
+
+        # SBT band id's
+        if self.model == MODEL.standard | self.model == MODEL.sbt:
+            band_ids = constants.sbt_bands(satellite, sensor) 
+            bands.extend([a.band_num for a in acqs if a.band_num in band_ids])
 
         tasks = {}
-        for factor in self.factors:
+        for factor in FACTORS[self.model]:
             for band in bands:
                 key = (band, factor)
                 kwargs = {'level1': self.level1, 'work_root': self.work_root,
