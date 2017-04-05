@@ -428,8 +428,8 @@ def read_table(fid, dataset_name, dataframe=True):
             dtypes = [dset.attrs['{}_dtype'.format(name)] for name in
                       col_names]
             dtype = numpy.dtype(list(zip(col_names, dtypes)))
-            with dset.astype(dtype):
-                data = pandas.DataFrame.from_records(dset[:], index=idx_names)
+            data = pandas.DataFrame.from_records(dset[:].astype(dtype),
+                                                 index=idx_names)
         else:
             data = pandas.DataFrame.from_records(dset[:], index=idx_names)
     else:
