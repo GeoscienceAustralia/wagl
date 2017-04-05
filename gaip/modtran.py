@@ -15,7 +15,8 @@ from scipy.io import FortranFile
 import h5py
 import pandas as pd
 
-from gaip.constants import Model, POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
+from gaip.constants import Model, BandType
+from gaip.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
 from gaip.hdf5 import write_dataframe, read_table, create_external_link
 from gaip.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
 from gaip.modtran_profiles import MIDLAT_SUMMER_TRANSMITTANCE, SBT_FORMAT
@@ -80,7 +81,7 @@ def prepare_modtran(acquisition, coordinate, albedo, modtran_work,
         src.writelines(response)
 
 
-def _format_tp5(acquisition, satellite_solar_angles_fname,
+def _format_tp5(acquisitions, satellite_solar_angles_fname,
                 longitude_latitude_fname, ancillary_fname, out_fname,
                 nbar_tp5=True):
     """
@@ -113,7 +114,7 @@ def _format_tp5(acquisition, satellite_solar_angles_fname,
         else:
             sbt_ancillary = None
 
-        tp5_data, metadata = format_tp5(acquisition, coord_dset, view_dset,
+        tp5_data, metadata = format_tp5(acquisitions, coord_dset, view_dset,
                                         azi_dset, lat_dset, lon_dset, ozone,
                                         water_vapour, aerosol, elevation,
                                         coord_dset.shape[0], sbt_ancillary,
@@ -140,19 +141,18 @@ def _format_tp5(acquisition, satellite_solar_angles_fname,
     return tp5_data
 
 
-def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
+def format_tp5(acquisitions, coordinator, view_dataset, azi_dataset,
                lat_dataset, lon_dataset, ozone, vapour, aerosol, elevation,
                npoints, sbt_ancillary=None, nbar_tp5=True):
     """
     Creates str formatted tp5 files for the albedo (0, 1) and
     transmittance (t).
     """
-    geobox = acquisition.gridded_geo_box()
-    filter_file = acquisition.spectral_filter_file
-    cdate = acquisition.scene_centre_date
+    geobox = acquisitions[0].gridded_geo_box()
+    cdate = acquisitions[0].scene_centre_date
     doy = int(cdate.strftime('%j'))
-    altitude = acquisition.altitude / 1000.0  # in km
-    dechour = acquisition.decimal_hour
+    altitude = acquisitions[0].altitude / 1000.0  # in km
+    dechour = acquisitions[0].decimal_hour
 
     view = numpy.zeros(npoints, dtype='float32')
     azi = numpy.zeros(npoints, dtype='float32')
@@ -200,11 +200,12 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
 
     # write the tp5 files required for input into MODTRAN
     if nbar_tp5:
+        acqs = [a for a in acquisitions if a.band_type == BandType.Reflective]
         for i in range(npoints):
             for alb in Model.nbar.albedos:
                 input_data = {'water': vapour,
                               'ozone': ozone,
-                              'filter_function': filter_file,
+                              'filter_function': acqs[0].spectral_filter_file,
                               'visibility': -aerosol,
                               'elevation': elevation,
                               'sat_height': altitude,
@@ -234,6 +235,7 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
     # so as to ensure a consistant logic between the two products
 
     if sbt_ancillary is not None:
+        acqs = [a for a in acquisitions if a.band_type == BandType.Thermal]
         for p in range(npoints):
             atmospheric_profile = []
             atmos_profile = sbt_ancillary[p]
@@ -248,7 +250,7 @@ def format_tp5(acquisition, coordinator, view_dataset, azi_dataset,
                 atmospheric_profile.append(SBT_FORMAT.format(**input_data))
             
             input_data = {'ozone': ozone,
-                          'filter_function': filter_file,
+                          'filter_function': acqs[0].spectral_filter_file,
                           'visibility': -aerosol,
                           'gpheight': elevation,
                           'n': n_layers,
