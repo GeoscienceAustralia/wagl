@@ -547,6 +547,7 @@ def calculate_coefficients(accumulation_albedo_0=None,
             ts_dir = dir_0 / dir0_top
             tv_dir = dir_t / dirt_top
 
+            # TODO: better descriptive names
             columns = ['point',
                        'fs',
                        'fv',
