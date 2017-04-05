@@ -365,12 +365,13 @@ class BilinearInterpolationBand(luigi.Task):
     band_num = luigi.Parameter()
     factor = luigi.Parameter()
     base_dir = luigi.Parameter(default='_bilinear', significant=False)
+    model = luigi.EnumParameter(enum=Model)
 
     def requires(self):
         args = [self.level1, self.work_root, self.granule]
         return {'coef': CalculateCoefficients(*args),
                 'satsol': self.clone(CalculateSatelliteAndSolarGrids),
-                'ancillary': AncillaryData(*args)}
+                'ancillary': AncillaryData(*args, model=self.model)}
 
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
@@ -432,7 +433,8 @@ class BilinearInterpolation(luigi.Task):
                 key = (band, factor)
                 kwargs = {'level1': self.level1, 'work_root': self.work_root,
                           'granule': self.granule, 'group': self.group,
-                          'band_num': band, 'factor': factor}
+                          'band_num': band, 'factor': factor,
+                          'model': self.model}
                 tasks[key] = BilinearInterpolationBand(**kwargs)
         return tasks
 
@@ -720,18 +722,19 @@ class CalculateShadowMasks(luigi.Task):
 
 
 @inherits(IncidentAngles)
-class RunTCBand(luigi.Task):
+class SurfaceReflectance(luigi.Task):
 
     """Run the terrain correction over a given band."""
 
     band_num = luigi.Parameter()
     rori = luigi.FloatParameter(default=0.52, significant=False)
-    base_dir = luigi.Parameter(default='_reflectance', significant=False)
+    base_dir = luigi.Parameter(default='_analysis_ready', significant=False)
+    model = luigi.EnumParameter(enum=Model)
 
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.group]
-        reqs = {'bilinear': BilinearInterpolation(*args),
-                'ancillary': AncillaryData(*args[:-1]),
+        reqs = {'bilinear': BilinearInterpolation(*args, model=self.model),
+                'ancillary': AncillaryData(*args[:-1], model=self.model),
                 'rel_slope': self.clone(RelativeAzimuthSlope),
                 'shadow': self.clone(CalculateShadowMasks),
                 'slp_asp': self.clone(SlopeAndAspect),
@@ -775,62 +778,118 @@ class RunTCBand(luigi.Task):
                                    self.x_tile, self.y_tile)
 
 
-@inherits(CalculateLonLatGrids)
-class TerrainCorrection(luigi.Task):
+@inherits(BilinearInterpolation)
+class SurfaceTemperature(luigi.Task):
 
-    """Perform the terrain correction."""
+    """
+    Calculates surface brightness temperature for a given band.
+    """
 
     def requires(self):
-        acqs = acquisitions(self.level1).get_acquisitions(self.group,
-                                                          self.granule)
 
-        # Retrieve the satellite and sensor for the acquisition
-        satellite = acqs[0].spacecraft_id
-        sensor = acqs[0].sensor_id
-        bands = [acq.band_num for acq in acqs]
+        # TODO: add other upstream tasks as needed
 
-        # Get the required nbar bands list for processing
-        nbar_constants = constants.NBARConstants(satellite, sensor)
-        avail_bands = nbar_constants.get_nbar_lut()
-        bands_to_process = [bn for bn in bands if bn in avail_bands]
-
-        # define the bands to compute reflectance for
-        reqs = []
-        for band in bands_to_process:
-            reqs.append(RunTCBand(self.level1, self.work_root, self.granule,
-                                  self.group, band_num=band))
+        args = [self.level1, self.work_root, self.granule, self.group]
+        reqs = {'bilinear': BilinearInterpolation(*args, model=self.model),
+                'sat_sol': self.clone(CalculateSatelliteAndSolarGrids)}
         return reqs
 
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
-        return luigi.LocalTarget(pjoin(out_path, 'reflectance.h5'))
+        fname = 'surface-temperature-{band}.h5'.format(band=self.band_num)
+        return luigi.LocalTarget(pjoin(out_path, self.base_dir, fname))
+
+    def run(self):
+        container = acquisitions(self.level1)
+        acqs = container.get_acquisitions(self.group, self.granule)
+        acq = [acq for acq in acqs if acq.band_num == self.band_num][0]
+
+        # inputs
+        inputs = self.input()
+        bilinear_fname = inputs['bilinear'].path
+        sat_sol_fname = inputs['sat_sol'].path
+
+        with self.output().temporary_path() as out_fname:
+            #
+
+
+@inherits(BilinearInterpolation)
+class Standard(luigi.Task)
+
+    """
+    Issues standardisation (analysis ready) tasks for both
+    SurfaceReflectance and SurfaceTemperature.
+    """
+
+    def requires(self):
+        bands = []
+        container = acquisitions(self.level1)
+        acqs = container.get_acquisitions(group=self.group,
+                                          granule=self.granule)
+
+        # Retrieve the satellite and sensor for the acquisition
+        satellite = acqs[0].spacecraft_id
+        sensor = acqs[0].sensor_id
+
+        # NBAR band id's
+        if self.model == Model.standard | self.model == Model.nbar:
+            nbar_constants = constants.NBARConstants(satellite, sensor)
+            band_ids = nbar_constants.get_nbar_lut()
+            bands.extend([a for a in acqs if a.band_num in band_ids])
+
+        # SBT band id's
+        if self.model == Model.standard | self.model == Model.sbt:
+            band_ids = constants.sbt_bands(satellite, sensor) 
+            bands.extend([a for a in acqs if a.band_num in band_ids])
+
+        tasks = []
+        for band in bands:
+            kwargs = {'level1': self.level1, 'work_root': self.work_root,
+                      'granule': self.granule, 'group': self.group,
+                      'band_num': band.band_num, 'model': self.model}
+            if band.band_type == BandType.Thermal:
+                tasks.append(SurfaceTemperature(**kwargs))
+            else:
+                tasks.append(SurfaceReflectance(**kwargs))
+
+        return tasks
+
+    def output(self):
+        out_path = acquisitions(self.level1).get_root(self.work_root,
+                                                      self.group, self.granule)
+        return luigi.LocalTarget(pjoin(out_path, 'analysis-ready-data.h5'))
 
     def run(self):
         with self.output().temporary_path() as out_fname:
             fnames = [target.path for target in self.input()]
-            link_reflectance_data(fnames, out_fname)
+            link_standard_data(fnames, out_fname)
 
 
-class NBAR(luigi.WrapperTask):
+class ARD(luigi.WrapperTask):
 
-    """Kicks off NBAR tasks for each level1 entry."""
+    """Kicks off ARD tasks for each level1 entry."""
 
     level1_csv = luigi.Parameter()
     output_directory = luigi.Parameter()
     work_extension = luigi.Parameter(default='.gaip-work', significant=False)
+    model = luigi.EnumParameter(enum=Model)
 
     def requires(self):
         with open(self.level1_csv) as src:
             level1_scenes = [scene.strip() for scene in src.readlines()]
 
+        tasks = []
         for scene in level1_scenes:
             work_name = basename(scene) + self.work_extension
             work_root = pjoin(self.output_directory, work_name)
             container = acquisitions(scene)
             for granule in container.granules:
                 for group in container.groups:
-                    yield TerrainCorrection(scene, work_root, granule, group)
+                    kwargs = {'level1': scene, 'work_root': work_root,
+                              'granule': granule, 'group': group,
+                              'model': model}
+                    yield Standard(**kwargs)
 
         
 if __name__ == '__main__':
