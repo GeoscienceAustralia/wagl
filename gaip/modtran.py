@@ -121,7 +121,7 @@ def _format_tp5(acquisitions, satellite_solar_angles_fname,
                                         nbar_tp5)
 
         group = fid.create_group('modtran-inputs')
-        iso_time = acquisition.scene_centre_date.isoformat()
+        iso_time = acquisitions[0].scene_centre_date.isoformat()
         group.attrs['acquisition-datetime'] = iso_time
 
         for key in metadata:
