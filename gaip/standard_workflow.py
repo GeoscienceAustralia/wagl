@@ -232,7 +232,7 @@ class WriteTp5(luigi.Task):
         # as we have an all granules groups dependency, it doesn't matter which
         # group, so just get the first and use it to retrieve the angles
         group = container.groups[0]
-        acq = container.get_acquisitions(group, granule=self.granule)[0]
+        acqs = container.get_acquisitions(group, granule=self.granule)
 
         # input data files, and the output format
         inputs = self.input()
@@ -252,7 +252,7 @@ class WriteTp5(luigi.Task):
         lon_lat_fname = inputs[(self.granule, group)]['lon_lat'].path
 
         with self.output().temporary_path() as out_fname:
-            tp5_data = _format_tp5(acq, sat_sol_fname, lon_lat_fname,
+            tp5_data = _format_tp5(acqs, sat_sol_fname, lon_lat_fname,
                                    ancillary_fname, out_fname, self.nbar_tp5)
 
             # keep this as an indented block, that way the target will remain
