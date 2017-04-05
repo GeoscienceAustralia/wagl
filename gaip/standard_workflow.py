@@ -134,7 +134,7 @@ class AncillaryData(luigi.Task):
     work_root = luigi.Parameter(significant=False)
     granule = luigi.Parameter(default=None)
     vertices = luigi.TupleParameter(default=(5, 5), significant=False)
-    model = luigi.EnumParameter(enum=Model, default=Model.standard)
+    model = luigi.EnumParameter(enum=Model)
     aerosol_fname = luigi.Parameter(significant=False)
     brdf_path = luigi.Parameter(significant=False)
     brdf_premodis_path = luigi.Parameter(significant=False)
@@ -173,7 +173,7 @@ class AncillaryData(luigi.Task):
                       'brdf_path': self.brdf_path,
                       'brdf_premodis_path': self.brdf_premodis_path}
 
-        if self.model == Model.standard or Model.sbt:
+        if self.model == Model.standard or self.model == Model.sbt:
             sbt_paths = {'dewpoint_path': self.dewpoint_path,
                          'temperature_2m_path': self.temp_2m_path,
                          'surface_pressure_path': self.surface_pressure_path,
@@ -197,10 +197,10 @@ class WriteTp5(luigi.Task):
     work_root = luigi.Parameter(significant=False)
     granule = luigi.Parameter(default=None)
     vertices = luigi.TupleParameter(default=(5, 5), significant=False)
-    model = luigi.EnumParameter(enum=Model, default=Model.standard)
+    model = luigi.EnumParameter(enum=Model)
     base_dir = luigi.Parameter(default='_atmospherics', significant=False)
     compression = luigi.Parameter(default='lzf', significant=False)
-    nbar_tp5 = luigi.BoolParameter(default=True, significant=False)
+    nbar_tp5 = luigi.BoolParameter(significant=False)
 
     def requires(self):
         # for consistancy, we'll wait for dependencies on all granules and
@@ -318,11 +318,12 @@ class Atmospherics(luigi.Task):
         args = [self.level1, self.work_root, self.granule]
         for point in range(self.vertices[0] * self.vertices[1]):
             for albedo in self.model.albedos:
-                nbar_tp5 = False if albedo == Model.sbt.albedos else True
+                nbar_tp5 = False if albedo == Model.sbt.albedos[0] else True
                 btype = BandType.Reflective if nbar_tp5 else BandType.Thermal
                 kwargs = {'point': point, 'albedo': albedo}
                 kwargs['nbar_tp5'] = nbar_tp5
                 kwargs['band_type'] = btype
+                kwargs['model'] = self.model
                 yield AtmosphericsCase(*args, **kwargs)
 
     def output(self):
@@ -333,7 +334,7 @@ class Atmospherics(luigi.Task):
     def run(self):
         nvertices = self.vertices[0] * self.vertices[1]
         with self.output().temporary_path() as out_fname:
-            link_atmospheric_results(self.inputs(), out_fname, nvertices)
+            link_atmospheric_results(self.input(), out_fname, nvertices)
 
 
 @requires(Atmospherics)
@@ -417,13 +418,13 @@ class BilinearInterpolation(luigi.Task):
         sensor = acqs[0].sensor_id
 
         # NBAR band id's
-        if self.model == Model.standard or Model.nbar:
+        if self.model == Model.standard or self.model == Model.nbar:
             nbar_constants = constants.NBARConstants(satellite, sensor)
             band_ids = nbar_constants.get_nbar_lut()
             bands.extend([a.band_num for a in acqs if a.band_num in band_ids])
 
         # SBT band id's
-        if self.model == Model.standard or Model.sbt:
+        if self.model == Model.standard or self.model == Model.sbt:
             band_ids = constants.sbt_bands(satellite, sensor) 
             bands.extend([a.band_num for a in acqs if a.band_num in band_ids])
 
@@ -824,13 +825,13 @@ class Standard(luigi.Task):
         sensor = acqs[0].sensor_id
 
         # NBAR band id's
-        if self.model == Model.standard or Model.nbar:
+        if self.model == Model.standard or self.model == Model.nbar:
             nbar_constants = constants.NBARConstants(satellite, sensor)
             band_ids = nbar_constants.get_nbar_lut()
             bands.extend([a for a in acqs if a.band_num in band_ids])
 
         # SBT band id's
-        if self.model == Model.standard or Model.sbt:
+        if self.model == Model.standard or self.model == Model.sbt:
             band_ids = constants.sbt_bands(satellite, sensor) 
             bands.extend([a for a in acqs if a.band_num in band_ids])
 
