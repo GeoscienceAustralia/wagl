@@ -249,7 +249,7 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
 
     # Initialise the output file
     if out_fname is None:
-        fid = h5py.File('satellite-solar-angles.h5', driver='core',
+        fid = h5py.File('surface-reflectance.h5', driver='core',
                         backing_store=False)
     else:
         fid = h5py.File(out_fname, 'w')
