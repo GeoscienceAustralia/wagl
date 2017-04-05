@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 """
-Standard workflow for producing NBAR and SBT.
--------------
+Standard workflow for producing NBAR and SBT
+--------------------------------------------
 
 Workflow settings can be configured in `luigi.cfg` file.
-
 """
 # pylint: disable=missing-docstring,no-init,too-many-function-args
 # pylint: disable=too-many-locals
@@ -54,7 +53,7 @@ class WorkRoot(luigi.Task):
 
     level1 = luigi.Parameter()
     work_root = luigi.Parameter(significant=False)
-    reflectance_dir = '_reflectance'
+    reflectance_dir = '_standardised'
     shadow_dir = '_shadow'
     bilinear_dir = '_bilinear'
 
@@ -728,7 +727,7 @@ class SurfaceReflectance(luigi.Task):
 
     band_num = luigi.Parameter()
     rori = luigi.FloatParameter(default=0.52, significant=False)
-    base_dir = luigi.Parameter(default='_analysis_ready', significant=False)
+    base_dir = luigi.Parameter(default='_standardised', significant=False)
     model = luigi.EnumParameter(enum=Model)
 
     def requires(self):
@@ -858,7 +857,7 @@ class Standard(luigi.Task)
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
-        return luigi.LocalTarget(pjoin(out_path, 'analysis-ready-data.h5'))
+        return luigi.LocalTarget(pjoin(out_path, 'standardised-data.h5'))
 
     def run(self):
         with self.output().temporary_path() as out_fname:
