@@ -22,7 +22,7 @@ from gaip.calculate_incident_exiting_angles import _exiting_angles
 from gaip.calculate_incident_exiting_angles import _relative_azimuth_slope
 from gaip.calculate_lon_lat_arrays import create_lon_lat_grids
 from gaip.calculate_reflectance import _calculate_reflectance
-from gaip.calculate_reflectance import link_reflectance_data
+from gaip.calculate_reflectance import link_standard_data
 from gaip.calculate_shadow_masks import _self_shadow, _calculate_cast_shadow
 from gaip.calculate_shadow_masks import _combine_shadow
 from gaip.calculate_slope_aspect import _slope_aspect_arrays
@@ -34,6 +34,7 @@ from gaip.modtran import _format_tp5, _run_modtran
 from gaip.modtran import _calculate_coefficients, prepare_modtran
 from gaip.modtran import link_atmospheric_results
 from gaip.interpolation import _bilinear_interpolate, link_bilinear_data
+from gaip.thermal_conversion import _surface_brightness_temperature
 
 
 def get_buffer(group):
@@ -762,11 +763,10 @@ class SurfaceReflectance(luigi.Task):
         relative_slope_fname = inputs['rel_slope'].path
         shadow_fname = inputs['shadow'].path
         sat_sol_fname = inputs['sat_sol'].path
+        ancillary_fname = inputs['ancillary'].path
 
         # get the acquisition we wish to process
         acq = [acq for acq in acqs if acq.band_num == self.band_num][0]
-
-        ancillary_fname = inputs['ancillary'].path
 
         with self.output().temporary_path() as out_fname:
             _calculate_reflectance(acq, bilinear_fname, sat_sol_fname,
@@ -785,18 +785,13 @@ class SurfaceTemperature(luigi.Task):
     """
 
     def requires(self):
-
-        # TODO: add other upstream tasks as needed
-
         args = [self.level1, self.work_root, self.granule, self.group]
-        reqs = {'bilinear': BilinearInterpolation(*args, model=self.model),
-                'sat_sol': self.clone(CalculateSatelliteAndSolarGrids)}
-        return reqs
+        return BilinearInterpolation(*args, model=self.model)
 
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
-        fname = 'surface-temperature-{band}.h5'.format(band=self.band_num)
+        fname = 'temperature-{band}.h5'.format(band=self.band_num)
         return luigi.LocalTarget(pjoin(out_path, self.base_dir, fname))
 
     def run(self):
@@ -804,17 +799,14 @@ class SurfaceTemperature(luigi.Task):
         acqs = container.get_acquisitions(self.group, self.granule)
         acq = [acq for acq in acqs if acq.band_num == self.band_num][0]
 
-        # inputs
-        inputs = self.input()
-        bilinear_fname = inputs['bilinear'].path
-        sat_sol_fname = inputs['sat_sol'].path
-
         with self.output().temporary_path() as out_fname:
-            #
+            _surface_brightness_temperature(acq, self.input().path, out_fname,
+                                            self.compression, self.x_tile,
+                                            self.y_tile)
 
 
 @inherits(BilinearInterpolation)
-class Standard(luigi.Task)
+class Standard(luigi.Task):
 
     """
     Issues standardisation (analysis ready) tasks for both
@@ -878,7 +870,6 @@ class ARD(luigi.WrapperTask):
         with open(self.level1_csv) as src:
             level1_scenes = [scene.strip() for scene in src.readlines()]
 
-        tasks = []
         for scene in level1_scenes:
             work_name = basename(scene) + self.work_extension
             work_root = pjoin(self.output_directory, work_name)
@@ -887,7 +878,7 @@ class ARD(luigi.WrapperTask):
                 for group in container.groups:
                     kwargs = {'level1': scene, 'work_root': work_root,
                               'granule': granule, 'group': group,
-                              'model': model}
+                              'model': self.model}
                     yield Standard(**kwargs)
 
         
