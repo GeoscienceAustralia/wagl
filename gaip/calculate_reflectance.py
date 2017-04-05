@@ -366,12 +366,12 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
     return fid
 
 
-def link_reflectance_data(input_fnames, out_fname):
+def link_standard_data(input_fnames, out_fname):
     # TODO: incorporate linking for multi-granule and multi-group
     #       datasets
     """
-    Links the individual reflectance results into a
-    single file for easier access.
+    Links the individual reflectance and surface temperature
+    results into a single file for easier access.
     """
     for fname in input_fnames:
         with h5py.File(fname, 'r') as fid:
