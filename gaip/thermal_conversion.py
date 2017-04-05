@@ -1,15 +1,56 @@
+#!/usr/bin/env python
+
 """
-Conversion Routines
--------------------
+Various routines for converting radiance to temperature
+-------------------------------------------------------
 """
+
 from __future__ import absolute_import, print_function
 import logging
 import numpy
 import numexpr
+import h5py
 
-def surface_brightness_temperature(acq, observation, transmittance, background):
+from gaip.hdf5 import dataset_compression_kwargs
+from gaip.hdf5 import attach_image_attributes
+from gaip.tiling import generate_tiles
+
+
+DATASET_NAME_FMT = "surface-brightness-temperature-band-{band}"
+
+
+def _surface_brightness_temperature(acquisition, bilinear_fname, out_fname,
+                                    compression, x_tile, y_tile):
     """
-    Convert IR band raster to SBT raster.
+    A private wrapper for dealing with the internal custom workings of the
+    NBAR workflow.
+    """
+    band_num = acquisition.band_num
+    with h5py.File(bilinear_fname, 'r') as fid:
+        upwelling_dset = fid['path_up-band-{band}'.format(band=band_num)]
+        dname = 'transmittance_up-band-{band}'.format(band=band_num)
+        transmittance_dset = fid[dname]
+
+        kwargs = {'acquisition': acquisition,
+                  'upwelling_radiation': upwelling_dset,
+                  'transmittance': transmittance_dset,
+                  'out_fname': out_fname,
+                  'compression': compression,
+                  'x_tile': x_tile,
+                  'y_tile': y_tile}
+
+        rfid = surface_brightness_temperature(**kwargs)
+
+    rfid.close()
+    return
+
+
+def surface_brightness_temperature(acquisition, upwelling_radiation,
+                                   transmittance, out_fname=None,
+                                   compression='lzf', x_tile=None,
+                                   y_tile=None):
+    """
+    Convert Thermal acquisition to Surface Brightness Temperature.
 
     T[Kelvin] = k2 / ln( 1 + (k1 / I[0]) )
 
@@ -24,21 +65,110 @@ def surface_brightness_temperature(acq, observation, transmittance, background):
     where I is the radiance at the sensor, t is the transmittance (through
     the atmosphere), and d is radiance from the atmosphere itself.
 
+    :param acquisition:
+        An instance of an acquisition object.
+
+    :param upwelling_radiation:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the MODTRAN
+        factor `upwelling_radiation` data values when indexed/sliced.
+        
+    :param transmittance:
+        A `NumPy` or `NumPy` like dataset that allows indexing
+        and returns a `NumPy` dataset containing the MODTRAN
+        factor `upwelling_transmittance` data values when indexed/sliced.
+
+    :param out_fname:
+        If set to None (default) then the results will be returned
+        as an in-memory hdf5 file, i.e. the `core` driver.
+        Otherwise it should be a string containing the full file path
+        name to a writeable location on disk in which to save the HDF5
+        file.
+
+        The dataset names will be as follows:
+
+        * surface-brightness-temperature-band-{number}
+
+    :param compression:
+        The compression filter to use. Default is 'lzf'.
+        Options include:
+
+        * 'lzf' (Default)
+        * 'lz4'
+        * 'mafisc'
+        * An integer [1-9] (Deflate/gzip)
+
+    :param x_tile:
+        Defines the tile size along the x-axis. Default is None which
+        equates to all elements along the x-axis.
+
+    :param y_tile:
+        Defines the tile size along the y-axis. Default is None which
+        equates to all elements along the y-axis.
+
+    :return:
+        An opened `h5py.File` object, that is either in-memory using the
+        `core` driver, or on disk.
     """
+    rows = acquisition.lines
+    cols = acquisition.samples
+    geobox = acquisition.gridded_geo_box()
+
+    # tiling scheme
+    tiles = generate_tiles(cols, rows, x_tile, y_tile)
+
+    # Initialise the output file
+    if out_fname is None:
+        fid = h5py.File('surface-temperature.h5', driver='core',
+                        backing_store=False)
+    else:
+        fid = h5py.File(out_fname, 'w')
+
+    kwargs = dataset_compression_kwargs(compression=compression,
+                                        chunks=(1, cols))
+    kwargs['shape'] = (rows, cols)
+    kwargs['fillvalue'] = -999
+    kwargs['dtype'] = 'int16'
+
+    # attach some attributes to the image datasets
+    attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
+             'geotransform': geobox.transform.to_gdal(),
+             'no_data_value': kwargs['fillvalue'],
+             'sattelite': acquisition.spacecraft_id,
+             'sensor': acquisition.sensor_id,
+             'band number': acquisition.band_num}
+
+    dset_name = DATASET_NAME_FMT.format(band=acquisition.band_num)
+    out_dset = fid.create_dataset(dset_name, **kwargs)
+
+    desc = "Surface Brightness Temperature in Kelvin scaled by 100."
+    attrs['Description'] = desc
+    attach_image_attributes(out_dset, attrs)
 
     # constants
-    k1 = acq.K1
-    k2 = acq.K2
+    k1 = acquisition.K1
+    k2 = acquisition.K2
 
-    # rasters interpolated from atmospheric radiative transfer modelling
-    t = transmittance
-    d = background
+    # process each tile
+    for tile in tiles:
+        idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
 
-    # sensor image band raster
-    I = observation
+        acq_args = {'window': tile,
+                    'masked': False,
+                    'apply_gain_offset': acquisition.scaled_radiance,
+                    'out_no_data': kwargs['fillvalue']}
 
-    # thermal raster
-    return k2 / ln( d*k1/(I - d) + 1 )
+        radiance = acquisition.data(**acq_args)
+        mask = radiance == kwargs['fillvalue']
+        path_up = upwelling_radiation[idx]
+        trans = transmittance[idx]
+        expr = "k2 / log(k1 / ((radiance-path_up) / trans + 1)) * 100 + 0.5"
+        brightness_temp = numexpr.evaluate(expr)
+        brightness_temp[mask] = kwargs['fillvalue']
+
+        out_dset[idx] = brightness_temp
+
+    return fid
 
 
 def radiance_conversion(band_array, gain, bias):
