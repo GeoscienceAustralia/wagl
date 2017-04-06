@@ -17,7 +17,7 @@ import logging
 from gaip.hdf5 import dataset_compression_kwargs
 from gaip.hdf5 import write_h5_image
 from gaip.hdf5 import read_table
-from gaip.interpolate import interpolate
+import gaip.interpolate
 
 logger = logging.getLogger(__name__)
 
@@ -222,7 +222,7 @@ def _bilinear_interpolate(acq, factor, sat_sol_angles_fname,
 
 def bilinear_interpolate(acq, factor, coordinator_dataset, boxline_dataset,
                          centreline_dataset, coefficients, out_fname=None,
-                         compression='lzf'):
+                         compression='lzf', method=None):
     # TODO: more docstrings
     """Perform bilinear interpolation."""
     geobox = acq.gridded_geo_box()
@@ -240,7 +240,12 @@ def bilinear_interpolate(acq, factor, coordinator_dataset, boxline_dataset,
     band_records = coefficients.band_id == 'BAND {}'.format(band)
     samples = coefficients[factor][band_records].values
 
-    result = interpolate(cols, rows, coord, samples, start, end, centre)
+    if method is None:
+        method = gaip.interpolate.fortran_bilinear_interpolate \
+                 if len(samples) == 9 else \
+                 gaip.interpolate.rbf_interpolate
+
+    result = method(cols, rows, coord, samples, start, end, centre)
 
     # Initialise the output files
     if out_fname is None:

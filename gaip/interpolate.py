@@ -148,5 +148,3 @@ def sheared_bilinear_interpolate(cols, rows, locations, samples,
 
     return result
 
-
-interpolate = fortran_bilinear_interpolate
