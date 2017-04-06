@@ -189,6 +189,7 @@ class AncillaryData(luigi.Task):
                                compression=self.compression)
 
 
+# TODO: remove the nbar_tp5 parameter
 class WriteTp5(luigi.Task):
 
     """Output the `tp5` formatted files."""
