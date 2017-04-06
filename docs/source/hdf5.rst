@@ -29,6 +29,7 @@ Some of the main reasons behind moving to HDF5 are:
 * Metadata; gaip can now store a lot more metadata such as longitude and latitude information with each ancillary point location, as opposed to a plain text label.
   Parameter settings used for a given algorithm such as for the satellite and solar angles calculation can be stored alongside the results, potentially making it easier for validation, and archive comparisons to be undertaken.
 * Utilise a consistant library for data I/O, rather than a dozen or so different libraries. This helps to simplify the gaip data model, and have fewer library dependencies.
+* It simplified the workflow **A LOT**
 
 Dataset Names
 -------------
@@ -100,10 +101,11 @@ Dataset names for each output are as follows:
 * slope-aspect.h5
     * /aspect
     * /slope
-* reflectance.h5
+* standardised-data.h5
     * /brdf-reflectance-band-{band_id} (combinations based on the band_id)
     * /lambertian-reflectance-band-{band_id} (combinations based on the band_id)
     * /terrain-reflectance-band-{band_id} (combinations based on the band_id)
+    * /surface-brightness-temperature-band-{band_id} (combinations based on the band_id)
 
 Geospatial Information
 ----------------------
