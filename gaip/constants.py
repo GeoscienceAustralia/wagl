@@ -8,6 +8,67 @@ from __future__ import absolute_import, print_function
 from enum import Enum
 import re
 
+
+ALL_FACTORS = ['fv',
+               'fs',
+               'b',
+               's',
+               'a',
+               'dir',
+               'dif',
+               'ts',
+               'path_up',
+               'path_down',
+               'transmittance_up']
+
+ALL_ALBEDOS = [0, 1, 't', 'th']
+
+POINT_FMT = 'point-{p}'
+ALBEDO_FMT = 'albedo-{a}'
+POINT_ALBEDO_FMT = ''.join([POINT_FMT, '-', ALBEDO_FMT])
+
+
+class Model(Enum):
+
+    """
+    Represents the model workflow that gaip can run.
+
+    *standard* Indicates both NBAR and SBT workflows will run
+    *nbar* Indicates NBAR only
+    *sbt* Indicates SBT only
+    """
+    standard = 1
+    nbar = 2
+    sbt = 3
+
+    @property
+    def factors(self):
+        fmap = {Model.standard: ALL_FACTORS,
+                Model.nbar: ALL_FACTORS[0:8],
+                Model.sbt: ALL_FACTORS[8:]}
+        return fmap.get(self)
+
+    @property
+    def albedos(self):
+        amap = {Model.standard: ALL_ALBEDOS,
+                Model.nbar: ALL_ALBEDOS[0:-1],
+                Model.sbt: [ALL_ALBEDOS[-1]]}
+        return amap.get(self)
+
+
+class BandType(Enum):
+
+    """
+    Represents the Band Type a given acquisition falls under.
+    """
+
+    Reflective = 0
+    Thermal = 1
+    Panchromatic = 2
+    Atmosphere = 3
+    Quality = 4
+
+
 # TODO: Re-work this entire file, and the class structures
 #       A pain but required as this file contains neccessary
 #       band exclusions, and hardwired BRDF wavelength matchups.
@@ -465,51 +526,3 @@ def sbt_bands(satellite, sensor):
               'landsat8olitirs': ['10']} # band 11 is not stable
 
     return lookup.get(combined, [])
-
-
-ALL_FACTORS = ['fv',
-               'fs',
-               'b',
-               's',
-               'a',
-               'dir',
-               'dif',
-               'ts',
-               'path_up',
-               'path_down',
-               'transmittance_up']
-
-
-ALL_ALBEDOS = [0, 1, 't', 'th']
-
-
-POINT_FMT = 'point-{p}'
-ALBEDO_FMT = 'albedo-{a}'
-POINT_ALBEDO_FMT = ''.join([POINT_FMT, '-', ALBEDO_FMT])
-
-class Model(Enum):
-    standard = 1
-    nbar = 2
-    sbt = 3
-
-    @property
-    def factors(self):
-        fmap = {Model.standard: ALL_FACTORS,
-                Model.nbar: ALL_FACTORS[0:8],
-                Model.sbt: ALL_FACTORS[8:]}
-        return fmap.get(self)
-
-    @property
-    def albedos(self):
-        amap = {Model.standard: ALL_ALBEDOS,
-                Model.nbar: ALL_ALBEDOS[0:-1],
-                Model.sbt: [ALL_ALBEDOS[-1]]}
-        return amap.get(self)
-
-
-class BandType(Enum):
-    Reflective = 0
-    Thermal = 1
-    Panchromatic = 2
-    Atmosphere = 3
-    Quality = 4
