@@ -43,6 +43,10 @@ class Model(Enum):
 
     @property
     def factors(self):
+        """
+        Returns the factor names used for interpolation for a given
+        Model.<option>.
+        """
         fmap = {Model.standard: ALL_FACTORS,
                 Model.nbar: ALL_FACTORS[0:8],
                 Model.sbt: ALL_FACTORS[8:]}
@@ -50,6 +54,10 @@ class Model(Enum):
 
     @property
     def albedos(self):
+        """
+        Returns the albedo names used for specific Atmospheric
+        evaluations for a given Model.<option>.
+        """
         amap = {Model.standard: ALL_ALBEDOS,
                 Model.nbar: ALL_ALBEDOS[0:-1],
                 Model.sbt: [ALL_ALBEDOS[-1]]}
@@ -67,7 +75,7 @@ class BandType(Enum):
     Atmosphere = 3
     Quality = 4
 
-class DatasetNames(Enum):
+class DatasetName(Enum):
     """
     Defines the dataset names or format descriptors, that are used
     for creating and accessing throughout the code base.
