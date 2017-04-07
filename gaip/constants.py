@@ -111,6 +111,10 @@ class DatasetName(Enum):
     acquisition_time = 'acquisition-time'
     centreline = 'centreline'
     boxline = 'boxline'
+    spheroid = 'spheroid'
+    orbital_elements = 'orbital-elements'
+    satellite_model = 'satellite-model'
+    satellite_track = 'satellite-track'
 
     # gaip.calculate_incident_exiting_angles
     incident = 'incident'
