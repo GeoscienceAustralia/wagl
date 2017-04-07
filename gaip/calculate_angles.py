@@ -11,6 +11,7 @@ import numpy as np
 import h5py
 
 from osgeo import osr
+from gaip.constants import DatasetName as DName
 from gaip.hdf5 import dataset_compression_kwargs, attach_image_attributes
 from gaip.hdf5 import attach_table_attributes
 from gaip.tiling import generate_tiles
@@ -616,28 +617,32 @@ def _store_parameter_settings(fid, spheriod, orbital_elements,
     # sheroid
     desc = "The spheroid used in the satelite and solar angles calculation."
     attrs = {'Description': desc}
-    sph_dset = group.create_dataset('spheroid', data=spheriod)
+    dname = DName.spheroid.value
+    sph_dset = group.create_dataset(dname, data=spheriod)
     attach_table_attributes(sph_dset, title='Spheroid', attrs=attrs)
 
     # orbital elements
     desc = ("The satellite orbital parameters used in the satellite and "
             "solar angles calculation.")
     attrs = {'Description': desc}
-    orb_dset = group.create_dataset('orbital-elements', data=orbital_elements)
+    dname = DName.orbital_elements.value
+    orb_dset = group.create_dataset(dname, data=orbital_elements)
     attach_table_attributes(orb_dset, title='Orbital Elements', attrs=attrs)
 
     # satellite model
     desc = ("The satellite model used in the satelite and solar angles "
             "calculation.")
     attrs = {'Description': desc}
-    sat_dset = group.create_dataset('satellite-model', data=satellite_model)
+    dname = DName.satellite_model.value
+    sat_dset = group.create_dataset(dname, data=satellite_model)
     attach_table_attributes(sat_dset, title='Satellite Model', attrs=attrs)
 
     # satellite track
     desc = ("The satellite track information used in the satelite and solar "
             "angles calculation.")
     attrs = {'Description': desc}
-    track_dset = group.create_dataset('satellite-track', data=satellite_track)
+    dname = DName.satellite_track.value
+    track_dset = group.create_dataset(dname, data=satellite_track)
     attach_table_attributes(track_dset, title='Satellite Track', attrs=attrs)
 
     # flush
@@ -651,8 +656,8 @@ def _calculate_angles(acquisition, lon_lat_fname, out_fname=None,
     NBAR workflow.
     """
     with h5py.File(lon_lat_fname, 'r') as src:
-        lon_ds = src['longitude']
-        lat_ds = src['latitude']
+        lon_ds = src[DName.lon.value]
+        lat_ds = src[DName.lat.value]
         fid = calculate_angles(acquisition, lon_ds, lat_ds, out_fname,
                                compression, max_angle, tle_path)
 
@@ -820,12 +825,12 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
     kwargs['fillvalue'] = no_data
     kwargs['dtype'] = out_dtype
 
-    sat_v_ds = fid.create_dataset('satellite-view', **kwargs)
-    sat_az_ds = fid.create_dataset('satellite-azimuth', **kwargs)
-    sol_z_ds = fid.create_dataset('solar-zenith', **kwargs)
-    sol_az_ds = fid.create_dataset('solar-azimuth', **kwargs)
-    rel_az_ds = fid.create_dataset('relative-azimuth', **kwargs)
-    time_ds = fid.create_dataset('acquisition-time', **kwargs)
+    sat_v_ds = fid.create_dataset(DName.satellite_view.value, **kwargs)
+    sat_az_ds = fid.create_dataset(DName.satellite_azimuth.value, **kwargs)
+    sol_z_ds = fid.create_dataset(DName.solar_zenith.value, **kwargs)
+    sol_az_ds = fid.create_dataset(DName.solar_azimuth, **kwargs)
+    rel_az_ds = fid.create_dataset(DName.relative_azimuth.value, **kwargs)
+    time_ds = fid.create_dataset(DName.acquisition_time.value, **kwargs)
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
@@ -921,8 +926,8 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
     # create the dataset and save to the HDF5 file
     centreline_dataset = create_centreline_dataset(geobox, x_cent, n_cent)
     kwargs = dataset_compression_kwargs(compression=compression)
-    cent_dset = fid.create_dataset('centreline', data=centreline_dataset,
-                                   **kwargs)
+    dname = DName.centreline.value
+    cent_dset = fid.create_dataset(dname, data=centreline_dataset, **kwargs)
     desc = ("Contains the array, latitude and longitude coordinates of the "
             "satellite track path.")
     attrs = {'Description': desc,
@@ -935,7 +940,7 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
             "coordinates.")
     attrs['Description'] = desc
     attrs['array_coordinate_offset'] = 0
-    box_dset = fid.create_dataset('boxline', data=boxline, **kwargs)
+    box_dset = fid.create_dataset(DName.boxline.value, data=boxline, **kwargs)
     attach_table_attributes(box_dset, title='Boxline', attrs=attrs)
 
     fid.flush()
