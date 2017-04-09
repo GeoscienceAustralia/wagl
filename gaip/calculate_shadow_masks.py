@@ -109,7 +109,7 @@ def self_shadow(incident_dataset, exiting_dataset, geobox, out_fname,
 
     # output dataset
     dataset_name = DatasetName.self_shadow.value
-    out_dset = fid.create_dataset(dname, **kwargs)
+    out_dset = fid.create_dataset(dataset_name, **kwargs)
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),

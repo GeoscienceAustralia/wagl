@@ -11,9 +11,9 @@ makes some of the code harder to follow.
 
 from __future__ import absolute_import
 from os.path import basename, splitext
+import logging
 import numpy
 import h5py
-import logging
 from gaip.constants import DatasetName
 from gaip.hdf5 import dataset_compression_kwargs
 from gaip.hdf5 import write_h5_image

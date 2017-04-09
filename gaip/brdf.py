@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 BRDF data extraction utilities
 ------------------------------
