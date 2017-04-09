@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 Calculates the Lambertian, BRDF corrected and BRDF + Terrain corrected
 ----------------------------------------------------------------------
@@ -11,15 +13,13 @@ import numpy
 import h5py
 
 from gaip import constants
+from gaip.constants import DatasetName
 from gaip.data import as_array
 from gaip.hdf5 import dataset_compression_kwargs
 from gaip.hdf5 import attach_image_attributes
 from gaip.hdf5 import create_external_link
 from gaip.tiling import generate_tiles
 from gaip.__surface_reflectance import reflectance
-
-
-DATASET_NAME_FMT = '{product}-reflectance-band-{band}'
 
 
 def _calculate_reflectance(acquisition, bilinear_fname,
@@ -42,26 +42,27 @@ def _calculate_reflectance(acquisition, bilinear_fname,
         h5py.File(shadow_masks_fname, 'r') as fid_shadow,\
         h5py.File(ancillary_fname, 'r') as fid_anc:
 
-        fv_dset = fid_bil['fv-band-{band}'.format(band=band_num)]
-        fs_dset = fid_bil['fs-band-{band}'.format(band=band_num)]
-        b_dset = fid_bil['b-band-{band}'.format(band=band_num)]
-        s_dset = fid_bil['s-band-{band}'.format(band=band_num)]
-        a_dset = fid_bil['a-band-{band}'.format(band=band_num)]
-        dir_dset = fid_bil['dir-band-{band}'.format(band=band_num)]
-        dif_dset = fid_bil['dif-band-{band}'.format(band=band_num)]
-        ts_dset = fid_bil['ts-band-{band}'.format(band=band_num)]
-        sol_zen_dset = fid_sat_sol['solar-zenith']
-        sol_azi_dset = fid_sat_sol['solar-azimuth']
-        sat_view_dset = fid_sat_sol['satellite-view']
-        rel_ang_dset = fid_sat_sol['relative-azimuth']
-        slope_dset = fid_slp_asp['slope']
-        aspect_dset = fid_slp_asp['aspect']
-        rel_slp_dset = fid_rel_slp['relative-slope']
-        inc_dset = fid_inc['incident']
-        exi_dset = fid_exi['exiting']
-        shad_dset = fid_shadow['combined-shadow']
+        dname_fmt = DatasetName.interpolation_fmt.value
+        fv_dset = fid_bil[dname_fmt.format(factor='fv', band=band_num)]
+        fs_dset = fid_bil[dname_fmt.format(factor='fs', band=band_num)]
+        b_dset = fid_bil[dname_fmt.format(factor='b', band=band_num)]
+        s_dset = fid_bil[dname_fmt.format(factor='s', band=band_num)]
+        a_dset = fid_bil[dname_fmt.format(factor='a', band=band_num)]
+        dir_dset = fid_bil[dname_fmt.format(factor='dir', band=band_num)]
+        dif_dset = fid_bil[dname_fmt.format(factor='dif', band=band_num)]
+        ts_dset = fid_bil[dname_fmt.format(factor='ts', band=band_num)]
+        sol_zen_dset = fid_sat_sol[DatasetName.solar_zenith.value]
+        sol_azi_dset = fid_sat_sol[DatasetName.solar_azimuth.value]
+        sat_view_dset = fid_sat_sol[DatasetName.satellite_view.value]
+        rel_ang_dset = fid_sat_sol[DatasetName.relative_azimuth.value]
+        slope_dset = fid_slp_asp[DatasetName.slope.value]
+        aspect_dset = fid_slp_asp[DatasetName.aspect.value]
+        rel_slp_dset = fid_rel_slp[DatasetName.relative_slope.value]
+        inc_dset = fid_inc[DatasetName.incident.value]
+        exi_dset = fid_exi[DatasetName.exiting.value]
+        shad_dset = fid_shadow[DatasetName.combined_shadow.value]
 
-        dname = "BRDF-Band-{band}-{factor}"
+        dname = DatasetName.brdf_fmt.value
         brdf_iso = fid_anc[dname.format(band=band_num, factor='iso')][()]
         brdf_vol = fid_anc[dname.format(band=band_num, factor='vol')][()]
         brdf_geo = fid_anc[dname.format(band=band_num, factor='geo')][()]
@@ -261,26 +262,27 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
     kwargs['dtype'] = 'int16'
 
     # create the datasets
-    dataset_name = DATASET_NAME_FMT.format(product='lambertian',
-                                           band=acquisition.band_num)
-    lmbrt_dset = fid.create_dataset(dataset_name, **kwargs)
+    dname_fmt = DatasetName.reflectance_fmt.value
+    dname = dname_fmt.value.format(product='lambertian',
+                                   band=acquisition.band_num)
+    lmbrt_dset = fid.create_dataset(dname, **kwargs)
 
-    dataset_name = DATASET_NAME_FMT.format(product='brdf',
-                                           band=acquisition.band_num)
-    brdf_dset = fid.create_dataset(dataset_name, **kwargs)
+    dname = dname_fmt.value.format(product='brdf',
+                                   band=acquisition.band_num)
+    brdf_dset = fid.create_dataset(dname, **kwargs)
 
-    dataset_name = DATASET_NAME_FMT.format(product='terrain',
-                                           band=acquisition.band_num)
-    tc_dset = fid.create_dataset(dataset_name, **kwargs)
+    dname = dname_fmt.value.format(product='terrain',
+                                   band=acquisition.band_num)
+    tc_dset = fid.create_dataset(dname, **kwargs)
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
              'geotransform': geobox.transform.to_gdal(),
              'no_data_value': kwargs['fillvalue'],
-             'rori threshold setting': rori,
+             'rori_threshold_setting': rori,
              'sattelite': acquisition.spacecraft_id,
              'sensor': acquisition.sensor_id,
-             'band number': acquisition.band_num}
+             'band_number': acquisition.band_num}
 
     desc = "Contains the lambertian reflectance data scaled by 10000."
     attrs['Description'] = desc
@@ -308,7 +310,6 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
                     'masked': False,
                     'apply_gain_offset': acquisition.scaled_radiance,
                     'out_no_data': kwargs['fillvalue']}
-        i16_args = {'dtype': numpy.int16, 'transpose': True}
         f32_args = {'dtype': numpy.float32, 'transpose': True}
 
         # Read the data corresponding to the current tile for all dataset
