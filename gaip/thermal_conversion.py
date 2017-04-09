@@ -11,14 +11,13 @@ import numpy
 import numexpr
 import h5py
 
+from gaip.constants import DatasetName
 from gaip.hdf5 import dataset_compression_kwargs
 from gaip.hdf5 import attach_image_attributes
 from gaip.tiling import generate_tiles
 
 
-DATASET_NAME_FMT = "surface-brightness-temperature-band-{band}"
-
-
+# TODO: get required factor names from DatasetName
 def _surface_brightness_temperature(acquisition, bilinear_fname, out_fname,
                                     compression, x_tile, y_tile):
     """
@@ -138,7 +137,7 @@ def surface_brightness_temperature(acquisition, upwelling_radiation,
              'sensor': acquisition.sensor_id,
              'band number': acquisition.band_num}
 
-    dset_name = DATASET_NAME_FMT.format(band=acquisition.band_num)
+    dset_name = DatasetName.temperature_fmt.format(band=acquisition.band_num)
     out_dset = fid.create_dataset(dset_name, **kwargs)
 
     desc = "Surface Brightness Temperature in Kelvin scaled by 100."

@@ -15,7 +15,7 @@ from scipy.io import FortranFile
 import h5py
 import pandas as pd
 
-from gaip.constants import Model, BandType
+from gaip.constants import Model, BandType, DatasetName
 from gaip.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
 from gaip.hdf5 import write_dataframe, read_table, create_external_link
 from gaip.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
@@ -93,21 +93,21 @@ def _format_tp5(acquisitions, satellite_solar_angles_fname,
         h5py.File(out_fname, 'w') as fid:
 
         # angles data
-        view_dset = sat_sol['satellite-view']
-        azi_dset = sat_sol['satellite-azimuth']
-        lon_dset = lon_lat_ds['longitude']
-        lat_dset = lon_lat_ds['latitude']
+        view_dset = sat_sol[DatasetName.satellite_view.value]
+        azi_dset = sat_sol[DatasetName.satellite_azimuth.value]
+        lon_dset = lon_lat_ds[DatasetName.lon.value]
+        lat_dset = lon_lat_ds[DatasetName.lat.value]
 
         # ancillary data
-        coord_dset = anc_ds['coordinator']
-        aerosol = anc_ds['aerosol'][()]
-        water_vapour = anc_ds['water-vapour'][()]
-        ozone = anc_ds['ozone'][()]
-        elevation = anc_ds['elevation'][()]
+        coord_dset = anc_ds[DatasetName.coordinator.value]
+        aerosol = anc_ds[DatasetName.aerosol.value][()]
+        water_vapour = anc_ds[DatasetName.water_vapour.value][()]
+        ozone = anc_ds[DatasetName.ozone.value][()]
+        elevation = anc_ds[DatasetName.elevation.value][()]
 
         if anc_ds.attrs.get('sbt-ancillary'):
             sbt_ancillary = {}
-            dname = ppjoin(POINT_FMT, 'atmospheric-profile')
+            dname = ppjoin(POINT_FMT, DatasetName.atmospheric_profile.value)
             for i in range(coord_dset.shape[0]):
                 sbt_ancillary[i] = read_table(anc_ds, dname.format(p=i))
         else:
@@ -125,7 +125,7 @@ def _format_tp5(acquisitions, satellite_solar_angles_fname,
 
         for key in metadata:
             dname = ppjoin(POINT_FMT.format(p=key[0]),
-                           ALBEDO_FMT.format(a=key[1]), 'tp5_data')
+                           ALBEDO_FMT.format(a=key[1]), DatasetName.tp5.value)
             str_data = numpy.string_(tp5_data[key])
             dset = group.create_dataset(dname, data=str_data)
             for k in metadata[key]:
@@ -313,7 +313,7 @@ def run_modtran(acquisition, modtran_exe, workpath, point, albedo, lonlat=None,
         flux_data, altitudes = read_modtran_flux(flux_fname)
 
         # ouput the flux data
-        dset_name = ppjoin(group_path, 'flux')
+        dset_name = ppjoin(group_path, DatasetName.flux.value)
         attrs['Description'] = 'Flux output from MODTRAN'
         write_dataframe(flux_data, dset_name, fid, attrs=attrs)
 
@@ -321,7 +321,7 @@ def run_modtran(acquisition, modtran_exe, workpath, point, albedo, lonlat=None,
         attrs['Description'] = 'Altitudes output from MODTRAN'
         attrs['altitude levels'] = altitudes.shape[0]
         attrs['units'] = 'km'
-        dset_name = ppjoin(group_path, 'altitudes')
+        dset_name = ppjoin(group_path, DatasetName.altitudes.value)
         write_dataframe(altitudes, dset_name, fid, attrs=attrs)
 
         # accumulate the solar irradiance
@@ -331,7 +331,7 @@ def run_modtran(acquisition, modtran_exe, workpath, point, albedo, lonlat=None,
                                                 altitudes.shape[0],
                                                 transmittance)
 
-        dset_name = ppjoin(group_path, 'solar-irradiance')
+        dset_name = ppjoin(group_path, DatasetName.solar_irradiance.value)
         description = ("Accumulated solar irradiation for point {} "
                        "and albedo {}.")
         attrs['Description'] = description.format(point, albedo),
@@ -342,18 +342,21 @@ def run_modtran(acquisition, modtran_exe, workpath, point, albedo, lonlat=None,
 
     if albedo == Model.sbt.albedos[0]:
         # upward radiation
+        dataset_name = DatasetName.upward_radiation_channel.value
         attrs['Description'] = 'Upward radiation channel output from MODTRAN'
-        dset_name = ppjoin(group_path, 'upward-radiation-channel')
+        dset_name = ppjoin(group_path, dataset_name)
         write_dataframe(channel_data[0], dset_name, fid, attrs=attrs)
 
         # downward radiation
+        dataset_name = DatasetName.downward_radiation_channel.value
         attrs['Description'] = 'Downward radiation channel output from MODTRAN'
-        dset_name = ppjoin(group_path, 'downward-radiation-channel')
+        dset_name = ppjoin(group_path, dataset_name)
         write_dataframe(channel_data[1], dset_name, fid, attrs=attrs)
     else:
         # output the channel data
+        dataset_name = DatasetName.channel.value
         attrs['Description'] = 'Channel output from MODTRAN'
-        dset_name = ppjoin(group_path, 'channel')
+        dset_name = ppjoin(group_path, dataset_name)
         write_dataframe(channel_data, dset_name, fid, attrs=attrs)
 
 
@@ -384,14 +387,15 @@ def _calculate_coefficients(atmospheric_fname, out_fname, compression='lzf'):
         for point in range(fid.attrs['npoints']):
             grp_path = ppjoin(POINT_FMT.format(p=point), ALBEDO_FMT)
             if nbar_atmos:
+                dataset_name = DatasetName.solar_irradiance.value
                 albedo_0_path = ppjoin(grp_path.format(a=nbar_albedos[0]),
-                                       'solar-irradiance')
+                                       dataset_name)
                 albedo_1_path = ppjoin(grp_path.format(a=nbar_albedos[1]),
-                                       'solar-irradiance')
+                                       dataset_name)
                 albedo_t_path = ppjoin(grp_path.format(a=nbar_albedos[2]),
-                                       'solar-irradiance')
+                                       dataset_name)
                 channel_path = ppjoin(grp_path.format(a=nbar_albedos[0]),
-                                      'channel')
+                                      DatasetName.channel.value)
 
                 accumulation_albedo_0[point] = read_table(fid, albedo_0_path)
                 accumulation_albedo_1[point] = read_table(fid, albedo_1_path)
@@ -399,10 +403,10 @@ def _calculate_coefficients(atmospheric_fname, out_fname, compression='lzf'):
                 channel_data[point] = read_table(fid, channel_path)
             if sbt_atmos:
                 dname = ppjoin(grp_path.format(a=Model.sbt.albedos[0]),
-                               'upward-radiation-channel')
+                               DatasetName.upward_radiation_channel.value)
                 upward[point] = read_table(fid, dname)
                 dname = ppjoin(grp_path.format(a=Model.sbt.albedos[0]),
-                               'downward-radiation-channel')
+                               DatasetName.downward_radiation_channel.value)
                 downward[point] = read_table(fid, dname)
         
         kwargs = {'accumulation_albedo_0': accumulation_albedo_0,
@@ -578,8 +582,8 @@ def calculate_coefficients(accumulation_albedo_0=None,
                                 "accumulated solar irradiation.")
 
 
-        write_dataframe(result, 'nbar-coefficients', fid, compression,
-                        attrs=attrs)
+        dataset_name = DatasetName.nbar_coefficients.value
+        write_dataframe(result, dataset_name, fid, compression, attrs=attrs)
 
     if upward is not None:
         upward_radiation = pd.concat(upward, names=['point'])
@@ -597,8 +601,8 @@ def calculate_coefficients(accumulation_albedo_0=None,
                                 "solar irradiation.")
         attrs['Number of atmospheric points'] = npoints
 
-        write_dataframe(result, 'sbt-coefficients', fid, compression,
-                        attrs=attrs)
+        dataset_name = DatasetName.sbt_coefficients.value
+        write_dataframe(result, dataset_name, fid, compression, attrs=attrs)
 
     return fid
 
@@ -927,6 +931,7 @@ def calculate_solar_radiation(flux_data, spectral_response, levels=36,
     return df
 
 
+# TODO: is this still used?
 def create_solar_irradiance_tables(fname, out_fname, compression='lzf'):
     """
     Writes the accumulated solar irradiance table into a HDF5 file.
@@ -972,14 +977,14 @@ def link_atmospheric_results(input_targets, out_fname, npoints):
             albedo = fid.attrs['albedo']
 
         if albedo == Model.sbt.albedos[0]:
-            datasets = ['upward-radiation-channel',
-                        'downward-radiation-channel']
+            datasets = [DatasetName.upward_radiation_channel.value,
+                        DatasetName.downward_radiation_channel.value]
             sbt_atmospherics = True
         else:
-            datasets = ['flux',
-                        'altitudes',
-                        'solar-irradiance',
-                        'channel']
+            datasets = [DatasetName.flux.value,
+                        DatasetName.altitudes.value,
+                        DatasetName.solar_irradiance.value,
+                        DatasetName.channel.value]
             nbar_atmospherics = True
 
         grp_path = ppjoin(POINT_FMT.format(p=point),
