@@ -14,7 +14,7 @@ from os.path import basename, splitext
 import logging
 import numpy
 import h5py
-from gaip.constants import DatasetName
+from gaip.constants import DatasetName, Model
 from gaip.hdf5 import dataset_compression_kwargs
 from gaip.hdf5 import write_h5_image
 from gaip.hdf5 import read_table
@@ -210,8 +210,16 @@ def _bilinear_interpolate(acq, factor, sat_sol_angles_fname,
         coord_dset = read_table(anc, DatasetName.coordinator.value)
         centre_dset = read_table(sat_sol, DatasetName.centreline.value)
         box_dset = read_table(sat_sol, DatasetName.boxline.value)
-        # TODO: consolodate sbt and nbar coefficients dataset names
-        coef_dset = read_table(coef, DatasetName.sbt_coefficients.value)
+
+        if factor in Model.nbar.factors:
+            dataset_name = DatasetName.nbar_coefficients.value
+        elif factor in Model.sbt.factors:
+            dataset_name = DatasetName.sbt_coefficients.value
+        else:
+            msg = "Factor name not found in available factors: {}"
+            raise ValueError(msg.format(Model.standard.factors))
+
+        coef_dset = read_table(coef, dataset_name)
 
         rfid = bilinear_interpolate(acq, factor, coord_dset, box_dset,
                                     centre_dset, coef_dset, out_fname,
