@@ -189,7 +189,6 @@ class AncillaryData(luigi.Task):
                                compression=self.compression)
 
 
-# TODO: remove the nbar_tp5 parameter
 class WriteTp5(luigi.Task):
 
     """Output the `tp5` formatted files."""
@@ -201,7 +200,6 @@ class WriteTp5(luigi.Task):
     model = luigi.EnumParameter(enum=Model)
     base_dir = luigi.Parameter(default='_atmospherics', significant=False)
     compression = luigi.Parameter(default='lzf', significant=False)
-    nbar_tp5 = luigi.BoolParameter(significant=False)
 
     def requires(self):
         # for consistancy, we'll wait for dependencies on all granules and
@@ -254,7 +252,7 @@ class WriteTp5(luigi.Task):
 
         with self.output().temporary_path() as out_fname:
             tp5_data = _format_tp5(acqs, sat_sol_fname, lon_lat_fname,
-                                   ancillary_fname, out_fname, self.nbar_tp5)
+                                   ancillary_fname, out_fname, self.model)
 
             # keep this as an indented block, that way the target will remain
             # atomic and be moved upon closing
@@ -319,10 +317,9 @@ class Atmospherics(luigi.Task):
         args = [self.level1, self.work_root, self.granule]
         for point in range(self.vertices[0] * self.vertices[1]):
             for albedo in self.model.albedos:
-                nbar_tp5 = False if albedo == Model.sbt.albedos[0] else True
-                btype = BandType.Reflective if nbar_tp5 else BandType.Thermal
+                sbt = True if albedo == Model.sbt.albedos[0] else False
+                btype = BandType.Thermal if sbt else BandType.Reflective
                 kwargs = {'point': point, 'albedo': albedo}
-                kwargs['nbar_tp5'] = nbar_tp5
                 kwargs['band_type'] = btype
                 kwargs['model'] = self.model
                 yield AtmosphericsCase(*args, **kwargs)

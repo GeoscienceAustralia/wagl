@@ -1,15 +1,17 @@
+#!/usr/bin/env python
+
 """
 MODTRAN drivers
 ---------------
 
 """
+
 from __future__ import absolute_import, print_function
 import os
-from os.path import join as pjoin, exists, dirname, basename, splitext
+from os.path import join as pjoin, exists, dirname
 from posixpath import join as ppjoin
 import subprocess
 import glob
-
 import numpy
 from scipy.io import FortranFile
 import h5py
@@ -21,37 +23,6 @@ from gaip.hdf5 import write_dataframe, read_table, create_external_link
 from gaip.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
 from gaip.modtran_profiles import MIDLAT_SUMMER_TRANSMITTANCE, SBT_FORMAT
 from gaip.modtran_profiles import TROPICAL_TRANSMITTANCE, THERMAL_TRANSMITTANCE
-
-
-def create_modtran_dirs(coords, albedos, modtran_root, modtran_exe_root,
-                        workpath_format, input_format):
-    """Create all modtran subdirectories. and input files."""
-
-    if not exists(modtran_root):
-        os.makedirs(modtran_root)
-
-    data_dir = pjoin(modtran_exe_root, 'DATA')
-    if not exists(data_dir):
-        raise OSError('Cannot find MODTRAN')
-
-    for coord in coords:
-        for albedo in albedos:
-            modtran_work = workpath_format.format(coord=coord, albedo=albedo)
-            modtran_work = pjoin(modtran_root, modtran_work)
-            mod5root_in = input_format.format(coord=coord, albedo=albedo)
-            mod5root_in = pjoin(modtran_root, mod5root_in)
-
-            if not exists(modtran_work):
-                os.makedirs(modtran_work)
-
-            with open(mod5root_in, 'w') as outfile:
-                outfile.write(coord + '_alb_' + albedo + '\n')
-
-            symlink_dir = pjoin(modtran_work, 'DATA')
-            if exists(symlink_dir):
-                os.unlink(symlink_dir)
-
-            os.symlink(data_dir, symlink_dir)
 
 
 def prepare_modtran(acquisition, coordinate, albedo, modtran_work,
@@ -81,8 +52,7 @@ def prepare_modtran(acquisition, coordinate, albedo, modtran_work,
 
 
 def _format_tp5(acquisitions, satellite_solar_angles_fname,
-                longitude_latitude_fname, ancillary_fname, out_fname,
-                nbar_tp5=True):
+                longitude_latitude_fname, ancillary_fname, out_fname, model):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -116,8 +86,8 @@ def _format_tp5(acquisitions, satellite_solar_angles_fname,
         tp5_data, metadata = format_tp5(acquisitions, coord_dset, view_dset,
                                         azi_dset, lat_dset, lon_dset, ozone,
                                         water_vapour, aerosol, elevation,
-                                        coord_dset.shape[0], sbt_ancillary,
-                                        nbar_tp5)
+                                        coord_dset.shape[0], model,
+                                        sbt_ancillary)
 
         group = fid.create_group('modtran-inputs')
         iso_time = acquisitions[0].scene_centre_date.isoformat()
@@ -142,7 +112,7 @@ def _format_tp5(acquisitions, satellite_solar_angles_fname,
 
 def format_tp5(acquisitions, coordinator, view_dataset, azi_dataset,
                lat_dataset, lon_dataset, ozone, vapour, aerosol, elevation,
-               npoints, sbt_ancillary=None, nbar_tp5=True):
+               npoints, model, sbt_ancillary=None):
     """
     Creates str formatted tp5 files for the albedo (0, 1) and
     transmittance (t).
@@ -198,7 +168,7 @@ def format_tp5(acquisitions, coordinator, view_dataset, azi_dataset,
     metadata = {}
 
     # write the tp5 files required for input into MODTRAN
-    if nbar_tp5:
+    if model == Model.standard or model == Model.nbar:
         acqs = [a for a in acquisitions if a.band_type == BandType.Reflective]
         for i in range(npoints):
             for alb in Model.nbar.albedos:
@@ -233,7 +203,7 @@ def format_tp5(acquisitions, coordinator, view_dataset, azi_dataset,
     # hopefully the science side of the algorithm will be re-engineered
     # so as to ensure a consistant logic between the two products
 
-    if sbt_ancillary is not None:
+    if model == Model.standard or model == Model.sbt:
         acqs = [a for a in acquisitions if a.band_type == BandType.Thermal]
         for p in range(npoints):
             atmospheric_profile = []
@@ -434,8 +404,8 @@ def calculate_coefficients(accumulation_albedo_0=None,
     Calculate the atmospheric coefficients from the MODTRAN output
     and used in the BRDF and atmospheric correction.
     Coefficients are computed for each band for each each coordinate
-    for each factor.  The factors are:
-    ['fs', 'fv', 'a', 'b', 's', 'dir', 'dif', 'ts'].
+    for each factor. The factors can be found in
+    `Model.standard.factors`.
 
     :param accumulation_albedo_0:
         A `dict` containing range(npoints) as the keys, and the values
@@ -929,25 +899,6 @@ def calculate_solar_radiation(flux_data, spectral_response, levels=36,
     df.sort_index(inplace=True)
 
     return df
-
-
-# TODO: is this still used?
-def create_solar_irradiance_tables(fname, out_fname, compression='lzf'):
-    """
-    Writes the accumulated solar irradiance table into a HDF5 file.
-    The file is opened in 'a' mode, allowing multiple tables to be
-    added. If a table already exists within the file it is removed.
-    """
-    dset_name = splitext(basename(fname))[0]
-    with h5py.File(out_fname, 'a') as fid1:
-        # check for a previous run
-        if dset_name in fid1:
-            del fid1[dset_name]
-
-        with h5py.File(fname, 'r') as fid2:
-            fid2.copy(dset_name, fid1)
-
-    return
 
 
 def link_atmospheric_results(input_targets, out_fname, npoints):
