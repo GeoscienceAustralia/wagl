@@ -1,8 +1,10 @@
 # GAIP
 ------
 
-Geoscience Australia Image Processor is a Python package for producing standarised imagery in the form of
-Nadir Bi-directional Reflectance Distribution Function Adjusted Reflectance (NBAR).
+Geoscience Australia Image Processor is a Python package for producing standarised imagery in the form of:
+
+* Nadir Bi-directional Reflectance Distribution Function Adjusted Reflectance (NBAR)
+* Surface Brightness Temperature
 
 ## Supported Satellites and Sensors
 -----------------------------------
