@@ -829,7 +829,7 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
     sat_az_ds = fid.create_dataset(DatasetName.satellite_azimuth.value,
                                    **kwargs)
     sol_z_ds = fid.create_dataset(DatasetName.solar_zenith.value, **kwargs)
-    sol_az_ds = fid.create_dataset(DatasetName.solar_azimuth, **kwargs)
+    sol_az_ds = fid.create_dataset(DatasetName.solar_azimuth.value, **kwargs)
     rel_az_ds = fid.create_dataset(DatasetName.relative_azimuth.value,
                                    **kwargs)
     time_ds = fid.create_dataset(DatasetName.acquisition_time.value, **kwargs)
