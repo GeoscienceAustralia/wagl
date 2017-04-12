@@ -263,16 +263,13 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
 
     # create the datasets
     dname_fmt = DatasetName.reflectance_fmt.value
-    dname = dname_fmt.value.format(product='lambertian',
-                                   band=acquisition.band_num)
+    dname = dname_fmt.format(product='lambertian', band=acquisition.band_num)
     lmbrt_dset = fid.create_dataset(dname, **kwargs)
 
-    dname = dname_fmt.value.format(product='brdf',
-                                   band=acquisition.band_num)
+    dname = dname_fmt.format(product='brdf', band=acquisition.band_num)
     brdf_dset = fid.create_dataset(dname, **kwargs)
 
-    dname = dname_fmt.value.format(product='terrain',
-                                   band=acquisition.band_num)
+    dname = dname_fmt.format(product='terrain', band=acquisition.band_num)
     tc_dset = fid.create_dataset(dname, **kwargs)
 
     # attach some attributes to the image datasets
