@@ -137,8 +137,9 @@ def surface_brightness_temperature(acquisition, upwelling_radiation,
              'sensor': acquisition.sensor_id,
              'band number': acquisition.band_num}
 
-    dset_name = DatasetName.temperature_fmt.format(band=acquisition.band_num)
-    out_dset = fid.create_dataset(dset_name, **kwargs)
+    name_fmt = DatasetName.temperature_fmt.value
+    dataset_name = name_fmt.format(band=acquisition.band_num)
+    out_dset = fid.create_dataset(dataset_name, **kwargs)
 
     desc = "Surface Brightness Temperature in Kelvin scaled by 100."
     attrs['Description'] = desc
