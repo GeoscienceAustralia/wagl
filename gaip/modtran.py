@@ -276,18 +276,20 @@ def run_modtran(acquisition, modtran_exe, workpath, point, albedo, lonlat=None,
         lonlat = (numpy.nan, numpy.nan)
 
     # initial attributes
-    attrs = {'Point': point, 'Albedo': albedo, 'lonlat': lonlat}
+    base_attrs = {'Point': point, 'Albedo': albedo, 'lonlat': lonlat}
 
     if albedo != Model.sbt.albedos[0]:
         flux_fname = glob.glob(pjoin(workpath, '*_b.flx'))[0]
         flux_data, altitudes = read_modtran_flux(flux_fname)
 
         # ouput the flux data
+        attrs = base_attrs.copy()
         dset_name = ppjoin(group_path, DatasetName.flux.value)
         attrs['Description'] = 'Flux output from MODTRAN'
         write_dataframe(flux_data, dset_name, fid, attrs=attrs)
 
         # output the altitude data
+        attrs = base_attrs.copy()
         attrs['Description'] = 'Altitudes output from MODTRAN'
         attrs['altitude levels'] = altitudes.shape[0]
         attrs['units'] = 'km'
@@ -301,6 +303,7 @@ def run_modtran(acquisition, modtran_exe, workpath, point, albedo, lonlat=None,
                                                 altitudes.shape[0],
                                                 transmittance)
 
+        attrs = base_attrs.copy()
         dset_name = ppjoin(group_path, DatasetName.solar_irradiance.value)
         description = ("Accumulated solar irradiation for point {} "
                        "and albedo {}.")
@@ -312,18 +315,21 @@ def run_modtran(acquisition, modtran_exe, workpath, point, albedo, lonlat=None,
 
     if albedo == Model.sbt.albedos[0]:
         # upward radiation
+        attrs = base_attrs.copy()
         dataset_name = DatasetName.upward_radiation_channel.value
         attrs['Description'] = 'Upward radiation channel output from MODTRAN'
         dset_name = ppjoin(group_path, dataset_name)
         write_dataframe(channel_data[0], dset_name, fid, attrs=attrs)
 
         # downward radiation
+        attrs = base_attrs.copy()
         dataset_name = DatasetName.downward_radiation_channel.value
         attrs['Description'] = 'Downward radiation channel output from MODTRAN'
         dset_name = ppjoin(group_path, dataset_name)
         write_dataframe(channel_data[1], dset_name, fid, attrs=attrs)
     else:
         # output the channel data
+        attrs = base_attrs.copy()
         dataset_name = DatasetName.channel.value
         attrs['Description'] = 'Channel output from MODTRAN'
         dset_name = ppjoin(group_path, dataset_name)
