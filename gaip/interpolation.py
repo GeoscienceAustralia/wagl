@@ -250,9 +250,10 @@ def bilinear_interpolate(acq, factor, coordinator_dataset, boxline_dataset,
     samples = coefficients[factor][band_records].values
 
     if method is None:
-        method = gaip.interpolate.fortran_bilinear_interpolate \
-                 if len(samples) == 9 else \
-                 gaip.interpolate.rbf_interpolate
+        if len(samples) == 9:
+            method = gaip.interpolate.fortran_bilinear_interpolate
+        else:
+            method = gaip.interpolate.sheared_bilinear_interpolate
 
     result = method(cols, rows, coord, samples, start, end, centre)
 
