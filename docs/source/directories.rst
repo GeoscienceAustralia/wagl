@@ -1,29 +1,24 @@
 Geoscience Australia Image Processor Directory Structure
 ========================================================
 
-* bin
-	* Contains both Fortran and C executables.
-
-* src
-        * Contains C code.
-
-* fortran
-        * Contains Fortran 77 code.
-        * mock
-                * Contains mocking routines for the Fortran executables.
-
 * gaip
-        * Contains Python modules and Fortran 90 code built as Python modules using F2Py.
+        * Contains Python modules and FORTRAN 90 code built as Python modules using F2Py.
+        * f90_sources
+                * Contains the FORTRAN 90 code to be built as Python modules using F2Py.
+        * spectral_response
+                * Conatains the spectral responses for various satellites and sensors.
         * tests
+                * data
+                        Contains small data files required for some unittests.
                 * Contains unittesting modules.
-
-* workflow
-        * Contains the Luigi workflow and configuration script.
 
 * docs
         * Documentation build scripts.
         * source
                 * Contains documentations source trees.
 
-* test
-        * Sample shell scripts for job execution
+* configs
+        * Sample configuration files for overriding luigi parameters, and logging.
+
+* scripts
+        * Commandline scripts and utilities
