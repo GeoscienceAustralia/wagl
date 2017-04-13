@@ -20,13 +20,13 @@ import pandas as pd
 from gaip.constants import Model, BandType, DatasetName
 from gaip.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
 from gaip.hdf5 import write_dataframe, read_table, create_external_link
+from gaip.hdf5 import VLEN_STRING
 from gaip.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
 from gaip.modtran_profiles import MIDLAT_SUMMER_TRANSMITTANCE, SBT_FORMAT
 from gaip.modtran_profiles import TROPICAL_TRANSMITTANCE, THERMAL_TRANSMITTANCE
 
 
-def prepare_modtran(acquisition, coordinate, albedo, modtran_work,
-                    modtran_exe):
+def prepare_modtran(acquisitions, coordinate, albedos, basedir, modtran_exe):
     """
     Prepares the working directory for a MODTRAN execution.
     """
@@ -34,21 +34,31 @@ def prepare_modtran(acquisition, coordinate, albedo, modtran_work,
     if not exists(data_dir):
         raise OSError('Cannot find MODTRAN')
 
-    out_fname = pjoin(modtran_work, 'mod5root.in')
+    point_dir = pjoin(basedir, POINT_FMT.format(p=coordinate))
+    for albedo in albedos:
+        if albedo == Model.sbt.albedos[0]:
+            band_type = BandType.Thermal
+        else:
+            band_type = BandType.Reflective
 
-    with open(out_fname, 'w') as src:
-        src.write(POINT_ALBEDO_FMT.format(p=coordinate, a=albedo) + '\n')
+        acq = [acq for acq in acquisitions if acq.band_type == band_type][0]
 
-    symlink_dir = pjoin(modtran_work, 'DATA')
-    if exists(symlink_dir):
-        os.unlink(symlink_dir)
+        modtran_work = pjoin(point_dir, ALBEDO_FMT.format(a=albedo))
 
-    os.symlink(data_dir, symlink_dir)
+        out_fname = pjoin(modtran_work, 'mod5root.in')
+        with open(out_fname, 'w') as src:
+            src.write(POINT_ALBEDO_FMT.format(p=coordinate, a=albedo) + '\n')
 
-    out_fname = pjoin(modtran_work, acquisition.spectral_filter_file)
-    response = acquisition.spectral_response(as_list=True)
-    with open(out_fname, 'wb') as src:
-        src.writelines(response)
+        symlink_dir = pjoin(modtran_work, 'DATA')
+        if exists(symlink_dir):
+            os.unlink(symlink_dir)
+
+        os.symlink(data_dir, symlink_dir)
+
+        out_fname = pjoin(modtran_work, acq.spectral_filter_file)
+        response = acq.spectral_response(as_list=True)
+        with open(out_fname, 'wb') as src:
+            src.writelines(response)
 
 
 def _format_tp5(acquisitions, satellite_solar_angles_fname,
@@ -235,7 +245,7 @@ def format_tp5(acquisitions, coordinator, view_dataset, azi_dataset,
     return tp5_data, metadata
 
 
-def _run_modtran(acquisition, modtran_exe, workpath, point, albedo,
+def _run_modtran(acquisitions, modtran_exe, basedir, point, albedos,
                  atmospheric_inputs_fname, out_fname, compression='lzf'):
     """
     A private wrapper for dealing with the internal custom workings of the
@@ -245,20 +255,18 @@ def _run_modtran(acquisition, modtran_exe, workpath, point, albedo,
         grp_path = ppjoin('modtran-inputs', POINT_FMT.format(p=point))
         lonlat = fid[grp_path].attrs['lonlat']
 
-    rfid = run_modtran(acquisition, modtran_exe, workpath, point, albedo,
+    rfid = run_modtran(acquisitions, modtran_exe, basedir, point, albedos,
                        lonlat, out_fname, compression)
 
     rfid.close()
     return
         
 
-def run_modtran(acquisition, modtran_exe, workpath, point, albedo, lonlat=None,
-                out_fname=None, compression='lzf'):
+def run_modtran(acquisitions, modtran_exe, basedir, point, albedos,
+                lonlat=None, out_fname=None, compression='lzf'):
     """
     Run MODTRAN and return the flux and channel results.
     """
-    subprocess.check_call([modtran_exe], cwd=workpath)
-
     # Initialise the output files
     if out_fname is None:
         fid = h5py.File('modtran-results.h5', driver='core',
@@ -266,78 +274,88 @@ def run_modtran(acquisition, modtran_exe, workpath, point, albedo, lonlat=None,
     else:
         fid = h5py.File(out_fname, 'w')
 
-    fid.attrs['point'] = point
-    fid.attrs['albedo'] = albedo
-
-    # base group pathname
-    group_path = ppjoin(POINT_FMT.format(p=point), ALBEDO_FMT.format(a=albedo))
 
     if lonlat is None:
         lonlat = (numpy.nan, numpy.nan)
 
     # initial attributes
-    base_attrs = {'Point': point, 'Albedo': albedo, 'lonlat': lonlat}
+    base_attrs = {'Point': point, 'lonlat': lonlat}
 
-    if albedo != Model.sbt.albedos[0]:
-        flux_fname = glob.glob(pjoin(workpath, '*_b.flx'))[0]
-        flux_data, altitudes = read_modtran_flux(flux_fname)
+    point_pth = POINT_FMT.format(p=point)
+    fid[point_pth].attrs['lonlat'] = lonlat
 
-        # ouput the flux data
-        attrs = base_attrs.copy()
-        dset_name = ppjoin(group_path, DatasetName.flux.value)
-        attrs['Description'] = 'Flux output from MODTRAN'
-        write_dataframe(flux_data, dset_name, fid, attrs=attrs)
+    fid.attrs['point'] = point
+    fid.attrs['lonlat'] = lonlat
+    fid.attrs.create('albedos', data=albedos, dtype=VLEN_STRING)
 
-        # output the altitude data
-        attrs = base_attrs.copy()
-        attrs['Description'] = 'Altitudes output from MODTRAN'
-        attrs['altitude levels'] = altitudes.shape[0]
-        attrs['units'] = 'km'
-        dset_name = ppjoin(group_path, DatasetName.altitudes.value)
-        write_dataframe(altitudes, dset_name, fid, attrs=attrs)
+    acqs = acquisitions
+    for albedo in albedos:
+        workpath = pjoin(basedir, point_pth, ALBEDO_FMT.format(a=albedo))
+        group_path = ppjoin(point_pth, ALBEDO_FMT.format(a=albedo))
 
-        # accumulate the solar irradiance
-        transmittance = True if albedo == Model.nbar.albedos[2] else False
-        response = acquisition.spectral_response()
-        accumulated = calculate_solar_radiation(flux_data, response,
-                                                altitudes.shape[0],
-                                                transmittance)
+        subprocess.check_call([modtran_exe], cwd=workpath)
+        chn_fname = glob.glob(pjoin(workpath, '*.chn'))[0]
 
-        attrs = base_attrs.copy()
-        dset_name = ppjoin(group_path, DatasetName.solar_irradiance.value)
-        description = ("Accumulated solar irradiation for point {} "
-                       "and albedo {}.")
-        attrs['Description'] = description.format(point, albedo)
-        write_dataframe(accumulated, dset_name, fid, compression, attrs=attrs)
+        if albedo == Model.sbt.albedos[0]:
+            acq = [acq for acq in acqs if acq.band_type == BandType.Thermal][0]
+            channel_data = read_modtran_channel(chn_fname, acq, albedo)
 
-    chn_fname = glob.glob(pjoin(workpath, '*.chn'))[0]
-    channel_data = read_modtran_channel(chn_fname, acquisition, albedo)
+            # upward radiation
+            attrs = base_attrs.copy()
+            dataset_name = DatasetName.upward_radiation_channel.value
+            attrs['Description'] = ('Upward radiation channel output from '
+                                    'MODTRAN')
+            dset_name = ppjoin(group_path, dataset_name)
+            write_dataframe(channel_data[0], dset_name, fid, attrs=attrs)
 
-    if albedo == Model.sbt.albedos[0]:
-        # upward radiation
-        attrs = base_attrs.copy()
-        dataset_name = DatasetName.upward_radiation_channel.value
-        attrs['Description'] = 'Upward radiation channel output from MODTRAN'
-        dset_name = ppjoin(group_path, dataset_name)
-        write_dataframe(channel_data[0], dset_name, fid, attrs=attrs)
+            # downward radiation
+            attrs = base_attrs.copy()
+            dataset_name = DatasetName.downward_radiation_channel.value
+            attrs['Description'] = ('Downward radiation channel output from '
+                                    'MODTRAN')
+            dset_name = ppjoin(group_path, dataset_name)
+            write_dataframe(channel_data[1], dset_name, fid, attrs=attrs)
+        else:
+            acq = [acq for acq in acqs if
+                   acq.band_type == BandType.Reflective][0]
+            flux_fname = glob.glob(pjoin(workpath, '*_b.flx'))[0]
+            flux_data, altitudes = read_modtran_flux(flux_fname)
+            channel_data = read_modtran_channel(chn_fname, acq, albedo)
 
-        # downward radiation
-        attrs = base_attrs.copy()
-        dataset_name = DatasetName.downward_radiation_channel.value
-        attrs['Description'] = 'Downward radiation channel output from MODTRAN'
-        dset_name = ppjoin(group_path, dataset_name)
-        write_dataframe(channel_data[1], dset_name, fid, attrs=attrs)
-    else:
-        # output the channel data
-        attrs = base_attrs.copy()
-        dataset_name = DatasetName.channel.value
-        attrs['Description'] = 'Channel output from MODTRAN'
-        dset_name = ppjoin(group_path, dataset_name)
-        write_dataframe(channel_data, dset_name, fid, attrs=attrs)
+            # ouput the flux data
+            attrs = base_attrs.copy()
+            dset_name = ppjoin(group_path, DatasetName.flux.value)
+            attrs['Description'] = 'Flux output from MODTRAN'
+            write_dataframe(flux_data, dset_name, fid, attrs=attrs)
 
+            # output the altitude data
+            attrs = base_attrs.copy()
+            attrs['Description'] = 'Altitudes output from MODTRAN'
+            attrs['altitude levels'] = altitudes.shape[0]
+            attrs['units'] = 'km'
+            dset_name = ppjoin(group_path, DatasetName.altitudes.value)
+            write_dataframe(altitudes, dset_name, fid, attrs=attrs)
 
-    # meaningful location description
-    fid[POINT_FMT.format(p=point)].attrs['lonlat'] = lonlat
+            # accumulate the solar irradiance
+            transmittance = True if albedo == Model.nbar.albedos[2] else False
+            response = acq.spectral_response()
+            accumulated = calculate_solar_radiation(flux_data, response,
+                                                    altitudes.shape[0],
+                                                    transmittance)
+
+            attrs = base_attrs.copy()
+            dset_name = ppjoin(group_path, DatasetName.solar_irradiance.value)
+            description = ("Accumulated solar irradiation for point {} "
+                           "and albedo {}.")
+            attrs['Description'] = description.format(point, albedo)
+            write_dataframe(accumulated, dset_name, fid, compression,
+                            attrs=attrs)
+
+            attrs = base_attrs.copy()
+            dataset_name = DatasetName.channel.value
+            attrs['Description'] = 'Channel output from MODTRAN'
+            dset_name = ppjoin(group_path, dataset_name)
+            write_dataframe(channel_data, dset_name, fid, attrs=attrs)
 
     return fid
 
@@ -931,25 +949,26 @@ def link_atmospheric_results(input_targets, out_fname, npoints):
     for fname in input_targets:
         with h5py.File(fname.path, 'r') as fid:
             point = fid.attrs['point']
-            albedo = fid.attrs['albedo']
+            albedos = fid.attrs['albedos']
 
-        if albedo == Model.sbt.albedos[0]:
-            datasets = [DatasetName.upward_radiation_channel.value,
-                        DatasetName.downward_radiation_channel.value]
-            sbt_atmospherics = True
-        else:
-            datasets = [DatasetName.flux.value,
-                        DatasetName.altitudes.value,
-                        DatasetName.solar_irradiance.value,
-                        DatasetName.channel.value]
-            nbar_atmospherics = True
+        for albedo in albedos:
+            if albedo == Model.sbt.albedos[0]:
+                datasets = [DatasetName.upward_radiation_channel.value,
+                            DatasetName.downward_radiation_channel.value]
+                sbt_atmospherics = True
+            else:
+                datasets = [DatasetName.flux.value,
+                            DatasetName.altitudes.value,
+                            DatasetName.solar_irradiance.value,
+                            DatasetName.channel.value]
+                nbar_atmospherics = True
 
-        grp_path = ppjoin(POINT_FMT.format(p=point),
-                          ALBEDO_FMT.format(a=albedo))
+            grp_path = ppjoin(POINT_FMT.format(p=point),
+                              ALBEDO_FMT.format(a=albedo))
 
-        for dset in datasets:
-            dname = ppjoin(grp_path, dset)
-            create_external_link(fname.path, dname, out_fname, dname)
+            for dset in datasets:
+                dname = ppjoin(grp_path, dset)
+                create_external_link(fname.path, dname, out_fname, dname)
 
     with h5py.File(out_fname) as fid:
         fid.attrs['npoints'] = npoints

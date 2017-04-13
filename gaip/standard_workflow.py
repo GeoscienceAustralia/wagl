@@ -274,15 +274,15 @@ class AtmosphericsCase(luigi.Task):
     """
 
     point = luigi.Parameter()
-    albedo = luigi.Parameter()
+    albedos = luigi.ListParameter()
     exe = luigi.Parameter(significant=False)
-    band_type = luigi.EnumParameter(enum=BandType)
 
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       granule=self.granule)
+        albedos = '-'.join(self.albedos)
         out_fname = ''.join([POINT_ALBEDO_FMT.format(p=self.point,
-                                                     a=self.albedo), '.h5'])
+                                                     a=albedos), '.h5'])
         return luigi.LocalTarget(pjoin(out_path, self.base_dir, out_fname))
 
     def run(self):
@@ -290,17 +290,12 @@ class AtmosphericsCase(luigi.Task):
         out_path = container.get_root(self.work_root, granule=self.granule)
         acqs = container.get_acquisitions(granule=self.granule)
         atmospheric_inputs_fname = self.input().path
+        base_dir = pjoin(out_path, self.base_dir)
 
-        acq = [acq for acq in acqs if acq.band_type == self.band_type][0]
-
-        workpath = pjoin(POINT_FMT.format(p=self.point),
-                         ALBEDO_FMT.format(a=self.albedo))
-        modtran_work = pjoin(out_path, self.base_dir, workpath)
-
-        prepare_modtran(acq, self.point, self.albedo, modtran_work, self.exe)
+        prepare_modtran(acqs, self.point, self.albedos, base_dir, self.exe)
 
         with self.output().temporary_path() as out_fname:
-            _run_modtran(acq, self.exe, modtran_work, self.point, self.albedo,
+            _run_modtran(acqs, self.exe, base_dir, self.point, self.albedos,
                          atmospheric_inputs_fname, out_fname, self.compression)
 
 
@@ -312,17 +307,19 @@ class Atmospherics(luigi.Task):
     """
 
     model = luigi.EnumParameter(enum=Model)
+    combined = luigi.BoolParameter(default=True)
 
     def requires(self):
         args = [self.level1, self.work_root, self.granule]
         for point in range(self.vertices[0] * self.vertices[1]):
-            for albedo in self.model.albedos:
-                sbt = True if albedo == Model.sbt.albedos[0] else False
-                btype = BandType.Thermal if sbt else BandType.Reflective
-                kwargs = {'point': point, 'albedo': albedo}
-                kwargs['band_type'] = btype
-                kwargs['model'] = self.model
+            kwargs = {'point': point, 'model': self.model}
+            if self.combined:
+                kwargs['albedos'] = self.model.albedos
                 yield AtmosphericsCase(*args, **kwargs)
+            else:
+                for albedo in self.model.albedos:
+                    kwargs['albedos'] = [albedo]
+                    yield AtmosphericsCase(*args, **kwargs)
 
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
