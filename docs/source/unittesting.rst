@@ -1,4 +1,3 @@
-
 =================
 Running unittests
 =================
@@ -29,14 +28,6 @@ The following tests are available for the NBAR-TC algorithm:
 
 For those tests with an option to compute, the required outputs will be computed using pre-existing inputs from the reference directory before
 any tests are evaluated against the reference data.
-
-
-Fractional Cover
-----------------
-The following test was written for the products that are output as part of the agdc fractional cover code base:
-
-* `test_fc_products.py` Tests each fractional cover component contained within the output product.
-
 
 Running each script
 -------------------
@@ -161,22 +152,4 @@ optional arguments:
   --compute             If set then the self shadow array will be computed
                         before running the unittests.
 
-* `python test_fc_products.py --help` outputs:
-
-usage: test_fc_products.py [-h] --reference_filename REFERENCE_FILENAME
-                           --test_filename TEST_FILENAME
-                           [--int_precision INT_PRECISION]
-
-Test and compare the fractional cover outputs.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --reference_filename REFERENCE_FILENAME
-                        The filename for the referenc dataset.
-  --test_filename TEST_FILENAME
-                        The filename for the test dataset.
-  --int_precision INT_PRECISION
-                        The integer precision used for array comparison
-
 Each script more or less follows the same principle. i.e. provide the reference directory and the test directory.
-The fractional cover is slightly different, the user is expected to point to an actual file rather than the directory.
