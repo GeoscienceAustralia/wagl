@@ -92,14 +92,5 @@ def configuration(parent_package='', top_path=None):
             'bilinear_interpolation.f90',
         ]
     )
-    config.add_extension(
-        'unmiximage',
-        [
-            'unmiximage.f90',
-            'constants_NSWC.f90',
-            'nnls.f90',
-            'unmiximage.pyf',
-        ]
-    )
 
     return config
