@@ -20,8 +20,6 @@ Contents:
    invoking
    acquisitions
    hdf5
-   nbar_sop
-   pq_sop
    unittesting
 
 Indices and tables
