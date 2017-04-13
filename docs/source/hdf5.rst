@@ -57,7 +57,8 @@ Dataset names for each output are as follows:
     * /point-0/albedo-0/channel (combinations based on point label, albedo label)
     * /point-0/albedo-0/solar-irradiance (combinations based on point label, albedo label)
 * coefficients.h5
-    * /coefficients
+    * /nbar-coefficients
+    * /sbt-coefficients
 * bilinearly-interpolated-data.h5
     * /a-band-{band_id} (combinations based on the band_id)
     * /b-band-{band_id} (combinations based on the band_id)
@@ -157,4 +158,4 @@ An example of how to read the coordinator table into a *pandas.DataFrame*:
           >>> from gaip.hdf5 import read_table
           >>> import h5py
           >>> fid = h5py.File('coordinator.h5', 'r')
-          >>> df = read_table(fid, 'coordinator')
+          >>> df = read_table(fid, 'nbar-coordinator')
