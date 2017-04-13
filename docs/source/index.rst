@@ -22,7 +22,6 @@ Contents:
    hdf5
    nbar_sop
    pq_sop
-   memory_logging
    unittesting
 
 Indices and tables
