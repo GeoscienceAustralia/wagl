@@ -6,6 +6,8 @@ Geoscience Australia Image Processor is a Python package for producing standaris
 * Nadir Bi-directional Reflectance Distribution Function Adjusted Reflectance (NBAR)
 * Surface Brightness Temperature
 
+![](docs/source/diagrams/luigi-task-visualiser.png)
+
 ## Supported Satellites and Sensors
 -----------------------------------
 * Landsat 5 TM
