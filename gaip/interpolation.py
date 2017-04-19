@@ -253,7 +253,7 @@ def bilinear_interpolate(acq, factor, coordinator_dataset, boxline_dataset,
         if len(samples) == 9:
             method = gaip.interpolate.fortran_bilinear_interpolate
         else:
-            method = gaip.interpolate.sheared_bilinear_interpolate
+            method = gaip.interpolate.rbf_interpolate
 
     result = method(cols, rows, coord, samples, start, end, centre)
 
