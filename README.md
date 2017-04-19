@@ -69,7 +69,7 @@ The gaip pacakage can be installed via:
 --------------------------
 Using the [local scheduler](http://luigi.readthedocs.io/en/stable/command_line.html):
 
-    $ luigi --module gaip.nbar_workflow NBAR --level1-csv scenes.txt --output-directory /some/path --local-scheduler --workers 4
+    $ luigi --module gaip.standard_workflow ARD --model nbar --level1-csv scenes.txt --output-directory /some/path --local-scheduler --workers 4
 
 Using the [central scheduler](http://luigi.readthedocs.io/en/stable/central_scheduler.html):
 
