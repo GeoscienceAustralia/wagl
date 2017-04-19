@@ -403,7 +403,6 @@ class BilinearInterpolation(luigi.Task):
     model = luigi.EnumParameter(enum=Model)
 
     def requires(self):
-        bands = []
         container = acquisitions(self.level1)
         acqs = container.get_acquisitions(group=self.group,
                                           granule=self.granule)
@@ -413,18 +412,21 @@ class BilinearInterpolation(luigi.Task):
         sensor = acqs[0].sensor_id
 
         # NBAR band id's
-        if self.model == Model.standard or self.model == Model.nbar:
-            nbar_constants = constants.NBARConstants(satellite, sensor)
-            band_ids = nbar_constants.get_nbar_lut()
-            bands.extend([a.band_num for a in acqs if a.band_num in band_ids])
+        nbar_constants = constants.NBARConstants(satellite, sensor)
+        band_ids = nbar_constants.get_nbar_lut()
+        nbar_bands = [a.band_num for a in acqs if a.band_num in band_ids]
 
         # SBT band id's
-        if self.model == Model.standard or self.model == Model.sbt:
-            band_ids = constants.sbt_bands(satellite, sensor) 
-            bands.extend([a.band_num for a in acqs if a.band_num in band_ids])
+        band_ids = constants.sbt_bands(satellite, sensor) 
+        sbt_bands = [a.band_num for a in acqs if a.band_num in band_ids]
 
         tasks = {}
         for factor in self.model.factors:
+            if factor in Model.nbar.factors:
+                bands = nbar_bands
+            else:
+                bands = sbt_bands
+
             for band in bands:
                 key = (band, factor)
                 kwargs = {'level1': self.level1, 'work_root': self.work_root,
