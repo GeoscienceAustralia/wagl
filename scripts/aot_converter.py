@@ -5,6 +5,7 @@ from datetime import datetime as dt
 import glob
 from os.path import join as pjoin, splitext, basename
 from posixpath import join as ppjoin
+import argparse
 import numpy
 import h5py
 import pandas
@@ -97,7 +98,11 @@ def read_cmp(filename):
     return df, extents
 
 
-def main(aerosol_path, output_filename):
+def run(aerosol_path, output_filename):
+    """
+    Converts all the .pix and .cmp files found in `aerosol_path`
+    to a HDF5 file.
+    """
     # define a case switch
     func = {'pix': read_pix, 'cmp': read_cmp}
 
@@ -123,8 +128,23 @@ def main(aerosol_path, output_filename):
     fid.close()
 
 
-if __name__ == '__main__':
+def _parser():
+    """
+    Argument parser.
+    """
+    description = "Converts .pix & .cmp files to a HDF5 file."
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument("--indir", required=True,
+                        help="The input directory to the AATSR data.")
+    parser.add_argument("--out_fname", required=True,
+                        help="The output filename.")
 
-    aerosol_path = '/g/data/v10/eoancillarydata/aerosol/AATSR/2.0/'
-    out_fname = '/g/data/v10/eoancillarydata/aerosol/AATSR/2.0/aerosol.h5'
-    main(aerosol_path, out_fname)
+    return parser
+
+
+def main():
+    """
+    Main execution.
+    """
+    args = _parser()
+    run(args.indir, args.out_fname)
