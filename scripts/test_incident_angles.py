@@ -56,7 +56,8 @@ class TestIncidentAngles(ParameterisedTestCase):
                                     decimal=self.decimal_precision)
 
 
-if __name__ == '__main__':
+def _parser():
+    """ Argument parser. """
     description = ("Unittests for `gaip.incident_angles` function.\n"
                    "Comparisons tests will occur for the following "
                    "datasets: \n"
@@ -79,12 +80,18 @@ if __name__ == '__main__':
                         help=('The integer precision used for the comparison '
                               'of images.'))
 
-    parsed_args = parser.parse_args()
+    return parser
 
-    reference_fname = parsed_args.reference_fname
-    test_fname = parsed_args.test_fname
-    decimal_precision = parsed_args.decimal_precision
-    integer_precision = parsed_args.integer_precision
+
+def main():
+    """ Main execution. """
+    parser = _parser()
+    args = parser.parse_args()
+
+    reference_fname = args.reference_fname
+    test_fname = args.test_fname
+    decimal_precision = args.decimal_precision
+    integer_precision = args.integer_precision
 
     suite = unittest.TestSuite()
     test_case = ParameterisedTestCase()

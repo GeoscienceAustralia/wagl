@@ -129,9 +129,7 @@ def run(aerosol_path, output_filename):
 
 
 def _parser():
-    """
-    Argument parser.
-    """
+    """ Argument parser. """
     description = "Converts .pix & .cmp files to a HDF5 file."
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("--indir", required=True,
@@ -143,8 +141,7 @@ def _parser():
 
 
 def main():
-    """
-    Main execution.
-    """
-    args = _parser()
+    """ Main execution. """
+    parser = _parser()
+    args = parser.parse_args()
     run(args.indir, args.out_fname)

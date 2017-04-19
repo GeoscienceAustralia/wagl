@@ -82,7 +82,8 @@ class TestShadowMasks(ParameterisedTestCase):
             self.assertTrue(numpy.array_equal(ref_dset, test_dset))
 
 
-if __name__ == '__main__':
+def _parser():
+    """ Argument parser. """
     description = ("Unittests for `gaip.calculate_shadow_masks` module.\n"
                    "Comparisons tests will occur for the following "
                    "datasets: \n"
@@ -101,10 +102,16 @@ if __name__ == '__main__':
                               'to be used in comparing against the '
                               'base/reference datasets.'))
 
-    parsed_args = parser.parse_args()
+    return parser
 
-    reference_fname = parsed_args.reference_fname
-    test_fname = parsed_args.test_fname
+
+def main():
+    """ Main execution. """
+    parser = _parser()
+    args = parser.parse_args()
+
+    reference_fname = args.reference_fname
+    test_fname = args.test_fname
 
     suite = unittest.TestSuite()
     test_case = ParameterisedTestCase()
