@@ -7,14 +7,14 @@ gaip 5.0 release notes
 * Extra layers of hierarchy have been added to the return of what originally was a single list of *Acquisitions*. An *AcquisitionsContainer* is now returned instead, as it was necessary in order to handle scenes comprising of multiple *Granules*, and multiple *Resolutions*.
 * Additional bilinear interpolation functions. The intent is to deprecate the FORTRAN version.
 * Command line utilities:
-    * gaip_convert  *An unpacking/converting utility that converts HDF5 Tables to CSV, HDF5 images to GeoTiff, and metadata to yaml files.*
-    * test_calculate_angles *Compares and evaluates each dataset contained within a* **satellite-solar.h5** *file against the same datasets contained within another file.*
-    * test_dsm *Compare and evaluate two* **dsm-extract.h5** *files.*
-    * test_exiting_angles *Compare and evaluate two* **exiting-angles.h5** *files.*
-    * test_incident_angles *Compare and evaluate two* **incident-angles.h5** *files.*
+    * gaip_convert:  *An unpacking/converting utility that converts HDF5 Tables to CSV, HDF5 images to GeoTiff, and metadata to yaml files.*
+    * test_calculate_angles: *Compares and evaluates each dataset contained within a* **satellite-solar.h5** *file against the same datasets contained within another file.*
+    * test_dsm: *Compare and evaluate two* **dsm-extract.h5** *files.*
+    * test_exiting_angles: *Compare and evaluate two* **exiting-angles.h5** *files.*
+    * test_incident_angles: *Compare and evaluate two* **incident-angles.h5** *files.*
     * test_relative_slope *Compare and evaluate two* **relative-slope.h5** *files.*
-    * test_shadow_masks *Compare and evaluate two* **shadow-masks** *files.*
-    * test_slope_aspect *Compare and evaluate two* **slope-aspect.h5** *files.*
+    * test_shadow_masks: *Compare and evaluate two* **shadow-masks** *files.*
+    * test_slope_aspect: *Compare and evaluate two* **slope-aspect.h5** *files.*
 
 
 Python compatibility
