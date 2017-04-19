@@ -1,12 +1,15 @@
 # GAIP
 ------
 
-![](docs/source/diagrams/luigi-task-visualiser-reduced.png)
 
 Geoscience Australia Image Processor is a Python package for producing standarised imagery in the form of:
 
 * Nadir Bi-directional Reflectance Distribution Function Adjusted Reflectance (NBAR)
 * Surface Brightness Temperature
+
+The luigi task workflow for producing NBAR for a Landsat 5TM scene is given below.
+
+![](docs/source/diagrams/luigi-task-visualiser-reduced.png)
 
 ## Supported Satellites and Sensors
 -----------------------------------
