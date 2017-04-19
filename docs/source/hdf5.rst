@@ -42,32 +42,32 @@ Dataset names for each output are as follows:
     * /elevation
     * /ozone
     * /water-vapour
-    * /BRDF-Band-{band_id}-geo (combinations based on band_id)
-    * /BRDF-Band-{band_id}-iso
-    * /BRDF-Band-{band_id}-vol
-    * /brdf-image-datasets/Band_{band_id)_0459_0479nm_geo (combinations based on band_id and lower/upper brdf wavelength)
-    * /brdf-image-datasets/Band_{band_id)_0459_0479nm_iso
-    * /brdf-image-datasets/Band_{band_id)_0459_0479nm_vol
+    * /BRDF-Band-{band_id}-geo *(combinations based on band_id)*
+    * /BRDF-Band-{band_id}-iso *(combinations based on band_id)*
+    * /BRDF-Band-{band_id}-vol *(combinations based on band_id)*
+    * /brdf-image-datasets/Band_{band_id)_0459_0479nm_geo *(combinations based on band_id and lower/upper brdf wavelength)*
+    * /brdf-image-datasets/Band_{band_id)_0459_0479nm_iso *(combinations based on band_id)*
+    * /brdf-image-datasets/Band_{band_id)_0459_0479nm_vol *(combinations based on band_id)*
 * atmospheric-inputs.h5
-    * /modtran-inputs/point-0/albedo-0/tp5_data (combinations based on point labe;, albedo label)
-    * /modtran-inputs/point-1/albedo-1/tp5_data
-    * /modtran-inputs/point-2/albedo-t/tp5_data
-    * /modtran-inputs/point-3/albedo-th/tp5_data
+    * /modtran-inputs/point-0/albedo-0/tp5_data *(combinations based on point label, albedo label)*
+    * /modtran-inputs/point-1/albedo-1/tp5_data *(combinations based on point label, albedo label)*
+    * /modtran-inputs/point-2/albedo-t/tp5_data *(combinations based on point label, albedo label)*
+    * /modtran-inputs/point-3/albedo-th/tp5_data *(combinations based on point label, albedo label)*
 * accumulated-solar-irradiance.h5
-    * /point-0/albedo-0/channel (combinations based on point label, albedo label)
-    * /point-0/albedo-0/solar-irradiance (combinations based on point label, albedo label)
+    * /point-0/albedo-0/channel *(combinations based on point label, albedo label)*
+    * /point-0/albedo-0/solar-irradiance *(combinations based on point label, albedo label)*
 * coefficients.h5
     * /nbar-coefficients
     * /sbt-coefficients
 * bilinearly-interpolated-data.h5
-    * /a-band-{band_id} (combinations based on the band_id)
-    * /b-band-{band_id} (combinations based on the band_id)
-    * /dif-band-{band_id} (combinations based on the band_id)
-    * /dir-band-{band_id} (combinations based on the band_id)
-    * /fs-band-{band_id} (combinations based on the band_id)
-    * /fv-band-{band_id} (combinations based on the band_id)
-    * /s-band-{band_id} (combinations based on the band_id)
-    * /ts-band-{band_id} (combinations based on the band_id)
+    * /a-band-{band_id} *(combinations based on the band_id)*
+    * /b-band-{band_id} *(combinations based on the band_id)*
+    * /dif-band-{band_id} *(combinations based on the band_id)*
+    * /dir-band-{band_id} *(combinations based on the band_id)*
+    * /fs-band-{band_id} *(combinations based on the band_id)*
+    * /fv-band-{band_id} *(combinations based on the band_id)*
+    * /s-band-{band_id} *(combinations based on the band_id)*
+    * /ts-band-{band_id} *(combinations based on the band_id)*
 * dsm-extract.h5
     * /dsm
     * /dsm-smoothed
@@ -103,10 +103,10 @@ Dataset names for each output are as follows:
     * /aspect
     * /slope
 * standardised-data.h5
-    * /brdf-reflectance-band-{band_id} (combinations based on the band_id)
-    * /lambertian-reflectance-band-{band_id} (combinations based on the band_id)
-    * /terrain-reflectance-band-{band_id} (combinations based on the band_id)
-    * /surface-brightness-temperature-band-{band_id} (combinations based on the band_id)
+    * /brdf-reflectance-band-{band_id} *(combinations based on the band_id)*
+    * /lambertian-reflectance-band-{band_id} *(combinations based on the band_id)*
+    * /terrain-reflectance-band-{band_id} *(combinations based on the band_id)*
+    * /surface-brightness-temperature-band-{band_id} *(combinations based on the band_id)*
 
 Geospatial Information
 ----------------------
