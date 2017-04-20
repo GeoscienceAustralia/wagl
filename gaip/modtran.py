@@ -654,13 +654,13 @@ def _coefficients(atmospheric_fname, out_fname, compression='lzf'):
             nbar_coefficients = nbar_coefficients.append(result[0])
             sbt_coefficients = sbt_coefficients.append(result[1])
 
-            nbar_coefficients.reset_index(inplace=True)
-            sbt_coefficients.reset_index(inplace=True)
-
             # TODO: check if number of records > (some chunksize)
             #       and write that portion of the table to disk
             # TODO: implement an append write_dataframe
             #       which will aid in reducing memory consumption
+
+    nbar_coefficients.reset_index(inplace=True)
+    sbt_coefficients.reset_index(inplace=True)
 
     with h5py.File(out_fname, 'w') as fid:
         attrs = {'npoints': npoints}
