@@ -608,7 +608,8 @@ def _coefficients(atmospheric_fname, out_fname, compression='lzf'):
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    nbar_coefficients = sbt_coefficients = None
+    nbar_coefficients = pd.DataFrame()
+    sbt_coefficients = pd.DataFrame()
     nbar_albedos = Model.nbar.albedos
     with h5py.File(atmospheric_fname, 'r') as fid:
         npoints = fid.attrs['npoints']
