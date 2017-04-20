@@ -31,7 +31,7 @@ from gaip.constants import Model, BandType
 from gaip.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
 from gaip.dsm import get_dsm
 from gaip.modtran import _format_tp5, _run_modtran
-from gaip.modtran import _coefficients, prepare_modtran
+from gaip.modtran import calcualte_coefficients, prepare_modtran
 from gaip.modtran import link_atmospheric_results
 from gaip.interpolation import _bilinear_interpolate, link_bilinear_data
 from gaip.thermal_conversion import _surface_brightness_temperature
@@ -348,7 +348,8 @@ class CalculateCoefficients(luigi.Task):
 
     def run(self):
         with self.output().temporary_path() as out_fname:
-            _coefficients(self.input().path, out_fname, self.compression)
+            calcualate_coefficients(self.input().path, out_fname,
+                                    self.compression)
 
 
 @inherits(CalculateLonLatGrids)

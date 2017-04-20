@@ -362,70 +362,7 @@ def run_modtran(acquisitions, modtran_exe, basedir, point, albedos,
     return fid
 
 
-def _calculate_coefficients(atmospheric_fname, out_fname, compression='lzf'):
-    """
-    A private wrapper for dealing with the internal custom workings of the
-    NBAR workflow.
-    """
-    nbar_albedos = Model.nbar.albedos
-    with h5py.File(atmospheric_fname, 'r') as fid:
-        nbar_atmos = fid.attrs['nbar atmospherics']
-        sbt_atmos = fid.attrs['sbt atmospherics']
-
-        # initialise dicts to hold the data for each point
-        accumulation_albedo_0 = {} if nbar_atmos else None
-        accumulation_albedo_1 = {} if nbar_atmos else None
-        accumulation_albedo_t = {} if nbar_atmos else None
-        channel_data = {} if nbar_atmos else None
-        upward = {} if sbt_atmos else None
-        downward = {} if sbt_atmos else None
-
-        for point in range(fid.attrs['npoints']):
-            grp_path = ppjoin(POINT_FMT.format(p=point), ALBEDO_FMT)
-            if nbar_atmos:
-                dataset_name = DatasetName.solar_irradiance.value
-                albedo_0_path = ppjoin(grp_path.format(a=nbar_albedos[0]),
-                                       dataset_name)
-                albedo_1_path = ppjoin(grp_path.format(a=nbar_albedos[1]),
-                                       dataset_name)
-                albedo_t_path = ppjoin(grp_path.format(a=nbar_albedos[2]),
-                                       dataset_name)
-                channel_path = ppjoin(grp_path.format(a=nbar_albedos[0]),
-                                      DatasetName.channel.value)
-
-                accumulation_albedo_0[point] = read_table(fid, albedo_0_path)
-                accumulation_albedo_1[point] = read_table(fid, albedo_1_path)
-                accumulation_albedo_t[point] = read_table(fid, albedo_t_path)
-                channel_data[point] = read_table(fid, channel_path)
-            if sbt_atmos:
-                dname = ppjoin(grp_path.format(a=Model.sbt.albedos[0]),
-                               DatasetName.upward_radiation_channel.value)
-                upward[point] = read_table(fid, dname)
-                dname = ppjoin(grp_path.format(a=Model.sbt.albedos[0]),
-                               DatasetName.downward_radiation_channel.value)
-                downward[point] = read_table(fid, dname)
-        
-        kwargs = {'accumulation_albedo_0': accumulation_albedo_0,
-                  'accumulation_albedo_1': accumulation_albedo_1,
-                  'accumulation_albedo_t': accumulation_albedo_t,
-                  'channel_data': channel_data,
-                  'upward': upward,
-                  'downward': downward,
-                  'npoints': fid.attrs['npoints'],
-                  'out_fname': out_fname,
-                  'compression': compression}
-                  
-        rfid = calculate_coefficients(**kwargs)
-
-    rfid.close()
-    return
-        
-
-def calculate_coefficients(accumulation_albedo_0=None,
-                           accumulation_albedo_1=None,
-                           accumulation_albedo_t=None, channel_data=None,
-                           upward=None, downward=None, npoints=None,
-                           out_fname=None, compression='lzf'):
+def calculate_coefficients(atmospheric_fname, out_fname, compression='lzf'):
     """
     Calculate the atmospheric coefficients from the MODTRAN output
     and used in the BRDF and atmospheric correction.
@@ -433,55 +370,11 @@ def calculate_coefficients(accumulation_albedo_0=None,
     for each factor. The factors can be found in
     `Model.standard.factors`.
 
-    :param accumulation_albedo_0:
-        A `dict` containing range(npoints) as the keys, and the values
-        a `pandas.DataFrame` containing the solar accumulated
-        irradiance (for albedo 0) and structured as returned by the
-        `calculate_solar_radiation` function.
-        Only used for NBAR calculations.
-
-    :param accumulation_albedo_1:
-        A `dict` containing range(npoints) as the keys, and the values
-        a `pandas.DataFrame` containing the solar accumulated
-        irradiance (for albedo 1) and structured as returned by the
-        `calculate_solar_radiation` function.
-        Only used for NBAR calculations.
-
-    :param accumulation_albedo_t:
-        A `dict` containing range(npoints) as the keys, and the values
-        a `pandas.DataFrame` containing the solar accumulated
-        irradiance (for albeod t; transmittance) and structured as
-        returned by the `calculate_solar_radiation` function.
-        Only used for NBAR calculations.
-
-    :param channel_data:
-        A `dict` containing range(npoints) as the keys, and the values
-        a `pandas.DataFrame` containing the channel data for that
-        point, and structured as returned by the
-        `read_modtran_channel` function.
-        Only used for NBAR calculations.
-
-    :param upward:
-        A `dict` containing range(npoints) as the keys, and the values
-        a `pandas.DataFrame` containing the upward radiation data for
-        that point, and structured as returned by the
-        `read_modtran_channel` function.
-        Only used for SBT calculations.
-
-    :param downward:
-        A `dict` containing range(npoints) as the keys, and the values
-        a `pandas.DataFrame` containing the downward radiation data for
-        that point, and structured as returned by the
-        `read_modtran_channel` function.
-        Only used for SBT calculations.
-
-    :param npoints:
-        An integer containing the number of location points over
-        which MODTRAN was run.
+    :param atmospheric_fname:
+        A `str` containing the full file pathname to the file
+        containing the atmospheric results from each MODTRAN run.
 
     :param out_fname:
-        If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver.
         Otherwise it should be a string containing the full file path
         name to a writeable location on disk in which to save the HDF5
         file.
@@ -502,111 +395,8 @@ def calculate_coefficients(accumulation_albedo_0=None,
         2 datasets formatted to the HDF5 TABLE specification
         named:
 
-        * nbar-coefficients (if accumulation_albedo_0 is not None)
-        * sbt-coefficients (if upward is not None)
-
-    :notes:
-        If accumulation_albedo_0 is None, then nbar-coefficients will
-        not be calculated.
-        If upward is None, then sbt-coefficients will not be
-        calculated.
-    """
-    # Initialise the output file
-    if out_fname is None:
-        fid = h5py.File('coefficients.h5', driver='core',
-                        backing_store=False)
-    else:
-        fid = h5py.File(out_fname, 'w')
-
-    attrs = {'Number of atmospheric points': npoints}
-
-    if accumulation_albedo_0 is not None:
-        result = pd.DataFrame()
-        for point in range(npoints):
-            # MODTRAN channel output .chn file (albedo 0)
-            data1 = channel_data[point]
-
-            # solar radiation file (albedo 0)
-            data3 = accumulation_albedo_0[point]
-
-            # solar radiation file (albedo 1)
-            data4 = accumulation_albedo_1[point]
-
-            # solar radiation file (transmittance mode)
-            data5 = accumulation_albedo_t[point]
-
-            # calculate
-            diff_0 = data3['diffuse'] * 10000000.0
-            diff_1 = data4['diffuse'] * 10000000.0
-            dir_0 = data3['direct'] * 10000000.0
-            dir_1 = data4['direct'] * 10000000.0
-            dir_t = data5['direct']
-            dir0_top = data3['direct_top'] * 10000000.0
-            dirt_top = data5['direct_top']
-            tv_total = data5['transmittance']
-            ts_total = (diff_0 + dir_0) / dir0_top
-            ts_dir = dir_0 / dir0_top
-            tv_dir = dir_t / dirt_top
-
-            # TODO: better descriptive names
-            columns = ['point',
-                       'fs',
-                       'fv',
-                       'a',
-                       'b',
-                       's',
-                       'dir',
-                       'dif',
-                       'ts']
-            df = pd.DataFrame(columns=columns, index=data1.index)
-
-            df['point'] = point
-            df['fs'] = ts_dir / ts_total
-            df['fv'] = tv_dir / tv_total
-            df['a'] = (diff_0 + dir_0) / numpy.pi * tv_total
-            df['b'] = data1['3'] * 10000000
-            df['s'] = 1 - (diff_0 + dir_0) / (diff_1 + dir_1)
-            df['dir'] = dir_0
-            df['dif'] = diff_0
-            df['ts'] = ts_dir
-
-            result = result.append(df)
-
-        result.reset_index(inplace=True)
-
-        attrs['Description'] = ("Coefficients derived from the VNIR "
-                                "accumulated solar irradiation.")
-
-
-        dataset_name = DatasetName.nbar_coefficients.value
-        write_dataframe(result, dataset_name, fid, compression, attrs=attrs)
-
-    if upward is not None:
-        upward_radiation = pd.concat(upward, names=['point'])
-        downward_radiation = pd.concat(downward, names=['point'])
-
-        result = pd.DataFrame(index=upward_radiation.index)
-        result['path_up'] = upward_radiation['3'] * 10000000
-        result['transmittance_up'] = upward_radiation['14']
-        result['path_down'] = downward_radiation['3'] * 10000000
-        result['transmittance_down'] = downward_radiation['14']
-        result.reset_index(inplace=True)
-
-        attrs = {}
-        attrs['Description'] = ("Coefficients derived from the THERMAL "
-                                "solar irradiation.")
-        attrs['Number of atmospheric points'] = npoints
-
-        dataset_name = DatasetName.sbt_coefficients.value
-        write_dataframe(result, dataset_name, fid, compression, attrs=attrs)
-
-    return fid
-
-
-def _coefficients(atmospheric_fname, out_fname, compression='lzf'):
-    """
-    A private wrapper for dealing with the internal custom workings of the
-    NBAR workflow.
+        * nbar-coefficients (if nbar atmospherics were evaluated)
+        * sbt-coefficients (if sbt atmospherics were evalutated)
     """
     nbar_coefficients = pd.DataFrame()
     sbt_coefficients = pd.DataFrame()
@@ -662,25 +452,31 @@ def _coefficients(atmospheric_fname, out_fname, compression='lzf'):
     nbar_coefficients.reset_index(inplace=True)
     sbt_coefficients.reset_index(inplace=True)
 
-    with h5py.File(out_fname, 'w') as fid:
-        attrs = {'npoints': npoints}
-        descript = "Coefficients derived from the VNIR solar irradiation."
-        attrs['Description'] = descript
-        dname = DatasetName.nbar_coefficients.value
+    # Initialise the output file
+    if out_fname is None:
+        fid = h5py.File('coefficients.h5', driver='core',
+                        backing_store=False)
+    else:
+        fid = h5py.File(out_fname, 'w')
 
-        if nbar_coefficients is not None:
-            write_dataframe(nbar_coefficients, dname, fid, compression,
-                            attrs=attrs)
+    attrs = {'npoints': npoints}
+    description = "Coefficients derived from the VNIR solar irradiation."
+    attrs['Description'] = description
+    dname = DatasetName.nbar_coefficients.value
 
-        descript = "Coefficients derived from the THERMAL solar irradiation."
-        attrs['Description'] = descript
-        dname = DatasetName.sbt_coefficients.value
+    if nbar_coefficients is not None:
+        write_dataframe(nbar_coefficients, dname, fid, compression,
+                        attrs=attrs)
 
-        if sbt_coefficients is not None:
-            write_dataframe(sbt_coefficients, dname, fid, compression,
-                            attrs=attrs)
+    description = "Coefficients derived from the THERMAL solar irradiation."
+    attrs['Description'] = description
+    dname = DatasetName.sbt_coefficients.value
 
-    return
+    if sbt_coefficients is not None:
+        write_dataframe(sbt_coefficients, dname, fid, compression, attrs=attrs)
+
+    fid.flush()
+    return fid
 
 
 def coefficients(accumulation_albedo_0=None, accumulation_albedo_1=None,
@@ -688,6 +484,59 @@ def coefficients(accumulation_albedo_0=None, accumulation_albedo_1=None,
                  upward_radiation=None, downward_radiation=None, point=0):
     """
     Calculate the coefficients for a given point.
+    Calculate the atmospheric coefficients from the MODTRAN output
+    and used in the BRDF and atmospheric correction.
+    Coefficients are computed for each band for each factor.
+    The factors can be found in `Model.standard.factors`.
+
+    :param accumulation_albedo_0:
+        A `pandas.DataFrame` containing the solar accumulated
+        irradiance (for albedo 0) and structured as returned by the
+        `calculate_solar_radiation` function.
+        Only used for NBAR calculations.
+
+    :param accumulation_albedo_1:
+        A `pandas.DataFrame` containing the solar accumulated
+        irradiance (for albedo 1) and structured as returned by the
+        `calculate_solar_radiation` function.
+        Only used for NBAR calculations.
+
+    :param accumulation_albedo_t:
+        A `pandas.DataFrame` containing the solar accumulated
+        irradiance (for albeod t; transmittance) and structured as
+        returned by the `calculate_solar_radiation` function.
+        Only used for NBAR calculations.
+
+    :param channel_data:
+        A `pandas.DataFrame` containing the channel data for that
+        point, and structured as returned by the
+        `read_modtran_channel` function.
+        Only used for NBAR calculations.
+
+    :param upward_radiation:
+        A `pandas.DataFrame` containing the upward radiation data for
+        that point, and structured as returned by the
+        `read_modtran_channel` function.
+        Only used for SBT calculations.
+
+    :param downward_radiation:
+        A `pandas.DataFrame` containing the downward radiation data for
+        that point, and structured as returned by the
+        `read_modtran_channel` function.
+        Only used for SBT calculations.
+
+    :param points:
+        An integer containing the number of location points over
+        which MODTRAN was run. Default is 0.
+
+    :return:
+        A `tuple` (nbar_coefficients, sbt_coefficients) whereby each
+        item is a `pandas.DataFrame` containing the coefficients for
+        each band for each factor.
+        If `accumulation_albedo_0` is None, then the first item in
+        the returned `tuple` will be None.
+        If `upward_radiation` is None, then the second item in the
+        returned `tuple` will be None.
     """
     nbar = sbt = None
     if accumulation_albedo_0 is not None:
