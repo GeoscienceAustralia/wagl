@@ -603,6 +603,142 @@ def calculate_coefficients(accumulation_albedo_0=None,
     return fid
 
 
+def _coefficients(atmospheric_fname, out_fname, compression='lzf'):
+    """
+    A private wrapper for dealing with the internal custom workings of the
+    NBAR workflow.
+    """
+    nbar_coefficients = sbt_coefficients = None
+    nbar_albedos = Model.nbar.albedos
+    with h5py.File(atmospheric_fname, 'r') as fid:
+        npoints = fid.attrs['npoints']
+        nbar_atmos = fid.attrs['nbar atmospherics']
+        sbt_atmos = fid.attrs['sbt atmospherics']
+
+        for point in range(npoints):
+            grp_path = ppjoin(POINT_FMT.format(p=point), ALBEDO_FMT)
+            if nbar_atmos:
+                dataset_name = DatasetName.solar_irradiance.value
+                albedo_0_path = ppjoin(grp_path.format(a=nbar_albedos[0]),
+                                       dataset_name)
+                albedo_1_path = ppjoin(grp_path.format(a=nbar_albedos[1]),
+                                       dataset_name)
+                albedo_t_path = ppjoin(grp_path.format(a=nbar_albedos[2]),
+                                       dataset_name)
+                channel_path = ppjoin(grp_path.format(a=nbar_albedos[0]),
+                                      DatasetName.channel.value)
+
+                accumulation_albedo_0 = read_table(fid, albedo_0_path)
+                accumulation_albedo_1 = read_table(fid, albedo_1_path)
+                accumulation_albedo_t = read_table(fid, albedo_t_path)
+                channel_data = read_table(fid, channel_path)
+            if sbt_atmos:
+                dname = ppjoin(grp_path.format(a=Model.sbt.albedos[0]),
+                               DatasetName.upward_radiation_channel.value)
+                upward = read_table(fid, dname)
+                dname = ppjoin(grp_path.format(a=Model.sbt.albedos[0]),
+                               DatasetName.downward_radiation_channel.value)
+                downward = read_table(fid, dname)
+
+            kwargs = {'accumulation_albedo_0': accumulation_albedo_0,
+                      'accumulation_albedo_1': accumulation_albedo_1,
+                      'accumulation_albedo_t': accumulation_albedo_t,
+                      'channel_data': channel_data,
+                      'upward_radiation': upward,
+                      'downward_radiation': downward,
+                      'point': point}
+
+            result = coefficients(**kwargs)
+
+            nbar_coefficients = nbar_coefficients.append(result[0])
+            sbt_coefficients = sbt_coefficients.append(result[1])
+
+            nbar_coefficients.reset_index(inplace=True)
+            sbt_coefficients.reset_index(inplace=True)
+
+            # TODO: check if number of records > (some chunksize)
+            #       and write that portion of the table to disk
+            # TODO: implement an append write_dataframe
+            #       which will aid in reducing memory consumption
+
+    with h5py.File(out_fname, 'w') as fid:
+        attrs = {'npoints': npoints}
+        descript = "Coefficients derived from the VNIR solar irradiation."
+        attrs['Description'] = descript
+        dname = DatasetName.nbar_coefficients.value
+
+        if nbar_coefficients is not None:
+            write_dataframe(nbar_coefficients, dname, compression, attrs=attrs)
+
+        descript = "Coefficients derived from the THERMAL solar irradiation."
+        attrs['Description'] = descript
+        dname = DatasetName.sbt_coefficients.value
+
+        if sbt_coefficients is not None:
+            write_dataframe(sbt_coefficients, dname, compression, attrs=attrs)
+
+    return
+
+
+def coefficients(accumulation_albedo_0=None, accumulation_albedo_1=None,
+                 accumulation_albedo_t=None, channel_data=None,
+                 upward_radiation=None, downward_radiation=None, point=0):
+    """
+    Calculate the coefficients for a given point.
+    """
+    nbar = sbt = None
+    if accumulation_albedo_0 is not None:
+        diff_0 = accumulation_albedo_0['diffuse'] * 10000000.0
+        diff_1 = accumulation_albedo_1['diffuse'] * 10000000.0
+        dir_0 = accumulation_albedo_0['direct'] * 10000000.0
+        dir_1 = accumulation_albedo_1['direct'] * 10000000.0
+        dir_t = accumulation_albedo_t['direct']
+        dir0_top = accumulation_albedo_0['direct_top'] * 10000000.0
+        dirt_top = accumulation_albedo_t['direct_top']
+        tv_total = accumulation_albedo_t['transmittance']
+        ts_total = (diff_0 + dir_0) / dir0_top
+        ts_dir = dir_0 / dir0_top
+        tv_dir = dir_t / dirt_top
+
+        # TODO: better descriptive names
+        columns = ['point',
+                   'fs',
+                   'fv',
+                   'a',
+                   'b',
+                   's',
+                   'dir',
+                   'dif',
+                   'ts']
+        nbar = pd.DataFrame(columns=columns, index=channel_data.index)
+
+        nbar['point'] = point
+        nbar['fs'] = ts_dir / ts_total
+        nbar['fv'] = tv_dir / tv_total
+        nbar['a'] = (diff_0 + dir_0) / numpy.pi * tv_total
+        nbar['b'] = channel_data['3'] * 10000000
+        nbar['s'] = 1 - (diff_0 + dir_0) / (diff_1 + dir_1)
+        nbar['dir'] = dir_0
+        nbar['dif'] = diff_0
+        nbar['ts'] = ts_dir
+
+    if upward_radiation is not None:
+        columns = ['point',
+                   'path_up',
+                   'transmittance_up',
+                   'path_down',
+                   'transmittance_down']
+        sbt = pd.DataFrame(columns=columns, index=upward_radiation.index)
+
+        sbt['point'] = point
+        sbt['path_up'] = upward_radiation['3'] * 10000000
+        sbt['transmittance_up'] = upward_radiation['14']
+        sbt['path_down'] = downward_radiation['3'] * 10000000
+        sbt['transmittance_down'] = downward_radiation['14']
+
+    return nbar, sbt
+
+
 def read_spectral_response(fname, as_list=False, spectral_range=None):
     """
     Read the spectral response function text file used during
