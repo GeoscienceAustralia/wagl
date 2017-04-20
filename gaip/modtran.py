@@ -669,14 +669,16 @@ def _coefficients(atmospheric_fname, out_fname, compression='lzf'):
         dname = DatasetName.nbar_coefficients.value
 
         if nbar_coefficients is not None:
-            write_dataframe(nbar_coefficients, dname, compression, attrs=attrs)
+            write_dataframe(nbar_coefficients, dname, fid, compression,
+                            attrs=attrs)
 
         descript = "Coefficients derived from the THERMAL solar irradiation."
         attrs['Description'] = descript
         dname = DatasetName.sbt_coefficients.value
 
         if sbt_coefficients is not None:
-            write_dataframe(sbt_coefficients, dname, compression, attrs=attrs)
+            write_dataframe(sbt_coefficients, dname, fid, compression,
+                            attrs=attrs)
 
     return
 
@@ -909,9 +911,9 @@ def read_modtran_channel(fname, acquisition, albedo):
         A `pandas.DataFrame` containing the channel data, and index
         by the `band_id`.
     """
+    response = acquisition.spectral_response()
+    nbands = response.index.get_level_values('band_id').unique().shape[0]
     if albedo == Model.sbt.albedos[0]:
-        response = acquisition.spectral_response()
-        nbands = response.index.get_level_values('band_id').unique().shape[0]
         upward_radiation = pd.read_csv(fname, skiprows=5, header=None,
                                        delim_whitespace=True, nrows=nbands)
         downward_radiation = pd.read_csv(fname, skiprows=10+nbands,
@@ -930,7 +932,7 @@ def read_modtran_channel(fname, acquisition, albedo):
 
         return upward_radiation, downward_radiation
     else:
-        chn_data = pd.read_csv(fname, skiprows=5, header=None,
+        chn_data = pd.read_csv(fname, skiprows=5, header=None, nrows=nbands,
                                delim_whitespace=True)
         chn_data['band_id'] = chn_data[20] + ' ' + chn_data[21].astype(str)
         chn_data.drop([20, 21], inplace=True, axis=1)
