@@ -19,7 +19,7 @@ from gaip.tiling import generate_tiles
 
 # TODO: get required factor names from DatasetName
 def _surface_brightness_temperature(acquisition, bilinear_fname, out_fname,
-                                    compression, x_tile, y_tile):
+                                    compression, y_tile):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -35,7 +35,6 @@ def _surface_brightness_temperature(acquisition, bilinear_fname, out_fname,
                   'transmittance': transmittance_dset,
                   'out_fname': out_fname,
                   'compression': compression,
-                  'x_tile': x_tile,
                   'y_tile': y_tile}
 
         rfid = surface_brightness_temperature(**kwargs)
@@ -46,8 +45,7 @@ def _surface_brightness_temperature(acquisition, bilinear_fname, out_fname,
 
 def surface_brightness_temperature(acquisition, upwelling_radiation,
                                    transmittance, out_fname=None,
-                                   compression='lzf', x_tile=None,
-                                   y_tile=None):
+                                   compression='lzf', y_tile=100):
     """
     Convert Thermal acquisition to Surface Brightness Temperature.
 
@@ -97,24 +95,18 @@ def surface_brightness_temperature(acquisition, upwelling_radiation,
         * 'mafisc'
         * An integer [1-9] (Deflate/gzip)
 
-    :param x_tile:
-        Defines the tile size along the x-axis. Default is None which
-        equates to all elements along the x-axis.
-
     :param y_tile:
-        Defines the tile size along the y-axis. Default is None which
-        equates to all elements along the y-axis.
+        Defines the tile size along the y-axis. Default is 100.
 
     :return:
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
     """
-    rows = acquisition.lines
-    cols = acquisition.samples
-    geobox = acquisition.gridded_geo_box()
+    acq = acquisition
+    geobox = acq.gridded_geo_box()
 
     # tiling scheme
-    tiles = generate_tiles(cols, rows, x_tile, y_tile)
+    tiles = generate_tiles(acq.samples, acq.lines, acq.samples, y_tile)
 
     # Initialise the output file
     if out_fname is None:
@@ -124,8 +116,8 @@ def surface_brightness_temperature(acquisition, upwelling_radiation,
         fid = h5py.File(out_fname, 'w')
 
     kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(1, cols))
-    kwargs['shape'] = (rows, cols)
+                                        chunks=(y_tile, acq.samples))
+    kwargs['shape'] = (acq.lines, acq.samples)
     kwargs['fillvalue'] = -999
     kwargs['dtype'] = 'int16'
 
@@ -133,12 +125,12 @@ def surface_brightness_temperature(acquisition, upwelling_radiation,
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
              'geotransform': geobox.transform.to_gdal(),
              'no_data_value': kwargs['fillvalue'],
-             'sattelite': acquisition.spacecraft_id,
-             'sensor': acquisition.sensor_id,
-             'band number': acquisition.band_num}
+             'sattelite': acq.spacecraft_id,
+             'sensor': acq.sensor_id,
+             'band number': acq.band_num}
 
     name_fmt = DatasetName.temperature_fmt.value
-    dataset_name = name_fmt.format(band=acquisition.band_num)
+    dataset_name = name_fmt.format(band=acq.band_num)
     out_dset = fid.create_dataset(dataset_name, **kwargs)
 
     desc = "Surface Brightness Temperature in Kelvin scaled by 100."
@@ -146,8 +138,8 @@ def surface_brightness_temperature(acquisition, upwelling_radiation,
     attach_image_attributes(out_dset, attrs)
 
     # constants
-    k1 = acquisition.K1
-    k2 = acquisition.K2
+    k1 = acq.K1
+    k2 = acq.K2
 
     # process each tile
     for tile in tiles:
@@ -155,10 +147,10 @@ def surface_brightness_temperature(acquisition, upwelling_radiation,
 
         acq_args = {'window': tile,
                     'masked': False,
-                    'apply_gain_offset': acquisition.scaled_radiance,
+                    'apply_gain_offset': acq.scaled_radiance,
                     'out_no_data': kwargs['fillvalue']}
 
-        radiance = acquisition.data(**acq_args)
+        radiance = acq.data(**acq_args)
         mask = radiance == kwargs['fillvalue']
         path_up = upwelling_radiation[idx]
         trans = transmittance[idx]

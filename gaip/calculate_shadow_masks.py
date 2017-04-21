@@ -24,7 +24,7 @@ from gaip.__cast_shadow_mask import cast_shadow_main
 
 
 def _self_shadow(incident_angles_fname, exiting_angles_fname, out_fname,
-                 compression='lzf', x_tile=None, y_tile=None):
+                 compression='lzf', y_tile=None):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -38,14 +38,14 @@ def _self_shadow(incident_angles_fname, exiting_angles_fname, out_fname,
         geobox = GriddedGeoBox.from_dataset(inci_dset)
 
         fid = self_shadow(inci_dset, exit_dset, geobox, out_fname, compression,
-                          x_tile, y_tile)
+                          y_tile)
 
     fid.close()
     return
 
 
 def self_shadow(incident_dataset, exiting_dataset, geobox, out_fname,
-                compression='lzf', x_tile=None, y_tile=None):
+                compression='lzf', y_tile=None):
     """
     Computes the self shadow mask.
 
@@ -82,10 +82,6 @@ def self_shadow(incident_dataset, exiting_dataset, geobox, out_fname,
         * 'mafisc'
         * An integer [1-9] (Deflate/gzip)
 
-    :param x_tile:
-        Defines the tile size along the x-axis. Default is None which
-        equates to all elements along the x-axis.
-
     :param y_tile:
         Defines the tile size along the y-axis. Default is None which
         equates to all elements along the y-axis.
@@ -102,7 +98,7 @@ def self_shadow(incident_dataset, exiting_dataset, geobox, out_fname,
         fid = h5py.File(out_fname, 'w')
 
     kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(1, geobox.x_size()))
+                                        chunks=(y_tile, geobox.x_size()))
     cols, rows = geobox.get_shape_xy()
     kwargs['shape'] = (rows, cols)
     kwargs['dtype'] = 'bool'
@@ -119,7 +115,7 @@ def self_shadow(incident_dataset, exiting_dataset, geobox, out_fname,
     attach_image_attributes(out_dset, attrs)
 
     # Initialise the tiling scheme for processing
-    tiles = generate_tiles(cols, rows, x_tile, y_tile)
+    tiles = generate_tiles(cols, rows, cols, y_tile)
 
     # Loop over each tile
     for tile in tiles:
@@ -278,7 +274,8 @@ class CastShadowError(FortranError):
 
 def _calculate_cast_shadow(acquisition, dsm_fname, margins, block_height,
                            block_width, satellite_solar_angles_fname,
-                           out_fname, compression='lzf', solar_source=True):
+                           out_fname, compression='lzf', y_tile=100,
+                           solar_source=True):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -300,7 +297,7 @@ def _calculate_cast_shadow(acquisition, dsm_fname, margins, block_height,
 
     fid = calculate_cast_shadow(acquisition, dsm_dset, margins, block_height,
                                 block_width, zenith_dset, azi_dset, out_fname,
-                                compression, solar_source)
+                                compression, y_tile, solar_source)
 
     fid.close()
     return
@@ -309,7 +306,7 @@ def _calculate_cast_shadow(acquisition, dsm_fname, margins, block_height,
 def calculate_cast_shadow(acquisition, dsm_dataset, margins, block_height,
                           block_width, zenith_angle_dataset,
                           azimuth_angle_dataset, out_fname=None,
-                          compression='lzf', solar_source=True):
+                          compression='lzf', y_tile=100, solar_source=True):
     """
     This code is an interface to the fortran code
     cast_shadow_main.f90 written by Fuqin (and modified to
@@ -395,6 +392,9 @@ def calculate_cast_shadow(acquisition, dsm_dataset, margins, block_height,
         * 'mafisc'
         * An integer [1-9] (Deflate/gzip)
 
+    :param y_tile:
+        Defines the tile size along the y-axis. Default is 100.
+
     :param solar_source:
         A `bool` indicating whether or not the source for the line
         of sight comes from the sun (True; Default), or False
@@ -444,7 +444,7 @@ def calculate_cast_shadow(acquisition, dsm_dataset, margins, block_height,
         fid = h5py.File(out_fname, 'w')
 
     kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(1, geobox.x_size()))
+                                        chunks=(y_tile, geobox.x_size()))
     kwargs['dtype'] = 'bool'
 
     dname_fmt = DatasetName.cast_shdadow_fmt.value
@@ -465,7 +465,7 @@ def calculate_cast_shadow(acquisition, dsm_dataset, margins, block_height,
 
 def _combine_shadow(self_shadow_fname, cast_shadow_sun_fname,
                     cast_shadow_satellite_fname, out_fname,
-                    compression='lzf', x_tile=None, y_tile=None):
+                    compression='lzf', y_tile=100):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -482,7 +482,7 @@ def _combine_shadow(self_shadow_fname, cast_shadow_sun_fname,
         geobox = GriddedGeoBox.from_dataset(self_shadow)
 
         fid = combine_shadow_masks(self_shadow, cast_sun, cast_sat, geobox,
-                                   out_fname, compression, x_tile, y_tile)
+                                   out_fname, compression, y_tile)
 
     fid.close()
 
@@ -501,7 +501,7 @@ def _combine_shadow(self_shadow_fname, cast_shadow_sun_fname,
 
 def combine_shadow_masks(self_shadow, cast_shadow_sun, cast_shadow_satellite,
                          geobox, out_fname=None, compression='lzf',
-                         x_tile=None, y_tile=None):
+                         y_tile=100):
     """
     A convienice function for combining the shadow masks into a single
     boolean array.
@@ -544,13 +544,8 @@ def combine_shadow_masks(self_shadow, cast_shadow_sun, cast_shadow_satellite,
         * 'mafisc'
         * An integer [1-9] (Deflate/gzip)
 
-    :param x_tile:
-        Defines the tile size along the x-axis. Default is None which
-        equates to all elements along the x-axis.
-
     :param y_tile:
-        Defines the tile size along the y-axis. Default is None which
-        equates to all elements along the y-axis.
+        Defines the tile size along the y-axis. Default is 100.
 
     :return:
         An opened `h5py.File` object, that is either in-memory using the
@@ -564,7 +559,7 @@ def combine_shadow_masks(self_shadow, cast_shadow_sun, cast_shadow_satellite,
         fid = h5py.File(out_fname, 'w')
 
     kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(1, geobox.x_size()))
+                                        chunks=(y_tile, geobox.x_size()))
     cols, rows = geobox.get_shape_xy()
     kwargs['shape'] = (rows, cols)
     kwargs['dtype'] = 'bool'
@@ -583,7 +578,7 @@ def combine_shadow_masks(self_shadow, cast_shadow_sun, cast_shadow_satellite,
     attach_image_attributes(out_dset, attrs)
 
     # Initialise the tiling scheme for processing
-    tiles = generate_tiles(cols, rows, x_tile, y_tile)
+    tiles = generate_tiles(cols, rows, cols, y_tile)
 
     # Loop over each tile
     for tile in tiles:

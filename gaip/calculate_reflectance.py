@@ -27,7 +27,7 @@ def _calculate_reflectance(acquisition, bilinear_fname,
                            relative_slope_fname, incident_angles_fname,
                            exiting_angles_fname, shadow_masks_fname,
                            ancillary_fname, rori, out_fname,
-                           compression='lzf', x_tile=None, y_tile=None):
+                           compression='lzf', y_tile=None):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -74,7 +74,7 @@ def _calculate_reflectance(acquisition, bilinear_fname,
                                     aspect_dset, rel_slp_dset, inc_dset,
                                     exi_dset, shad_dset, rori, brdf_iso,
                                     brdf_vol, brdf_geo, out_fname, compression,
-                                    x_tile, y_tile)
+                                    y_tile)
 
     fid.close()
     return
@@ -89,7 +89,7 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
                           incident_angle_dataset, exiting_angle_dataset,
                           shadow_dataset, rori, brdf_iso,
                           brdf_vol, brdf_geo, out_fname=None,
-                          compression='lzf', x_tile=None, y_tile=None):
+                          compression='lzf', y_tile=100):
     """
     Calculates Lambertian, BRDF corrected and BRDF + terrain
     corrected surface reflectance.
@@ -226,26 +226,18 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
         * 'mafisc'
         * An integer [1-9] (Deflate/gzip)
 
-    :param x_tile:
-        Defines the tile size along the x-axis. Default is None which
-        equates to all elements along the x-axis.
-
     :param y_tile:
-        Defines the tile size along the y-axis. Default is None which
-        equates to all elements along the y-axis.
+        Defines the tile size along the y-axis. Default is 100.
 
     :return:
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
     """
-    # Retrieve info about the acquisition
-    rows = acquisition.lines
-    cols = acquisition.samples
-    geobox = acquisition.gridded_geo_box()
+    acq = acquisition
+    geobox = acq.gridded_geo_box()
 
     # Get the average reflectance values per band
-    nbar_constants = constants.NBARConstants(acquisition.spacecraft_id,
-                                             acquisition.sensor_id)
+    nbar_constants = constants.NBARConstants(acq.spacecraft_id, acq.sensor_id)
     avg_reflectance_values = nbar_constants.get_avg_ref_lut()
 
     # Initialise the output file
@@ -256,20 +248,20 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
         fid = h5py.File(out_fname, 'w')
 
     kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(1, cols))
-    kwargs['shape'] = (rows, cols)
+                                        chunks=(y_tile, acq.samples))
+    kwargs['shape'] = (acq.lines, acq.samples)
     kwargs['fillvalue'] = -999
     kwargs['dtype'] = 'int16'
 
     # create the datasets
     dname_fmt = DatasetName.reflectance_fmt.value
-    dname = dname_fmt.format(product='lambertian', band=acquisition.band_num)
+    dname = dname_fmt.format(product='lambertian', band=acq.band_num)
     lmbrt_dset = fid.create_dataset(dname, **kwargs)
 
-    dname = dname_fmt.format(product='brdf', band=acquisition.band_num)
+    dname = dname_fmt.format(product='brdf', band=acq.band_num)
     brdf_dset = fid.create_dataset(dname, **kwargs)
 
-    dname = dname_fmt.format(product='terrain', band=acquisition.band_num)
+    dname = dname_fmt.format(product='terrain', band=acq.band_num)
     tc_dset = fid.create_dataset(dname, **kwargs)
 
     # attach some attributes to the image datasets
@@ -277,9 +269,9 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
              'geotransform': geobox.transform.to_gdal(),
              'no_data_value': kwargs['fillvalue'],
              'rori_threshold_setting': rori,
-             'sattelite': acquisition.spacecraft_id,
-             'sensor': acquisition.sensor_id,
-             'band_number': acquisition.band_num}
+             'sattelite': acq.spacecraft_id,
+             'sensor': acq.sensor_id,
+             'band_number': acq.band_num}
 
     desc = "Contains the lambertian reflectance data scaled by 10000."
     attrs['Description'] = desc
@@ -295,7 +287,7 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
     attach_image_attributes(tc_dset, attrs)
 
     # Initialise the tiling scheme for processing
-    tiles = generate_tiles(cols, rows, x_tile, y_tile)
+    tiles = generate_tiles(acq.samples, acq.lines, acq.samples, y_tile)
 
     # Loop over each tile
     for tile in tiles:
@@ -305,13 +297,13 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
         # define some static arguments
         acq_args = {'window': tile,
                     'masked': False,
-                    'apply_gain_offset': acquisition.scaled_radiance,
+                    'apply_gain_offset': acq.scaled_radiance,
                     'out_no_data': kwargs['fillvalue']}
         f32_args = {'dtype': numpy.float32, 'transpose': True}
 
         # Read the data corresponding to the current tile for all dataset
         # Convert the datatype if required and transpose
-        band_data = as_array(acquisition.data(**acq_args), **f32_args)
+        band_data = as_array(acq.data(**acq_args), **f32_args)
         
         shadow = as_array(shadow_dataset[idx], numpy.int8, transpose=True)
         solar_zenith = as_array(solar_zenith_dataset[idx], **f32_args)
@@ -345,15 +337,13 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
 
         # Run terrain correction
         reflectance(xsize, ysize, rori, brdf_iso, brdf_vol, brdf_geo,
-                    avg_reflectance_values[acquisition.band_num],
-                    kwargs['fillvalue'], band_data, shadow,
-                    solar_zenith, solar_azimuth, satellite_view,
-                    relative_angle, slope, aspect, incident_angle,
-                    exiting_angle, relative_slope, a_mod, b_mod,
-                    s_mod, fs, fv, ts, direct, diffuse,
-                    ref_lm_work, ref_brdf_work, ref_terrain_work,
-                    ref_lm.transpose(), ref_brdf.transpose(),
-                    ref_terrain.transpose())
+                    avg_reflectance_values[acq.band_num], kwargs['fillvalue'],
+                    band_data, shadow, solar_zenith, solar_azimuth,
+                    satellite_view, relative_angle, slope, aspect,
+                    incident_angle, exiting_angle, relative_slope, a_mod,
+                    b_mod, s_mod, fs, fv, ts, direct, diffuse, ref_lm_work,
+                    ref_brdf_work, ref_terrain_work, ref_lm.transpose(),
+                    ref_brdf.transpose(), ref_terrain.transpose())
 
 
         # Write the current tile to disk

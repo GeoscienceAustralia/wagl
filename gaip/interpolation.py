@@ -197,7 +197,7 @@ def interpolate_grid(depth=0, origin=DEFAULT_ORIGIN, shape=DEFAULT_SHAPE,
 
 def _bilinear_interpolate(acq, factor, sat_sol_angles_fname,
                           coefficients_fname, ancillary_fname, out_fname,
-                          compression):
+                          compression, y_tile):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -223,7 +223,7 @@ def _bilinear_interpolate(acq, factor, sat_sol_angles_fname,
 
         rfid = bilinear_interpolate(acq, factor, coord_dset, box_dset,
                                     centre_dset, coef_dset, out_fname,
-                                    compression)
+                                    compression, y_tile)
 
     rfid.close()
     return
@@ -231,7 +231,7 @@ def _bilinear_interpolate(acq, factor, sat_sol_angles_fname,
 
 def bilinear_interpolate(acq, factor, coordinator_dataset, boxline_dataset,
                          centreline_dataset, coefficients, out_fname=None,
-                         compression='lzf', method=None):
+                         compression='lzf', y_tile=100, method=None):
     # TODO: more docstrings
     """Perform bilinear interpolation."""
     geobox = acq.gridded_geo_box()
@@ -267,7 +267,7 @@ def bilinear_interpolate(acq, factor, coordinator_dataset, boxline_dataset,
     # TODO: determine without splitext or basename
     dset_name = splitext(basename(out_fname))[0]
     kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(1, geobox.x_size()))
+                                        chunks=(y_tile, geobox.x_size()))
     no_data = -999
     kwargs['fillvalue'] = no_data
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),

@@ -19,7 +19,7 @@ from gaip.__incident_angle import incident_angle
 
 
 def _incident_angles(satellite_solar_fname, slope_aspect_fname, out_fname,
-                     compression='lzf', x_tile=None, y_tile=None):
+                     compression='lzf', y_tile=None):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -36,7 +36,7 @@ def _incident_angles(satellite_solar_fname, slope_aspect_fname, out_fname,
 
         fid = incident_angles(solar_zen_dset, solar_azi_dset, slope_dset,
                               aspect_dset, geobox, out_fname, compression,
-                              x_tile, y_tile)
+                              y_tile)
 
     fid.close()
     return
@@ -44,7 +44,7 @@ def _incident_angles(satellite_solar_fname, slope_aspect_fname, out_fname,
 
 def incident_angles(solar_zenith_dataset, solar_azimuth_dataset, slope_datset,
                     aspect_dataset, geobox, out_fname=None, compression='lzf',
-                    x_tile=None, y_tile=None):
+                    y_tile=None):
     """
     Calculates the incident angle and the azimuthal incident angle.
 
@@ -92,10 +92,6 @@ def incident_angles(solar_zenith_dataset, solar_azimuth_dataset, slope_datset,
         * 'mafisc'
         * An integer [1-9] (Deflate/gzip)
 
-    :param x_tile:
-        Defines the tile size along the x-axis. Default is None which
-        equates to all elements along the x-axis.
-
     :param y_tile:
         Defines the tile size along the y-axis. Default is None which
         equates to all elements along the y-axis.
@@ -116,7 +112,7 @@ def incident_angles(solar_zenith_dataset, solar_azimuth_dataset, slope_datset,
         fid = h5py.File(out_fname, 'w')
 
     kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(1, geobox.x_size()))
+                                        chunks=(y_tile, geobox.x_size()))
     no_data = -999
     kwargs['shape'] = shape
     kwargs['fillvalue'] = no_data
@@ -184,7 +180,7 @@ def incident_angles(solar_zenith_dataset, solar_azimuth_dataset, slope_datset,
 
 
 def _exiting_angles(satellite_solar_fname, slope_aspect_fname, out_fname,
-                    compression='lzf', x_tile=None, y_tile=None):
+                    compression='lzf', y_tile=None):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -201,7 +197,7 @@ def _exiting_angles(satellite_solar_fname, slope_aspect_fname, out_fname,
 
         fid = exiting_angles(sat_view_dset, sat_azi_dset, slope_dset,
                              aspect_dset, geobox, out_fname, compression,
-                             x_tile, y_tile)
+                             y_tile)
 
     fid.close()
     return
@@ -209,7 +205,7 @@ def _exiting_angles(satellite_solar_fname, slope_aspect_fname, out_fname,
 
 def exiting_angles(satellite_view_dataset, satellite_azimuth_dataset,
                    slope_dataset, aspect_dataset, geobox, out_fname=None,
-                   compression='lzf', x_tile=None, y_tile=None):
+                   compression='lzf', y_tile=None):
     """
     Calculates the exiting angle and the azimuthal exiting angle.
 
@@ -257,10 +253,6 @@ def exiting_angles(satellite_view_dataset, satellite_azimuth_dataset,
         * 'mafisc'
         * An integer [1-9] (Deflate/gzip)
 
-    :param x_tile:
-        Defines the tile size along the x-axis. Default is None which
-        equates to all elements along the x-axis.
-
     :param y_tile:
         Defines the tile size along the y-axis. Default is None which
         equates to all elements along the y-axis.
@@ -281,7 +273,7 @@ def exiting_angles(satellite_view_dataset, satellite_azimuth_dataset,
         fid = h5py.File(out_fname, 'w')
 
     kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(1, geobox.x_size()))
+                                        chunks=(y_tile, geobox.x_size()))
     no_data = -999
     kwargs['shape'] = shape
     kwargs['fillvalue'] = no_data
@@ -349,8 +341,7 @@ def exiting_angles(satellite_view_dataset, satellite_azimuth_dataset,
 
 
 def _relative_azimuth_slope(incident_angles_fname, exiting_angles_fname,
-                            out_fname, compression='lzf', x_tile=None,
-                            y_tile=None):
+                            out_fname, compression='lzf', y_tile=None):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -364,7 +355,7 @@ def _relative_azimuth_slope(incident_angles_fname, exiting_angles_fname,
         geobox = GriddedGeoBox.from_dataset(azi_inci_dset)
 
         fid = relative_azimuth_slope(azi_inci_dset, azi_exit_dset, geobox,
-                                     out_fname, compression, x_tile, y_tile)
+                                     out_fname, compression, y_tile)
 
     fid.close()
     return
@@ -372,7 +363,7 @@ def _relative_azimuth_slope(incident_angles_fname, exiting_angles_fname,
 
 def relative_azimuth_slope(azimuth_incident_dataset,
                            azimuth_exiting_dataset, geobox, out_fname=None,
-                           compression='lzf', x_tile=None, y_tile=None):
+                           compression='lzf', y_tile=None):
     """
     Calculates the relative azimuth angle on the slope surface.
 
@@ -409,10 +400,6 @@ def relative_azimuth_slope(azimuth_incident_dataset,
         * 'mafisc'
         * An integer [1-9] (Deflate/gzip)
 
-    :param x_tile:
-        Defines the tile size along the x-axis. Default is None which
-        equates to all elements along the x-axis.
-
     :param y_tile:
         Defines the tile size along the y-axis. Default is None which
         equates to all elements along the y-axis.
@@ -433,7 +420,7 @@ def relative_azimuth_slope(azimuth_incident_dataset,
         fid = h5py.File(out_fname, 'w')
 
     kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(1, geobox.x_size()))
+                                        chunks=(y_tile, geobox.x_size()))
     no_data = -999
     kwargs['shape'] = shape
     kwargs['fillvalue'] = no_data
