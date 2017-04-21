@@ -348,8 +348,8 @@ class CalculateCoefficients(luigi.Task):
 
     def run(self):
         with self.output().temporary_path() as out_fname:
-            calcualate_coefficients(self.input().path, out_fname,
-                                    self.compression)
+            calculate_coefficients(self.input().path, out_fname,
+                                   self.compression)
 
 
 @inherits(CalculateLonLatGrids)
