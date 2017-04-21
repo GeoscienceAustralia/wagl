@@ -650,7 +650,8 @@ def _store_parameter_settings(fid, spheriod, orbital_elements,
 
 
 def _calculate_angles(acquisition, lon_lat_fname, out_fname=None,
-                      compression='lzf', max_angle=9.0, tle_path=None):
+                      compression='lzf', max_angle=9.0, tle_path=None,
+                      y_tile=None):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -659,7 +660,7 @@ def _calculate_angles(acquisition, lon_lat_fname, out_fname=None,
         lon_ds = src[DatasetName.lon.value]
         lat_ds = src[DatasetName.lat.value]
         fid = calculate_angles(acquisition, lon_ds, lat_ds, out_fname,
-                               compression, max_angle, tle_path)
+                               compression, max_angle, tle_path, y_tile)
 
     fid.close()
 
@@ -667,7 +668,8 @@ def _calculate_angles(acquisition, lon_lat_fname, out_fname=None,
 
 
 def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
-                     compression='lzf', max_angle=9.0, tle_path=None):
+                     compression='lzf', max_angle=9.0, tle_path=None,
+                     y_tile=None):
     """
     Calculate the satellite view, satellite azimuth, solar zenith,
     solar azimuth, and relative aziumth angle grids, as well as the
@@ -723,17 +725,18 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
         The maximum satellite view angle to use within the workflow.
         Default is 9.0 degrees.
 
+    :param y_tile:
+        Defines the tile size along the y-axis. Default is None which
+        equates to all elements along the y-axis.
+
     :return:
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
     """
-    # Get the datetime of the acquisition
-    dt = acquisition.scene_center_datetime
-
-    # Compute the geobox
-    geobox = acquisition.gridded_geo_box()
-
-    # Image projection
+    acq = acquisition
+    dt = acq.scene_center_datetime
+    century = calculate_julian_century(dt)
+    geobox = acq.gridded_geo_box()
     prj = geobox.crs.ExportToWkt()
 
     # Min and Max lat extents
@@ -750,8 +753,8 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
     # Get the lat/lon of the scene centre
     # check if we have a file with GPS satellite track points
     # which can be used for cases of image granules/tiles, eg Sentinel-2A
-    if acquisition.gps_file:
-        points = acquisition.read_gps_file()
+    if acq.gps_file:
+        points = acq.read_gps_file()
         subs = points[(points.lat >= min_lat) & (points.lat <= max_lat)]
         idx = subs.shape[0] // 2 - 1
         centre_xy = (subs.iloc[idx].lon, subs.iloc[idx].lat)
@@ -762,16 +765,8 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
     spheroid, spheroid_dset = setup_spheroid(prj)
 
     # Get the satellite orbital elements
-    sat_ephemeral = load_tle(acquisition, tle_path)
-
-    orbital_elements, orb_dset = setup_orbital_elements(sat_ephemeral, dt,
-                                                        acquisition)
-
-    # Scene centre in time stamp in decimal hours
-    hours = acquisition.decimal_hour
-
-    # Calculate the julian century past JD2000
-    century = calculate_julian_century(dt)
+    sat_ephemeral = load_tle(acq, tle_path)
+    orbital_elements, orb_dset = setup_orbital_elements(sat_ephemeral, dt, acq)
 
     # Get the satellite model paramaters
     smodel, smodel_dset = setup_smodel(centre_xy[0], centre_xy[1], spheroid,
@@ -780,20 +775,6 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
     # Get the times and satellite track information
     track, track_dset = setup_times(min_lat, max_lat, spheroid,
                                     orbital_elements, smodel)
-
-    # Array dimensions
-    cols = acquisition.samples
-    rows = acquisition.lines
-    dims = (rows, cols)
-
-    # Initialise 1D arrays to hold the angles
-    out_dtype = 'float32'
-    view = np.zeros((1, cols), dtype=out_dtype)
-    azi = np.zeros((1, cols), dtype=out_dtype)
-    asol = np.zeros((1, cols), dtype=out_dtype)
-    soazi = np.zeros((1, cols), dtype=out_dtype)
-    rela_angle = np.zeros((1, cols), dtype=out_dtype)
-    time = np.zeros((1, cols), dtype=out_dtype)
 
     # Initialise the output files
     if out_fname is None:
@@ -804,11 +785,11 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
 
     # store the parameter settings used with the satellite and solar angles
     # function
-    params = {'dimensions': dims,
-              'lines': rows,
-              'samples': cols,
+    params = {'dimensions': (acq.lines, acq.samples),
+              'lines': acq.lines,
+              'samples': acq.samples,
               'century': century,
-              'hours': hours,
+              'hours': acq.decimal_hour,
               'scene_acquisition_datetime_iso': dt.isoformat(),
               'centre_longitude_latitude': centre_xy,
               'minimum_latiude': min_lat,
@@ -818,10 +799,11 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
     _store_parameter_settings(fid, spheroid_dset, orb_dset,
                               smodel_dset, track_dset, params)
 
+    out_dtype = 'float32'
     no_data = -999
     kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(1, cols))
-    kwargs['shape'] = dims
+                                        chunks=(y_tile, acquisition.samples))
+    kwargs['shape'] = (acquisition.lines, acquisition.samples)
     kwargs['fillvalue'] = no_data
     kwargs['dtype'] = out_dtype
 
@@ -864,37 +846,40 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
     attach_image_attributes(time_ds, attrs)
 
     # Initialise centre line variables
-    x_cent = np.zeros((rows), dtype='float32')
-    n_cent = np.zeros((rows), dtype='float32')
+    x_cent = np.zeros((acq.lines), dtype=out_dtype)
+    n_cent = np.zeros((acq.lines), dtype=out_dtype)
 
     # Initialise the tile generator for processing
-    # Process 1 row of data at a time
-    tiles = generate_tiles(cols, rows, cols, 1)
+    tiles = generate_tiles(acq.samples, acq.lines, acq.samples, y_tile)
 
-    for i, tile in enumerate(tiles):
+    row_id = 0
+    for tile in tiles:
         idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
 
         # read the lon and lat tile
         lon_data = lon_dataset[idx]
         lat_data = lat_dataset[idx]
 
-        # set to null value
-        view[:] = no_data
-        azi[:] = no_data
-        asol[:] = no_data
-        soazi[:] = no_data
-        rela_angle[:] = no_data
-        time[:] = no_data
+        view = np.full(lon_data.shape, no_data, dtype=out_dtype)
+        azi = np.full(lon_data.shape, no_data, dtype=out_dtype)
+        asol = np.full(lon_data.shape, no_data, dtype=out_dtype)
+        soazi = np.full(lon_data.shape, no_data, dtype=out_dtype)
+        rela_angle = np.full(lon_data.shape, no_data, dtype=out_dtype)
+        time = np.full(lon_data.shape, no_data, dtype=out_dtype)
 
-        stat = angle(cols, rows, i + 1, lat_data, lon_data, spheroid,
-                     orbital_elements, hours, century, 12, smodel,
-                     track, view[0], azi[0], asol[0], soazi[0], rela_angle[0],
-                     time[0], x_cent, n_cent)
+        for i in range(lon_data.shape[0]):
+            stat = angle(acq.samples, acq.lines, row_id + 1, lat_data[i],
+                         lon_data[i], spheroid, orbital_elements,
+                         acq.decimal_hour, century, 12, smodel, track, view[i],
+                         azi[i], asol[i], soazi[i], rela_angle[i], time[i],
+                         x_cent, n_cent)
 
-        if stat != 0:
-            msg = ("Error in calculating angles at row: {}.\n"
-                   "No interval found in track!")
-            raise RuntimeError(msg.format(i))
+            if stat != 0:
+                msg = ("Error in calculating angles at row: {}.\n"
+                       "No interval found in track!")
+                raise RuntimeError(msg.format(i))
+
+            row_id += 1
 
         # output to disk
         sat_v_ds[idx] = view
