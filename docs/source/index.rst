@@ -20,6 +20,7 @@ Contents:
    invoking
    acquisitions
    hdf5
+   atmospherics
    scripts
    unittesting
 
