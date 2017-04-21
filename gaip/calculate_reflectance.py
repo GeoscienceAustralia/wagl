@@ -248,7 +248,7 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
         fid = h5py.File(out_fname, 'w')
 
     kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(y_tile, acq.samples))
+                                        chunks=(1, acq.samples))
     kwargs['shape'] = (acq.lines, acq.samples)
     kwargs['fillvalue'] = -999
     kwargs['dtype'] = 'int16'

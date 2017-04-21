@@ -98,7 +98,7 @@ def self_shadow(incident_dataset, exiting_dataset, geobox, out_fname,
         fid = h5py.File(out_fname, 'w')
 
     kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(y_tile, geobox.x_size()))
+                                        chunks=(1, geobox.x_size()))
     cols, rows = geobox.get_shape_xy()
     kwargs['shape'] = (rows, cols)
     kwargs['dtype'] = 'bool'
@@ -444,7 +444,7 @@ def calculate_cast_shadow(acquisition, dsm_dataset, margins, block_height,
         fid = h5py.File(out_fname, 'w')
 
     kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(y_tile, geobox.x_size()))
+                                        chunks=(1, geobox.x_size()))
     kwargs['dtype'] = 'bool'
 
     dname_fmt = DatasetName.cast_shdadow_fmt.value
@@ -559,7 +559,7 @@ def combine_shadow_masks(self_shadow, cast_shadow_sun, cast_shadow_satellite,
         fid = h5py.File(out_fname, 'w')
 
     kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(y_tile, geobox.x_size()))
+                                        chunks=(1, geobox.x_size()))
     cols, rows = geobox.get_shape_xy()
     kwargs['shape'] = (rows, cols)
     kwargs['dtype'] = 'bool'

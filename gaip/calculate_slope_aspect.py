@@ -129,7 +129,7 @@ def slope_aspect_arrays(acquisition, dsm_dataset, margins, out_fname=None,
     group.attrs['pixel_buffer'] = '1 pixel'
 
     kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(y_tile, geobox.x_size()))
+                                        chunks=(1, geobox.x_size()))
     no_data = -999
     kwargs['fillvalue'] = no_data
 

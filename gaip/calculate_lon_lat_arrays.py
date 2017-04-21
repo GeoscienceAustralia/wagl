@@ -160,7 +160,7 @@ def create_lon_lat_grids(geobox, out_fname=None, compression='lzf', depth=7,
 
     attrs['Description'] = LON_DESC
     kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(y_tile, geobox.x_size()))
+                                        chunks=(1, geobox.x_size()))
     lon_dset = fid.create_dataset(DatasetName.lon.value, data=result, **kwargs)
     attach_image_attributes(lon_dset, attrs)
 
@@ -250,7 +250,7 @@ def create_lon_grid(geobox, out_fname=None, compression='lzf', depth=7,
              'geotransform': geobox.transform.to_gdal()}
     attrs['Description'] = LON_DESC
     kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(y_tile, geobox.x_size()))
+                                        chunks=(1, geobox.x_size()))
 
     lon_grid = create_grid(geobox, get_lon_coordinate, depth, dtype)
 
@@ -307,7 +307,7 @@ def create_lat_grid(geobox, out_fname=None, compression='lzf', depth=7,
              'geotransform': geobox.transform.to_gdal()}
     attrs['Description'] = LAT_DESC
     kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(y_tile, geobox.x_size()))
+                                        chunks=(1, geobox.x_size()))
 
     lat_grid = create_grid(geobox, get_lat_coordinate, depth, dtype)
 
