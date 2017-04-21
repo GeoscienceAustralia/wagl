@@ -29,7 +29,7 @@ Software requirements
 Radiative Transfer packages
 ---------------------------
 
-* `MODTRAN <http://www.ontar.com/software/productdetails.aspx?item=modtran/>`_.
+* `MODTRAN <http://modtran.spectral.com/>`_.
 
 
 Ancillary
