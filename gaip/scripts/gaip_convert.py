@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+"""
+A recursive utility that extracts all SCALAR, IMAGE & TABLE datasets
+from a HDF5 file. Any hierarchial structure will be replicated on
+disk as directories.
+"""
+
 import os
 from os.path import join as pjoin, normpath, dirname, exists, basename
 from posixpath import join as ppjoin
@@ -21,6 +27,7 @@ def convert_image(dataset, output_directory):
     with deflate zlevel 1 compression.
     Any attributes stored with the image will be written as dataset
     level metadata tags, and not band level tags.
+    All attributes will also be written to a yaml file.
 
     :param dataset:
         A HDF5 `IMAGE` Class dataset.
@@ -48,20 +55,24 @@ def convert_image(dataset, output_directory):
               'tags': tags,
               'nodata': no_data}
 
-    out_fname = pjoin(output_directory, normpath(dataset.name.strip('/')))
-    out_fname = ''.join([out_fname, '.tif'])
+    base_fname = pjoin(output_directory, normpath(dataset.name.strip('/')))
+    out_fname = ''.join([base_fname, '.tif'])
 
     if not exists(dirname(out_fname)):
         os.makedirs(dirname(out_fname))
 
     write_img(dataset, out_fname, **kwargs)
 
+    out_fname = ''.join([base_fname, '.yaml'])
+    tags = {k: v for k, v in dataset.attrs.items()}
+    with open(out_fname, 'w') as src:
+        yaml.dump(tags, src, default_flow_style=False)
+
 
 def convert_table(group, dataset_name, output_directory):
     """
     Converts a HDF5 `TABLE` Class dataset to a csv file.
-    Any attributes stored with the table will not be carried across
-    with the csv.
+    All attributes will be written to a yaml file.
 
     :param dataset_name:
         A `str` containing the pathname to the HDF5 `Table` Class
@@ -75,20 +86,26 @@ def convert_table(group, dataset_name, output_directory):
         None, outputs are written directly to disk.
     """
     df = read_table(group, dataset_name)
+    dataset = group[dataset_name]
+    tags = {k: v for k, v in dataset.attrs.items()}
 
-    out_fname = pjoin(output_directory, normpath(dataset_name.strip('/')))
-    out_fname = ''.join([out_fname, '.csv'])
+    base_fname = pjoin(output_directory, normpath(dataset_name.strip('/')))
+    out_fname = ''.join([base_fname, '.csv'])
 
     if not exists(dirname(out_fname)):
         os.makedirs(dirname(out_fname))
 
     df.to_csv(out_fname)
 
+    out_fname = ''.join([base_fname, '.yaml'])
+    with open(out_fname, 'w') as src:
+        yaml.dump(tags, src, default_flow_style=False)
+
 
 def convert_scalar(dataset, output_directory):
     """
     Converts a HDF5 scalar dataset to a yaml file.
-    All attributes will be output.
+    All attributes will be included in the yaml file.
 
     :param dataset:
         A HDF5 scalar dataset.
@@ -103,8 +120,8 @@ def convert_scalar(dataset, output_directory):
     tags = {k: v for k, v in dataset.attrs.items()}
     tags[basename(dataset.name)] = dataset[()]
 
-    out_fname = pjoin(output_directory, normpath(dataset.name.strip('/')))
-    out_fname = ''.join([out_fname, '.yaml'])
+    base_fname = pjoin(output_directory, normpath(dataset.name.strip('/')))
+    out_fname = ''.join([base_fname, '.yaml'])
 
     if not exists(dirname(out_fname)):
         os.makedirs(dirname(out_fname))
