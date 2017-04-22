@@ -401,6 +401,9 @@ def calculate_coefficients(atmospheric_fname, out_fname, compression='lzf'):
     nbar_coefficients = pd.DataFrame()
     sbt_coefficients = pd.DataFrame()
     nbar_albedos = Model.nbar.albedos
+    accumulation_albedo_0 = accumulation_albedo_1 = None
+    accumulation_albedo_t = None
+    channel_data = upward = downward None
     with h5py.File(atmospheric_fname, 'r') as fid:
         npoints = fid.attrs['npoints']
         nbar_atmos = fid.attrs['nbar atmospherics']
