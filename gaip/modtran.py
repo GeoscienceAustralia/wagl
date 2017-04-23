@@ -330,7 +330,7 @@ def run_modtran(acquisitions, modtran_exe, basedir, point, albedos,
             # output the altitude data
             attrs = base_attrs.copy()
             attrs['Description'] = 'Altitudes output from MODTRAN'
-            attrs['altitude levels'] = altitudes.shape[0]
+            attrs['altitude_levels'] = altitudes.shape[0]
             attrs['units'] = 'km'
             dset_name = ppjoin(group_path, DatasetName.altitudes.value)
             write_dataframe(altitudes, dset_name, fid, attrs=attrs)
@@ -405,8 +405,8 @@ def calculate_coefficients(atmospheric_fname, out_fname, compression='lzf'):
     channel_data = upward = downward None
     with h5py.File(atmospheric_fname, 'r') as fid:
         npoints = fid.attrs['npoints']
-        nbar_atmos = fid.attrs['nbar atmospherics']
-        sbt_atmos = fid.attrs['sbt atmospherics']
+        nbar_atmos = fid.attrs['nbar_atmospherics']
+        sbt_atmos = fid.attrs['sbt_atmospherics']
 
         for point in range(npoints):
             grp_path = ppjoin(POINT_FMT.format(p=point), ALBEDO_FMT)
@@ -555,15 +555,8 @@ def coefficients(accumulation_albedo_0=None, accumulation_albedo_1=None,
         tv_dir = dir_t / dirt_top
 
         # TODO: better descriptive names
-        columns = ['point',
-                   'fs',
-                   'fv',
-                   'a',
-                   'b',
-                   's',
-                   'dir',
-                   'dif',
-                   'ts']
+        columns = ['point']
+        columns.extend(Model.nbar.factors)
         nbar = pd.DataFrame(columns=columns, index=channel_data.index)
 
         nbar['point'] = point
@@ -577,18 +570,16 @@ def coefficients(accumulation_albedo_0=None, accumulation_albedo_1=None,
         nbar['ts'] = ts_dir
 
     if upward_radiation is not None:
-        columns = ['point',
-                   'path_up',
-                   'transmittance_up',
-                   'path_down',
-                   'transmittance_down']
+        columns = ['point']
+        columns.extend(Model.sbt.factors)
+        columns.extend('transmittance-down')
         sbt = pd.DataFrame(columns=columns, index=upward_radiation.index)
 
         sbt['point'] = point
-        sbt['path_up'] = upward_radiation['3'] * 10000000
-        sbt['transmittance_up'] = upward_radiation['14']
-        sbt['path_down'] = downward_radiation['3'] * 10000000
-        sbt['transmittance_down'] = downward_radiation['14']
+        sbt['path-up'] = upward_radiation['3'] * 10000000
+        sbt['transmittance-up'] = upward_radiation['14']
+        sbt['path-down'] = downward_radiation['3'] * 10000000
+        sbt['transmittance-down'] = downward_radiation['14']
 
     return nbar, sbt
 
@@ -964,7 +955,7 @@ def link_atmospheric_results(input_targets, out_fname, npoints):
 
     with h5py.File(out_fname) as fid:
         fid.attrs['npoints'] = npoints
-        fid.attrs['nbar atmospherics'] = nbar_atmospherics
-        fid.attrs['sbt atmospherics'] = sbt_atmospherics
+        fid.attrs['nbar_atmospherics'] = nbar_atmospherics
+        fid.attrs['sbt_atmospherics'] = sbt_atmospherics
 
     return

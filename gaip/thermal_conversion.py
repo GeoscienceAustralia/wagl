@@ -17,7 +17,6 @@ from gaip.hdf5 import attach_image_attributes
 from gaip.tiling import generate_tiles
 
 
-# TODO: get required factor names from DatasetName
 def _surface_brightness_temperature(acquisition, bilinear_fname, out_fname,
                                     compression, y_tile):
     """
@@ -25,9 +24,11 @@ def _surface_brightness_temperature(acquisition, bilinear_fname, out_fname,
     NBAR workflow.
     """
     band_num = acquisition.band_num
+    dname_fmt = DatasetName.interpolation_fmt.value
     with h5py.File(bilinear_fname, 'r') as fid:
-        upwelling_dset = fid['path_up-band-{band}'.format(band=band_num)]
-        dname = 'transmittance_up-band-{band}'.format(band=band_num)
+        dname = dname_fmt.format(factor='path-up', band=band_num)
+        upwelling_dset = fid[dname]
+        dname = dname_fmt.format(factor='transmittance-up', band=band_num)
         transmittance_dset = fid[dname]
 
         kwargs = {'acquisition': acquisition,
