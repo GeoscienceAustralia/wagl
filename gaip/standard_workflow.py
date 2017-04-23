@@ -359,13 +359,14 @@ class BilinearInterpolationBand(luigi.Task):
     Runs the bilinear interpolation function for a given band.
     """
 
+    vertices = luigi.TupleParameter(default=(5, 5), significant=False)
     band_num = luigi.Parameter()
     factor = luigi.Parameter()
     base_dir = luigi.Parameter(default='_bilinear', significant=False)
     model = luigi.EnumParameter(enum=Model)
 
     def requires(self):
-        args = [self.level1, self.work_root, self.granule]
+        args = [self.level1, self.work_root, self.granule, self.vertices]
         return {'coef': CalculateCoefficients(*args, model=self.model),
                 'satsol': self.clone(CalculateSatelliteAndSolarGrids),
                 'ancillary': AncillaryData(*args, model=self.model)}
