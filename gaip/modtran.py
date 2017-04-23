@@ -466,7 +466,7 @@ def calculate_coefficients(atmospheric_fname, out_fname, compression='lzf'):
     attrs['Description'] = description
     dname = DatasetName.nbar_coefficients.value
 
-    if nbar_coefficients is not None:
+    if nbar_atmos:
         write_dataframe(nbar_coefficients, dname, fid, compression,
                         attrs=attrs)
 
@@ -474,7 +474,7 @@ def calculate_coefficients(atmospheric_fname, out_fname, compression='lzf'):
     attrs['Description'] = description
     dname = DatasetName.sbt_coefficients.value
 
-    if sbt_coefficients is not None:
+    if sbt_atmos:
         write_dataframe(sbt_coefficients, dname, fid, compression, attrs=attrs)
 
     fid.flush()
