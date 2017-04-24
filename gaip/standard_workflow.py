@@ -866,7 +866,7 @@ class ARD(luigi.WrapperTask):
     work_extension = luigi.Parameter(default='.gaip-work', significant=False)
     model = luigi.EnumParameter(enum=Model)
     vertices = luigi.TupleParameter(default=(5, 5), significant=False)
-    pixel_quality = luigi.BoolParameter(default=True)
+    pixel_quality = luigi.BoolParameter()
 
     def requires(self):
         with open(self.level1_csv) as src:
