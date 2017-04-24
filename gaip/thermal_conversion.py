@@ -213,13 +213,10 @@ def temperature_conversion(band_array, k1, k2):
     return k2 / (numpy.log(k1 / band_array + 1))
 
 
-def get_landsat_temperature(l1t_stack, acquisitions, pq_const):
+def get_landsat_temperature(acquisitions, pq_const):
     """
     Converts a Landsat TM/ETM+ thermal band into degrees Kelvin.
     Required input is the image to be in byte scaled DN form (0-255).
-
-    :param l1t_stack:
-        A 3D `numpy.ndarray` containing the thermal band.
 
     :param acquisitions:
         A list of acquisition instances.
@@ -233,23 +230,10 @@ def get_landsat_temperature(l1t_stack, acquisitions, pq_const):
     acqs = acquisitions
     thermal_band = pq_const.thermal_band
 
-    if type(thermal_band) == str:
-        kelvin_array = numpy.zeros((l1t_stack.shape[1],
-                                    l1t_stack.shape[2]), dtype='float32')
-        return kelvin_array
-
     # Function returns a list of one item. Take the first item.
-    thermal_band_index = pq_const.get_array_band_lookup([thermal_band])[0]
+    acq = acqs[pq_const.get_array_band_lookup([thermal_band])[0]]
+    radiance = acq.data(apply_gain_offset=True)
 
-    logging.debug('thermal_band = %d, thermal_band_index = %d',
-                  thermal_band, thermal_band_index)
-
-    radiance_array = radiance_conversion(l1t_stack[thermal_band_index],
-                                         acqs[thermal_band_index].gain,
-                                         acqs[thermal_band_index].bias)
-
-    kelvin_array = temperature_conversion(radiance_array,
-                                          acqs[thermal_band_index].K1,
-                                          acqs[thermal_band_index].K2)
+    kelvin_array = temperature_conversion(radiance, acq.K1, acq.K2)
 
     return kelvin_array.astype('float32')

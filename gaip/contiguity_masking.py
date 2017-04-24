@@ -3,31 +3,28 @@ Contiguity Mask
 ---------------
 """
 from __future__ import absolute_import, print_function
-import numpy
 import logging
+import numpy
 
 from scipy import ndimage
 from idl_functions import histogram
+from gaip.data import stack_data
+from gaip.tiling import generate_tiles
 
 
-def calc_contiguity_mask(image_stack, spacecraft_id):
+def calc_contiguity_mask(acquisitions, spacecraft_id):
     """
     Determines locations of null values.
 
     Null values for every band are located in order to create band
     contiguity.
 
-    :param image:
-        An nD Numpy array of all bands (ordered).
+    :param acquisitions:
+        A `list` of `acquisition` objects.
 
-    :param mask:
-        Output array.
-
-    :param slc_off:
-        Whether to perform image scaling to flag potential
-        saturated/non-contiguous pixels. Should only be applied to Non
-        landsat 7 products. (L7 products prior to slc-off could be run).
-        Default is False.
+    :param spacecraft_id:
+        A `str` containing the spacecraft id as given by
+        `acquisition.spacecraft_id`.
 
     :return:
         A single ndarray determining band/pixel contiguity. 1 for
@@ -36,21 +33,23 @@ def calc_contiguity_mask(image_stack, spacecraft_id):
     :notes:
         Attempts to flag thermal anomolies for Landsat 5TM as well.
     """
-
-    if len(image_stack) == 0:
-        return None
-
-    assert type(image_stack[0]) == numpy.ndarray, 'Input is not valid'
-    assert len(image_stack.shape) == 3, 'Input array must contain 3 dims!'
+    cols = acquisitions[0].samples
+    rows = acquisitions[0].lines
+    tiles = list(generate_tiles(cols, rows, cols))
 
     logging.debug('Determining pixel contiguity')
     # Create mask array with True for all pixels which are non-zero in all
     # bands
-    mask = image_stack.all(0)
+    mask = numpy.zeros((rows, cols), dtype='bool')
+
+    for tile in tiles:
+        idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
+        stack, _ = stack_data(acquisitions, window=tile)
+        mask[idx] = stack.all(0)
 
     # The following is only valid for Landsat 5 images
     logging.debug('calc_contiguity_mask: spacecraft_id=%s', spacecraft_id)
-    if spacecraft_id == 'Landsat5':
+    if spacecraft_id == 'LANDSAT_5':
         logging.debug('Finding thermal edge anomalies')
         # Apply thermal edge anomalies
         struct = numpy.ones((7, 7), dtype='bool')
@@ -63,11 +62,11 @@ def calc_contiguity_mask(image_stack, spacecraft_id):
         pix_3buff_mask[pix_3buff_mask > 0] = 1
         edge = pix_3buff_mask == 1
 
-        low_sat = image_stack[5, :, :] == 1
+        low_sat = acquisitions[5].data() == 1
         low_sat_buff = ndimage.binary_dilation(low_sat, structure=struct)
 
         s = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
-        low_sat, num_labels = ndimage.label(low_sat_buff, structure=s)
+        low_sat, _ = ndimage.label(low_sat_buff, structure=s)
 
         labels = low_sat[edge]
         ulabels = numpy.unique(labels[labels > 0])
@@ -89,8 +88,8 @@ def calc_contiguity_mask(image_stack, spacecraft_id):
     return mask
 
 
-def set_contiguity_bit(l1t_data, spacecraft_id, pq_const, pqa_result):
+def set_contiguity_bit(l1t_acqs, spacecraft_id, pq_const, pqa_result):
     """Set the contiguity bit."""
-    mask = calc_contiguity_mask(l1t_data, spacecraft_id)
+    mask = calc_contiguity_mask(l1t_acqs, spacecraft_id)
     bit_index = pq_const.contiguity
     pqa_result.set_mask(mask, bit_index)
