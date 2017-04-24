@@ -16,7 +16,8 @@ import gaip
 from gaip.acca_cloud_masking import calc_acca_cloud_mask
 from gaip.acquisition import acquisitions
 from gaip.cloud_shadow_masking import cloud_shadow
-from gaip.constants import DatasetName, NBARConstants, PQAConstants, PQbits
+from gaip.constants import BandType, DatasetName, NBARConstants
+from gaip.constants import PQAConstants, PQbits
 from gaip.contiguity_masking import set_contiguity_bit
 from gaip.fmask_cloud_masking_wrapper import fmask_cloud_mask
 from gaip.hdf5 import dataset_compression_kwargs, write_h5_image
@@ -37,7 +38,7 @@ def can_pq(level1):
     :return:
         True if the scene can be processed through PQ, else False.
     """
-    supported = ['LANDSAT_7', 'LANDSAT_7', 'LANDSAT_8']
+    supported = ['LANDSAT_5', 'LANDSAT_7', 'LANDSAT_8']
     acq = acquisitions(level1).get_acquisitions()[0]
     return acq.spacecraft_id in supported
 
@@ -196,7 +197,7 @@ def run_pq(level1, standardised_data_fname, land_sea_path, compression='lzf'):
     geo_box = acqs[0].gridded_geo_box()
 
     # filter out unwanted acquisitions
-    acqs = [acq for acq in acqs if acq.band_type != gaip.PAN]
+    acqs = [acq for acq in acqs if acq.band_type != BandType.Panchromatic]
 
     spacecraft_id = acqs[0].spacecraft_id
     sensor = acqs[0].sensor_id
