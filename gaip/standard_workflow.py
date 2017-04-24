@@ -402,7 +402,7 @@ class BilinearInterpolation(luigi.Task):
     a single file for easy access.
     """
 
-    vertices = luigi.TupleParameter(default=(5, 5), significant=False)
+    vertices = luigi.TupleParameter(significant=False)
     model = luigi.EnumParameter(enum=Model)
 
     def requires(self):
