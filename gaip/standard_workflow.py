@@ -134,7 +134,7 @@ class AncillaryData(luigi.Task):
     level1 = luigi.Parameter()
     work_root = luigi.Parameter(significant=False)
     granule = luigi.Parameter(default=None)
-    vertices = luigi.TupleParameter(default=(5, 5), significant=False)
+    vertices = luigi.TupleParameter(significant=False)
     model = luigi.EnumParameter(enum=Model)
     aerosol_fname = luigi.Parameter(significant=False)
     brdf_path = luigi.Parameter(significant=False)
@@ -197,7 +197,7 @@ class WriteTp5(luigi.Task):
     level1 = luigi.Parameter()
     work_root = luigi.Parameter(significant=False)
     granule = luigi.Parameter(default=None)
-    vertices = luigi.TupleParameter(default=(5, 5), significant=False)
+    vertices = luigi.TupleParameter(significant=False)
     model = luigi.EnumParameter(enum=Model)
     base_dir = luigi.Parameter(default='_atmospherics', significant=False)
     compression = luigi.Parameter(default='lzf', significant=False)
@@ -311,7 +311,7 @@ class Atmospherics(luigi.Task):
     combined = luigi.BoolParameter(default=True)
 
     def requires(self):
-        args = [self.level1, self.work_root, self.granule]
+        args = [self.level1, self.work_root, self.granule, self.vertices]
         for point in range(self.vertices[0] * self.vertices[1]):
             kwargs = {'point': point, 'model': self.model}
             if self.combined:
@@ -359,7 +359,7 @@ class BilinearInterpolationBand(luigi.Task):
     Runs the bilinear interpolation function for a given band.
     """
 
-    vertices = luigi.TupleParameter(default=(5, 5), significant=False)
+    vertices = luigi.TupleParameter(significant=False)
     band_num = luigi.Parameter()
     factor = luigi.Parameter()
     base_dir = luigi.Parameter(default='_bilinear', significant=False)
@@ -402,6 +402,7 @@ class BilinearInterpolation(luigi.Task):
     a single file for easy access.
     """
 
+    vertices = luigi.TupleParameter(default=(5, 5), significant=False)
     model = luigi.EnumParameter(enum=Model)
 
     def requires(self):
@@ -434,7 +435,7 @@ class BilinearInterpolation(luigi.Task):
                 kwargs = {'level1': self.level1, 'work_root': self.work_root,
                           'granule': self.granule, 'group': self.group,
                           'band_num': band, 'factor': factor,
-                          'model': self.model}
+                          'model': self.model, 'vertices': self.vertices}
                 tasks[key] = BilinearInterpolationBand(**kwargs)
         return tasks
 
@@ -717,7 +718,7 @@ class CalculateShadowMasks(luigi.Task):
                             self.y_tile)
 
 
-@inherits(IncidentAngles)
+@inherits(BilinearInterpolation)
 class SurfaceReflectance(luigi.Task):
 
     """Run the terrain correction over a given band."""
@@ -725,12 +726,10 @@ class SurfaceReflectance(luigi.Task):
     band_num = luigi.Parameter()
     rori = luigi.FloatParameter(default=0.52, significant=False)
     base_dir = luigi.Parameter(default='_standardised', significant=False)
-    model = luigi.EnumParameter(enum=Model)
 
     def requires(self):
-        args = [self.level1, self.work_root, self.granule, self.group]
-        reqs = {'bilinear': BilinearInterpolation(*args, model=self.model),
-                'ancillary': AncillaryData(*args[:-1], model=self.model),
+        reqs = {'bilinear': self.clone(BilinearInterpolation),
+                'ancillary': self.clone(AncillaryData),
                 'rel_slope': self.clone(RelativeAzimuthSlope),
                 'shadow': self.clone(CalculateShadowMasks),
                 'slp_asp': self.clone(SlopeAndAspect),
