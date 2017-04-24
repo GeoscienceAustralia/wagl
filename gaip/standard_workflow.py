@@ -780,8 +780,7 @@ class SurfaceTemperature(luigi.Task):
     """
 
     def requires(self):
-        args = [self.level1, self.work_root, self.granule, self.group]
-        return BilinearInterpolation(*args, model=self.model)
+        return self.clone(BilinearInterpolation)
 
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
@@ -832,7 +831,8 @@ class Standard(luigi.Task):
         for band in bands:
             kwargs = {'level1': self.level1, 'work_root': self.work_root,
                       'granule': self.granule, 'group': self.group,
-                      'band_num': band.band_num, 'model': self.model}
+                      'band_num': band.band_num, 'model': self.model,
+                      'vertices': self.vertices}
             if band.band_type == BandType.Thermal:
                 tasks.append(SurfaceTemperature(**kwargs))
             else:
