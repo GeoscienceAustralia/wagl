@@ -35,6 +35,8 @@ from gaip.modtran import calculate_coefficients, prepare_modtran
 from gaip.modtran import link_atmospheric_results
 from gaip.interpolation import _bilinear_interpolate, link_bilinear_data
 from gaip.thermal_conversion import _surface_brightness_temperature
+from gaip.pq_workflow import PixelQualityTask
+from gaip.pqa_utils import can_pq
 
 
 def get_buffer(group):
@@ -865,6 +867,7 @@ class ARD(luigi.WrapperTask):
         with open(self.level1_csv) as src:
             level1_scenes = [scene.strip() for scene in src.readlines()]
 
+        reqs = []
         for scene in level1_scenes:
             work_name = basename(scene) + self.work_extension
             work_root = pjoin(self.output_directory, work_name)
@@ -874,7 +877,11 @@ class ARD(luigi.WrapperTask):
                     kwargs = {'level1': scene, 'work_root': work_root,
                               'granule': granule, 'group': group,
                               'model': self.model, 'vertices': self.vertices}
-                    yield Standard(**kwargs)
+
+                    if can_pq(container):
+                        reqs.append(PixelQualityTask(**kwargs))
+                    reqs.append(Standard(**kwargs))
+        return reqs
 
         
 if __name__ == '__main__':
