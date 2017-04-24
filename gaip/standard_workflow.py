@@ -35,8 +35,7 @@ from gaip.modtran import calculate_coefficients, prepare_modtran
 from gaip.modtran import link_atmospheric_results
 from gaip.interpolation import _bilinear_interpolate, link_bilinear_data
 from gaip.thermal_conversion import _surface_brightness_temperature
-from gaip.pq_workflow import PixelQualityTask
-from gaip.pqa_utils import can_pq
+from gaip.pq import can_pq, run_pq
 
 
 def get_buffer(group):
@@ -807,6 +806,8 @@ class Standard(luigi.Task):
     Issues standardisation (analysis ready) tasks for both
     SurfaceReflectance and SurfaceTemperature.
     """
+    land_sea_path = luigi.Parameter()
+    pixel_quality = luigi.BoolParameter()
 
     def requires(self):
         bands = []
@@ -851,6 +852,9 @@ class Standard(luigi.Task):
         with self.output().temporary_path() as out_fname:
             fnames = [target.path for target in self.input()]
             link_standard_data(fnames, out_fname)
+            if self.pixel_quality and can_pq(self.level1):
+                run_pq(self.level1, out_fname, self.land_sea_path,
+                       self.compression)
 
 
 class ARD(luigi.WrapperTask):
@@ -862,12 +866,12 @@ class ARD(luigi.WrapperTask):
     work_extension = luigi.Parameter(default='.gaip-work', significant=False)
     model = luigi.EnumParameter(enum=Model)
     vertices = luigi.TupleParameter(default=(5, 5), significant=False)
+    pixel_quality = luigi.BoolParameter(default=True)
 
     def requires(self):
         with open(self.level1_csv) as src:
             level1_scenes = [scene.strip() for scene in src.readlines()]
 
-        reqs = []
         for scene in level1_scenes:
             work_name = basename(scene) + self.work_extension
             work_root = pjoin(self.output_directory, work_name)
@@ -875,13 +879,10 @@ class ARD(luigi.WrapperTask):
             for granule in container.granules:
                 for group in container.groups:
                     kwargs = {'level1': scene, 'work_root': work_root,
-                              'granule': granule, 'group': group,
-                              'model': self.model, 'vertices': self.vertices}
-
-                    if can_pq(container):
-                        reqs.append(PixelQualityTask(**kwargs))
-                    reqs.append(Standard(**kwargs))
-        return reqs
+                              'granule': granule, 'group': group, 
+                              'model': self.model, 'vertices': self.vertices,
+                              'pixel_quality': self.pixel_quality}
+                    yield Standard(**kwargs)
 
         
 if __name__ == '__main__':
