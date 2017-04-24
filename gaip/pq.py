@@ -25,19 +25,20 @@ from gaip.saturation_masking import set_saturation_bits
 from gaip.thermal_conversion import get_landsat_temperature
 
 
-def can_pq(scene):
+def can_pq(level1):
     """
     A simple test to check if we can process a scene through the
     pq pipeline.
 
-    :param scene:
-        An `AcquisitionsContainer`.
+    :param level1:
+        An `str` containing the file path name to the directory
+        containing the level-1 data.
 
     :return:
         True if the scene can be processed through PQ, else False.
     """
     supported = ['LANDSAT_7', 'LANDSAT_7', 'LANDSAT_8']
-    acq = scene.get_acquisitions()[0]
+    acq = acquisitions(level1).get_acquisitions()[0]
     return acq.spacecraft_id in supported
 
 
