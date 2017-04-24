@@ -859,6 +859,7 @@ class ARD(luigi.WrapperTask):
     output_directory = luigi.Parameter()
     work_extension = luigi.Parameter(default='.gaip-work', significant=False)
     model = luigi.EnumParameter(enum=Model)
+    vertices = luigi.TupleParameter(default=(5, 5), significant=False)
 
     def requires(self):
         with open(self.level1_csv) as src:
@@ -872,7 +873,7 @@ class ARD(luigi.WrapperTask):
                 for group in container.groups:
                     kwargs = {'level1': scene, 'work_root': work_root,
                               'granule': granule, 'group': group,
-                              'model': self.model}
+                              'model': self.model, 'vertices': self.vertices}
                     yield Standard(**kwargs)
 
         
