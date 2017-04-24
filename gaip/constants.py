@@ -75,6 +75,7 @@ class BandType(Enum):
     Atmosphere = 3
     Quality = 4
 
+
 class DatasetName(Enum):
     """
     Defines the dataset names or format descriptors, that are used
@@ -156,11 +157,24 @@ class DatasetName(Enum):
     nbar_coefficients = 'nbar-coefficients'
     sbt_coefficients = 'sbt-coefficients'
 
+    # gaip.pq
+    pixel_quality = 'pixel-quality'
 
-class ColumnNames(Enum):
 
-    lon = 'longitude'
-    lat = 'latitude'
+class PQbits(Enum):
+    band_1_saturated = 0
+    band_2_saturated = 1
+    band_3_saturated = 2
+    band_4_saturated = 3
+    band_5_saturated = 4
+    band_6_saturated = 5
+    band_7_saturated = 6
+    contiguity = 7
+    land_obs = 8
+    cloud_acca = 9
+    cloud_fmask = 10
+    cloud_shadow_acca = 11
+    cloud_shadow_fmask = 12
 
 
 # TODO: Re-work this entire file, and the class structures
