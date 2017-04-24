@@ -19,8 +19,8 @@ import luigi
 import gaip
 from gaip.acquisition import acquisitions
 from gaip.standard_workflow import Standard
-from gaip.pqa_result import PQAResult
-from gaip.constants import PQAConstants, NBARConstants, DatasetName
+from gaip.pqa_utils import PQAResult
+from gaip.constants import PQAConstants, NBARConstants, DatasetName, Model
 from gaip.saturation_masking import set_saturation_bits
 from gaip.acca_cloud_masking import calc_acca_cloud_mask
 from gaip.contiguity_masking import set_contiguity_bit
@@ -47,21 +47,23 @@ class PQbits(Enum):
 
 class PixelQualityTask(luigi.Task):
 
-    l1t_path = luigi.Parameter()
-    work_root = luigi.Parameter()
+    level1 = luigi.Parameter()
+    work_root = luigi.Parameter(significant=False)
     granule = luigi.Parameter()
     group = luigi.Parameter()
     land_sea_path = luigi.Parameter()
     compression = luigi.Parameter(default='lzf', significant=False)
+    model = luigi.EnumParameter(enum=Model)
+    vertices = luigi.TupleParameter(default=(5, 5), significant=False)
 
     def output(self):
         return luigi.LocalTarget(pjoin(self.work_root, 'pq.h5'))
 
     def requires(self):
-        return Standard(self.level1, self.work_root, self.granule, self.group) 
+        return self.clone(Standard) 
 
     def run(self):
-        container = acquisitions(self.l1t_path)
+        container = acquisitions(self.level1)
         l1t_acqs = container.get_acquisitions(group=self.group)
         geo_box = l1t_acqs[0].gridded_geo_box()
 
@@ -121,7 +123,7 @@ class PixelQualityTask(luigi.Task):
             aux_data = {}   # for collecting result metadata
             
             # TODO: pass in scene metadata via Dale's new MTL reader
-            mtl = glob(os.path.join(self.l1t_path, '*/*_MTL.txt'))[0]
+            mtl = glob(os.path.join(self.level1, '*/*_MTL.txt'))[0]
             mask = gaip.fmask_cloud_mask(mtl, null_mask=contiguity_mask,
                                          sat_tag=spacecraft_id,
                                          aux_data=aux_data)
@@ -238,7 +240,7 @@ class PixelQualityTask(luigi.Task):
         system_info['time_processed'] = dt.utcnow()
 
         source_info = {}
-        source_info['source_l1t'] = self.l1t_path
+        source_info['source_l1t'] = self.level1
         source_info['source_nbar'] = self.work_root
 
         algorithm = {}
@@ -270,6 +272,8 @@ class PQ(luigi.WrapperTask):
     level1_csv = luigi.Parameter()
     output_directory = luigi.Parameter()
     work_extension = luigi.Parameter(default='.gaip-work', significant=False)
+    model = luigi.EnumParameter(enum=Model)
+    vertices = luigi.TupleParameter(default=(5, 5), significant=False)
 
     def requires(self):
         with open(self.level1_csv) as src:
@@ -281,7 +285,10 @@ class PQ(luigi.WrapperTask):
             container = gaip.acquisitions(scene)
             for granule in container.granules:
                 for group in container.groups:
-                    yield PixelQualityTask(scene, work_root, granule, group)
+                    kwargs = {'level1': scene, 'work_root': work_root,
+                              'granule': granule, 'group': group,
+                              'model': self.model, 'vertices': self.vertices}
+                    yield PixelQualityTask(**kwargs)
 
         
 if __name__ == '__main__':
