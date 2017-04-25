@@ -22,6 +22,7 @@ Contents:
    hdf5
    atmospherics
    scripts
+   configuration
    unittesting
 
 Indices and tables
