@@ -11,6 +11,8 @@ Geoscience Australia Image Processor Directory Structure
                 * data
                         Contains small data files required for some unittests.
                 * Contains unittesting modules.
+        * scripts
+                * Contains the source code for command line scripts and utilities.
 
 * docs
         * Documentation build scripts.
@@ -20,5 +22,5 @@ Geoscience Australia Image Processor Directory Structure
 * configs
         * Sample configuration files for overriding luigi parameters, and logging.
 
-* scripts
+* utils
         * Commandline scripts and utilities
