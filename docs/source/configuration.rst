@@ -6,6 +6,9 @@ parameters to Tasks that are higher up in the dependency tree. They can also be 
 
 An example *luigi.cfg* can be found at :file:`../../config/luigi.cfg`.
 
+The easiest way to get the workflow to find the config file, is to place it in the working directory that the luigi workflow was executed from.
+
+
 Configurable options
 --------------------
 
