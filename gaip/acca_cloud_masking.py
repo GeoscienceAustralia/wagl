@@ -666,17 +666,17 @@ def calc_acca_cloud_mask(blue_dataset, green_dataset, red_dataset,
     variables = {'scaling_factor': scaling_factor,
                  'null_nan_array': null_nan_array}
     expr = "array * scaling_factor * null_nan_array"
-    variables['array': blue_dataset}
+    variables['array'] = blue_dataset
     reflectance_stack[0] = numexpr.evaluate(expr, variables)
-    variables['array': green_dataset}
+    variables['array'] = green_dataset
     reflectance_stack[1] = numexpr.evaluate(expr, variables)
-    variables['array': red_dataset}
+    variables['array'] = red_dataset
     reflectance_stack[2] = numexpr.evaluate(expr, variables)
-    variables['array': nir_dataset}
+    variables['array'] = nir_dataset
     reflectance_stack[3] = numexpr.evaluate(expr, variables)
-    variables['array': swir1_dataset}
+    variables['array'] = swir1_dataset
     reflectance_stack[4] = numexpr.evaluate(expr, variables)
-    variables['array': swir2_dataset}
+    variables['array': = swir2_dataset
     reflectance_stack[5] = numexpr.evaluate(expr, variables)
 
     kelvin_array[~contiguity_mask] = NAN
