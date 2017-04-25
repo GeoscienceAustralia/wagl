@@ -711,5 +711,5 @@ def calc_acca_cloud_mask(blue_dataset, green_dataset, red_dataset,
     #     cld_pct = 22.5
 
     process_time = start_time - datetime.datetime.now()
-    aux_data['acca_process_time_secs'] = process_time.isoformat()
+    aux_data['acca_process_time_secs'] = process_time.total_seconds()
     return cloud_mask
