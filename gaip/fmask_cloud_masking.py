@@ -51,7 +51,7 @@ def match_file(dir_path, pattern):
 
     logging.error('ERROR: %s.match_file("%s", "%s") found no match',
                   __file__.strip('.py'), dir_path, pattern
-                  )
+                 )
     return None
 
 
@@ -703,17 +703,17 @@ def nd2toarbt(filename, images=None):
             }
 
             im_B1 = numexpr.evaluate(
-                "a * im_B1 * b / (sun * c)", dict(stack.items() + {'sun': numpy.float32(ESUN[0])}.items()), locals())
+                "a * im_B1 * b / (sun * c)", dict(list(stack.items()) + list({'sun': numpy.float32(ESUN[0])}.items())), locals())
             im_B2 = numexpr.evaluate(
-                "a * im_B2 * b / (sun * c)", dict(stack.items() + {'sun': numpy.float32(ESUN[1])}.items()), locals())
+                "a * im_B2 * b / (sun * c)", dict(list(stack.items()) + list({'sun': numpy.float32(ESUN[1])}.items())), locals())
             im_B3 = numexpr.evaluate(
-                "a * im_B3 * b / (sun * c)", dict(stack.items() + {'sun': numpy.float32(ESUN[2])}.items()), locals())
+                "a * im_B3 * b / (sun * c)", dict(list(stack.items()) + list({'sun': numpy.float32(ESUN[2])}.items())), locals())
             im_B4 = numexpr.evaluate(
-                "a * im_B4 * b / (sun * c)", dict(stack.items() + {'sun': numpy.float32(ESUN[3])}.items()), locals())
+                "a * im_B4 * b / (sun * c)", dict(list(stack.items()) + list({'sun': numpy.float32(ESUN[3])}.items())), locals())
             im_B5 = numexpr.evaluate(
-                "a * im_B5 * b / (sun * c)", dict(stack.items() + {'sun': numpy.float32(ESUN[4])}.items()), locals())
+                "a * im_B5 * b / (sun * c)", dict(list(stack.items()) + list({'sun': numpy.float32(ESUN[4])}.items())), locals())
             im_B7 = numexpr.evaluate(
-                "a * im_B7 * b / (sun * c)", dict(stack.items() + {'sun': numpy.float32(ESUN[6])}.items()), locals())
+                "a * im_B7 * b / (sun * c)", dict(list(stack.items()) + list({'sun': numpy.float32(ESUN[6])}.items())), locals())
 
         # convert from Kelvin to Celcius with 0.01 scale_facor
         im_B6 = numexpr.evaluate("a * ((K2 / log((K1 / im_B6) + one)) - b)", {'a': numpy.float32(
