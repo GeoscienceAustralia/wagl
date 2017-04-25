@@ -26,7 +26,7 @@ To run the entire *sbt* ARD workflow using luigi's local scheduler, set the --mo
 
 .. code-block:: bash
 
-   $ luigi --module gaip.standard_workflow ARD --level1-csv scenes.txt --model sbt --output-directory /some/path --workers 4
+   $ luigi --module gaip.standard_workflow ARD --level1-csv scenes.txt --model sbt --output-directory /some/path --workers 4 --local-scheduler
 
 To run using luigi's `central scheduler <http://luigi.readthedocs.io/en/stable/central_scheduler.html>`_:
 
@@ -36,18 +36,25 @@ To run using luigi's `central scheduler <http://luigi.readthedocs.io/en/stable/c
 
    $ luigi --module gaip.standard_workflow ARD --level1-csv scenes.txt --model standard --output-directory /some/path --workers 4
 
+To include the pixel quality workflow as part of the main workflow, you need to set the pixel-quality switch as such:
+
+.. code-block:: bash
+
+   $ luigi --module gaip.standard_workflow ARD --level1-csv scenes.txt --model standard --pixel-quality --output-directory /some/path --workers 4
+
 Luigi will then execute, and manage, the entire ARD (Analysis Ready Data) workflow for every Level-1 scene listed in *scenes.txt*.
 
 If however, you want to run just a specific part of the workflow, say for example *CalculateCoefficients*, then you would need to
 specify the following arguments:
 
---level1       /path/to/level1/scene
---work-root    path/to/working/directory
---granule      granule id name; Default is None; and can be ignored for Landsat
---vertices     the number of points atmospherical calculations will run across the scene; Default is 25
---base-dir     the base directory to contain the atmospheric calculations; Default is _atmospherics
---model        the ARD (Analysis Ready Data) workflow to produce *standard*, *nbar* or *sbt*
---compression  the compression filter used when writing the outputs to disk; Default is lzf
+--level1         /path/to/level1/scene
+--work-root      path/to/working/directory
+--granule        granule id name; Default is None; and can be ignored for Landsat
+--vertices       the number of points atmospherical calculations will run across the scene; Default is 25
+--base-dir       the base directory to contain the atmospheric calculations; Default is _atmospherics
+--model          the ARD (Analysis Ready Data) workflow to produce *standard*, *nbar* or *sbt*
+--compression    the compression filter used when writing the outputs to disk; Default is lzf
+--pixel-quality  if set then the workflow will execute the pixel quality workflow, if a scene can be processed through the pixel quality workflow
 
 An example of running the *CalculateCoefficients* Task using the local scehduler is:
 
