@@ -281,7 +281,6 @@ def run_pq(level1, standardised_data_fname, land_sea_path, compression='lzf'):
 
         # acca cloud mask
         if pq_const.run_cloud:
-            mask = None
             aux_data = {}   # for collecting result metadata
             mask = calc_acca_cloud_mask(blue_dataset, green_dataset,
                                         red_dataset, nir_dataset,
