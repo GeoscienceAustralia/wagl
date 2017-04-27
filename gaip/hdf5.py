@@ -520,3 +520,31 @@ def write_scalar(data, dataset_name, group, attrs=None):
     attach_attributes(dset, attrs=DEFAULT_SCALAR_CLASS)
     attach_attributes(dset, attrs=attrs)
     return
+
+
+def h5ls(group):
+    """
+    Given an h5py `Group` or `File` (opened file id; fid),
+    recursively print the contents of the HDF5 file.
+
+    :param group:
+        A h5py `Group` or `File` object from which to write the
+        dataset to.
+    """
+    def custom_print(path):
+        pathname = path.decode('utf-8')
+        obj = group[path]
+        if isinstance(obj, h5py.Group):
+            h5_type = '`Group`'
+        elif isinstance(obj, h5py.Dataset):
+            class_name = obj.attrs.get('CLASS')
+            h5_class = '' if class_name is None else class_name
+            fmt = '`{}Dataset`' if class_name is None else '`{} Dataset`'
+            h5_type = fmt.format(h5_class)
+        else:
+            h5_type = '`Other`' # we'll deal with links and references later
+
+        print '{path}\t{h5_type}'.format(path=pathname, h5_type=h5_type)
+        
+    root = h5py.h5g.open(fid.id, b'.')
+    root.links.visit(custom_print)
