@@ -451,8 +451,8 @@ def collect_nbar_ancillary(acquisition, aerosol_fname=None,
         for k in attrs:
             data[key][k] = attrs[k]
         dname = dname_format.format(band=band, factor=factor)
-        fid.create_dataset(dname, data=data[key].pop('value'))
-        attach_attributes(fid[dname], attrs=data[key])
+        brdf_value = data[key].pop('value')
+        write_scalar(brdf_value, dname, fid, data[key])
 
     return fid
 
