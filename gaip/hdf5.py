@@ -7,6 +7,7 @@ such as images and tables, as well as attaching metadata.
 
 from __future__ import absolute_import, print_function
 import datetime
+from posixpath import join as ppjoin, normpath
 import numpy
 import h5py
 import pandas
@@ -32,7 +33,7 @@ def safeguard_dtype(datatype):
     try:
         dtype = numpy.dtype(datatype)
     except TypeError:
-        dtype = numpy.dtype([(bytes(name), val) for name, val in datatypes])
+        dtype = numpy.dtype([(bytes(name), val) for name, val in datatype])
     return dtype
 
 
@@ -532,7 +533,11 @@ def h5ls(group):
         dataset to.
     """
     def custom_print(path):
-        pathname = path.decode('utf-8')
+        """
+        A custom print function for dealing with HDF5 object
+        types, and print formatting.
+        """
+        pathname = normpath(ppjoin('/', path.decode('utf-8')))
         obj = group[path]
         if isinstance(obj, h5py.Group):
             h5_type = '`Group`'
