@@ -544,7 +544,7 @@ def h5ls(group):
         else:
             h5_type = '`Other`' # we'll deal with links and references later
 
-        print '{path}\t{h5_type}'.format(path=pathname, h5_type=h5_type)
+        print('{path}\t{h5_type}'.format(path=pathname, h5_type=h5_type))
         
-    root = h5py.h5g.open(fid.id, b'.')
+    root = h5py.h5g.open(group.id, b'.')
     root.links.visit(custom_print)
