@@ -20,7 +20,7 @@ import pandas as pd
 from gaip.constants import Model, BandType, DatasetName
 from gaip.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
 from gaip.hdf5 import write_dataframe, read_table, create_external_link
-from gaip.hdf5 import VLEN_STRING
+from gaip.hdf5 import VLEN_STRING, write_scalar
 from gaip.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
 from gaip.modtran_profiles import MIDLAT_SUMMER_TRANSMITTANCE, SBT_FORMAT
 from gaip.modtran_profiles import TROPICAL_TRANSMITTANCE, THERMAL_TRANSMITTANCE
@@ -107,9 +107,7 @@ def _format_tp5(acquisitions, satellite_solar_angles_fname,
             dname = ppjoin(POINT_FMT.format(p=key[0]),
                            ALBEDO_FMT.format(a=key[1]), DatasetName.tp5.value)
             str_data = numpy.string_(tp5_data[key])
-            dset = group.create_dataset(dname, data=str_data)
-            for k in metadata[key]:
-                dset.attrs[k] = metadata[key][k]
+            write_scalar(str_data, dname, group, attrs=metadata[key])
 
         # attach some meaningful location information to the point groups
         lon = coord_dset['longitude']
@@ -235,7 +233,7 @@ def format_tp5(acquisitions, coordinator, view_dataset, azi_dataset,
                           'sat_height': altitude,
                           'sat_view': view_cor[p],
                           'binary': binary,
-                          'data_array': ''.join(atmospheric_profile)}
+                          'atmospheric_profile': ''.join(atmospheric_profile)}
 
             data = THERMAL_TRANSMITTANCE.format(**input_data)
             tp5_data[(p, Model.sbt.albedos[0])] = data

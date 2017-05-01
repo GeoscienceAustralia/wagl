@@ -73,7 +73,7 @@ THERMAL_TRANSMITTANCE = (
 F   0F   0   375.000       1.0    a{ozone:5.3f} 4   T                       
 {filter_function:<75}
     1    0    0    0    0    0{visibility:10.3f}     0.000     0.000     0.000{gpheight:10.3f}
-{n:5d}    0    0                               {data_array}
+{n:5d}    0    0                               {atmospheric_profile}
     50.000 9.510E-01 2.550E+00 7.127E-05 0.000E+00 0.000E+00ABH
     55.000 5.150E-01-3.850E+00 5.991E-05 0.000E+00 0.000E+00ABH
     60.000 2.720E-01-1.605E+01 7.753E-05 0.000E+00 0.000E+00ABH
