@@ -4,8 +4,8 @@ HDF5
 As of gaip v5.0.0, the storage backend for all dataset outputs uses HDF5, whether the datasets be imagery, tables, or scalars.
 Currently datasets can be stored according to the *IMAGE* Class, or *TABLE* Class.
 
-* **IMAGE** Class `specification <https://support.hdfgroup.org/HDF5/doc/ADGuide/ImageSpec.html>`_
-* **TABLE** Class `specification <https://support.hdfgroup.org/HDF5/doc/HL/H5TB_Spec.html>`_
+* **IMAGE** Class `image specification <https://support.hdfgroup.org/HDF5/doc/ADGuide/ImageSpec.html>`_
+* **TABLE** Class `table specification <https://support.hdfgroup.org/HDF5/doc/HL/H5TB_Spec.html>`_
 
 Moving to HDF5
 --------------
@@ -23,9 +23,11 @@ Some of the main reasons behind moving to HDF5 are:
 * Datasets can be stored in a hierarchical fashion, for instance, creating a hierarchical layout based on resolution, or the same dataset name stored in different locations based on a given attribute.
   For example, the ancillary data required for surface brightness temperature, gathers data at a minimum of 25 points across a scene or granule.
   The point id is used as the group label to differentiate between the same ancillary data gathered at different locations. i.e.:
+
     * /point-0/temperature
     * /point-1/temperature
     * /point-2/temperature
+
 * Metadata; gaip can now store a lot more metadata such as longitude and latitude information with each ancillary point location, as opposed to a plain text label.
   Parameter settings used for a given algorithm such as for the satellite and solar angles calculation can be stored alongside the results, potentially making it easier for validation, and archive comparisons to be undertaken.
 * Utilise a consistant library for data I/O, rather than a dozen or so different libraries. This helps to simplify the gaip data model, and have fewer library dependencies.
