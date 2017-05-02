@@ -61,7 +61,7 @@ Dataset names for each output are as follows:
     * /point-0/albedo-0/channel *(combinations based on point label, albedo label)*
     * /point-0/albedo-0/solar-irradiance *(combinations based on point label, albedo label)*
     * /point-0/albedo-th/upward-radiation-channel **SBT Only** *(combinations based on point label)*
-    * /point-0/albedo-th/downward **SBT Only** *(combinations based on point label)*
+    * /point-0/albedo-th/downward-radiation-channel **SBT Only** *(combinations based on point label)*
 * coefficients.h5
     * /nbar-coefficients
     * /sbt-coefficients
