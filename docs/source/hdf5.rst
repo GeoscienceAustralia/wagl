@@ -55,9 +55,13 @@ Dataset names for each output are as follows:
     * /modtran-inputs/point-1/albedo-1/tp5_data *(combinations based on point label, albedo label)*
     * /modtran-inputs/point-2/albedo-t/tp5_data *(combinations based on point label, albedo label)*
     * /modtran-inputs/point-3/albedo-th/tp5_data *(combinations based on point label, albedo label)*
-* accumulated-solar-irradiance.h5
+* atmospheric-results.h5
+    * /point-0/albedo-0/flux *(combinations based on point label, albedo label)*
+    * /point-0/albedo-0/altitudes *(combinations based on point label, albedo label)*
     * /point-0/albedo-0/channel *(combinations based on point label, albedo label)*
     * /point-0/albedo-0/solar-irradiance *(combinations based on point label, albedo label)*
+    * /point-0/albedo-th/upward-radiation-channel **SBT Only** *(combinations based on point label)*
+    * /point-0/albedo-th/downward **SBT Only** *(combinations based on point label)*
 * coefficients.h5
     * /nbar-coefficients
     * /sbt-coefficients
