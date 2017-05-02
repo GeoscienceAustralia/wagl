@@ -8,6 +8,7 @@ such as images and tables, as well as attaching metadata.
 from __future__ import absolute_import, print_function
 import datetime
 from posixpath import join as ppjoin, normpath
+from pprint import pprint
 import numpy
 import h5py
 import pandas
@@ -556,7 +557,9 @@ def h5ls(group, verbose=False):
 
         print('{path}\t{h5_type}'.format(path=pathname, h5_type=h5_type))
         if verbose:
-            print('Attributes:\n{}'.format(attrs))
+            print('Attributes:')
+            pprint(attrs, width=100)
+            print('*'*80)
         
     root = h5py.h5g.open(group.id, b'.')
     root.links.visit(custom_print)
