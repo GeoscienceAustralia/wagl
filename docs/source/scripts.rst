@@ -14,13 +14,27 @@ There are several command line scripts for either extracting datasets or unittes
 
 **gaip_convert**
 
-Unpacks/converts SCALAR, TABLE & IMAGE HDF5 datasets to yaml, csv, and GeoTiff file respectively, along with an attributes to a yaml file. Any hierarchial structure will be replicated on disk as directories.
+Unpacks/converts SCALAR, TABLE & IMAGE HDF5 datasets to yaml, csv, and GeoTiff file respectively, along with an attributes to a yaml file. Any hierarchial structure will be replicated on disk as directories. Individual Groups or Datasets can be specified using the *--pathname* argument. Thereby only Dataset's contained under that Group, or the selected Dataset will be converted.
 
 Example of use:
 
 .. code-block:: bash
 
    $ gaip_convert --filename satellite-solar.h5 --outdir /some/output/directory
+
+   $ gaip_convert --filename satellite-solar.h5 --outdir /some/output/directory --pathname /solar-zenith
+
+**gaip_ls**
+
+Lists the contents of a HDF5 file, printing the full pathname of each Group and Dataset from the root level of the HDF5 file, as well as the Class, eg *Group, Dataset, IMAGE Dataset, TABLE Dataset*. Optionally, attributes for the Group or Dataset can be output as well by specifying the *--verbose* argument.
+
+Example of use:
+
+.. code-block:: bash
+
+   $ gaip_ls --filename satellite-solar.h5
+
+   $ gaip_ls --filename satellite-solar.h5 --verbose
 
 **test_calculate_angles**
 
