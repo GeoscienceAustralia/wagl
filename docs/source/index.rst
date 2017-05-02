@@ -16,7 +16,6 @@ Contents:
    algorithms
    dependencies
    directories
-   modules
    invoking
    acquisitions
    hdf5
@@ -24,6 +23,7 @@ Contents:
    scripts
    configuration
    unittesting
+   modules
 
 Indices and tables
 ==================
