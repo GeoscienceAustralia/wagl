@@ -45,6 +45,7 @@ def residuals(ref_fid, test_fid, out_fid, compression, pathname):
     """
     
     """
+    pathname = pathname.decode('utf-8')
     if pathname in test_fid:
         ref_dset = ref_fid[pathname]
         if ref_dset.attrs['CLASS'] == 'IMAGE':
@@ -72,7 +73,7 @@ def residuals(ref_fid, test_fid, out_fid, compression, pathname):
             attrs['percent_difference'] = pct_difference
 
             base_dname = pbasename(pathname)
-            group_name = ref_dset.parent.name
+            group_name = ref_dset.parent.name.strip('/')
             dname = ppjoin('difference-data', group_name, base_dname)
             write_h5_image(residual, dname, out_fid, attrs=attrs, **kwargs)
 
