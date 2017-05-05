@@ -273,7 +273,7 @@ def create_vertices(acquisition, boxline_dataset, vertices=(3, 3)):
     locations = np.empty((vertices[0], vertices[1], 2), dtype='int64')
     for ig, ir in enumerate(grid_rows): # row indices for sample-grid & raster
         grid_line = asymetric_linspace(
-            istart[ir], iend[ir], vertices[1], mid_row or xcentre[ir])
+            istart[ir], iend[ir], vertices[1], mid_col or xcentre[ir])
         locations[ig, :, 0] = ir
         locations[ig, :, 1] = grid_line
     locations = locations.reshape(vertices[0] * vertices[1], 2)
