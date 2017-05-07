@@ -342,6 +342,8 @@ def collect_sbt_ancillary(acquisition, lonlats, dewpoint_path=None,
         dname = ppjoin(pnt, DatasetName.atmospheric_profile.value)
         write_dataframe(subset, dname, fid, compression, attrs=attrs)
 
+        fid[pnt].attrs['lonlat'] = lonlat
+
     return fid
 
 
