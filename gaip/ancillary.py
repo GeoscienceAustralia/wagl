@@ -619,7 +619,7 @@ def get_ozone_data(ozone_path, lonlat, time):
 
     metadata = {'data_source': 'Ozone',
                 'data_file': datafile,
-                'Date used for querying': time}
+                'query_date': time}
 
     # ancillary metadata tracking
     md = extract_ancillary_metadata(datafile)
@@ -671,7 +671,7 @@ def get_water_vapour(acquisition, vapour_path, scale_factor=0.1):
 
     metadata = {'data_source': 'Water Vapour',
                 'data_file': datafile,
-                'Date used for querying': dt}
+                'query_date': dt}
 
     # ancillary metadata tracking
     md = extract_ancillary_metadata(datafile)
@@ -717,7 +717,7 @@ def ecwmf_temperature_2metre(input_path, lonlat, time):
 
             metadata = {'data_source': 'ECWMF 2 metre Temperature',
                         'data_file': f,
-                        'Date used for querying ECWMF': time}
+                        'query_date': time}
 
             # ancillary metadata tracking
             md = extract_ancillary_metadata(f)
@@ -747,7 +747,7 @@ def ecwmf_dewpoint_temperature(input_path, lonlat, time):
 
             metadata = {'data_source': 'ECWMF 2 metre Dewpoint Temperature ',
                         'data_file': f,
-                        'Date used for querying ECWMF': time}
+                        'query_date': time}
 
             # ancillary metadata tracking
             md = extract_ancillary_metadata(f)
@@ -779,7 +779,7 @@ def ecwmf_surface_pressure(input_path, lonlat, time):
 
             metadata = {'data_source': 'ECWMF Surface Pressure',
                         'data_file': f,
-                        'Date used for querying ECWMF': time}
+                        'query_date': time}
 
             # ancillary metadata tracking
             md = extract_ancillary_metadata(f)
@@ -809,7 +809,7 @@ def ecwmf_water_vapour(input_path, lonlat, time):
 
             metadata = {'data_source': 'ECWMF Total Column Water Vapour',
                         'data_file': f,
-                        'Date used for querying ECWMF': time}
+                        'query_date': time}
 
             # ancillary metadata tracking
             md = extract_ancillary_metadata(f)
@@ -845,7 +845,7 @@ def ecwmf_temperature(input_path, lonlat, time):
 
             metadata = {'data_source': 'ECWMF Temperature',
                         'data_file': f,
-                        'Date used for querying ECWMF': time}
+                        'query_date': time}
 
             # ancillary metadata tracking
             md = extract_ancillary_metadata(f)
@@ -886,7 +886,7 @@ def ecwmf_geo_potential(input_path, lonlat, time):
 
             metadata = {'data_source': 'ECWMF Geo-Potential',
                         'data_file': f,
-                        'Date used for querying ECWMF': time}
+                        'query_date': time}
 
             # ancillary metadata tracking
             md = extract_ancillary_metadata(f)
@@ -926,7 +926,7 @@ def ecwmf_relative_humidity(input_path, lonlat, time):
 
             metadata = {'data_source': 'ECWMF Relative Humidity',
                         'data_file': f,
-                        'Date used for querying ECWMF': time}
+                        'query_date': time}
 
             # file level metadata
             md = extract_ancillary_metadata(f)
