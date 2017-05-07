@@ -160,6 +160,11 @@ class DatasetName(Enum):
     # gaip.pq
     pixel_quality = 'pixel-quality'
 
+    # metadata
+    nbar_yaml = 'metadata/nbar-metadata'
+    pq_yaml = 'metadata/pq-metadata'
+    sbt_yaml = 'metadata/sbt-metadata'
+
 
 class PQbits(Enum):
     band_1_saturated = 0
