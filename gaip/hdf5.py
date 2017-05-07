@@ -563,3 +563,26 @@ def h5ls(group, verbose=False):
         
     root = h5py.h5g.open(group.id, b'.')
     root.links.visit(custom_print)
+
+
+def read_scalar(group, dataset_name):
+    """
+    Read a HDF5 `SCALAR` as a dict.
+    All attributes will be assigned as key: value pairs, and the
+    scalar value will be assigned the key name 'value'.
+
+    :param group:
+        A h5py `Group` or `File` object from which to write the
+        dataset to.
+
+    :param dataset_name:
+        A `str` containing the pathname of the dataset location.
+
+    :return:
+        A `dict` containing the SCALAR value as well as any
+        attributes coupled with the SCALAR dataset.
+    """
+    dataset = group[dataset_name]
+    data = {k: v for k, v in dataset.attrs.items()}
+    data['value'] = dataset[()]
+    return data
