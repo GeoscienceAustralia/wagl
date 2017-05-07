@@ -18,7 +18,7 @@ from gaip.data import as_array
 from gaip.hdf5 import dataset_compression_kwargs
 from gaip.hdf5 import attach_image_attributes
 from gaip.hdf5 import create_external_link
-from gaip.metadata import create_nbar_yaml
+from gaip.metadata import create_ard_yaml
 from gaip.tiling import generate_tiles
 from gaip.__surface_reflectance import reflectance
 
@@ -77,7 +77,7 @@ def _calculate_reflectance(acquisition, bilinear_fname,
                                     brdf_vol, brdf_geo, out_fname, compression,
                                     y_tile)
 
-    create_nbar_yaml(acquisition, ancillary_fname, fid)
+    create_ard_yaml(acquisition, ancillary_fname, fid)
 
     fid.close()
     return
