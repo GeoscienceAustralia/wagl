@@ -7,14 +7,18 @@ Various metadata extraction and creation, and writing tools.
 from __future__ import absolute_import, print_function
 from datetime import datetime as dtime
 import os
+from os.path import dirname
 import pwd
 import subprocess
 import numpy
+import h5py
 import pandas
 import rasterio
 import yaml
 from yaml.representer import Representer
-from gaip import constants
+import gaip
+from gaip.constants import NBARConstants, DatasetName
+from gaip.hdf5 import write_scalar
 
 
 def extract_ancillary_metadata(fname):
@@ -65,70 +69,88 @@ def read_meatadata_tags(fname, bands):
     return pandas.DataFrame(tag_data)
 
 
-def write_nbar_yaml(acquisition, level1_path, ozone_data, aerosol_data,
-                    water_vapour_data, elevation_data, brdf_data, out_fname):
+def create_nbar_yaml(acquisition, ancillary_fname, group):
     """
-    Write the NBAR metadata captured during the entire workflow to disk
-    using the yaml document format.
-    """
+    Write the NBAR metadata captured during the entire workflow to a
+    HDF5 SCALAR dataset using the yaml document format.
 
-    source_info = {}
-    source_info['source_scene'] = level1_path
-    source_info['scene_centre_datetime'] = acquisition.scene_centre_datetime
-    source_info['platform'] = acquisition.spacecraft_id
-    source_info['sensor'] = acquisition.sensor_id
-    source_info['path'] = acquisition.path
-    source_info['row'] = acquisition.row
+    :param acquisition:
+        An instance of `acquisition`.
+
+    :param ancillary_fname:
+        A `str` containing the file pathname to the HDF5 containing
+        the ancillary data retrieved via the `gaip.standard_workflow`.
+
+    :param group:
+        A `h5py.Group` object opened for write access.
+
+    :return:
+        None; The yaml document is written to the HDF5 file.
+    """
+    level1_path = dirname(acquisition.dir_name)
+    source_info = {'source_scene': level1_path,
+                   'scene_centre_datetime': acquisition.scene_centre_datetime,
+                   'platform': acquisition.spacecraft_id,
+                   'sensor': acquisition.sensor_id,
+                   'path': acquisition.path,
+                   'row': acquisition.row}
 
     # ancillary metadata tracking
-    md = extract_ancillary_metadata(level1_path)
-    for key in md:
-        source_info[key] = md[key]
-
-    ancillary = {}
-    ancillary['aerosol'] = aerosol_data
-    ancillary['water_vapour'] = water_vapour_data
-    ancillary['ozone'] = ozone_data
-    ancillary['elevation'] = elevation_data
+    for key, value in extract_ancillary_metadata(level1_path):
+        source_info[key] = value
 
     # Get the required BRDF LUT & factors list
-    nbar_constants = constants.NBARConstants(acquisition.spacecraft_id,
-                                             acquisition.sensor_id)
-
+    nbar_constants = NBARConstants(acquisition.spacecraft_id,
+                                   acquisition.sensor_id)
     bands = nbar_constants.get_brdf_lut()
     brdf_factors = nbar_constants.get_brdf_factors()
 
-    brdf = {}
-    band_fmt = 'band_{}'
-    for band in bands:
-        data = {}
-        for factor in brdf_factors:
-            data[factor] = brdf_data[(band, factor)]
-        brdf[band_fmt.format(band)] = data
+    with h5py.File(ancillary_fname, 'r') as fid:
+        dset = fid[DatasetName.aerosol.value]
+        aerosol_data = {k: v for k, v in dset.attrs.items()}
+        aerosol_data['value'] = dset[()]
+        dset = fid[DatasetName.water_vapour.value]
+        water_vapour_data = {k: v for k, v in dset.attrs.items()}
+        water_vapour_data['value'] = dset[()]
+        dset = fid[DatasetName.ozone.value]
+        ozone_data = {k: v for k, v in dset.attrs.items()}
+        ozone_data['value'] = dset[()]
+        dset = fid[DatasetName.elevation.value]
+        elevation_data = {k: v for k, v in dset.attrs.items()}
+        elevation_data['value'] = dset[()]
 
-    ancillary['brdf'] = brdf
+        brdf_data = {}
+        band_fmt = 'band_{}'
+        for band in bands:
+            brdf = {}
+            for factor in brdf_factors:
+                fmt = DatasetName.brdf_fmt.value
+                dset = fid[fmt.format(band=band, factor=factor)]
+                brdf[factor] = {k: v for k, v in dset.attrs.items()}
+                brdf[factor]['value'] = dset[()]
+            brdf_data[band_fmt.format(band)] = brdf
 
-    # TODO (a) retrieve software version from git once deployed
-    algorithm = {}
-    algorithm['algorithm_version'] = 2.0 # hardcode for now see TODO (a)
-    algorithm['software_repository'] = ('https://github.com/'
-                                        'GeoscienceAustralia/'
-                                        'ga-neo-landsat-processor.git')
-    algorithm['arg25_doi'] = 'http://dx.doi.org/10.4225/25/5487CC0D4F40B'
-    algorithm['nbar_doi'] = 'http://dx.doi.org/10.1109/JSTARS.2010.2042281'
-    algorithm['nbar_terrain_corrected_doi'] = ('http://dx.doi.org/10.1016/'
-                                               'j.rse.2012.06.018')
+    ancillary = {'aerosol': aerosol_data,
+                 'water_vapour': water_vapour_data,
+                 'ozone': ozone_data,
+                 'elevation': elevation_data,
+                 'brdf': brdf_data}
 
-    system_info = {}
+    algorithm = {'software_version': gaip.__version__,
+                 'algorithm_version': 2.0,
+                 'software_repository': 'https://github.com/GeoscienceAustralia/ga-neo-landsat-processor.git', # pylint: disable=line-too-long
+                 'arg25_doi': 'http://dx.doi.org/10.4225/25/5487CC0D4F40B',
+                 'nbar_doi': 'http://dx.doi.org/10.1109/JSTARS.2010.2042281',
+                 'nbar_terrain_corrected_doi': 'http://dx.doi.org/10.1016/j.rse.2012.06.018'}  # pylint: disable=line-too-long
+
     proc = subprocess.Popen(['uname', '-a'], stdout=subprocess.PIPE)
-    system_info['node'] = proc.stdout.read()
-    system_info['time_processed'] = dtime.utcnow()
+    system_info = {'node': proc.stdout.read().decode('utf-8'),
+                   'time_processed': dtime.utcnow().isformat()}
 
-    metadata = {}
-    metadata['system_information'] = system_info
-    metadata['source_data'] = source_info
-    metadata['ancillary_data'] = ancillary
-    metadata['algorithm_information'] = algorithm
+    metadata = {'system_information': system_info,
+                'source_data': source_info,
+                'ancillary_data': ancillary,
+                'algorithm_information': algorithm}
     
     # Account for NumPy dtypes
     yaml.add_representer(numpy.float, Representer.represent_float)
@@ -136,5 +158,6 @@ def write_nbar_yaml(acquisition, level1_path, ozone_data, aerosol_data,
     yaml.add_representer(numpy.float64, Representer.represent_float)
 
     # output
-    with open(out_fname, 'w') as src:
-        yaml.dump(metadata, src, default_flow_style=False)
+    yml_data = yaml.dump(metadata, default_flow_style=False)
+    write_scalar(yml_data, DatasetName.nbar_yaml.value, group,
+                 attrs={'file_format': 'yaml'})
