@@ -134,11 +134,14 @@ def convert_scalar(dataset, output_directory):
     :return:
         None, outputs are written directly to disk.
     """
-    tags = {k: v for k, v in dataset.attrs.items()}
-    data = dataset[()]
-    if isinstance(data, numpy.bytes_):
-        data = data.decode('utf-8')
-    tags[basename(dataset.name)] = data
+    if dataset.attrs.get('file_format') == 'yaml':
+        tags = yaml.load(dataset[()])
+    else:
+        tags = {k: v for k, v in dataset.attrs.items()}
+        data = dataset[()]
+        if isinstance(data, numpy.bytes_):
+            data = data.decode('utf-8')
+        tags[basename(dataset.name)] = data
 
     base_fname = pjoin(output_directory, normpath(dataset.name.strip('/')))
     out_fname = ''.join([base_fname, '.yaml'])
