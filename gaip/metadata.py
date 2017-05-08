@@ -121,7 +121,7 @@ def create_ard_yaml(acquisition, ancillary_fname, out_group, sbt=False):
         npoints = group[DatasetName.coordinator.value].shape[0]
         for point in range(npoints):
             pnt_grp = group[POINT_FMT.format(p=point)]
-            lonlat = pnt_grp.attrs['lonlat']
+            lonlat = tuple(pnt_grp.attrs['lonlat'])
 
             # scalars
             dname = DatasetName.dewpoint_temperature.value
@@ -225,8 +225,10 @@ def create_ard_yaml(acquisition, ancillary_fname, out_group, sbt=False):
                  'software_repository': 'https://github.com/GeoscienceAustralia/ga-neo-landsat-processor.git'} # pylint: disable=line-too-long
 
     if sbt:
+        dname = DatasetName.sbt_yaml.value
         algorithm['sbt_doi'] = 'TODO'
     else:
+        dname = DatasetName.nbar_yaml.value
         algorithm['arg25_doi'] = 'http://dx.doi.org/10.4225/25/5487CC0D4F40B'
         algorithm['nbar_doi'] = 'http://dx.doi.org/10.1109/JSTARS.2010.2042281'
         algorithm['nbar_terrain_corrected_doi'] = 'http://dx.doi.org/10.1016/j.rse.2012.06.018' # pylint: disable=line-too-long
@@ -242,5 +244,4 @@ def create_ard_yaml(acquisition, ancillary_fname, out_group, sbt=False):
     
     # output
     yml_data = yaml.dump(metadata, default_flow_style=False)
-    write_scalar(yml_data, DatasetName.nbar_yaml.value, out_group,
-                 attrs={'file_format': 'yaml'})
+    write_scalar(yml_data, dname, out_group, attrs={'file_format': 'yaml'})
