@@ -245,3 +245,47 @@ def create_ard_yaml(acquisition, ancillary_fname, out_group, sbt=False):
     # output
     yml_data = yaml.dump(metadata, default_flow_style=False)
     write_scalar(yml_data, dname, out_group, attrs={'file_format': 'yaml'})
+
+
+def create_pq_yaml(acquisition, ancillary, tests_run, out_group):
+    """
+    Write the PQ metadata captured during the entire workflow to a
+    HDF5 SCALAR dataset using the yaml document format.
+
+    :param acquisition:
+        An instance of `acquisition`.
+
+    :param ancillary:
+        A dict containing the ancillary information.
+
+    :param test_run:
+        A dict containing the key/value pairs of tests and whether
+        or not a given test was run.
+
+    :param out_group:
+        A `h5py.Group` object opened for write access.
+
+    :return:
+        None; The yaml document is written to the HDF5 file.
+    """
+    proc = subprocess.Popen(['uname', '-a'], stdout=subprocess.PIPE)
+    system_info = {'node': proc.stdout.read().decode('utf-8'),
+                   'time_processed': dtime.utcnow().isoformat()}
+
+    source_info = {'source_l1t': dirname(acquisition.dir_name),
+                   'source_reflectance': 'NBAR'}
+
+    algorithm = {'software_version': gaip.__version__,
+                 'software_repository': 'https://github.com/GeoscienceAustralia/gaip.git', # pylint: disable=line-too-long
+                 'pq_doi': 'http://dx.doi.org/10.1109/IGARSS.2013.6723746'}
+    
+    metadata = {'system_information': system_info,
+                'source_data': source_info,
+                'algorithm_information': algorithm,
+                'ancillary': ancillary,
+                'tests_run': tests_run}
+
+    # output
+    dname = DatasetName.pq_yaml.value
+    yml_data = yaml.dump(metadata, default_flow_style=False)
+    write_scalar(yml_data, dname, out_group, attrs={'file_format': 'yaml'})

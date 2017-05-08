@@ -22,6 +22,7 @@ from gaip.contiguity_masking import set_contiguity_bit
 from gaip.fmask_cloud_masking_wrapper import fmask_cloud_mask
 from gaip.hdf5 import dataset_compression_kwargs, write_h5_image, write_scalar
 from gaip.land_sea_masking import set_land_sea_bit
+from gaip.metadata import create_pq_yaml
 from gaip.saturation_masking import set_saturation_bits
 from gaip.thermal_conversion import get_landsat_temperature
 
@@ -238,7 +239,7 @@ def run_pq(level1, standardised_data_fname, land_sea_path, compression='lzf'):
     tests_run['contiguity'] = True
 
     # land/sea
-    md = set_land_sea_bit(geo_box, pq_const, pqa_result, land_sea_path)
+    ancillary = set_land_sea_bit(geo_box, pq_const, pqa_result, land_sea_path)
     tests_run['land_obs'] = True
   
     contiguity_mask = (pqa_result.array & (1 << pq_const.contiguity)) > 0
@@ -357,37 +358,5 @@ def run_pq(level1, standardised_data_fname, land_sea_path, compression='lzf'):
     # write the pq result as an accompanying dataset to the standardised data
     pqa_result.save_as_h5_dataset(standardised_data_fname, compression)
 
-    # metadata
-    system_info = {}
-    proc = subprocess.Popen(['uname', '-a'], stdout=subprocess.PIPE)
-    system_info['node'] = proc.stdout.read().decode('utf-8')
-    system_info['time_processed'] = dt.utcnow().isoformat()
-
-    source_info = {}
-    source_info['source_l1t'] = self.level1
-    # source_info['source_nbar'] = # TODO: NBAR, NBART, LAMBERTIAN
-
-    algorithm = {}
-    algorithm['software_version'] = gaip.__version__
-    algorithm['software_repository'] = 'https://github.com/GeoscienceAustralia/gaip.git'
-    algorithm['pq_doi'] = 'http://dx.doi.org/10.1109/IGARSS.2013.6723746'
-    
-    metadata = {}
-    metadata['system_information'] = system_info
-    metadata['source_data'] = source_info
-    metadata['algorithm_information'] = algorithm
-    metadata['ancillary'] = md
-    metadata['tests_run'] = tests_run
-
-    yaml_data = yaml.dump(metadata, default_flow_style=False)
-
     with h5py.File(standardised_data_fname) as out_fid:
-        dname = ppjoin('metadata', DatasetName.pixel_quality.value)
-        write_scalar(yaml_data, dname, out_fid)
-
-    # with open(pjoin(self.work_root, "pq_metadata.yaml"), 'w') as src:
-    #     yaml.dump(metadata, src, default_flow_style=False)
-
-    #     # write PQA file as output
-    #     with self.output().temporary_path() as out_fname:
-    #         pqa_result.save_as_h5_dataset(out_fname, self.compression)
+        create_pq_yaml(acqs[0], ancillary, tests_run, out_fid)
