@@ -364,9 +364,16 @@ def link_standard_data(input_fnames, out_fname):
     Links the individual reflectance and surface temperature
     results into a single file for easier access.
     """
+    def exclude(obj):
+        """
+        A simple function to test an object against a
+        h5py.Group object.
+        """
+        return isinstance(obj, h5py.Group)
+
     for fname in input_fnames:
         with h5py.File(fname, 'r') as fid:
-            dataset_names = list(fid.keys())
+            dataset_names = [k for k, v in fid.items() if not exclude(v)]
 
         for dname in dataset_names:
             if isinstance(dname, h5py.Group):
