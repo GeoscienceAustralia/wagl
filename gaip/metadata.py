@@ -119,7 +119,7 @@ def create_ard_yaml(acquisition, ancillary_fname, out_group, sbt=False):
                       DatasetName.temperature.value: {}}
 
         npoints = group[DatasetName.coordinator.value].shape[0]
-        for point in npoints:
+        for point in range(npoints):
             pnt_grp = group[POINT_FMT.format(p=point)]
             lonlat = pnt_grp.attrs['lonlat']
 
