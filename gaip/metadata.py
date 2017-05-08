@@ -20,6 +20,20 @@ import gaip
 from gaip.constants import NBARConstants, DatasetName, POINT_FMT
 from gaip.hdf5 import write_scalar, read_table, read_scalar
 
+yaml.add_representer(numpy.int8, Representer.represent_int)
+yaml.add_representer(numpy.uint8, Representer.represent_int)
+yaml.add_representer(numpy.int16, Representer.represent_int)
+yaml.add_representer(numpy.uint16, Representer.represent_int)
+yaml.add_representer(numpy.int32, Representer.represent_int)
+yaml.add_representer(numpy.uint32, Representer.represent_int)
+yaml.add_representer(numpy.int, Representer.represent_int)
+yaml.add_representer(numpy.int64, Representer.represent_int)
+yaml.add_representer(numpy.uint64, Representer.represent_int)
+yaml.add_representer(numpy.float, Representer.represent_float)
+yaml.add_representer(numpy.float32, Representer.represent_float)
+yaml.add_representer(numpy.float64, Representer.represent_float)
+yaml.add_representer(numpy.ndarray, Representer.represent_list)
+
 
 def extract_ancillary_metadata(fname):
     """
@@ -226,11 +240,6 @@ def create_ard_yaml(acquisition, ancillary_fname, out_group, sbt=False):
                 'ancillary_data': ancillary,
                 'algorithm_information': algorithm}
     
-    # Account for NumPy dtypes
-    yaml.add_representer(numpy.float, Representer.represent_float)
-    yaml.add_representer(numpy.float32, Representer.represent_float)
-    yaml.add_representer(numpy.float64, Representer.represent_float)
-
     # output
     yml_data = yaml.dump(metadata, default_flow_style=False)
     write_scalar(yml_data, DatasetName.nbar_yaml.value, out_group,
