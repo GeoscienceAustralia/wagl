@@ -202,7 +202,7 @@ def create_ard_yaml(acquisition, ancillary_fname, out_group, sbt=False):
                    'row': acquisition.row}
 
     # ancillary metadata tracking
-    for key, value in extract_ancillary_metadata(level1_path):
+    for key, value in extract_ancillary_metadata(level1_path).items():
         source_info[key] = value
 
     ancillary = load_ancillary(acquisition, ancillary_fname, sbt)
@@ -219,7 +219,7 @@ def create_ard_yaml(acquisition, ancillary_fname, out_group, sbt=False):
 
     proc = subprocess.Popen(['uname', '-a'], stdout=subprocess.PIPE)
     system_info = {'node': proc.stdout.read().decode('utf-8'),
-                   'time_processed': dtime.utcnow().isformat()}
+                   'time_processed': dtime.utcnow().isoformat()}
 
     metadata = {'system_information': system_info,
                 'source_data': source_info,
