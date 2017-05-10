@@ -124,7 +124,7 @@ def surface_brightness_temperature(acquisition, upwelling_radiation,
                                         chunks=(1, acq.samples))
     kwargs['shape'] = (acq.lines, acq.samples)
     kwargs['fillvalue'] = -999
-    kwargs['dtype'] = 'int16'
+    kwargs['dtype'] = 'float32'
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
@@ -138,7 +138,7 @@ def surface_brightness_temperature(acquisition, upwelling_radiation,
     dataset_name = name_fmt.format(band=acq.band_num)
     out_dset = fid.create_dataset(dataset_name, **kwargs)
 
-    desc = "Surface Brightness Temperature in Kelvin scaled by 100."
+    desc = "Surface Brightness Temperature in Kelvin."
     attrs['Description'] = desc
     attach_image_attributes(out_dset, attrs)
 
@@ -161,7 +161,7 @@ def surface_brightness_temperature(acquisition, upwelling_radiation,
         trans = transmittance[idx]
         expr = "(radiance-path_up) / trans"
         corrected_radiance = numexpr.evaluate(expr)
-        expr = "k2 / log(k1 / corrected_radiance + 1) * 100 + 0.5"
+        expr = "k2 / log(k1 / corrected_radiance + 1)"
         brightness_temp = numexpr.evaluate(expr)
         brightness_temp[mask] = kwargs['fillvalue']
 
