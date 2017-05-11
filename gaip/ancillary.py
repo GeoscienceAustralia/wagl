@@ -74,8 +74,8 @@ def relative_humdity(surface_temp, dewpoint_temp, kelvin=True):
 
 
 def _collect_ancillary(acquisition, satellite_solar_fname, nbar_paths,
-                       sbt_paths=None, vertices=(3, 3), out_fname=None,
-                       compression='lzf', work_path=''):
+                       sbt_path=None, invariant_fname=None, vertices=(3, 3),
+                       out_fname=None, compression='lzf', work_path=''):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -83,16 +83,17 @@ def _collect_ancillary(acquisition, satellite_solar_fname, nbar_paths,
     with h5py.File(satellite_solar_fname, 'r') as fid:
         boxline_dset = fid[DatasetName.boxline.value][:]
 
-    rfid = collect_ancillary(acquisition, boxline_dset, nbar_paths, sbt_paths,
-                             vertices, out_fname, compression, work_path)
+    rfid = collect_ancillary(acquisition, boxline_dset, nbar_paths, sbt_path,
+                             invariant_fname, vertices, out_fname, compression,
+                             work_path)
 
     rfid.close()
     return
 
 
-def collect_ancillary(acquisition, boxline_dataset, nbar_paths, sbt_paths=None,
-                      vertices=(3, 3), out_fname=None, compression='lzf',
-                      work_path=''):
+def collect_ancillary(acquisition, boxline_dataset, nbar_paths, sbt_path=None,
+                      invariant_fname=None, vertices=(3, 3), out_fname=None,
+                      compression='lzf', work_path=''):
     """
     Collects the ancillary required for NBAR and optionally SBT.
     This could be better handled if using the `opendatacube` project
@@ -122,17 +123,13 @@ def collect_ancillary(acquisition, boxline_dataset, nbar_paths, sbt_paths=None,
         * brdf_path
         * brdf_premodis_path
 
-    :param sbt_paths:
-        A `dict` containing the ancillary pathnames required for
-        retrieving the SBT ancillary data. Required keys:
+    :param sbt_path:
+        A `str` containing the base directory pointing to the
+        ancillary products required for the SBT workflow.
 
-        * dewpoint_path
-        * temperature_2m_path
-        * surface_pressure_path
-        * geopotential_path
-        * temperature_path
-        * relative_humidity_path
-        * invariant_fname
+    :param invariant_fname:
+        A `str` containing the file path name to the invariant
+        geopotential image file.
 
     :param vertices:
         An integer 2-tuple indicating the number of rows and columns
@@ -167,13 +164,13 @@ def collect_ancillary(acquisition, boxline_dataset, nbar_paths, sbt_paths=None,
     coordinator = create_vertices(acquisition, boxline_dataset, vertices)
     lonlats = zip(coordinator['longitude'], coordinator['latitude'])
 
-    if sbt_paths:
-        sbt_fid = collect_sbt_ancillary(acquisition, lonlats,
-                                        out_fname=out_fname,
-                                        compression=compression, **sbt_paths)
+    if sbt_path:
+        sbt_fid = collect_sbt_ancillary(acquisition, lonlats, sbt_path,
+                                        invariant_fname, out_fname=out_fname,
+                                        compression=compression)
 
     # close if we have a file on disk
-    if sbt_paths and out_fname is not None:
+    if sbt_path and out_fname is not None:
         sbt_fid.close()
 
     rfid = collect_nbar_ancillary(acquisition, out_fname=out_fname,
@@ -189,17 +186,15 @@ def collect_ancillary(acquisition, boxline_dataset, nbar_paths, sbt_paths=None,
     attach_table_attributes(coord_dset, title='Coordinator', attrs=attrs)
 
     # copy if we don't have a file on disk
-    if sbt_paths and out_fname is None:
+    if sbt_path and out_fname is None:
         rfid.copy(sbt_fid, rfid)
 
     return rfid
 
 
-def collect_sbt_ancillary(acquisition, lonlats, dewpoint_path=None,
-                          temperature_2m_path=None, surface_pressure_path=None,
-                          geopotential_path=None, temperature_path=None,
-                          relative_humidity_path=None, invariant_fname=None,
-                          out_fname=None, compression='lzf'):
+def collect_sbt_ancillary(acquisition, lonlats, ancillary_path,
+                          invariant_fname=None, out_fname=None,
+                          compression='lzf'):
     """
     Collects the ancillary data required for surface brightness
     temperature.
@@ -210,28 +205,9 @@ def collect_sbt_ancillary(acquisition, lonlats, dewpoint_path=None,
     :param lonlats:
         A `list` of tuples containing (longitude, latitude) coordinates.
 
-    :param dewpoint_path:
-        A `str` containing the directory pathname to the dewpoint data.
-
-    :param temperature_2m_path:
-        A `str` containing the directory pathname to the 2m surface
-        temperature data.
-
-    :param surface_pressure_path:
-        A `str` containing the directory pathname to the surface
-        pressure data.
-
-    :param geopotential_path:
-        A `str` containing the directory pathname to the geopotential
-        data.
-
-    :param temperature_path:
-        A `str` containing the directory pathname to the pressure layer
-        temperature data.
-
-    :param relative_humidity_path:
-        A `str` containing the directory pathname to the pressure layer
-        relative humidity data.
+    :param ancillary_path:
+        A `str` containing the directory pathname to the ECMWF
+        ancillary data.
 
     :param invariant_fname:
         A `str` containing the file pathname to the invariant geopotential
@@ -275,9 +251,9 @@ def collect_sbt_ancillary(acquisition, lonlats, dewpoint_path=None,
     for i, lonlat in enumerate(lonlats):
         pnt = POINT_FMT.format(p=i)
         # get data located at the surface
-        dew = ecwmf_dewpoint_temperature(dewpoint_path, lonlat, dt)
-        t2m = ecwmf_temperature_2metre(temperature_2m_path, lonlat, dt)
-        sfc_prs = ecwmf_surface_pressure(surface_pressure_path, lonlat, dt)
+        dew = ecwmf_dewpoint_temperature(ancillary_path, lonlat, dt)
+        t2m = ecwmf_temperature_2metre(ancillary_path, lonlat, dt)
+        sfc_prs = ecwmf_surface_pressure(ancillary_path, lonlat, dt)
         sfc_hgt = ecwmf_elevation(invariant_fname, lonlat)
         sfc_rh = relative_humdity(t2m[0], dew[0])
 
@@ -299,9 +275,9 @@ def collect_sbt_ancillary(acquisition, lonlats, dewpoint_path=None,
         write_scalar(sfc_rh, dname, fid, attrs)
 
         # get the data from each of the pressure levels (1 -> 1000 ISBL)
-        gph = ecwmf_geo_potential(geopotential_path, lonlat, dt)
-        tmp = ecwmf_temperature(temperature_path, lonlat, dt)
-        rh = ecwmf_relative_humidity(relative_humidity_path, lonlat, dt)
+        gph = ecwmf_geo_potential(ancillary_path, lonlat, dt)
+        tmp = ecwmf_temperature(ancillary_path, lonlat, dt)
+        rh = ecwmf_relative_humidity(ancillary_path, lonlat, dt)
 
         dname = ppjoin(pnt, DatasetName.geopotential.value)
         write_dataframe(gph[0], dname, fid, compression, attrs=gph[1])
@@ -707,12 +683,15 @@ def ecwmf_temperature_2metre(input_path, lonlat, time):
     """
     product = 'temperature-2metre'
     files = glob.glob(pjoin(input_path, '{}_*.tif'.format(product)))
+    product = DatasetName.temperature_2m.value
+    search = pjoin(input_path, DatasetName.ecmwf_path_fmt.value)
+    files = glob.glob(search.format(product=product, year=time.year))
     data = None
-    required_day = datetime.datetime(time.year, time.month, time.day)
+    required_ymd = datetime.datetime(time.year, time.month, time.day)
     for f in files:
         ymd = splitext(basename(f))[0].split('_')[1]
         ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
-        if ancillary_day == required_ymd:
+        if ancillary_ymd == required_ymd:
             data = get_pixel(f, lonlat)
 
             metadata = {'data_source': 'ECWMF 2 metre Temperature',
@@ -735,10 +714,11 @@ def ecwmf_dewpoint_temperature(input_path, lonlat, time):
     Retrieve a pixel value from the ECWMF 2 metre Dewpoint
     Temperature collection.
     """
-    product = 'dewpoint-temperature'
-    files = glob.glob(pjoin(input_path, '{}_*.tif'.format(product)))
+    product = DatasetName.dewpoint_temperature.value
+    search = pjoin(input_path, DatasetName.ecmwf_path_fmt.value)
+    files = glob.glob(search.format(product=product, year=time.year))
     data = None
-    required_day = datetime.datetime(time.year, time.month, time.day)
+    required_ymd = datetime.datetime(time.year, time.month, time.day)
     for f in files:
         ymd = splitext(basename(f))[0].split('_')[1]
         ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
@@ -767,10 +747,11 @@ def ecwmf_surface_pressure(input_path, lonlat, time):
     collection.
     Scales the result by 100 before returning.
     """
-    product = 'surface-pressure'
-    files = glob.glob(pjoin(input_path, '{}_*.tif'.format(product)))
+    product = DatasetName.surface_pressure.value
+    search = pjoin(input_path, DatasetName.ecmwf_path_fmt.value)
+    files = glob.glob(search.format(product=product, year=time.year))
     data = None
-    required_day = datetime.datetime(time.year, time.month, time.day)
+    required_ymd = datetime.datetime(time.year, time.month, time.day)
     for f in files:
         ymd = splitext(basename(f))[0].split('_')[1]
         ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
@@ -797,10 +778,11 @@ def ecwmf_water_vapour(input_path, lonlat, time):
     Retrieve a pixel value from the ECWMF Total Column Water Vapour
     collection.
     """
-    product = 'water-vapour'
-    files = glob.glob(pjoin(input_path, '{}_*.tif'.format(product)))
+    product = DatasetName.water_vapour.value
+    search = pjoin(input_path, DatasetName.ecmwf_path_fmt.value)
+    files = glob.glob(search.format(product=product, year=time.year))
     data = None
-    required_day = datetime.datetime(time.year, time.month, time.day)
+    required_ymd = datetime.datetime(time.year, time.month, time.day)
     for f in files:
         ymd = splitext(basename(f))[0].split('_')[1]
         ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
@@ -832,15 +814,17 @@ def ecwmf_temperature(input_path, lonlat, time):
     Reverses the order of elements
     (1000 -> 1 mb, rather than 1 -> 1000 mb) before returning.
     """
-    product = 'temperature'
-    files = glob.glob(pjoin(input_path, '{}_*.tif'.format(product)))
+    product = DatasetName.temperature.value
+    search = pjoin(input_path, DatasetName.ecmwf_path_fmt.value)
+    files = glob.glob(search.format(product=product, year=time.year))
     data = None
-    required_day = datetime.datetime(time.year, time.month, time.day)
+    required_ymd = datetime.datetime(time.year, time.month, time.day)
     for f in files:
         ymd = splitext(basename(f))[0].split('_')[1]
         ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
         if ancillary_ymd == required_ymd:
-            data = get_pixel(f, lonlat, list(range(1, 38)))[::-1]
+            bands = list(range(1, 38))
+            data = get_pixel(f, lonlat, bands)[::-1]
 
             metadata = {'data_source': 'ECWMF Temperature',
                         'data_file': f,
@@ -871,15 +855,17 @@ def ecwmf_geo_potential(input_path, lonlat, time):
     the elements (1000 -> 1 mb, rather than 1 -> 1000 mb) before
     returning.
     """
-    product = 'geo-potential'
-    files = glob.glob(pjoin(input_path, '{}_*.tif'.format(product)))
+    product = DatasetName.geopotential.value
+    search = pjoin(input_path, DatasetName.ecmwf_path_fmt.value)
+    files = glob.glob(search.format(product=product, year=time.year))
     data = None
-    required_day = datetime.datetime(time.year, time.month, time.day)
+    required_ymd = datetime.datetime(time.year, time.month, time.day)
     for f in files:
         ymd = splitext(basename(f))[0].split('_')[1]
         ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
         if ancillary_ymd == required_ymd:
-            data = get_pixel(f, lonlat, list(range(1, 38)))[::-1]
+            bands = list(range(1, 38))
+            data = get_pixel(f, lonlat, bands)[::-1]
             scaled_data = data / 9.80665 / 1000.0
 
             metadata = {'data_source': 'ECWMF Geo-Potential',
@@ -911,15 +897,17 @@ def ecwmf_relative_humidity(input_path, lonlat, time):
     Reverses the order of elements
     (1000 -> 1 mb, rather than 1 -> 1000 mb) before returning.
     """
-    product = 'relative-humidity'
-    files = glob.glob(pjoin(input_path, '{}_*.tif'.format(product)))
+    product = DatasetName.relative_humidity.value
+    search = pjoin(input_path, DatasetName.ecmwf_path_fmt.value)
+    files = glob.glob(search.format(product=product, year=time.year))
     data = None
-    required_day = datetime.datetime(time.year, time.month, time.day)
+    required_ymd = datetime.datetime(time.year, time.month, time.day)
     for f in files:
         ymd = splitext(basename(f))[0].split('_')[1]
         ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
         if ancillary_ymd == required_ymd:
-            data = get_pixel(f, lonlat, list(range(1, 38)))[::-1]
+            bands = list(range(1, 38))
+            data = get_pixel(f, lonlat, bands)[::-1]
 
             metadata = {'data_source': 'ECWMF Relative Humidity',
                         'data_file': f,

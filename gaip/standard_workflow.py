@@ -143,12 +143,7 @@ class AncillaryData(luigi.Task):
     ozone_path = luigi.Parameter(significant=False)
     water_vapour_path = luigi.Parameter(significant=False)
     dem_path = luigi.Parameter(significant=False)
-    dewpoint_path = luigi.Parameter(significant=False)
-    temp_2m_path = luigi.Parameter(significant=False)
-    surface_pressure_path = luigi.Parameter(significant=False)
-    geopotential_path = luigi.Parameter(significant=False)
-    temperature_path = luigi.Parameter(significant=False)
-    relative_humidity_path = luigi.Parameter(significant=False)
+    ecmwf_path = luigi.Parameter(significant=False)
     invariant_height_fname = luigi.Parameter(significant=False)
     compression = luigi.Parameter(default='lzf', significant=False)
 
@@ -166,7 +161,7 @@ class AncillaryData(luigi.Task):
         container = acquisitions(self.level1)
         acq = container.get_acquisitions(granule=self.granule)[0]
         work_root = container.get_root(self.work_root, granule=self.granule)
-        sbt_paths = None
+        sbt_path = None
 
         nbar_paths = {'aerosol_fname': self.aerosol_fname,
                       'water_vapour_path': self.water_vapour_path,
@@ -176,16 +171,11 @@ class AncillaryData(luigi.Task):
                       'brdf_premodis_path': self.brdf_premodis_path}
 
         if self.model == Model.standard or self.model == Model.sbt:
-            sbt_paths = {'dewpoint_path': self.dewpoint_path,
-                         'temperature_2m_path': self.temp_2m_path,
-                         'surface_pressure_path': self.surface_pressure_path,
-                         'geopotential_path': self.geopotential_path,
-                         'temperature_path': self.temperature_path,
-                         'relative_humidity_path': self.relative_humidity_path,
-                         'invariant_fname': self.invariant_height_fname}
+            sbt_path = self.ecmwf_path
 
         with self.output().temporary_path() as out_fname:
-            _collect_ancillary(acq, self.input().path, nbar_paths, sbt_paths,
+            _collect_ancillary(acq, self.input().path, nbar_paths, sbt_path,
+                               self.invariant_height_fname,
                                vertices=self.vertices, out_fname=out_fname,
                                work_path=work_root,
                                compression=self.compression)
