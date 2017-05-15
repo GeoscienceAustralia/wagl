@@ -127,10 +127,10 @@ class DatasetName(Enum):
     relative_slope = 'relative-slope'
 
     # gaip.calculate_reflectance
-    reflectance_fmt = '{product}-reflectance-band-{band}'
+    reflectance_fmt = '{product}/{product}-reflectance-band-{band}'
 
     # gaip.thermal_conversion
-    temperature_fmt = "surface-brightness-temperature-band-{band}"
+    temperature_fmt = "temperature/surface-brightness-temperature-band-{band}"
 
     # gaip.calculate_shadow_masks
     self_shadow = 'self-shadow'
@@ -160,7 +160,7 @@ class DatasetName(Enum):
     sbt_coefficients = 'sbt-coefficients'
 
     # gaip.pq
-    pixel_quality = 'pixel-quality'
+    pixel_quality = 'pixel-quality/pixel-quality'
 
     # metadata
     nbar_yaml = 'metadata/nbar-metadata'
