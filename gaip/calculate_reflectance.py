@@ -372,9 +372,9 @@ def link_standard_data(input_fnames, out_fname, model):
         """
         return isinstance(obj, h5py.Group)
 
-    dataset_names = []
     for fname in input_fnames:
         with h5py.File(fname, 'r') as fid:
+            dataset_names = []
             for group in model.ard_products:
                 if group not in fid:
                     continue
