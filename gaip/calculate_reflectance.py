@@ -9,11 +9,12 @@ reflectance
 """
 
 from __future__ import absolute_import, print_function
+from posixpath import join as ppjoin
 import numpy
 import h5py
 
 from gaip import constants
-from gaip.constants import DatasetName
+from gaip.constants import DatasetName, Model
 from gaip.data import as_array
 from gaip.hdf5 import dataset_compression_kwargs
 from gaip.hdf5 import attach_image_attributes
@@ -357,7 +358,7 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
     return fid
 
 
-def link_standard_data(input_fnames, out_fname):
+def link_standard_data(input_fnames, out_fname, model):
     # TODO: incorporate linking for multi-granule and multi-group
     #       datasets
     """
@@ -373,7 +374,12 @@ def link_standard_data(input_fnames, out_fname):
 
     for fname in input_fnames:
         with h5py.File(fname, 'r') as fid:
-            dataset_names = [k for k, v in fid.items() if not exclude(v)]
+            for group in model.ard_products:
+                if group not in fid:
+                    continue
+                grp = fid[group]
+                dataset_names = [k for k, v in grp.items() if not exclude(v)]
+                dataset_names = [ppjoin(group, d) for d in dataset_names]
 
         for dname in dataset_names:
             if isinstance(dname, h5py.Group):
