@@ -295,7 +295,7 @@ def collect_sbt_ancillary(acquisition, lonlats, ancillary_path,
                               dtype='float64')
 
         col = 'GeoPotential_Height'
-        df[col].iloc[1:] = gph[0][col].values / 10000
+        df[col].iloc[1:] = gph[0][col].values
 
         df['Pressure'].iloc[1:] = ECWMF_LEVELS[::-1]
 
@@ -662,8 +662,9 @@ def ecwmf_elevation(datafile, lonlat):
     Retrieve a pixel from the ECWMF invariant geo-potential
     dataset.
     Converts to Geo-Potential height in KM.
+    2 metres is added to the result before returning.
     """
-    data = get_pixel(datafile, lonlat) / 9.80665 / 1000.0
+    data = get_pixel(datafile, lonlat) / 9.80665 / 1000.0 + 0.002
 
     metadata = {'data_source': 'ECWMF Invariant Geo-Potential',
                 'data_file': datafile}
@@ -879,8 +880,8 @@ def ecwmf_geo_potential(input_path, lonlat, time):
 
             # internal file metadata (and reverse the ordering)
             df = read_meatadata_tags(f, bands).iloc[::-1]
-            df.insert(0, 'GeoPotential_Height', data)
-            df.insert(1, 'GeoPotential', scaled_data)
+            df.insert(0, 'GeoPotential', data)
+            df.insert(1, 'GeoPotential_Height', scaled_data)
 
             return df, md
 
