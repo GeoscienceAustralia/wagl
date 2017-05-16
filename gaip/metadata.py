@@ -229,6 +229,7 @@ def create_ard_yaml(acquisition, ancillary_fname, out_group, sbt=False):
         algorithm['sbt_doi'] = 'TODO'
     else:
         dname = DatasetName.nbar_yaml.value
+        algorithm['algorithm_version'] = 2.0
         algorithm['arg25_doi'] = 'http://dx.doi.org/10.4225/25/5487CC0D4F40B'
         algorithm['nbar_doi'] = 'http://dx.doi.org/10.1109/JSTARS.2010.2042281'
         algorithm['nbar_terrain_corrected_doi'] = 'http://dx.doi.org/10.1016/j.rse.2012.06.018' # pylint: disable=line-too-long
