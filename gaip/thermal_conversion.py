@@ -237,7 +237,7 @@ def get_landsat_temperature(acquisitions, pq_const):
     thermal_band = pq_const.thermal_band
 
     # Function returns a list of one item. Take the first item.
-    acq = acqs[pq_const.get_array_band_lookup([thermal_band])[0]]
+    acq = [a for a in acqs if a.band_num == thermal_band][0]
     radiance = acq.data(apply_gain_offset=True)
 
     kelvin_array = temperature_conversion(radiance, acq.K1, acq.K2)
