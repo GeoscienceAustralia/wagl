@@ -197,7 +197,7 @@ def interpolate_grid(depth=0, origin=DEFAULT_ORIGIN, shape=DEFAULT_SHAPE,
 
 def _bilinear_interpolate(acq, factor, sat_sol_angles_fname,
                           coefficients_fname, ancillary_fname, out_fname,
-                          compression, y_tile):
+                          compression, y_tile, method):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -223,7 +223,7 @@ def _bilinear_interpolate(acq, factor, sat_sol_angles_fname,
 
         rfid = bilinear_interpolate(acq, factor, coord_dset, box_dset,
                                     centre_dset, coef_dset, out_fname,
-                                    compression, y_tile)
+                                    compression, y_tile, method)
 
     rfid.close()
     return
@@ -251,11 +251,16 @@ def bilinear_interpolate(acq, factor, coordinator_dataset, boxline_dataset,
 
     if method is None:
         if len(samples) == 9:
-            method = gaip.interpolate.fortran_bilinear_interpolate
+            method = 'linear'
         else:
-            method = gaip.interpolate.rbf_interpolate
+            method = 'shear'
 
-    result = method(cols, rows, coord, samples, start, end, centre)
+    func_map = {'linear': gaip.interpolate.fortran_bilinear_interpolate,
+                'shear': gaip.interpolate.sheared_bilinear_interpolate,
+                'rbf': gaip.interpolate.rbf_interpolate}
+    assert method in func_map
+
+    result = func_map[method](cols, rows, coord, samples, start, end, centre)
 
     # Initialise the output files
     if out_fname is None:
