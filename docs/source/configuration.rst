@@ -184,6 +184,9 @@ factor
 band_num
   The band number to run.
 
+method
+  THe interpolation method to use; *linear*, *shear* or *rbf*. The default is *shear*.
+
 
 [BilinearInterpolation]
 -----------------------
