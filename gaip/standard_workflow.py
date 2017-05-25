@@ -57,10 +57,11 @@ class WorkRoot(luigi.Task):
     work_root = luigi.Parameter(significant=False)
     reflectance_dir = '_standardised'
     shadow_dir = '_shadow'
-    bilinear_dir = '_bilinear'
+    interpolation_dir = '_interpolation'
 
     def output(self):
-        out_dirs = [self.reflectance_dir, self.shadow_dir, self.bilinear_dir]
+        out_dirs = [self.reflectance_dir, self.shadow_dir,
+                    self.interpolation_dir]
         container = acquisitions(self.level1)
         for granule in container.granules:
             for group in container.groups:
@@ -345,15 +346,15 @@ class CalculateCoefficients(luigi.Task):
 
 
 @inherits(CalculateLonLatGrids)
-class BilinearInterpolationBand(luigi.Task):
+class InterpolateCoefficient(luigi.Task):
     """
-    Runs the bilinear interpolation function for a given band.
+    Runs the interpolation function for a given band.
     """
 
     vertices = luigi.TupleParameter(significant=False)
     band_num = luigi.Parameter()
     factor = luigi.Parameter()
-    base_dir = luigi.Parameter(default='_bilinear', significant=False)
+    base_dir = luigi.Parameter(default='_interpolation', significant=False)
     model = luigi.EnumParameter(enum=Model)
     method = luigi.Parameter(default='shear', significant=False)
 
@@ -385,13 +386,12 @@ class BilinearInterpolationBand(luigi.Task):
 
 
 @inherits(CalculateLonLatGrids)
-class BilinearInterpolation(luigi.Task):
+class InterpolateCoefficients(luigi.Task):
 
     """
-    Issues BilinearInterpolationBand tasks.
-    This is a helper task.
-    Links the outputs from each submitted task into
-    a single file for easy access.
+    Issues InterpolateCoefficient tasks.
+    This acts as a helper task, and links the results from each
+    InterpolateCoefficient task single HDF5 file.
     """
 
     vertices = luigi.TupleParameter(significant=False)
@@ -430,22 +430,22 @@ class BilinearInterpolation(luigi.Task):
                           'band_num': band, 'factor': factor,
                           'model': self.model, 'vertices': self.vertices,
                           'method': self.method}
-                tasks[key] = BilinearInterpolationBand(**kwargs)
+                tasks[key] = InterpolateCoefficient(**kwargs)
         return tasks
 
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
-        out_fname = pjoin(out_path, 'bilinearly-interpolated-data.h5')
+        out_fname = pjoin(out_path, 'interpolated-coefficients.h5')
         return luigi.LocalTarget(out_fname)
 
     def run(self):
-        bilinear_fnames = {}
+        fnames = {}
         for key, value in self.input().items():
-            bilinear_fnames[key] = value.path
+            fnames[key] = value.path
 
         with self.output().temporary_path() as out_fname:
-            link_interpolated_data(bilinear_fnames, out_fname)
+            link_interpolated_data(fnames, out_fname)
 
 
 @inherits(CalculateLonLatGrids)
@@ -712,7 +712,7 @@ class CalculateShadowMasks(luigi.Task):
                             self.y_tile)
 
 
-@inherits(BilinearInterpolation)
+@inherits(InterpolateCoefficients)
 class SurfaceReflectance(luigi.Task):
 
     """Run the terrain correction over a given band."""
@@ -722,7 +722,7 @@ class SurfaceReflectance(luigi.Task):
     base_dir = luigi.Parameter(default='_standardised', significant=False)
 
     def requires(self):
-        reqs = {'bilinear': self.clone(BilinearInterpolation),
+        reqs = {'interpolation': self.clone(InterpolateCoefficients),
                 'ancillary': self.clone(AncillaryData),
                 'rel_slope': self.clone(RelativeAzimuthSlope),
                 'shadow': self.clone(CalculateShadowMasks),
@@ -745,7 +745,7 @@ class SurfaceReflectance(luigi.Task):
 
         # inputs
         inputs = self.input()
-        bilinear_fname = inputs['bilinear'].path
+        interpolation_fname = inputs['interpolation'].path
         slp_asp_fname = inputs['slp_asp'].path
         incident_fname = inputs['incident'].path
         exiting_fname = inputs['exiting'].path
@@ -758,7 +758,7 @@ class SurfaceReflectance(luigi.Task):
         acq = [acq for acq in acqs if acq.band_num == self.band_num][0]
 
         with self.output().temporary_path() as out_fname:
-            _calculate_reflectance(acq, bilinear_fname, sat_sol_fname,
+            _calculate_reflectance(acq, interpolation_fname, sat_sol_fname,
                                    slp_asp_fname, relative_slope_fname,
                                    incident_fname, exiting_fname,
                                    shadow_fname, ancillary_fname,
@@ -774,7 +774,7 @@ class SurfaceTemperature(luigi.Task):
     """
 
     def requires(self):
-        reqs = {'bilinear': self.clone(BilinearInterpolation),
+        reqs = {'interpolation': self.clone(InterpolateCoefficients),
                 'ancillary': self.clone(AncillaryData)}
         return reqs
 
@@ -790,14 +790,14 @@ class SurfaceTemperature(luigi.Task):
         acq = [acq for acq in acqs if acq.band_num == self.band_num][0]
 
         with self.output().temporary_path() as out_fname:
-            bilinear_fname = self.input()['bilinear'].path
+            interpolation_fname = self.input()['interpolation'].path
             ancillary_fname = self.input()['ancillary'].path
-            _surface_brightness_temperature(acq, bilinear_fname,
+            _surface_brightness_temperature(acq, interpolation_fname,
                                             ancillary_fname, out_fname,
                                             self.compression, self.y_tile)
 
 
-@inherits(BilinearInterpolation)
+@inherits(InterpolateCoefficients)
 class Standard(luigi.Task):
 
     """
