@@ -162,12 +162,12 @@ combined
 Same options as the *Atmospherics* task.
 
 
-[BilinearInterpolationBand]
+[InterpolateCoefficient]
 ---------------------------
 
 base_dir
   A name indicating the base directory to output the results to.
-  Internally defaults to _bilinear.
+  Internally defaults to _interpolation.
 
 compression
   The compression filter to use (internally the code defaults to use *lzf*.
@@ -188,7 +188,7 @@ method
   THe interpolation method to use; *linear*, *shear* or *rbf*. The default is *shear*.
 
 
-[BilinearInterpolation]
+[InterpolateCoefficients]
 -----------------------
 
 vertices
@@ -344,4 +344,4 @@ pixel_quality
   A boolean indicating whether or not to run the pixel quality workflow.
 
 method
-  THe interpolation method to use; *linear*, *shear* or *rbf*. The default is *shear*.
+  The interpolation method to use; *linear*, *shear* or *rbf*. The default is *shear*.
