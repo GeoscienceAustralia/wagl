@@ -33,7 +33,7 @@ from gaip.dsm import get_dsm
 from gaip.modtran import _format_tp5, _run_modtran
 from gaip.modtran import calculate_coefficients, prepare_modtran
 from gaip.modtran import link_atmospheric_results
-from gaip.interpolation import _bilinear_interpolate, link_bilinear_data
+from gaip.interpolation import _interpolate, link_interpolated_data
 from gaip.thermal_conversion import _surface_brightness_temperature
 from gaip.pq import can_pq, run_pq
 
@@ -379,10 +379,9 @@ class BilinearInterpolationBand(luigi.Task):
         acq = [acq for acq in acqs if acq.band_num == self.band_num][0]
 
         with self.output().temporary_path() as out_fname:
-            _bilinear_interpolate(acq, self.factor, sat_sol_angles_fname,
-                                  coefficients_fname, ancillary_fname,
-                                  out_fname, self.compression, self.y_tile,
-                                  self.method)
+            _interpolate(acq, self.factor, sat_sol_angles_fname,
+                         coefficients_fname, ancillary_fname, out_fname,
+                         self.compression, self.y_tile, self.method)
 
 
 @inherits(CalculateLonLatGrids)
@@ -446,7 +445,7 @@ class BilinearInterpolation(luigi.Task):
             bilinear_fnames[key] = value.path
 
         with self.output().temporary_path() as out_fname:
-            link_bilinear_data(bilinear_fnames, out_fname)
+            link_interpolated_data(bilinear_fnames, out_fname)
 
 
 @inherits(CalculateLonLatGrids)

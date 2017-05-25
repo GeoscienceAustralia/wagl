@@ -338,9 +338,8 @@ def sheared_bilinear_interpolate(cols, rows, locations, samples,
     return result
 
 
-def _bilinear_interpolate(acq, factor, sat_sol_angles_fname,
-                          coefficients_fname, ancillary_fname, out_fname,
-                          compression, y_tile, method):
+def _interpolate(acq, factor, sat_sol_angles_fname, coefficients_fname,
+                 ancillary_fname, out_fname, compression, y_tile, method):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -364,19 +363,18 @@ def _bilinear_interpolate(acq, factor, sat_sol_angles_fname,
 
         coef_dset = read_table(coef, dataset_name)
 
-        rfid = bilinear_interpolate(acq, factor, coord_dset, box_dset,
-                                    centre_dset, coef_dset, out_fname,
-                                    compression, y_tile, method)
+        rfid = interpolate(acq, factor, coord_dset, box_dset, centre_dset,
+                           coef_dset, out_fname, compression, y_tile, method)
 
     rfid.close()
     return
 
 
-def bilinear_interpolate(acq, factor, coordinator_dataset, boxline_dataset,
-                         centreline_dataset, coefficients, out_fname=None,
-                         compression='lzf', y_tile=100, method=None):
+def interpolate(acq, factor, coordinator_dataset, boxline_dataset,
+                centreline_dataset, coefficients, out_fname=None,
+                compression='lzf', y_tile=100, method=None):
     # TODO: more docstrings
-    """Perform bilinear interpolation."""
+    """Perform interpolation."""
     geobox = acq.gridded_geo_box()
     cols, rows = geobox.get_shape_xy()
 
@@ -398,9 +396,9 @@ def bilinear_interpolate(acq, factor, coordinator_dataset, boxline_dataset,
         else:
             method = 'shear'
 
-    func_map = {'linear': gaip.interpolate.fortran_bilinear_interpolate,
-                'shear': gaip.interpolate.sheared_bilinear_interpolate,
-                'rbf': gaip.interpolate.rbf_interpolate}
+    func_map = {'linear': fortran_bilinear_interpolate,
+                'shear': sheared_bilinear_interpolate,
+                'rbf': rbf_interpolate}
     assert method in func_map
 
     result = func_map[method](cols, rows, coord, samples, start, end, centre)
@@ -420,8 +418,9 @@ def bilinear_interpolate(acq, factor, coordinator_dataset, boxline_dataset,
     kwargs['fillvalue'] = no_data
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
              'geotransform': geobox.transform.to_gdal(),
-             'no_data_value': no_data}
-    desc = ("Contains the bi-linearly interpolated result of factor {}"
+             'no_data_value': no_data,
+             'interpolation_method': method}
+    desc = ("Contains the interpolated result of factor {}"
             "for band {} from sensor {}.")
     attrs['Description'] = desc.format(factor, band, acq.satellite_name)
     write_h5_image(result, dset_name, fid, attrs, **kwargs)
@@ -429,9 +428,9 @@ def bilinear_interpolate(acq, factor, coordinator_dataset, boxline_dataset,
     return fid
 
 
-def link_bilinear_data(data, out_fname):
+def link_interpolated_data(data, out_fname):
     """
-    Links the individual bilinearly interpolated results into a
+    Links the individual interpolated results into a
     single file for easier access.
     """
     for key in data:
