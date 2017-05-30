@@ -9,7 +9,8 @@ from datetime import datetime as dtime
 import os
 from os.path import dirname
 import pwd
-import subprocess
+import socket
+import uuid
 import numpy
 import h5py
 import pandas
@@ -221,9 +222,12 @@ def create_ard_yaml(acquisition, ancillary_fname, out_group, sbt=False):
 
     ancillary = load_ancillary(acquisition, ancillary_fname, sbt)
 
-    algorithm = {'software_version': gaip.__version__,
-                 'software_repository': 'https://github.com/GeoscienceAustralia/ga-neo-landsat-processor.git'} # pylint: disable=line-too-long
+    software_versions = {'gaip': {'version': gaip.__version__,
+                                  'repo_url': 'https://github.com/GeoscienceAustralia/gaip.git'}, # pylint: disable=line-too-long
+                         'modtran': {'version': '5.2.1'}
+                        }
 
+    algorithm = {}
     if sbt:
         dname = DatasetName.sbt_yaml.value
         algorithm['sbt_doi'] = 'TODO'
@@ -234,14 +238,16 @@ def create_ard_yaml(acquisition, ancillary_fname, out_group, sbt=False):
         algorithm['nbar_doi'] = 'http://dx.doi.org/10.1109/JSTARS.2010.2042281'
         algorithm['nbar_terrain_corrected_doi'] = 'http://dx.doi.org/10.1016/j.rse.2012.06.018' # pylint: disable=line-too-long
 
-    proc = subprocess.Popen(['uname', '-a'], stdout=subprocess.PIPE)
-    system_info = {'node': proc.stdout.read().decode('utf-8'),
+    system_info = {'uname': ' '.join(os.uname()),
+                   'hostname': socket.getfqdn(),
+                   'runtime_id': uuid.uuid1(),
                    'time_processed': dtime.utcnow().isoformat()}
 
     metadata = {'system_information': system_info,
                 'source_data': source_info,
                 'ancillary_data': ancillary,
-                'algorithm_information': algorithm}
+                'algorithm_information': algorithm,
+                'software_versions': software_versions}
     
     # output
     yml_data = yaml.dump(metadata, default_flow_style=False)
@@ -269,8 +275,9 @@ def create_pq_yaml(acquisition, ancillary, tests_run, out_group):
     :return:
         None; The yaml document is written to the HDF5 file.
     """
-    proc = subprocess.Popen(['uname', '-a'], stdout=subprocess.PIPE)
-    system_info = {'node': proc.stdout.read().decode('utf-8'),
+    system_info = {'uname': ' '.join(os.uname()),
+                   'hostname': socket.getfqdn(),
+                   'runtime_id': uuid.uuid1(),
                    'time_processed': dtime.utcnow().isoformat()}
 
     source_info = {'source_l1t': dirname(acquisition.dir_name),
