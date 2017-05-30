@@ -15,7 +15,6 @@ from gaip.constants import DatasetName, Model
 from gaip.hdf5 import dataset_compression_kwargs
 from gaip.hdf5 import write_h5_image
 from gaip.hdf5 import read_table
-import gaip.interpolate
 
 logger = logging.getLogger(__name__)
 
