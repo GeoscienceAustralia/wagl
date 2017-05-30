@@ -117,5 +117,5 @@ def main():
     test_case = ParameterisedTestCase()
     suite.addTest(test_case.parameterise(TestShadowMasks,
                                          reference_fname=reference_fname,
-                                         test_fname=test_fname)
+                                         test_fname=test_fname))
     unittest.TextTestRunner(verbosity=2).run(suite)
