@@ -12,7 +12,7 @@ Moving to HDF5
 
 Some of the main reasons behind moving to HDF5 are:
 
-* Reduce the number of files being written to disk. Yes imagery could be stored multi-band, but band ordering would need to be explicity defined.
+* Reduce the number of files being written to disk. Yes imagery could be stored multi-band, but band ordering would need to be explicity defined, and we have the added benefit of including metadata such as Dataset descriptions, thereby allowing an easier knowledge transfer for future developers. For some variations on processing a scene, the number of files output to disk was reduced by approximately 22%.
 * Consequently, a reduction in the number of files, also reduces the number of parameters being passed back and forth between `luigi <https://github.com/spotify/luigi>`_ *Tasks*.
 * Consolodate the numerous text files that could be comma, tab, space, and variable space delimited variations, into a consistant *TABLE* structure that allows compression.
 * *TABLE* and *IMAGE* datasets can be stored and accessed together from the same file.
@@ -29,9 +29,9 @@ Some of the main reasons behind moving to HDF5 are:
     * /point-2/temperature
 
 * Metadata; gaip can now store a lot more metadata such as longitude and latitude information with each ancillary point location, as opposed to a plain text label.
-  Parameter settings used for a given algorithm such as for the satellite and solar angles calculation can be stored alongside the results, potentially making it easier for validation, and archive comparisons to be undertaken.
-* Utilise a consistant library for data I/O, rather than a dozen or so different libraries. This helps to simplify the gaip data model, and have fewer library dependencies.
-* It simplified the workflow **A LOT**
+  Parameter settings used for a given algorithm such as for the satellite and solar angles calculation can be stored alongside the results, potentially making it easier for validation, and archive comparisons to be undertaken. Dataset descriptions have been useful for new people working with the code base.
+* Utilise a consistant library for data I/O, rather than a dozen or so different libraries. This helps to simplify the gaip data model.
+* It simplified the workflow **A LOT**. By writing multiple datasets within the same file, the parameter passing bewteen Task's and functions, was reduced in some cases from a dozen parameters, to a single parameter. Some Tasks would act as a helper task whose sole purpose was to manage a bunch of individual Tasks, and combine the results into a single file for easy access by downstream Tasks which then didn't have to open several dozen files. This is achieved by HDF5's ExternalLink feature, which allows the linking of Datasets contained within other files to be readable from a single file that acts as a Table Of Contents (TOC). It is similar to a UNIX symbolic link, or Windows shortcut.
 
 Dataset Names
 -------------
@@ -47,9 +47,9 @@ Dataset names for each output are as follows:
     * /BRDF-Band-{band_id}-geo *(combinations based on band_id)*
     * /BRDF-Band-{band_id}-iso *(combinations based on band_id)*
     * /BRDF-Band-{band_id}-vol *(combinations based on band_id)*
-    * /brdf-image-datasets/Band_{band_id)_0459_0479nm_geo *(combinations based on band_id and lower/upper brdf wavelength)*
-    * /brdf-image-datasets/Band_{band_id)_0459_0479nm_iso *(combinations based on band_id)*
-    * /brdf-image-datasets/Band_{band_id)_0459_0479nm_vol *(combinations based on band_id)*
+    * /brdf-image-datasets/Band_{band_id}_0459_0479nm_geo *(combinations based on band_id and lower/upper brdf wavelength)*
+    * /brdf-image-datasets/Band_{band_id}_0459_0479nm_iso *(combinations based on band_id)*
+    * /brdf-image-datasets/Band_{band_id}_0459_0479nm_vol *(combinations based on band_id)*
 * atmospheric-inputs.h5
     * /modtran-inputs/point-0/albedo-0/tp5_data *(combinations based on point label, albedo label)*
     * /modtran-inputs/point-1/albedo-1/tp5_data *(combinations based on point label, albedo label)*
@@ -65,7 +65,7 @@ Dataset names for each output are as follows:
 * coefficients.h5
     * /nbar-coefficients
     * /sbt-coefficients
-* bilinearly-interpolated-data.h5
+* interpolated-coefficients.h5
     * /a-band-{band_id} *(combinations based on the band_id)*
     * /b-band-{band_id} *(combinations based on the band_id)*
     * /dif-band-{band_id} *(combinations based on the band_id)*
@@ -109,10 +109,14 @@ Dataset names for each output are as follows:
     * /aspect
     * /slope
 * standardised-data.h5
-    * /brdf-reflectance-band-{band_id} *(combinations based on the band_id)*
-    * /lambertian-reflectance-band-{band_id} *(combinations based on the band_id)*
-    * /terrain-reflectance-band-{band_id} *(combinations based on the band_id)*
-    * /surface-brightness-temperature-band-{band_id} *(combinations based on the band_id)*
+    * /brdf/reflectance-band-{band_id} *(combinations based on the band_id)*
+    * /lambertian/reflectance-band-{band_id} *(combinations based on the band_id)*
+    * /metadata/nbar-metadata
+    * /metadata/pq-metadata
+    * /metadata/sbt-metadata
+    * /pixel-quality/pixel-quality
+    * /terrain/reflectance-band-{band_id} *(combinations based on the band_id)*
+    * /themal/surface-brightness-temperature-band-{band_id} *(combinations based on the band_id)*
 
 Geospatial Information
 ----------------------
