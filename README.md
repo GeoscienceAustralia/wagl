@@ -69,14 +69,14 @@ The gaip pacakage can be installed via:
 --------------------------
 Using the [local scheduler](http://luigi.readthedocs.io/en/stable/command_line.html):
 
-    $ luigi --module gaip.standard_workflow ARD --model nbar --level1-csv scenes.txt --output-directory /some/path --local-scheduler --workers 4
+    $ luigi --module gaip.standard_workflow ARD --model nbar --level1-list scenes.txt --outdir /some/path --local-scheduler --workers 4
 
 Using the [central scheduler](http://luigi.readthedocs.io/en/stable/central_scheduler.html):
 
     $ luigid --background --pidfile <PATH_TO_PIDFILE> --logdir <PATH_TO_LOGDIR> --state-path <PATH_TO_STATEFILE>
 
-    $ luigi --module gaip.standard_workflow ARD --level1-csv scenes.txt --model standard --output-directory /some/path --workers 4
+    $ luigi --module gaip.standard_workflow ARD --level1-list scenes.txt --model standard --outdir /some/path --workers 4
 
-    $ luigi --module gaip.standard_workflow ARD --level1-csv scenes.txt --model nbar --output-directory /some/path --workers 4
+    $ luigi --module gaip.standard_workflow ARD --level1-list scenes.txt --model nbar --outdir /some/path --workers 4
 
-    $ luigi --module gaip.standard_workflow ARD --level1-csv scenes.txt --model sbt --output-directory /some/path --workers 4
+    $ luigi --module gaip.standard_workflow ARD --level1-list scenes.txt --model sbt --outdir /some/path --workers 4

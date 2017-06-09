@@ -860,20 +860,20 @@ class ARD(luigi.WrapperTask):
 
     """Kicks off ARD tasks for each level1 entry."""
 
-    level1_csv = luigi.Parameter()
-    output_directory = luigi.Parameter()
+    level1_list = luigi.Parameter()
+    outdir = luigi.Parameter()
     model = luigi.EnumParameter(enum=Model)
     vertices = luigi.TupleParameter(default=(5, 5), significant=False)
     pixel_quality = luigi.BoolParameter()
     method = luigi.Parameter(default='shear', significant=False)
 
     def requires(self):
-        with open(self.level1_csv) as src:
+        with open(self.level1_list) as src:
             level1_scenes = [scene.strip() for scene in src.readlines()]
 
         for scene in level1_scenes:
             work_name = basename(scene) + self.model.value
-            work_root = pjoin(self.output_directory, work_name)
+            work_root = pjoin(self.outdir, work_name)
             container = acquisitions(scene)
             for granule in container.granules:
                 for group in container.groups:
