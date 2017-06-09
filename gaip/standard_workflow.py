@@ -844,7 +844,7 @@ class Standard(luigi.Task):
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
-        return luigi.LocalTarget(pjoin(out_path, 'standardised-data.h5'))
+        return luigi.LocalTarget(pjoin(out_path, 'standard-products.h5'))
 
     def run(self):
         with self.output().temporary_path() as out_fname:
@@ -862,7 +862,6 @@ class ARD(luigi.WrapperTask):
 
     level1_csv = luigi.Parameter()
     output_directory = luigi.Parameter()
-    work_extension = luigi.Parameter(default='.gaip-work', significant=False)
     model = luigi.EnumParameter(enum=Model)
     vertices = luigi.TupleParameter(default=(5, 5), significant=False)
     pixel_quality = luigi.BoolParameter()
@@ -873,7 +872,7 @@ class ARD(luigi.WrapperTask):
             level1_scenes = [scene.strip() for scene in src.readlines()]
 
         for scene in level1_scenes:
-            work_name = basename(scene) + self.work_extension
+            work_name = basename(scene) + self.model.value
             work_root = pjoin(self.output_directory, work_name)
             container = acquisitions(scene)
             for granule in container.granules:
