@@ -331,9 +331,6 @@ pixel_quality
 [ARD]
 -----
 
-work_extension
-  The extension to append to the working directory.
-
 model
   The model run to use; *standard*, *nbar*, or *sbt*.
 

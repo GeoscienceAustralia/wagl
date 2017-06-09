@@ -108,7 +108,7 @@ Dataset names for each output are as follows:
 * slope-aspect.h5
     * /aspect
     * /slope
-* standardised-data.h5
+* standard-products.h5
     * /brdf/reflectance-band-{band_id} *(combinations based on the band_id)*
     * /lambertian/reflectance-band-{band_id} *(combinations based on the band_id)*
     * /metadata/nbar-metadata

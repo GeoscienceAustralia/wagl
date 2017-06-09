@@ -14,19 +14,19 @@ To run the entire standard ARD workflow using luigi's local scheduler, set the -
 
 .. code-block:: bash
 
-   $ luigi --module gaip.standard_workflow ARD --level1-csv scenes.txt --model standard --output-directory /some/path --workers 4
+   $ luigi --module gaip.standard_workflow ARD --level1-list scenes.txt --model standard --outdir /some/path --workers 4
 
 To run the entire *nbar* ARD workflow using luigi's local scheduler, set the --model parameter to *nbar*:
 
 .. code-block:: bash
 
-   $ luigi --module gaip.standard_workflow ARD --level1-csv scenes.txt --model nbar --output-directory /some/path --workers 4
+   $ luigi --module gaip.standard_workflow ARD --level1-list scenes.txt --model nbar --outdir /some/path --workers 4
 
 To run the entire *sbt* ARD workflow using luigi's local scheduler, set the --model parameter to *sbt*:
 
 .. code-block:: bash
 
-   $ luigi --module gaip.standard_workflow ARD --level1-csv scenes.txt --model sbt --output-directory /some/path --workers 4 --local-scheduler
+   $ luigi --module gaip.standard_workflow ARD --level1-list scenes.txt --model sbt --outdir /some/path --workers 4 --local-scheduler
 
 To run using luigi's `central scheduler <http://luigi.readthedocs.io/en/stable/central_scheduler.html>`_:
 
@@ -34,13 +34,13 @@ To run using luigi's `central scheduler <http://luigi.readthedocs.io/en/stable/c
 
    $ luigid --background --pidfile <PATH_TO_PIDFILE> --logdir <PATH_TO_LOGDIR> --state-path <PATH_TO_STATEFILE>
 
-   $ luigi --module gaip.standard_workflow ARD --level1-csv scenes.txt --model standard --output-directory /some/path --workers 4
+   $ luigi --module gaip.standard_workflow ARD --level1-list scenes.txt --model standard --outdir /some/path --workers 4
 
 To include the pixel quality workflow as part of the main workflow, you need to set the pixel-quality switch as such:
 
 .. code-block:: bash
 
-   $ luigi --module gaip.standard_workflow ARD --level1-csv scenes.txt --model standard --pixel-quality --output-directory /some/path --workers 4
+   $ luigi --module gaip.standard_workflow ARD --level1-list scenes.txt --model standard --pixel-quality --outdir /some/path --workers 4
 
 Luigi will then execute, and manage, the entire ARD (Analysis Ready Data) workflow for every Level-1 scene listed in *scenes.txt*.
 
@@ -78,8 +78,8 @@ The Tasks callable from the command line are:
 * **IncidentAngles** (Calculates the incident angles for a level-1 scene)
 * **SlopeAndAspect** (Calculates the slope and aspect for a level-1 scene)
 * **DEMExtraction** (Extracts the DEM for a level-1 scene)
-* **BilinearInterpolation** (Issues *BilinearInterpolationBand* Tasks for each band, for each factor for a level-1 scene)
-* **BilinearInterpolationBand** (Executes the bilinear interpolation for a given band for a given factor)
+* **InterpolateCoefficient** (Issues *BilinearInterpolationBand* Tasks for each band, for each factor for a level-1 scene)
+* **InterpolateCoefficients** (Executes the bilinear interpolation for a given band for a given factor)
 * **CalculateCoefficients** (Calculates the atmospheric coefficients derived from running a radiative transfer algorithm such as `MODTRAN <http://modtran.spectral.com/>`_)
 * **Atmospherics** (Issues AtmosphericsCase Tasks, for each point/vertex for each albedo)
 * **AtmosphericsCase** (Executes `MODTRAN <http://modtran.spectral.com/>`_ for a given point location and albedo factor)
