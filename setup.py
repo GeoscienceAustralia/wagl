@@ -41,5 +41,6 @@ setup(
              'utils/aot_converter',
              'utils/gaip_convert',
              'utils/gaip_ls',
-             'utils/gaip_residuals'],
+             'utils/gaip_residuals',
+             'utils/gaip_pbs'],
 )
