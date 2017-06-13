@@ -872,7 +872,7 @@ class ARD(luigi.WrapperTask):
             level1_scenes = [scene.strip() for scene in src.readlines()]
 
         for scene in level1_scenes:
-            work_name = basename(scene) + self.model.value
+            work_name = '{}.{}'.format(basename(scene), self.model.name)
             work_root = pjoin(self.outdir, work_name)
             container = acquisitions(scene)
             for granule in container.granules:
