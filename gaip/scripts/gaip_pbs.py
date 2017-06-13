@@ -33,11 +33,11 @@ DSH_TEMPLATE = ("""#!/bin/bash
 #PBS -me
 #PBS -M {email}
 
-{files}
+FILES=({files})
 
-{daemons}
+DAEMONS=({daemons})
 
-{outdirs}
+OUTDIRS=({outdirs})
 
 for i in "${{!FILES[@]}}"; do
   X=$(($i+1))
@@ -102,15 +102,6 @@ def run(level1, vertices='(5, 5)', model='standard', method='linear',
             files.append(out_fname)
             daemons.append(daemon_fmt.format(jobdir))
             outdirs.append(job_outdir)
-
-        # overwrite the contents of the first and last items
-        # for an ugly styled list
-        files[0] = 'FILES=("{}'.format(files[0])
-        daemons[0] = 'DAEMONS=("{}'.format(daemons[0])
-        outdirs[0] = 'OUTDIRS=("{}'.format(outdirs[0])
-        files[-1] = '{}")'.format(files[-1])
-        daemons[-1] = '{}")'.format(daemons[-1])
-        outdirs[-1] = '{}")'.format(outdirs[-1])
 
         files = ['"{}"\n'.format(f) for f in files]
         daemons = ['"{}"\n'.format(f) for f in daemons]
