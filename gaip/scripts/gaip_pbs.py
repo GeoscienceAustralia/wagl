@@ -105,16 +105,16 @@ def run(level1, vertices='(5, 5)', model='standard', method='linear',
 
         # overwrite the contents of the first and last items
         # for an ugly styled list
-        files[0] = 'FILES="{}'.format(files[0])
-        daemons[0] = 'DAEMONS="{}'.format(daemons[0])
-        outdirs[0] = 'OUTDIRS="{}'.format(outdirs[0])
-        files[-1] = '{}"'.format(files[-1])
-        daemons[-1] = '{}"'.format(daemons[-1])
-        outdirs[-1] = '{}"'.format(outdirs[-1])
+        files[0] = 'FILES=("{}'.format(files[0])
+        daemons[0] = 'DAEMONS=("{}'.format(daemons[0])
+        outdirs[0] = 'OUTDIRS=("{}'.format(outdirs[0])
+        files[-1] = '{}")'.format(files[-1])
+        daemons[-1] = '{}")'.format(daemons[-1])
+        outdirs[-1] = '{}")'.format(outdirs[-1])
 
-        files = ['{}\n'.format(f) for f in files]
-        daemons = ['{}\n'.format(f) for f in daemons]
-        outdirs = ['{}\n'.format(f) for f in outdirs]
+        files = ['"{}"\n'.format(f) for f in files]
+        daemons = ['"{}"\n'.format(f) for f in daemons]
+        outdirs = ['"{}"\n'.format(f) for f in outdirs]
 
         files = ''.join(files)
         daemons = ''.join(daemons)
@@ -127,7 +127,8 @@ def run(level1, vertices='(5, 5)', model='standard', method='linear',
                                   outdirs=outdirs, vertices=vertices,
                                   method=method)
 
-        out_fname = pjoin(batchdir, fmt2.format(model=model, jobid=batchid))
+        out_fname = pjoin(batch_logdir,
+                          fmt2.format(model=model, jobid=batchid))
         with open(out_fname, 'w') as src:
             src.write(pbs)
 
