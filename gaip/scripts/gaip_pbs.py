@@ -124,9 +124,10 @@ def run(level1, vertices='(5, 5)', model='standard', method='linear',
             src.write(pbs)
 
         if test:
-            print("Testing execution")
+            print("Testing... Execution Batch: {}...Testing".format(batchid))
             print("qsub {}".format(out_fname))
         else:
+            print("Executing Batch: {}".format(batchid))
             os.chdir(dirname(out_fname))
             subprocess.call(['qsub', out_fname])
     else:
