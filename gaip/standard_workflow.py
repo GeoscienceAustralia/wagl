@@ -11,6 +11,8 @@ Workflow settings can be configured in `luigi.cfg` file.
 
 from __future__ import absolute_import, print_function
 from os.path import join as pjoin, basename, dirname
+import logging
+import traceback
 import luigi
 from luigi.local_target import LocalFileSystem
 from luigi.util import inherits, requires
@@ -38,12 +40,27 @@ from gaip.thermal_conversion import _surface_brightness_temperature
 from gaip.pq import can_pq, run_pq
 
 
+ERROR_LOGGER = logging.getLogger('luigi-error')
+
+
 def get_buffer(group):
     buf = {'product': 250,
            'R10m': 700,
            'R20m': 350,
            'R60m': 120}
     return buf[group]
+
+
+@luigi.Task.event_handler(luigi.Event.FAILURE)
+def on_failure(task, exception):
+    """Capture any Task Failure here."""
+    msg = exception.__str__()
+    traceback_msg = traceback.format_exc()
+    ERROR_LOGGER.error('*'*50)
+    ERROR_LOGGER.error(msg)
+    ERROR_LOGGER.error('*'*50)
+    ERROR_LOGGER.error(traceback_msg)
+    ERROR_LOGGER.error('*'*50)
 
 
 class WorkRoot(luigi.Task):
