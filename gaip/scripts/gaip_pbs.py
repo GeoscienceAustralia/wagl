@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+"""
+PBS submission scripts.
+"""
+
 import os
 from os.path import join as pjoin, dirname, exists
 import subprocess
@@ -53,6 +57,113 @@ done;
 wait
 """)
 
+FMT1 = 'level1-scenes-{jobid}.txt'
+FMT2 = '{model}-ard-{jobid}.bash'
+DAEMON_FMT = 'luigid --background --logdir {}'
+
+
+def _submit_dsh(scattered, vertices, model, method, batchid, batch_logdir,
+                batch_outdir, project, queue, memory, ncpus, hours, email, env,
+                test):
+    """Submit a single PBSDSH formatted job."""
+    files = []
+    daemons = []
+    outdirs = []
+    jobids = []
+
+    # setup each block of scenes for processing
+    for block in scattered:
+        jobid = uuid.uuid4().hex[0:6]
+        jobids.append(jobid)
+        jobdir = pjoin(batch_logdir, 'jobid-{}'.format(jobid))
+        job_outdir = pjoin(batch_outdir, 'jobid-{}'.format(jobid))
+
+        if not exists(jobdir):
+            os.makedirs(jobdir)
+
+        if not exists(job_outdir):
+            os.makedirs(job_outdir)
+
+        # write the block of scenes to process
+        out_fname = pjoin(jobdir, FMT1.format(jobid=jobid))
+        with open(out_fname, 'w') as src:
+            src.writelines(block)
+
+        files.append(out_fname)
+        daemons.append(DAEMON_FMT.format(jobdir))
+        outdirs.append(job_outdir)
+
+    files = ['"{}"\n'.format(f) for f in files]
+    daemons = ['"{}"\n'.format(f) for f in daemons]
+    outdirs = ['"{}"\n'.format(f) for f in outdirs]
+
+    pbs = DSH_TEMPLATE.format(project=project, queue=queue, hours=hours,
+                              memory=memory, ncpus=ncpus,
+                              email=email, files=''.join(files), env=env,
+                              daemons=''.join(daemons), model=model,
+                              outdirs=''.join(outdirs), vertices=vertices,
+                              method=method)
+
+    out_fname = pjoin(batch_logdir, FMT2.format(model=model, jobid=batchid))
+    with open(out_fname, 'w') as src:
+        src.write(pbs)
+
+    print("Job ids:\n{}".format(jobids))
+    if test:
+        print("qsub {}".format(out_fname))
+    else:
+        os.chdir(dirname(out_fname))
+        subprocess.call(['qsub', out_fname])
+
+
+def _submit_multiple(scattered, vertices, model, method, batchid, batch_logdir,
+                     batch_outdir, project, queue, memory, ncpus, hours, email,
+                     local_scheduler, env, test):
+    """Submit multiple PBS formatted jobs."""
+    print("Executing Batch: {}".format(batchid))
+    # setup and submit each block of scenes for processing
+    for block in scattered:
+        jobid = uuid.uuid4().hex[0:6]
+        jobdir = pjoin(batch_logdir, 'jobid-{}'.format(jobid))
+        job_outdir = pjoin(batch_outdir, 'jobid-{}'.format(jobid))
+
+        if not exists(jobdir):
+            os.makedirs(jobdir)
+
+        if not exists(job_outdir):
+            os.makedirs(job_outdir)
+
+        # local or central scheduler
+        if local_scheduler:
+            daemon = ''
+            scheduler = ' --local-scheduler'
+        else:
+            daemon = DAEMON_FMT.format(jobdir)
+            scheduler = ''
+
+        out_fname = pjoin(jobdir, FMT1.format(jobid=jobid))
+        with open(out_fname, 'w') as src:
+            src.writelines(block)
+
+        pbs = PBS_TEMPLATE.format(project=project, queue=queue,
+                                  hours=hours, memory=memory, ncpus=ncpus,
+                                  email=email, env=env, daemon=daemon,
+                                  model=model, scene_list=out_fname,
+                                  outdir=job_outdir, scheduler=scheduler,
+                                  vertices=vertices, method=method)
+
+        out_fname = pjoin(jobdir, FMT2.format(model=model, jobid=jobid))
+        with open(out_fname, 'w') as src:
+            src.write(pbs)
+
+    if test:
+        print("Mocking... Submitting Job: {} ...Mocking".format(jobid))
+        print("qsub {}".format(out_fname))
+    else:
+        os.chdir(dirname(out_fname))
+        print("Submitting Job: {}".format(jobid))
+        subprocess.call(['qsub', out_fname])
+
 
 def run(level1, vertices='(5, 5)', model='standard', method='linear',
         outdir=None, logdir=None, env=None, nodes=10, project=None,
@@ -65,9 +176,6 @@ def run(level1, vertices='(5, 5)', model='standard', method='linear',
     # scattered = scatter(filter_scenes(scenes), nodes)
     scattered = scatter(scenes, nodes)
 
-    fmt1 = 'level1-scenes-{jobid}.txt'
-    fmt2 = '{model}-ard-{jobid}.bash'
-
     batchid = uuid.uuid4().hex[0:10]
     batch_logdir = pjoin(logdir, 'batchid-{}'.format(batchid))
     batch_outdir = pjoin(outdir, 'batchid-{}'.format(batchid))
@@ -76,114 +184,26 @@ def run(level1, vertices='(5, 5)', model='standard', method='linear',
     memory = 32 * nodes
     ncpus = 16 * nodes
 
-    if dsh:
-        files = []
-        daemons = []
-        outdirs = []
-        jobids = []
-        daemon_fmt = 'luigid --background --logdir {}'
-
-        # setup each block of scenes for processing
-        for block in scattered:
-            jobid = uuid.uuid4().hex[0:6]
-            jobids.append(jobid)
-            jobdir = pjoin(batch_logdir, 'jobid-{}'.format(jobid))
-            job_outdir = pjoin(batch_outdir, 'jobid-{}'.format(jobid))
-
-            if not exists(jobdir):
-                os.makedirs(jobdir)
-
-            if not exists(job_outdir):
-                os.makedirs(job_outdir)
-
-            # write the block of scenes to process
-            out_fname = pjoin(jobdir, fmt1.format(jobid=jobid))
-            with open(out_fname, 'w') as src:
-                src.writelines(block)
-
-            files.append(out_fname)
-            daemons.append(daemon_fmt.format(jobdir))
-            outdirs.append(job_outdir)
-
-        files = ['"{}"\n'.format(f) for f in files]
-        daemons = ['"{}"\n'.format(f) for f in daemons]
-        outdirs = ['"{}"\n'.format(f) for f in outdirs]
-
-        files = ''.join(files)
-        daemons = ''.join(daemons)
-        outdirs = ''.join(outdirs)
-
-        pbs = DSH_TEMPLATE.format(project=project, queue=queue, hours=hours,
-                                  memory=memory, ncpus=ncpus,
-                                  email=email, files=files, env=env,
-                                  daemons=daemons, model=model,
-                                  outdirs=outdirs, vertices=vertices,
-                                  method=method)
-
-        out_fname = pjoin(batch_logdir,
-                          fmt2.format(model=model, jobid=batchid))
-        with open(out_fname, 'w') as src:
-            src.write(pbs)
-
-        if test:
-            print("Testing... Executing Batch: {}...Testing".format(batchid))
-            print("Job ids:\n{}".format(jobids))
-            print("qsub {}".format(out_fname))
-        else:
-            print("Executing Batch: {}".format(batchid))
-            print("Job ids:\n{}".format(jobids))
-            os.chdir(dirname(out_fname))
-            subprocess.call(['qsub', out_fname])
+    if test:
+        print("Mocking... Submitting Batch: {} ...Mocking".format(batchid))
     else:
-        print("Executing Batch: {}".format(batchid))
-        # setup and submit each block of scenes for processing
-        for block in scattered:
-            jobid = uuid.uuid4().hex[0:6]
-            jobdir = pjoin(batch_logdir, 'jobid-{}'.format(jobid))
-            job_outdir = pjoin(batch_outdir, 'jobid-{}'.format(jobid))
+        print("Submitting Batch: {}".format(batchid))
 
-            if not exists(jobdir):
-                os.makedirs(jobdir)
-
-            if not exists(job_outdir):
-                os.makedirs(job_outdir)
-
-            # local or central scheduler
-            if local_scheduler:
-                daemon = ''
-                scheduler = ' --local-scheduler'
-            else:
-                daemon = 'luigid --background --logdir {}'.format(jobdir)
-                scheduler = ''
-
-
-            pbs = PBS_TEMPLATE.format(project=project, queue=queue,
-                                      hours=hours, memory=memory, ncpus=ncpus,
-                                      email=email, env=env, daemon=daemon,
-                                      model=model, scene_list=level1,
-                                      outdir=job_outdir, scheduler=scheduler,
-                                      vertices=vertices, method=method)
-
-            out_fname = pjoin(jobdir, fmt1.format(jobid=jobid))
-            with open(out_fname, 'w') as src:
-                src.writelines(block)
-
-            out_fname = pjoin(jobdir, fmt2.format(model=model, jobid=jobid))
-            with open(out_fname, 'w') as src:
-                src.write(pbs)
-
-        if test:
-            print("Testing... Executing Job: {}...Testing".format(jobid))
-            print("qsub {}".format(out_fname))
-        else:
-            os.chdir(dirname(out_fname))
-            print("Executing Job: {}".format(jobid))
-            subprocess.call(['qsub', out_fname])
+    if dsh:
+        _submit_dsh(scattered, vertices, model, method, batchid, batch_logdir,
+                    batch_outdir, project, queue, memory, ncpus, hours, email,
+                    env, test)
+    else:
+        _submit_multiple(scattered, vertices, model, method, batchid,
+                         batch_logdir, batch_outdir, project, queue, memory,
+                         ncpus, hours, email, local_scheduler, env, test)
 
 
 def _parser():
     """ Argument parser. """
-    description = "qsub nbar jobs into n nodes."
+    description = ("qsub nbar jobs into n nodes. Optionally into multiple "
+                   "jobs subitted into the PBS queue, or a single job "
+                   "submitted into the PBS queue and executed using PBSDSH.")
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("--level1-list", help="The input level1 scene list.",
                         required=True)
