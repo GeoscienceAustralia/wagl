@@ -80,11 +80,13 @@ def run(level1, vertices='(5, 5)', model='standard', method='linear',
         files = []
         daemons = []
         outdirs = []
+        jobids = []
         daemon_fmt = 'luigid --background --logdir {}'
 
         # setup each block of scenes for processing
         for block in scattered:
             jobid = uuid.uuid4().hex[0:6]
+            jobids.append(jobid)
             jobdir = pjoin(batch_logdir, 'jobid-{}'.format(jobid))
             job_outdir = pjoin(batch_outdir, 'jobid-{}'.format(jobid))
 
@@ -124,13 +126,16 @@ def run(level1, vertices='(5, 5)', model='standard', method='linear',
             src.write(pbs)
 
         if test:
-            print("Testing... Execution Batch: {}...Testing".format(batchid))
+            print("Testing... Executing Batch: {}...Testing".format(batchid))
+            print("Job ids:\n{}".format(jobids))
             print("qsub {}".format(out_fname))
         else:
             print("Executing Batch: {}".format(batchid))
+            print("Job ids:\n{}".format(jobids))
             os.chdir(dirname(out_fname))
             subprocess.call(['qsub', out_fname])
     else:
+        print("Executing Batch: {}".format(batchid))
         # setup and submit each block of scenes for processing
         for block in scattered:
             jobid = uuid.uuid4().hex[0:6]
@@ -168,10 +173,11 @@ def run(level1, vertices='(5, 5)', model='standard', method='linear',
                 src.write(pbs)
 
         if test:
-            print("Testing execution")
+            print("Testing... Executing Job: {}...Testing".format(jobid))
             print("qsub {}".format(out_fname))
         else:
             os.chdir(dirname(out_fname))
+            print("Executing Job: {}".format(jobid))
             subprocess.call(['qsub', out_fname])
 
 
