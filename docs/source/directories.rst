@@ -1,5 +1,5 @@
-Geoscience Australia Image Processor Directory Structure
-========================================================
+gaip Directory Structure
+========================
 
 * gaip
         * Contains Python modules and FORTRAN 90 code built as Python modules using F2Py.

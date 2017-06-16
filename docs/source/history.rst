@@ -1,5 +1,5 @@
-A Brief History of Geoscience Australia's Image Processor
-=========================================================
+A Brief History of gaip
+=======================
 
 The gaip code base has evolved through 4 major iterations evolving from a system starting as a system that was essentially a set of shell scripts that ran Fortran 77 executables to a job runner framework that utilises Luigi.  As part of the 4th iteration, a large portion of the Fortran 77 and C code has been re-written in Python, to take advantage of the larger codebase available through NumPy, SciPy, and GDAL.
 Original implementations came about as part of the Unlocking the Landsat Archive (ULA) project.

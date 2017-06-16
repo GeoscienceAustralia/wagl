@@ -1,8 +1,8 @@
-# GAIP
+# gaip
 ------
 
 
-Geoscience Australia Image Processor is a Python package for producing standarised imagery in the form of:
+gaip is a Python package for producing standarised imagery in the form of:
 
 * Nadir Bi-directional Reflectance Distribution Function Adjusted Reflectance (NBAR)
 * Surface Brightness Temperature
