@@ -41,7 +41,7 @@ def distribution(data):
     return h
 
 
-def residuals(ref_fid, test_fid, out_fid, compression, pathname):
+def residuals(ref_fid, test_fid, out_fid, compression, pathname, save_inputs):
     """
     
     """
@@ -77,15 +77,16 @@ def residuals(ref_fid, test_fid, out_fid, compression, pathname):
             dname = ppjoin('difference-data', group_name, base_dname)
             write_h5_image(residual, dname, out_fid, attrs=attrs, **kwargs)
 
-            # output the reference data
-            attrs = {k: v for k, v in ref_dset.attrs.items()}
-            dname = ppjoin('reference-data', group_name, base_dname)
-            write_h5_image(ref_dset[:], dname, out_fid, attrs=attrs, **kwargs)
+            if save_inputs:
+                # output the reference data
+                kwargs['attrs'] = {k: v for k, v in ref_dset.attrs.items()}
+                dname = ppjoin('reference-data', group_name, base_dname)
+                write_h5_image(ref_dset[:], dname, out_fid, **kwargs)
 
-            # output the test data
-            attrs = {k: v for k, v in test_dset.attrs.items()}
-            dname = ppjoin('test-data', group_name, base_dname)
-            write_h5_image(test_dset[:], dname, out_fid, attrs=attrs, **kwargs)
+                # output the test data
+                kwargs['attrs'] = {k: v for k, v in test_dset.attrs.items()}
+                dname = ppjoin('test-data', group_name, base_dname)
+                write_h5_image(test_dset[:], dname, out_fid, **kwargs)
 
             # residuals distribution
             h = distribution(residual)
@@ -149,13 +150,19 @@ def _parser():
     description = "Extracts HDF5 datasets to either GeoTiff or CSV."
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("--test_filename", required=True,
-                        help="The file from which to extract datasets from.")
+                        help=("The filename of the file containing the test "
+                              "datasets."))
     parser.add_argument("--reference_filename", required=True,
-                        help="The file from which to extract datasets from.")
+                        help=("The filename of the file containing the "
+                              "reference datasets."))
     parser.add_argument("--out_filename", required=True,
-                        help="The file from which to extract datasets from.")
+                        help=("The filename of the file to contain the "
+                              "results."))
     parser.add_argument("--compression", default="lzf",
                         help="The comression filter to use.")
+    parser.add_argument("--save-inputs", action='store_true',
+                        help=("Save the reference and test datasets "
+                              "alongside the resdiual/difference datasets."))
 
     return parser
 
@@ -165,4 +172,4 @@ def main():
     parser = _parser()
     args = parser.parse_args()
     run(args.test_filename, args.reference_filename, args.out_filename,
-        args.compression)
+        args.compression, args.save_inputs)
