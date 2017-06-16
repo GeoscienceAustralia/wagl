@@ -135,6 +135,24 @@ For users on a system that utilises a `PBS <https://en.wikipedia.org/wiki/Portab
 
     * Whilst the blocks of scenes allocated to each node are roughly equal, the time taken to process a scene is not. Some scenes may not have the required ancillary and will be skipped or fail (filtering the list of scenes prior to job submission can help with this), partial scenes can also process quicker. This means that while 1 or more of the nodes in the enitire job request have finished, the whole job has to wait until other nodes have finished their jobs. THis can result in lower CPU utilisation over the jobs duration.
 
+The arguments for *gaip_pbs* are:
+
+--level1-list      The input level1 scene list.
+--vertices         Number of vertices to evaluate the radiative transfer at. JSON styled string is required, eg '(3, 3)'.
+--model            The type of ARD workflow to invoke, eg standard, nbar, sbt.
+--method           The interpolation method to invoke, eg linear, shear, rbf.
+--outdir           The base output directory.
+--logdir           The base logging and scripts output directory.
+--env              Environment script to source.
+--nodes            The number of nodes to request.
+--project          Project code to run under.
+--queue            The type of queue to submit the job into, eg normal, express.
+--hours            Job walltime in hours.
+--email            Notification email address.
+--local-scheduler  Use a local scheduler instead of a central scheduler.
+--dsh              Run using PBS Distributed Shell.
+--test             Test job execution (Don't submit the job to the PBS queue).
+
 An example of submitting individual jobs to the PBS queue using the following specifications:
 
   * Run using the *nbar* model.
