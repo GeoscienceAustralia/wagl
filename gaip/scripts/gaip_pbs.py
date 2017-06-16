@@ -201,9 +201,10 @@ def run(level1, vertices='(5, 5)', model='standard', method='linear',
 
 def _parser():
     """ Argument parser. """
-    description = ("qsub nbar jobs into n nodes. Optionally into multiple "
-                   "jobs subitted into the PBS queue, or a single job "
-                   "submitted into the PBS queue and executed using PBSDSH.")
+    description = ("Equally partition a list of scenes in n nodes and submit "
+                   "into the PBS queue. Optionally submit as multiple "
+                   "jobs into the PBS queue, or as a single job "
+                   "and executed using PBSDSH.")
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("--level1-list", help="The input level1 scene list.",
                         required=True)
