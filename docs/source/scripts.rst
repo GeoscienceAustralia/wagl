@@ -4,6 +4,8 @@ Command line utility scripts
 There are several command line scripts for either extracting datasets or unittesting.
 
     * gaip_convert:  *An unpacking/converting utility that converts HDF5 Tables to CSV, HDF5 images to GeoTiff, and metadata to yaml files.*
+    * gaip_ls: *List the contents of an HDF5 file.*
+    * gaip_pbs: *Evenly distribute a list of level-1 scenes and submit each block for processing into the PBS queue.*
     * test_calculate_angles: *Compares and evaluates each dataset contained within a* **satellite-solar.h5** *file against the same datasets contained within another file.*
     * test_dsm: *Compare and evaluate two* **dsm-extract.h5** *files.*
     * test_exiting_angles: *Compare and evaluate two* **exiting-angles.h5** *files.*
@@ -35,6 +37,30 @@ Example of use:
    $ gaip_ls --filename satellite-solar.h5
 
    $ gaip_ls --filename satellite-solar.h5 --verbose
+
+**gaip_pbs**
+
+Given a list of level-1 scenes, evenly distrubute the number of scenes across *n* nodes and submit as either a single job, or multiple jobs to the PBS queue.
+
+An example of submitting individual jobs to the PBS queue using the following specifications:
+
+  * Run using the *nbar* model.
+  * The *linear* interpolation function.
+  * Specify a 3x3 point grid location to calculate the radiative transfer at.
+  * 10 nodes.
+  * Use the nx200 project allocation code identifier.
+  * Submit to the express queue.
+  * Maximum job runtime of 2 hours.
+
+.. code-block:: bash
+
+   $ gaip_pbs --level1-list /path/to/level1-scenes.txt --vertices '(3, 3)' --model nbar --method linear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project nx200 --queue express --hours 2 --email your.name@something.com
+
+The same job resources, but use PBSDSH instead of individual jobs being submitted to the PBS queue.
+
+.. code-block:: bash
+
+   $ gaip_pbs --level1-list /path/to/level1-scenes.txt --vertices '(3, 3)' --model nbar --method linear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh
 
 **test_calculate_angles**
 

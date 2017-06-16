@@ -105,3 +105,63 @@ using this simple workflow.
 
 For even larger numbers of scenes, say several thousand or tens of thousands to be exectued as a single workflow, then an alternate luigi workflow can be implemented
 such as the PBS task flow. In this example, luigi issues and monitors PBS jobs, each job kicking off an MPI scheduler.
+
+PBS
+---
+
+For users on a system that utilises a `PBS <https://en.wikipedia.org/wiki/Portable_Batch_System>`_ scheduler, gaip provides a command line tool *gaip_pbs* for automatic job submission into a PBS queue. The tool can partition the list of scenes into roughly equally sized chunks, based on the number of nodes requested. For example, a list containing 600 scenes, and a job requesting 10 nodes, will partition the list into 10 blocks each containing 60 scenes that a given node will process. Two flavours of jobs can be submitted to the PBS queue in this way:
+
+1. Individual single node jobs; i.e. A single node represents a single submitted job.
+
+  * Advantages:
+
+    * If a node finishes its block of scenes earlier, the whole job doesn't have to wait for the other nodes to finish, therefore higher CPU utilisation can be sustained for the jobs duration.
+
+  * Disadvantages:
+
+    * More jobs to monitor.
+    * Queue limits can be quickly reached.
+    * Single node jobs tend to stay in the PBS queue for longer than multi-node jobs.
+    * Have to wait for all submitted jobs to finish, which is dependent on how well the PBS queue can allocate the resources.
+
+2. A single batch job is submitted to the queue, and each requested node executes a job using PBSDSH.
+
+  * Advantages:
+
+    * A single job to monitor.
+    * PBS tends to allocate large single job resources quite well.
+
+  * Disadvantages:
+
+    * Whilst the blocks of scenes allocated to each node are roughly equal, the time taken to process a scene is not. Some scenes may not have the required ancillary and will be skipped or fail (filtering the list of scenes prior to job submission can help with this), partial scenes can also process quicker. This means that while 1 or more of the nodes in the enitire job request have finished, the whole job has to wait until other nodes have finished their jobs. THis can result in lower CPU utilisation over the jobs duration.
+
+An example of submitting individual jobs to the PBS queue using the following specifications:
+
+  * Run using the *nbar* model.
+  * The *linear* interpolation function.
+  * Specify a 3x3 point grid location to calculate the radiative transfer at.
+  * 10 nodes.
+  * Use the nx200 project allocation code identifier.
+  * Submit to the express queue.
+  * Maximum job runtime of 2 hours.
+
+.. code-block:: bash
+
+   $ gaip_pbs --level1-list /path/to/level1-scenes.txt --vertices '(3, 3)' --model nbar --method linear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project nx200 --queue express --hours 2 --email your.name@something.com
+
+The same job resources, but use PBSDSH instead of individual jobs being submitted to the PBS queue.
+
+.. code-block:: bash
+
+   $ gaip_pbs --level1-list /path/to/level1-scenes.txt --vertices '(3, 3)' --model nbar --method linear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh
+
+Each call to *gaip_pbs* will generate a new batch id, and each node will be assigned a job id. In this way each node will have its logs and output data contained in its own directory structure.  For example:
+
+.. code-block:: bash
+
+  $ /base/logs/directory/batchid-b6cbadbe98/jobid-074cb6/
+  $ /base/logs/directory/batchid-b6cbadbe98/jobid-113f33/
+  $ /base/logs/directory/batchid-b6cbadbe98/jobid-5b00d6/
+  $ /base/output/directory/batchid-b6cbadbe98/jobid-074cb6/
+  $ /base/output/directory/batchid-b6cbadbe98/jobid-113f33/
+  $ /base/output/directory/batchid-b6cbadbe98/jobid-5b00d6/
