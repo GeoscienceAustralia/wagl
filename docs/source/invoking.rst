@@ -137,21 +137,21 @@ For users on a system that utilises a `PBS <https://en.wikipedia.org/wiki/Portab
 
 The arguments for *gaip_pbs* are:
 
---level1-list      The input level1 scene list.
---vertices         Number of vertices to evaluate the radiative transfer at. JSON styled string is required, eg '(3, 3)'.
---model            The type of ARD workflow to invoke, eg standard, nbar, sbt.
---method           The interpolation method to invoke, eg linear, shear, rbf.
---outdir           The base output directory.
---logdir           The base logging and scripts output directory.
---env              Environment script to source.
---nodes            The number of nodes to request.
---project          Project code to run under.
---queue            The type of queue to submit the job into, eg normal, express.
---hours            Job walltime in hours.
---email            Notification email address.
---local-scheduler  Use a local scheduler instead of a central scheduler.
---dsh              Run using PBS Distributed Shell.
---test             Test job execution (Don't submit the job to the PBS queue).
+--level1-list        The input level1 scene list.
+--vertices           Number of vertices to evaluate the radiative transfer at. JSON styled string is required, eg '(3, 3)'.
+--model              The type of ARD workflow to invoke, eg standard, nbar, sbt.
+--method             The interpolation method to invoke, eg linear, shear, rbf.
+--outdir             The base output directory.
+--logdir             The base logging and scripts output directory.
+--env                Environment script to source.
+--nodes              The number of nodes to request.
+--project            Project code to run under.
+--queue              The type of queue to submit the job into, eg normal, express.
+--hours              Job walltime in hours.
+--email              Notification email address.
+--local-scheduler    Use a local scheduler instead of a central scheduler.
+--dsh                Run using PBS Distributed Shell.
+--test               Test job execution (Don't submit the job to the PBS queue).
 
 An example of submitting individual jobs to the PBS queue using the following specifications:
 
