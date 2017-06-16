@@ -133,7 +133,7 @@ For users on a system that utilises a `PBS <https://en.wikipedia.org/wiki/Portab
 
   * Disadvantages:
 
-    * Whilst the blocks of scenes allocated to each node are roughly equal, the time taken to process a scene is not. Some scenes may not have the required ancillary and will be skipped or fail (filtering the list of scenes prior to job submission can help with this), partial scenes can also process quicker. This means that while 1 or more of the nodes in the enitire job request have finished, the whole job has to wait until other nodes have finished their jobs. THis can result in lower CPU utilisation over the jobs duration.
+    * Whilst the blocks of scenes allocated to each node are roughly equal, the time taken to process a scene is not. Some scenes may not have the required ancillary and will be skipped or fail (filtering the list of scenes prior to job submission can help with this), partial scenes can also process quicker. This means that while 1 or more of the nodes in the enitire job request have finished, the whole job has to wait until other nodes have finished their jobs. This can result in lower CPU utilisation over the jobs duration.
 
 The arguments for *gaip_pbs* are:
 
