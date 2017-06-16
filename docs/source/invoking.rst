@@ -1,7 +1,7 @@
-Invoking the Geoscience Australia Image Processor
-=================================================
+Invoking gaip
+=============
 
-The gaip image processor can be called directly from the command line.
+The gaip workflow can be called directly from the command line.
 It uses `luigi's command line tool <http://luigi.readthedocs.io/en/stable/command_line.html>`_ to execute the workflow for producing Analysis Ready Data (ARD).
 
 Three options are available for the gaip model workflow:
