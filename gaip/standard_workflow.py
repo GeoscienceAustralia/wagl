@@ -54,7 +54,8 @@ def get_buffer(group):
 @luigi.Task.event_handler(luigi.Event.FAILURE)
 def on_failure(task, exception):
     """Capture any Task Failure here."""
-    msg = "Error processing scene:\n{}".format(task.level1)
+    fmt = "Error processing scene:\n{}\npath:\n{}"
+    msg = fmt.format(basename(task.level1), task.level1)
     excp_msg = exception.__str__()
     traceback_msg = traceback.format_exc()
     ERROR_LOGGER.error(msg)
