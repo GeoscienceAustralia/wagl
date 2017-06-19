@@ -141,6 +141,7 @@ The arguments for *gaip_pbs* are:
 --vertices           Number of vertices to evaluate the radiative transfer at. JSON styled string is required, eg '(3, 3)'.
 --model              The type of ARD workflow to invoke, eg standard, nbar, sbt.
 --method             The interpolation method to invoke, eg linear, shear, rbf.
+--pixel-quality      Whether to run the pixel quality workflow, if applicable, or not.
 --outdir             The base output directory.
 --logdir             The base logging and scripts output directory.
 --env                Environment script to source.
