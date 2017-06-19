@@ -10,7 +10,6 @@ import subprocess
 import uuid
 import argparse
 
-# from gaip.acquisition import acquisitions
 from gaip.tiling import scatter
 
 
@@ -26,7 +25,7 @@ source {env}
 
 {daemon}
 
-luigi --module gaip.standard_workflow ARD --model {model} --level1-list {scene_list} --outdir {outdir} --workers 16{scheduler} --vertices '{vertices}' --method {method}
+luigi --module gaip.standard_workflow ARD --model {model} --level1-list {scene_list} --outdir {outdir} --workers 16{scheduler} --vertices '{vertices}' --method {method}{pq}
 """)
 
 DSH_TEMPLATE = ("""#!/bin/bash
@@ -52,7 +51,7 @@ for i in "${{!FILES[@]}}"; do
     --outdir ${{OUTDIRS[$i]}} \\
     --workers 16 \\
     --vertices '{vertices}' \\
-    --method {method}" &
+    --method {method}{pq}" &
 done;
 wait
 """)
@@ -62,7 +61,7 @@ FMT2 = '{model}-ard-{jobid}.bash'
 DAEMON_FMT = 'luigid --background --logdir {}'
 
 
-def _submit_dsh(scattered, vertices, model, method, batchid, batch_logdir,
+def _submit_dsh(scattered, vertices, model, method, pq, batchid, batch_logdir,
                 batch_outdir, project, queue, memory, ncpus, hours, email, env,
                 test):
     """Submit a single PBSDSH formatted job."""
@@ -100,7 +99,7 @@ def _submit_dsh(scattered, vertices, model, method, batchid, batch_logdir,
     pbs = DSH_TEMPLATE.format(project=project, queue=queue, hours=hours,
                               memory=memory, ncpus=ncpus,
                               email=email, files=''.join(files), env=env,
-                              daemons=''.join(daemons), model=model,
+                              daemons=''.join(daemons), model=model, pq=pq,
                               outdirs=''.join(outdirs), vertices=vertices,
                               method=method)
 
@@ -116,9 +115,9 @@ def _submit_dsh(scattered, vertices, model, method, batchid, batch_logdir,
         subprocess.call(['qsub', out_fname])
 
 
-def _submit_multiple(scattered, vertices, model, method, batchid, batch_logdir,
-                     batch_outdir, project, queue, memory, ncpus, hours, email,
-                     local_scheduler, env, test):
+def _submit_multiple(scattered, vertices, model, method, pq, batchid,
+                     batch_logdir, batch_outdir, project, queue, memory, ncpus,
+                     hours, email, local_scheduler, env, test):
     """Submit multiple PBS formatted jobs."""
     print("Executing Batch: {}".format(batchid))
     # setup and submit each block of scenes for processing
@@ -148,7 +147,7 @@ def _submit_multiple(scattered, vertices, model, method, batchid, batch_logdir,
         pbs = PBS_TEMPLATE.format(project=project, queue=queue,
                                   hours=hours, memory=memory, ncpus=ncpus,
                                   email=email, env=env, daemon=daemon,
-                                  model=model, scene_list=out_fname,
+                                  model=model, pq=pq, scene_list=out_fname,
                                   outdir=job_outdir, scheduler=scheduler,
                                   vertices=vertices, method=method)
 
@@ -166,9 +165,10 @@ def _submit_multiple(scattered, vertices, model, method, batchid, batch_logdir,
 
 
 def run(level1, vertices='(5, 5)', model='standard', method='linear',
-        outdir=None, logdir=None, env=None, nodes=10, project=None,
-        queue='normal', hours=48, email='your.name@something.com',
-        local_scheduler=False, dsh=False, test=False):
+        pixel_quality=False, outdir=None, logdir=None, env=None, nodes=10,
+        project=None, queue='normal', hours=48,
+        email='your.name@something.com', local_scheduler=False, dsh=False,
+        test=False):
     """Base level program."""
     with open(level1, 'r') as src:
         scenes = src.readlines()
@@ -184,17 +184,19 @@ def run(level1, vertices='(5, 5)', model='standard', method='linear',
     memory = 32 * nodes
     ncpus = 16 * nodes
 
+    pq = ' --pixel-quality' if pixel_quality else ''
+
     if test:
         print("Mocking... Submitting Batch: {} ...Mocking".format(batchid))
     else:
         print("Submitting Batch: {}".format(batchid))
 
     if dsh:
-        _submit_dsh(scattered, vertices, model, method, batchid, batch_logdir,
-                    batch_outdir, project, queue, memory, ncpus, hours, email,
-                    env, test)
+        _submit_dsh(scattered, vertices, model, method, pq, batchid,
+                    batch_logdir, batch_outdir, project, queue, memory, ncpus,
+                    hours, email, env, test)
     else:
-        _submit_multiple(scattered, vertices, model, method, batchid,
+        _submit_multiple(scattered, vertices, model, method, pq, batchid,
                          batch_logdir, batch_outdir, project, queue, memory,
                          ncpus, hours, email, local_scheduler, env, test)
 
@@ -217,6 +219,9 @@ def _parser():
     parser.add_argument("--method", default="shear",
                         help=("The interpolation method to invoke, "
                               "eg linear, shear, rbf."))
+    parser.add_argument("--pixel-quality", action='store_true',
+                        help=("Include the pixel quality as part of the "
+                              "ARD workflow."))
     parser.add_argument("--outdir", help="The base output directory.",
                         required=True)
     parser.add_argument("--logdir", required=True,
@@ -248,9 +253,10 @@ def main():
     """ Main execution. """
     parser = _parser()
     args = parser.parse_args()
-    run(args.level1_list, args.vertices, args.model, args.method, args.outdir,
-        args.logdir, args.env, args.nodes, args.project, args.queue,
-        args.hours, args.email, args.local_scheduler, args.dsh, args.test)
+    run(args.level1_list, args.vertices, args.model, args.method,
+        args.pixel_quality, args.outdir, args.logdir, args.env, args.nodes,
+        args.project, args.queue, args.hours, args.email, args.local_scheduler,
+        args.dsh, args.test)
 
 
 if __name__ == '__main__':
