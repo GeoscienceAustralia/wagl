@@ -54,13 +54,12 @@ def get_buffer(group):
 @luigi.Task.event_handler(luigi.Event.FAILURE)
 def on_failure(task, exception):
     """Capture any Task Failure here."""
-    msg = exception.__str__()
+    msg = "Error processing scene:\n{}".format(task.level1))
+    excp_msg = exception.__str__()
     traceback_msg = traceback.format_exc()
-    ERROR_LOGGER.error('*'*50)
     ERROR_LOGGER.error(msg)
-    ERROR_LOGGER.error('*'*50)
+    ERROR_LOGGER.error(excp_msg)
     ERROR_LOGGER.error(traceback_msg)
-    ERROR_LOGGER.error('*'*50)
 
 
 class WorkRoot(luigi.Task):
