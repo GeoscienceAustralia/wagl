@@ -54,7 +54,7 @@ specify the following arguments:
 --base-dir       the base directory to contain the atmospheric calculations; Default is _atmospherics
 --model          the ARD (Analysis Ready Data) workflow to produce *standard*, *nbar* or *sbt*
 --compression    the compression filter used when writing the outputs to disk; Default is lzf
---pixel-quality  if set then the workflow will execute the pixel quality workflow, if a scene can be processed through the pixel quality workflow
+--separate       if set, then issue separate atmospheric calculation tasks for each albedo effect. The default is to combine multiple albedo calculations into a single task, with the advantage of having less files on disk.
 
 An example of running the *CalculateCoefficients* Task using the local scehduler is:
 

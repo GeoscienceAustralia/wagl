@@ -153,7 +153,7 @@ class AncillaryData(luigi.Task):
     level1 = luigi.Parameter()
     work_root = luigi.Parameter(significant=False)
     granule = luigi.Parameter(default=None)
-    vertices = luigi.TupleParameter(significant=False)
+    vertices = luigi.TupleParameter()
     model = luigi.EnumParameter(enum=Model)
     aerosol_fname = luigi.Parameter(significant=False)
     brdf_path = luigi.Parameter(significant=False)
@@ -206,7 +206,7 @@ class WriteTp5(luigi.Task):
     level1 = luigi.Parameter()
     work_root = luigi.Parameter(significant=False)
     granule = luigi.Parameter(default=None)
-    vertices = luigi.TupleParameter(significant=False)
+    vertices = luigi.TupleParameter()
     model = luigi.EnumParameter(enum=Model)
     base_dir = luigi.Parameter(default='_atmospherics', significant=False)
     compression = luigi.Parameter(default='lzf', significant=False)
@@ -317,19 +317,19 @@ class Atmospherics(luigi.Task):
     """
 
     model = luigi.EnumParameter(enum=Model)
-    combined = luigi.BoolParameter(default=True)
+    separate = luigi.BoolParameter()
 
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.vertices]
         for point in range(self.vertices[0] * self.vertices[1]):
             kwargs = {'point': point, 'model': self.model}
-            if self.combined:
-                kwargs['albedos'] = self.model.albedos
-                yield AtmosphericsCase(*args, **kwargs)
-            else:
+            if self.separate:
                 for albedo in self.model.albedos:
                     kwargs['albedos'] = [albedo]
                     yield AtmosphericsCase(*args, **kwargs)
+            else:
+                kwargs['albedos'] = self.model.albedos
+                yield AtmosphericsCase(*args, **kwargs)
 
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
@@ -368,12 +368,12 @@ class InterpolateCoefficient(luigi.Task):
     Runs the interpolation function for a given band.
     """
 
-    vertices = luigi.TupleParameter(significant=False)
+    vertices = luigi.TupleParameter()
     band_num = luigi.Parameter()
     factor = luigi.Parameter()
     base_dir = luigi.Parameter(default='_interpolation', significant=False)
     model = luigi.EnumParameter(enum=Model)
-    method = luigi.Parameter(default='shear', significant=False)
+    method = luigi.Parameter(default='shear')
 
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.vertices]
@@ -411,9 +411,9 @@ class InterpolateCoefficients(luigi.Task):
     InterpolateCoefficient task single HDF5 file.
     """
 
-    vertices = luigi.TupleParameter(significant=False)
+    vertices = luigi.TupleParameter()
     model = luigi.EnumParameter(enum=Model)
-    method = luigi.Parameter(default='shear', significant=False)
+    method = luigi.Parameter(default='shear')
 
     def requires(self):
         container = acquisitions(self.level1)
@@ -880,9 +880,9 @@ class ARD(luigi.WrapperTask):
     level1_list = luigi.Parameter()
     outdir = luigi.Parameter()
     model = luigi.EnumParameter(enum=Model)
-    vertices = luigi.TupleParameter(default=(5, 5), significant=False)
+    vertices = luigi.TupleParameter(default=(5, 5))
     pixel_quality = luigi.BoolParameter()
-    method = luigi.Parameter(default='shear', significant=False)
+    method = luigi.Parameter(default='shear')
 
     def requires(self):
         with open(self.level1_list) as src:

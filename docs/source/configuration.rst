@@ -151,9 +151,9 @@ vertices
 model
   The model run to use; *standard*, *nbar*, or *sbt*.
 
-combined
+separate
   A *boolean* to indicate whether MODTRAN evaluations for a single point should
-  be combined together in a single process.
+  be issued as separate tasks, or combined together in a single process.
 
 
 [CalculateCoefficients]
