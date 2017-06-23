@@ -530,8 +530,8 @@ def h5ls(group, verbose=False):
     recursively print the contents of the HDF5 file.
 
     :param group:
-        A h5py `Group` or `File` object from which to write the
-        dataset to.
+        A h5py `Group` or `File` object from which to start listing
+        the contents of.
 
     :param verbose:
         If set to True, then print the attributes of each Group and
