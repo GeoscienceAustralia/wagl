@@ -5,7 +5,9 @@
 gaip is a Python package for producing standarised imagery in the form of:
 
 * Nadir Bi-directional Reflectance Distribution Function Adjusted Reflectance (NBAR)
+* NBART; NBAR with Terrain Illumination correction
 * Surface Brightness Temperature
+* Pixel Quality (per pixel metadata)
 
 The luigi task workflow for producing NBAR for a Landsat 5TM scene is given below.
 
