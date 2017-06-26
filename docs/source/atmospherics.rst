@@ -19,14 +19,54 @@ For the *sbt* model, the label used for radiative transfer calculation is:
 
 The resulting coefficient factors for the *nbar* model are:
 
-    * fv
-    * fs
-    * b
-    * s
-    * a
-    * dir
-    * dif
-    * ts
+    * dir:
+
+      * Direct irradiance at the surface
+
+    * dif:
+
+      * Diffuse irradiance at the surface
+
+    * ts:
+
+      * Direct transmittance in the solar direction
+
+    * fv:
+
+      * Direct fraction in the view direction; where :math:`fv = tv / (tv + tdv)`
+
+        * tv:
+
+          * Direct transmittance in the view direction
+
+        * tdv:
+
+          * Diffuse transmittance in the view direction
+
+    * fs:
+
+      * Direct fraction in the solar direction; where :math:`fs = ts / (ts + tds)`
+
+        * ts:
+
+          * Direct transmittance in the solar direction
+
+        * tds:
+
+          * Diffuse transmittance in the solar direction
+
+    * b:
+
+      * Path radiance due to atmospheric scattering
+
+    * s:
+
+      * Atmospheric albedo
+
+    * a:
+
+      * :math:`a = (dir + dif) / pi * (tv + tdv)`
+
 
 The resulting coefficient factors for the *sbt* model are:
 
