@@ -73,3 +73,16 @@ The BRDF correction also differs from the ULA3 BRDF correction, in that a more a
 * `Steven Ring <mailto:steven.ring@ga.gov.au>`_ (Developer),
 * `Josh Sixsmith <mailto:joshua.sixsmith@ga.gov.au>`_ (Developer), and
 * `Fuqin Li <mailto:fuqin.li@ga.gov.au>`_ (Scientist).
+
+gaip 5.0
+--------
+
+A redesign of the data I/O and workflow, that simplified the task interlinking, and reduced the number of outputs. Additional command line utilities that simplified data query, access, and conversion.  Additional metadata documenting accompanying each dataset that is created. Additional output products, and support for additional sensors. Simplified api, and job submission.  Improved logging and simplified configuration.
+
+**The people involved were:**
+
+* `Simon Oliver <mailto:simon.oliver@ga.gov.au>`_ (Stream Lead),
+* `Josh Sixsmith <mailto:joshua.sixsmith@ga.gov.au>`_ (Developer),
+* `Lan-Wei Wang <mailto:lan-wei.wang@ga.gov.au>`_ (Technical Lead),
+* `Fuqin Li <mailto:fuqin.li@ga.gov.au>`_ (Scientist), and
+* `Ben Lewis <mailto:ben.lewis@ga.gov.au>`_ (Scientist/Developer).
