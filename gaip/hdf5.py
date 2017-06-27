@@ -26,11 +26,26 @@ DEFAULT_SCALAR_CLASS = {'CLASS': 'SCALAR',
 VLEN_STRING = h5py.special_dtype(vlen=str)
 
 def _fixed_str_size(data):
+    """
+    Useful for a Pandas column of data that is at its base a string
+    datatype. The max length of all records in this column is
+    identified and returns a NumPy datatype string, which details a
+    fixed length string datatype.
+    Py3 NumPy fixed string defaults to wide characters (|U), which is
+    unsupported by HDF5.
+    """
     str_sz = data.str.len().max()
     return '|S{}'.format(str_sz)
 
 
 def safeguard_dtype(datatype):
+    """
+    Was observed under Python2 and setting unicode as the base
+    datatype for string objects, where defining a custom NumPy
+    named datatype resulted in TypeError's. Hence this function. 
+    However it isn't required when using either Python versions'
+    base string datatype, i.e. Py2->bytes, Py3->unicode.
+    """
     try:
         dtype = numpy.dtype(datatype)
     except TypeError:
@@ -227,12 +242,11 @@ def write_h5_image(data, dset_name, group, attrs=None, **kwargs):
     minv = data.min()
     maxv = data.max()
 
-    dset.attrs['CLASS'] = 'IMAGE'
-    dset.attrs['IMAGE_VERSION'] = '1.2'
-    dset.attrs['DISPLAY_ORIGIN'] = 'UL'
-    dset.attrs['IMAGE_MINMAXRANGE'] = [minv, maxv]
+    # make a copy so as not to modify the users data
+    attributes = {} if attrs is None else attrs.copy()
 
-    attach_attributes(dset, attrs)
+    attributes['IMAGE_MINMAXRANGE'] = [minv, maxv]
+    attach_image_attributes(dset, attributes)
 
 
 def write_h5_table(data, dset_name, group, compression='lzf', title='Table',
@@ -272,18 +286,7 @@ def write_h5_table(data, dset_name, group, compression='lzf', title='Table',
     """
     kwargs = dataset_compression_kwargs(compression=compression, chunks=True)
     dset = group.create_dataset(dset_name, data=data, **kwargs)
-
-    dset.attrs['CLASS'] = 'TABLE'
-    dset.attrs['VERSION'] = '0.2'
-    dset.attrs['TITLE'] = title
-
-    # column names
-    col_fmt = 'FIELD_{}_NAME'
-    columns = data.dtype.names
-    for i, col in enumerate(columns):
-        dset.attrs[col_fmt.format(i)] = col
-
-    attach_attributes(dset, attrs)
+    attach_table_attributes(dset, title, attrs)
 
 
 def write_dataframe(df, dset_name, group, compression='lzf', title='Table',
@@ -385,11 +388,8 @@ def write_dataframe(df, dset_name, group, compression='lzf', title='Table',
             # forced to make a copies
             dset[col] = data.astype('S').astype([(col, VLEN_STRING)])
 
-    # we need to attach some internal metadata as attributes
-    if attrs is None:
-        attributes = {}
-    else:
-        attributes = attrs.copy()
+    # make a copy so as not to modify the users data
+    attributes = {} if attrs is None else attrs.copy()
 
     # insert some basic metadata
     attributes['index_names'] = numpy.array(idx_names, VLEN_STRING)
