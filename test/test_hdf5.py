@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+"""
+Test the various utilites contained in the gaip.hdf5 module.
+"""
+
 import datetime
 import unittest
 import numpy
@@ -9,6 +13,18 @@ from gaip import hdf5
 
 
 class HDF5Test(unittest.TestCase):
+
+    """
+    Test the various utilites contained in the gaip.hdf5 module.
+    """
+
+    scalar_data = 66
+    image_data = numpy.random.randint(0, 256, (10, 10))
+    table_dtype = numpy.dtype([('float_data', 'float64'),
+                               ('integer_data', 'int64')])
+    table_data = numpy.zeros((10), dtype=table_dtype)
+    table_data['float_data'] = numpy.random.ranf(10)
+    table_data['integer_data'] = numpy.random.randint(0, 10001, (10))
 
     default_kwargs = {'compression': 'lzf',
                       'shuffle': True,
@@ -46,14 +62,14 @@ class HDF5Test(unittest.TestCase):
         Test the bitshuffle compression keyword settings.
         """
         kwargs = hdf5.dataset_compression_kwargs(compression='bitshuffle')
-        self.assertEqual(kwargs, self.bitshuffle_kwargs)
+        self.assertDictEqual(kwargs, self.bitshuffle_kwargs)
 
-    def test_scalar(self):
+    def test_scalar_dataset(self):
         """
         Test the read and write functionality for scalar datasets.
         """
         attrs = {'test_attribute': 'this is a scalar'}
-        data = {'value': 66,
+        data = {'value': self.scalar_data,
                 'CLASS': 'SCALAR',
                 'VERSION': '0.1'}
 
@@ -61,7 +77,8 @@ class HDF5Test(unittest.TestCase):
         for k, v in data.items():
             data[k] = v
 
-        with h5py.File('test_scalar.h5', **self.memory_kwargs) as fid:
+        fname = 'test_scalar_dataset.h5'
+        with h5py.File(fname, **self.memory_kwargs) as fid:
             hdf5.write_scalar(data['value'], 'test-scalar', fid, attrs=attrs)
 
             self.assertDictEqual(hdf5.read_scalar(fid, 'test-scalar'), data)
@@ -73,8 +90,9 @@ class HDF5Test(unittest.TestCase):
         """
         attrs = {'timestamp': datetime.datetime.now()}
 
-        with h5py.File('datetime_attrs.h5', **self.memory_kwargs) as fid:
-            hdf5.write_scalar(66.0, 'scalar', fid, attrs=attrs)
+        fname = 'test_datetime_attrs.h5'
+        with h5py.File(fname, **self.memory_kwargs) as fid:
+            hdf5.write_scalar(self.scalar_data, 'scalar', fid, attrs=attrs)
 
             data = hdf5.read_scalar(fid, 'scalar')
             self.assertEqual(data['timestamp'], attrs['timestamp'].isoformat())
@@ -83,14 +101,62 @@ class HDF5Test(unittest.TestCase):
         """
         Test the attach_attributes function.
         """
-        data = numpy.random.randint(0, 256, (10, 10))
         attrs = {'alpha': 1, 'beta': 2}
-        with h5py.File('attach_attributes.h5', **self.memory_kwargs) as fid:
-            dset = fid.create_dataset('data', data=data)
+
+        fname = 'test_attach_attributes.h5'
+        with h5py.File(fname, **self.memory_kwargs) as fid:
+            dset = fid.create_dataset('data', data=self.image_data)
             hdf5.attach_attributes(dset, attrs)
             test = {k: v for k, v in dset.attrs.items()}
-            self.assertEqual(test, attrs)
+            self.assertDictEqual(test, attrs)
 
+    def test_attach_image_attributes(self):
+        """
+        Test the attach_image_attributes function.
+        """
+        attrs = {'CLASS': 'IMAGE',
+                 'IMAGE_VERSION': '1.2',
+                 'DISPLAY_ORIGIN': 'UL'}
+
+        fname = 'test_attach_image_attributes.h5'
+        with h5py.File(fname, **self.memory_kwargs) as fid:
+            dset = fid.create_dataset('data', data=self.image_data)
+            hdf5.attach_image_attributes(dset, attrs)
+            test = {k: v for k, v in dset.attrs.items()}
+            self.assertDictEqual(test, attrs)
+
+    def test_write_h5_image_attributes(self):
+        """
+        Test the image attributes of the write_h5_image function.
+        """
+        minmax = numpy.array([self.image_data.min(), self.image_data.max()])
+        attrs = {'CLASS': 'IMAGE',
+                 'IMAGE_VERSION': '1.2',
+                 'DISPLAY_ORIGIN': 'UL',
+                 'IMAGE_MINMAXRANGE': minmax}
+
+        fname = 'test_write_h5_image_attributes.h5'
+        with h5py.File(fname, **self.memory_kwargs) as fid:
+            hdf5.write_h5_image(self.image_data, 'image', fid)
+            test = {k: v for k, v in fid['image'].attrs.items()}
+            self.assertDictEqual(test, attrs)
+
+    def test_attach_table_attributes(self):
+        """
+        Test the attach_table_attributes function.
+        """
+        attrs = {'CLASS': 'TABLE',
+                 'IMAGE_VERSION': '0.2',
+                 'TITLE': 'Table',
+                 'FIELD_0_NAME': 'float_data',
+                 'FIELD_1_NAME': 'integer_data'}
+
+        fname = 'test_attach_table_attributes.h5'
+        with h5py.File(fname, **self.memory_kwargs) as fid:
+            dset = fid.create_dataset('data', data=self.table_data)
+            hdf5.attach_table_attributes(dset, attrs=attrs)
+            test = {k: v for k, v in dset.attrs.items()}
+            self.assertDictEqual(test, attrs)
 
 if __name__ == '__main__':
     unittest.main()
