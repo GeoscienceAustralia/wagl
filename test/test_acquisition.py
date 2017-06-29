@@ -164,10 +164,10 @@ class Landsat5Mtl1AcquisitionTest(unittest.TestCase):
         self.assertEqual(self.acqs[0].sun_elevation, 39.4014194)
 
     def test_gain(self):
-        self.assertAlmostEquals(self.acqs[0].gain, 0.7658267716535433)
+        self.assertAlmostEqual(self.acqs[0].gain, 0.7658267716535433)
 
     def test_bias(self):
-        self.assertAlmostEquals(self.acqs[0].bias, -2.2858267716535465)
+        self.assertAlmostEqual(self.acqs[0].bias, -2.2858267716535465)
 
     def test_sensor(self):
         for acq in self.acqs:
@@ -239,10 +239,10 @@ class Landsat5Mtl2AcquisitionTest(unittest.TestCase):
         self.assertEqual(self.acqs[0].sun_elevation, 47.53234255)
 
     def test_gain(self):
-        self.assertAlmostEquals(self.acqs[0].gain, 0.7658267716535433)
+        self.assertAlmostEqual(self.acqs[0].gain, 0.7658267716535433)
 
     def test_bias(self):
-        self.assertAlmostEquals(self.acqs[0].bias, -2.2858267716535465)
+        self.assertAlmostEqual(self.acqs[0].bias, -2.2858267716535465)
 
     def test_sensor(self):
         for acq in self.acqs:
@@ -329,10 +329,10 @@ class Landsat7Mtl1AcquisitionTest(unittest.TestCase):
         self.assertEqual(self.acqs[0].sun_elevation, 37.9491813)
 
     def test_gain(self):
-        self.assertAlmostEquals(self.acqs[0].gain, 0.7787401574803149)
+        self.assertAlmostEqual(self.acqs[0].gain, 0.7787401574803149)
 
     def test_bias(self):
-        self.assertAlmostEquals(self.acqs[0].bias, -6.978740157480303)
+        self.assertAlmostEqual(self.acqs[0].bias, -6.978740157480303)
 
     def test_sensor(self):
         for acq in self.acqs:
@@ -408,10 +408,10 @@ class Landsat7Mtl2AcquisitionTest(unittest.TestCase):
         self.assertEqual(self.acqs[0].sun_elevation, 55.95447861)
 
     def test_gain(self):
-        self.assertAlmostEquals(self.acqs[0].gain, 0.7787401574803149)
+        self.assertAlmostEqual(self.acqs[0].gain, 0.7787401574803149)
 
     def test_bias(self):
-        self.assertAlmostEquals(self.acqs[0].bias, -6.978740157480303)
+        self.assertAlmostEqual(self.acqs[0].bias, -6.978740157480303)
 
     def test_sensor(self):
         for acq in self.acqs:
@@ -501,10 +501,10 @@ class Landsat8Mtl1AcquisitionTest(unittest.TestCase):
         self.assertEqual(self.acqs[0].sun_elevation, 52.25003864)
 
     def test_gain(self):
-        self.assertAlmostEquals(self.acqs[0].gain, 0.012953)
+        self.assertAlmostEqual(self.acqs[0].gain, 0.012953)
 
     def test_bias(self):
-        self.assertAlmostEquals(self.acqs[0].bias, -64.76551)
+        self.assertAlmostEqual(self.acqs[0].bias, -64.76551)
 
     def test_sensor(self):
         for acq in self.acqs:
@@ -595,10 +595,10 @@ class Landsat8Mtl2AcquisitionTest(unittest.TestCase):
         self.assertEqual(self.acqs[0].sun_elevation, 48.83189159)
 
     def test_gain(self):
-        self.assertAlmostEquals(self.acqs[0].gain, 0.012541)
+        self.assertAlmostEqual(self.acqs[0].gain, 0.012541)
 
     def test_bias(self):
-        self.assertAlmostEquals(self.acqs[0].bias, -62.70496)
+        self.assertAlmostEqual(self.acqs[0].bias, -62.70496)
 
     def test_sensor(self):
         for acq in self.acqs:
