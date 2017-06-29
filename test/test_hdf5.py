@@ -213,12 +213,29 @@ class HDF5Test(unittest.TestCase):
                  'python_type': '`Pandas.DataFrame`'}
 
         df = pandas.DataFrame(self.table_data)
+
         fname = 'test_dataframe_attributes.h5'
         with h5py.File(fname, **self.memory_kwargs) as fid:
             hdf5.write_dataframe(df, 'dataframe', fid)
 
             test = {k: v for k, v in fid['dataframe'].attrs.items()}
             self.assertDictEqual(test, attrs)
+
+    def test_dataframe_roundtrip(self):
+        """
+        Test that the pandas dataframe roundtrips, i.e. save to HDF5
+        and is read back into a dataframe seamlessly.
+        Float, integer, datetime and string datatypes will be
+        tested.
+        """
+        df = pandas.DataFrame(self.table_data)
+        df['timestamps'] = pandas.date_range('1/1/2000', periods=10, freq='D')
+        df['string_data'] = ['period {}'.format(i) for i in range(10)]
+
+        fname = 'test_dataframe_roundtrip.h5'
+        with h5py.File(fname, **self.memory_kwargs) as fid:
+            hdf5.write_dataframe(df, 'dataframe', fid)
+            self.assertTrue(df.equals(hdf5.read_table(fid, 'dataframe')))
 
 
 if __name__ == '__main__':
