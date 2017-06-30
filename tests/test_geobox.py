@@ -31,6 +31,39 @@ class TestGriddedGeoBox(unittest.TestCase):
         ggb = GriddedGeoBox(shape, origin)
         self.assertEqual(shape, ggb.shape)
 
+    def test_get_shape_xy(self):
+        scale = 0.00025
+        shape = (3, 2)
+        shape_xy = (2, 3)
+        origin = (150.0, -34.0)
+        corner = (shape[1] * scale + origin[0], origin[1] - shape[0] * scale)
+        ggb = GriddedGeoBox(shape, origin)
+        self.assertEqual(shape_xy, ggb.get_shape_xy())
+
+    def test_get_shape_yx(self):
+        scale = 0.00025
+        shape = (3, 2)
+        origin = (150.0, -34.0)
+        corner = (shape[1] * scale + origin[0], origin[1] - shape[0] * scale)
+        ggb = GriddedGeoBox(shape, origin)
+        self.assertEqual(shape, ggb.get_shape_yx())
+
+    def test_x_size(self):
+        scale = 0.00025
+        shape = (3, 2)
+        origin = (150.0, -34.0)
+        corner = (shape[1] * scale + origin[0], origin[1] - shape[0] * scale)
+        ggb = GriddedGeoBox(shape, origin)
+        self.assertEqual(shape[1], ggb.x_size())
+
+    def test_y_size(self):
+        scale = 0.00025
+        shape = (3, 2)
+        origin = (150.0, -34.0)
+        corner = (shape[1] * scale + origin[0], origin[1] - shape[0] * scale)
+        ggb = GriddedGeoBox(shape, origin)
+        self.assertEqual(shape[0], ggb.y_size())
+
     def test_create_origin(self):
         scale = 0.00025
         shape = (3, 2)
