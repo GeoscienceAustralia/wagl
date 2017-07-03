@@ -251,7 +251,7 @@ class HDF5Test(unittest.TestCase):
         fname = 'test_dataframe_roundtrip.h5'
         with h5py.File(fname, **self.memory_kwargs) as fid:
             hdf5.write_dataframe(df, 'dataframe', fid)
-            self.assertTrue(df.equals(hdf5.read_table(fid, 'dataframe')))
+            self.assertTrue(df.equals(hdf5.read_h5_table(fid, 'dataframe')))
 
 
 if __name__ == '__main__':

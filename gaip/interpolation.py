@@ -14,7 +14,7 @@ import h5py
 from gaip.constants import DatasetName, Model
 from gaip.hdf5 import dataset_compression_kwargs
 from gaip.hdf5 import write_h5_image
-from gaip.hdf5 import read_table
+from gaip.hdf5 import read_h5_table
 
 logger = logging.getLogger(__name__)
 
@@ -348,9 +348,9 @@ def _interpolate(acq, factor, sat_sol_angles_fname, coefficients_fname,
         h5py.File(ancillary_fname, 'r') as anc:
 
         # read the relevant tables into DataFrames
-        coord_dset = read_table(anc, DatasetName.coordinator.value)
-        centre_dset = read_table(sat_sol, DatasetName.centreline.value)
-        box_dset = read_table(sat_sol, DatasetName.boxline.value)
+        coord_dset = read_h5_table(anc, DatasetName.coordinator.value)
+        centre_dset = read_h5_table(sat_sol, DatasetName.centreline.value)
+        box_dset = read_h5_table(sat_sol, DatasetName.boxline.value)
 
         if factor in Model.nbar.factors:
             dataset_name = DatasetName.nbar_coefficients.value
@@ -360,7 +360,7 @@ def _interpolate(acq, factor, sat_sol_angles_fname, coefficients_fname,
             msg = "Factor name not found in available factors: {}"
             raise ValueError(msg.format(Model.standard.factors))
 
-        coef_dset = read_table(coef, dataset_name)
+        coef_dset = read_h5_table(coef, dataset_name)
 
         rfid = interpolate(acq, factor, coord_dset, box_dset, centre_dset,
                            coef_dset, out_fname, compression, y_tile, method)

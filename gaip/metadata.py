@@ -19,7 +19,7 @@ import yaml
 from yaml.representer import Representer
 import gaip
 from gaip.constants import NBARConstants, DatasetName, POINT_FMT
-from gaip.hdf5 import write_scalar, read_table, read_scalar
+from gaip.hdf5 import write_scalar, read_h5_table, read_scalar
 
 yaml.add_representer(numpy.int8, Representer.represent_int)
 yaml.add_representer(numpy.uint8, Representer.represent_int)
@@ -141,7 +141,7 @@ def create_ard_yaml(acquisition, ancillary_fname, out_group, sbt=False):
             dname = DatasetName.geopotential.value
             dset = pnt_grp[dname]
             attrs = {k: v for k, v in dset.attrs.items()}
-            df = read_table(pnt_grp, dname)
+            df = read_h5_table(pnt_grp, dname)
             for column in df.columns:
                 attrs[column] = df[column].values
             point_data[dname][lonlat] = attrs
@@ -149,7 +149,7 @@ def create_ard_yaml(acquisition, ancillary_fname, out_group, sbt=False):
             dname = DatasetName.relative_humidity.value
             dset = pnt_grp[dname]
             attrs = {k: v for k, v in dset.attrs.items()}
-            df = read_table(pnt_grp, dname)
+            df = read_h5_table(pnt_grp, dname)
             for column in df.columns:
                 attrs[column] = df[column].values
             point_data[dname][lonlat] = attrs
@@ -157,7 +157,7 @@ def create_ard_yaml(acquisition, ancillary_fname, out_group, sbt=False):
             dname = DatasetName.temperature.value
             dset = pnt_grp[dname]
             attrs = {k: v for k, v in dset.attrs.items()}
-            df = read_table(pnt_grp, dname)
+            df = read_h5_table(pnt_grp, dname)
             for column in df.columns:
                 attrs[column] = df[column].values
             point_data[dname][lonlat] = attrs

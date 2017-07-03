@@ -165,7 +165,7 @@ An example of how to read the coordinator table into a *pandas.DataFrame*:
 
        .. code-block:: python
 
-          >>> from gaip.hdf5 import read_table
+          >>> from gaip.hdf5 import read_h5_table
           >>> import h5py
           >>> fid = h5py.File('coordinator.h5', 'r')
-          >>> df = read_table(fid, 'nbar-coordinator')
+          >>> df = read_h5_table(fid, 'nbar-coordinator')

@@ -11,7 +11,7 @@ from argparse import RawTextHelpFormatter
 import numpy
 import h5py
 
-from gaip.hdf5 import read_table
+from gaip.hdf5 import read_h5_table
 from gaip.unittesting_tools import ParameterisedTestCase
 
 

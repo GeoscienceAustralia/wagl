@@ -21,7 +21,7 @@ from shapely import wkt
 from gaip.brdf import get_brdf_data
 from gaip.data import get_pixel
 from gaip.hdf5 import attach_attributes, write_scalar, write_dataframe
-from gaip.hdf5 import read_table, dataset_compression_kwargs
+from gaip.hdf5 import read_h5_table, dataset_compression_kwargs
 from gaip.hdf5 import attach_table_attributes
 from gaip.metadata import extract_ancillary_metadata, read_meatadata_tags
 from gaip.constants import DatasetName, POINT_FMT
@@ -514,7 +514,7 @@ def get_aerosol_data(acquisition, aerosol_fname):
     data = None
     for pathname, description in zip(pathnames, descr):
         if pathname in fid:
-            df = read_table(fid, pathname)
+            df = read_h5_table(fid, pathname)
             aerosol_poly = wkt.loads(fid[pathname].attrs['extents'])
 
             if aerosol_poly.intersects(roi_poly):

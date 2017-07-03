@@ -402,7 +402,7 @@ def write_dataframe(df, dset_name, group, compression='lzf', title='Table',
     attach_table_attributes(dset, title=title, attrs=attributes)
 
 
-def read_table(fid, dataset_name, dataframe=True):
+def read_h5_table(fid, dataset_name, dataframe=True):
     """
     Read a HDF5 `TABLE` as a `pandas.DataFrame`.
 
