@@ -67,7 +67,7 @@ The gaip pacakage can be installed via:
 
 `$ python setup.py install --prefix=<prefix>`
 
-## Basic commanline useage
+## Basic command line useage
 --------------------------
 Using the [local scheduler](http://luigi.readthedocs.io/en/stable/command_line.html):
 
