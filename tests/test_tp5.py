@@ -114,6 +114,37 @@ class Tp5Test(unittest.TestCase):
 
         self.assertTrue(test == data)
 
+    def test_tropical_albedo(self):
+        """
+        Test the tropical albedo configuration.
+        path/row id 104/074 should be suitable.
+        """
+        pass
+
+    def test_tropical_albedo_b(self):
+        """
+        Test the tropical albedo binary configuration.
+        """
+        pass
+
+    def test_tropical_trans(self):
+        """
+        Test the tropical transmittance configuration.
+        """
+        pass
+
+    def test_tropical_trans_b(self):
+        """
+        Test the tropical transmittance binary configuration.
+        """
+        pass
+
+    def test_sbt(self):
+        """
+        Test the surface brightness temperature configuration.
+        """
+        pass
+
 
 if __name__ == '__main__':
     unittest.main()
