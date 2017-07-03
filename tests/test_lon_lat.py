@@ -7,7 +7,7 @@ import numpy
 import numpy.testing as npt
 import osr
 
-from gaip.calculate_lon_lat_arrays import create_lon_lat_grids
+from gaip.longitude_latitude_arrays import create_lon_lat_grids
 from gaip import unittesting_tools as ut
 
 # WGS84
