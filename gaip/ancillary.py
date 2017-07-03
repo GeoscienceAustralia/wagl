@@ -25,7 +25,7 @@ from gaip.hdf5 import read_table, dataset_compression_kwargs
 from gaip.hdf5 import attach_table_attributes
 from gaip.metadata import extract_ancillary_metadata, read_meatadata_tags
 from gaip.constants import DatasetName, POINT_FMT
-from gaip.calculate_angles import create_vertices
+from gaip.satellite_solar_angles import create_vertices
 
 
 log = logging.getLogger()
@@ -106,7 +106,7 @@ def collect_ancillary(acquisition, boxline_dataset, nbar_paths, sbt_path=None,
     :param boxline:
         The dataset containing the bi-section (satellite track)
         coordinates. The datatype should be the same as that returned
-        by the `calculate_angles.create_boxline` function.
+        by the `satellite_solar_angles.create_boxline` function.
     :type boxline:
         [('row_index', 'int64'), ('bisection_index', 'int64'),
          ('npoints', 'int64'), ('start_index', 'int64'),

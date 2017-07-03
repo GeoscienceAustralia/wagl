@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Unittesting framework for the `gaip.calculate_shadow_masks` module.
+Unittesting framework for the `gaip.terrain_shadow_masks` module.
 """
 
 from __future__ import absolute_import, print_function, unicode_literals
@@ -19,7 +19,7 @@ class TestShadowMasks(ParameterisedTestCase):
     """
     Unittesting for the self shadow, cast shadow (from both
     the sun and satellite directions), and the combined shadow
-    masks, found in `gaip.calculate_shadow_masks`.
+    masks, found in `gaip.terrain_shadow_masks`.
 
     Unittests will occur for the following datasets:
 
@@ -57,7 +57,7 @@ class TestShadowMasks(ParameterisedTestCase):
 
             self.assertTrue(numpy.array_equal(ref_dset, test_dset))
 
-    def test_cast_shadow_satelite(self):
+    def test_cast_shadow_satellite(self):
         """
         Test the cast shadow mask (satellite direction).
         """
@@ -84,7 +84,7 @@ class TestShadowMasks(ParameterisedTestCase):
 
 def _parser():
     """ Argument parser. """
-    description = ("Unittests for `gaip.calculate_shadow_masks` module.\n"
+    description = ("Unittests for `gaip.terrain_shadow_masks` module.\n"
                    "Comparisons tests will occur for the following "
                    "datasets: \n"
                    "\t* self-shadow\n"

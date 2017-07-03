@@ -10,7 +10,7 @@ import rasterio as rio
 import osr
 import affine
 from affine import Affine
-from gaip.calculate_angles import setup_spheroid
+from gaip.satellite_solar_angles import setup_spheroid
 from gaip.vincenty import vinc_dist
 
 

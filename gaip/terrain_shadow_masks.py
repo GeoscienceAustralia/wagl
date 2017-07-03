@@ -15,7 +15,7 @@ import h5py
 from gaip.constants import DatasetName
 from gaip.geobox import GriddedGeoBox
 from gaip.margins import ImageMargins
-from gaip.calculate_angles import setup_spheroid
+from gaip.satellite_solar_angles import setup_spheroid
 from gaip.hdf5 import dataset_compression_kwargs
 from gaip.hdf5 import attach_image_attributes
 from gaip.hdf5 import create_external_link

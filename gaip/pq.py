@@ -24,7 +24,7 @@ from gaip.hdf5 import dataset_compression_kwargs, write_h5_image, write_scalar
 from gaip.land_sea_masking import set_land_sea_bit
 from gaip.metadata import create_pq_yaml
 from gaip.saturation_masking import set_saturation_bits
-from gaip.thermal_conversion import get_landsat_temperature
+from gaip.temperature import get_landsat_temperature
 
 
 def can_pq(level1):

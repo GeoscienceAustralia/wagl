@@ -217,7 +217,7 @@ def create_vertices(acquisition, boxline_dataset, vertices=(3, 3)):
     :param boxline:
         The dataset containing the bi-section (satellite track)
         coordinates. The datatype should be the same as that returned
-        by the `calculate_angles.create_boxline` function.
+        by the `satellite_solar_angles.create_boxline` function.
     :type boxline:
         [('row_index', 'int64'), ('bisection_index', 'int64'),
          ('npoints', 'int64'), ('start_index', 'int64'),
@@ -615,7 +615,7 @@ def _store_parameter_settings(fid, spheriod, orbital_elements,
         group.attrs[key] = params[key]
 
     # sheroid
-    desc = "The spheroid used in the satelite and solar angles calculation."
+    desc = "The spheroid used in the satellite and solar angles calculation."
     attrs = {'Description': desc}
     dname = DatasetName.spheroid.value
     sph_dset = group.create_dataset(dname, data=spheriod)
@@ -630,7 +630,7 @@ def _store_parameter_settings(fid, spheriod, orbital_elements,
     attach_table_attributes(orb_dset, title='Orbital Elements', attrs=attrs)
 
     # satellite model
-    desc = ("The satellite model used in the satelite and solar angles "
+    desc = ("The satellite model used in the satellite and solar angles "
             "calculation.")
     attrs = {'Description': desc}
     dname = DatasetName.satellite_model.value
@@ -638,7 +638,7 @@ def _store_parameter_settings(fid, spheriod, orbital_elements,
     attach_table_attributes(sat_dset, title='Satellite Model', attrs=attrs)
 
     # satellite track
-    desc = ("The satellite track information used in the satelite and solar "
+    desc = ("The satellite track information used in the satellite and solar "
             "angles calculation.")
     attrs = {'Description': desc}
     dname = DatasetName.satellite_track.value

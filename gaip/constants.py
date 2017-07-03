@@ -114,11 +114,11 @@ class DatasetName(Enum):
     brdf_fmt = "BRDF-Band-{band}-{factor}"
     ecmwf_path_fmt = pjoin('{product}', '{year}', 'tif', '{product}_*.tif')
 
-    # gaip.calculate_lon_lat_arrays
+    # gaip.longitude_latitude_arrays
     lon = 'longitude'
     lat = 'latitude'
 
-    # gaip.calculate_angles
+    # gaip.satellite_solar_angles
     satellite_view = 'satellite-view'
     satellite_azimuth = 'satellite-azimuth'
     solar_zenith = 'solar-zenith'
@@ -132,25 +132,25 @@ class DatasetName(Enum):
     satellite_model = 'satellite-model'
     satellite_track = 'satellite-track'
 
-    # gaip.calculate_incident_exiting_angles
+    # gaip.incident_exiting_angles
     incident = 'incident'
     azimuthal_incident = 'azimuthal-incident'
     exiting = 'exiting'
     azimuthal_exiting = 'azimuthal-exiting'
     relative_slope = 'relative-slope'
 
-    # gaip.calculate_reflectance
+    # gaip.reflectance
     reflectance_fmt = '{product}/reflectance-band-{band}'
 
-    # gaip.thermal_conversion
+    # gaip.temperature
     temperature_fmt = 'themal/surface-brightness-temperature-band-{band}'
 
-    # gaip.calculate_shadow_masks
+    # gaip.terrain_shadow_masks
     self_shadow = 'self-shadow'
     cast_shdadow_fmt = 'cast-shadow-{source}'
     combined_shadow = 'combined-shadow'
 
-    # gaip.calculate_slope_aspect
+    # gaip.slope_aspect
     slope = 'slope'
     aspect = 'aspect'
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Unittesting framework for the `gaip.calculate_angles` function.
+Unittesting framework for the `gaip.satellite_solar_angles` function.
 """
 
 from __future__ import absolute_import, print_function, unicode_literals
@@ -18,7 +18,7 @@ from gaip.unittesting_tools import ParameterisedTestCase
 class TestCalculateAngles(ParameterisedTestCase):
     """
     Unittesting for the satellite and solar angles computation
-    found in `gaip.calculate_angles`.
+    found in `gaip.satellite_solar_angles`.
 
     Unittests will occur for the following datasets:
 
@@ -300,7 +300,7 @@ class TestCalculateAngles(ParameterisedTestCase):
 
 def _parser():
     """ Argument parser. """
-    description = ("Unittests for `gaip.calculate_angles` function.\n"
+    description = ("Unittests for `gaip.satellite_solar_angles` function.\n"
                    "Comparisons tests will occur for the following "
                    "datasets: \n"
                    "\t* satellite-view-angles\n"
