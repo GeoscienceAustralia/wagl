@@ -13,6 +13,10 @@ FNAME1 = pjoin(DATA_DIR, 'TL_alb_0.tp5')
 FNAME2 = pjoin(DATA_DIR, 'TL_alb_0_binary.tp5')
 FNAME3 = pjoin(DATA_DIR, 'TL_alb_t.tp5')
 FNAME4 = pjoin(DATA_DIR, 'TL_alb_t_binary.tp5')
+FNAME5 = pjoin(DATA_DIR, 'point-3-albedo-0.tp5')
+FNAME6 = pjoin(DATA_DIR, 'point-3-albedo-0_binary.tp5')
+FNAME7 = pjoin(DATA_DIR, 'point-3-albedo-t.tp5')
+FNAME8 = pjoin(DATA_DIR, 'point-3-albedo-t_binary.tp5')
 
 class Tp5Test(unittest.TestCase):
 
@@ -117,27 +121,96 @@ class Tp5Test(unittest.TestCase):
     def test_tropical_albedo(self):
         """
         Test the tropical albedo configuration.
-        path/row id 104/074 should be suitable.
         """
-        pass
+        test = mp.TROPICAL_ALBEDO.format(
+            binary=' ',
+            albedo=0.0,
+            water=1.3500000000000001,
+            ozone=0.25600001,
+            filter_function='landsat8_vsir.flt',
+            visibility=-0.043157435953617096,
+            elevation=0.378,
+            sat_height=705.0,
+            sat_view=171.00043,
+            doy=200,
+            lat=-20.247597626228778,
+            lon=229.23617402910139,
+            time=1.2133087877777777,
+            sat_azimuth=278.77069)
+
+        with open(FNAME5, 'r') as src:
+            data = ''.join(src.readlines())
+
+        self.assertTrue(test == data)
 
     def test_tropical_albedo_b(self):
         """
         Test the tropical albedo binary configuration.
         """
-        pass
+        test = mp.TROPICAL_ALBEDO.format(
+            binary='T',
+            albedo=0.0,
+            water=1.3500000000000001,
+            ozone=0.25600001,
+            filter_function='landsat8_vsir.flt',
+            visibility=-0.043157435953617096,
+            elevation=0.378,
+            sat_height=705.0,
+            sat_view=171.00043,
+            doy=200,
+            lat=-20.247597626228778,
+            lon=229.23617402910139,
+            time=1.2133087877777777,
+            sat_azimuth=278.77069)
+
+        with open(FNAME6, 'r') as src:
+            data = ''.join(src.readlines())
+
+        self.assertTrue(test == data)
 
     def test_tropical_trans(self):
         """
         Test the tropical transmittance configuration.
         """
-        pass
+        test = mp.TROPICAL_TRANSMITTANCE.format(
+            binary=' ',
+            albedo=0.0,
+            water=1.3500000000000001,
+            ozone=0.25600001,
+            filter_function='landsat8_vsir.flt',
+            visibility=-0.043157435953617096,
+            elevation=0.378,
+            sat_height=705.0,
+            sat_view=171.00043,
+            doy=200,
+            sat_view_offset=8.99957275390625)
+
+        with open(FNAME7, 'r') as src:
+            data = ''.join(src.readlines())
+
+        self.assertTrue(test == data)
 
     def test_tropical_trans_b(self):
         """
         Test the tropical transmittance binary configuration.
         """
-        pass
+        test = mp.TROPICAL_TRANSMITTANCE.format(
+            binary='T',
+            albedo=0.0,
+            water=1.3500000000000001,
+            ozone=0.25600001,
+            filter_function='landsat8_vsir.flt',
+            visibility=-0.043157435953617096,
+            elevation=0.378,
+            sat_height=705.0,
+            sat_view=171.00043,
+            doy=200,
+            sat_view_offset=8.99957275390625)
+
+        with open(FNAME8, 'r') as src:
+            data = ''.join(src.readlines())
+
+        self.assertTrue(test == data)
 
     def test_sbt(self):
         """
