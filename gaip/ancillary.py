@@ -291,32 +291,29 @@ def collect_sbt_ancillary(acquisition, lonlats, ancillary_path,
         # combine the surface and higher pressure layers into a single array
         cols = ['GeoPotential_Height', 'Pressure', 'Temperature',
                 'Relative_Humidity']
-        df = pandas.DataFrame(columns=cols, index=range(rh[0].shape[0]+1),
-                              dtype='float64')
+        layers = pandas.DataFrame(columns=cols, index=range(rh[0].shape[0]),
+                                  dtype='float64')
 
-        col = 'GeoPotential_Height'
-        df[col].iloc[1:] = gph[0][col].values
+        layers['GeoPotential_Height'] = gph[0]['GeoPotential_Height'].values
+        layers['Pressure'] = ECWMF_LEVELS[::-1]
+        layers['Temperature'] = tmp[0]['Temperature'].values
+        layers['Relative_Humidity'] = rh[0]['Relative_Humidity'].values
 
-        df['Pressure'].iloc[1:] = ECWMF_LEVELS[::-1]
-
-        col = 'Temperature'
-        df[col].iloc[1:] = tmp[0][col].values
-
-        col = 'Relative_Humidity'
-        df[col].iloc[1:] = rh[0][col].values
-
-        # insert the surface level
-        df['GeoPotential_Height'].iloc[0] = sfc_hgt[0]
-        df['Pressure'].iloc[0] = sfc_prs[0]
-        df['Temperature'].iloc[0] = kelvin_2_celcius(t2m[0])
-        df['Relative_Humidity'].iloc[0] = sfc_rh
+        # define the surface level
+        df = pandas.DataFrame({'GeoPotential_Height': sfc_hgt[0],
+                               'Pressure': sfc_prs[0],
+                               'Temperature': kelvin_2_celcius(t2m[0]),
+                               'Relative_Humidity': sfc_rh}, index=[0])
 
         # MODTRAN requires the height to be ascending
-        # remove any records that are less than the surface level
-        subset = df[df['GeoPotential_Height'] >= sfc_hgt[0]]
+        # and the pressure to be descending
+        wh = ((layers['GeoPotential_Height'] > sfc_hgt[0]) &
+              (layers['Pressure'] < sfc_prs[0].round()))
+        df = df.append(layers[wh])
+        df.reset_index(drop=True, inplace=True)
 
         dname = ppjoin(pnt, DatasetName.atmospheric_profile.value)
-        write_dataframe(subset, dname, fid, compression, attrs=attrs)
+        write_dataframe(df, dname, fid, compression, attrs=attrs)
 
         fid[pnt].attrs['lonlat'] = lonlat
 
