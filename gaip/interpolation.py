@@ -345,45 +345,43 @@ def _interpolate(acq, factor, sat_sol_angles_fname, coefficients_fname,
     """
     with h5py.File(sat_sol_angles_fname, 'r') as sat_sol,\
         h5py.File(coefficients_fname, 'r') as coef,\
-        h5py.File(ancillary_fname, 'r') as anc:
+        h5py.File(ancillary_fname, 'r') as anc,\
+        h5py.File(out_fname, 'w') as out_fid:
 
-        # read the relevant tables into DataFrames
-        coord_dset = read_h5_table(anc, DatasetName.coordinator.value)
-        centre_dset = read_h5_table(sat_sol, DatasetName.centreline.value)
-        box_dset = read_h5_table(sat_sol, DatasetName.boxline.value)
-
-        if factor in Model.nbar.factors:
-            dataset_name = DatasetName.nbar_coefficients.value
-        elif factor in Model.sbt.factors:
-            dataset_name = DatasetName.sbt_coefficients.value
-        else:
-            msg = "Factor name not found in available factors: {}"
-            raise ValueError(msg.format(Model.standard.factors))
-
-        coef_dset = read_h5_table(coef, dataset_name)
-
-        rfid = interpolate(acq, factor, coord_dset, box_dset, centre_dset,
-                           coef_dset, out_fname, compression, y_tile, method)
-
-    rfid.close()
-    return
+        interpolate(acq, factor, anc, sat_sol, coef, out_fid, compression,
+                    y_tile, method)
 
 
-def interpolate(acq, factor, coordinator_dataset, boxline_dataset,
-                centreline_dataset, coefficients, out_fname=None,
-                compression='lzf', y_tile=100, method=None):
+def interpolate(acq, factor, ancillary_group, satellite_solar_group,
+                coefficients_group, out_group=None, compression='lzf',
+                y_tile=100, method=None):
     # TODO: more docstrings
     """Perform interpolation."""
     geobox = acq.gridded_geo_box()
     cols, rows = geobox.get_shape_xy()
 
-    coord = np.zeros((coordinator_dataset.shape[0], 2), dtype='int')
-    map_x = coordinator_dataset.map_x.values
-    map_y = coordinator_dataset.map_y.values
+    # read the relevant tables into DataFrames
+    coordinator = read_h5_table(ancillary_group, DatasetName.coordinator.value)
+    boxline = read_h5_table(satellite_solar_group, DatasetName.boxline.value)
+
+    if factor in Model.nbar.factors:
+        dataset_name = DatasetName.nbar_coefficients.value
+    elif factor in Model.sbt.factors:
+        dataset_name = DatasetName.sbt_coefficients.value
+    else:
+        msg = "Factor name not found in available factors: {}"
+        raise ValueError(msg.format(Model.standard.factors))
+
+    coefficients = read_h5_table(coefficients_group, dataset_name)
+
+
+    coord = np.zeros((coordinator.shape[0], 2), dtype='int')
+    map_x = coordinator.map_x.values
+    map_y = coordinator.map_y.values
     coord[:, 1], coord[:, 0] = (map_x, map_y) * ~geobox.transform
-    centre = boxline_dataset.bisection_index.values + 1
-    start = boxline_dataset.start_index.values + 1
-    end = boxline_dataset.end_index.values + 1
+    centre = boxline.bisection_index.values + 1
+    start = boxline.start_index.values + 1
+    end = boxline.end_index.values + 1
 
     band = acq.band_num
     band_records = coefficients.band_id == 'BAND {}'.format(band)
@@ -403,14 +401,13 @@ def interpolate(acq, factor, coordinator_dataset, boxline_dataset,
     result = func_map[method](cols, rows, coord, samples, start, end, centre)
 
     # Initialise the output files
-    if out_fname is None:
-        fid = h5py.File('bilinear.h5', driver='core',
-                        backing_store=False)
+    if out_group is None:
+        fid = h5py.File('interpolation.h5', driver='core', backing_store=False)
     else:
-        fid = h5py.File(out_fname, 'w')
+        fid = out_group
 
-    # TODO: determine without splitext or basename
-    dset_name = splitext(basename(out_fname))[0]
+    fmt = DatasetName.interpolation_fmt.value
+    dset_name = fmt.format(factor=factor, band=band)
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))
     no_data = -999
@@ -424,7 +421,8 @@ def interpolate(acq, factor, coordinator_dataset, boxline_dataset,
     attrs['Description'] = desc.format(factor, band, acq.satellite_name)
     write_h5_image(result, dset_name, fid, attrs, **kwargs)
 
-    return fid
+    if out_group is None:
+        return fid
 
 
 def link_interpolated_data(data, out_fname):
