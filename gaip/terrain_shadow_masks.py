@@ -29,49 +29,37 @@ def _self_shadow(incident_angles_fname, exiting_angles_fname, out_fname,
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    with h5py.File(incident_angles_fname, 'r') as inci_angles,\
-        h5py.File(exiting_angles_fname, 'r') as exit_angles:
+    with h5py.File(incident_angles_fname, 'r') as fid_inc,\
+        h5py.File(exiting_angles_fname, 'r') as fid_exi,\
+        h5py.File(out_fname, 'w') as fid:
 
-        inci_dset = inci_angles[DatasetName.incident.value]
-        exit_dset = exit_angles[DatasetName.exiting.value]
-
-        geobox = GriddedGeoBox.from_dataset(inci_dset)
-
-        fid = self_shadow(inci_dset, exit_dset, geobox, out_fname, compression,
-                          y_tile)
-
-    fid.close()
-    return
+        self_shadow(fid_inc, fid_exi, fid, compression, y_tile)
 
 
-def self_shadow(incident_dataset, exiting_dataset, geobox, out_fname,
+def self_shadow(incident_angles_group, exiting_angles_group, out_group=None,
                 compression='lzf', y_tile=None):
     """
     Computes the self shadow mask.
 
-    :param incident_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the incident
-        angles when index/sliced.
+    :param incident_angles_group:
+        The root HDF5 `Group` that contains the incident
+        angle dataset specified by the pathname given by:
 
-    :param exiting_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the exiting
-        angles when index/sliced.
+        * DatasetName.incident
 
-    :param geobox:
-        An instance of a `GriddedGeoBox` object.
+    :param exiting_angles_group:
+        The root HDF5 `Group` that contains the exiting
+        angle dataset specified by the pathname given by:
 
-    :param out_fname:
+        * DatasetName.exiting
+
+    :param out_group:
         If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver.
-        Otherwise it should be a string containing the full file path
-        name to a writeable location on disk in which to save the HDF5
-        file.
+        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
+        a writeable HDF5 `Group` object.
+        The dataset name will be given by:
 
-        The dataset names will be as follows:
-
-        * self-shadow
+        * DatasetName.self_shadow
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -90,12 +78,15 @@ def self_shadow(incident_dataset, exiting_dataset, geobox, out_fname,
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
     """
-    # Initialise the output files
-    if out_fname is None:
-        fid = h5py.File('self-shadow.h5', driver='core',
-                        backing_store=False)
+    incident_angle = incident_angles_group[DatasetName.incident.value]
+    exiting_angle = exiting_angles_group[DatasetName.exiting.value]
+    geobox = GriddedGeoBox.from_dataset(incident_angle)
+
+    # Initialise the output file
+    if out_group is None:
+        fid = h5py.File('self-shadow.h5', driver='core', backing_store=False)
     else:
-        fid = h5py.File(out_fname, 'w')
+        fid = out_group
 
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))
@@ -125,8 +116,8 @@ def self_shadow(incident_dataset, exiting_dataset, geobox, out_fname,
         idx = (slice(ystart, yend), slice(xstart, xend))
 
         # Read the data for the current tile
-        inc = numpy.radians(incident_dataset[idx])
-        exi = numpy.radians(exiting_dataset[idx])
+        inc = numpy.radians(incident_angle[idx])
+        exi = numpy.radians(exiting_angle[idx])
 
         # Process the tile
         mask = numpy.ones(inc.shape, dtype='uint8')
@@ -136,8 +127,8 @@ def self_shadow(incident_dataset, exiting_dataset, geobox, out_fname,
         # Write the current tile to disk
         out_dset[idx] = mask
 
-    fid.flush()
-    return fid
+    if out_group is None:
+        return fid
 
 
 class FortranError(Exception):
@@ -280,32 +271,17 @@ def _calculate_cast_shadow(acquisition, dsm_fname, margins, block_height,
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    with h5py.File(dsm_fname, 'r') as dsm_src,\
-        h5py.File(satellite_solar_angles_fname, 'r') as sat_sol:
+    with h5py.File(dsm_fname, 'r') as dsm_fid,\
+        h5py.File(satellite_solar_angles_fname, 'r') as fid_sat_sol,\
+        h5py.File(out_fname, 'w') as fid:
 
-        dsm_dset = dsm_src[DatasetName.dsm_smoothed.value][:]
-
-        if solar_source:
-            zenith_name = DatasetName.solar_zenith.value
-            azimuth_name = DatasetName.solar_azimuth.value
-        else:
-            zenith_name = DatasetName.satellite_view.value
-            azimuth_name = DatasetName.satellite_azimuth.value
-
-        zenith_dset = sat_sol[zenith_name][:]
-        azi_dset = sat_sol[azimuth_name][:]
-
-    fid = calculate_cast_shadow(acquisition, dsm_dset, margins, block_height,
-                                block_width, zenith_dset, azi_dset, out_fname,
-                                compression, y_tile, solar_source)
-
-    fid.close()
-    return
+        calculate_cast_shadow(acquisition, dsm_fid, fid_sat_sol, margins,
+                              block_height, block_width, fid, compression,
+                              y_tile, solar_source)
 
 
-def calculate_cast_shadow(acquisition, dsm_dataset, margins, block_height,
-                          block_width, zenith_angle_dataset,
-                          azimuth_angle_dataset, out_fname=None,
+def calculate_cast_shadow(acquisition, dsm_group, satellite_solar_group,
+                          margins, block_height, block_width, out_group=None,
                           compression='lzf', y_tile=100, solar_source=True):
     """
     This code is an interface to the fortran code
@@ -340,13 +316,25 @@ def calculate_cast_shadow(acquisition, dsm_dataset, margins, block_height,
     :param acquisition:
         An instance of an acquisition object.
 
-    :param dsm_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the Digital Surface
-        Model data when index/sliced.
-        This must have the same dimensions as `acquisition`
-        plus a margin of widths specified by margin
+    :param dsm_group:
+        The root HDF5 `Group` that contains the Digital Surface Model
+        data.
+        The dataset pathnames are given by:
 
+        * DatasetName.dsm_smoothed
+
+        The dataset must have the same dimensions as `acquisition`
+        plus a margin of widths specified by margin.
+
+    :param satellite_solar_group:
+        The root HDF5 `Group` that contains the satellite and solar
+        datasets specified by the pathnames given by:
+
+        * DatasetName.solar_zenith
+        * DatasetName.solar_azimuth
+        * DatasetName.satellite_view
+        * DatasetName.satellite_azimuth
+        
     :param margins:
         An object with members top, bottom, left and right giving the
         size of the margins (in pixels) which have been added to the
@@ -360,28 +348,15 @@ def calculate_cast_shadow(acquisition, dsm_dataset, margins, block_height,
         The width (rows) of the window/submatrix used in the cast
         shadow algorithm.
 
-    :param zenith_angle_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the solar zenith
-        or the satellite view angles when index/sliced.
-        Must be of the same dimensions as `acquisition`.
-
-    :param azimuth_angle_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the solar azimuth
-        or the satellite azimuth angles when index/sliced.
-        Must be of the same dimensions as `acquisition`.
-
-    :param out_fname:
+    :param out_group:
         If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver.
-        Otherwise it should be a string containing the full file path
-        name to a writeable location on disk in which to save the HDF5
-        file.
+        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
+        a writeable HDF5 `Group` object.
 
-        The dataset names will be as follows:
+        The dataset names will be given by the format string detailed
+        by:
 
-        * cast-shadow-{source} where source is either the sun or satellite
+        * DatasetName.cast_shadow_fmt
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -423,10 +398,20 @@ def calculate_cast_shadow(acquisition, dsm_dataset, margins, block_height,
     # Define Top, Bottom, Left, Right pixel buffer margins
     pixel_buf = ImageMargins(margins)
 
+    if solar_source:
+        zenith_name = DatasetName.solar_zenith.value
+        azimuth_name = DatasetName.solar_azimuth.value
+    else:
+        zenith_name = DatasetName.satellite_view.value
+        azimuth_name = DatasetName.satellite_azimuth.value
+
+    zenith_angle = satellite_solar_group[zenith_name][:]
+    azimuth_angle = satellite_solar_group[azimuth_name][:]
+    elevation = dsm_group[DatasetName.dsm_smoothed.value][:]
+
     # Compute the cast shadow mask
-    ierr, mask = cast_shadow_main(dsm_dataset, zenith_angle_dataset,
-                                  azimuth_angle_dataset, x_res, y_res,
-                                  spheroid, y_origin, x_origin,
+    ierr, mask = cast_shadow_main(elevation, zenith_angle, azimuth_angle,
+                                  x_res, y_res, spheroid, y_origin, x_origin,
                                   pixel_buf.left, pixel_buf.right,
                                   pixel_buf.top, pixel_buf.bottom,
                                   block_height, block_width, is_utm)
@@ -437,17 +422,17 @@ def calculate_cast_shadow(acquisition, dsm_dataset, margins, block_height,
     source_dir = 'sun' if solar_source else 'satellite'
 
     # Initialise the output file
-    if out_fname is None:
+    if out_group is None:
         fid = h5py.File('cast-shadow-{}.h5'.format(source_dir), driver='core',
                         backing_store=False)
     else:
-        fid = h5py.File(out_fname, 'w')
+        fid = out_group
 
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))
     kwargs['dtype'] = 'bool'
 
-    dname_fmt = DatasetName.cast_shdadow_fmt.value
+    dname_fmt = DatasetName.cast_shadow_fmt.value
     out_dset = fid.create_dataset(dname_fmt.format(source=source_dir),
                                   data=mask, **kwargs)
 
@@ -459,8 +444,8 @@ def calculate_cast_shadow(acquisition, dsm_dataset, margins, block_height,
     attrs['Description'] = desc
     attach_image_attributes(out_dset, attrs)
 
-    fid.flush()
-    return fid
+    if out_group is None:
+        return fid
 
 
 def _combine_shadow(self_shadow_fname, cast_shadow_sun_fname,
@@ -472,68 +457,52 @@ def _combine_shadow(self_shadow_fname, cast_shadow_sun_fname,
     """
     with h5py.File(self_shadow_fname, 'r') as fid_self,\
         h5py.File(cast_shadow_sun_fname, 'r') as fid_sun,\
-        h5py.File(cast_shadow_satellite_fname, 'r') as fid_sat:
+        h5py.File(cast_shadow_satellite_fname, 'r') as fid_sat,\
+        h5py.File(out_fname, 'w') as fid:
 
-        dname_fmt = DatasetName.cast_shdadow_fmt.value
-        self_shadow = fid_self[DatasetName.self_shadow.value]
-        cast_sun = fid_sun[dname_fmt.format(source='sun')]
-        cast_sat = fid_sat[dname_fmt.format(source='satellite')]
+        combine_shadow_masks(fid_self, fid_sun, fid_sat, fid, compression,
+                             y_tile)
 
-        geobox = GriddedGeoBox.from_dataset(self_shadow)
-
-        fid = combine_shadow_masks(self_shadow, cast_sun, cast_sat, geobox,
-                                   out_fname, compression, y_tile)
-
-    fid.close()
-
-    # link in the other shadow masks for easy access
-    dname = DatasetName.self_shadow.value
-    create_external_link(self_shadow_fname, dname, out_fname, dname)
-
-    dname = dname_fmt.format(source='sun')
-    create_external_link(cast_shadow_sun_fname, dname, out_fname, dname)
-
-    dname = dname_fmt.format(source='satellite')
-    create_external_link(cast_shadow_satellite_fname, dname, out_fname, dname)
-
-    return
+    link_shadow_datasets(self_shadow_fname, cast_shadow_sun_fname,
+                         cast_shadow_satellite_fname, out_fname)
 
 
-def combine_shadow_masks(self_shadow, cast_shadow_sun, cast_shadow_satellite,
-                         geobox, out_fname=None, compression='lzf',
-                         y_tile=100):
+def combine_shadow_masks(self_shadow_group, cast_shadow_sun_group,
+                         cast_shadow_satellite_group, out_group=None,
+                         compression='lzf', y_tile=100):
     """
     A convienice function for combining the shadow masks into a single
     boolean array.
 
-    :param self_shadow:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the self shadow
-        mask when index/sliced.
+    :param self_shadow_group:
+        The root HDF5 `Group` that contains the self shadow
+        dataset specified by the pathname given by:
 
-    :param cast_shadow_sun:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the cast shadow
-        (solar direction) mask when index/sliced.
+        * DatasetName.self_shadow
 
-    :param cast_shadow_satellite:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the cast shadow
-        (satellite direction) mask when index/sliced.
+    :param cast_shadow_sun_group:
+        The root HDF5 `Group` that contains the cast shadow
+        (solar direction) dataset specified by the pathname
+        given by:
 
-    :param geobox:
-        An instance of a `GriddedGeoBox` object.
+        * DatasetName.cast_shadow_fmt
 
-    :param out_fname:
+    :param cast_shadow_sun_group:
+        The root HDF5 `Group` that contains the cast shadow
+        (satellite direction) dataset specified by the pathname
+        given by:
+
+        * DatasetName.cast_shdadow_fmt
+
+    :param out_group:
         If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver.
-        Otherwise it should be a string containing the full file path
-        name to a writeable location on disk in which to save the HDF5
-        file.
+        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
+        a writeable HDF5 `Group` object.
 
-        The dataset names will be as follows:
+        The dataset names will be given by the format string detailed
+        by:
 
-        * combined-shadow
+        * DatasetName.combined_shadow
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -551,12 +520,20 @@ def combine_shadow_masks(self_shadow, cast_shadow_sun, cast_shadow_satellite,
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
     """
+    # access the datasets
+    dname_fmt = DatasetName.cast_shadow_fmt.value
+    self_shad = self_shadow_group[DatasetName.self_shadow.value]
+    cast_sun = cast_shadow_sun_group[dname_fmt.format(source='sun')]
+    dname = dname_fmt.format(source='satellite')
+    cast_sat = cast_shadow_satellite_group[dname]
+    geobox = GriddedGeoBox.from_dataset(self_shad)
+
     # Initialise the output files
-    if out_fname is None:
+    if out_group is None:
         fid = h5py.File('combined-shadow.h5', driver='core',
                         backing_store=False)
     else:
-        fid = h5py.File(out_fname, 'w')
+        fid = out_group
 
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))
@@ -587,8 +564,24 @@ def combine_shadow_masks(self_shadow, cast_shadow_sun, cast_shadow_satellite,
         xstart, xend = tile[1]
         idx = (slice(ystart, yend), slice(xstart, xend))
 
-        out_dset[idx] = (self_shadow[idx] & cast_shadow_sun[idx] &
-                         cast_shadow_satellite[idx])
+        out_dset[idx] = (self_shad[idx] & cast_sun[idx] & cast_sat[idx])
 
-    fid.flush()
-    return fid
+    if out_group is None:
+        return fid
+
+
+def link_shadow_datasets(self_shadow_fname, cast_shadow_sun_fname,
+                         cast_shadow_satellite_fname, out_fname):
+    """
+    Link the self shadow mask, and the two cast shadow masks into a
+    single file for easier access.
+    """
+    dname_fmt = DatasetName.cast_shadow_fmt.value
+    dname = DatasetName.self_shadow.value
+    create_external_link(self_shadow_fname, dname, out_fname, dname)
+
+    dname = dname_fmt.format(source='sun')
+    create_external_link(cast_shadow_sun_fname, dname, out_fname, dname)
+
+    dname = dname_fmt.format(source='satellite')
+    create_external_link(cast_shadow_satellite_fname, dname, out_fname, dname)
