@@ -147,7 +147,7 @@ class DatasetName(Enum):
 
     # gaip.terrain_shadow_masks
     self_shadow = 'self-shadow'
-    cast_shdadow_fmt = 'cast-shadow-{source}'
+    cast_shadow_fmt = 'cast-shadow-{source}'
     combined_shadow = 'combined-shadow'
 
     # gaip.slope_aspect
