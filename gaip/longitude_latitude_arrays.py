@@ -98,8 +98,18 @@ def get_lat_coordinate(y, x, geobox, geo_crs=None, centre=False):
     return y
 
 
-def create_lon_lat_grids(geobox, out_fname=None, compression='lzf', depth=7,
-                         dtype='float64', y_tile=100):
+def _create_lon_lat_grids(geobox, out_fname=None, compression='lzf', depth=7,
+                          y_tile=100):
+    """
+    A private wrapper for dealing with the internal custom workings of the
+    NBAR workflow.
+    """
+    with h5py.File(out_fname, 'w') as fid:
+        create_lon_lat_grids(geobox, fid, compression, depth, y_tile)
+
+
+def create_lon_lat_grids(geobox, out_group=None, compression='lzf', depth=7,
+                         y_tile=100):
     """
     Creates 2 by 2D NumPy arrays containing longitude and latitude
     co-ordinates for each array element.
@@ -107,17 +117,15 @@ def create_lon_lat_grids(geobox, out_fname=None, compression='lzf', depth=7,
     :param geobox:
         An instance of an `GriddedGeoBox` object.
 
-    :param out_fname:
+    :param out_group:
         If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver.
-        Otherwise it should be a string containing the full file path
-        name to a writeable location on disk in which to save the HDF5
-        file.
+        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
+        a writeable HDF5 `Group` object.
 
-        The dataset path names will be as follows:
+        The dataset names will be as follows:
 
-        * longitude
-        * latitude
+        * DatasetName.lon
+        * DatasetName.lat
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -143,16 +151,16 @@ def create_lon_lat_grids(geobox, out_fname=None, compression='lzf', depth=7,
     shape = geobox.get_shape_yx()
 
     # Initialise the array to contain the result
-    result = numpy.zeros(shape, dtype=dtype)
+    result = numpy.zeros(shape, dtype='float64')
     interpolate_grid(depth=depth, origin=(0, 0), shape=shape,
                      eval_func=lon_func, grid=result)
 
     # Initialise the output files
-    if out_fname is None:
+    if out_group is None:
         fid = h5py.File('longitude-latitude.h5', driver='core',
                         backing_store=False)
     else:
-        fid = h5py.File(out_fname, 'w')
+        fid = out_group
 
     # define some base attributes for the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
@@ -164,7 +172,7 @@ def create_lon_lat_grids(geobox, out_fname=None, compression='lzf', depth=7,
     lon_dset = fid.create_dataset(DatasetName.lon.value, data=result, **kwargs)
     attach_image_attributes(lon_dset, attrs)
 
-    result = numpy.zeros(shape, dtype=dtype)
+    result = numpy.zeros(shape, dtype='float64')
     interpolate_grid(depth=depth, origin=(0, 0), shape=shape,
                      eval_func=lat_func, grid=result)
 
@@ -176,7 +184,7 @@ def create_lon_lat_grids(geobox, out_fname=None, compression='lzf', depth=7,
     return fid
 
 
-def create_grid(geobox, coord_fn, depth=7, dtype='float64'):
+def create_grid(geobox, coord_fn, depth=7):
     """
     Interpolates a `NumPy` array based on the input coordinate function
     `coord_fn`.
@@ -197,7 +205,7 @@ def create_grid(geobox, coord_fn, depth=7, dtype='float64'):
     shape = geobox.get_shape_yx()
 
     # Initialise the array to contain the result
-    arr = numpy.zeros(shape, dtype=dtype)
+    arr = numpy.zeros(shape, dtype='float64')
     interpolate_grid(depth=depth, origin=(0, 0), shape=shape,
                      eval_func=func, grid=arr)
 
@@ -205,7 +213,7 @@ def create_grid(geobox, coord_fn, depth=7, dtype='float64'):
 
 
 def create_lon_grid(geobox, out_fname=None, compression='lzf', depth=7,
-                    dtype='float64', y_tile=100):
+                    y_tile=100):
     """Create longitude grid.
 
     :param geobox:
@@ -252,7 +260,7 @@ def create_lon_grid(geobox, out_fname=None, compression='lzf', depth=7,
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))
 
-    lon_grid = create_grid(geobox, get_lon_coordinate, depth, dtype)
+    lon_grid = create_grid(geobox, get_lon_coordinate, depth)
 
     dset = fid.create_dataset(DatasetName.lon.value, data=lon_grid, **kwargs)
     attach_image_attributes(dset, attrs)
@@ -262,7 +270,7 @@ def create_lon_grid(geobox, out_fname=None, compression='lzf', depth=7,
 
 
 def create_lat_grid(geobox, out_fname=None, compression='lzf', depth=7,
-                    dtype='float64', y_tile=100):
+                    y_tile=100):
     """Create latitude grid.
 
     :param geobox:
@@ -309,7 +317,7 @@ def create_lat_grid(geobox, out_fname=None, compression='lzf', depth=7,
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))
 
-    lat_grid = create_grid(geobox, get_lat_coordinate, depth, dtype)
+    lat_grid = create_grid(geobox, get_lat_coordinate, depth)
 
     dset = fid.create_dataset(DatasetName.lat.value, data=lat_grid, **kwargs)
     attach_image_attributes(dset, attrs)
