@@ -645,9 +645,6 @@ def _store_parameter_settings(fid, spheriod, orbital_elements,
     track_dset = group.create_dataset(dname, data=satellite_track)
     attach_table_attributes(track_dset, title='Satellite Track', attrs=attrs)
 
-    # flush
-    fid.flush()
-
 
 def _calculate_angles(acquisition, lon_lat_fname, out_fname=None,
                       compression='lzf', max_angle=9.0, tle_path=None,
@@ -656,18 +653,13 @@ def _calculate_angles(acquisition, lon_lat_fname, out_fname=None,
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    with h5py.File(lon_lat_fname, 'r') as src:
-        lon_ds = src[DatasetName.lon.value]
-        lat_ds = src[DatasetName.lat.value]
-        fid = calculate_angles(acquisition, lon_ds, lat_ds, out_fname,
-                               compression, max_angle, tle_path, y_tile)
-
-    fid.close()
-
-    return
+    with h5py.File(lon_lat_fname, 'r') as lon_lat_fid,\
+        h5py.File(out_fname, 'w') as fid:
+        calculate_angles(acquisition, lon_lat_fid, fid, compression, max_angle,
+                         tle_path, y_tile)
 
 
-def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
+def calculate_angles(acquisition, lon_lat_group, out_group=None,
                      compression='lzf', max_angle=9.0, tle_path=None,
                      y_tile=100):
     """
@@ -680,37 +672,33 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
     :param acquisition:
         An instance of an `Acquisition` object.
 
-    :param lon_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the longitude
-        values when index/sliced.
-        The dimensions must match that of the `acquisition` objects's
-        samples (x) and lines (y) parameters.
+    :param lon_lat_group::
+        The root HDF5 `Group` that contains the longitude and
+        latitude datasets.
+        The dataset pathnames are given by:
 
-    :param lat_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the latitude
-        values when index/sliced.
-        The dimensions must match that of the `acquisition` objects's
-        samples (x) and lines (y) parameters.
+        * DatasetName.lon
+        * DatasetName.lat
 
-    :param out_fname:
+    :param out_group:
         If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver.
-        Otherwise it should be a string containing the full file path
-        name to a writeable location on disk in which to save the HDF5
-        file.
+        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
+        a writeable HDF5 `Group` object.
 
         The dataset names will be as follows:
 
-        * satellite-view
-        * satellite-azimuth
-        * solar-zenith
-        * solar-azimuth
-        * relative-azimuth
-        * acquisition-time
-        * centreline
-        * boxline
+        * DatasetName.satellite_view
+        * DatasetName.satellite_azimuth
+        * DatasetName.solar_zenith
+        * DatasetName.solar_azimuth
+        * DatasetName.relative_azimuth
+        * DatasetName.acquisition_time
+        * DatasetName.centreline
+        * DatasetName.boxline
+        * DatasetName.spheroid
+        * DatasetName.orbital_elements
+        * DatasetName.satellite_model
+        * DatasetName.satellite_track
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -737,6 +725,10 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
     century = calculate_julian_century(dt)
     geobox = acq.gridded_geo_box()
     prj = geobox.crs.ExportToWkt()
+
+    # longitude and latitude datasets
+    longitude = lon_lat_group[DatasetName.lon.value]
+    latitude = lon_lat_group[DatasetName.lat.value]
 
     # Min and Max lat extents
     # This method should handle northern and southern hemispheres
@@ -776,11 +768,11 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
                                     orbital_elements, smodel)
 
     # Initialise the output files
-    if out_fname is None:
+    if out_group is None:
         fid = h5py.File('satellite-solar-angles.h5', driver='core',
                         backing_store=False)
     else:
-        fid = h5py.File(out_fname, 'w')
+        fid = out_group
 
     # store the parameter settings used with the satellite and solar angles
     # function
@@ -856,8 +848,8 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
         idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
 
         # read the lon and lat tile
-        lon_data = lon_dataset[idx]
-        lat_data = lat_dataset[idx]
+        lon_data = longitude[idx]
+        lat_data = latitude[idx]
 
         view = np.full(lon_data.shape, no_data, dtype=out_dtype)
         azi = np.full(lon_data.shape, no_data, dtype=out_dtype)
@@ -866,6 +858,7 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
         rela_angle = np.full(lon_data.shape, no_data, dtype=out_dtype)
         time = np.full(lon_data.shape, no_data, dtype=out_dtype)
 
+        # loop each row within each tile (which itself could be a single row)
         for i in range(lon_data.shape[0]):
             stat = angle(acq.samples, acq.lines, row_id + 1, lat_data[i],
                          lon_data[i], spheroid, orbital_elements,
@@ -889,7 +882,6 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
         time_ds[idx] = time
 
     # centreline
-    # here need code to write the track in the image as an ascii file
     # if more than one pixel in a line was a track point the coordinates
     # are averaged
     wh = n_cent > 1.5
@@ -909,7 +901,7 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
     # and correct for FORTRAN offset
     x_cent = np.rint(x_cent) - 1
 
-    # create the dataset and save to the HDF5 file
+    # outputs
     centreline_dataset = create_centreline_dataset(geobox, x_cent, n_cent)
     kwargs = dataset_compression_kwargs(compression=compression)
     dname = DatasetName.centreline.value
@@ -930,5 +922,5 @@ def calculate_angles(acquisition, lon_dataset, lat_dataset, out_fname=None,
     box_dset = fid.create_dataset(dname, data=boxline, **kwargs)
     attach_table_attributes(box_dset, title='Boxline', attrs=attrs)
 
-    fid.flush()
-    return fid
+    if out_group is None:
+        return fid
