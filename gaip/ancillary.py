@@ -80,19 +80,19 @@ def _collect_ancillary(acquisition, satellite_solar_fname, nbar_paths,
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    with h5py.File(satellite_solar_fname, 'r') as fid:
+    with h5py.File(satellite_solar_fname, 'r') as fid,\
+        h5py.File(out_fname, 'w') as out_fid:
         boxline_dset = fid[DatasetName.boxline.value][:]
 
-    rfid = collect_ancillary(acquisition, boxline_dset, nbar_paths, sbt_path,
-                             invariant_fname, vertices, out_fname, compression,
-                             work_path)
+        collect_ancillary(acquisition, boxline_dset, nbar_paths, sbt_path,
+                          invariant_fname, vertices, out_fid, compression,
+                          work_path)
 
-    rfid.close()
     return
 
 
 def collect_ancillary(acquisition, boxline_dataset, nbar_paths, sbt_path=None,
-                      invariant_fname=None, vertices=(3, 3), out_fname=None,
+                      invariant_fname=None, vertices=(3, 3), out_group=None,
                       compression='lzf', work_path=''):
     """
     Collects the ancillary required for NBAR and optionally SBT.
@@ -137,12 +137,10 @@ def collect_ancillary(acquisition, boxline_dataset, nbar_paths, sbt_path=None,
         The vertex columns should be an odd number.
         Default is (3, 3).
 
-    :param out_fname:
+    :param out_group:
         If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver.
-        Otherwise it should be a string containing the full file path
-        name to a writeable location on disk in which to save the HDF5
-        file.
+        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
+        a writeable HDF5 `Group` object.
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -161,39 +159,36 @@ def collect_ancillary(acquisition, boxline_dataset, nbar_paths, sbt_path=None,
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
     """
+    # Initialise the output files
+    if out_group is None:
+        fid = h5py.File('ancillary.h5', driver='core', backing_store=False)
+    else:
+        fid = out_group
+
     coordinator = create_vertices(acquisition, boxline_dataset, vertices)
     lonlats = zip(coordinator['longitude'], coordinator['latitude'])
 
-    if sbt_path:
-        sbt_fid = collect_sbt_ancillary(acquisition, lonlats, sbt_path,
-                                        invariant_fname, out_fname=out_fname,
-                                        compression=compression)
-
-    # close if we have a file on disk
-    if sbt_path and out_fname is not None:
-        sbt_fid.close()
-
-    rfid = collect_nbar_ancillary(acquisition, out_fname=out_fname,
-                                  compression=compression, work_path=work_path,
-                                  **nbar_paths)
-    
     desc = ("Contains the row and column array coordinates used for the "
             "atmospheric calculations.")
     attrs = {'Description': desc, 'array_coordinate_offset': 0}
     kwargs = dataset_compression_kwargs(compression=compression)
     dset_name = DatasetName.coordinator.value
-    coord_dset = rfid.create_dataset(dset_name, data=coordinator, **kwargs)
+    coord_dset = fid.create_dataset(dset_name, data=coordinator, **kwargs)
     attach_table_attributes(coord_dset, title='Coordinator', attrs=attrs)
 
-    # copy if we don't have a file on disk
-    if sbt_path and out_fname is None:
-        rfid.copy(sbt_fid, rfid)
+    if sbt_path:
+        collect_sbt_ancillary(acquisition, lonlats, sbt_path, invariant_fname,
+                              out_group=fid, compression=compression)
 
-    return rfid
+    collect_nbar_ancillary(acquisition, out_group=fid, work_path=work_path,
+                           compression=compression, **nbar_paths)
+
+    if out_group is None:
+        return fid
 
 
 def collect_sbt_ancillary(acquisition, lonlats, ancillary_path,
-                          invariant_fname=None, out_fname=None,
+                          invariant_fname=None, out_group=None,
                           compression='lzf'):
     """
     Collects the ancillary data required for surface brightness
@@ -213,12 +208,10 @@ def collect_sbt_ancillary(acquisition, lonlats, ancillary_path,
         A `str` containing the file pathname to the invariant geopotential
         data.
 
-    :param out_fname:
+    :param out_group:
         If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver.
-        Otherwise it should be a string containing the full file path
-        name to a writeable location on disk in which to save the HDF5
-        file.
+        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
+        a writeable HDF5 `Group` object.
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -234,10 +227,10 @@ def collect_sbt_ancillary(acquisition, lonlats, ancillary_path,
         `core` driver, or on disk.
     """
     # Initialise the output files
-    if out_fname is None:
+    if out_group is None:
         fid = h5py.File('sbt-ancillary.h5', driver='core', backing_store=False)
     else:
-        fid = h5py.File(out_fname, 'w')
+        fid = out_group
 
     fid.attrs['sbt-ancillary'] = True
 
@@ -317,13 +310,14 @@ def collect_sbt_ancillary(acquisition, lonlats, ancillary_path,
 
         fid[pnt].attrs['lonlat'] = lonlat
 
-    return fid
+    if out_group is None:
+        return fid
 
 
 def collect_nbar_ancillary(acquisition, aerosol_fname=None,
                            water_vapour_path=None, ozone_path=None,
                            dem_path=None, brdf_path=None,
-                           brdf_premodis_path=None, out_fname=None,
+                           brdf_premodis_path=None, out_group=None,
                            compression='lzf', work_path=''):
     """
     Collects the ancillary information required to create NBAR.
@@ -355,12 +349,10 @@ def collect_nbar_ancillary(acquisition, aerosol_fname=None,
         A `str` containing the full file pathname to the directory
         containing the premodis BRDF image mosaics.
 
-    :param out_fname:
+    :param out_group:
         If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver.
-        Otherwise it should be a string containing the full file path
-        name to a writeable location on disk in which to save the HDF5
-        file.
+        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
+        a writeable HDF5 `Group` object.
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -394,10 +386,11 @@ def collect_nbar_ancillary(acquisition, aerosol_fname=None,
         return attrs
 
     # Initialise the output files
-    if out_fname is None:
-        fid = h5py.File('ancillary.h5', driver='core', backing_store=False)
+    if out_group is None:
+        fid = h5py.File('nbar-ancillary.h5', driver='core',
+                        backing_store=False)
     else:
-        fid = h5py.File(out_fname)
+        fid = out_group
 
     dt = acquisition.scene_center_datetime
     geobox = acquisition.gridded_geo_box()
@@ -429,7 +422,8 @@ def collect_nbar_ancillary(acquisition, aerosol_fname=None,
         brdf_value = data[key].pop('value')
         write_scalar(brdf_value, dname, fid, data[key])
 
-    return fid
+    if out_group is None:
+        return fid
 
 
 def aggregate_ancillary(ancillary_fnames, out_fname):
