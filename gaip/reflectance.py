@@ -24,7 +24,7 @@ from gaip.tiling import generate_tiles
 from gaip.__surface_reflectance import reflectance
 
 
-def _calculate_reflectance(acquisition, bilinear_fname,
+def _calculate_reflectance(acquisition, interpolation_fname,
                            satellite_solar_angles_fname, slope_aspect_fname,
                            relative_slope_fname, incident_angles_fname,
                            exiting_angles_fname, shadow_masks_fname,
@@ -34,192 +34,112 @@ def _calculate_reflectance(acquisition, bilinear_fname,
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    band_num = acquisition.band_num
-    with h5py.File(bilinear_fname, 'r') as fid_bil,\
+    with h5py.File(interpolation_fname, 'r') as fid_interp,\
         h5py.File(satellite_solar_angles_fname, 'r') as fid_sat_sol,\
         h5py.File(slope_aspect_fname, 'r') as fid_slp_asp,\
         h5py.File(relative_slope_fname, 'r') as fid_rel_slp,\
         h5py.File(incident_angles_fname, 'r') as fid_inc,\
         h5py.File(exiting_angles_fname, 'r') as fid_exi,\
         h5py.File(shadow_masks_fname, 'r') as fid_shadow,\
-        h5py.File(ancillary_fname, 'r') as fid_anc:
+        h5py.File(ancillary_fname, 'r') as fid_anc,\
+        h5py.File(out_fname, 'w') as fid:
 
-        dname_fmt = DatasetName.interpolation_fmt.value
-        fv_dset = fid_bil[dname_fmt.format(factor='fv', band=band_num)]
-        fs_dset = fid_bil[dname_fmt.format(factor='fs', band=band_num)]
-        b_dset = fid_bil[dname_fmt.format(factor='b', band=band_num)]
-        s_dset = fid_bil[dname_fmt.format(factor='s', band=band_num)]
-        a_dset = fid_bil[dname_fmt.format(factor='a', band=band_num)]
-        dir_dset = fid_bil[dname_fmt.format(factor='dir', band=band_num)]
-        dif_dset = fid_bil[dname_fmt.format(factor='dif', band=band_num)]
-        ts_dset = fid_bil[dname_fmt.format(factor='ts', band=band_num)]
-        sol_zen_dset = fid_sat_sol[DatasetName.solar_zenith.value]
-        sol_azi_dset = fid_sat_sol[DatasetName.solar_azimuth.value]
-        sat_view_dset = fid_sat_sol[DatasetName.satellite_view.value]
-        rel_ang_dset = fid_sat_sol[DatasetName.relative_azimuth.value]
-        slope_dset = fid_slp_asp[DatasetName.slope.value]
-        aspect_dset = fid_slp_asp[DatasetName.aspect.value]
-        rel_slp_dset = fid_rel_slp[DatasetName.relative_slope.value]
-        inc_dset = fid_inc[DatasetName.incident.value]
-        exi_dset = fid_exi[DatasetName.exiting.value]
-        shad_dset = fid_shadow[DatasetName.combined_shadow.value]
+        calculate_reflectance(acquisition, fid_interp, fid_sat_sol,
+                              fid_slp_asp, fid_rel_slp, fid_inc, fid_exi,
+                              fid_shadow, fid_anc, rori, fid, compression,
+                              y_tile)
 
-        dname = DatasetName.brdf_fmt.value
-        brdf_iso = fid_anc[dname.format(band=band_num, factor='iso')][()]
-        brdf_vol = fid_anc[dname.format(band=band_num, factor='vol')][()]
-        brdf_geo = fid_anc[dname.format(band=band_num, factor='geo')][()]
-
-        fid = calculate_reflectance(acquisition, fv_dset, fs_dset, b_dset,
-                                    s_dset, a_dset, dir_dset, dif_dset,
-                                    ts_dset, sol_zen_dset, sol_azi_dset,
-                                    sat_view_dset, rel_ang_dset, slope_dset,
-                                    aspect_dset, rel_slp_dset, inc_dset,
-                                    exi_dset, shad_dset, rori, brdf_iso,
-                                    brdf_vol, brdf_geo, out_fname, compression,
-                                    y_tile)
-
-    create_ard_yaml(acquisition, ancillary_fname, fid)
-
-    fid.close()
-    return
+        create_ard_yaml(acquisition, fid_anc, fid)
 
 
-def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
-                          s_dataset, a_dataset, dir_dataset, dif_dataset,
-                          ts_dataset, solar_zenith_dataset,
-                          solar_azimuth_dataset, satellite_view_dataset,
-                          relative_angle_dataset, slope_dataset,
-                          aspect_dataset, relative_slope_dataset,
-                          incident_angle_dataset, exiting_angle_dataset,
-                          shadow_dataset, rori, brdf_iso,
-                          brdf_vol, brdf_geo, out_fname=None,
+def calculate_reflectance(acquisition, interpolation_group,
+                          satellite_solar_group, slope_aspect_group,
+                          relative_slope_group, incident_angles_group,
+                          exiting_angles_group, shadow_masks_group,
+                          ancillary_group, rori, out_group=None,
                           compression='lzf', y_tile=100):
     """
     Calculates Lambertian, BRDF corrected and BRDF + terrain
-    corrected surface reflectance.
+    illumination corrected surface reflectance.
 
     :param acquisition:
         An instance of an acquisition object.
 
-    :param fv_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the MODTRAN
-        factor `fv` data values when indexed/sliced.
+    :param interpolation_group:
+        The root HDF5 `Group` that contains the interpolated
+        atmospheric coefficients.
+        The dataset pathnames are given by:
 
-    :param fs_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the MODTRAN
-        factor `fs` data values when indexed/sliced.
+        * DatasetName.interpolation_fmt
 
-    :param b_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the MODTRAN
-        factor `b` data values when indexed/sliced.
+    :param satellite_solar_group:
+        The root HDF5 `Group` that contains the solar zenith and
+        solar azimuth datasets specified by the pathnames given by:
 
-    :param s_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the MODTRAN
-        factor `s` data values when indexed/sliced.
+        * DatasetName.solar_zenith
+        * DatasetName.solar_azimuth
+        * DatasetName.satellite_view
+        * DatasetName.satellite_azimuth
+        * DatasetName.relative_azimuth
+        
+    :param slope_aspect_group:
+        The root HDF5 `Group` that contains the slope and aspect
+        datasets specified by the pathnames given by:
 
-    :param a_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the MODTRAN
-        factor `a` data values when indexed/sliced.
+        * DatasetName.slope
+        * DatasetName.aspect
 
-    :param dir_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the MODTRAN
-        factor `dir` (direct irradiance) data values when
-        indexed/sliced.
+    :param relative_slope_group:
+        The root HDF5 `Group` that contains the relative slope dataset
+        specified by the pathname given by:
 
-    :param dif_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the MODTRAN
-        factor `dif` (diffuse irradiance) data values when
-        indexed/sliced.
+        * DatasetName.relative_slope
 
-    :param ts_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the MODTRAN
-        factor `ts` data values when indexed/sliced.
+    :param incident_angles_group:
+        The root HDF5 `Group` that contains the incident
+        angle dataset specified by the pathname given by:
 
-    :param solar_zenith_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the solar
-        zenith angles when indexed/sliced.
+        * DatasetName.incident
 
-    :param solar_azimuth_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the solar
-        azimuth angles when indexed/sliced.
+    :param exiting_angles_group:
+        The root HDF5 `Group` that contains the exiting
+        angle dataset specified by the pathname given by:
 
-    :param satellite_view_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the satellite
-        view angles when indexed/sliced.
+        * DatasetName.DatasetName.exiting
 
-    :param relative_angle_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the relative
-        azimuth angles when indexed/sliced.
+    :param shadow_masks_group:
+        The root HDF5 `Group` that contains the combined shadow
+        masks; self shadow, cast shadow (solar),
+        cast shadow (satellite), dataset specified by the pathname
+        given by:
 
-    :param slope_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the slope values
-        when index/sliced.
+        * DatasetName.combined_shadow
 
-    :param aspect_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the aspect angles
-        when index/sliced.
+    :param ancillary_group:
+        The root HDF5 `Group` that contains the Isotropic (iso),
+        RossThick (vol), and LiSparseR (geo) BRDF scalar coefficients.
+        The dataset pathnames are given by:
 
-    :param relative_slope_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the relative
-        slope values when index/sliced.
-
-    :param incident_angle_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the incident angles
-        when index/sliced.
-
-    :param exiting_angle_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the exiting angles
-        when index/sliced.
-
-    :param shadow_dataset:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the shadow
-        mask when index/sliced.
+        * DatasetName.brdf_fmt
 
     :param rori:
         Threshold for terrain correction. Fuqin to document.
 
-    :param brdf_iso:
-        A point value representing the Bidirectional Reflectance
-        Distribution Function for the isometric scattering fraction.
-
-    :param brdf_vol:
-        A point value representing the Bidirectional Reflectance
-        Distribution Function for the volumetric scattering fraction.
-
-    :param brdf_geo:
-        A point value representing the Bidirectional Reflectance
-        Distribution Function for the geometric scattering fraction.
-
-    :param out_fname:
+    :param out_group:
         If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver.
-        Otherwise it should be a string containing the full file path
-        name to a writeable location on disk in which to save the HDF5
-        file.
+        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
+        a writeable HDF5 `Group` object.
 
-        The dataset names will be as follows:
+        The dataset names will be given by the format string detailed
+        by:
 
-        * lambertian-reflectance-band-{number}
-        * brdf-reflectance-band-{number}
-        * terrain-reflectance-band-{number}
+        * DatasetName.reflectance_fmt
+
+        The reflectance products are:
+
+        * lambertian
+        * brdf
+        * terrain (brdf + terrain illumination correction)
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -239,17 +159,43 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
     """
     acq = acquisition
     geobox = acq.gridded_geo_box()
+    bn = acq.band_num
+
+    dname_fmt = DatasetName.interpolation_fmt.value
+    fv_dataset = interpolation_group[dname_fmt.format(factor='fv', band=bn)]
+    fs_dataset = interpolation_group[dname_fmt.format(factor='fs', band=bn)]
+    b_dataset = interpolation_group[dname_fmt.format(factor='b', band=bn)]
+    s_dataset = interpolation_group[dname_fmt.format(factor='s', band=bn)]
+    a_dataset = interpolation_group[dname_fmt.format(factor='a', band=bn)]
+    dir_dataset = interpolation_group[dname_fmt.format(factor='dir', band=bn)]
+    dif_dataset = interpolation_group[dname_fmt.format(factor='dif', band=bn)]
+    ts_dataset = interpolation_group[dname_fmt.format(factor='ts', band=bn)]
+    solar_zenith_dset = satellite_solar_group[DatasetName.solar_zenith.value]
+    solar_azimuth_dset = satellite_solar_group[DatasetName.solar_azimuth.value]
+    satellite_v_dset = satellite_solar_group[DatasetName.satellite_view.value]
+    relative_a_dset = satellite_solar_group[DatasetName.relative_azimuth.value]
+    slope_dataset = slope_aspect_group[DatasetName.slope.value]
+    aspect_dataset = slope_aspect_group[DatasetName.aspect.value]
+    relative_s_dset = relative_slope_group[DatasetName.relative_slope.value]
+    incident_angle_dataset = incident_angles_group[DatasetName.incident.value]
+    exiting_angle_dataset = exiting_angles_group[DatasetName.exiting.value]
+    shadow_dataset = shadow_masks_group[DatasetName.combined_shadow.value]
+
+    dname_fmt = DatasetName.brdf_fmt.value
+    brdf_iso = ancillary_group[dname_fmt.format(band=bn, factor='iso')][()]
+    brdf_vol = ancillary_group[dname_fmt.format(band=bn, factor='vol')][()]
+    brdf_geo = ancillary_group[dname_fmt.format(band=bn, factor='geo')][()]
 
     # Get the average reflectance values per band
     nbar_constants = constants.NBARConstants(acq.spacecraft_id, acq.sensor_id)
     avg_reflectance_values = nbar_constants.get_avg_ref_lut()
 
     # Initialise the output file
-    if out_fname is None:
+    if out_group is None:
         fid = h5py.File('surface-reflectance.h5', driver='core',
                         backing_store=False)
     else:
-        fid = h5py.File(out_fname, 'w')
+        fid = out_group
 
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, acq.samples))
@@ -259,13 +205,13 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
 
     # create the datasets
     dname_fmt = DatasetName.reflectance_fmt.value
-    dname = dname_fmt.format(product='lambertian', band=acq.band_num)
+    dname = dname_fmt.format(product='lambertian', band=bn)
     lmbrt_dset = fid.create_dataset(dname, **kwargs)
 
-    dname = dname_fmt.format(product='brdf', band=acq.band_num)
+    dname = dname_fmt.format(product='brdf', band=bn)
     brdf_dset = fid.create_dataset(dname, **kwargs)
 
-    dname = dname_fmt.format(product='terrain', band=acq.band_num)
+    dname = dname_fmt.format(product='terrain', band=bn)
     tc_dset = fid.create_dataset(dname, **kwargs)
 
     # attach some attributes to the image datasets
@@ -275,7 +221,7 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
              'rori_threshold_setting': rori,
              'sattelite': acq.spacecraft_id,
              'sensor': acq.sensor_id,
-             'band_number': acq.band_num}
+             'band_number': bn}
 
     desc = "Contains the lambertian reflectance data scaled by 10000."
     attrs['Description'] = desc
@@ -310,15 +256,15 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
         band_data = as_array(acq.data(**acq_args), **f32_args)
         
         shadow = as_array(shadow_dataset[idx], numpy.int8, transpose=True)
-        solar_zenith = as_array(solar_zenith_dataset[idx], **f32_args)
-        solar_azimuth = as_array(solar_azimuth_dataset[idx], **f32_args)
-        satellite_view = as_array(satellite_view_dataset[idx], **f32_args)
-        relative_angle = as_array(relative_angle_dataset[idx], **f32_args)
+        solar_zenith = as_array(solar_zenith_dset[idx], **f32_args)
+        solar_azimuth = as_array(solar_azimuth_dset[idx], **f32_args)
+        satellite_view = as_array(satellite_v_dset[idx], **f32_args)
+        relative_angle = as_array(relative_a_dset[idx], **f32_args)
         slope = as_array(slope_dataset[idx], **f32_args)
         aspect = as_array(aspect_dataset[idx], **f32_args)
         incident_angle = as_array(incident_angle_dataset[idx], **f32_args)
         exiting_angle = as_array(exiting_angle_dataset[idx], **f32_args)
-        relative_slope = as_array(relative_slope_dataset[idx], **f32_args)
+        relative_slope = as_array(relative_s_dset[idx], **f32_args)
         a_mod = as_array(a_dataset[idx], **f32_args)
         b_mod = as_array(b_dataset[idx], **f32_args)
         s_mod = as_array(s_dataset[idx], **f32_args)
@@ -355,7 +301,8 @@ def calculate_reflectance(acquisition, fv_dataset, fs_dataset, b_dataset,
         brdf_dset[idx] = ref_brdf
         tc_dset[idx] = ref_terrain
 
-    return fid
+    if out_group is None:
+        return fid
 
 
 def link_standard_data(input_fnames, out_fname, model):

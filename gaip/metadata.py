@@ -12,7 +12,6 @@ import pwd
 import socket
 import uuid
 import numpy
-import h5py
 import pandas
 import rasterio
 import yaml
@@ -84,7 +83,7 @@ def read_meatadata_tags(fname, bands):
     return pandas.DataFrame(tag_data)
 
 
-def create_ard_yaml(acquisition, ancillary_fname, out_group, sbt=False):
+def create_ard_yaml(acquisition, ancillary_group, out_group, sbt=False):
     """
     Write the NBAR metadata captured during the entire workflow to a
     HDF5 SCALAR dataset using the yaml document format.
@@ -92,9 +91,9 @@ def create_ard_yaml(acquisition, ancillary_fname, out_group, sbt=False):
     :param acquisition:
         An instance of `acquisition`.
 
-    :param ancillary_fname:
-        A `str` containing the file pathname to the HDF5 containing
-        the ancillary data retrieved via the `gaip.standard_workflow`.
+    :param ancillary_group:
+        The root HDF5 `Group` that contains the ancillary data
+        collected via gaip.ancillary.collect_ancillary>
 
     :param out_group:
         A `h5py.Group` object opened for write access.
@@ -164,47 +163,46 @@ def create_ard_yaml(acquisition, ancillary_fname, out_group, sbt=False):
 
         return point_data
 
-    def load_ancillary(acquisition, ancillary_fname, sbt=False):
+    def load_ancillary(acquisition, fid, sbt=False):
         """
         Load the ancillary data retrieved during the workflow.
         """
-        with h5py.File(ancillary_fname, 'r') as fid:
-            dname = DatasetName.aerosol.value
-            aerosol_data = read_scalar(fid, dname)
-            dname = DatasetName.water_vapour.value
-            water_vapour_data = read_scalar(fid, dname)
-            dname = DatasetName.ozone.value
-            ozone_data = read_scalar(fid, dname)
-            dname = DatasetName.elevation.value
-            elevation_data = read_scalar(fid, dname)
+        dname = DatasetName.aerosol.value
+        aerosol_data = read_scalar(fid, dname)
+        dname = DatasetName.water_vapour.value
+        water_vapour_data = read_scalar(fid, dname)
+        dname = DatasetName.ozone.value
+        ozone_data = read_scalar(fid, dname)
+        dname = DatasetName.elevation.value
+        elevation_data = read_scalar(fid, dname)
 
-            ancillary = {'aerosol': aerosol_data,
-                         'water_vapour': water_vapour_data,
-                         'ozone': ozone_data,
-                         'elevation': elevation_data}
+        ancillary = {'aerosol': aerosol_data,
+                     'water_vapour': water_vapour_data,
+                     'ozone': ozone_data,
+                     'elevation': elevation_data}
 
-            if sbt:
-                sbt_ancillary = load_sbt_ancillary(fid)
-                for key in sbt_ancillary:
-                    ancillary[key] = sbt_ancillary[key]
-            else:
-                # Get the required BRDF LUT & factors list
-                nbar_constants = NBARConstants(acquisition.spacecraft_id,
-                                               acquisition.sensor_id)
-                bands = nbar_constants.get_brdf_lut()
-                brdf_factors = nbar_constants.get_brdf_factors()
-                brdf_data = {}
-                band_fmt = 'band_{}'
-                for band in bands:
-                    brdf = {}
-                    for factor in brdf_factors:
-                        fmt = DatasetName.brdf_fmt.value
-                        dset = fid[fmt.format(band=band, factor=factor)]
-                        brdf[factor] = {k: v for k, v in dset.attrs.items()}
-                        brdf[factor]['value'] = dset[()]
-                    brdf_data[band_fmt.format(band)] = brdf
+        if sbt:
+            sbt_ancillary = load_sbt_ancillary(fid)
+            for key in sbt_ancillary:
+                ancillary[key] = sbt_ancillary[key]
+        else:
+            # Get the required BRDF LUT & factors list
+            nbar_constants = NBARConstants(acquisition.spacecraft_id,
+                                           acquisition.sensor_id)
+            bands = nbar_constants.get_brdf_lut()
+            brdf_factors = nbar_constants.get_brdf_factors()
+            brdf_data = {}
+            band_fmt = 'band_{}'
+            for band in bands:
+                brdf = {}
+                for factor in brdf_factors:
+                    fmt = DatasetName.brdf_fmt.value
+                    dset = fid[fmt.format(band=band, factor=factor)]
+                    brdf[factor] = {k: v for k, v in dset.attrs.items()}
+                    brdf[factor]['value'] = dset[()]
+                brdf_data[band_fmt.format(band)] = brdf
 
-                ancillary['brdf'] = brdf_data
+            ancillary['brdf'] = brdf_data
 
         return ancillary
 
@@ -220,7 +218,7 @@ def create_ard_yaml(acquisition, ancillary_fname, out_group, sbt=False):
     for key, value in extract_ancillary_metadata(level1_path).items():
         source_info[key] = value
 
-    ancillary = load_ancillary(acquisition, ancillary_fname, sbt)
+    ancillary = load_ancillary(acquisition, ancillary_group, sbt)
 
     software_versions = {'gaip': {'version': gaip.__version__,
                                   'repo_url': 'https://github.com/GeoscienceAustralia/gaip.git'}, # pylint: disable=line-too-long
