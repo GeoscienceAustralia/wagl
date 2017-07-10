@@ -34,7 +34,17 @@ def filter_dsm(array):
     return filtered
 
 
-def get_dsm(acquisition, national_dsm, margins, out_fname=None,
+def _get_dsm(acquisition, national_dsm, margins, out_fname, compression='lzf',
+             y_tile=100):
+    """
+    A private wrapper for dealing with the internal custom workings of the
+    NBAR workflow.
+    """
+    with h5py.File(out_fname, 'w') as fid:
+        get_dsm(acquisition, national_dsm, margins, fid, compression, y_tile)
+
+
+def get_dsm(acquisition, national_dsm, margins, out_group=None,
             compression='lzf', y_tile=100):
     """
     Given an acquisition and a national Digitial Surface Model,
@@ -57,17 +67,15 @@ def get_dsm(acquisition, national_dsm, margins, out_fname=None,
         bottom, left and right will be added to the acquisition
         margin/border.
 
-    :param out_fname:
+    :param out_group:
         If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver.
-        Otherwise it should be a string containing the full file path
-        name to a writeable location on disk in which to save the HDF5
-        file.
+        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
+        a writeable HDF5 `Group` object.
 
         The dataset names will be as follows:
 
-        * dsm
-        * dsm-smoothed
+        * DatasetName.dsm
+        * DatasetName.dsm_smoothed
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -108,10 +116,10 @@ def get_dsm(acquisition, national_dsm, margins, out_fname=None,
 
     # Output the reprojected result
     # Initialise the output files
-    if out_fname is None:
+    if out_group is None:
         fid = h5py.File('dsm-subset.h5', driver='core', backing_store=False)
     else:
-        fid = h5py.File(out_fname, 'w')
+        fid = out_group
 
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(y_tile, geobox.x_size()))
@@ -140,5 +148,5 @@ def get_dsm(acquisition, national_dsm, margins, out_fname=None,
     attrs['Description'] = desc
     attach_image_attributes(out_sm_dset, attrs)
 
-    fid.flush()
-    return fid
+    if out_group is None:
+        return fid

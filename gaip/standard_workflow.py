@@ -19,8 +19,7 @@ from luigi.util import inherits, requires
 from gaip.acquisition import acquisitions
 from gaip.ancillary import _collect_ancillary, aggregate_ancillary
 from gaip.satellite_solar_angles import _calculate_angles
-from gaip.incident_exiting_angles import _incident_angles
-from gaip.incident_exiting_angles import _exiting_angles
+from gaip.incident_exiting_angles import _incident_exiting_angles
 from gaip.incident_exiting_angles import _relative_azimuth_slope
 from gaip.longitude_latitude_arrays import create_lon_lat_grids
 from gaip.reflectance import _calculate_reflectance, link_standard_data
@@ -30,7 +29,7 @@ from gaip.slope_aspect import _slope_aspect_arrays
 from gaip import constants
 from gaip.constants import Model, BandType
 from gaip.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
-from gaip.dsm import get_dsm
+from gaip.dsm import _get_dsm
 from gaip.modtran import _format_tp5, _run_modtran
 from gaip.modtran import calculate_coefficients, prepare_modtran
 from gaip.modtran import link_atmospheric_results
@@ -489,8 +488,8 @@ class DEMExctraction(luigi.Task):
         margins = get_buffer(self.group)
 
         with self.output().temporary_path() as out_fname:
-            _ = get_dsm(acqs[0], self.dsm_fname, margins, out_fname,
-                        self.compression, self.y_tile)
+            _get_dsm(acqs[0], self.dsm_fname, margins, out_fname,
+                     self.compression, self.y_tile)
 
 
 @requires(DEMExctraction)
@@ -539,8 +538,8 @@ class IncidentAngles(luigi.Task):
         slope_aspect_fname = self.input()['slp_asp'].path
 
         with self.output().temporary_path() as out_fname:
-            _incident_angles(sat_sol_fname, slope_aspect_fname, out_fname,
-                             self.compression, self.y_tile)
+            _incident_exiting_angles(sat_sol_fname, slope_aspect_fname,
+                                     out_fname, self.compression, self.y_tile)
 
 
 @inherits(IncidentAngles)
@@ -566,8 +565,9 @@ class ExitingAngles(luigi.Task):
         slope_aspect_fname = self.input()['slp_asp'].path
 
         with self.output().temporary_path() as out_fname:
-            _exiting_angles(sat_sol_fname, slope_aspect_fname, out_fname,
-                            self.compression, self.y_tile)
+            _incident_exiting_angles(sat_sol_fname, slope_aspect_fname,
+                                     out_fname, self.compression, self.y_tile,
+                                     False)
 
 
 @inherits(IncidentAngles)
