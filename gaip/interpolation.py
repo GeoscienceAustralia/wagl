@@ -6,7 +6,6 @@ Various interpolation methods.
 
 from __future__ import absolute_import
 from os.path import basename, splitext
-import logging
 import math
 from scipy.interpolate import Rbf
 import numpy as np
@@ -15,8 +14,6 @@ from gaip.constants import DatasetName, Model
 from gaip.hdf5 import dataset_compression_kwargs
 from gaip.hdf5 import write_h5_image
 from gaip.hdf5 import read_h5_table
-
-logger = logging.getLogger(__name__)
 
 DEFAULT_ORIGIN = (0, 0)
 DEFAULT_SHAPE = (8, 8)
@@ -202,10 +199,10 @@ def fortran_bilinear_interpolate(cols, rows, locations, samples,
     assert len(samples) == 3*3
     assert len(locations) == len(samples)
 
-    s1 = samples[[0,1,3,4]]
-    s2 = samples[[1,2,4,5]]
-    s3 = samples[[3,4,6,7]]
-    s4 = samples[[4,5,7,8]]
+    s1 = samples[[0, 1, 3, 4]]
+    s2 = samples[[1, 2, 4, 5]]
+    s3 = samples[[3, 4, 6, 7]]
+    s4 = samples[[4, 5, 7, 8]]
 
     output = np.empty((rows, cols), dtype=np.float32)
 
@@ -219,7 +216,7 @@ def rbf_interpolate(cols, rows, locations, samples, *_,
                     chunking=True, kernel='gaussian'):
     """scipy radial basis function interpolation"""
 
-    rbf = Rbf(locations[:,1], locations[:,0], samples - samples.mean(),
+    rbf = Rbf(locations[:, 1], locations[:, 0], samples - samples.mean(),
               function=kernel)
 
     if not chunking:
@@ -318,11 +315,11 @@ def sheared_bilinear_interpolate(cols, rows, locations, samples,
             x = shear(i, j)
             old = vertices
             vertices = old.astype(np.float32, copy=True)
-            vertices[:,1] = x[list(old.T)]
+            vertices[:, 1] = x[list(old.T)]
 
-        matrix = np.ones((4,4))
+        matrix = np.ones((4, 4))
         matrix[:, 1:3] = vertices
-        matrix[:, 3] = vertices[:,0] * vertices[:,1]
+        matrix[:, 3] = vertices[:, 0] * vertices[:, 1]
 
         a = np.linalg.solve(matrix, values) # determine coefficients
 
