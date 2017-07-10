@@ -13,7 +13,7 @@ import h5py
 from osgeo import osr
 from gaip.constants import DatasetName
 from gaip.hdf5 import dataset_compression_kwargs, attach_image_attributes
-from gaip.hdf5 import attach_table_attributes
+from gaip.hdf5 import attach_table_attributes, attach_attributes
 from gaip.tiling import generate_tiles
 from gaip.tle import load_tle
 from gaip.__sat_sol_angles import angle
@@ -57,7 +57,7 @@ def convert_to_lonlat(geobox, col_index, row_index):
     return lon, lat
     
 
-def create_centreline_dataset(geobox, x, n):
+def create_centreline_dataset(geobox, x, n, out_group):
     """
     Creates the centre line dataset.
 
@@ -74,19 +74,35 @@ def create_centreline_dataset(geobox, x, n):
         Details whether or not the track point coordinate is
         averaged.
 
-    :return:
-        A `NumPy` dataset with the following datatype:
+    :param out_group:
+        A writeable HDF5 `Group` object.
 
-        * [('row_index', 'int64'), ('col_index', 'int64'),
-           ('n_pixels', 'float'), ('latitude', 'float'),
-           ('longitude', 'float')]
+    :return:
+        None, results are written into the H5Group defined by
+        out_group.
     """
+    # centreline
+    # if more than one pixel in a line was a track point the coordinates
+    # are averaged
+    wh = n > 1.5
+    x[wh] = x[wh] / n[wh]
+
+    # check whether there is no centre pixel in the line. It is assumed that
+    # at least the adjacent lines have pixel
+    wh = n < 0.5
+    temp = x[0:2].copy()
+    x[wh] = np.roll(x, 1)[wh]
+    # account for first element potentially being changed with the
+    # last element
+    if wh[0]:
+        x[0] = temp[1]
+
+    # convert X centre points to integers (basically array co-ordinates)
+    # and correct for FORTRAN offset
+    x = np.rint(x) - 1
+
     rows, _ = geobox.shape
     y = np.arange(rows)
-
-    # Define the TO_CRS for lon & lat outputs
-    sr = osr.SpatialReference()
-    sr.SetFromUserInput(CRS)
 
     dtype = np.dtype([('row_index', 'int64'), ('col_index', 'int64'),
                       ('n_pixels', 'float'), ('latitude', 'float64'),
@@ -100,7 +116,14 @@ def create_centreline_dataset(geobox, x, n):
     data['latitude'] = lat
     data['longitude'] = lon
 
-    return data
+    kwargs = dataset_compression_kwargs()
+    dname = DatasetName.centreline.value
+    cent_dset = out_group.create_dataset(dname, data=data, **kwargs)
+    desc = ("Contains the array, latitude and longitude coordinates of the "
+            "satellite track path.")
+    attrs = {'Description': desc,
+             'array_coordinate_offset': 0}
+    attach_table_attributes(cent_dset, title='Centreline', attrs=attrs)
 
 
 def first_and_last(array):
@@ -148,36 +171,31 @@ def swathe_edges(threshold, array):
     return start, end
 
 
-def create_boxline(view_angle_dataset, xcentre, npoints, max_angle=9.0):
+def create_boxline(geobox, view_angle_dataset, centreline_dataset, out_group,
+                   max_angle=9.0):
     """
     Creates the boxline (satellite track bi-section) dataset.
+
+    :param geobox:
+        An instance of a GriddedGeoBox object.
+
     :param view_angle_dataset:
         A `NumPy` or `NumPy` like dataset that allows indexing
         and returns a `NumPy` dataset containing the satellite view
         angles when index/sliced.
 
-    :param xcentre:
-        A 1D NumPy array containing the values for the column
-        coordinate for the central index; 0 based index.
+    :param centreline_dataset:
+        The dataset created by the create_centreline function.
 
-    :param npoints:
-        A 1D NumPy array containing the values for the number of points
-        used to determine the pixel index.
-        That is, a count for each row of how many columns are within tolerance
-        of the satellite track (the "central" index).
-        In practice the values are 0, 1, or 2.
+    :param out_group:
+        A writeable HDF5 `Group` object.
 
     :param max_angle:
         The maximum viewing angle. Default is 9.0 degrees.
 
     :return:
-        A `NumPy` dataset of the following datatype:
-
-        * boxline_dtype = np.dtype([('row_index', 'int64'),
-                                    ('bisection_index', 'int64'),
-                                    ('npoints', 'int64'),
-                                    ('start_index', 'int64'),
-                                    ('end_index', 'int64')])
+        None, results are written into the H5Group defined by
+        out_group.
     """
     rows, _ = view_angle_dataset.shape
     
@@ -188,22 +206,50 @@ def create_boxline(view_angle_dataset, xcentre, npoints, max_angle=9.0):
     # be outside of the scene aquisition window.
     istart, iend = swathe_edges(max_angle, view_angle_dataset)
 
+    row_index = np.arange(rows)
+    col_index = centreline_dataset['col_index'][:]
+
     # record curves for parcellation (of the raster into interpolation cells)
     boxline_dtype = np.dtype([('row_index', 'int64'),
                               ('bisection_index', 'int64'),
                               ('npoints', 'int64'),
                               ('start_index', 'int64'),
-                              ('end_index', 'int64')])
+                              ('end_index', 'int64'),
+                              ('latitude', 'float64'),
+                              ('bisection_longitude', 'float64'),
+                              ('bisection_latitude', 'float64'),
+                              ('start_longitude', 'float64'),
+                              ('start_latitude', 'float64'),
+                              ('end_longitude', 'float64'),
+                              ('end_latitude', 'float64')])
     boxline = np.empty(rows, dtype=boxline_dtype)
-    boxline['row_index'] = np.arange(rows)
-    boxline['bisection_index'] = xcentre
-    boxline['npoints'] = npoints
+    boxline['row_index'] = row_index
+    boxline['bisection_index'] = col_index
+    boxline['npoints'] = centreline_dataset['n_pixels'][:]
     boxline['start_index'] = istart
     boxline['end_index'] = iend
-    # note, option to fill out the entire linspace into additional columns
-    # of the boxline
 
-    return boxline
+    # lon/lat conversions
+    lon, lat = convert_to_lonlat(geobox, col_index, row_index)
+    boxline['bisection_longitude'] = lon
+    boxline['bisection_latitude'] = lat
+
+    lon, lat = convert_to_lonlat(geobox, istart, row_index)
+    boxline['start_longitude'] = lon
+    boxline['start_latitude'] = lon
+
+    lon, lat = convert_to_lonlat(geobox, iend, row_index)
+    boxline['end_longitude'] = lon
+    boxline['end_latitude'] = lon
+
+    kwargs = dataset_compression_kwargs()
+    desc = ("Contains the bi-section, column start and column end array "
+            "coordinates.")
+    attrs = {'Description': desc,
+             'array_coordinate_offset': 0}
+    dname = DatasetName.boxline.value
+    box_dset = out_group.create_dataset(dname, data=boxline, **kwargs)
+    attach_table_attributes(box_dset, title='Boxline', attrs=attrs)
 
 
 def create_vertices(acquisition, boxline_dataset, vertices=(3, 3)):
@@ -386,21 +432,16 @@ def setup_spheroid(proj_wkt):
     return np.array(dset.tolist()).squeeze(), dset
 
 
-def setup_orbital_elements(ephemeral, datetime, acquisition):
+def setup_orbital_elements(acquisition, tle_path):
     """
     Given an ephemeral object and a datetime object, calculate the
     satellite orbital paramaters used for calculating the angle grids.
 
-    :param ephemeral:
-        A pyephem object already instantiated by loading a TLE (Two
-        Line Element).
-
-    :param datetime:
-        A datetime object containing the date to be used in computing
-        the satellite orbital paramaters.
-
     :param acquisition:
         An `Acquisition` object.
+
+    :param tle_path:
+        A `str` to the directory containing the Two Line Element data.
 
     :return:
         A floating point np array of 3 elements containing the
@@ -421,6 +462,8 @@ def setup_orbital_elements(ephemeral, datetime, acquisition):
                       ('angular_velocity', 'float64')])
     dset = np.zeros(1, dtype=dtype)
 
+    ephemeral = load_tle(acquisition, tle_path)
+
     # If we have None, then no suitable TLE was found, so use values gathered
     # by the acquisition object
     if ephemeral is None:
@@ -431,7 +474,7 @@ def setup_orbital_elements(ephemeral, datetime, acquisition):
         # angular velocity (rad sec-1)
         dset['angular_velocity'] = acquisition.omega
     else:
-        ephemeral.compute(datetime)
+        ephemeral.compute(acquisition.scene_center_datetime)
         pi = np.pi
         n = ephemeral._n  # number or orbits per day
         s = 24*60*60  # Seconds in a day
@@ -610,9 +653,7 @@ def _store_parameter_settings(fid, spheriod, orbital_elements,
     calculate_angles workflow.
     """
     group = fid.create_group('parameters')
-
-    for key in params:
-        group.attrs[key] = params[key]
+    attach_attributes(group, params)
 
     # sheroid
     desc = "The spheroid used in the satellite and solar angles calculation."
@@ -713,6 +754,9 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
         The maximum satellite view angle to use within the workflow.
         Default is 9.0 degrees.
 
+    :param tle_path:
+        A `str` to the directory containing the Two Line Element data.
+
     :param y_tile:
         Defines the tile size along the y-axis. Default is 100.
 
@@ -721,10 +765,8 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
         `core` driver, or on disk.
     """
     acq = acquisition
-    dt = acq.scene_center_datetime
-    century = calculate_julian_century(dt)
+    century = calculate_julian_century(acq.scene_center_datetime)
     geobox = acq.gridded_geo_box()
-    prj = geobox.crs.ExportToWkt()
 
     # longitude and latitude datasets
     longitude = lon_lat_group[DatasetName.lon.value]
@@ -732,14 +774,11 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
 
     # Min and Max lat extents
     # This method should handle northern and southern hemispheres
+    # include a 1 degree buffer
     min_lat = min(min(geobox.ul_lonlat[1], geobox.ur_lonlat[1]),
-                  min(geobox.ll_lonlat[1], geobox.lr_lonlat[1]))
+                  min(geobox.ll_lonlat[1], geobox.lr_lonlat[1])) - 1
     max_lat = max(max(geobox.ul_lonlat[1], geobox.ur_lonlat[1]),
-                  max(geobox.ll_lonlat[1], geobox.lr_lonlat[1]))
-
-    # temporary lat/lon buffer for satellite track calculations
-    min_lat -= 1
-    max_lat += 1
+                  max(geobox.ll_lonlat[1], geobox.lr_lonlat[1])) + 1
 
     # Get the lat/lon of the scene centre
     # check if we have a file with GPS satellite track points
@@ -753,19 +792,18 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
         centre_xy = geobox.centre_lonlat
 
     # Get the earth spheroidal paramaters
-    spheroid, spheroid_dset = setup_spheroid(prj)
+    spheroid = setup_spheroid(geobox.crs.ExportToWkt())
 
     # Get the satellite orbital elements
-    sat_ephemeral = load_tle(acq, tle_path)
-    orbital_elements, orb_dset = setup_orbital_elements(sat_ephemeral, dt, acq)
+    orbital_elements = setup_orbital_elements(acq, tle_path)
 
     # Get the satellite model paramaters
-    smodel, smodel_dset = setup_smodel(centre_xy[0], centre_xy[1], spheroid,
-                                       orbital_elements)
+    smodel = setup_smodel(centre_xy[0], centre_xy[1], spheroid[0],
+                          orbital_elements[0])
 
     # Get the times and satellite track information
-    track, track_dset = setup_times(min_lat, max_lat, spheroid,
-                                    orbital_elements, smodel)
+    track = setup_times(min_lat, max_lat, spheroid[0], orbital_elements[0],
+                        smodel[0])
 
     # Initialise the output files
     if out_group is None:
@@ -781,14 +819,14 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
               'samples': acq.samples,
               'century': century,
               'hours': acq.decimal_hour,
-              'scene_acquisition_datetime_iso': dt.isoformat(),
+              'scene_acquisition_datetime': acq.scene_center_datetime,
               'centre_longitude_latitude': centre_xy,
               'minimum_latiude': min_lat,
               'maximum_latiude': max_lat,
               'latitude_buffer': '1.0 degrees',
-              'max_satellite_viewing_angle': max_angle}
-    _store_parameter_settings(fid, spheroid_dset, orb_dset,
-                              smodel_dset, track_dset, params)
+              'max_view_angle': max_angle}
+    _store_parameter_settings(fid, spheroid[1], orbital_elements[1],
+                              smodel[1], track[1], params)
 
     out_dtype = 'float32'
     no_data = -999
@@ -840,11 +878,8 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     x_cent = np.zeros((acq.lines), dtype=out_dtype)
     n_cent = np.zeros((acq.lines), dtype=out_dtype)
 
-    # Initialise the tile generator for processing
-    tiles = generate_tiles(acq.samples, acq.lines, acq.samples, y_tile)
-
     row_id = 0
-    for tile in tiles:
+    for tile in generate_tiles(acq.samples, acq.lines, acq.samples, y_tile):
         idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
 
         # read the lon and lat tile
@@ -861,10 +896,10 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
         # loop each row within each tile (which itself could be a single row)
         for i in range(lon_data.shape[0]):
             stat = angle(acq.samples, acq.lines, row_id + 1, lat_data[i],
-                         lon_data[i], spheroid, orbital_elements,
-                         acq.decimal_hour, century, 12, smodel, track, view[i],
-                         azi[i], asol[i], soazi[i], rela_angle[i], time[i],
-                         x_cent, n_cent)
+                         lon_data[i], spheroid[0], orbital_elements[0],
+                         acq.decimal_hour, century, 12, smodel[0], track[0],
+                         view[i], azi[i], asol[i], soazi[i], rela_angle[i],
+                         time[i], x_cent, n_cent)
 
             if stat != 0:
                 msg = ("Error in calculating angles at row: {}.\n"
@@ -881,46 +916,10 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
         rel_az_ds[idx] = rela_angle
         time_ds[idx] = time
 
-    # centreline
-    # if more than one pixel in a line was a track point the coordinates
-    # are averaged
-    wh = n_cent > 1.5
-    x_cent[wh] = x_cent[wh] / n_cent[wh]
-
-    # check whether there is no centre pixel in the line. It is assumed that
-    # at least the adjacent lines have pixel
-    wh = n_cent < 0.5
-    temp = x_cent[0:2].copy()
-    x_cent[wh] = np.roll(x_cent, 1)[wh]
-    # account for first element potentially being changed with the
-    # last element
-    if wh[0]:
-        x_cent[0] = temp[1]
-
-    # convert X centre points to integers (basically array co-ordinates)
-    # and correct for FORTRAN offset
-    x_cent = np.rint(x_cent) - 1
-
     # outputs
-    centreline_dataset = create_centreline_dataset(geobox, x_cent, n_cent)
-    kwargs = dataset_compression_kwargs(compression=compression)
-    dname = DatasetName.centreline.value
-    cent_dset = fid.create_dataset(dname, data=centreline_dataset, **kwargs)
-    desc = ("Contains the array, latitude and longitude coordinates of the "
-            "satellite track path.")
-    attrs = {'Description': desc,
-             'array_coordinate_offset': 0}
-    attach_table_attributes(cent_dset, title='Centreline', attrs=attrs)
-
-    # boxline and coordinator
-    boxline = create_boxline(sat_v_ds, x_cent, n_cent, max_angle)
-    desc = ("Contains the bi-section, column start and column end array "
-            "coordinates.")
-    attrs['Description'] = desc
-    attrs['array_coordinate_offset'] = 0
-    dname = DatasetName.boxline.value
-    box_dset = fid.create_dataset(dname, data=boxline, **kwargs)
-    attach_table_attributes(box_dset, title='Boxline', attrs=attrs)
+    create_centreline_dataset(geobox, x_cent, n_cent, fid)
+    create_boxline(geobox, sat_v_ds, fid[DatasetName.centreline.value], fid,
+                   max_angle)
 
     if out_group is None:
         return fid
