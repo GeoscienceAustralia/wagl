@@ -25,32 +25,19 @@ def _surface_brightness_temperature(acquisition, bilinear_fname,
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    band_num = acquisition.band_num
-    dname_fmt = DatasetName.interpolation_fmt.value
-    with h5py.File(bilinear_fname, 'r') as fid:
-        dname = dname_fmt.format(factor='path-up', band=band_num)
-        upwelling_dset = fid[dname]
-        dname = dname_fmt.format(factor='transmittance-up', band=band_num)
-        transmittance_dset = fid[dname]
+    with h5py.File(bilinear_fname, 'r') as interp_fid,\
+        h5py.File(ancillary_fname, 'r') as fid_anc,\
+        h5py.File(out_fname, 'w') as fid:
 
-        kwargs = {'acquisition': acquisition,
-                  'upwelling_radiation': upwelling_dset,
-                  'transmittance': transmittance_dset,
-                  'out_fname': out_fname,
-                  'compression': compression,
-                  'y_tile': y_tile}
+        surface_brightness_temperature(acquisition, interp_fid, fid,
+                                       compression, y_tile)
 
-        rfid = surface_brightness_temperature(**kwargs)
-
-    create_ard_yaml(acquisition, ancillary_fname, rfid, True)
-
-    rfid.close()
-    return
+        create_ard_yaml(acquisition, fid_anc, fid, True)
 
 
-def surface_brightness_temperature(acquisition, upwelling_radiation,
-                                   transmittance, out_fname=None,
-                                   compression='lzf', y_tile=100):
+def surface_brightness_temperature(acquisition, interpolation_group,
+                                   out_group=None, compression='lzf',
+                                   y_tile=100):
     """
     Convert Thermal acquisition to Surface Brightness Temperature.
 
@@ -70,26 +57,22 @@ def surface_brightness_temperature(acquisition, upwelling_radiation,
     :param acquisition:
         An instance of an acquisition object.
 
-    :param upwelling_radiation:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the MODTRAN
-        factor `upwelling_radiation` data values when indexed/sliced.
-        
-    :param transmittance:
-        A `NumPy` or `NumPy` like dataset that allows indexing
-        and returns a `NumPy` dataset containing the MODTRAN
-        factor `upwelling_transmittance` data values when indexed/sliced.
+    :param interpolation_group:
+        The root HDF5 `Group` that contains the interpolated
+        atmospheric coefficients.
+        The dataset pathnames are given by the following string format:
 
-    :param out_fname:
+        * DatasetName.interpolation_fmt
+
+    :param out_group:
         If set to None (default) then the results will be returned
-        as an in-memory hdf5 file, i.e. the `core` driver.
-        Otherwise it should be a string containing the full file path
-        name to a writeable location on disk in which to save the HDF5
-        file.
+        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
+        a writeable HDF5 `Group` object.
 
-        The dataset names will be as follows:
+        The dataset names will be given by the format string detailed
+        by:
 
-        * surface-brightness-temperature-band-{number}
+        * DatasetName.temperature_fmt
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -106,19 +89,35 @@ def surface_brightness_temperature(acquisition, upwelling_radiation,
     :return:
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
+
+    :notes:
+        This function used to accept `NumPy` like datasets as inputs,
+        but as this functionality was never used, it was simpler to
+        parse through the H5 Group object, which in most cases
+        reduced the number or parameters being parsed through.
+        Thereby simplifying the overall workflow, and making it
+        consistant with other functions within the overall workflow.
     """
     acq = acquisition
     geobox = acq.gridded_geo_box()
+    bn = acq.band_num
+
+    # retrieve the upwelling radiation and transmittance datasets
+    dname_fmt = DatasetName.interpolation_fmt.value
+    dname = dname_fmt.format(factor='path-up', band=bn)
+    upwelling_radiation = interpolation_group[dname]
+    dname = dname_fmt.format(factor='transmittance-up', band=bn)
+    transmittance = interpolation_group[dname]
 
     # tiling scheme
     tiles = generate_tiles(acq.samples, acq.lines, acq.samples, y_tile)
 
     # Initialise the output file
-    if out_fname is None:
+    if out_group is None:
         fid = h5py.File('surface-temperature.h5', driver='core',
                         backing_store=False)
     else:
-        fid = h5py.File(out_fname, 'w')
+        fid = out_group
 
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, acq.samples))
@@ -167,7 +166,8 @@ def surface_brightness_temperature(acquisition, upwelling_radiation,
 
         out_dset[idx] = brightness_temp
 
-    return fid
+    if out_group is None:
+        return fid
 
 
 def radiance_conversion(band_array, gain, bias):
