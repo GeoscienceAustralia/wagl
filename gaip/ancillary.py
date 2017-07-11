@@ -176,11 +176,13 @@ def collect_ancillary(acquisition, boxline_dataset, nbar_paths, sbt_path=None,
     coord_dset = fid.create_dataset(dset_name, data=coordinator, **kwargs)
     attach_table_attributes(coord_dset, title='Coordinator', attrs=attrs)
 
+    group = fid.create_group(DatasetName.ancillary_group.value)
+
     if sbt_path:
         collect_sbt_ancillary(acquisition, lonlats, sbt_path, invariant_fname,
-                              out_group=fid, compression=compression)
+                              out_group=group, compression=compression)
 
-    collect_nbar_ancillary(acquisition, out_group=fid, work_path=work_path,
+    collect_nbar_ancillary(acquisition, out_group=group, work_path=work_path,
                            compression=compression, **nbar_paths)
 
     if out_group is None:

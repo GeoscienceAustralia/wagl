@@ -8,6 +8,7 @@ import numpy
 from scipy import ndimage
 import h5py
 from rasterio.warp import Resampling
+from gaip.constants import DatasetName
 from gaip.margins import ImageMargins
 from gaip.geobox import GriddedGeoBox
 from gaip.data import reproject_file_to_array
@@ -124,14 +125,17 @@ def get_dsm(acquisition, national_dsm, margins, out_group=None,
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(y_tile, geobox.x_size()))
 
-    grp = fid.create_group('parameters')
-    grp.attrs['left_buffer'] = pixel_buf.left
-    grp.attrs['right_buffer'] = pixel_buf.right
-    grp.attrs['top_buffer'] = pixel_buf.top
-    grp.attrs['bottom_buffer'] = pixel_buf.bottom
+    group = fid.create_group(DatasetName.elevation_group.value)
+
+    param_grp = group.create_group('parameters')
+    param_grp.attrs['left_buffer'] = pixel_buf.left
+    param_grp.attrs['right_buffer'] = pixel_buf.right
+    param_grp.attrs['top_buffer'] = pixel_buf.top
+    param_grp.attrs['bottom_buffer'] = pixel_buf.bottom
 
     # output datasets
-    out_dset = fid.create_dataset('dsm', data=dsm_data, **kwargs)
+    dname = DatasetName.dsm.value
+    out_dset = group.create_dataset(dname, data=dsm_data, **kwargs)
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
@@ -142,7 +146,8 @@ def get_dsm(acquisition, national_dsm, margins, out_group=None,
 
     # Smooth the DSM
     dsm_data = filter_dsm(dsm_data)
-    out_sm_dset = fid.create_dataset('dsm-smoothed', data=dsm_data, **kwargs)
+    dname = DatasetName.dsm_smoothed.value
+    out_sm_dset = group.create_dataset(dname, data=dsm_data, **kwargs)
     desc = ("A subset of a Digital Surface Model smoothed with a gaussian "
             "kernel.")
     attrs['Description'] = desc
