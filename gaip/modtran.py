@@ -221,7 +221,8 @@ def format_tp5(acquisitions, ancillary_group, satellite_solar_group,
 
 
 def _run_modtran(acquisitions, modtran_exe, basedir, point, albedos, model,
-                 atmospheric_inputs_fname, out_fname, compression='lzf'):
+                 npoints, atmospheric_inputs_fname, out_fname,
+                 compression='lzf'):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -229,18 +230,17 @@ def _run_modtran(acquisitions, modtran_exe, basedir, point, albedos, model,
     with h5py.File(atmospheric_inputs_fname, 'r') as atmos_fid,\
         h5py.File(out_fname, 'w') as fid:
 
-        run_modtran(acquisitions, atmos_fid, model, point, albedos,
+        atmos_grp = atmos_fid[DatasetName.atmospheric_inputs.value]
+        run_modtran(acquisitions, atmos_grp, model, npoints, point, albedos,
                     modtran_exe, basedir, fid, compression)
 
 
-def run_modtran(acquisitions, atmospherics_group, model, point, albedos,
-                modtran_exe, basedir, out_group, compression):
+def run_modtran(acquisitions, atmospherics_group, model, npoints, point,
+                albedos, modtran_exe, basedir, out_group, compression):
     """
     Run MODTRAN and return the flux and channel results.
     """
-    group_path = ppjoin(DatasetName.atmospheric_inputs.value,
-                        POINT_FMT.format(p=point))
-    lonlat = atmospherics_group[group_path].attrs['lonlat']
+    lonlat = atmospherics_group[POINT_FMT.format(p=point)].attrs['lonlat']
 
     # determine the output group/file
     if out_group is None:
@@ -257,6 +257,14 @@ def run_modtran(acquisitions, atmospherics_group, model, point, albedos,
     fid[base_path].attrs['lonlat'] = lonlat
     fid[base_path].attrs.create('albedos', data=model.albedos,
                                 dtype=VLEN_STRING)
+
+    # what atmospheric calculations have been run and how many points
+    group_name = DatasetName.atmospheric_results.value
+    fid[group_name].attrs['npoints'] = npoints
+    applied = model == Model.standard or model == Model.nbar
+    fid[group_name].attrs['nbar_atmospherics'] = applied
+    applied = model == Model.standard or model == Model.sbt
+    fid[group_name].attrs['sbt_atmospherics'] = applied
 
     acqs = acquisitions
     for albedo in albedos:
@@ -333,6 +341,18 @@ def run_modtran(acquisitions, atmospherics_group, model, point, albedos,
         return fid
 
 
+def _calculate_coefficients(atmosheric_results_fname, out_fname, compression):
+    """
+    A private wrapper for dealing with the internal custom workings of the
+    NBAR workflow.
+    """
+    with h5py.File(atmosheric_results_fname, 'r') as atmos_fid,\
+        h5py.File(out_fname, 'w') as fid:
+
+        results_group = atmos_fid[DatasetName.atmospheric_results.value]
+        calculate_coefficients(results_group, fid, compression)
+
+
 def calculate_coefficients(atmospheric_results_group, out_group,
                            compression='lzf'):
     """
@@ -383,10 +403,9 @@ def calculate_coefficients(atmospheric_results_group, out_group,
     else:
         fid = out_group
 
-    # TODO: are these written in both single workflow and standard?
-    npoints = fid.attrs['npoints']
-    nbar_atmos = fid.attrs['nbar_atmospherics']
-    sbt_atmos = fid.attrs['sbt_atmospherics']
+    npoints = atmospheric_results_group.attrs['npoints']
+    nbar_atmos = atmospheric_results_group.attrs['nbar_atmospherics']
+    sbt_atmos = atmospheric_results_group.attrs['sbt_atmospherics']
 
     for point in range(npoints):
         grp_path = ppjoin(POINT_FMT.format(p=point), ALBEDO_FMT)
