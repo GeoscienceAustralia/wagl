@@ -173,8 +173,9 @@ class DatasetName(Enum):
     interpolation_fmt = '{factor}-band-{band}'
 
     # gaip.modtran
-    atmos_inputs_group = 'atmospheric-inputs'
-    atmos_results_group = 'atmospheric-results'
+    atmospheric_inputs_grp = 'atmospheric-inputs'
+    atmospheric_results_grp = 'atmospheric-results'
+    coefficients_group = 'coefficients'
     tp5 = 'tp5-data'
     flux = 'flux'
     altitudes = 'altitudes'
