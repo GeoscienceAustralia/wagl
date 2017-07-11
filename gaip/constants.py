@@ -171,6 +171,7 @@ class DatasetName(Enum):
     channel = 'channel'
     nbar_coefficients = 'nbar-coefficients'
     sbt_coefficients = 'sbt-coefficients'
+    atmospheric_inputs = 'atmospheric-inputs'
 
     # gaip.pq
     pixel_quality = 'pixel-quality/pixel-quality'
