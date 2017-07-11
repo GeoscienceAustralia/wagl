@@ -696,7 +696,8 @@ def _calculate_angles(acquisition, lon_lat_fname, out_fname=None,
     """
     with h5py.File(lon_lat_fname, 'r') as lon_lat_fid,\
         h5py.File(out_fname, 'w') as fid:
-        calculate_angles(acquisition, lon_lat_fid, fid, compression, max_angle,
+        lon_lat_grp = lon_lat_fid[DatasetName.lon_lat_group.value]
+        calculate_angles(acquisition, lon_lat_grp, fid, compression, max_angle,
                          tle_path, y_tile)
 
 
@@ -812,6 +813,8 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     else:
         fid = out_group
 
+    grp = fid.create_group(DatasetName.sat_sol_group.value)
+
     # store the parameter settings used with the satellite and solar angles
     # function
     params = {'dimensions': (acq.lines, acq.samples),
@@ -825,7 +828,7 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
               'maximum_latiude': max_lat,
               'latitude_buffer': '1.0 degrees',
               'max_view_angle': max_angle}
-    _store_parameter_settings(fid, spheroid[1], orbital_elements[1],
+    _store_parameter_settings(grp, spheroid[1], orbital_elements[1],
                               smodel[1], track[1], params)
 
     out_dtype = 'float32'
@@ -836,14 +839,14 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     kwargs['fillvalue'] = no_data
     kwargs['dtype'] = out_dtype
 
-    sat_v_ds = fid.create_dataset(DatasetName.satellite_view.value, **kwargs)
-    sat_az_ds = fid.create_dataset(DatasetName.satellite_azimuth.value,
+    sat_v_ds = grp.create_dataset(DatasetName.satellite_view.value, **kwargs)
+    sat_az_ds = grp.create_dataset(DatasetName.satellite_azimuth.value,
                                    **kwargs)
-    sol_z_ds = fid.create_dataset(DatasetName.solar_zenith.value, **kwargs)
-    sol_az_ds = fid.create_dataset(DatasetName.solar_azimuth.value, **kwargs)
-    rel_az_ds = fid.create_dataset(DatasetName.relative_azimuth.value,
+    sol_z_ds = grp.create_dataset(DatasetName.solar_zenith.value, **kwargs)
+    sol_az_ds = grp.create_dataset(DatasetName.solar_azimuth.value, **kwargs)
+    rel_az_ds = grp.create_dataset(DatasetName.relative_azimuth.value,
                                    **kwargs)
-    time_ds = fid.create_dataset(DatasetName.acquisition_time.value, **kwargs)
+    time_ds = grp.create_dataset(DatasetName.acquisition_time.value, **kwargs)
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
@@ -917,8 +920,8 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
         time_ds[idx] = time
 
     # outputs
-    create_centreline_dataset(geobox, x_cent, n_cent, fid)
-    create_boxline(geobox, sat_v_ds, fid[DatasetName.centreline.value], fid,
+    create_centreline_dataset(geobox, x_cent, n_cent, grp)
+    create_boxline(geobox, sat_v_ds, fid[DatasetName.centreline.value], grp,
                    max_angle)
 
     if out_group is None:
