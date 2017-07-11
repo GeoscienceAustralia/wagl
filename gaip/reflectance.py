@@ -44,12 +44,18 @@ def _calculate_reflectance(acquisition, interpolation_fname,
         h5py.File(ancillary_fname, 'r') as fid_anc,\
         h5py.File(out_fname, 'w') as fid:
 
-        calculate_reflectance(acquisition, fid_interp, fid_sat_sol,
-                              fid_slp_asp, fid_rel_slp, fid_inc, fid_exi,
-                              fid_shadow, fid_anc, rori, fid, compression,
-                              y_tile)
+        grp1 = fid_interp[DatasetName.interp_group.value]
+        grp2 = fid_sat_sol[DatasetName.sat_sol_group.value]
+        grp3 = fid_slp_asp[DatasetName.slp_asp_group.value]
+        grp4 = fid_rel_slp[DatasetName.rel_slp_group.value]
+        grp5 = fid_inc[DatasetName.incident_group.value]
+        grp6 = fid_exi[DatasetName.exiting_group.value]
+        grp7 = fid_shadow[DatasetName.shadow_group.value]
+        grp8 = fid_anc[DatasetName.ancillary_group.value]
+        calculate_reflectance(acquisition, grp1, grp2, grp3, grp4, grp5, grp6,
+                              grp7, grp8, rori, fid, compression, y_tile)
 
-        create_ard_yaml(acquisition, fid_anc, fid)
+        create_ard_yaml(acquisition, grp8, fid)
 
 
 def calculate_reflectance(acquisition, interpolation_group,
@@ -197,6 +203,7 @@ def calculate_reflectance(acquisition, interpolation_group,
     else:
         fid = out_group
 
+    grp = fid.create_group(DatasetName.standard_group.value)
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, acq.samples))
     kwargs['shape'] = (acq.lines, acq.samples)
@@ -206,13 +213,13 @@ def calculate_reflectance(acquisition, interpolation_group,
     # create the datasets
     dname_fmt = DatasetName.reflectance_fmt.value
     dname = dname_fmt.format(product='lambertian', band=bn)
-    lmbrt_dset = fid.create_dataset(dname, **kwargs)
+    lmbrt_dset = grp.create_dataset(dname, **kwargs)
 
     dname = dname_fmt.format(product='brdf', band=bn)
-    brdf_dset = fid.create_dataset(dname, **kwargs)
+    brdf_dset = grp.create_dataset(dname, **kwargs)
 
     dname = dname_fmt.format(product='terrain', band=bn)
-    tc_dset = fid.create_dataset(dname, **kwargs)
+    tc_dset = grp.create_dataset(dname, **kwargs)
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
@@ -319,15 +326,18 @@ def link_standard_data(input_fnames, out_fname, model):
         """
         return isinstance(obj, h5py.Group)
 
+    group_path = DatasetName.standard_group.value
     for fname in input_fnames:
         with h5py.File(fname, 'r') as fid:
+            base_group = fid[group_path]
             dataset_names = []
             for group in model.ard_products:
-                if group not in fid:
+                if group not in base_group:
                     continue
-                grp = fid[group]
+                grp = base_group[group]
                 dnames = [k for k, v in grp.items() if not exclude(v)]
-                dataset_names.extend([ppjoin(group, d) for d in dnames])
+                base_path = ppjoin(group_path, group)
+                dataset_names.extend([ppjoin(base_path, d) for d in dnames])
 
         for dname in dataset_names:
             if isinstance(dname, h5py.Group):
