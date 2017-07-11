@@ -162,6 +162,8 @@ def create_lon_lat_grids(geobox, out_group=None, compression='lzf', depth=7,
     else:
         fid = out_group
 
+    grp = fid.create_group(DatasetName.lon_lat_group.value)
+
     # define some base attributes for the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
              'geotransform': geobox.transform.to_gdal()}
@@ -169,7 +171,7 @@ def create_lon_lat_grids(geobox, out_group=None, compression='lzf', depth=7,
     attrs['Description'] = LON_DESC
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))
-    lon_dset = fid.create_dataset(DatasetName.lon.value, data=result, **kwargs)
+    lon_dset = grp.create_dataset(DatasetName.lon.value, data=result, **kwargs)
     attach_image_attributes(lon_dset, attrs)
 
     result = numpy.zeros(shape, dtype='float64')
@@ -177,10 +179,9 @@ def create_lon_lat_grids(geobox, out_group=None, compression='lzf', depth=7,
                      eval_func=lat_func, grid=result)
 
     attrs['Description'] = LAT_DESC
-    lat_dset = fid.create_dataset(DatasetName.lat.value, data=result, **kwargs)
+    lat_dset = grp.create_dataset(DatasetName.lat.value, data=result, **kwargs)
     attach_image_attributes(lat_dset, attrs)
 
-    fid.flush()
     return fid
 
 
@@ -262,10 +263,10 @@ def create_lon_grid(geobox, out_fname=None, compression='lzf', depth=7,
 
     lon_grid = create_grid(geobox, get_lon_coordinate, depth)
 
-    dset = fid.create_dataset(DatasetName.lon.value, data=lon_grid, **kwargs)
+    grp = fid.create_group(DatasetName.lon_lat_group.value)
+    dset = grp.create_dataset(DatasetName.lon.value, data=lon_grid, **kwargs)
     attach_image_attributes(dset, attrs)
 
-    fid.flush()
     return fid
 
 
@@ -319,8 +320,8 @@ def create_lat_grid(geobox, out_fname=None, compression='lzf', depth=7,
 
     lat_grid = create_grid(geobox, get_lat_coordinate, depth)
 
-    dset = fid.create_dataset(DatasetName.lat.value, data=lat_grid, **kwargs)
+    grp = fid.create_group(DatasetName.lon_lat_group.value)
+    dset = grp.create_dataset(DatasetName.lat.value, data=lat_grid, **kwargs)
     attach_image_attributes(dset, attrs)
 
-    fid.flush()
     return fid
