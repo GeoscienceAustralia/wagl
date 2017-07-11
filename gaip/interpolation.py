@@ -345,7 +345,10 @@ def _interpolate(acq, factor, sat_sol_angles_fname, coefficients_fname,
         h5py.File(ancillary_fname, 'r') as anc,\
         h5py.File(out_fname, 'w') as out_fid:
 
-        interpolate(acq, factor, anc, sat_sol, coef, out_fid, compression,
+        grp1 = anc[DatasetName.ancillary_group.value]
+        grp2 = sat_sol[DatasetName.sat_sol_group.value]
+        grp3 = coef[DatasetName.coefficients_group.value]
+        interpolate(acq, factor, grp1, grp2, grp3, out_fid, compression,
                     y_tile, method)
 
 
@@ -370,7 +373,6 @@ def interpolate(acq, factor, ancillary_group, satellite_solar_group,
         raise ValueError(msg.format(Model.standard.factors))
 
     coefficients = read_h5_table(coefficients_group, dataset_name)
-
 
     coord = np.zeros((coordinator.shape[0], 2), dtype='int')
     map_x = coordinator.map_x.values
@@ -397,11 +399,14 @@ def interpolate(acq, factor, ancillary_group, satellite_solar_group,
 
     result = func_map[method](cols, rows, coord, samples, start, end, centre)
 
-    # Initialise the output files
+    # setup the output file/group as needed
     if out_group is None:
-        fid = h5py.File('interpolation.h5', driver='core', backing_store=False)
+        fid = h5py.File('interpolated-coefficients.h5', driver='core',
+                        backing_store=False)
     else:
         fid = out_group
+
+    group = fid.create_group(DatasetName.interp_group.value)
 
     fmt = DatasetName.interpolation_fmt.value
     dset_name = fmt.format(factor=factor, band=band)
@@ -416,7 +421,7 @@ def interpolate(acq, factor, ancillary_group, satellite_solar_group,
     desc = ("Contains the interpolated result of factor {}"
             "for band {} from sensor {}.")
     attrs['Description'] = desc.format(factor, band, acq.satellite_name)
-    write_h5_image(result, dset_name, fid, attrs, **kwargs)
+    write_h5_image(result, dset_name, group, attrs, **kwargs)
 
     if out_group is None:
         return fid
@@ -427,15 +432,13 @@ def link_interpolated_data(data, out_fname):
     Links the individual interpolated results into a
     single file for easier access.
     """
+    group_path = DatasetName.interp_group.value
     for key in data:
-        # band, factor = key
         fname = data[key]
-        base_dname = splitext(basename(fname))[0]
-
-        # do we need two group levels?
-        # dset_name = ppjoin(band, factor, base_dname)
+        with h5py.File(fname, 'r') as fid:
+            dataset_names = list(fid[group_path].keys())
 
         with h5py.File(out_fname, 'a') as fid:
-            fid[base_dname] = h5py.ExternalLink(fname, base_dname)
-
-    return
+            for dname in dataset_names:
+                dataset_name = ppjoin(group_path, dname)
+                fid[dataset_name] = h5py.ExternalLink(fname, dataset_name)
