@@ -143,7 +143,7 @@ class DatasetName(Enum):
     reflectance_fmt = '{product}/reflectance-band-{band}'
 
     # gaip.temperature
-    temperature_fmt = 'themal/surface-brightness-temperature-band-{band}'
+    temperature_fmt = 'thermal/surface-brightness-temperature-band-{band}'
 
     # gaip.terrain_shadow_masks
     self_shadow = 'self-shadow'
