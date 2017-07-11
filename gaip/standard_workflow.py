@@ -304,7 +304,8 @@ class AtmosphericsCase(luigi.Task):
 
         with self.output().temporary_path() as out_fname:
             _run_modtran(acqs, self.exe, base_dir, self.point, self.albedos,
-                         atmospheric_inputs_fname, out_fname, self.compression)
+                         self.model, atmospheric_inputs_fname, out_fname,
+                         self.compression)
 
 
 @inherits(WriteTp5)
