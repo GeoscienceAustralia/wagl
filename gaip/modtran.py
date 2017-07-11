@@ -67,70 +67,37 @@ def _format_tp5(acquisitions, satellite_solar_angles_fname,
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    with h5py.File(satellite_solar_angles_fname, 'r') as sat_sol,\
-        h5py.File(longitude_latitude_fname, 'r') as lon_lat_ds,\
-        h5py.File(ancillary_fname, 'r') as anc_ds,\
+    with h5py.File(satellite_solar_angles_fname, 'r') as sat_sol_fid,\
+        h5py.File(longitude_latitude_fname, 'r') as lon_lat_fid,\
+        h5py.File(ancillary_fname, 'r') as anc_fid,\
         h5py.File(out_fname, 'w') as fid:
 
-        # angles data
-        view_dset = sat_sol[DatasetName.satellite_view.value]
-        azi_dset = sat_sol[DatasetName.satellite_azimuth.value]
-        lon_dset = lon_lat_ds[DatasetName.lon.value]
-        lat_dset = lon_lat_ds[DatasetName.lat.value]
-
-        # ancillary data
-        coord_dset = anc_ds[DatasetName.coordinator.value]
-        aerosol = anc_ds[DatasetName.aerosol.value][()]
-        water_vapour = anc_ds[DatasetName.water_vapour.value][()]
-        ozone = anc_ds[DatasetName.ozone.value][()]
-        elevation = anc_ds[DatasetName.elevation.value][()]
-
-        if anc_ds.attrs.get('sbt-ancillary'):
-            sbt_ancillary = {}
-            dname = ppjoin(POINT_FMT, DatasetName.atmospheric_profile.value)
-            for i in range(coord_dset.shape[0]):
-                sbt_ancillary[i] = read_h5_table(anc_ds, dname.format(p=i))
-        else:
-            sbt_ancillary = None
-
-        tp5_data, metadata = format_tp5(acquisitions, coord_dset, view_dset,
-                                        azi_dset, lat_dset, lon_dset, ozone,
-                                        water_vapour, aerosol, elevation,
-                                        coord_dset.shape[0], model,
-                                        sbt_ancillary)
-
-        group = fid.create_group('modtran-inputs')
-        iso_time = acquisitions[0].scene_centre_date.isoformat()
-        group.attrs['acquisition-datetime'] = iso_time
-
-        for key in metadata:
-            dname = ppjoin(POINT_FMT.format(p=key[0]),
-                           ALBEDO_FMT.format(a=key[1]), DatasetName.tp5.value)
-            str_data = numpy.string_(tp5_data[key])
-            write_scalar(str_data, dname, group, attrs=metadata[key])
-
-        # attach some meaningful location information to the point groups
-        lon = coord_dset['longitude']
-        lat = coord_dset['latitude']
-        for i in range(coord_dset.shape[0]):
-            group[POINT_FMT.format(p=i)].attrs['lonlat'] = (lon[i], lat[i])
+        tp5_data, _ = format_tp5(acquisitions, anc_fid, sat_sol_fid,
+                                 lon_lat_fid, model, fid)
 
     return tp5_data
 
 
-def format_tp5(acquisitions, coordinator, view_dataset, azi_dataset,
-               lat_dataset, lon_dataset, ozone, vapour, aerosol, elevation,
-               npoints, model, sbt_ancillary=None):
+def format_tp5(acquisitions, ancillary_group, satellite_solar_group,
+               lon_lat_group, model, out_group):
     """
     Creates str formatted tp5 files for the albedo (0, 1) and
     transmittance (t).
     """
-    geobox = acquisitions[0].gridded_geo_box()
-    cdate = acquisitions[0].scene_centre_date
-    doy = int(cdate.strftime('%j'))
-    altitude = acquisitions[0].altitude / 1000.0  # in km
-    dechour = acquisitions[0].decimal_hour
+    # angles data
+    sat_view = satellite_solar_group[DatasetName.satellite_view.value]
+    sat_azi = satellite_solar_group[DatasetName.satellite_azimuth.value]
+    longitude = lon_lat_group[DatasetName.lon.value]
+    latitude = lon_lat_group[DatasetName.lat.value]
 
+    # ancillary data
+    coordinator = ancillary_group[DatasetName.coordinator.value]
+    aerosol = ancillary_group[DatasetName.aerosol.value][()]
+    water_vapour = ancillary_group[DatasetName.water_vapour.value][()]
+    ozone = ancillary_group[DatasetName.ozone.value][()]
+    elevation = ancillary_group[DatasetName.elevation.value][()]
+
+    npoints = coordinator.shape[0]
     view = numpy.zeros(npoints, dtype='float32')
     azi = numpy.zeros(npoints, dtype='float32')
     lat = numpy.zeros(npoints, dtype='float64')
@@ -139,28 +106,28 @@ def format_tp5(acquisitions, coordinator, view_dataset, azi_dataset,
     for i in range(npoints):
         yidx = coordinator['row_index'][i]
         xidx = coordinator['col_index'][i]
-        view[i] = view_dataset[yidx, xidx]
-        azi[i] = azi_dataset[yidx, xidx]
-        lat[i] = lat_dataset[yidx, xidx]
-        lon[i] = lon_dataset[yidx, xidx]
+        view[i] = sat_view[yidx, xidx]
+        azi[i] = sat_azi[yidx, xidx]
+        lat[i] = latitude[yidx, xidx]
+        lon[i] = longitude[yidx, xidx]
 
-    view_cor = 180 - view
-    azi_cor = azi + 180
+    view_corrected = 180 - view
+    azi_corrected = azi + 180
     rlon = 360 - lon
-    
+
     # check if in western hemisphere
-    wh = rlon >= 360
-    rlon[wh] -= 360
+    idx = rlon >= 360
+    rlon[idx] -= 360
     
-    wh = (180 - view_cor) < 0.1
-    view_cor[wh] = 180
-    azi_cor[wh] = 0
+    idx = (180 - view_corrected) < 0.1
+    view_corrected[idx] = 180
+    azi_corrected[idx] = 0
     
-    wh = azi_cor > 360
-    azi_cor[wh] -= 360
+    idx = azi_corrected > 360
+    azi_corrected[idx] -= 360
 
     # get the modtran profiles to use based on the centre latitude 
-    _, centre_lat = geobox.centre_lonlat
+    _, centre_lat = acquisitions[0].gridded_geo_box().centre_lonlat
     if centre_lat < -23.0:
         albedo_profile = MIDLAT_SUMMER_ALBEDO
         trans_profile = MIDLAT_SUMMER_TRANSMITTANCE
@@ -168,55 +135,63 @@ def format_tp5(acquisitions, coordinator, view_dataset, azi_dataset,
         albedo_profile = TROPICAL_ALBEDO
         trans_profile = TROPICAL_TRANSMITTANCE
 
-    # we'll only cater for MODTRAN to output binary form
-    binary = 'T'
+    if out_group is None:
+        out_group = h5py.File('atmospheric-inputs.h5', 'w')
+
+    group = out_group.create_group('atmospheric-inputs')
+    iso_time = acquisitions[0].scene_centre_datetime.isoformat()
+    group.attrs['acquisition-datetime'] = iso_time
 
     tp5_data = {}
-    metadata = {}
 
-    # write the tp5 files required for input into MODTRAN
+    # setup the tp5 files required by MODTRAN
     if model == Model.standard or model == Model.nbar:
         acqs = [a for a in acquisitions if a.band_type == BandType.Reflective]
-        for i in range(npoints):
+
+        for p in range(npoints):
+            # attach location info to each point Group
+            lonlat = (coordinator['longitude'][p], coordinator['latitude'][p])
+            group[POINT_FMT.format(p=p)].attrs['lonlat'] = lonlat
+
             for alb in Model.nbar.albedos:
-                input_data = {'water': vapour,
+                input_data = {'water': water_vapour,
                               'ozone': ozone,
                               'filter_function': acqs[0].spectral_filter_file,
                               'visibility': -aerosol,
                               'elevation': elevation,
-                              'sat_height': altitude,
-                              'sat_view': view_cor[i],
-                              'doy': doy,
-                              'binary': binary}
+                              'sat_height': acquisitions[0].altitude / 1000.0,
+                              'sat_view': view_corrected[p],
+                              'doy': acquisitions[0].julian_day,
+                              'binary': 'T'}
                 if alb == Model.nbar.albedos[2]:
                     input_data['albedo'] = 0.0
-                    input_data['sat_view_offset'] = 180.0-view_cor[i]
+                    input_data['sat_view_offset'] = 180.0-view_corrected[p]
                     data = trans_profile.format(**input_data)
                 else:
                     input_data['albedo'] = float(alb)
-                    input_data['lat'] = lat[i]
-                    input_data['lon'] = rlon[i]
-                    input_data['time'] = dechour
-                    input_data['sat_azimuth'] = azi_cor[i]
+                    input_data['lat'] = lat[p]
+                    input_data['lon'] = rlon[p]
+                    input_data['time'] = acquisitions[0].decimal_hour
+                    input_data['sat_azimuth'] = azi_corrected[p]
                     data = albedo_profile.format(**input_data)
 
-                tp5_data[(i, alb)] = data
-                metadata[(i, alb)] = input_data
+                tp5_data[(p, alb)] = data
 
-    # tp5 for sbt; the current logic for NBAR uses 9 coordinator points
-    # and sbt uses 25 coordinator points
-    # as such points [0, 9) in nbar will not be the same [0, 9) points in
-    # the sbt coordinator
-    # hopefully the science side of the algorithm will be re-engineered
-    # so as to ensure a consistant logic between the two products
+                dname = ppjoin(POINT_FMT.format(p=p),
+                               ALBEDO_FMT.format(a=alb), DatasetName.tp5.value)
+                write_scalar(numpy.string_(data), dname, group, input_data)
 
-    if model == Model.standard or model == Model.sbt:
+    # create tp5 for sbt if it has been collected
+    if ancillary_group.attrs.get('sbt-ancillary'):
+        dname = ppjoin(POINT_FMT, DatasetName.atmospheric_profile.value)
         acqs = [a for a in acquisitions if a.band_type == BandType.Thermal]
+
         for p in range(npoints):
             atmospheric_profile = []
-            atmos_profile = sbt_ancillary[p]
+            atmos_profile = read_h5_table(ancillary_group, dname.format(p=p))
             n_layers = atmos_profile.shape[0] + 6
             elevation = atmos_profile.iloc[0]['GeoPotential_Height']
+
             for i, row in atmos_profile.iterrows():
                 input_data = {'gpheight': row['GeoPotential_Height'],
                               'pressure': row['Pressure'],
@@ -230,16 +205,19 @@ def format_tp5(acquisitions, coordinator, view_dataset, azi_dataset,
                           'visibility': -aerosol,
                           'gpheight': elevation,
                           'n': n_layers,
-                          'sat_height': altitude,
-                          'sat_view': view_cor[p],
-                          'binary': binary,
+                          'sat_height': acquisitions[0].altitude / 1000.0,
+                          'sat_view': view_corrected[p],
+                          'binary': 'T',
                           'atmospheric_profile': ''.join(atmospheric_profile)}
 
             data = THERMAL_TRANSMITTANCE.format(**input_data)
             tp5_data[(p, Model.sbt.albedos[0])] = data
-            metadata[(p, Model.sbt.albedos[0])] = input_data
+            dname = ppjoin(POINT_FMT.format(p=p),
+                           ALBEDO_FMT.format(a=Model.sbt.albedos[0]),
+                           DatasetName.tp5.value)
+            write_scalar(numpy.string_(data), dname, group, input_data)
 
-    return tp5_data, metadata
+    return tp5_data, out_group
 
 
 def _run_modtran(acquisitions, modtran_exe, basedir, point, albedos,
