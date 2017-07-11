@@ -136,7 +136,9 @@ class DatasetName(Enum):
     satellite_track = 'satellite-track'
 
     # gaip.incident_exiting_angles
-    inc_exi_group = 'incident-exiting-angles'
+    incident_group = 'incident-angles'
+    exiting_group = 'exiting-angles'
+    rel_slp_group = 'relative-slope'
     incident = 'incident'
     azimuthal_incident = 'azimuthal-incident'
     exiting = 'exiting'
