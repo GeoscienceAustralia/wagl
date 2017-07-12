@@ -218,9 +218,9 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
         `core` driver, or on disk.
     """
     # dataset arrays
-    dname = DatasetName.satellite_view
+    dname = DatasetName.satellite_view.value
     satellite_view_dataset = satellite_solar_group[dname]
-    dname = DatasetName.satellite_azimuth
+    dname = DatasetName.satellite_azimuth.value
     satellite_azimuth_dataset = satellite_solar_group[dname]
     slope_dataset = slope_aspect_group[DatasetName.slope.value]
     aspect_dataset = slope_aspect_group[DatasetName.aspect.value]
