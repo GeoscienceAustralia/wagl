@@ -87,8 +87,8 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
     solar_zenith_dataset = satellite_solar_group[dname]
     dname = DatasetName.solar_azimuth.value
     solar_azimuth_dataset = satellite_solar_group[dname]
-    slope_dataset = slope_aspect_group[DatasetName.slope]
-    aspect_dataset = slope_aspect_group[DatasetName.aspect]
+    slope_dataset = slope_aspect_group[DatasetName.slope.value]
+    aspect_dataset = slope_aspect_group[DatasetName.aspect.value]
 
     geobox = GriddedGeoBox.from_dataset(solar_zenith_dataset)
     shape = geobox.get_shape_yx()
@@ -222,8 +222,8 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
     satellite_view_dataset = satellite_solar_group[dname]
     dname = DatasetName.satellite_azimuth
     satellite_azimuth_dataset = satellite_solar_group[dname]
-    slope_dataset = slope_aspect_group[DatasetName.slope]
-    aspect_dataset = slope_aspect_group[DatasetName.aspect]
+    slope_dataset = slope_aspect_group[DatasetName.slope.value]
+    aspect_dataset = slope_aspect_group[DatasetName.aspect.value]
 
     geobox = GriddedGeoBox.from_dataset(satellite_view_dataset)
     shape = geobox.get_shape_yx()
