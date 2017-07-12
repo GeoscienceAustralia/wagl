@@ -21,7 +21,7 @@ from gaip.ancillary import _collect_ancillary, aggregate_ancillary
 from gaip.satellite_solar_angles import _calculate_angles
 from gaip.incident_exiting_angles import _incident_exiting_angles
 from gaip.incident_exiting_angles import _relative_azimuth_slope
-from gaip.longitude_latitude_arrays import create_lon_lat_grids
+from gaip.longitude_latitude_arrays import _create_lon_lat_grids
 from gaip.reflectance import _calculate_reflectance, link_standard_data
 from gaip.terrain_shadow_masks import _self_shadow, _calculate_cast_shadow
 from gaip.terrain_shadow_masks import _combine_shadow
@@ -114,8 +114,8 @@ class CalculateLonLatGrids(luigi.Task):
                                                          self.granule)[0]
 
         with self.output().temporary_path() as out_fname:
-            create_lon_lat_grids(acq.gridded_geo_box(), out_fname,
-                                 self.compression, y_tile=self.y_tile)
+            _create_lon_lat_grids(acq.gridded_geo_box(), out_fname,
+                                  self.compression, y_tile=self.y_tile)
 
 
 @inherits(CalculateLonLatGrids)
