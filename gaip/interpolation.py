@@ -6,6 +6,7 @@ Various interpolation methods.
 
 from __future__ import absolute_import
 from os.path import basename, splitext
+from posixpath import join as ppjoin
 import math
 from scipy.interpolate import Rbf
 import numpy as np
