@@ -151,10 +151,6 @@ def format_tp5(acquisitions, ancillary_group, satellite_solar_group,
         acqs = [a for a in acquisitions if a.band_type == BandType.Reflective]
 
         for p in range(npoints):
-            # attach location info to each point Group
-            lonlat = (coordinator['longitude'][p], coordinator['latitude'][p])
-            group[POINT_FMT.format(p=p)].attrs['lonlat'] = lonlat
-
             for alb in Model.nbar.albedos:
                 input_data = {'water': water_vapour,
                               'ozone': ozone,
@@ -182,6 +178,10 @@ def format_tp5(acquisitions, ancillary_group, satellite_solar_group,
                 dname = ppjoin(POINT_FMT.format(p=p),
                                ALBEDO_FMT.format(a=alb), DatasetName.tp5.value)
                 write_scalar(numpy.string_(data), dname, group, input_data)
+
+            # attach location info to each point Group
+            lonlat = (coordinator['longitude'][p], coordinator['latitude'][p])
+            group[POINT_FMT.format(p=p)].attrs['lonlat'] = lonlat
 
     # create tp5 for sbt if it has been collected
     if ancillary_group.attrs.get('sbt-ancillary'):
