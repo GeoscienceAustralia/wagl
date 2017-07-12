@@ -339,7 +339,8 @@ class Atmospherics(luigi.Task):
     def run(self):
         nvertices = self.vertices[0] * self.vertices[1]
         with self.output().temporary_path() as out_fname:
-            link_atmospheric_results(self.input(), out_fname, nvertices)
+            link_atmospheric_results(self.input(), out_fname, nvertices,
+                                     self.model)
 
 
 @requires(Atmospherics)
