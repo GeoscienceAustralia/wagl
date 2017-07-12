@@ -162,6 +162,8 @@ def collect_ancillary(acquisition, satellite_solar_group, nbar_paths,
     else:
         fid = out_group
 
+    group = fid.create_group(DatasetName.ancillary_group.value)
+
     boxline_dataset = satellite_solar_group[DatasetName.boxline.value][:]
     coordinator = create_vertices(acquisition, boxline_dataset, vertices)
     lonlats = zip(coordinator['longitude'], coordinator['latitude'])
@@ -171,10 +173,9 @@ def collect_ancillary(acquisition, satellite_solar_group, nbar_paths,
     attrs = {'Description': desc, 'array_coordinate_offset': 0}
     kwargs = dataset_compression_kwargs(compression=compression)
     dset_name = DatasetName.coordinator.value
-    coord_dset = fid.create_dataset(dset_name, data=coordinator, **kwargs)
+    coord_dset = group.create_dataset(dset_name, data=coordinator, **kwargs)
     attach_table_attributes(coord_dset, title='Coordinator', attrs=attrs)
 
-    group = fid.create_group(DatasetName.ancillary_group.value)
 
     if sbt_path:
         collect_sbt_ancillary(acquisition, lonlats, sbt_path, invariant_fname,
