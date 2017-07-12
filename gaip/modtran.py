@@ -908,7 +908,7 @@ def calculate_solar_radiation(flux_data, spectral_response, levels=36,
     return df
 
 
-def link_atmospheric_results(input_targets, out_fname, npoints):
+def link_atmospheric_results(input_targets, out_fname, npoints, model):
     """
     Uses h5py's ExternalLink to combine the atmospheric results into
     a single file.
@@ -923,41 +923,43 @@ def link_atmospheric_results(input_targets, out_fname, npoints):
         An `int` containing the number of points (vertices) used for
         evaluating the atmospheric conditions.
 
+    :param model:
+        An Enum given by gaip.constants.Model.
+
     :return:
         None. Results from each file in `input_targets` are linked
         into the output file.
     """
+    base_group_name = DatasetName.atmospheric_results_grp.value
     nbar_atmospherics = False
     sbt_atmospherics = False
+    albedos = model.albedos
     for fname in input_targets:
         with h5py.File(fname.path, 'r') as fid:
-            point = fid.attrs['point']
-            albedos = fid[POINT_FMT.format(p=0)].attrs['albedos']
+            points = list(fid[base_group_name].keys())
 
-        for albedo in albedos:
-            if albedo == Model.sbt.albedos[0]:
-                datasets = [DatasetName.upward_radiation_channel.value,
-                            DatasetName.downward_radiation_channel.value]
-                sbt_atmospherics = True
-            else:
-                datasets = [DatasetName.flux.value,
-                            DatasetName.altitudes.value,
-                            DatasetName.solar_irradiance.value,
-                            DatasetName.channel.value]
-                nbar_atmospherics = True
+        for point in points:
+            for albedo in albedos:
+                if albedo == Model.sbt.albedos[0]:
+                    datasets = [DatasetName.upward_radiation_channel.value,
+                                DatasetName.downward_radiation_channel.value]
+                    sbt_atmospherics = True
+                else:
+                    datasets = [DatasetName.flux.value,
+                                DatasetName.altitudes.value,
+                                DatasetName.solar_irradiance.value,
+                                DatasetName.channel.value]
+                    nbar_atmospherics = True
 
-            grp_path = ppjoin(DatasetName.atmospheric_results_grp.value,
-                              POINT_FMT.format(p=point),
-                              ALBEDO_FMT.format(a=albedo))
+                grp_path = ppjoin(base_group_name, point,
+                                  ALBEDO_FMT.format(a=albedo))
 
-            for dset in datasets:
-                dname = ppjoin(grp_path, dset)
-                create_external_link(fname.path, dname, out_fname, dname)
+                for dset in datasets:
+                    dname = ppjoin(grp_path, dset)
+                    create_external_link(fname.path, dname, out_fname, dname)
 
     with h5py.File(out_fname) as fid:
         group = fid[DatasetName.atmospheric_results_grp.value]
         group.attrs['npoints'] = npoints
         group.attrs['nbar_atmospherics'] = nbar_atmospherics
         group.attrs['sbt_atmospherics'] = sbt_atmospherics
-
-    return
