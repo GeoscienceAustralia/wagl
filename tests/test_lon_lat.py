@@ -32,7 +32,7 @@ class TestLonLatArrays(unittest.TestCase):
         # Initialise the test data
         img, geobox = ut.create_test_image()
         fid = create_lon_lat_grids(geobox, depth=3)
-        dataset_name = ppjoin(DatasetName.lon_lat_group.value, DatasetName.lon)
+        dataset_name = ppjoin(GroupName.lon_lat_group.value, DatasetName.lon)
         lon = fid[dataset_name][:]
         ids = ut.random_pixel_locations(img.shape)
 
@@ -74,7 +74,7 @@ class TestLonLatArrays(unittest.TestCase):
         # Initialise the test data
         img, geobox = ut.create_test_image()
         fid = create_lon_lat_grids(geobox, depth=3)
-        dataset_name = ppjoin(DatasetName.lon_lat_group.value, DatasetName.lat)
+        dataset_name = ppjoin(GroupName.lon_lat_group.value, DatasetName.lat)
         lat = fid[dataset_name][:]
         ids = ut.random_pixel_locations(img.shape)
 

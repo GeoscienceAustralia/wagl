@@ -696,7 +696,7 @@ def _calculate_angles(acquisition, lon_lat_fname, out_fname=None,
     """
     with h5py.File(lon_lat_fname, 'r') as lon_lat_fid,\
         h5py.File(out_fname, 'w') as fid:
-        lon_lat_grp = lon_lat_fid[DatasetName.lon_lat_group.value]
+        lon_lat_grp = lon_lat_fid[GroupName.lon_lat_group.value]
         calculate_angles(acquisition, lon_lat_grp, fid, compression, max_angle,
                          tle_path, y_tile)
 

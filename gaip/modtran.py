@@ -74,7 +74,7 @@ def _format_tp5(acquisitions, satellite_solar_angles_fname,
 
         grp1 = anc_fid[DatasetName.ancillary_group.value]
         grp2 = sat_sol_fid[DatasetName.sat_sol_group.value]
-        grp3 = lon_lat_fid[DatasetName.lon_lat_group.value]
+        grp3 = lon_lat_fid[GroupName.lon_lat_group.value]
         tp5_data, _ = format_tp5(acquisitions, grp1, grp2, grp3, model, fid)
 
     return tp5_data
