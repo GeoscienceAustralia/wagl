@@ -14,7 +14,7 @@ import numpy
 import h5py
 
 from gaip import constants
-from gaip.constants import DatasetName, Model
+from gaip.constants import DatasetName, Model, GroupName
 from gaip.data import as_array
 from gaip.hdf5 import dataset_compression_kwargs
 from gaip.hdf5 import attach_image_attributes
@@ -44,14 +44,14 @@ def _calculate_reflectance(acquisition, interpolation_fname,
         h5py.File(ancillary_fname, 'r') as fid_anc,\
         h5py.File(out_fname, 'w') as fid:
 
-        grp1 = fid_interp[DatasetName.interp_group.value]
+        grp1 = fid_interp[GroupName.interp_group.value]
         grp2 = fid_sat_sol[GroupName.sat_sol_group.value]
-        grp3 = fid_slp_asp[DatasetName.slp_asp_group.value]
-        grp4 = fid_rel_slp[DatasetName.rel_slp_group.value]
-        grp5 = fid_inc[DatasetName.incident_group.value]
-        grp6 = fid_exi[DatasetName.exiting_group.value]
-        grp7 = fid_shadow[DatasetName.shadow_group.value]
-        grp8 = fid_anc[DatasetName.ancillary_group.value]
+        grp3 = fid_slp_asp[GroupName.slp_asp_group.value]
+        grp4 = fid_rel_slp[GroupName.rel_slp_group.value]
+        grp5 = fid_inc[GroupName.incident_group.value]
+        grp6 = fid_exi[GroupName.exiting_group.value]
+        grp7 = fid_shadow[GroupName.shadow_group.value]
+        grp8 = fid_anc[GroupName.ancillary_group.value]
         calculate_reflectance(acquisition, grp1, grp2, grp3, grp4, grp5, grp6,
                               grp7, grp8, rori, fid, compression, y_tile)
 
@@ -203,7 +203,7 @@ def calculate_reflectance(acquisition, interpolation_group,
     else:
         fid = out_group
 
-    grp = fid.create_group(DatasetName.standard_group.value)
+    grp = fid.create_group(GroupName.standard_group.value)
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, acq.samples))
     kwargs['shape'] = (acq.lines, acq.samples)
@@ -326,7 +326,7 @@ def link_standard_data(input_fnames, out_fname, model):
         """
         return isinstance(obj, h5py.Group)
 
-    group_path = DatasetName.standard_group.value
+    group_path = GroupName.standard_group.value
     for fname in input_fnames:
         with h5py.File(fname, 'r') as fid:
             base_group = fid[group_path]

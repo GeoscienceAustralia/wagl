@@ -97,7 +97,6 @@ class DatasetName(Enum):
     """
 
     # gaip.ancillary
-    ancillary_group = 'ancillary'
     coordinator = 'coordinator'
     dewpoint_temperature = 'dewpoint-temperature'
     temperature_2m = 'temperature-2metre'
@@ -116,12 +115,10 @@ class DatasetName(Enum):
     ecmwf_path_fmt = pjoin('{product}', '{year}', 'tif', '{product}_*.tif')
 
     # gaip.longitude_latitude_arrays
-    lon_lat_group = 'longitude-latitude'
     lon = 'longitude'
     lat = 'latitude'
 
     # gaip.satellite_solar_angles
-    sat_sol_group = 'satellite-solar'
     satellite_view = 'satellite-view'
     satellite_azimuth = 'satellite-azimuth'
     solar_zenith = 'solar-zenith'
@@ -136,9 +133,6 @@ class DatasetName(Enum):
     satellite_track = 'satellite-track'
 
     # gaip.incident_exiting_angles
-    incident_group = 'incident-angles'
-    exiting_group = 'exiting-angles'
-    rel_slp_group = 'relative-slope'
     incident = 'incident'
     azimuthal_incident = 'azimuthal-incident'
     exiting = 'exiting'
@@ -146,36 +140,28 @@ class DatasetName(Enum):
     relative_slope = 'relative-slope'
 
     # gaip.reflectance
-    standard_group = 'standard-products'
     reflectance_fmt = '{product}/reflectance-band-{band}'
 
     # gaip.temperature
     temperature_fmt = 'thermal/surface-brightness-temperature-band-{band}'
 
     # gaip.terrain_shadow_masks
-    shadow_group = 'shadow-masks'
     self_shadow = 'self-shadow'
     cast_shadow_fmt = 'cast-shadow-{source}'
     combined_shadow = 'combined-shadow'
 
     # gaip.slope_aspect
-    slp_asp_group = 'slope-aspect'
     slope = 'slope'
     aspect = 'aspect'
 
     # gaip.dsm
-    elevation_group = 'elevation'
     dsm = 'dsm'
     dsm_smoothed = 'dsm-smoothed'
 
     # gaip.interpolation
-    interp_group = 'interpolated-coefficients'
     interpolation_fmt = '{factor}-band-{band}'
 
     # gaip.modtran
-    atmospheric_inputs_grp = 'atmospheric-inputs'
-    atmospheric_results_grp = 'atmospheric-results'
-    coefficients_group = 'coefficients'
     tp5 = 'tp5-data'
     flux = 'flux'
     altitudes = 'altitudes'
@@ -193,6 +179,28 @@ class DatasetName(Enum):
     nbar_yaml = 'metadata/nbar-metadata'
     pq_yaml = 'metadata/pq-metadata'
     sbt_yaml = 'metadata/sbt-metadata'
+
+
+class GroupName(Enum):
+    """
+    Defines the group names or format descriptors, that are used
+    for creating and accessing throughout the code base.
+    """
+
+    lon_lat_group = 'longitude-latitude'
+    sat_sol_group = 'satellite-solar'
+    ancillary_group = 'ancillary'
+    atmospheric_inputs_grp = 'atmospheric-inputs'
+    atmospheric_results_grp = 'atmospheric-results'
+    coefficients_group = 'coefficients'
+    interp_group = 'interpolated-coefficients'
+    elevation_group = 'elevation'
+    slp_asp_group = 'slope-aspect'
+    incident_group = 'incident-angles'
+    exiting_group = 'exiting-angles'
+    rel_slp_group = 'relative-slope'
+    shadow_group = 'shadow-masks'
+    standard_group = 'standard-products'
 
 
 class PQbits(Enum):

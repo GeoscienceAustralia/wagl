@@ -8,7 +8,7 @@ from __future__ import absolute_import, print_function
 import numpy
 import h5py
 
-from gaip.constants import DatasetName
+from gaip.constants import DatasetName, GroupName
 from gaip.geobox import GriddedGeoBox
 from gaip.tiling import generate_tiles
 from gaip.data import as_array
@@ -30,7 +30,7 @@ def _incident_exiting_angles(satellite_solar_fname, slope_aspect_fname,
         h5py.File(out_fname, 'w') as out_fid:
 
         grp1 = sat_sol[GroupName.sat_sol_group.value]
-        grp2 = slp_asp[DatasetName.slp_asp_group.value]
+        grp2 = slp_asp[GroupName.slp_asp_group.value]
         if incident:
             incident_angles(grp1, grp2, out_fid, compression, y_tile)
         else:
@@ -102,7 +102,7 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
     else:
         fid = out_group
 
-    grp = fid.create_group(DatasetName.incident_group.value)
+    grp = fid.create_group(GroupName.incident_group.value)
 
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))
@@ -237,7 +237,7 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
     else:
         fid = out_group
 
-    grp = fid.create_group(DatasetName.exiting_group.value)
+    grp = fid.create_group(GroupName.exiting_group.value)
 
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, cols))
@@ -317,8 +317,8 @@ def _relative_azimuth_slope(incident_angles_fname, exiting_angles_fname,
         h5py.File(exiting_angles_fname, 'r') as exit_fid,\
         h5py.File(out_fname, 'w') as out_fid:
 
-        grp1 = inci_fid[DatasetName.incident_group.value]
-        grp2 = exit_fid[DatasetName.exiting_group.value]
+        grp1 = inci_fid[GroupName.incident_group.value]
+        grp2 = exit_fid[GroupName.exiting_group.value]
         relative_azimuth_slope(grp1, grp2, out_fid, compression, y_tile)
 
 
@@ -382,7 +382,7 @@ def relative_azimuth_slope(incident_angles_group, exiting_angles_group,
     else:
         fid = out_group
 
-    grp = fid.create_group(DatasetName.rel_slp_group.value)
+    grp = fid.create_group(GroupName.rel_slp_group.value)
 
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))

@@ -11,7 +11,7 @@ import math
 from scipy.interpolate import Rbf
 import numpy as np
 import h5py
-from gaip.constants import DatasetName, Model
+from gaip.constants import DatasetName, Model, GroupName
 from gaip.hdf5 import dataset_compression_kwargs
 from gaip.hdf5 import write_h5_image
 from gaip.hdf5 import read_h5_table
@@ -346,9 +346,9 @@ def _interpolate(acq, factor, sat_sol_angles_fname, coefficients_fname,
         h5py.File(ancillary_fname, 'r') as anc,\
         h5py.File(out_fname, 'w') as out_fid:
 
-        grp1 = anc[DatasetName.ancillary_group.value]
+        grp1 = anc[GroupName.ancillary_group.value]
         grp2 = sat_sol[GroupName.sat_sol_group.value]
-        grp3 = coef[DatasetName.coefficients_group.value]
+        grp3 = coef[GroupName.coefficients_group.value]
         interpolate(acq, factor, grp1, grp2, grp3, out_fid, compression,
                     y_tile, method)
 
@@ -407,7 +407,7 @@ def interpolate(acq, factor, ancillary_group, satellite_solar_group,
     else:
         fid = out_group
 
-    group = fid.create_group(DatasetName.interp_group.value)
+    group = fid.create_group(GroupName.interp_group.value)
 
     fmt = DatasetName.interpolation_fmt.value
     dset_name = fmt.format(factor=factor, band=band)
@@ -433,7 +433,7 @@ def link_interpolated_data(data, out_fname):
     Links the individual interpolated results into a
     single file for easier access.
     """
-    group_path = DatasetName.interp_group.value
+    group_path = GroupName.interp_group.value
     for key in data:
         fname = data[key]
         with h5py.File(fname, 'r') as fid:

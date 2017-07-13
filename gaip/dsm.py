@@ -8,7 +8,7 @@ import numpy
 from scipy import ndimage
 import h5py
 from rasterio.warp import Resampling
-from gaip.constants import DatasetName
+from gaip.constants import DatasetName, GroupName
 from gaip.margins import ImageMargins
 from gaip.geobox import GriddedGeoBox
 from gaip.data import reproject_file_to_array
@@ -125,7 +125,7 @@ def get_dsm(acquisition, national_dsm, margins, out_group=None,
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(y_tile, geobox.x_size()))
 
-    group = fid.create_group(DatasetName.elevation_group.value)
+    group = fid.create_group(GroupName.elevation_group.value)
 
     param_grp = group.create_group('parameters')
     param_grp.attrs['left_buffer'] = pixel_buf.left

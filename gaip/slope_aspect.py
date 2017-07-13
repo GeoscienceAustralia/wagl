@@ -9,7 +9,7 @@ import numpy
 import h5py
 
 from gaip.data import as_array
-from gaip.constants import DatasetName
+from gaip.constants import DatasetName, GroupName
 from gaip.margins import ImageMargins
 from gaip.satellite_solar_angles import setup_spheroid
 from gaip.hdf5 import dataset_compression_kwargs
@@ -26,7 +26,7 @@ def _slope_aspect_arrays(acquisition, dsm_fname, margins, out_fname,
     with h5py.File(dsm_fname, 'r') as dsm_fid,\
         h5py.File(out_fname, 'w') as fid:
 
-        dsm_grp = dsm_fid[DatasetName.elevation_group.value]
+        dsm_grp = dsm_fid[GroupName.elevation_group.value]
         slope_aspect_arrays(acquisition, dsm_grp, margins, fid, compression,
                             y_tile)
 
@@ -126,7 +126,7 @@ def slope_aspect_arrays(acquisition, dsm_group, margins, out_group=None,
     else:
         fid = out_group
 
-    group = fid.create_group(DatasetName.slp_asp_group.value)
+    group = fid.create_group(GroupName.slp_asp_group.value)
 
     # metadata for calculation
     param_group = group.create_group('parameters')

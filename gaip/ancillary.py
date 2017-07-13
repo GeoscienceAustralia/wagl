@@ -24,7 +24,7 @@ from gaip.hdf5 import attach_attributes, write_scalar, write_dataframe
 from gaip.hdf5 import read_h5_table, dataset_compression_kwargs
 from gaip.hdf5 import attach_table_attributes
 from gaip.metadata import extract_ancillary_metadata, read_meatadata_tags
-from gaip.constants import DatasetName, POINT_FMT
+from gaip.constants import DatasetName, POINT_FMT, GroupName
 from gaip.satellite_solar_angles import create_vertices
 
 
@@ -162,7 +162,7 @@ def collect_ancillary(acquisition, satellite_solar_group, nbar_paths,
     else:
         fid = out_group
 
-    group = fid.create_group(DatasetName.ancillary_group.value)
+    group = fid.create_group(GroupName.ancillary_group.value)
 
     boxline_dataset = satellite_solar_group[DatasetName.boxline.value][:]
     coordinator = create_vertices(acquisition, boxline_dataset, vertices)
