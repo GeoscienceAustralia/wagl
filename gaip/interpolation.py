@@ -347,7 +347,7 @@ def _interpolate(acq, factor, sat_sol_angles_fname, coefficients_fname,
         h5py.File(out_fname, 'w') as out_fid:
 
         grp1 = anc[DatasetName.ancillary_group.value]
-        grp2 = sat_sol[DatasetName.sat_sol_group.value]
+        grp2 = sat_sol[GroupName.sat_sol_group.value]
         grp3 = coef[DatasetName.coefficients_group.value]
         interpolate(acq, factor, grp1, grp2, grp3, out_fid, compression,
                     y_tile, method)

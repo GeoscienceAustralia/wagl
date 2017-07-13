@@ -29,7 +29,7 @@ def _incident_exiting_angles(satellite_solar_fname, slope_aspect_fname,
         h5py.File(slope_aspect_fname, 'r') as slp_asp,\
         h5py.File(out_fname, 'w') as out_fid:
 
-        grp1 = sat_sol[DatasetName.sat_sol_group.value]
+        grp1 = sat_sol[GroupName.sat_sol_group.value]
         grp2 = slp_asp[DatasetName.slp_asp_group.value]
         if incident:
             incident_angles(grp1, grp2, out_fid, compression, y_tile)

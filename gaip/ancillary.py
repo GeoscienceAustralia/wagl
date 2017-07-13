@@ -83,7 +83,7 @@ def _collect_ancillary(acquisition, satellite_solar_fname, nbar_paths,
     with h5py.File(satellite_solar_fname, 'r') as fid,\
         h5py.File(out_fname, 'w') as out_fid:
 
-        sat_sol_grp = fid[DatasetName.sat_sol_group.value]
+        sat_sol_grp = fid[GroupName.sat_sol_group.value]
         collect_ancillary(acquisition, sat_sol_grp, nbar_paths, sbt_path,
                           invariant_fname, vertices, out_fid, compression,
                           work_path)

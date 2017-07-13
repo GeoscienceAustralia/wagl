@@ -281,7 +281,7 @@ def _calculate_cast_shadow(acquisition, dsm_fname, margins, block_height,
         h5py.File(out_fname, 'w') as fid:
 
         grp1 = dsm_fid[DatasetName.elevation_group.value]
-        grp2 = fid_sat_sol[DatasetName.sat_sol_group.value]
+        grp2 = fid_sat_sol[GroupName.sat_sol_group.value]
         calculate_cast_shadow(acquisition, grp1, grp2, margins, block_height,
                               block_width, fid, compression, y_tile,
                               solar_source)
