@@ -17,7 +17,7 @@ import luigi
 from luigi.local_target import LocalFileSystem
 from luigi.util import inherits, requires
 from gaip.acquisition import acquisitions
-from gaip.ancillary import _collect_ancillary, aggregate_ancillary
+from gaip.ancillary import _collect_ancillary, _aggregate_ancillary
 from gaip.satellite_solar_angles import _calculate_angles
 from gaip.incident_exiting_angles import _incident_exiting_angles
 from gaip.incident_exiting_angles import _relative_azimuth_slope
@@ -250,7 +250,7 @@ class WriteTp5(luigi.Task):
 
         if container.tiled:
             ancillary_fname = pjoin(self.work_root, 'averaged-ancillary.h5')
-            aggregate_ancillary(fnames, ancillary_fname)
+            _aggregate_ancillary(fnames, ancillary_fname)
         else:
             ancillary_fname = fnames[0]
 
@@ -312,7 +312,7 @@ class AtmosphericsCase(luigi.Task):
 class Atmospherics(luigi.Task):
 
     """
-    Kicks of MODTRAN calculations for all points and albedos.
+    Kicks off MODTRAN calculations for all points and albedos.
     """
 
     model = luigi.EnumParameter(enum=Model)
