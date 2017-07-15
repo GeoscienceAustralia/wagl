@@ -427,30 +427,47 @@ def collect_nbar_ancillary(acquisition, aerosol_fname=None,
         return fid
 
 
-def aggregate_ancillary(ancillary_fnames, out_fname):
+def _aggregate_ancillary(ancillary_fnames, out_fname):
+    """
+    A private wrapper for dealing with the internal custom workings of the
+    NBAR workflow.
+    """
+    with h5py.File(out_fname, 'w') as fid:
+        aggregate_ancillary(ancillary_fnames, fid)
+
+    
+def aggregate_ancillary(ancillary_items, out_group):
     """
     If the acquisition is part of a `tiled` scene such as Sentinel-2a,
     then we need to average the point measurements gathereed from
     all tiles.
     """
     # Initialise the output files
-    if out_fname is None:
-        fid1 = h5py.File('ancillary.h5', driver='core', backing_store=False)
+    if out_group is None:
+        out_fid = h5py.File('ancillary.h5', driver='core', backing_store=False)
     else:
-        fid1 = h5py.File(out_fname, 'w')
+        out_fid = out_group
+
+    group = out_fid[GroupName.ancillary_group.value]
 
     # initialise the mean result
     ozone = vapour = aerosol = elevation = 0.0
 
-    n_tiles = len(ancillary_fnames)
+    n_tiles = len(ancillary_items)
 
-    for fname in ancillary_fnames:
-        with h5py.File(fname, 'r') as fid2:
+    for item in ancillary_items:
+        if isinstance(item, h5py.Group):
+            grp = item[GroupName.ancillary_group.value]
+        else:
+            fid = h5py.File(item, 'r')
+            grp = fid[GroupName.ancillary_group.value]
 
-            ozone += fid2[DatasetName.ozone.value][()]
-            vapour += fid2[DatasetName.water_vapour.value][()]
-            aerosol += fid2[DatasetName.aerosol.value][()]
-            elevation += fid2[DatasetName.elevation.value][()]
+        ozone += grp[DatasetName.ozone.value][()]
+        vapour += grp[DatasetName.water_vapour.value][()]
+        aerosol += grp[DatasetName.aerosol.value][()]
+        elevation += grp[DatasetName.elevation.value][()]
+
+        fid.close()
 
     ozone /= n_tiles
     vapour /= n_tiles
@@ -461,23 +478,24 @@ def aggregate_ancillary(ancillary_fnames, out_fname):
                    "retreived for each Granule.")
     attrs = {'data_source': 'granule_average'}
 
-    dset = fid1.create_dataset(DatasetName.ozone.value, data=ozone)
+    dset = group.create_dataset(DatasetName.ozone.value, data=ozone)
     attrs['Description'] = description.format(*(2*['Ozone']))
     attach_attributes(dset, attrs)
 
-    dset = fid1.create_dataset(DatasetName.water_vapour.value, data=vapour)
+    dset = group.create_dataset(DatasetName.water_vapour.value, data=vapour)
     attrs['Description'] = description.format(*(2*['Water Vapour']))
     attach_attributes(dset, attrs)
 
-    dset = fid1.create_dataset(DatasetName.aerosol.value, data=aerosol)
+    dset = group.create_dataset(DatasetName.aerosol.value, data=aerosol)
     attrs['Description'] = description.format(*(2*['Aerosol']))
     attach_attributes(dset, attrs)
 
-    dset = fid1.create_dataset(DatasetName.elevation.value, data=elevation)
+    dset = group.create_dataset(DatasetName.elevation.value, data=elevation)
     attrs['Description'] = description.format(*(2*['Elevation']))
     attach_attributes(dset, attrs)
 
-    return fid1
+    if out_group is None:
+        return out_fid
 
 
 def get_aerosol_data(acquisition, aerosol_fname):
