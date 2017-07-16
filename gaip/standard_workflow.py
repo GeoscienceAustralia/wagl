@@ -140,8 +140,7 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
 
         with self.output().temporary_path() as out_fname:
             _calculate_angles(acqs[0], self.input().path, out_fname,
-                              self.compression, acqs[0].maximum_view_angle,
-                              self.tle_path, self.y_tile)
+                              self.compression, self.tle_path, self.y_tile)
 
 
 class AncillaryData(luigi.Task):

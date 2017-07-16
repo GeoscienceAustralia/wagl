@@ -688,8 +688,7 @@ def _store_parameter_settings(fid, spheriod, orbital_elements,
 
 
 def _calculate_angles(acquisition, lon_lat_fname, out_fname=None,
-                      compression='lzf', max_angle=9.0, tle_path=None,
-                      y_tile=100):
+                      compression='lzf', tle_path=None, y_tile=100):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -697,13 +696,12 @@ def _calculate_angles(acquisition, lon_lat_fname, out_fname=None,
     with h5py.File(lon_lat_fname, 'r') as lon_lat_fid,\
         h5py.File(out_fname, 'w') as fid:
         lon_lat_grp = lon_lat_fid[GroupName.lon_lat_group.value]
-        calculate_angles(acquisition, lon_lat_grp, fid, compression, max_angle,
-                         tle_path, y_tile)
+        calculate_angles(acquisition, lon_lat_grp, fid, compression, tle_path,
+                         y_tile)
 
 
 def calculate_angles(acquisition, lon_lat_group, out_group=None,
-                     compression='lzf', max_angle=9.0, tle_path=None,
-                     y_tile=100):
+                     compression='lzf', tle_path=None, y_tile=100):
     """
     Calculate the satellite view, satellite azimuth, solar zenith,
     solar azimuth, and relative aziumth angle grids, as well as the
@@ -750,10 +748,6 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
         * 'lz4'
         * 'mafisc'
         * An integer [1-9] (Deflate/gzip)
-
-    :param max_angle:
-        The maximum satellite view angle to use within the workflow.
-        Default is 9.0 degrees.
 
     :param tle_path:
         A `str` to the directory containing the Two Line Element data.
@@ -827,7 +821,7 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
               'minimum_latiude': min_lat,
               'maximum_latiude': max_lat,
               'latitude_buffer': '1.0 degrees',
-              'max_view_angle': max_angle}
+              'max_view_angle': acq.maximum_view_angle}
     _store_parameter_settings(grp, spheroid[1], orbital_elements[1],
                               smodel[1], track[1], params)
 
@@ -922,7 +916,7 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     # outputs
     create_centreline_dataset(geobox, x_cent, n_cent, grp)
     create_boxline(geobox, sat_v_ds, grp[DatasetName.centreline.value], grp,
-                   max_angle)
+                   acq.maximum_view_angle)
 
     if out_group is None:
         return fid
