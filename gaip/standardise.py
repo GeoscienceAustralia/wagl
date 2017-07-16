@@ -34,7 +34,7 @@ def get_buffer(group):
 
 def card4l(level1, model, vertices, method, pixel_quality, landsea, ecmwf_path,
            tle_path, dsm_fname, invariant_fname, nbar_paths, modtran_exe,
-           out_fname, max_angle=9.0, rori=0.52, compression='lzf', y_tile=100):
+           out_fname, rori=0.52, compression='lzf', y_tile=100):
     """
     CEOS Analysis Ready Data for Land.
     A workflow for producing standardised products that meet the
@@ -79,8 +79,7 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, ecmwf_path,
                 # satellite and solar angles
                 calculate_angles(acqs[0],
                                  group[GroupName.lon_lat_group.value], group,
-                                 compression=compression, y_tile=y_tile,
-                                 max_angle=max_angle, tle_path=tle_path)
+                                 compression=compression, tle_path, y_tile)
 
                 if model == Model.standard or model == model.nbar:
 
