@@ -132,7 +132,9 @@ class ARD(luigi.WrapperTask):
                       'dem_path': self.dem_path,
                       'ecmwf_path': self.ecmwf_path,
                       'invariant_height_fname': self.invariant_height_fname,
-                      'dsm_fname': self.dsm_fname}
+                      'dsm_fname': self.dsm_fname,
+                      'tle_path': self.tle_path,
+                      'rori': self.rori}
             yield Standard(**kwargs)
 
         

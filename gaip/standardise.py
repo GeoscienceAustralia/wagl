@@ -34,7 +34,7 @@ def get_buffer(group):
 
 def card4l(level1, model, vertices, method, pixel_quality, landsea, ecmwf_path,
            tle_path, aerosol_fname, brdf_path, brdf_premodis_path, ozone_path,
-           water_vapour_path, dem_path, dsm_fname, invariant_fname, nbar_paths,
+           water_vapour_path, dem_path, dsm_fname, invariant_fname,
            modtran_exe, out_fname, rori=0.52, compression='lzf', y_tile=100):
     """
     CEOS Analysis Ready Data for Land.
@@ -67,7 +67,10 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, ecmwf_path,
 
     with h5py.File(out_fname, 'w') as fid:
         for grn_name in scene.granules:
-            granule_group = fid.create_group(scene.get_root(granule=grn_name))
+            if grn_name is None:
+                granule_group = fid['/']
+            else:
+                granule_group = fid.create_group(grn_name)
 
             for grp_name in scene.groups:
                 group = granule_group.create_group(grp_name)
