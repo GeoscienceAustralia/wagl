@@ -102,8 +102,10 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
     else:
         fid = out_group
 
-    grp = fid.create_group(GroupName.incident_group.value)
+    if GroupName.incident_group.value not in fid:
+        fid.create_group(GroupName.incident_group.value)
 
+    grp = fid[GroupName.incident_group.value]
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))
     no_data = -999
@@ -237,8 +239,10 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
     else:
         fid = out_group
 
-    grp = fid.create_group(GroupName.exiting_group.value)
+    if GroupName.exiting_group.value not in fid:
+        fid.create_group(GroupName.exiting_group.value)
 
+    grp = fid[GroupName.exiting_group.value]
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, cols))
     no_data = -999
@@ -382,8 +386,10 @@ def relative_azimuth_slope(incident_angles_group, exiting_angles_group,
     else:
         fid = out_group
 
-    grp = fid.create_group(GroupName.rel_slp_group.value)
+    if GroupName.rel_slp_group.value not in fid:
+        fid.create_group(GroupName.rel_slp_group.value)
 
+    grp = fid[GroupName.rel_slp_group.value]
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))
     no_data = -999

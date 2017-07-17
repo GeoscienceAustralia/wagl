@@ -140,7 +140,10 @@ def format_tp5(acquisitions, ancillary_group, satellite_solar_group,
     if out_group is None:
         out_group = h5py.File('atmospheric-inputs.h5', 'w')
 
-    group = out_group.create_group(GroupName.atmospheric_inputs_grp.value)
+    if GroupName.atmospheric_inputs_grp.value not in out_group:
+        out_group.create_group(GroupName.atmospheric_inputs_grp.value)
+
+    group = out_group[GroupName.atmospheric_inputs_grp.value]
     iso_time = acquisitions[0].scene_centre_datetime.isoformat()
     group.attrs['acquisition-datetime'] = iso_time
 
@@ -259,7 +262,9 @@ def run_modtran(acquisitions, atmospherics_group, model, npoints, point,
 
     # what atmospheric calculations have been run and how many points
     group_name = GroupName.atmospheric_results_grp.value
-    fid.create_group(group_name)
+    if group_name not in fid:
+        fid.create_group(group_name)
+
     fid[group_name].attrs['npoints'] = npoints
     applied = model == Model.standard or model == Model.nbar
     fid[group_name].attrs['nbar_atmospherics'] = applied
@@ -464,7 +469,10 @@ def calculate_coefficients(atmospheric_results_group, out_group,
     attrs['Description'] = description
     dname = DatasetName.nbar_coefficients.value
 
-    group = fid.create_group(GroupName.coefficients_group.value)
+    if GroupName.coefficients_group.value not in fid:
+        fid.create_group(GroupName.coefficients_group.value)
+
+    group = fid[GroupName.coefficients_group.value]
     if nbar_atmos:
         write_dataframe(nbar_coefficients, dname, group, compression,
                         attrs=attrs)

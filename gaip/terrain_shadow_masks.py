@@ -91,7 +91,10 @@ def self_shadow(incident_angles_group, exiting_angles_group, out_group=None,
     else:
         fid = out_group
 
-    grp = fid.create_group(GroupName.shadow_group.value)
+    if GroupName.shadow_group.value not in fid:
+        fid.create_group(GroupName.shadow_group.value)
+
+    grp = fid[GroupName.shadow_group.value]
 
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))
@@ -435,7 +438,10 @@ def calculate_cast_shadow(acquisition, dsm_group, satellite_solar_group,
     else:
         fid = out_group
 
-    grp = fid.create_group(GroupName.shadow_group.value)
+    if GroupName.shadow_group.value not in fid:
+        fid.create_group(GroupName.shadow_group.value)
+
+    grp = fid[GroupName.shadow_group.value]
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))
     kwargs['dtype'] = 'bool'
@@ -545,7 +551,10 @@ def combine_shadow_masks(self_shadow_group, cast_shadow_sun_group,
     else:
         fid = out_group
 
-    grp = fid.create_group(GroupName.shadow_group.value)
+    if GroupName.shadow_group.value not in fid:
+        fid.create_group(GroupName.shadow_group.value)
+
+    grp = fid[GroupName.shadow_group.value]
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))
     cols, rows = geobox.get_shape_xy()

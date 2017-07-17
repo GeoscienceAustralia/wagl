@@ -121,7 +121,10 @@ def surface_brightness_temperature(acquisition, interpolation_group,
     else:
         fid = out_group
 
-    group = fid.create_group(GroupName.standard_group.value)
+    if GroupName.standard_group.value not in fid:
+        fid.create_group(GroupName.standard_group.value)
+
+    group = fid[GroupName.standard_group.value]
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, acq.samples))
     kwargs['shape'] = (acq.lines, acq.samples)

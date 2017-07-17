@@ -203,7 +203,10 @@ def calculate_reflectance(acquisition, interpolation_group,
     else:
         fid = out_group
 
-    grp = fid.create_group(GroupName.standard_group.value)
+    if GroupName.standard_group.value not in fid:
+        fid.create_group(GroupName.standard_group.value)
+
+    grp = fid[GroupName.standard_group.value]
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, acq.samples))
     kwargs['shape'] = (acq.lines, acq.samples)

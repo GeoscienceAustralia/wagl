@@ -407,7 +407,10 @@ def interpolate(acq, factor, ancillary_group, satellite_solar_group,
     else:
         fid = out_group
 
-    group = fid.create_group(GroupName.interp_group.value)
+    if GroupName.interp_group.value not in fid:
+        fid.create_group(GroupName.interp_group.value)
+
+    group = fid[GroupName.interp_group.value]
 
     fmt = DatasetName.interpolation_fmt.value
     dset_name = fmt.format(factor=factor, band=band)
