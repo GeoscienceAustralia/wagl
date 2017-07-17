@@ -11,7 +11,7 @@ import numpy as np
 import h5py
 
 from osgeo import osr
-from gaip.constants import DatasetName
+from gaip.constants import DatasetName, GroupName
 from gaip.hdf5 import dataset_compression_kwargs, attach_image_attributes
 from gaip.hdf5 import attach_table_attributes, attach_attributes
 from gaip.tiling import generate_tiles
