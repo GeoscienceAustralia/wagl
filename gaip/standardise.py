@@ -33,8 +33,9 @@ def get_buffer(group):
 
 
 def card4l(level1, model, vertices, method, pixel_quality, landsea, ecmwf_path,
-           tle_path, dsm_fname, invariant_fname, nbar_paths, modtran_exe,
-           out_fname, rori=0.52, compression='lzf', y_tile=100):
+           tle_path, aerosol_fname, brdf_path, brdf_premodis_path, ozone_path,
+           water_vapour_path, dem_path, dsm_fname, invariant_fname, nbar_paths,
+           modtran_exe, out_fname, rori=0.52, compression='lzf', y_tile=100):
     """
     CEOS Analysis Ready Data for Land.
     A workflow for producing standardised products that meet the
@@ -135,6 +136,12 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, ecmwf_path,
                                          group, compression, y_tile)
 
             # nbar and sbt ancillary
+            nbar_paths = {'aerosol_fname': aerosol_fname,
+                          'water_vapour_path': water_vapour_path,
+                          'ozone_path': ozone_path,
+                          'dem_path': dem_path,
+                          'brdf_path': brdf_path,
+                          'brdf_premodis_path': brdf_premodis_path}
             collect_ancillary(acqs[0], group[GroupName.sat_sol_group.value], 
                               nbar_paths, sbt_path, invariant_fname,
                               vertices, granule_group, compression)
