@@ -45,6 +45,9 @@ def prepare_modtran(acquisitions, coordinate, albedos, basedir, modtran_exe):
 
         modtran_work = pjoin(point_dir, ALBEDO_FMT.format(a=albedo))
 
+        if not exists(modtran_work):
+            os.makedirs(modtran_work)
+
         out_fname = pjoin(modtran_work, 'mod5root.in')
         with open(out_fname, 'w') as src:
             src.write(POINT_ALBEDO_FMT.format(p=coordinate, a=albedo) + '\n')
