@@ -14,19 +14,19 @@ To run the entire standard ARD workflow using luigi's local scheduler, set the -
 
 .. code-block:: bash
 
-   $ luigi --module gaip.standard_workflow ARD --level1-list scenes.txt --model standard --outdir /some/path --workers 4
+   $ luigi --module gaip.multifile_workflow ARD --level1-list scenes.txt --model standard --outdir /some/path --workers 4
 
 To run the entire *nbar* ARD workflow using luigi's local scheduler, set the --model parameter to *nbar*:
 
 .. code-block:: bash
 
-   $ luigi --module gaip.standard_workflow ARD --level1-list scenes.txt --model nbar --outdir /some/path --workers 4
+   $ luigi --module gaip.multifile_workflow ARD --level1-list scenes.txt --model nbar --outdir /some/path --workers 4
 
 To run the entire *sbt* ARD workflow using luigi's local scheduler, set the --model parameter to *sbt*:
 
 .. code-block:: bash
 
-   $ luigi --module gaip.standard_workflow ARD --level1-list scenes.txt --model sbt --outdir /some/path --workers 4 --local-scheduler
+   $ luigi --module gaip.multifile_workflow ARD --level1-list scenes.txt --model sbt --outdir /some/path --workers 4 --local-scheduler
 
 To run using luigi's `central scheduler <http://luigi.readthedocs.io/en/stable/central_scheduler.html>`_:
 
@@ -34,13 +34,13 @@ To run using luigi's `central scheduler <http://luigi.readthedocs.io/en/stable/c
 
    $ luigid --background --pidfile <PATH_TO_PIDFILE> --logdir <PATH_TO_LOGDIR> --state-path <PATH_TO_STATEFILE>
 
-   $ luigi --module gaip.standard_workflow ARD --level1-list scenes.txt --model standard --outdir /some/path --workers 4
+   $ luigi --module gaip.multifile_workflow ARD --level1-list scenes.txt --model standard --outdir /some/path --workers 4
 
 To include the pixel quality workflow as part of the main workflow, you need to set the pixel-quality switch as such:
 
 .. code-block:: bash
 
-   $ luigi --module gaip.standard_workflow ARD --level1-list scenes.txt --model standard --pixel-quality --outdir /some/path --workers 4
+   $ luigi --module gaip.multifile_workflow ARD --level1-list scenes.txt --model standard --pixel-quality --outdir /some/path --workers 4
 
 Luigi will then execute, and manage, the entire ARD (Analysis Ready Data) workflow for every Level-1 scene listed in *scenes.txt*.
 
@@ -60,7 +60,7 @@ An example of running the *CalculateCoefficients* Task using the local scehduler
 
 .. code-block:: bash
 
-   $ luigi --module gaip.standard_workflow CalculateCoefficients \
+   $ luigi --module gaip.multifile_workflow CalculateCoefficients \
      --level1 /path/to/LS5_TM_OTH_P51_GALPGS01-007_111_068_20000707 \
      --work-root /my/work/LS5_TM_OTH_P51_GALPGS01-007_111_068_20000707.gaip-work --workers 4 --local-scheduler
    
@@ -95,9 +95,9 @@ Help on executing a Task can be retrieved, for example:
 
 .. code-block:: bash
 
-   $ luigi --module gaip.standard_workflow CalculateCoefficients --help
+   $ luigi --module gaip.multifile_workflow CalculateCoefficients --help
 
-   $ luigi --module gaip.standard_workflow CalculateCoefficients --help-all
+   $ luigi --module gaip.multifile_workflow CalculateCoefficients --help-all
 
 The number of workers to assign to the Task tree *--workers* tells luigi how many Tasks to run in parallel (for those tasks that don't depend on each other).
 While not making the best use of luigi (for such a quick and simple workflow), it does aid in quick research and development for a single scene to 100's of scenes,
