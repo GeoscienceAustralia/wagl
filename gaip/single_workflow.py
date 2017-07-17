@@ -13,6 +13,7 @@ from os.path import join as pjoin, basename, dirname
 import logging
 import traceback
 import luigi
+from luigi.util import inherits, requires
 
 ERROR_LOGGER = logging.getLogger('luigi-error')
 
@@ -49,6 +50,14 @@ class Standard(luigi.Task):
     method = luigi.Parameter(default='shear')
     pixel_quality = luigi.BoolParameter()
     land_sea_path = luigi.Parameter()
+    aerosol_fname = luigi.Parameter(significant=False)
+    brdf_path = luigi.Parameter(significant=False)
+    brdf_premodis_path = luigi.Parameter(significant=False)
+    ozone_path = luigi.Parameter(significant=False)
+    water_vapour_path = luigi.Parameter(significant=False)
+    dem_path = luigi.Parameter(significant=False)
+    ecmwf_path = luigi.Parameter(significant=False)
+    invariant_height_fname = luigi.Parameter(significant=False)
 
     def output(self):
         fmt = '{scene}_{model}.h5'
@@ -58,21 +67,21 @@ class Standard(luigi.Task):
 
     def run(self):
         with self.output().temporary_path() as out_fname:
-            # TODO: modtran path, ancillary paths
             card4l(self.level1, self.model, self.vertices, self.method,
-                   self.pixel_quality, self.land_sea_path, out_fname)
+                   self.pixel_quality, self.land_sea_path, self.ecmwf_path, 
+                   self.tle_path, self.aerosol_fname, self.brdf_path,
+                   self.brdf_premodis_path, self.ozone_path,
+                   self.water_vapour_path, self.dsm_path,
+                   self.invariant_height_fname, modtran_exe, out_fname,
+                   self.rori, self.compression, self.y_tile)
 
 
+@inherits(Standard)
 class ARD(luigi.WrapperTask):
 
     """Kicks off ARD tasks for each level1 entry."""
 
     level1_list = luigi.Parameter()
-    outdir = luigi.Parameter()
-    model = luigi.EnumParameter(enum=Model)
-    vertices = luigi.TupleParameter(default=(5, 5))
-    pixel_quality = luigi.BoolParameter()
-    method = luigi.Parameter(default='shear')
 
     def requires(self):
         with open(self.level1_list) as src:
@@ -84,7 +93,16 @@ class ARD(luigi.WrapperTask):
                       'vertices': self.vertices,
                       'pixel_quality': self.pixel_quality,
                       'method': self.method,
-                      'outdir': self.outdir}
+                      'outdir': self.outdir,
+                      'land_sea_path': self.land_sea_path,
+                      'aerosol_fname': self.aerosol_fname,
+                      'brdf_path': self.brdf_path,
+                      'brdf_premodis_path': self.brdf_premodis_path,
+                      'ozone_path': self.ozone_path,
+                      'water_vapour_path': self.water_vapour_path,
+                      'dem_path': self.dem_path,
+                      'ecmwf_path': self.ecmwf_path,
+                      'invariant_height_fname': self.invariant_height_fname}
             yield Standard(**kwargs)
 
         
