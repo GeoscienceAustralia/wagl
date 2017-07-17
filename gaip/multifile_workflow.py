@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 """
-Standard workflow for producing NBAR and SBT
---------------------------------------------
+Multifile workflow for producing NBAR and SBT
+---------------------------------------------
+
+This workflow is geared around a Multiple Independent File workflow, thus
+allowing a form a parallelism. HDF5 Linking via a post task then allows
+the workflow to appear as if the IO is through a single file.
 
 Workflow settings can be configured in `luigi.cfg` file.
 """
