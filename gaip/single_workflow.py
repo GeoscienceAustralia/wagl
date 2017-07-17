@@ -15,6 +15,9 @@ import traceback
 import luigi
 from luigi.util import inherits, requires
 
+from gaip.constants import Model
+from gaip.standardise import card4l
+
 ERROR_LOGGER = logging.getLogger('luigi-error')
 
 
@@ -63,7 +66,7 @@ class Standard(luigi.Task):
         fmt = '{scene}_{model}.h5'
         scene = basename(self.level1)
         out_fname = fmt.format(scene=scene, model=self.model.name)
-        return luigi.LocalTarget(pjoin(outdir, out_fname))
+        return luigi.LocalTarget(pjoin(self.outdir, out_fname))
 
     def run(self):
         with self.output().temporary_path() as out_fname:
@@ -72,7 +75,7 @@ class Standard(luigi.Task):
                    self.tle_path, self.aerosol_fname, self.brdf_path,
                    self.brdf_premodis_path, self.ozone_path,
                    self.water_vapour_path, self.dsm_path,
-                   self.invariant_height_fname, modtran_exe, out_fname,
+                   self.invariant_height_fname, self.modtran_exe, out_fname,
                    self.rori, self.compression, self.y_tile)
 
 
@@ -93,6 +96,7 @@ class ARD(luigi.WrapperTask):
                       'vertices': self.vertices,
                       'pixel_quality': self.pixel_quality,
                       'method': self.method,
+                      'modtran_exe': self.modtran_exe,
                       'outdir': self.outdir,
                       'land_sea_path': self.land_sea_path,
                       'aerosol_fname': self.aerosol_fname,
