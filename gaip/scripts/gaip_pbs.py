@@ -25,7 +25,7 @@ source {env}
 
 {daemon}
 
-luigi --module gaip.standard_workflow ARD --model {model} --level1-list {scene_list} --outdir {outdir} --workers 16{scheduler} --vertices '{vertices}' --method {method}{pq}
+luigi --module gaip.multifile_workflow ARD --model {model} --level1-list {scene_list} --outdir {outdir} --workers 16{scheduler} --vertices '{vertices}' --method {method}{pq}
 """)
 
 DSH_TEMPLATE = ("""#!/bin/bash
@@ -45,7 +45,7 @@ OUTDIRS=({outdirs})
 for i in "${{!FILES[@]}}"; do
   X=$(($i+1))
   pbsdsh -n $((16 *$X)) -- bash -l -c "source {env}; ${{DAEMONS[$i]}}; luigi \\
-    --module gaip.standard_workflow ARD \\
+    --module gaip.multifile_workflow ARD \\
     --model {model} \\
     --level1-list ${{FILES[$i]}} \\
     --outdir ${{OUTDIRS[$i]}} \\
