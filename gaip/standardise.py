@@ -83,7 +83,7 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, ecmwf_path,
                 # satellite and solar angles
                 calculate_angles(acqs[0],
                                  group[GroupName.lon_lat_group.value], group,
-                                 compression=compression, tle_path, y_tile)
+                                 compression, tle_path, y_tile)
 
                 if model == Model.standard or model == model.nbar:
 
