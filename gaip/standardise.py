@@ -2,6 +2,7 @@
 
 from os.path import join as pjoin
 from posixpath import join as ppjoin
+import logging
 import tempfile
 import h5py
 
@@ -23,6 +24,9 @@ from gaip.terrain_shadow_masks import self_shadow, calculate_cast_shadow
 from gaip.terrain_shadow_masks import combine_shadow_masks
 from gaip.slope_aspect import slope_aspect_arrays
 from gaip.temperature import surface_brightness_temperature
+
+
+INTERFACE_LOGGER = logging.getLogger('luigi-interface')
 
 
 def get_buffer(group):
