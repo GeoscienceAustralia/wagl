@@ -2,7 +2,7 @@
 
 from os.path import join as pjoin
 from posixpath import join as ppjoin
-import logging
+import structlog
 import tempfile
 import h5py
 
@@ -26,7 +26,7 @@ from gaip.slope_aspect import slope_aspect_arrays
 from gaip.temperature import surface_brightness_temperature
 
 
-INTERFACE_LOGGER = logging.getLogger('luigi-interface')
+LOG = structlog.get_logger('luigi-interface')
 
 
 def get_buffer(group):
@@ -78,14 +78,18 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, ecmwf_path,
                 granule_group = fid.create_group(grn_name)
 
             for grp_name in scene.groups:
+                log = LOG.bind(scene=scene.label, granule=grn_name,
+                               granule_group=grp_name)
                 group = granule_group.create_group(grp_name)
                 acqs = scene.get_acquisitions(granule=grn_name, group=grp_name)
 
                 # longitude and latitude
+                log.info('Latitude-Longitude')
                 create_lon_lat_grids(acqs[0].gridded_geo_box(), group,
                                      compression=compression, y_tile=y_tile)
 
                 # satellite and solar angles
+                log.info('Satellite-Solar-Angles')
                 calculate_angles(acqs[0],
                                  group[GroupName.lon_lat_group.value], group,
                                  compression, tle_path, y_tile)
@@ -93,26 +97,31 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, ecmwf_path,
                 if model == Model.standard or model == model.nbar:
 
                     # DEM
+                    log.info('DEM-retriveal')
                     get_dsm(acqs[0], dsm_fname, get_buffer(grp_name), group,
                             compression, y_tile)
 
                     # slope & aspect
+                    log.info('Slope-Aspect')
                     slope_aspect_arrays(acqs[0],
                                         group[GroupName.elevation_group.value],
                                         get_buffer(grp_name), group,
                                         compression, y_tile)
 
                     # incident angles
+                    log.info('Incident-Angles')
                     incident_angles(group[GroupName.sat_sol_group.value],
                                     group[GroupName.slp_asp_group.value],
                                     group, compression, y_tile)
 
                     # exiting angles
+                    log.info('Exiting-Angles')
                     exiting_angles(group[GroupName.sat_sol_group.value],
                                    group[GroupName.slp_asp_group.value],
                                    group, compression, y_tile)
 
                     # relative azimuth slope
+                    log.info('Relative-Azimuth-Angles')
                     incident_group_name = GroupName.incident_group.value
                     exiting_group_name = GroupName.exiting_group.value
                     relative_azimuth_slope(group[incident_group_name],
@@ -120,11 +129,13 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, ecmwf_path,
                                            group, compression, y_tile)
 
                     # self shadow
+                    log.info('Self-Shadow')
                     self_shadow(group[incident_group_name],
                                 group[exiting_group_name], group, compression,
                                 y_tile)
 
                     # cast shadow solar source direction
+                    log.info('Cast-Shadow-Solar-Direction')
                     dsm_group_name = GroupName.elevation_group.value
                     calculate_cast_shadow(acqs[0], group[dsm_group_name],
                                           group[GroupName.sat_sol_group.value],
@@ -132,18 +143,22 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, ecmwf_path,
                                           group, compression, y_tile) 
 
                     # cast shadow satellite source direction
+                    log.info('Cast-Shadow-Satellite-Direction')
                     calculate_cast_shadow(acqs[0], group[dsm_group_name],
                                           group[GroupName.sat_sol_group.value],
                                           get_buffer(grp_name), 500, 500, 
                                           group, compression, y_tile, False) 
 
                     # combined shadow masks
+                    log.info('Combined-Shadow')
                     combine_shadow_masks(group[GroupName.shadow_group.value],
                                          group[GroupName.shadow_group.value],
                                          group[GroupName.shadow_group.value],
                                          group, compression, y_tile)
 
             # nbar and sbt ancillary
+            LOG.info('Ancillary-Retrieval', scene=scene.label,
+                     granule=grn_name, granule_group=None)
             nbar_paths = {'aerosol_fname': aerosol_fname,
                           'water_vapour_path': water_vapour_path,
                           'ozone_path': ozone_path,
@@ -155,11 +170,17 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, ecmwf_path,
                               vertices, granule_group, compression)
 
         if scene.tiled:
+            LOG.info('Aggregate-Ancillary', scene=scene.label,
+                     granule='All Granules', granule_group=None)
             granule_groups = [fid[granule] for granule in scene.granules]
             aggregate_ancillary(granule_groups, fid)
 
         # atmospherics
         for grn_name in scene.granules:
+            log = LOG.bind(scene=scene.label, granule=grn_name,
+                           granule_group=None)
+            log.info('Atmospherics')
+
             granule_group = fid[scene.get_root(granule=grn_name)]
 
             # any resolution group is fine
@@ -191,6 +212,7 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, ecmwf_path,
             for key in tp5_data:
                 point, albedo = key
 
+                log.info('Radiative-Transfer', point=point, albedo=albedo)
                 with tempfile.TemporaryDirectory() as tmpdir:
 
                     prepare_modtran(acqs, point, [albedo], tmpdir, modtran_exe)
@@ -206,12 +228,17 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, ecmwf_path,
                                 granule_group, compression)
 
             # coefficients
+            log.info('Coefficients')
             pth = GroupName.atmospheric_results_grp.value
             results_group = granule_group[pth]
             calculate_coefficients(results_group, granule_group, compression)
 
             # interpolate coefficients
             for grp_name in scene.groups:
+                log = LOG.bind(scene=scene.label, granule=grn_name,
+                               granule_group=grp_name)
+                log.info('Interpolation')
+
                 acqs = scene.get_acquisitions(granule=grn_name, group=grp_name)
                 group = granule_group[grp_name]
                 sat_sol_grp = group[GroupName.sat_sol_group.value]
@@ -224,6 +251,7 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, ecmwf_path,
                         bands = sbt_bands
 
                     for bn in bands:
+                        log.info('Interpolate', band_number=bn, factor=factor)
                         acq = [acq for acq in acqs if acq.band_num == bn][0]
                         interpolate(acq, factor, ancillary_group, sat_sol_grp,
                                     coef_grp, group, compression, y_tile,
@@ -248,9 +276,12 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, ecmwf_path,
                     shadow_grp = group[GroupName.shadow_group.value]
 
                     if acq.band_type == BandType.Thermal:
+                        log.info('SBT', band_number=acq.band_num)
                         surface_brightness_temperature(acq, interp_grp, group,
                                                        compression, y_tile)
                     else:
+                        log.info('Surface-Reflectance',
+                                 band_number=acq.band_num)
                         calculate_reflectance(acq, interp_grp, sat_sol_grp,
                                               slp_asp_grp, rel_slp_asp,
                                               incident_grp, exiting_grp,
