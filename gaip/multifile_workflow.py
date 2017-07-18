@@ -7,6 +7,15 @@ This workflow is geared around a Multiple Independent File workflow, thus
 allowing a form a parallelism. HDF5 Linking via a post task then allows
 the workflow to appear as if the IO is through a single file.
 
+The multifile workflow approach does allow more freedom of control in
+accessing individual components of the entire workflow, and easier for
+a user to rapidly test new features.
+
+This workflow can also pick-up exactly where it left off, if the files
+generated persist on disk.
+However, this method could flood the scheduler if thousands of scenes
+are submitted at once in a single call.
+
 Workflow settings can be configured in `luigi.cfg` file.
 """
 # pylint: disable=missing-docstring,no-init,too-many-function-args

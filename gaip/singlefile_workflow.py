@@ -3,6 +3,19 @@
 Single file workflow for producing NBAR and SBT
 -----------------------------------------------
 
+This workflow is geared to minimise the number of files on disk
+and provide a kind of direct to archive compute, and retain all
+the necessary intermediate files, which comprise a mixture of
+imagery, tables, and point/scalar datasets.
+
+It also provides a consistant logical structure allowing an easier
+comparison between 'archives' from different production runs, or
+versions of gaip.
+
+This workflow is more suited to full production runs, where testing
+has ensured that the workflow is sound, and more easilt allows
+thousands of scenes to be submitted to the scheduler at once.
+
 Workflow settings can be configured in `luigi.cfg` file.
 """
 # pylint: disable=missing-docstring,no-init,too-many-function-args
@@ -18,7 +31,9 @@ from luigi.util import inherits, requires
 from gaip.constants import Model
 from gaip.standardise import card4l
 
+
 ERROR_LOGGER = logging.getLogger('luigi-error')
+INTERFACE_LOGGER = logging.getLogger('luigi-interface')
 
 
 def get_buffer(group):
