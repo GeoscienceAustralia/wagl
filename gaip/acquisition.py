@@ -45,10 +45,11 @@ class AcquisitionsContainer(object):
     granules.
     """
 
-    def __init__(self, groups=None, granules=None):
+    def __init__(self, label, groups=None, granules=None):
         self._tiled = False if granules is None else True
         self._groups = groups
         self._granules = granules
+        self._label = label
 
     def __repr__(self):
         fmt = ("****Tiled scene****:\n{tiled}\n"
@@ -57,6 +58,13 @@ class AcquisitionsContainer(object):
         granules = "\n".join(self.granules) if self.tiled else ""
         groups = "\n".join(self.groups)
         return fmt.format(tiled=self.tiled, granules=granules, groups=groups)
+
+    @property
+    def label(self):
+        """
+        Return the scene label.
+        """
+        return self._label
 
     @property
     def tiled(self):
@@ -774,7 +782,8 @@ def acquisitions_via_geotiff(path):
 
                 acqs.append(acqtype(new))
 
-    return AcquisitionsContainer(groups={'product': sorted(acqs)})
+    return AcquisitionsContainer(label=basename(path),
+                                 groups={'product': sorted(acqs)})
 
 
 def acquisitions_via_mtl(path):
@@ -900,7 +909,8 @@ def acquisitions_via_mtl(path):
 
         acqs.append(acqtype(new))
 
-    return AcquisitionsContainer(groups={'product': sorted(acqs)})
+    return AcquisitionsContainer(label=basename(path),
+                                 groups={'product': sorted(acqs)})
 
 
 def acquisitions_via_safe(path):
@@ -1038,7 +1048,7 @@ def acquisitions_via_safe(path):
             resolutions[res_dir] = sorted(acqs)
         granules[granule] = resolutions
 
-    return AcquisitionsContainer(granules=granules)
+    return AcquisitionsContainer(label=basename(path), granules=granules)
 
 
 class Sentinel2aAcquisition(Acquisition):
