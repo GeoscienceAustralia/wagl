@@ -27,7 +27,7 @@ from gaip.slope_aspect import slope_aspect_arrays
 from gaip.temperature import surface_brightness_temperature
 
 
-LOG = wrap_logger(logging.getLogger('luigi-interface'))
+LOG = wrap_logger(logging.getLogger('gaip-card4l'))
 
 
 def get_buffer(group):
