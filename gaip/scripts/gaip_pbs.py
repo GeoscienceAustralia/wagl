@@ -169,7 +169,7 @@ def run(level1, vertices='(5, 5)', model='standard', method='linear',
         pixel_quality=False, outdir=None, logdir=None, env=None, nodes=10,
         project=None, queue='normal', hours=48,
         email='your.name@something.com', local_scheduler=False, dsh=False,
-        test=False, multifile=False):
+        test=False, singlefile=False):
     """Base level program."""
     with open(level1, 'r') as src:
         scenes = src.readlines()
@@ -187,7 +187,7 @@ def run(level1, vertices='(5, 5)', model='standard', method='linear',
 
     pq = ' --pixel-quality' if pixel_quality else ''
 
-    workflow = 'multifile_workflow' if multifile else 'singlefile_workflow'
+    workflow = 'singlefile_workflow' if singlefile else 'multifile_workflow'
 
     if test:
         print("Mocking... Submitting Batch: {} ...Mocking".format(batchid))
@@ -247,9 +247,9 @@ def _parser():
                               "scheduler."))
     parser.add_argument("--dsh", help="Run using PBS Distributed Shell.",
                         action='store_true')
-    parser.add_argument("--multifile", action='store_true',
-                        help=("Run gaip using the multi-file workflow. "
-                              "Default is to output to a single file."))
+    parser.add_argument("--singlefile", action='store_true',
+                        help=("Run gaip using the single-file workflow. "
+                              "Default is to output multiple files."))
     parser.add_argument("--test", action='store_true',
                         help=("Test job execution (Don't submit the job to "
                               "the PBS queue)."))
@@ -263,7 +263,7 @@ def main():
     run(args.level1_list, args.vertices, args.model, args.method,
         args.pixel_quality, args.outdir, args.logdir, args.env, args.nodes,
         args.project, args.queue, args.hours, args.email, args.local_scheduler,
-        args.dsh, args.test, args.multifile)
+        args.dsh, args.test, args.singlefile)
 
 
 if __name__ == '__main__':
