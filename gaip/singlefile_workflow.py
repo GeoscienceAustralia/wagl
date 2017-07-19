@@ -92,12 +92,12 @@ class Standard(luigi.Task):
     def run(self):
         with self.output().temporary_path() as out_fname:
             card4l(self.level1, self.model, self.vertices, self.method,
-                   self.pixel_quality, self.land_sea_path, self.ecmwf_path, 
-                   self.tle_path, self.aerosol_fname, self.brdf_path,
-                   self.brdf_premodis_path, self.ozone_path,
-                   self.water_vapour_path, self.dem_path, self.dsm_fname,
-                   self.invariant_height_fname, self.modtran_exe, out_fname,
-                   self.rori, self.compression, self.y_tile)
+                   self.pixel_quality, self.land_sea_path, self.tle_path,
+                   self.aerosol_fname, self.brdf_path, self.brdf_premodis_path,
+                   self.ozone_path, self.water_vapour_path, self.dem_path,
+                   self.dsm_fname, self.invariant_height_fname,
+                   self.modtran_exe, out_fname, self.ecmwf_path, self.rori,
+                   self.compression, self.y_tile)
 
 
 class ARD(luigi.WrapperTask):
