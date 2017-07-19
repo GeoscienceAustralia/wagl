@@ -25,7 +25,7 @@ source {env}
 
 {daemon}
 
-luigi --module gaip.multifile_workflow ARD --model {model} --level1-list {scene_list} --outdir {outdir} --workers 16{scheduler} --vertices '{vertices}' --method {method}{pq}
+luigi --module gaip.{workflow} ARD --model {model} --level1-list {scene_list} --outdir {outdir} --workers 16{scheduler} --vertices '{vertices}' --method {method}{pq}
 """)
 
 DSH_TEMPLATE = ("""#!/bin/bash
@@ -45,7 +45,7 @@ OUTDIRS=({outdirs})
 for i in "${{!FILES[@]}}"; do
   X=$(($i+1))
   pbsdsh -n $((16 *$X)) -- bash -l -c "source {env}; ${{DAEMONS[$i]}}; luigi \\
-    --module gaip.multifile_workflow ARD \\
+    --module gaip.{workflow} ARD \\
     --model {model} \\
     --level1-list ${{FILES[$i]}} \\
     --outdir ${{OUTDIRS[$i]}} \\
@@ -63,7 +63,7 @@ DAEMON_FMT = 'luigid --background --logdir {}'
 
 def _submit_dsh(scattered, vertices, model, method, pq, batchid, batch_logdir,
                 batch_outdir, project, queue, memory, ncpus, hours, email, env,
-                test):
+                test, workflow):
     """Submit a single PBSDSH formatted job."""
     files = []
     daemons = []
@@ -101,7 +101,7 @@ def _submit_dsh(scattered, vertices, model, method, pq, batchid, batch_logdir,
                               email=email, files=''.join(files), env=env,
                               daemons=''.join(daemons), model=model, pq=pq,
                               outdirs=''.join(outdirs), vertices=vertices,
-                              method=method)
+                              method=method, workflow=workflow)
 
     out_fname = pjoin(batch_logdir, FMT2.format(model=model, jobid=batchid))
     with open(out_fname, 'w') as src:
@@ -117,7 +117,7 @@ def _submit_dsh(scattered, vertices, model, method, pq, batchid, batch_logdir,
 
 def _submit_multiple(scattered, vertices, model, method, pq, batchid,
                      batch_logdir, batch_outdir, project, queue, memory, ncpus,
-                     hours, email, local_scheduler, env, test):
+                     hours, email, local_scheduler, env, test, workflow):
     """Submit multiple PBS formatted jobs."""
     print("Executing Batch: {}".format(batchid))
     # setup and submit each block of scenes for processing
@@ -149,7 +149,8 @@ def _submit_multiple(scattered, vertices, model, method, pq, batchid,
                                   email=email, env=env, daemon=daemon,
                                   model=model, pq=pq, scene_list=out_fname,
                                   outdir=job_outdir, scheduler=scheduler,
-                                  vertices=vertices, method=method)
+                                  vertices=vertices, method=method,
+                                  workflow=workflow)
 
         out_fname = pjoin(jobdir, FMT2.format(model=model, jobid=jobid))
         with open(out_fname, 'w') as src:
@@ -168,7 +169,7 @@ def run(level1, vertices='(5, 5)', model='standard', method='linear',
         pixel_quality=False, outdir=None, logdir=None, env=None, nodes=10,
         project=None, queue='normal', hours=48,
         email='your.name@something.com', local_scheduler=False, dsh=False,
-        test=False):
+        test=False, multifile=False):
     """Base level program."""
     with open(level1, 'r') as src:
         scenes = src.readlines()
@@ -186,6 +187,8 @@ def run(level1, vertices='(5, 5)', model='standard', method='linear',
 
     pq = ' --pixel-quality' if pixel_quality else ''
 
+    workflow = 'multifile_workflow' if multifile else 'singlefile_workflow'
+
     if test:
         print("Mocking... Submitting Batch: {} ...Mocking".format(batchid))
     else:
@@ -194,11 +197,12 @@ def run(level1, vertices='(5, 5)', model='standard', method='linear',
     if dsh:
         _submit_dsh(scattered, vertices, model, method, pq, batchid,
                     batch_logdir, batch_outdir, project, queue, memory, ncpus,
-                    hours, email, env, test)
+                    hours, email, env, test, workflow)
     else:
         _submit_multiple(scattered, vertices, model, method, pq, batchid,
                          batch_logdir, batch_outdir, project, queue, memory,
-                         ncpus, hours, email, local_scheduler, env, test)
+                         ncpus, hours, email, local_scheduler, env, test,
+                         workflow)
 
 
 def _parser():
@@ -232,7 +236,7 @@ def _parser():
                         help="The number of nodes to request.", default=10)
     parser.add_argument("--project", help="Project code to run under.",
                         required=True)
-    parser.add_argument("--queue", default='mormal',
+    parser.add_argument("--queue", default='normal',
                         help=("Queue to submit the job into, "
                               "eg normal, express."))
     parser.add_argument("--hours", help="Job walltime in hours.", default=48)
@@ -243,6 +247,9 @@ def _parser():
                               "scheduler."))
     parser.add_argument("--dsh", help="Run using PBS Distributed Shell.",
                         action='store_true')
+    parser.add_argument("--multifile", action='store_true',
+                        help=("Run gaip using the multi-file workflow. "
+                              "Default is to output to a single file."))
     parser.add_argument("--test", action='store_true',
                         help=("Test job execution (Don't submit the job to "
                               "the PBS queue)."))
@@ -256,7 +263,7 @@ def main():
     run(args.level1_list, args.vertices, args.model, args.method,
         args.pixel_quality, args.outdir, args.logdir, args.env, args.nodes,
         args.project, args.queue, args.hours, args.email, args.local_scheduler,
-        args.dsh, args.test)
+        args.dsh, args.test, args.multifile)
 
 
 if __name__ == '__main__':
