@@ -2,7 +2,8 @@
 
 from os.path import join as pjoin
 from posixpath import join as ppjoin
-import structlog
+import logging
+from structlog import wrap_logger
 import tempfile
 import h5py
 
@@ -26,7 +27,7 @@ from gaip.slope_aspect import slope_aspect_arrays
 from gaip.temperature import surface_brightness_temperature
 
 
-LOG = structlog.get_logger('luigi-interface')
+LOG = wrap_logger(logging.getLogger('luigi-interface'))
 
 
 def get_buffer(group):
