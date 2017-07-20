@@ -130,6 +130,11 @@ class ARD(luigi.WrapperTask):
         with open(self.level1_list) as src:
             level1_scenes = [scene.strip() for scene in src.readlines()]
 
+        if self.model == Model.standard or self.model == Model.sbt:
+            ecmwf_path = self.ecmwf_path
+        else:
+            ecmwf_path = None
+
         for scene in level1_scenes:
             kwargs = {'level1': scene,
                       'model': self.model,
@@ -145,7 +150,7 @@ class ARD(luigi.WrapperTask):
                       'ozone_path': self.ozone_path,
                       'water_vapour_path': self.water_vapour_path,
                       'dem_path': self.dem_path,
-                      'ecmwf_path': self.ecmwf_path,
+                      'ecmwf_path': ecmwf_path,
                       'invariant_height_fname': self.invariant_height_fname,
                       'dsm_fname': self.dsm_fname,
                       'tle_path': self.tle_path,
