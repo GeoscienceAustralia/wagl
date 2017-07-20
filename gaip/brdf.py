@@ -555,7 +555,7 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
                 # Unzip if we need to
                 if hdfFile.endswith(".hdf.gz"):
                     hdf_file = pjoin(tmpdir, re.sub(".hdf.gz", ".hdf",
-                                                       basename(hdfFile)))
+                                                    basename(hdfFile)))
                     cmd = "gunzip -c %s > %s" % (hdfFile, hdf_file)
                     subprocess.check_call(cmd, shell=True)
                 else:
