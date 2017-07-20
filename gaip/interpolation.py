@@ -15,6 +15,7 @@ from gaip.constants import DatasetName, Model, GroupName
 from gaip.hdf5 import dataset_compression_kwargs
 from gaip.hdf5 import write_h5_image
 from gaip.hdf5 import read_h5_table
+import numexpr
 
 DEFAULT_ORIGIN = (0, 0)
 DEFAULT_SHAPE = (8, 8)
@@ -307,7 +308,7 @@ def sheared_bilinear_interpolate(cols, rows, locations, samples,
 
             return xx / width # * width.mean() if matrix nearly singular
 
-    def patch(i, j, x=x, with_shear=True):
+    def patch(i, j, x=x, y=y, with_shear=True):
         """bilinear cell"""
         vertices = locations[i:i+2, j:j+2].reshape(4, 2)
         values = samples[i:i+2, j:j+2].reshape(4)
@@ -324,7 +325,12 @@ def sheared_bilinear_interpolate(cols, rows, locations, samples,
 
         a = np.linalg.solve(matrix, values) # determine coefficients
 
-        return a[0] + a[1]*y + a[2]*x + a[3]*x*y # broadcast as raster
+        #return a[0] + a[1]*y + a[2]*x + a[3]*x*y # broadcast as raster
+
+        # Note, broadcast creates additional working arrays.
+        a0, a1, a2, a3 = a
+        return numexpr.evaluate('a0 + a1*y + a2*x + a3*x*y')
+
 
     result = np.full((rows, cols), np.nan, dtype=np.float32)
     for i in range(grid_size):
