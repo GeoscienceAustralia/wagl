@@ -27,6 +27,7 @@ import logging
 import math
 import os
 from os.path import join as pjoin, basename
+import tempfile
 import re
 import numpy as np
 
@@ -444,7 +445,7 @@ def get_brdf_dirs_pre_modis(brdf_root, scene_date):
 
 
 def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
-                  hdf5_group, compression='lzf', work_path=''):
+                  hdf5_group, compression='lzf'):
     """
     Calculates the mean BRDF value for each band wavelength of your
     sensor, for each BRDF factor ['geo', 'iso', 'vol'] that covers
@@ -550,70 +551,60 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
             except IOError:
                 print("Unable to open file %s" % hdfFile)
 
-            # Unzip if we need to
-            if hdfFile.endswith(".hdf.gz"):
-                hdf_file = pjoin(work_path, re.sub(".hdf.gz", ".hdf",
-                                                   basename(hdfFile)))
-                cmd = "gunzip -c %s > %s" % (hdfFile, hdf_file)
-                subprocess.check_call(cmd, shell=True)
-            else:
-                hdf_file = hdfFile
+            with tempfile.TemporaryDirectory() as tmpdir:
+                # Unzip if we need to
+                if hdfFile.endswith(".hdf.gz"):
+                    hdf_file = pjoin(tmpdir, re.sub(".hdf.gz", ".hdf",
+                                                       basename(hdfFile)))
+                    cmd = "gunzip -c %s > %s" % (hdfFile, hdf_file)
+                    subprocess.check_call(cmd, shell=True)
+                else:
+                    hdf_file = hdfFile
 
-            # the following now converts the file format and outputs a subset.
-            # this should proove useful for debugging and testing.
+                # Load the file
+                brdf_object = BRDFLoader(hdf_file, ul=nw, lr=se)
 
-            # Load the file
-            brdf_object = BRDFLoader(hdf_file, ul=nw, lr=se)
+                # setup the output filename
+                out_fname = '_'.join(['Band', str(band), bandwl, factor])
 
-            # setup the output filename
-            out_fname = '_'.join(['Band', str(band), bandwl, factor])
-            # out_fname = pjoin(work_path, out_fname)
+                # Convert the file format
+                attrs = {'band wavelength': bandwl,
+                         'factor': factor}
+                brdf_object.convert_format(out_fname, hdf5_group, attrs,
+                                           compression=compression)
 
-            # Convert the file format
-            attrs = {'band wavelength': bandwl,
-                     'factor': factor}
-            brdf_object.convert_format(out_fname, hdf5_group, attrs,
-                                       compression=compression)
+                # gauard against roi's that don't intersect
+                if not brdf_object.intersects:
+                    msg = "ROI is outside the BRDF extents!"
+                    log.error(msg)
+                    raise Exception(msg)
 
-            # Get the intersected roi
-            # the intersection is used rather than the actual bounds,
-            # as we want to include partial overlaps rather than exclude them
-            if not brdf_object.intersects:
-                msg = "ROI is outside the BRDF extents!"
-                log.error(msg)
-                raise Exception(msg)
+                roi = brdf_object.roi
+                ul_lon, ul_lat = roi['UL']
+                ur_lon, ur_lat = (roi['LR'][0], roi['UL'][1])
+                lr_lon, lr_lat = roi['UL']
+                ll_lon, ll_lat = (roi['UL'][0], roi['LR'][1])
 
-            roi = brdf_object.roi
-            ul_lon, ul_lat = roi['UL']
-            ur_lon, ur_lat = (roi['LR'][0], roi['UL'][1])
-            lr_lon, lr_lat = roi['UL']
-            ll_lon, ll_lat = (roi['UL'][0], roi['LR'][1])
+                # Read the subset and its geotransform
+                subset, geobox_subset = read_subset(hdf5_group[out_fname],
+                                                    (ul_lon, ul_lat),
+                                                    (ur_lon, ur_lat),
+                                                    (lr_lon, lr_lat),
+                                                    (ll_lon, ll_lat))
 
-            # Read the subset and geotransform that corresponds to the subset
-            subset, geobox_subset = read_subset(hdf5_group[out_fname],
-                                                (ul_lon, ul_lat),
-                                                (ur_lon, ur_lat),
-                                                (lr_lon, lr_lat),
-                                                (ll_lon, ll_lat))
+                # calculate the mean value
+                brdf_mean_value = brdf_object.get_mean(subset)
 
-            # The brdf_object has the scale and offsets so calculate the mean
-            # through the brdf_object
-            brdf_mean_value = brdf_object.get_mean(subset)
-
-            # Output the brdf subset
-            chunks = (1, geobox_subset.x_size())
-            kwargs = dataset_compression_kwargs(compression=compression,
-                                                chunks=chunks)
-            attrs = {'Description': 'Subsetted region of the BRDF image.',
-                     'crs_wkt': geobox_subset.crs.ExportToWkt(),
-                     'geotransform': geobox_subset.transform.to_gdal()}
-            out_fname_subset = out_fname + '_subset'
-            write_h5_image(subset, out_fname_subset, hdf5_group, attrs,
-                           **kwargs)
-
-            # Remove temporary unzipped file
-            if hdf_file.find(work_path) == 0:
-                os.remove(hdf_file)
+                # Output the brdf subset
+                chunks = (1, geobox_subset.x_size())
+                kwargs = dataset_compression_kwargs(compression=compression,
+                                                    chunks=chunks)
+                attrs = {'Description': 'Subsetted region of the BRDF image.',
+                         'crs_wkt': geobox_subset.crs.ExportToWkt(),
+                         'geotransform': geobox_subset.transform.to_gdal()}
+                out_fname_subset = out_fname + '_subset'
+                write_h5_image(subset, out_fname_subset, hdf5_group, attrs,
+                               **kwargs)
 
             # Add the brdf filename and mean value to brdf_dict
             res = {'data_source': 'BRDF',

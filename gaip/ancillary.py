@@ -75,7 +75,7 @@ def relative_humdity(surface_temp, dewpoint_temp, kelvin=True):
 
 def _collect_ancillary(acquisition, satellite_solar_fname, nbar_paths,
                        sbt_path=None, invariant_fname=None, vertices=(3, 3),
-                       out_fname=None, compression='lzf', work_path=''):
+                       out_fname=None, compression='lzf'):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -85,15 +85,14 @@ def _collect_ancillary(acquisition, satellite_solar_fname, nbar_paths,
 
         sat_sol_grp = fid[GroupName.sat_sol_group.value]
         collect_ancillary(acquisition, sat_sol_grp, nbar_paths, sbt_path,
-                          invariant_fname, vertices, out_fid, compression,
-                          work_path)
+                          invariant_fname, vertices, out_fid, compression)
 
     return
 
 
 def collect_ancillary(acquisition, satellite_solar_group, nbar_paths,
                       sbt_path=None, invariant_fname=None, vertices=(3, 3),
-                      out_group=None, compression='lzf', work_path=''):
+                      out_group=None, compression='lzf'):
     """
     Collects the ancillary required for NBAR and optionally SBT.
     This could be better handled if using the `opendatacube` project
@@ -148,10 +147,6 @@ def collect_ancillary(acquisition, satellite_solar_group, nbar_paths,
         * 'mafisc'
         * An integer [1-9] (Deflate/gzip)
 
-    :param work_path:
-        A `str` containing the pathname to the work directory to be
-        used for temporary files. Default is the current directory.
-
     :return:
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
@@ -181,7 +176,7 @@ def collect_ancillary(acquisition, satellite_solar_group, nbar_paths,
         collect_sbt_ancillary(acquisition, lonlats, sbt_path, invariant_fname,
                               out_group=group, compression=compression)
 
-    collect_nbar_ancillary(acquisition, out_group=group, work_path=work_path,
+    collect_nbar_ancillary(acquisition, out_group=group, 
                            compression=compression, **nbar_paths)
 
     if out_group is None:
@@ -319,7 +314,7 @@ def collect_nbar_ancillary(acquisition, aerosol_fname=None,
                            water_vapour_path=None, ozone_path=None,
                            dem_path=None, brdf_path=None,
                            brdf_premodis_path=None, out_group=None,
-                           compression='lzf', work_path=''):
+                           compression='lzf'):
     """
     Collects the ancillary information required to create NBAR.
 
@@ -364,11 +359,6 @@ def collect_nbar_ancillary(acquisition, aerosol_fname=None,
         * 'mafisc'
         * An integer [1-9] (Deflate/gzip)
 
-    :param work_path:
-        A `str` containing the path to a temporary directory where
-        any BRDF images will be extracted to. Defaults to the current
-        working directory.
-
     :return:
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
@@ -410,9 +400,8 @@ def collect_nbar_ancillary(acquisition, aerosol_fname=None,
 
     # brdf
     group = fid.create_group('brdf-image-datasets')
-    data = get_brdf_data(acquisition, brdf_path, brdf_premodis_path,
-                         group, compression=compression,
-                         work_path=work_path)
+    data = get_brdf_data(acquisition, brdf_path, brdf_premodis_path, group,
+                         compression)
     dname_format = DatasetName.brdf_fmt.value
     for key in data:
         band, factor = key

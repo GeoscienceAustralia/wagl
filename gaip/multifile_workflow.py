@@ -188,7 +188,6 @@ class AncillaryData(luigi.Task):
     def run(self):
         container = acquisitions(self.level1)
         acq = container.get_acquisitions(granule=self.granule)[0]
-        work_root = container.get_root(self.work_root, granule=self.granule)
         sbt_path = None
 
         nbar_paths = {'aerosol_fname': self.aerosol_fname,
@@ -203,10 +202,8 @@ class AncillaryData(luigi.Task):
 
         with self.output().temporary_path() as out_fname:
             _collect_ancillary(acq, self.input().path, nbar_paths, sbt_path,
-                               self.invariant_height_fname,
-                               vertices=self.vertices, out_fname=out_fname,
-                               work_path=work_root,
-                               compression=self.compression)
+                               self.invariant_height_fname, self.vertices,
+                               out_fname, self.compression)
 
 
 class WriteTp5(luigi.Task):
