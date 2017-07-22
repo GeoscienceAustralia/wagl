@@ -235,7 +235,8 @@ def rbf_interpolate(cols, rows, locations, samples, *_,
 
 
 def sheared_bilinear_interpolate(cols, rows, locations, samples,
-                                 row_start, row_end, row_centre):
+                                 row_start, row_end, row_centre,
+                                 shear=True, both_sides=False):
     """
     Generalisation of the original NBAR interpolation scheme
     """
@@ -243,100 +244,84 @@ def sheared_bilinear_interpolate(cols, rows, locations, samples,
     n = len(samples)
     grid_size = int(math.sqrt(n)) - 1
 
-    assert (grid_size+1)**2 == n and not (grid_size & 1) and not grid_size % 1
+    assert (grid_size+1)**2 == n and not (grid_size % 2)
     # Assume count of samples is 9 or 25, 49, 81.. (Grid size is 2, 4, 6, ..)
 
-    vertex_shape = (grid_size+1,)*2
-    locations = locations.reshape(vertex_shape+(2,))
-    samples = samples.reshape(vertex_shape)
+    locations = locations.reshape((grid_size+1, grid_size+1, 2))
+    samples = samples.reshape((grid_size+1,)*2)
 
-    once = lambda f: f() # only for code structure
-    @once
-    def lines():
-        """Place parcel boundaries alongside track (by 1D linear interpolation)"""
-        L = np.empty((grid_size+1, rows), dtype=np.uint64)
+    # -------------------------
+    # Parcel boundaries follow satellite track (by 1D linear interpolation)
 
-        middle_vertex = grid_size//2
+    lines = np.empty((grid_size+1, rows), dtype=np.uint32)
 
-        L[0] = row_start
-        L[middle_vertex] = row_centre
-        L[-1] = row_end
+    middle_vertex = grid_size//2
 
-        for i in range(1, middle_vertex):
-            L[i] = row_start + (row_centre - row_start) * (i/middle_vertex)
-            L[i+middle_vertex] = row_centre + (row_end - row_centre) * (i/middle_vertex)
+    lines[0] = row_start
+    lines[middle_vertex] = row_centre
+    lines[-1] = row_end
 
-        return L.reshape(grid_size+1, rows, 1) # enable broadcast
+    for i in range(1, middle_vertex):
+        lines[i] = row_start + (row_centre - row_start) * (i/middle_vertex)
+        lines[i+middle_vertex] = row_centre + \
+                                 (row_end - row_centre) * (i/middle_vertex)
 
+    lines = lines.reshape(grid_size+1, rows, 1) # enable broadcast
+    row_start = row_start[:,None]
+
+    # ----------------------
+
+    # Generate coordinate arrays
     y, x = np.ogrid[:rows, :cols]
 
-    @once
-    def parcellation(masking=True):
-        """Generate parcellation map"""
-        # Would use e.g. a matplotlib poly drawing routine,
-        # except if curved sides are required.
-
-        zones = np.full((rows, cols), 0, dtype=np.int8)
-
-        # first axis
-        vlines = lines
-        for line in vlines[1:-1]:
-            zones += (x >= line)
-            # note, needn't be concerned with how edges are zoned
-            # because they will be masked out downstream
-
-        # second axis
-        hlines = locations[:, 0, 0] # y (row) component of left-edge samples
-        for line in hlines[1:-1]:
-            zones += (y >= line) * grid_size
-
-        if masking:
-            zones[(x < vlines[0]) | (x > vlines[-1]) |
-                  (y < hlines[0]) | (y > hlines[-1])] = -1
-
-        return zones
-
-    def shear(i, j, both_sides=False):
-        """Warp to straighten edges of trapezoid"""
-        if not both_sides:
-            return x - lines[0] # original style NBAR algorithm
-        else:
-            left = lines[j]
-            width = lines[j+1] - left
-
-            xx = x - left
-
-            return xx / width # * width.mean() if matrix nearly singular
-
-    def patch(i, j, x=x, y=y, with_shear=True):
-        """bilinear cell"""
-        vertices = locations[i:i+2, j:j+2].reshape(4, 2)
-        values = samples[i:i+2, j:j+2].reshape(4)
-
-        if with_shear: # then re-map coordinates
-            x = shear(i, j)
-            old = vertices
-            vertices = old.astype(np.float32, copy=True)
-            vertices[:, 1] = x[list(old.T)]
-
-        matrix = np.ones((4, 4))
-        matrix[:, 1:3] = vertices
-        matrix[:, 3] = vertices[:, 0] * vertices[:, 1]
-
-        a = np.linalg.solve(matrix, values) # determine coefficients
-
-        #return a[0] + a[1]*y + a[2]*x + a[3]*x*y # broadcast as raster
-
-        # Note, broadcast creates additional working arrays.
-        a0, a1, a2, a3 = a
-        return numexpr.evaluate('a0 + a1*y + a2*x + a3*x*y')
-
-
+    # Declare output raster (filled with NaN)
     result = np.full((rows, cols), np.nan, dtype=np.float32)
+
+    # Loop over all grid cells
     for i in range(grid_size):
+        lower, upper = locations[i:i+2, 0, 0]
         for j in range(grid_size):
-            subset = parcellation == i*grid_size + j
-            result[subset] = patch(i, j)[subset]
+            left, right = lines[j:j+2]
+
+            values = samples[i:i+2, j:j+2].reshape(4)
+            vertices = locations[i:i+2, j:j+2].reshape(4, 2).astype(
+                                                        np.float32, copy=True)
+
+            # build numexpr to update cell with interpolation
+
+            subset = '((left <= x) & (x <= right)) & ' \
+                     '((lower <= y) & (y <= upper))'
+
+            bilinear = 'a0 + a1*y + a2*x + a3*x*y'
+
+            # apply shear, to warp this interpolation
+
+            if shear:
+                sheared  = 'x - row_start' if not both_sides else \
+                           '(x - left) / (right - left)' # if near-singular matrix warnings, multiply by a constant typical width-between-samples
+                bilinear = bilinear.replace('x', '(' + sheared + ')')
+
+                # get original y,x coordinates (i.e. indices) for 4 vertices
+                vi,vj = map(list, vertices.T.astype(int))
+
+                # Update vertices with same warp as for the interpolation
+                four_pts = dict(x=x[:,vj].ravel(),
+                                  left=left[vi].ravel(),
+                                  right=right[vi].ravel(),
+                                  row_start=row_start[vi].ravel())
+                vertices[:,1] = numexpr.evaluate(sheared, local_dict=four_pts)
+
+            # determine coefficients
+
+            matrix = np.ones((4, 4))
+            matrix[:, 1:3] = vertices
+            matrix[:, 3] = vertices[:, 0] * vertices[:, 1]
+
+            a0,a1,a2,a3 = np.linalg.solve(matrix, values)
+
+            expression = 'where(%s, %s, result)' % (subset, bilinear)
+
+            numexpr.evaluate(expression, out=result, casting='same_kind')
 
     return result
 
