@@ -543,7 +543,11 @@ def h5ls(h5_obj, verbose=False):
         A custom print function for dealing with HDF5 object
         types, and print formatting.
         """
-        pathname = normpath(ppjoin('/', path.decode('utf-8')))
+        try:
+            pathname = normpath(ppjoin('/', path.decode('utf-8')))
+        except AttributeError:
+            pathname = normpath(ppjoin('/', path))
+
         obj = h5_obj[path]
         attrs = {k: v for k, v in obj.attrs.items()}
         if isinstance(obj, h5py.Group):
