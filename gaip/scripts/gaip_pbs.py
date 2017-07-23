@@ -156,13 +156,13 @@ def _submit_multiple(scattered, vertices, model, method, pq, batchid,
         with open(out_fname, 'w') as src:
             src.write(pbs)
 
-    if test:
-        print("Mocking... Submitting Job: {} ...Mocking".format(jobid))
-        print("qsub {}".format(out_fname))
-    else:
-        os.chdir(dirname(out_fname))
-        print("Submitting Job: {}".format(jobid))
-        subprocess.call(['qsub', out_fname])
+        if test:
+            print("Mocking... Submitting Job: {} ...Mocking".format(jobid))
+            print("qsub {}".format(out_fname))
+        else:
+            os.chdir(dirname(out_fname))
+            print("Submitting Job: {}".format(jobid))
+            subprocess.call(['qsub', out_fname])
 
 
 def run(level1, vertices='(5, 5)', model='standard', method='linear',
