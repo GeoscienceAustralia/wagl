@@ -16,7 +16,7 @@ from gaip.tiling import scatter
 PBS_TEMPLATE = ("""#!/bin/bash
 #PBS -P {project}
 #PBS -q {queue}
-#PBS -l walltime={hours}:00:00,mem={memory}GB,ncpus={ncpus}
+#PBS -l walltime={hours}:00:00,mem={memory}GB,ncpus={ncpus},jobfs=50GB
 #PBS -l wd
 #PBS -me
 #PBS -M {email}
@@ -31,7 +31,7 @@ luigi --module gaip.{workflow} ARD --model {model} --level1-list {scene_list} --
 DSH_TEMPLATE = ("""#!/bin/bash
 #PBS -P {project}
 #PBS -q {queue}
-#PBS -l walltime={hours}:00:00,mem={memory}GB,ncpus={ncpus}
+#PBS -l walltime={hours}:00:00,mem={memory}GB,ncpus={ncpus},jobfs=50GB,other=pernodejobfs
 #PBS -l wd
 #PBS -me
 #PBS -M {email}
