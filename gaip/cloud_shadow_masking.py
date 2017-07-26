@@ -557,7 +557,7 @@ def cloud_shadow(image_stack, kelvin_array, cloud_mask, geo_box, sun_az_deg,
         weights[slope] += 1
 
         # band 4 -> 5 slope
-        slope = numexpr.evaluate("abs(b5 - b4) >= slope_b45",
+        slope = numexpr.evaluate("(b5 - b4) >= slope_b45",
                                  {'b5': reflectance_stack[4],
                                   'b4': reflectance_stack[3]}, locals())
         weights[slope] += 1
