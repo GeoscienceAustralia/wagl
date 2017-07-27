@@ -31,6 +31,8 @@ The script only handles one platform, year, and month at a time. It can easily b
 
 `$ for i in {1..7}; do python pq_script_generator.py --l1t_path /g/data/v10/reprocess/ --nbar_path /short/v10/scenes/nbar-scenes-tmp --out_path /g/data/v10/testing_ground/4.2.5-pq-wofs/outputs --year 2016 --month $i --sensor ls7 ; done`
 
+`for p in ls7 ls8 ; do for i in {1..12}; do python pq_script_generator.py --l1t_path /g/data/v10/reprocess/ --nbar_path /short/v10/scenes/nbar-scenes-tmp --out_path /g/data/v10/testing_ground/4.2.5-pq-wofs/outputs --year 2015 --month $i --sensor $p ; done ; done`
+
 Any job will result in log files and, for each scene, a .completed file (small), a packaged pqa output (e.g. roughly 8 gig/month), and a folder of intermediate outputs (e.g. >100gig/month; presumably uncompressed rasters). The latter should be cleaned up for sake of storage space. The .log files are worth checking for signal that any issues were detected. It is also easy to confirm the count of successful completions.
 
 ```
