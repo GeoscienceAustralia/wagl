@@ -23,7 +23,11 @@ If there are multiple versions of gaip installed, ensure that the correct script
 
 The necessary inputs are the level1 and NBAR scenes (both are necessary). There is also one ancillary product, the land-sea rasters, and its configuration is hard-coded.
 
-The python pq_script_generator.py will produce a bash script to kick off the job, and will immediately source (execute) that script unless the `--test` argument is supplied (e.g., permitting modification of PBS settings for just one job). 
+The `python pq_script_generator.py` will produce a bash script to kick off the job, and will immediately source (execute) that script unless the `--test` argument is supplied (e.g., permitting modification of PBS settings for just one job). 
+
+The script only handles one platform, year, and month at a time. It can easily be scripted to queue e.g. an entire year:
+
+`for p in ls7 ls8; do for m in {1..12}; do echo $p $m; done; done`
 
 At the conclusion of the job, the .stderr log should contain a message such as 'progress looks :)', signalling whether any issues were encountered. This is worth checking for.
 
