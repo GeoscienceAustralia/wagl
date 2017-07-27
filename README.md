@@ -29,12 +29,15 @@ The script only handles one platform, year, and month at a time. It can easily b
 
 `for p in ls7 ls8; do for m in {1..12}; do echo $p $m; done; done`
 
-Any job will result in log files and, for each scene, a .completed file (small), a packaged pqa output (e.g. roughly 8 gig), and a folder of intermediate outputs (e.g. >100gig; presumably uncompressed rasters). The latter should be cleaned up for sake of storage space. The .log files are worth checking for signal that any issues were detected. It is also easy to confirm the count of successful completions.
+Any job will result in log files and, for each scene, a .completed file (small), a packaged pqa output (e.g. roughly 8 gig/month), and a folder of intermediate outputs (e.g. >100gig/month; presumably uncompressed rasters). The latter should be cleaned up for sake of storage space. The .log files are worth checking for signal that any issues were detected. It is also easy to confirm the count of successful completions.
 
 ```
 /g/data/v10/testing_ground/4.2.5-pq-wofs
 $ find outputs/*/PQ/*/*/logs -maxdepth 1 -mindepth 1 -name *.log | xargs grep 'progress looks :)' -L`
-
+$ ls outputs/*/PQ/*/*/output/*.completed | wc --lines
+$ ls outputs/*/PQ/*/*/output/pqa/* -d | wc --lines
+$ ls outputs/*/PQ/*/*/output/*.completed | sed s:\.completed$:: | xargs rm -r
+$ ls outputs/*/PQ/*/*/output/LS* -d | grep -v .completed
 ```
 
 Certain naming conventions are expected by gaip. If the input folders contain exceptions, then a staging area should be used as input and be populated with a cleaned set of symbolic links. For example, applying a rule of only processing definitive (not predictive) datasets:
