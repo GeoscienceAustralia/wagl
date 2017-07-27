@@ -29,10 +29,14 @@ The script only handles one platform, year, and month at a time. It can easily b
 
 `for p in ls7 ls8; do for m in {1..12}; do echo $p $m; done; done`
 
-At the conclusion of the job, the .stderr log should contain a message such as 'progress looks :)', signalling whether any issues were encountered. This is worth checking for.
+Any job will result in log files and, for each scene, a .completed file (small), a packaged pqa output (e.g. roughly 8 gig), and a folder of intermediate outputs (e.g. >100gig; presumably uncompressed rasters). The latter should be cleaned up for sake of storage space. The .log files are worth checking for signal that any issues were detected. It is also easy to confirm the count of successful completions.
+
+```
+/g/data/v10/testing_ground/4.2.5-pq-wofs
+$ find outputs/*/PQ/*/*/logs -maxdepth 1 -mindepth 1 -name *.log | xargs grep 'progress looks :)' -L`
+
+```
 
 Certain naming conventions are expected by gaip. If the input folders contain exceptions, then a staging area should be used as input and be populated with a cleaned set of symbolic links. For example, applying a rule of only processing definitive (not predictive) datasets:
 
 `for file in /g/data/v10/reprocess_interim/ls7/level1/2016/12/L*OTH*; do ln -s $file $(basename $file); done && rm *PREDICT*`
-
-Any job will result in log files and, for each scene, a .completed file (small), a packaged pqa output (e.g. roughly 8 gig), and a folder of intermediate outputs (e.g. >100gig; presumably uncompressed rasters). The latter should be cleaned up for sake of storage space.
