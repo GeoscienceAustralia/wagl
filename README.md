@@ -59,5 +59,16 @@ for p in ls7 ls8 ; do mkdir -p $p ; ln -s /g/data/v10/reprocess/$p/level1 $p/lev
 
 Ideally, if the input data are spread over multiple locations, they could all be unified together under a single consistent facade, the staging area. Consistently also facilitates greater automation.
 
+```
+for y in {1999..2009} ; do  for i in {1..12}; do python pq_script_generator.py --l1t_path /g/data/v10/testing_ground/4.2.5-pq-wofs/staging/ --nbar_path /short/v10/scenes/nbar-scenes-tmp --out_path /g/data/v10/testing_ground/4.2.5-pq-wofs/outputs --year $y --month $i --sensor ls7 ; done ; done
 
+```
+
+May be an issue if too many jobs are submitted simultaneously. This can be resolved.
+
+```
+
+for y in {1986..2011} ; do  for i in {1..12}; do python pq_script_generator.py --l1t_path /g/data/v10/testing_ground/4.2.5-pq-wofs/staging/ --nbar_path /short/v10/scenes/nbar-scenes-tmp --out_path /g/data/v10/testing_ground/4.2.5-pq-wofs/outputs --year $y --month $i --sensor ls5 ; while [ $( qstat | grep $USER | wc --lines ) -gt 100 ] ; do sleep 30 ; done ; done ; done
+
+```
 
