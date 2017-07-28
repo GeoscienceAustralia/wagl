@@ -47,3 +47,17 @@ $ ls outputs/*/PQ/*/*/output/LS* -d | grep -v .completed
 Certain naming conventions are expected by gaip. If the input folders contain exceptions, then a staging area should be used as input and be populated with a cleaned set of symbolic links. For example, applying a rule of only processing definitive (not predictive) datasets:
 
 `for file in /g/data/v10/reprocess_interim/ls7/level1/2016/12/L*OTH*; do ln -s $file $(basename $file); done && rm *PREDICT*`
+
+```
+cd /g/data/v10/reprocess
+ls ls5/level1/*/* -d --color=never | xargs -I {} mkdir -p /g/data/v10/testing_ground/4.2.5-pq-wofs/staging/{}
+find ls5/level1 -maxdepth 3 -mindepth 3 -iname LS\*OTH\* | xargs -I {} ln -s $PWD{} /g/data/v10/testing_ground/4.2.5-pq-wofs/staging/{}
+cd /g/data/v10/testing_ground/4.2.5-pq-wofs/staging
+rm ls5/level1/*/*/*PREDICT*
+for p in ls7 ls8 ; do mkdir -p $p ; ln -s /g/data/v10/reprocess/$p/level1 $p/level1 ; done
+```
+
+Ideally, if the input data are spread over multiple locations, they could all be unified together under a single consistent facade, the staging area. Consistently also facilitates greater automation.
+
+
+
