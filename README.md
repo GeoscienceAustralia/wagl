@@ -40,7 +40,7 @@ Any job will result in log files and, for each scene, a .completed file (small),
 $ find outputs/*/PQ/*/*/logs -maxdepth 1 -mindepth 1 -name *.log | xargs grep 'progress looks :)' -L`
 $ ls outputs/*/PQ/*/*/output/*.completed | wc --lines
 $ ls outputs/*/PQ/*/*/output/pqa/* -d | wc --lines
-$ ls outputs/*/PQ/*/*/output/*.completed | sed s:\.completed$:: | xargs rm -r
+$ ls outputs/*/PQ/*/*/output/*.completed | sed s:\.completed$:: | xargs rm -rf
 $ ls outputs/*/PQ/*/*/output/LS* -d | grep -v .completed
 ```
 
