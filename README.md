@@ -37,7 +37,7 @@ Any job will result in log files and, for each scene, a .completed file (small),
 
 ```
 /g/data/v10/testing_ground/4.2.5-pq-wofs
-$ find outputs/*/PQ/*/*/logs -maxdepth 1 -mindepth 1 -name *.log | xargs grep 'progress looks :)' -L`
+$ find outputs/*/PQ/*/*/logs -maxdepth 1 -mindepth 1 -name *.log | xargs grep 'progress looks :)' -L | tee /dev/tty | wc --lines
 $ ls outputs/*/PQ/*/*/output/*.completed | wc --lines
 $ ls outputs/*/PQ/*/*/output/pqa/* -d | wc --lines
 $ ls outputs/*/PQ/*/*/output/*.completed | sed s:\.completed$:: | xargs rm -rf
