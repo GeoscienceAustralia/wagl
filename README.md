@@ -77,3 +77,15 @@ May wish to change the product type post-hoc, to alter which datacube product it
 ```
 find . -name ga-metadata.yaml -execdir sed -i.backup 4s:pqa:pqa_wofs: {} +
 ```
+
+May wish to investigate which jobs still need (re-)running.
+
+```
+cd /short/v10/scenes/nbar-scenes-tmp/ls5
+for d in */* ; do echo $d $( ls $d/output/nbar/* -d | wc --lines ) ; done > ~/ls5nbar.txt
+
+cd /g/data/v10/testing_ground/4.2.5-pq-wofs/outputs/ls5
+for d in */* ; do echo $d $( find $d -maxdepth 2 -name \*.completed | wc --lines ) ; done > ~/ls5pqwofs
+
+join ~/ls5nbar.txt ~/ls5pqwofs -a1 -e0 -o '0 1.2 2.2' | awk '{ print $1, $3 / $2 }'
+```
