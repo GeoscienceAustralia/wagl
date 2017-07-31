@@ -72,3 +72,8 @@ for y in {1986..2011} ; do  for i in {1..12}; do python pq_script_generator.py -
 
 ```
 
+May wish to change the product type post-hoc, to alter which datacube product it matches.
+
+```
+find . -name ga-metadata.yaml -execdir sed -i.backup 4s:pqa:pqa_wofs: {} +
+```
