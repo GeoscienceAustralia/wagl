@@ -51,7 +51,7 @@ Certain naming conventions are expected by gaip. If the input folders contain ex
 ```
 cd /g/data/v10/reprocess
 ls ls5/level1/*/* -d --color=never | xargs -I {} mkdir -p /g/data/v10/testing_ground/4.2.5-pq-wofs/staging/{}
-find ls5/level1 -maxdepth 3 -mindepth 3 -iname LS\*OTH\* | xargs -I {} ln -s $PWD{} /g/data/v10/testing_ground/4.2.5-pq-wofs/staging/{}
+find ls5/level1 -maxdepth 3 -mindepth 3 -iname LS\*OTH\* | xargs -I {} ln -s $PWD/{} /g/data/v10/testing_ground/4.2.5-pq-wofs/staging/{}
 cd /g/data/v10/testing_ground/4.2.5-pq-wofs/staging
 rm ls5/level1/*/*/*PREDICT*
 for p in ls7 ls8 ; do mkdir -p $p ; ln -s /g/data/v10/reprocess/$p/level1 $p/level1 ; done
