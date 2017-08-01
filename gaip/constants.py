@@ -203,6 +203,19 @@ class GroupName(Enum):
     standard_group = 'standard-products'
 
 
+class Method(Enum):
+    """
+    Defines the Interpolation method used for interpolating the
+    atmospheric coefficients.
+    """
+
+    bilinear = 0
+    fbilinear = 1
+    shear = 2
+    shearb = 3
+    rbf = 4
+
+
 class PQbits(Enum):
     band_1_saturated = 0
     band_2_saturated = 1
