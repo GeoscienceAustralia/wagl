@@ -78,8 +78,8 @@ The Tasks callable from the command line are:
 * **IncidentAngles** (Calculates the incident angles for a level-1 scene)
 * **SlopeAndAspect** (Calculates the slope and aspect for a level-1 scene)
 * **DEMExtraction** (Extracts the DEM for a level-1 scene)
-* **InterpolateCoefficient** (Issues *BilinearInterpolationBand* Tasks for each band, for each factor for a level-1 scene)
-* **InterpolateCoefficients** (Executes the bilinear interpolation for a given band for a given factor)
+* **InterpolateCoefficients** (Issues *InterpolateCoefficient* Tasks for each band, for each factor for a level-1 scene)
+* **InterpolateCoefficient** (Executes interpolation for a given band for a given factor)
 * **CalculateCoefficients** (Calculates the atmospheric coefficients derived from running a radiative transfer algorithm such as `MODTRAN <http://modtran.spectral.com/>`_)
 * **Atmospherics** (Issues AtmosphericsCase Tasks, for each point/vertex for each albedo)
 * **AtmosphericsCase** (Executes `MODTRAN <http://modtran.spectral.com/>`_ for a given point location and albedo factor)
@@ -140,7 +140,7 @@ The arguments for *gaip_pbs* are:
 --level1-list        The input level1 scene list.
 --vertices           Number of vertices to evaluate the radiative transfer at. JSON styled string is required, eg '(3, 3)'.
 --model              The type of ARD workflow to invoke, eg standard, nbar, sbt.
---method             The interpolation method to invoke, eg linear, shear, rbf.
+--method             The interpolation method to invoke, eg bilinear, shear, rbf.
 --pixel-quality      Whether to run the pixel quality workflow, if applicable, or not.
 --outdir             The base output directory.
 --logdir             The base logging and scripts output directory.
@@ -157,7 +157,7 @@ The arguments for *gaip_pbs* are:
 An example of submitting individual jobs to the PBS queue using the following specifications:
 
   * Run using the *nbar* model.
-  * The *linear* interpolation function.
+  * The *bilinear* interpolation function.
   * Specify a 3x3 point grid location to calculate the radiative transfer at.
   * 10 nodes.
   * Use the nx200 project allocation code identifier.
@@ -166,13 +166,13 @@ An example of submitting individual jobs to the PBS queue using the following sp
 
 .. code-block:: bash
 
-   $ gaip_pbs --level1-list /path/to/level1-scenes.txt --vertices '(3, 3)' --model nbar --method linear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project nx200 --queue express --hours 2 --email your.name@something.com
+   $ gaip_pbs --level1-list /path/to/level1-scenes.txt --vertices '(3, 3)' --model nbar --method bilinear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project nx200 --queue express --hours 2 --email your.name@something.com
 
 The same job resources, but use PBSDSH instead of individual jobs being submitted to the PBS queue.
 
 .. code-block:: bash
 
-   $ gaip_pbs --level1-list /path/to/level1-scenes.txt --vertices '(3, 3)' --model nbar --method linear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh
+   $ gaip_pbs --level1-list /path/to/level1-scenes.txt --vertices '(3, 3)' --model nbar --method bilinear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh
 
 Each call to *gaip_pbs* will generate a new batch id, and each node will be assigned a job id. In this way each node will have its logs and output data contained in its own directory structure.  For example:
 

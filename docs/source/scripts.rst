@@ -45,7 +45,7 @@ Given a list of level-1 scenes, evenly distrubute the number of scenes across *n
 An example of submitting individual jobs to the PBS queue using the following specifications:
 
   * Run using the *nbar* model.
-  * The *linear* interpolation function.
+  * The *bilinear* interpolation function.
   * Specify a 3x3 point grid location to calculate the radiative transfer at.
   * 10 nodes.
   * Use the nx200 project allocation code identifier.
@@ -54,13 +54,13 @@ An example of submitting individual jobs to the PBS queue using the following sp
 
 .. code-block:: bash
 
-   $ gaip_pbs --level1-list /path/to/level1-scenes.txt --vertices '(3, 3)' --model nbar --method linear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project nx200 --queue express --hours 2 --email your.name@something.com
+   $ gaip_pbs --level1-list /path/to/level1-scenes.txt --vertices '(3, 3)' --model nbar --method bilinear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project nx200 --queue express --hours 2 --email your.name@something.com
 
 The same job resources, but use PBSDSH instead of individual jobs being submitted to the PBS queue.
 
 .. code-block:: bash
 
-   $ gaip_pbs --level1-list /path/to/level1-scenes.txt --vertices '(3, 3)' --model nbar --method linear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh
+   $ gaip_pbs --level1-list /path/to/level1-scenes.txt --vertices '(3, 3)' --model nbar --method bilinear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh
 
 **test_calculate_angles**
 

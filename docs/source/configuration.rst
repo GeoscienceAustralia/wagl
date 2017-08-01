@@ -185,7 +185,7 @@ band_num
   The band number to run.
 
 method
-  THe interpolation method to use; *linear*, *shear* or *rbf*. The default is *shear*.
+  The interpolation method to use; *bilinear*, *fbilinear*, *shear*, *shearb*, or *rbf*. The default is *shear*.
 
 
 [InterpolateCoefficients]
@@ -341,4 +341,4 @@ pixel_quality
   A boolean indicating whether or not to run the pixel quality workflow.
 
 method
-  The interpolation method to use; *linear*, *shear* or *rbf*. The default is *shear*.
+  The interpolation method to use; *bilinear*, *fbilinear*, *shear*, *shearb*, or *rbf*. The default is *shear*.
