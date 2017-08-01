@@ -40,7 +40,7 @@ from gaip.terrain_shadow_masks import _self_shadow, _calculate_cast_shadow
 from gaip.terrain_shadow_masks import _combine_shadow
 from gaip.slope_aspect import _slope_aspect_arrays
 from gaip import constants
-from gaip.constants import Model, BandType
+from gaip.constants import Model, BandType, Method
 from gaip.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
 from gaip.dsm import _get_dsm
 from gaip.modtran import _format_tp5, _run_modtran
@@ -383,7 +383,7 @@ class InterpolateCoefficient(luigi.Task):
     factor = luigi.Parameter()
     base_dir = luigi.Parameter(default='_interpolation', significant=False)
     model = luigi.EnumParameter(enum=Model)
-    method = luigi.Parameter(default='shear')
+    method = luigi.EnumParameter(enum=Method, default=Method.shear)
 
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.vertices]
@@ -423,7 +423,7 @@ class InterpolateCoefficients(luigi.Task):
 
     vertices = luigi.TupleParameter()
     model = luigi.EnumParameter(enum=Model)
-    method = luigi.Parameter(default='shear')
+    method = luigi.EnumParameter(enum=Method, default=Method.shear)
 
     def requires(self):
         container = acquisitions(self.level1)
@@ -893,7 +893,7 @@ class ARD(luigi.WrapperTask):
     model = luigi.EnumParameter(enum=Model)
     vertices = luigi.TupleParameter(default=(5, 5))
     pixel_quality = luigi.BoolParameter()
-    method = luigi.Parameter(default='shear')
+    method = luigi.EnumParameter(enum=Method, default=Method.shear)
 
     def requires(self):
         with open(self.level1_list) as src:
