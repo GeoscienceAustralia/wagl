@@ -5,13 +5,12 @@ Various interpolation methods.
 """
 
 from __future__ import absolute_import
-from os.path import basename, splitext
 from posixpath import join as ppjoin
 import math
 from scipy.interpolate import Rbf
 import numpy as np
 import h5py
-from gaip.constants import DatasetName, Model, GroupName
+from gaip.constants import DatasetName, Model, GroupName, Method
 from gaip.hdf5 import dataset_compression_kwargs
 from gaip.hdf5 import write_h5_image
 from gaip.hdf5 import read_h5_table
@@ -218,20 +217,22 @@ def rbf_interpolate(cols, rows, locations, samples, *_,
                     chunking=True, kernel='gaussian'):
     """scipy radial basis function interpolation"""
 
-    rbf = Rbf(locations[:, 1], locations[:, 0], samples - samples.mean(),
+    xbar = samples.mean()
+    rbf = Rbf(locations[:, 1], locations[:, 0], samples - xbar,
               function=kernel)
 
     if not chunking:
-        return rbf(*np.mgrid[:cols, :rows]).astype(np.float32) + samples.mean()
+        raster = rbf(*np.mgrid[:cols, :rows]).astype(np.float32) + xbar
     else:
         xchunks, ychunks = cols//100 + 1, rows//100 + 1
         raster = np.empty((rows, cols), dtype=np.float32)
         for y in np.array_split(np.arange(rows), ychunks):
             for x in np.array_split(np.arange(cols), xchunks):
                 xy = np.meshgrid(x, y) # note sparse not supported by scipy
-                r = rbf(*xy).astype(np.float32) + samples.mean()
+                r = rbf(*xy).astype(np.float32) + xbar
                 raster[y[0]:y[-1]+1, x[0]:x[-1]+1] = r
-        return raster
+
+    return raster
 
 
 def sheared_bilinear_interpolate(cols, rows, locations, samples,
@@ -297,7 +298,7 @@ def sheared_bilinear_interpolate(cols, rows, locations, samples,
 
      # enable broadcast
     lines = lines.reshape(grid_size+1, rows, 1)
-    row_start = row_start[:,None]
+    row_start = row_start[:, None]
 
     # Generate coordinate arrays
     y, x = np.ogrid[:rows, :cols]
@@ -321,26 +322,29 @@ def sheared_bilinear_interpolate(cols, rows, locations, samples,
             subset = '((left <= x) & (x <= right)) & ' \
                      '((lower <= y) & (y <= upper))'
 
-            bilinear = 'a0 + a1*y + a2*x + a3*x*y'
+            exp = 'a0 + a1*y + a2*x + a3*x*y'
 
             # apply shear, to warp this interpolation
 
             if shear:
-                sheared  = 'x - row_start' if not both_sides else \
-                           '(x - left) / (right - left)' # if near-singular matrix warnings, multiply by a constant typical width-between-samples
+                if not both_sides:
+                    sheared = 'x - row_start'
+                else:
+                    # if near-singular matrix warnings, multiply by a constant typical width-between-samples 
+                    sheared = '(x - left) / (right - left)'
                     
                 # apply shear to interpolation
-                bilinear = bilinear.replace('x', '(' + sheared + ')')
+                exp = exp.replace('x', '(' + sheared + ')')
 
                 # retrieve original y,x coordinates (i.e. indices) for 4 vertices
-                vi,vj = map(list, vertices.T.astype(int))
+                vi, vj = map(list, vertices.T.astype(int))
 
                 # Update vertices with same warp as for the interpolation
-                four_pts = dict(x=x[:,vj].ravel(),
-                                  left=left[vi].ravel(),
-                                  right=right[vi].ravel(),
-                                  row_start=row_start[vi].ravel())
-                vertices[:,1] = numexpr.evaluate(sheared, local_dict=four_pts)
+                four_pts = dict(x=x[:, vj].ravel(),
+                                left=left[vi].ravel(),
+                                right=right[vi].ravel(),
+                                row_start=row_start[vi].ravel())
+                vertices[:, 1] = numexpr.evaluate(sheared, local_dict=four_pts)
 
             # determine bilinear coefficients
 
@@ -348,11 +352,11 @@ def sheared_bilinear_interpolate(cols, rows, locations, samples,
             matrix[:, 1:3] = vertices
             matrix[:, 3] = vertices[:, 0] * vertices[:, 1]
 
-            a0,a1,a2,a3 = np.linalg.solve(matrix, values)
+            a0, a1, a2, a3 = np.linalg.solve(matrix, values)
             
             # update output raster
 
-            expression = 'where(%s, %s, result)' % (subset, bilinear)
+            expression = 'where({}, {}, result)'.format(subset, exp)
 
             numexpr.evaluate(expression, out=result, casting='same_kind')
 
@@ -379,9 +383,13 @@ def _interpolate(acq, factor, sat_sol_angles_fname, coefficients_fname,
 
 def interpolate(acq, factor, ancillary_group, satellite_solar_group,
                 coefficients_group, out_group=None, compression='lzf',
-                y_tile=100, method=None):
+                y_tile=100, method=Method.shearb):
     # TODO: more docstrings
     """Perform interpolation."""
+    if method not in Method:
+        msg = 'Interpolation method {} not available.'
+        raise Exception(msg.format(method.name))
+
     geobox = acq.gridded_geo_box()
     cols, rows = geobox.get_shape_xy()
 
@@ -411,18 +419,21 @@ def interpolate(acq, factor, ancillary_group, satellite_solar_group,
     band_records = coefficients.band_id == 'BAND {}'.format(band)
     samples = coefficients[factor][band_records].values
 
-    if method is None:
-        if len(samples) == 9:
-            method = 'linear'
-        else:
-            method = 'shear'
+    func_map = {Method.bilinear: sheared_bilinear_interpolate,
+                Method.fbilinear: fortran_bilinear_interpolate,
+                Method.shear: sheared_bilinear_interpolate,
+                Method.shearb: sheared_bilinear_interpolate,
+                Method.rbf: rbf_interpolate}
 
-    func_map = {'linear': fortran_bilinear_interpolate,
-                'shear': sheared_bilinear_interpolate,
-                'rbf': rbf_interpolate}
-    assert method in func_map
+    args = [cols, rows, coord, samples, start, end, centre]
+    if method == Method.bilinear:
+        args.extend([False, False])
+    elif method == Method.shearb:
+        args.extend([True, True])
+    else:
+        pass
 
-    result = func_map[method](cols, rows, coord, samples, start, end, centre)
+    result = func_map[method](*args)
 
     # setup the output file/group as needed
     if out_group is None:
@@ -445,7 +456,7 @@ def interpolate(acq, factor, ancillary_group, satellite_solar_group,
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
              'geotransform': geobox.transform.to_gdal(),
              'no_data_value': no_data,
-             'interpolation_method': method}
+             'interpolation_method': method.name}
     desc = ("Contains the interpolated result of factor {} "
             "for band {} from sensor {}.")
     attrs['Description'] = desc.format(factor, band, acq.satellite_name)
