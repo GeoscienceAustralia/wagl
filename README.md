@@ -84,8 +84,18 @@ May wish to investigate which jobs still need (re-)running.
 cd /short/v10/scenes/nbar-scenes-tmp/ls5
 for d in */* ; do echo $d $( ls $d/output/nbar/* -d | wc --lines ) ; done > ~/ls5nbar.txt
 
+for d in */* ;
+do
+ls /g/data/v10/testing_ground/4.2.5-pq-wofs/staging/ls5/level1/$d/* -d | grep OTH | grep -v PRED | sed s:.\*S01-:: | sort > delme1
+ls /short/v10/scenes/nbar-scenes-tmp/ls5/$d/output/nbar/* -d | sed s:.\*BAR01-:: | sort > delme2
+echo $d $(join delme1 delme2 | wc --lines)
+done > ~/ls5potential.txt
+rm delme*
+
 cd /g/data/v10/testing_ground/4.2.5-pq-wofs/outputs/ls5
 for d in */* ; do echo $d $( find $d -maxdepth 2 -name \*.completed | wc --lines ) ; done > ~/ls5pqwofs
+
+for d in */* ; do echo $d $(ls $d/output/pqa/* -d | wc --lines) ; done > ~/ls5pqa.txt
 
 join ~/ls5nbar.txt ~/ls5pqwofs -a1 -e0 -o '0 1.2 2.2' | awk '{ print $1, $3 / $2 }'
 ```
