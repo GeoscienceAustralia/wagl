@@ -900,7 +900,7 @@ class ARD(luigi.WrapperTask):
             level1_scenes = [scene.strip() for scene in src.readlines()]
 
         for scene in level1_scenes:
-            work_name = '{}.{}'.format(basename(scene), self.model.name)
+            work_name = '{}.gaip'.format(basename(scene))
             work_root = pjoin(self.outdir, work_name)
             container = acquisitions(scene)
             for granule in container.granules:
@@ -912,6 +912,34 @@ class ARD(luigi.WrapperTask):
                               'method': self.method}
                     yield Standard(**kwargs)
 
-        
+
+class CallTask(luigi.WrapperTask):
+
+    """An entry point for calling most tasks defined in the above
+       workflow. Useful for submitting a list of scenes to process
+       a given task that could be the entire workflow, or only to
+       the desired task.
+    """
+
+    level1_list = luigi.Parameter()
+    outdir = luigi.Parameter()
+    task = luigi.TaskParameter()
+
+    def requires(self):
+        with open(self.level1_list) as src:
+            level1_scenes = [scene.strip() for scene in src.readlines()]
+
+        for scene in level1_scenes:
+            work_name = '{}.gaip'.format(basename(scene))
+            work_root = pjoin(self.outdir, work_name)
+            container = acquisitions(scene)
+            for granule in container.granules:
+                if 'group' in self.task.get_param_names():
+                    for group in container.groups:
+                        yield self.task(scene, work_root, granule, group)
+                else:
+                    yield self.task(scene, work_root, granule)
+
+
 if __name__ == '__main__':
     luigi.run()
