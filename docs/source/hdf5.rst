@@ -180,4 +180,4 @@ However, the *gaip.singlefile_workflow* isn't able to pickup from where the work
 
 The contents for a Landsat 8 scene going through the nbar model and (3, 3) vertices for the radiative transfer is given below:
 
-.. doc:: singlefile-datasets-list.rst
+.. include:: singlefile-datasets-list.rst
