@@ -12,7 +12,7 @@ Moving to HDF5
 
 Some of the main reasons behind moving to HDF5 are:
 
-* Reduce the number of files being written to disk. Yes imagery could be stored multi-band, but band ordering would need to be explicity defined, and we have the added benefit of including metadata such as Dataset descriptions, thereby allowing an easier knowledge transfer for future developers. For some variations on processing a scene, the number of files output to disk was reduced by approximately 22%.
+* Reduce the number of files being written to disk. Yes imagery could be stored multi-band, but band ordering would need to be explicity defined, and we have the added benefit of including metadata such as Dataset descriptions, thereby allowing an easier knowledge transfer for future developers. For some variations on processing a scene, the number of files output to disk was reduced by approximately 22% when using the *gaip.multifile_workflow*. When using the *gaip.singlefile_workflow* the number of files output is reduced to 1 (the MODTRAN working directory is automatically cleaned up after the results are saved into the HDF5 file.
 * Consequently, a reduction in the number of files, also reduces the number of parameters being passed back and forth between `luigi <https://github.com/spotify/luigi>`_ *Tasks*.
 * Consolodate the numerous text files that could be comma, tab, space, and variable space delimited variations, into a consistant *TABLE* structure that allows compression.
 * *TABLE* and *IMAGE* datasets can be stored and accessed together from the same file.
@@ -169,3 +169,11 @@ An example of how to read the coordinator table into a *pandas.DataFrame*:
           >>> import h5py
           >>> fid = h5py.File('coordinator.h5', 'r')
           >>> df = read_h5_table(fid, 'nbar-coordinator')
+
+Singlefile workflow
+-------------------
+
+The singlefile workflow is useful in situations where you don't want several hundred files being output per scene, which can clog the filesystem, or if submitting a large list of scenes for processing and rather than clogging the scheduler with hundreds of tasks per scene, there'll be a single task per scene.
+This approach is useful for large scale production, and the results are stored in a fashion that serves as both an archive and operational use. One could call it an *operational archive*.
+Routine testing and comparisons between different versions of *gaip* (assuming that the base naming structure is the same), is also more easily evaluated.
+However, the *gaip.singlefile_workflow* isn't able to pickup from where the workflow left off, as is the case in the *gaip.multifile_workflow*, instead it starts off from scratch. The retry count is set to 1 for *gaip.singlefile_workflow*, rather than the default of 3. This allows luigi to attempt to reprocesss the scene one more time, before flagging it as an error.
