@@ -152,6 +152,7 @@ The arguments for *gaip_pbs* are:
 --email              Notification email address.
 --local-scheduler    Use a local scheduler instead of a central scheduler.
 --dsh                Run using PBS Distributed Shell.
+--task               A luigi task defined within the gaip.multifile_workflow; eg *CalculateCoefficients*
 --test               Test job execution (Don't submit the job to the PBS queue).
 
 An example of submitting individual jobs to the PBS queue using the following specifications:
@@ -184,3 +185,46 @@ Each call to *gaip_pbs* will generate a new batch id, and each node will be assi
   $ /base/output/directory/batchid-b6cbadbe98/jobid-074cb6/
   $ /base/output/directory/batchid-b6cbadbe98/jobid-113f33/
   $ /base/output/directory/batchid-b6cbadbe98/jobid-5b00d6/
+
+Intersecting the gaip workflow, and have it execute across a list of scenes
+---------------------------------------------------------------------------
+
+The *--task* command line option for *gaip_pbs* allows the user to have specific control of the workflow, whilst still retaining the capability of running it in bulk over a list of scenes.
+The example below only executes the workflow up to the end of CalculateCoefficients, and only for a single scene. This is because most of the luigi tasks defined in gaip.multifie_workflow are for a given scene's group and granules.
+
+.. code-block:: bash
+
+   $ luigi --module gaip.multifile_workflow CalculateCoefficients \
+     --level1 /path/to/LS5_TM_OTH_P51_GALPGS01-007_111_068_20000707 \
+     --work-root /my/work/LS5_TM_OTH_P51_GALPGS01-007_111_068_20000707.gaip-work --workers 4 --local-scheduler
+   
+The bulk submission workflow entrypoint is defined in the luigi Task named *ARD*, which initialise the entire gaip.multifile_workflow tree. In order to submit a list of scenes but only execute a partial workflow such as *CalculateCoefficients*, then a generic luigi task class named *CallTask* has been defined for this very purpose.
+
+The example below will run the *CalculateCoefficients* for each input scene:
+
+.. code-block:: bash
+
+   $ luigi --module gaip.multifile_workflow CallTask --level1-list /path/to/level1-scenes.txt --outdir /path/to/the/output/directory --task CalculateCoefficients
+
+The example below is using the *gaip_pbs* command line utility:
+
+.. code-block:: bash
+
+   $ gaip_pbs --level1-list /path/to/level1-scenes.txt --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh --task CalculateCoefficients
+
+You might notice that no arguments such as *--model*, *--vertices* or *--method* are present. This is because in order for the CallTask to be generic, it's easier to let any parameters that need parsing, and specify them using the *luigi.cfg* file and have luigi do all the work of parsing additional parameters.
+An example configuration for executing the CalculateCoefficients task and its dependencies, for a list of scenes is given by:
+
+[CalculateCoefficients]
+-----------------------
+
+vertices = (15, 15)
+model = nbar
+
+This will parse in a 15x15 point grid at which to evaluate the radiative transfer, and only for the nbar model.
+
+The *CallTask* luigi task will work for any task in the *gaip.multifile_workflow* if the first 3 arguments of a task are:
+[level1 (file pathname), work_root (directory pathname), granule]
+
+or for tasks that contain a scenes *group* parameter, the first 4 arguments of a task should be:
+[level1 (file pathname), work_root (directory pathname), granule, group]
