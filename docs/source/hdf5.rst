@@ -177,3 +177,8 @@ The singlefile workflow is useful in situations where you don't want several hun
 This approach is useful for large scale production, and the results are stored in a fashion that serves as both an archive and operational use. One could call it an *operational archive*.
 Routine testing and comparisons between different versions of *gaip* (assuming that the base naming structure is the same), is also more easily evaluated.
 However, the *gaip.singlefile_workflow* isn't able to pickup from where the workflow left off, as is the case in the *gaip.multifile_workflow*, instead it starts off from scratch. The retry count is set to 1 for *gaip.singlefile_workflow*, rather than the default of 3. This allows luigi to attempt to reprocesss the scene one more time, before flagging it as an error.
+
+The contents for a Landsat 8 scene going through the nbar model and (3, 3) vertices for the radiative transfer is given below:
+
+.. raw:: rst
+   :file: singlefile-datasets-list.rst
