@@ -26,6 +26,8 @@ from __future__ import absolute_import, print_function
 from os.path import join as pjoin, basename, dirname
 import logging
 import traceback
+from structlog import wrap_logger
+from structlog.processors import JSONRenderer
 import luigi
 from luigi.local_target import LocalFileSystem
 from luigi.util import inherits, requires
@@ -51,7 +53,8 @@ from gaip.temperature import _surface_brightness_temperature
 from gaip.pq import can_pq, run_pq
 
 
-ERROR_LOGGER = logging.getLogger('luigi-error')
+ERROR_LOGGER = wrap_logger(logging.getLogger('gaip-error'),
+                           processors=[JSONRenderer(indent=1, sort_keys=True)])
 
 
 def get_buffer(group):
@@ -65,13 +68,11 @@ def get_buffer(group):
 @luigi.Task.event_handler(luigi.Event.FAILURE)
 def on_failure(task, exception):
     """Capture any Task Failure here."""
-    fmt = "Error processing scene:\n{}\npath:\n{}"
-    msg = fmt.format(basename(task.level1), task.level1)
-    excp_msg = exception.__str__()
-    traceback_msg = traceback.format_exc()
-    ERROR_LOGGER.error(msg)
-    ERROR_LOGGER.error(excp_msg)
-    ERROR_LOGGER.error(traceback_msg)
+    ERROR_LOGGER.error(task=task.get_task_family(),
+                       params=task.get_params(),
+                       scene=task.level1,
+                       exception=exception.__str__(),
+                       traceback=traceback.format_exc())
 
 
 class WorkRoot(luigi.Task):

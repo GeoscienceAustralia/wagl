@@ -28,7 +28,7 @@ from gaip.slope_aspect import slope_aspect_arrays
 from gaip.temperature import surface_brightness_temperature
 
 
-LOG = wrap_logger(logging.getLogger('gaip-card4l'),
+LOG = wrap_logger(logging.getLogger('gaip-status'),
                   processors=[JSONRenderer(indent=1, sort_keys=True)])
 
 

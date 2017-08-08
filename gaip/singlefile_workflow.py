@@ -22,9 +22,11 @@ Workflow settings can be configured in `luigi.cfg` file.
 # pylint: disable=too-many-locals
 # pylint: disable=protected-access
 
-from os.path import join as pjoin, basename, dirname
+from os.path import join as pjoin, basename
 import logging
 import traceback
+from structlog import wrap_logger
+from structlog.processors import JSONRenderer
 import luigi
 from luigi.util import inherits, requires
 
@@ -32,7 +34,8 @@ from gaip.constants import Model, Method
 from gaip.standardise import card4l
 
 
-ERROR_LOGGER = logging.getLogger('luigi-error')
+ERROR_LOGGER = wrap_logger(logging.getLogger('gaip-error'),
+                           processors=[JSONRenderer(indent=1, sort_keys=True)])
 INTERFACE_LOGGER = logging.getLogger('luigi-interface')
 
 
@@ -47,13 +50,11 @@ def get_buffer(group):
 @luigi.Task.event_handler(luigi.Event.FAILURE)
 def on_failure(task, exception):
     """Capture any Task Failure here."""
-    fmt = "Error processing scene:\n{}\npath:\n{}"
-    msg = fmt.format(basename(task.level1), task.level1)
-    excp_msg = exception.__str__()
-    traceback_msg = traceback.format_exc()
-    ERROR_LOGGER.error(msg)
-    ERROR_LOGGER.error(excp_msg)
-    ERROR_LOGGER.error(traceback_msg)
+    ERROR_LOGGER.error(task=task.get_task_family(),
+                       params=task.get_params(),
+                       scene=task.level1,
+                       exception=exception.__str__(),
+                       traceback=traceback.format_exc())
 
 
 class Standard(luigi.Task):
