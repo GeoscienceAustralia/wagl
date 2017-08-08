@@ -4,13 +4,41 @@ Configuration
 While the ARD (Analysis Ready Data) workflow can be executed at the command line, a config file named *luigi.cfg* can be used to override command line arguments, or even to supply 
 parameters to Tasks that are higher up in the dependency tree. They can also be used to supply default parameters rather than specifying in the code directly.
 
-An example *luigi.cfg* can be found at config/luigi.cfg.
+An example *luigi.cfg* can be found here :doc:`here <../../configs/luigi.cfg>`.
 
-The easiest way to get the workflow to find the config file, is to place it in the working directory that the luigi workflow was executed from.
+The easiest way to get the workflow to find the config file, is to place it in the working directory that the luigi workflow will be executed from.
+
+Luigi configurable options
+--------------------------
+
+Configurable options for luigi can be found `here <http://luigi.readthedocs.io/en/stable/configuration.html>`_, but here are a few that *gaip* makes use of:
+
+[core]
+------
+
+logging_conf_file = /path/to/logging.cfg
+
+Task history
+~~~~~~~~~~~~
+
+The luigi history and task status can also be stored in a database, thus providing another source of status information that in conjuction with the logs could be useful to any number of users.
+To output the task history to an sqlite database, modify your luigi.cfg file with the following contents:
+
+[scheduler]
+-----------
+
+record_task_history = True
+
+[task_history]
+--------------
+
+db_connection = sqlite:///luigi-task-history.db
+
+And luigi will output the task history to an sqlite database named luigi-task-history.db relative to the directory that the scheduler was launched from.
 
 
-Configurable options
---------------------
+Workflow configurable options
+-----------------------------
 
 Most of the options aren't required as they're either internal defaults if you're fine with them, or they're inhertied parameters from dependent tasks.
 If you're a user that would like to intersect any part of the dependency tree, then you'll have more control over the parameter inputs, and you'll be required to provide some.
