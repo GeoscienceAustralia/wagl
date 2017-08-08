@@ -11,6 +11,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   overview
    release_notes
    history
    algorithms
@@ -22,6 +23,7 @@ Contents:
    atmospherics
    scripts
    configuration
+   logging
    unittesting
    modules
 
