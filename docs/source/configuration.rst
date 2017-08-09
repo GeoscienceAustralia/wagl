@@ -13,10 +13,10 @@ Luigi configurable options
 
 Configurable options for luigi can be found `here <http://luigi.readthedocs.io/en/stable/configuration.html>`_, but here are a few that *gaip* makes use of:
 
-[core]
-------
+.. code-block:: cfg
 
-logging_conf_file = /path/to/logging.cfg
+   [core]
+   logging_conf_file = /path/to/logging.cfg
 
 Task history
 ~~~~~~~~~~~~
@@ -24,349 +24,297 @@ Task history
 The luigi history and task status can also be stored in a database, thus providing another source of status information that in conjuction with the logs could be useful to any number of users.
 To output the task history to an sqlite database, modify your luigi.cfg file with the following contents:
 
-[scheduler]
------------
+.. code-block:: cfg
 
-record_task_history = True
+   [scheduler]
+   record_task_history = True
+   
+   [task_history]
+   db_connection = sqlite:///luigi-task-history.db
 
-[task_history]
---------------
-
-db_connection = sqlite:///luigi-task-history.db
-
-And luigi will output the task history to an sqlite database named luigi-task-history.db relative to the directory that the scheduler was launched from.
+And luigi will output the task history to an sqlite database named *luigi-task-history.db* relative to the directory that the scheduler was launched from.
 
 
 Workflow configurable options
 -----------------------------
 
 Most of the options aren't required as they're either internal defaults if you're fine with them, or they're inhertied parameters from dependent tasks.
-If you're a user that would like to intersect any part of the dependency tree, then you'll have more control over the parameter inputs, and you'll be required to provide some.
+If you're a user that would like to intersect any part of the dependency tree, then you'll have more control over the parameter inputs, and you'll be required to provide some but not all parameter inputs. A large portion of the Luigi tasks have default values for the parameters, which can be overidden by specifying values via the *luigi.cfg* file.
 
+.. code-block:: cfg
 
-[DEFAULT]
----------
+   [DEFAULT]
+   # Acts as a way of specifying a default parameter that will be created for each task
+   # I'd only recommend it's use for tasks that actually have these items as parameters
 
-Acts as a way of specifying a default parameter that will be created for each task. I'd only recommend it's use for tasks that actually have these as parameters.
+   # The compression filter to use (internally the code defaults to use *lzf*)
+   compression = lzf
 
-compression
-  The compression filter to use (internally the code defaults to use *lzf*.
+   # The y-axis tile size to be used for processing
+   y_tile = 100
 
-y_tile
-  The y-axis tile size to be used for processing.
+   [AncillaryData]
+   # These parameters determine the directory locations required for ancillary retrieval
 
+   # File path name to a file containing the aerosol data
+   aerosol_fname = 
 
-[AncillaryData]
----------------
+   # File path name to the directory containing the MODIS BRDF data
+   brdf_path = 
 
-These parameters determine the directory locations required for ancillary retrieval.
+   # File path name to the directory containing the Pre-MODIS BRDF data
+   brdf_premodis_path = 
 
-aerosol_fname
-  File path name to a file containing the aerosol data.
+   # File path name to the directory containing the ozone data
+   ozone_path = 
 
-brdf_path
-  File path name to the directory containing the MODIS BRDF data.
+   # File path name to the directory containing the water vapour data
+   water_vapour_path = 
 
-brdf_premodis_path
-  File path name to the directory containing the Pre-MODIS BRDF data.
+   # File path name to the directory containing the world 1 degree DEM data
+   dem_path = 
 
-ozone_path
-  File path name to the directory containing the ozone data.
+   # File path name to the directory containing the dewpoint data
+   dewpoint_path = 
 
-water_vapour_path
-  File path name to the directory containing the water vapour data.
+   # File path name to the directory containing the 2m (surface) temperature data
+   temp_2m_path = 
 
-dem_path
-  File path name to the directory containing the world 1 degree DEM data.
+   # File path name to the directory containing the surface pressure data
+   surface_pressure_path = 
 
-dewpoint_path
-  File path name to the directory containing the dewpoint data.
+   # File path name to the directory containing the atmospheric layers geopotential data
+   geopotential_path = 
 
-temp_2m_path
-  File path name to the directory containing the 2m (surface) temperature data.
+   # File path name to the directory containing the atmospheric layers temperature data
+   temperature_path = 
 
-surface_pressure_path
-  File path name to the directory containing the surface pressure data.
+   # File path name to the directory containing the atmospheric layers relative humidity data
+   relative_humidity_path = 
 
-geopotential_path
-   File path name to the directory containing the atmospheric layers geopotential data.
+   # File path name to a file containing the invariant geopotential height data
+   invariant_height_fname = 
 
-temperature_path
-  File path name to the directory containing the atmospheric layers temperature data.
+   [CalculateLonLatGrids]
+   # The compression filter to use (internally the code defaults to use *lzf*)
+   compression = lzf
 
-relative_humidity_path
-  File path name to the directory containing the atmospheric layers relative humidity data.
+   [CalculateSatelliteAndSolarGrids]
+   # File path name to the directory containing the Two-line-element data
+   tle_path = 
 
-invariant_height_fname
-  File path name to a file containing the invariant geopotential height data.
+   # The compression filter to use (internally the code defaults to use *lzf*)
+   compression = lzf
 
+   [WriteTp5]
+   This controls the tp5 file creation required for input into MODTRAN.
 
-[CalculateLonLatGrids]
-----------------------
+   # A name indicating the base directory to output the result to
+   # internally defaults to _atmospherics
+   base_dir = _atmospherics
 
-compression
-  The compression filter to use (internally the code defaults to use *lzf*.
+   # The compression filter to use (internally the code defaults to use *lzf*)
+   compression = lzf
 
+   # The number of vertices required for evaluating the radiative transfer over
+   vertices = (5, 5)
 
-[CalculateSatelliteAndSolarGrids]
----------------------------------
+   # The model run to use; *standard*, *nbar*, or *sbt*
+   model = standard
 
-tle_path
-  File path name to the directory containing the Two-line-element data.
+   [AtmosphericsCase]
+   # This controls the running of MODTRAN
+   # most of the parameters are inherited from the *WriteTp5* task
 
-compression
-  The compression filter to use (internally the code defaults to use *lzf*.
+   # A name indicating the base directory to output the result to
+   # internally defaults to _atmospherics
+   base_dir = _atmospherics
 
+   # The compression filter to use (internally the code defaults to use *lzf*)
+   compression = lzf
 
-[WriteTp5]
-----------
+   # The number of vertices required for evaluating the radiative transfer over
+   vertices = (5, 5)
 
-This controls the tp5 file creation required for input into MODTRAN.
+   # The point id to be run
+   point = 
 
-base_dir
-  A name indicating the base directory to output the result to.
+   # A *list* containing the albedo factor to be run
+   albedos = 
 
-compression
-  The compression filter to use (internally the code defaults to use *lzf*.
+   # A file path name to the MODTRAN executable
+   exe = 
 
-vertices
-  The number of vertices required for evaluating the radiative transfer over.
+   [Atmospherics]
+   # This controls the submition of *AtmosphericsCase* taks, and most of the
+   # parameters are inherited from the *WriteTp5* task
 
-model
-  The model run to use; *standard*, *nbar*, or *sbt*.
+   # A name indicating the base directory to output the result to
+   # internally defaults to _atmospherics
+   base_dir = _atmospherics
 
+   # The compression filter to use (internally the code defaults to use *lzf*)
+   compression = lzf
 
-[AtmosphericsCase]
-------------------
+   # The number of vertices required for evaluating the radiative transfer over
+   # internally defaults to (5, 5)
+   vertices = (5, 5)
 
-This controls the running of MODTRAN, and most of the parameters are inherited
-from the *WriteTp5* task.
+   # The model run to use; *standard*, *nbar*, or *sbt*
+   # internally defaults to standard
+   model = standard
 
-base_dir
-  A name indicating the base directory to output the result to.
+   # A *boolean* to indicate whether MODTRAN evaluations for a single point should
+   # be issued as separate tasks, or combined together in a single process
+   # internally defaults to False
+   separate = false
 
-compression
-  The compression filter to use (internally the code defaults to use *lzf*.
+   [CalculateCoefficients]
+   # Same options as the *Atmospherics* task.
 
-vertices
-  The number of vertices required for evaluating the radiative transfer over.
+   [InterpolateCoefficient]
+   # A name indicating the base directory to output the results to
+   # internally defaults to _interpolation
+   base_dir = _interpolation
 
-point
-  The point id to be run.
+   # The compression filter to use (internally the code defaults to use *lzf*)
+   compression = lzf
 
-albedos
-  A *list* containing the albedo factor to be run.
+   # The number of vertices required for evaluating the radiative transfer over
+   # internally defaults to (5, 5)
+   vertices = (5, 5)
 
-exe
-  A file path name to the MODTRAN executable.
+   # The model run to use; *standard*, *nbar*, or *sbt*
+   # internally defaults to standard
+   model = standard
 
+   # The factor id to run
+   factor = 
 
-[Atmospherics]
---------------
+   # The band number to run
+   band_num = 
 
-This controls the submition of *AtmosphericsCase* taks, and most of the parameters are inherited
-from the *WriteTp5* task.
+   # The interpolation method to use;
+   # *bilinear*, *fbilinear*, *shear*, *shearb*, or *rbf*
+   # internally defaults to shear
+   method = shear
 
-base_dir
-  A name indicating the base directory to output the result to.
+   [InterpolateCoefficients]
+   # The number of vertices required for evaluating the radiative transfer over
+   vertices = (5, 5)
 
-compression
-  The compression filter to use (internally the code defaults to use *lzf*.
+   # The model run to use; *standard*, *nbar*, or *sbt*
+   model = standard
 
-vertices
-  The number of vertices required for evaluating the radiative transfer over.
+   # The compression filter to use (internally the code defaults to use *lzf*)
+   compression = lzf
 
-model
-  The model run to use; *standard*, *nbar*, or *sbt*.
+   # The interpolation method to use;
+   # *bilinear*, *fbilinear*, *shear*, *shearb*, or *rbf*
+   method = shear
 
-separate
-  A *boolean* to indicate whether MODTRAN evaluations for a single point should
-  be issued as separate tasks, or combined together in a single process.
+   [DEMExctraction]
+   # The compression filter to use (internally the code defaults to use *lzf*)
+   compression = lzf
 
+   [SlopeAndAspect]
+   # The compression filter to use (internally the code defaults to use *lzf*)
+   compression = lzf
 
-[CalculateCoefficients]
------------------------
+   # The y-axis tile size to be used for processing
+   y_tile = 100
 
-Same options as the *Atmospherics* task.
+   [IncidentAngles]
+   # The compression filter to use (internally the code defaults to use *lzf*)
+   compression = lzf
 
+   # The y-axis tile size to be used for processing
+   y_tile = 100
 
-[InterpolateCoefficient]
----------------------------
+   [ExitingAngles]
+   # The compression filter to use (internally the code defaults to use *lzf*)
+   compression = lzf
 
-base_dir
-  A name indicating the base directory to output the results to.
-  Internally defaults to _interpolation.
+   # The y-axis tile size to be used for processing
+   y_tile = 100
 
-compression
-  The compression filter to use (internally the code defaults to use *lzf*.
+   [RelativeAzimuthSlope]
+   # The compression filter to use (internally the code defaults to use *lzf*)
+   compression = lzf
 
-vertices
-  The number of vertices required for evaluating the radiative transfer over.
+   # The y-axis tile size to be used for processing
+   y_tile = 100
 
-model
-  The model run to use; *standard*, *nbar*, or *sbt*.
+   [SelfShadow]
+   # A name indicating the base directory to output the results to
+   # internally defaults to _shadow
+   base_dir = _shadow
 
-factor
-  The factor id to run.
+   # The compression filter to use (internally the code defaults to use *lzf*)
+   compression = lzf
 
-band_num
-  The band number to run.
+   # The y-axis tile size to be used for processing
+   y_tile = 100
 
-method
-  The interpolation method to use; *bilinear*, *fbilinear*, *shear*, *shearb*, or *rbf*. The default is *shear*.
+   [CalculateCastShadowSun]
+   # A name indicating the base directory to output the results to
+   # internally defaults to _shadow
+   base_dir = _shadow
 
+   # The compression filter to use (internally the code defaults to use *lzf*)
+   compression = lzf
 
-[InterpolateCoefficients]
------------------------
+   # The y-axis tile size to be used for processing
+   y_tile = 100
 
-vertices
-  The number of vertices required for evaluating the radiative transfer over.
+   [CalculateCastShadowSatellite]
+   # A name indicating the base directory to output the results to
+   # internally defaults to _shadow
+   base_dir = _shadow
 
-model
-  The model run to use; *standard*, *nbar*, or *sbt*.
+   # The compression filter to use (internally the code defaults to use *lzf*)
+   compression = lzf
 
-compression
-  The compression filter to use (internally the code defaults to use *lzf*.
+   # The y-axis tile size to be used for processing
+   y_tile = 100
 
-method
-  THe interpolation method to use; *linear*, *shear* or *rbf*. The default is *shear*.
+   [CalculateShadowMasks]
+   # The compression filter to use (internally the code defaults to use *lzf*)
+   compression = lzf
 
+   # The y-axis tile size to be used for processing
+   y_tile = 100
 
-[DEMExctraction]
-----------------
+   [SurfaceReflectance]
+   # A floating point value for surface reflectance adjustment (Fuqin to document)
+   # internally defaults to 0.52
+   rori = 0.52
 
-compression
-  The compression filter to use (internally the code defaults to use *lzf*.
+   # A name indicating the base directory to output the results to
+   # internally defaults to _standardised
+   base_dir = _standardised
 
+   [SurfaceTemperature]
+   # A name indicating the base directory to output the results to
+   # internally defaults to _standardised
+   base_dir = _standardised
 
-[SlopeAndAspect]
-----------------
+   [Standard]
+   # A boolean indicating whether or not to run the pixel quality workflow
+   # default is false
+   pixel_quality = false
 
-compression
-  The compression filter to use (internally the code defaults to use *lzf*.
+   [ARD]
+   # The model run to use; *standard*, *nbar*, or *sbt*
+   model = standard
 
-y_tile
-  The y-axis tile size to be used for processing.
+   # The number of vertices required for evaluating the radiative transfer over
+   vertices = (5, 5)
 
+   # A boolean indicating whether or not to run the pixel quality workflow
+   # default is false
+   pixel_quality = false
 
-[IncidentAngles]
-----------------
-
-compression
-  The compression filter to use (internally the code defaults to use *lzf*.
-
-y_tile
-  The y-axis tile size to be used for processing.
-
-
-[ExitingAngles]
----------------
-
-compression
-  The compression filter to use (internally the code defaults to use *lzf*.
-
-y_tile
-  The y-axis tile size to be used for processing.
-
-
-[RelativeAzimuthSlope]
-----------------------
-
-compression
-  The compression filter to use (internally the code defaults to use *lzf*.
-
-y_tile
-  The y-axis tile size to be used for processing.
-
-
-[SelfShadow]
-------------
-
-base_dir
-  A name indicating the base directory to output the results to.
-  Internally defaults to _shadow.
-
-compression
-  The compression filter to use (internally the code defaults to use *lzf*.
-
-y_tile
-  The y-axis tile size to be used for processing.
-
-
-[CalculateCastShadowSun]
-------------------------
-
-base_dir
-  A name indicating the base directory to output the results to.
-  Internally defaults to _shadow.
-
-compression
-  The compression filter to use (internally the code defaults to use *lzf*.
-
-y_tile
-  The y-axis tile size to be used for processing.
-
-
-[CalculateCastShadowSatellite]
-------------------------------
-
-base_dir
-  A name indicating the base directory to output the results to.
-  Internally defaults to _shadow.
-
-compression
-  The compression filter to use (internally the code defaults to use *lzf*.
-
-y_tile
-  The y-axis tile size to be used for processing.
-
-
-[CalculateShadowMasks]
-----------------------
-
-compression
-  The compression filter to use (internally the code defaults to use *lzf*.
-
-y_tile
-  The y-axis tile size to be used for processing.
-
-
-[SurfaceReflectance]
---------------------
-rori
-  A floating point value. Internally defaults to 0.52.
-
-base_dir
-  A name indicating the base directory to output the results to.
-  Internally defaults to _standardised.
-
-
-[SurfaceTemperature]
---------------------
-
-base_dir
-  A name indicating the base directory to output the results to.
-  Internally defaults to _standardised.
-
-
-[Standard]
-----------
-
-pixel_quality
-  A boolean indicating whether or not to run the pixel quality workflow.
-
-
-[ARD]
------
-
-model
-  The model run to use; *standard*, *nbar*, or *sbt*.
-
-vertices
-  The number of vertices required for evaluating the radiative transfer over.
-
-pixel_quality
-  A boolean indicating whether or not to run the pixel quality workflow.
-
-method
-  The interpolation method to use; *bilinear*, *fbilinear*, *shear*, *shearb*, or *rbf*. The default is *shear*.
+   # The interpolation method to use;
+   # *bilinear*, *fbilinear*, *shear*, *shearb*, or *rbf*
+   method = shear
