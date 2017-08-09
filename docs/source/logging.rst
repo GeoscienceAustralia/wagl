@@ -1,14 +1,14 @@
 Logging
 =======
 
-Configuration for logging is controlled via a configuration file, which luigi parses and instantiates. Luigi can be pointed to the logging configuration file via the luigi.cfg under the **core** section, eg:
+Configuration for logging is controlled via a configuration file, which luigi parses and instantiates. Luigi can be pointed to the logging configuration file via the *luigi.cfg* under the **core** section, eg:
 
 .. code-block:: cfg
 
    [core]
    logging_conf_file = /path/to/logging.cfg
 
-See gaip's logging.cfg :doc:`logging.cfg <../../configs/logging.cfg>` for the default gaip setup, additional loggers can be defined here and used in any gaip development work one might be likely to do.
+See gaip's logging.cfg `logging.cfg <https://github.com/GeoscienceAustralia/gaip/blob/develop/configs/logging.cfg>`_ for the default gaip setup, additional loggers can be defined here and used in any gaip development work one might be likely to do.
 The default setup is recommended as it'll capture any task errors to disk, as well as recording luigi's and gaip's general status. Any testing and development work can make use of the *gaip-status* qualname to retrieve the *gaip-status.log* initialised by luigi.
 
 Any Task error's that occur when using either the *gaip.multifile_workflow* or the *gaip.singlefile_workflow* are captured, and written to the *gaip-errors.log* file. The logging performed by gaip is structured to output JSON formatted logging which is not only more readable, but allows a user to directly query the logs and retrieve the matching results using tools such as `jq <https://stedolan.github.io/jq/>`_. Errors will be output to *gaip-errors.log*.

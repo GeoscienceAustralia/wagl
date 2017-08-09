@@ -4,7 +4,7 @@ Configuration
 While the ARD (Analysis Ready Data) workflow can be executed at the command line, a config file named *luigi.cfg* can be used to override command line arguments, or even to supply 
 parameters to Tasks that are higher up in the dependency tree. They can also be used to supply default parameters rather than specifying in the code directly.
 
-An example *luigi.cfg* can be found here :doc:`here <../../configs/luigi.cfg>`.
+An example *luigi.cfg* can be found here `here <./../configs/luigi.cf://github.com/GeoscienceAustralia/gaip/blob/develop/configs/luigi.cfg>`_.
 
 The easiest way to get the workflow to find the config file, is to place it in the working directory that the luigi workflow will be executed from.
 
