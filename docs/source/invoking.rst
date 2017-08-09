@@ -213,13 +213,14 @@ The example below is using the *gaip_pbs* command line utility:
    $ gaip_pbs --level1-list /path/to/level1-scenes.txt --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh --task CalculateCoefficients
 
 You might notice that no arguments such as *--model*, *--vertices* or *--method* are present. This is because in order for the CallTask to be generic, it's easier to let any parameters that need parsing, and specify them using the *luigi.cfg* file and have luigi do all the work of parsing additional parameters.
-An example configuration for executing the CalculateCoefficients task and its dependencies, for a list of scenes is given by:
 
-[CalculateCoefficients]
------------------------
+An example configuration for executing the *CalculateCoefficients* task and its dependencies, for a list of scenes is given by:
 
-vertices = (15, 15)
-model = nbar
+.. code-block:: cfg
+
+   [CalculateCoefficients]
+   vertices = (15, 15)
+   model = nbar
 
 This will parse in a 15x15 point grid at which to evaluate the radiative transfer, and only for the nbar model.
 
