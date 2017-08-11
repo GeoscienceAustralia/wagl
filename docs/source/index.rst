@@ -26,6 +26,7 @@ Contents:
    logging
    unittesting
    modules
+   appendix
 
 Indices and tables
 ==================
