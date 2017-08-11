@@ -34,6 +34,16 @@ Some of the main reasons behind moving to HDF5 are:
 * It simplified the workflow **A LOT**. By writing multiple datasets within the same file, the parameter passing bewteen Task's and functions, was reduced in some cases from a dozen parameters, to a single parameter. Some Tasks would act as a helper task whose sole purpose was to manage a bunch of individual Tasks, and combine the results into a single file for easy access by downstream Tasks which then didn't have to open several dozen files. This is achieved by HDF5's ExternalLink feature, which allows the linking of Datasets contained within other files to be readable from a single file that acts as a Table Of Contents (TOC). It is similar to a UNIX symbolic link, or Windows shortcut.
 * A simpler structure for testing and evaluation; eg compare the same scene but different versions of gaip. And have the results stored directly alongside the inputs. That way, it is easier to track exactly what datasets were used to determine the comparison, and have it immediately in a form suitable for archiving and immediate access without having to decompress a tarball containing hundreds or thousands of scenes.
 
+Singlefile workflow
+-------------------
+
+The singlefile workflow is useful in situations where you don't want several hundred files being output per scene, which can clog the filesystem, or if submitting a large list of scenes for processing and rather than clogging the scheduler with hundreds of tasks per scene, there'll be a single task per scene.
+This approach is useful for large scale production, and the results are stored in a fashion that serves as both an archive and operational use. One could call it an *operational archive*.
+Routine testing and comparisons between different versions of *gaip* (assuming that the base naming structure is the same), is also more easily evaluated.
+However, the *gaip.singlefile_workflow* isn't able to pickup from where the workflow left off, as is the case in the *gaip.multifile_workflow*, instead it starts off from scratch. The retry count is set to 1 for *gaip.singlefile_workflow*, rather than the default of 3. This allows luigi to attempt to reprocesss the scene one more time, before flagging it as an error.
+
+The contents for a Landsat 8 scene going through the nbar model and (3, 3) vertices for the radiative transfer is list in :ref:`appendix_a`.
+
 Dataset Names
 -------------
 
@@ -171,12 +181,9 @@ An example of how to read the coordinator table into a *pandas.DataFrame*:
           >>> fid = h5py.File('coordinator.h5', 'r')
           >>> df = read_h5_table(fid, 'nbar-coordinator')
 
-Singlefile workflow
--------------------
+Attributes (metadata)
+---------------------
 
-The singlefile workflow is useful in situations where you don't want several hundred files being output per scene, which can clog the filesystem, or if submitting a large list of scenes for processing and rather than clogging the scheduler with hundreds of tasks per scene, there'll be a single task per scene.
-This approach is useful for large scale production, and the results are stored in a fashion that serves as both an archive and operational use. One could call it an *operational archive*.
-Routine testing and comparisons between different versions of *gaip* (assuming that the base naming structure is the same), is also more easily evaluated.
-However, the *gaip.singlefile_workflow* isn't able to pickup from where the workflow left off, as is the case in the *gaip.multifile_workflow*, instead it starts off from scratch. The retry count is set to 1 for *gaip.singlefile_workflow*, rather than the default of 3. This allows luigi to attempt to reprocesss the scene one more time, before flagging it as an error.
-
-The contents for a Landsat 8 scene going through the nbar model and (3, 3) vertices for the radiative transfer is list in :ref:`appendix_a`.
+All datasets created by *gaip* have attributes attached to them. Each dataset class type eg *SCALAR*, *TABLE*, *IMAGE*, has its own unique attribute set, as well as some common attribute labels.
+The attributes can be printed to screen using the *gaip_ls --filename my-file.h5 --verbose* utility script, or the *gaip.hdf5.h5ls* function and setting the *verbose=True* parameter. Additionally one can also use HDF5's h5ls command line utility which *gaip's* version is fashioned afer.
+The attributes can also be extracted and written to disk using the `yaml <https://en.wikipedia.org/wiki/YAML>`_ format, using the *gaip_convert* utility script, which converts Images to GeoTiff, Tables to csv, and Scalars to yaml.
