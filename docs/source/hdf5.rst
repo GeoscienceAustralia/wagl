@@ -181,9 +181,138 @@ An example of how to read the coordinator table into a *pandas.DataFrame*:
           >>> fid = h5py.File('coordinator.h5', 'r')
           >>> df = read_h5_table(fid, 'nbar-coordinator')
 
+
 Attributes (metadata)
 ---------------------
 
 All datasets created by *gaip* have attributes attached to them. Each dataset class type eg *SCALAR*, *TABLE*, *IMAGE*, has its own unique attribute set, as well as some common attribute labels.
 The attributes can be printed to screen using the *gaip_ls --filename my-file.h5 --verbose* utility script, or the *gaip.hdf5.h5ls* function and setting the *verbose=True* parameter. Additionally one can also use HDF5's h5ls command line utility which *gaip's* version is fashioned afer.
 The attributes can also be extracted and written to disk using the `yaml <https://en.wikipedia.org/wiki/YAML>`_ format, using the *gaip_convert* utility script, which converts Images to GeoTiff, Tables to csv, and Scalars to yaml.
+
+
+TABLE attributes
+~~~~~~~~~~~~~~~~
+
+TABLE datasets will be written following the HDF5 `table specification <https://support.hdfgroup.org/HDF5/doc/HL/H5TB_Spec.html>`_
+with just the base amount of information such as:
+
+* CLASS
+* VERSION
+* TITLE
+* field/column names
+
+Most table datasets sourced from a NumPy `structured array <https://docs.scipy.org/doc/numpy/user/basics.rec.html>`_
+will be of this simpler form, and might have an additional attribute such as *Description*.
+
+If the source of the table was a pandas `DataFrame <https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.html>`_,
+then additional attributes will be attached such as:
+
+* datatype mappings between HDF5 and pandas
+* number of row the table contains
+* column(s) to be used as the index
+
+An example of the attributes attached to a table dataset whose source is a Numpy structured array is given below as a *yaml* document which is what would be yielded if using the command line utility *gaip_convert*:
+
+.. code-block:: yaml
+
+   CLASS: TABLE
+   Description: Contains the array, latitude and longitude coordinates of the satellite
+       track path.
+   FIELD_0_NAME: row_index
+   FIELD_1_NAME: col_index
+   FIELD_2_NAME: n_pixels
+   FIELD_3_NAME: latitude
+   FIELD_4_NAME: longitude
+   TITLE: Centreline
+   VERSION: '0.2'
+   array_coordinate_offset: 0
+
+An example of the attributes attached to a table dataset whose source is a pandas Dataframe, once again as a yaml document, is given below:
+
+.. code-block:: yaml
+
+   Albedo: '0'
+   CLASS: TABLE
+   Description: Accumulated solar irradiation for point 0 and albedo 0.
+   FIELD_0_NAME: index
+   FIELD_1_NAME: diffuse
+   FIELD_2_NAME: direct
+   FIELD_3_NAME: direct_top
+   Point: 0
+   TITLE: Table
+   VERSION: '0.2'
+   diffuse_dtype: float64
+   direct_dtype: float64
+   direct_top_dtype: float64
+   index_dtype: object
+   index_names:
+   - index
+   lonlat:
+   - 125.79006336856054
+   - -33.65767449909174
+   metadata: '`Pandas.DataFrame` converted to HDF5 compound datatype.'
+   nrows: 8
+   python_type: '`Pandas.DataFrame`'
+
+
+IMAGE attributes
+~~~~~~~~~~~~~~~~
+
+IMAGE datasets will be written following the HDF5 `image specification <https://support.hdfgroup.org/HDF5/doc/ADGuide/ImageSpec.html>`_
+with just the base amount of information such as:
+
+* CLASS
+* IMAGE_VERSION
+* DISPLAY_ORIGIN
+
+Images written as a whole at once using the *gaip.hdf5.write_h5_image* routine will attach *IMAGE_MINMAXRANGE* as an additional attribute.
+All images with geospatial context, which within *gaip* should be all images, wiil attach the following two additional attributes:
+
+* transform (GDAL like GeoTransform; 6 element array)
+* crs_wkt (CRS stored as a variable length string using the Well Known Text specification
+
+As mentioned previously, is a simple method similar to other geospatial formats for storing the corner tie point of the array with a real
+world coordinate, along with the coordinate reference system. Both items are easily parsed to GDAL or rasterio for interpretation.
+A *Description* attribute is generally attached to every Image dataset as a means of easier understanding for anyone working with the code and wondering what a given image is representing.
+
+An example of the yaml document, as extracted using *gaip_convert*, for an IMAGE dataset written tile by tile is given as follows:
+
+.. code-block:: yaml
+
+   CLASS: IMAGE
+   DISPLAY_ORIGIN: UL
+   Description: Contains the solar azimuth angle in degrees.
+   IMAGE_VERSION: '1.2'
+   crs_wkt: PROJCS["GDA94 / MGA zone 52",GEOGCS["GDA94",DATUM["Geocentric_Datum_of_Australia_1994",SPHEROID["GRS
+       1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6283"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4283"]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",129],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",10000000],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],AUTHORITY["EPSG","28352"]]
+   geotransform:
+   - 202325.0
+   - 25.0
+   - 0.0
+   - 6271175.0
+   - 0.0
+   - -25.0
+   no_data_value: -999
+
+An example of the yaml document, as extracted using *gaip_convert*, for an IMAGE dataset written using the *gaip.hdf5.write_h5_image* routine is given as follows:
+
+.. code-block:: yaml
+
+   CLASS: IMAGE
+   DISPLAY_ORIGIN: UL
+   Description: Contains the interpolated result of factor a for band 6 from sensor Landsat-8.
+   IMAGE_MINMAXRANGE:
+   - -999.0
+   - 32.484375
+   IMAGE_VERSION: '1.2'
+   crs_wkt: PROJCS["GDA94 / MGA zone 52",GEOGCS["GDA94",DATUM["Geocentric_Datum_of_Australia_1994",SPHEROID["GRS
+       1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6283"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4283"]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",129],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",10000000],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],AUTHORITY["EPSG","28352"]]
+   geotransform:
+   - 202325.0
+   - 25.0
+   - 0.0
+   - 6271175.0
+   - 0.0
+   - -25.0
+   interpolation_method: linear
+   no_data_value: -999
