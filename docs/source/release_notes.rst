@@ -1,5 +1,9 @@
-gaip 5.0 release notes
-======================
+Release Notes
+=============
+
+
+gaip 5.0
+--------
 
 * Version 5.0 has extra satellite/sensor functionality with the inclusion of Sentinel-2a.
 * HDF5 is used as the backend file format which has resulted in a simplified workflow, reduction in the number of files output during a process run, consolodated the file I/O, and various other advantages.
@@ -18,12 +22,12 @@ gaip 5.0 release notes
 
 
 Python compatibility
---------------------
+^^^^^^^^^^^^^^^^^^^^
 Support for Python 2.7* has been dropped, and gaip now requires Python 3.5 or later.
 
 
-gaip 4.0 release notes
-======================
+gaip 4.0
+--------
 
 Version 4.0 has seen a major undertaking in regards to streamlining image I/O through 3rd party libraies, and for the better part, a single point of source.
 The directory structure has been overhauled in order to simplify the code, not only for the users, but also for the developers.
@@ -31,12 +35,9 @@ A new workflow using Luigi has been introduced, and will simplify the job workfl
 
 
 Python compatibility
---------------------
+^^^^^^^^^^^^^^^^^^^^
 gaip requires Python 2.7.6 or later.  Support for Python 3 is not yet complete.
 
-
-What's new in gaip 4.0
-----------------------
 
 Most image based I/O is handled through rasterio, which itself is a wrapper for the GDAL library.  A new algorithm to calculate the solar and satellite angles was introduced, but unlike the previous Fortran code, this was built as a Python module via F2Py. This practice will continue and eventually replace the existing Fortran 77 code.  Other Fortran modules were replaced with existing Python libraries such as the gaussian filter.
 Unsed C and Fortran 77 files were removed, with the remaining files collected into a single `src` directory.

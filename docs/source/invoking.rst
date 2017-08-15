@@ -10,6 +10,10 @@ Three options are available for the gaip model workflow:
 * **nbar**; Executes only the *NBAR* (Surface Reflectance) workflow
 * **sbt**; Executes only the *SBT* (Surface Brightness Temperature) workflow
 
+
+Local scheduler
+---------------
+
 To run the entire standard ARD workflow using luigi's local scheduler, set the --model parameter to *standard*:
 
 .. code-block:: bash
@@ -28,6 +32,10 @@ To run the entire *sbt* ARD workflow using luigi's local scheduler, set the --mo
 
    $ luigi --module gaip.multifile_workflow ARD --level1-list scenes.txt --model sbt --outdir /some/path --workers 4 --local-scheduler
 
+
+Central scheduler
+-----------------
+
 To run using luigi's `central scheduler <http://luigi.readthedocs.io/en/stable/central_scheduler.html>`_:
 
 .. code-block:: bash
@@ -43,6 +51,10 @@ To include the pixel quality workflow as part of the main workflow, you need to 
    $ luigi --module gaip.multifile_workflow ARD --level1-list scenes.txt --model standard --pixel-quality --outdir /some/path --workers 4
 
 Luigi will then execute, and manage, the entire ARD (Analysis Ready Data) workflow for every Level-1 scene listed in *scenes.txt*.
+
+
+Intersecting the workfow at a given task
+----------------------------------------
 
 If however, you want to run just a specific part of the workflow, say for example *CalculateCoefficients*, then you would need to
 specify the following arguments:
@@ -64,6 +76,10 @@ An example of running the *CalculateCoefficients* Task using the local scehduler
      --level1 /path/to/LS5_TM_OTH_P51_GALPGS01-007_111_068_20000707 \
      --work-root /my/work/LS5_TM_OTH_P51_GALPGS01-007_111_068_20000707.gaip-work --workers 4 --local-scheduler
    
+
+Tasks available via the command line
+------------------------------------
+
 The Tasks callable from the command line are:
 
 * **ARD** (Issues full NBAR and/or SBT workflows for each level-1 in a list)
@@ -91,6 +107,10 @@ The Tasks callable from the command line are:
 The added bonus is that luigi will take care of all prior dependencies required to run the chosen Task. To execute the same Task again, simply remove the output file,
 and luigi will re-run the task without re-running any of the prior dependencies, unless those outputs are removed as well.
 
+
+Help an a specific Task
+-----------------------
+
 Help on executing a Task can be retrieved, for example:
 
 .. code-block:: bash
@@ -106,8 +126,8 @@ using this simple workflow.
 For even larger numbers of scenes, say several thousand or tens of thousands to be exectued as a single workflow, then an alternate luigi workflow can be implemented
 such as the PBS task flow. In this example, luigi issues and monitors PBS jobs, each job kicking off an MPI scheduler.
 
-PBS
----
+PBS submission
+--------------
 
 For users on a system that utilises a `PBS <https://en.wikipedia.org/wiki/Portable_Batch_System>`_ scheduler, gaip provides a command line tool *gaip_pbs* for automatic job submission into a PBS queue. The tool can partition the list of scenes into roughly equally sized chunks, based on the number of nodes requested. For example, a list containing 600 scenes, and a job requesting 10 nodes, will partition the list into 10 blocks each containing 60 scenes that a given node will process. Two flavours of jobs can be submitted to the PBS queue in this way:
 
@@ -185,6 +205,7 @@ Each call to *gaip_pbs* will generate a new batch id, and each node will be assi
   $ /base/output/directory/batchid-b6cbadbe98/jobid-074cb6/
   $ /base/output/directory/batchid-b6cbadbe98/jobid-113f33/
   $ /base/output/directory/batchid-b6cbadbe98/jobid-5b00d6/
+
 
 Intersecting the gaip workflow, and have it execute across a list of scenes
 ---------------------------------------------------------------------------
