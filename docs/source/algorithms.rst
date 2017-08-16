@@ -23,7 +23,7 @@ An image taken by a satellite is affected by a range of factors, including:
 * relative position of the sun and earth, and
 * atmospheric conditions.
 
-The NBAR algorithm attempts to normalise the imagery collected by the satellite to take account of these artifacts and hence render it more suitable for further analysis. The normalised imagery should appear as it would if the satellite were directly overhead (i.e. at `nadir <http://en.wikipedia.org/wiki/Nadir>`_) and at a specific solar angle (in the products produced here, 45°).
+The NBAR algorithm attempts to normalise the imagery collected by the satellite to take account of these artifacts and hence render it more suitable for further analysis. The normalised imagery should appear as it would if the satellite were directly overhead (i.e. at `nadir <http://en.wikipedia.org/wiki/Nadir>`_) and at a specific solar angle (in the products produced here, 45 degrees).
 
 The NBAR algorithm was developed by staff at GA and CSIRO and is described in :download:`An Evaluation of the Use of Atmospheric and BRDF Correction to Standardize Landsat Data <auxiliary/li_etal_2010_05422912.pdf>`.
 

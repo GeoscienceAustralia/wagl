@@ -160,7 +160,7 @@ class AcquisitionsContainer(object):
         :param group:
             A `str` containing the group layer to be joined onto
             `path`. If group is `None` (default), or `not in`
-             `AcquisitionContainer.groups` then no path join occurs.
+            `AcquisitionContainer.groups` then no path join occurs.
 
         :param granule:
             A `str` containing the granule layer to be joined onto
@@ -924,9 +924,6 @@ def acquisitions_via_safe(path):
     {'GRANULE_1': {'R10m': [`acquisition_1`,...,`acquisition_n`],
                    'R20m': [`acquisition_1`,...,`acquisition_n`],
                    'R60m': [`acquisition_1`,...,`acquisition_n`]},
-                .
-                .
-                .
      'GRANULE_N': {'R10m': [`acquisition_1`,...,`acquisition_n`],
                    'R20m': [`acquisition_1`,...,`acquisition_n`],
                    'R60m': [`acquisition_1`,...,`acquisition_n`]}}

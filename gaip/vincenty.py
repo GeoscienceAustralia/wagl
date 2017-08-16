@@ -16,7 +16,7 @@
 # limitations under the License.
 # ===============================================================================
 
-'''
+"""
 Algorithms from Geocentric Datum of Australia Technical Manual
 
 http://www.anzlic.org.au/icsm/gdatum/chapter4.html
@@ -36,19 +36,16 @@ The formulae have been extensively tested
 for the Australian region, by comparison with results
 from other formulae (Rainsford, 1955 & Sodano, 1965).
 
-* Inverse problem: azimuth and distance from known
-                    latitudes and longitudes
-* Direct problem: Latitude and longitude from known
-                    position, azimuth and distance.
+* Inverse problem: azimuth and distance from known latitudes and longitudes
+* Direct problem: Latitude and longitude from known position, azimuth and distance.
 * Sample data
 * Excel spreadsheet
 
 Vincenty's Inverse formulae
-Given: latitude and longitude of two points
-                    (phi1, lembda1 and phi2, lembda2),
+Given: latitude and longitude of two points (phi1, lembda1 and phi2, lembda2),
 Calculate: the ellipsoidal distance (s) and
 forward and reverse azimuths between the points (alpha12, alpha21).
-'''
+"""
 
 from __future__ import absolute_import, print_function
 import math

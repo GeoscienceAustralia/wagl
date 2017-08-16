@@ -191,7 +191,7 @@ def run_pq(level1, standardised_data_fname, land_sea_path, compression='lzf'):
 
     :return:
         None; the pixel quality result is stored in the same file
-        as given by the `standardised_data_fname' parameter.
+        as given by the `standardised_data_fname` parameter.
     """
     container = acquisitions(level1)
     acqs = container.get_acquisitions()

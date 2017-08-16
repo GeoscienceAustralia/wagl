@@ -1208,14 +1208,6 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, shadow_prob=False
 
 def fcssm(Sun_zen, Sun_azi, ptm, Temp, t_templ, t_temph, Water, Snow, plcim, plsim, ijDim, resolu, ZC, cldpix, sdpix, snpix):
     """
-    NEW:
-    fcssm(dir_im,Sun_zen,Sun_azi,ptm,Temp,...
-        t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,jiUL,resolu,ZC,cldpix,sdpix,snpix)
-    ORIGINAL:
-    fcssm_1_6sav(dir_im,Sun_zen,Sun_azi,ptm,Temp,...
-        t_templ,t_temph,Water,Snow,plcim,plsim,ijDim,jiUL,resolu,ZC,cldpix,sdpix)
-    """
-    """
     Calculates the cloud shadow mask for a scene, given solar geometry information, the thermal band for the scene & a cloud mask.
 
     :param Sun_zen:
