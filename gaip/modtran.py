@@ -220,10 +220,10 @@ def format_tp5(acquisitions, ancillary_group, satellite_solar_group,
 
             data = THERMAL_TRANSMITTANCE.format(**input_data)
             tp5_data[(p, Model.sbt.albedos[0])] = data
-            dname = ppjoin(POINT_FMT.format(p=p),
-                           ALBEDO_FMT.format(a=Model.sbt.albedos[0]),
-                           DatasetName.tp5.value)
-            write_scalar(numpy.string_(data), dname, group, input_data)
+            out_dname = ppjoin(POINT_FMT.format(p=p),
+                               ALBEDO_FMT.format(a=Model.sbt.albedos[0]),
+                               DatasetName.tp5.value)
+            write_scalar(numpy.string_(data), out_dname, group, input_data)
 
     return tp5_data, out_group
 
