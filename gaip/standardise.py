@@ -266,17 +266,17 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
 
                 for acq in band_acqs:
                     interp_grp = group[GroupName.interp_group.value]
-                    slp_asp_grp = group[GroupName.slp_asp_group.value]
-                    rel_slp_asp = group[GroupName.rel_slp_group.value]
-                    incident_grp = group[GroupName.incident_group.value]
-                    exiting_grp = group[GroupName.exiting_group.value]
-                    shadow_grp = group[GroupName.shadow_group.value]
 
                     if acq.band_type == BandType.Thermal:
                         log.info('SBT', band_number=acq.band_num)
                         surface_brightness_temperature(acq, interp_grp, group,
                                                        compression, y_tile)
                     else:
+                        slp_asp_grp = group[GroupName.slp_asp_group.value]
+                        rel_slp_asp = group[GroupName.rel_slp_group.value]
+                        incident_grp = group[GroupName.incident_group.value]
+                        exiting_grp = group[GroupName.exiting_group.value]
+                        shadow_grp = group[GroupName.shadow_group.value]
                         log.info('Surface-Reflectance',
                                  band_number=acq.band_num)
                         calculate_reflectance(acq, interp_grp, sat_sol_grp,
