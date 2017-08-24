@@ -187,10 +187,10 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
 
             # TODO check that the average ancilary group can be parsed to reflectance and other functions
             if scene.tiled:
-                ancillary_group = fid[GroupName.ancillary_group.value]
-            else:
                 pth = GroupName.ancillary_group.value
                 ancillary_group = granule_group[pth]
+            else:
+                ancillary_group = fid[GroupName.ancillary_group.value]
 
             # satellite/solar angles and lon/lat for a resolution group
             pth = ppjoin(root_path, GroupName.sat_sol_group.value)
