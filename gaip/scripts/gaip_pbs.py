@@ -207,7 +207,9 @@ def _parser():
                    "into the PBS queue. Optionally submit as multiple "
                    "jobs into the PBS queue, or as a single job "
                    "and executed using PBSDSH.")
-    parser = argparse.ArgumentParser(description=description)
+    formatter = argparse.ArgumentDefaultsHelpFormatter
+    parser = argparse.ArgumentParser(description=description,
+                                     formatter_class=formatter)
     parser.add_argument("--level1-list", help="The input level1 scene list.",
                         required=True)
     parser.add_argument("--vertices", default="(5, 5)", type=str,
