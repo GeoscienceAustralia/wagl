@@ -83,7 +83,7 @@ Tasks available via the command line
 The Tasks callable from the command line are:
 
 * **ARD** (Issues full NBAR and/or SBT workflows for each level-1 in a list)
-* **Standard** (Issues SurfaceReflectance and SurfaceTemerature Tasks for each band in a level-1 scene)
+* **DataStandardisation** (Issues SurfaceReflectance and SurfaceTemerature Tasks for each band in a level-1 scene)
 * **SurfaceReflectance** (Calculates terrain corrected surface reflectance for a given band in a level-1 scene)
 * **CalculateShadowMasks** (Issues *CalculateCastShadowSun*, *CalculateCastShadowSatellite*, and *SelfShadow* Tasks for a level-1 scene)
 * **CalculateCastShadowSatellite** (Executes the cast shadow algorithm for the satellite direction, for a level-1 scene)
@@ -250,3 +250,18 @@ The *CallTask* luigi task will work for any task in the *gaip.multifile_workflow
 
 or for tasks that contain a scenes *group* parameter, the first 4 arguments of a task should be:
 [level1 (file pathname), work_root (directory pathname), granule, group]
+
+
+Singlefile workflow
+-------------------
+
+There are two module workflows available from the command line, each sharing much the same command line arguments:
+
+* multifile_workflow
+* singlefile_workflow
+
+The above examples present the multifile workflow which is suitable for testing, experimentation, or simply rapidly producing a small number of outputs.
+The singlefile workflow presents a case more suitable for mass routine production, which as the name of the module suggests, outputs a single file.
+This makes it less demanding on the filesystem, eg more bands, more resolutions, and more points, equal more files, and easier for any scheduler to track, and easier to distribute the single file to other people.
+It could be thought of as an operational archive, that doesn't need to be untarred, or uncompressed, as the file can be accessed quite easily via `h5py <http://www.h5py.org/>`_ without decompressing the entire file.
+It also makes it easier for automatic testing and evaluation to occur between different version of the same scene, to not just test and compare the final outputs of the algorithm, but also for all the intermediate images, tables, constants that are evaluated.
