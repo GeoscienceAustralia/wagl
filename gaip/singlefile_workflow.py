@@ -57,7 +57,7 @@ def on_failure(task, exception):
                        traceback=traceback.format_exc().splitlines())
 
 
-class Standard(luigi.Task):
+class DataStandardisation(luigi.Task):
 
     """
     Runs the standardised product workflow.
@@ -156,7 +156,7 @@ class ARD(luigi.WrapperTask):
                       'dsm_fname': self.dsm_fname,
                       'tle_path': self.tle_path,
                       'rori': self.rori}
-            yield Standard(**kwargs)
+            yield DataStandardisation(**kwargs)
 
         
 if __name__ == '__main__':

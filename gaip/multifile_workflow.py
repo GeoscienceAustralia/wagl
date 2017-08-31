@@ -827,7 +827,7 @@ class SurfaceTemperature(luigi.Task):
 
 
 @inherits(InterpolateCoefficients)
-class Standard(luigi.Task):
+class DataStandardisation(luigi.Task):
 
     """
     Issues standardisation (analysis ready) tasks for both
@@ -911,7 +911,7 @@ class ARD(luigi.WrapperTask):
                               'model': self.model, 'vertices': self.vertices,
                               'pixel_quality': self.pixel_quality,
                               'method': self.method}
-                    yield Standard(**kwargs)
+                    yield DataStandardisation(**kwargs)
 
 
 class CallTask(luigi.WrapperTask):
