@@ -215,7 +215,6 @@ def create_boxline(geobox, view_angle_dataset, centreline_dataset, out_group,
                               ('npoints', 'int64'),
                               ('start_index', 'int64'),
                               ('end_index', 'int64'),
-                              ('latitude', 'float64'),
                               ('bisection_longitude', 'float64'),
                               ('bisection_latitude', 'float64'),
                               ('start_longitude', 'float64'),
@@ -236,11 +235,11 @@ def create_boxline(geobox, view_angle_dataset, centreline_dataset, out_group,
 
     lon, lat = convert_to_lonlat(geobox, istart, row_index)
     boxline['start_longitude'] = lon
-    boxline['start_latitude'] = lon
+    boxline['start_latitude'] = lat
 
     lon, lat = convert_to_lonlat(geobox, iend, row_index)
     boxline['end_longitude'] = lon
-    boxline['end_latitude'] = lon
+    boxline['end_latitude'] = lat
 
     kwargs = dataset_compression_kwargs()
     desc = ("Contains the bi-section, column start and column end array "
