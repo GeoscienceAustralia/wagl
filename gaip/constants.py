@@ -190,6 +190,7 @@ class GroupName(Enum):
     lon_lat_group = 'longitude-latitude'
     sat_sol_group = 'satellite-solar'
     ancillary_group = 'ancillary'
+    ancillary_avg_group = 'averaged-ancillary'
     atmospheric_inputs_grp = 'atmospheric-inputs'
     atmospheric_results_grp = 'atmospheric-results'
     coefficients_group = 'coefficients'
