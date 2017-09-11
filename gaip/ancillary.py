@@ -416,48 +416,41 @@ def collect_nbar_ancillary(acquisition, aerosol_fname=None,
         return fid
 
 
-def _aggregate_ancillary(ancillary_fnames, out_fname):
+def _aggregate_ancillary(ancillary_fnames):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    with h5py.File(out_fname, 'w') as fid:
-        aggregate_ancillary(ancillary_fnames, fid)
+    # get file ids
+    fids = [h5py.File(fname, 'a') for fname in ancillary_fnames]
+    aggregate_ancillary(fids)
+
+    # close
+    for fid in fids:
+        fid.close()
 
     
-def aggregate_ancillary(ancillary_items, out_group):
+def aggregate_ancillary(granule_groups):
     """
     If the acquisition is part of a `tiled` scene such as Sentinel-2a,
-    then we need to average the point measurements gathereed from
-    all tiles.
+    then we need to average the point measurements gathered from
+    all granules.
     """
-    # Initialise the output files
-    if out_group is None:
-        out_fid = h5py.File('ancillary.h5', driver='core', backing_store=False)
-    else:
-        out_fid = out_group
-
-    group = out_fid[GroupName.ancillary_group.value]
-
     # initialise the mean result
     ozone = vapour = aerosol = elevation = 0.0
 
-    n_tiles = len(ancillary_items)
+    # number of granules in the scene
+    n_tiles = len(granule_groups)
 
-    for item in ancillary_items:
-        if isinstance(item, h5py.Group):
-            grp = item[GroupName.ancillary_group.value]
-        else:
-            fid = h5py.File(item, 'r')
-            grp = fid[GroupName.ancillary_group.value]
+    for granule in granule_groups:
+        group = granule[GroupName.ancillary_group.value]
 
-        ozone += grp[DatasetName.ozone.value][()]
-        vapour += grp[DatasetName.water_vapour.value][()]
-        aerosol += grp[DatasetName.aerosol.value][()]
-        elevation += grp[DatasetName.elevation.value][()]
+        ozone += group[DatasetName.ozone.value][()]
+        vapour += group[DatasetName.water_vapour.value][()]
+        aerosol += group[DatasetName.aerosol.value][()]
+        elevation += group[DatasetName.elevation.value][()]
 
-        fid.close()
-
+    # average
     ozone /= n_tiles
     vapour /= n_tiles
     aerosol /= n_tiles
@@ -467,24 +460,27 @@ def aggregate_ancillary(ancillary_items, out_group):
                    "retreived for each Granule.")
     attrs = {'data_source': 'granule_average'}
 
-    dset = group.create_dataset(DatasetName.ozone.value, data=ozone)
-    attrs['Description'] = description.format(*(2*['Ozone']))
-    attach_attributes(dset, attrs)
+    # output each average value back into the same granule ancillary group
+    group_name = ppjoin(GroupName.ancillary_group.value,
+                        GroupName.ancillary_avg_group.value)
+    for granule in granule_groups:
+        group = granule.create_group(group_name)
 
-    dset = group.create_dataset(DatasetName.water_vapour.value, data=vapour)
-    attrs['Description'] = description.format(*(2*['Water Vapour']))
-    attach_attributes(dset, attrs)
+        dset = group.create_dataset(DatasetName.ozone.value, data=ozone)
+        attrs['Description'] = description.format(*(2*['Ozone']))
+        attach_attributes(dset, attrs)
 
-    dset = group.create_dataset(DatasetName.aerosol.value, data=aerosol)
-    attrs['Description'] = description.format(*(2*['Aerosol']))
-    attach_attributes(dset, attrs)
+        dset = group.create_dataset(DatasetName.water_vapour.value, data=vapour)
+        attrs['Description'] = description.format(*(2*['Water Vapour']))
+        attach_attributes(dset, attrs)
 
-    dset = group.create_dataset(DatasetName.elevation.value, data=elevation)
-    attrs['Description'] = description.format(*(2*['Elevation']))
-    attach_attributes(dset, attrs)
+        dset = group.create_dataset(DatasetName.aerosol.value, data=aerosol)
+        attrs['Description'] = description.format(*(2*['Aerosol']))
+        attach_attributes(dset, attrs)
 
-    if out_group is None:
-        return out_fid
+        dset = group.create_dataset(DatasetName.elevation.value, data=elevation)
+        attrs['Description'] = description.format(*(2*['Elevation']))
+        attach_attributes(dset, attrs)
 
 
 def get_aerosol_data(acquisition, aerosol_fname):
