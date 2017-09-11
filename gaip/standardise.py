@@ -59,14 +59,10 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
     satellite = acqs[0].spacecraft_id
     sensor = acqs[0].sensor_id
 
-    # NBAR band id's
+    # NBAR and SBT band id's
     nbar_constants = constants.NBARConstants(satellite, sensor)
-    band_ids = nbar_constants.get_nbar_lut()
-    nbar_bands = [a.band_num for a in acqs if a.band_num in band_ids]
-
-    # SBT band id's
-    band_ids = constants.sbt_bands(satellite, sensor) 
-    sbt_bands = [a.band_num for a in acqs if a.band_num in band_ids]
+    nbar_band_ids = nbar_constants.get_nbar_lut()
+    sbt_band_ids = constants.sbt_bands(satellite, sensor) 
 
     with h5py.File(out_fname, 'w') as fid:
         for grn_name in scene.granules:
@@ -236,7 +232,13 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
                                granule_group=grp_name)
                 log.info('Interpolation')
 
+                # acquisitions and available bands for the current group level
                 acqs = scene.get_acquisitions(granule=grn_name, group=grp_name)
+                nbar_bands = [a.band_num for a in acqs if
+                              a.band_num in nbar_band_ids]
+                sbt_bands = [a.band_num for a in acqs if
+                             a.band_num in sbt_band_ids]
+
                 group = granule_group[grp_name]
                 sat_sol_grp = group[GroupName.sat_sol_group.value]
                 coef_grp = granule_group[GroupName.coefficients_group.value]
@@ -286,10 +288,8 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
                                               rori, group, compression, y_tile)
 
                 # metadata yaml's
-                if model == Model.standard:
+                if model == Model.standard or model == model.nbar:
                     create_ard_yaml(acq, ancillary_group, group)
-                    create_ard_yaml(acq, ancillary_group, group, True)
-                elif model == model.nbar:
-                    create_ard_yaml(acq, ancillary_group, group)
-                else:
+
+                if model == Model.standard or model == model.sbt:
                     create_ard_yaml(acq, ancillary_group, group, True)
