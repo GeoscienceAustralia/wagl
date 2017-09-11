@@ -95,12 +95,17 @@ def format_tp5(acquisitions, ancillary_group, satellite_solar_group,
     longitude = lon_lat_group[DatasetName.lon.value]
     latitude = lon_lat_group[DatasetName.lat.value]
 
+    # retrieve the averaged ancillary if available
+    anc_grp = ancillary_group.get(GroupName.ancillary_avg_group.value)
+    if anc_grp is None:
+        anc_grp = ancillary_group
+
     # ancillary data
     coordinator = ancillary_group[DatasetName.coordinator.value]
-    aerosol = ancillary_group[DatasetName.aerosol.value][()]
-    water_vapour = ancillary_group[DatasetName.water_vapour.value][()]
-    ozone = ancillary_group[DatasetName.ozone.value][()]
-    elevation = ancillary_group[DatasetName.elevation.value][()]
+    aerosol = anc_grp[DatasetName.aerosol.value][()]
+    water_vapour = anc_grp[DatasetName.water_vapour.value][()]
+    ozone = anc_grp[DatasetName.ozone.value][()]
+    elevation = anc_grp[DatasetName.elevation.value][()]
 
     npoints = coordinator.shape[0]
     view = numpy.zeros(npoints, dtype='float32')
