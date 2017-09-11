@@ -17,7 +17,7 @@ import rasterio
 import yaml
 from yaml.representer import Representer
 import gaip
-from gaip.constants import NBARConstants, DatasetName, POINT_FMT
+from gaip.constants import NBARConstants, DatasetName, POINT_FMT, GroupName
 from gaip.hdf5 import write_scalar, read_h5_table, read_scalar
 
 yaml.add_representer(numpy.int8, Representer.represent_int)
@@ -167,14 +167,19 @@ def create_ard_yaml(acquisition, ancillary_group, out_group, sbt=False):
         """
         Load the ancillary data retrieved during the workflow.
         """
+        # retrieve the averaged ancillary if available
+        anc_grp = fid.get(GroupName.ancillary_avg_group.value)
+        if anc_grp is None:
+            anc_grp = fid
+
         dname = DatasetName.aerosol.value
-        aerosol_data = read_scalar(fid, dname)
+        aerosol_data = read_scalar(anc_grp, dname)
         dname = DatasetName.water_vapour.value
-        water_vapour_data = read_scalar(fid, dname)
+        water_vapour_data = read_scalar(anc_grp, dname)
         dname = DatasetName.ozone.value
-        ozone_data = read_scalar(fid, dname)
+        ozone_data = read_scalar(anc_grp, dname)
         dname = DatasetName.elevation.value
-        elevation_data = read_scalar(fid, dname)
+        elevation_data = read_scalar(anc_grp, dname)
 
         ancillary = {'aerosol': aerosol_data,
                      'water_vapour': water_vapour_data,
@@ -210,9 +215,7 @@ def create_ard_yaml(acquisition, ancillary_group, out_group, sbt=False):
     source_info = {'source_scene': level1_path,
                    'scene_centre_datetime': acquisition.scene_centre_datetime,
                    'platform': acquisition.spacecraft_id,
-                   'sensor': acquisition.sensor_id,
-                   'path': acquisition.path,
-                   'row': acquisition.row}
+                   'sensor': acquisition.sensor_id}
 
     # ancillary metadata tracking
     for key, value in extract_ancillary_metadata(level1_path).items():
