@@ -3,9 +3,9 @@
 from os.path import join as pjoin
 from posixpath import join as ppjoin
 import logging
+import tempfile
 from structlog import wrap_logger
 from structlog.processors import JSONRenderer
-import tempfile
 import h5py
 
 from gaip.acquisition import acquisitions
@@ -18,6 +18,7 @@ from gaip.incident_exiting_angles import incident_angles, exiting_angles
 from gaip.incident_exiting_angles import relative_azimuth_slope
 from gaip.interpolation import interpolate
 from gaip.longitude_latitude_arrays import create_lon_lat_grids
+from gaip.metadata import create_ard_yaml
 from gaip.modtran import format_tp5, prepare_modtran, run_modtran
 from gaip.modtran import calculate_coefficients
 from gaip.reflectance import calculate_reflectance
@@ -170,7 +171,7 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
             LOG.info('Aggregate-Ancillary', scene=scene.label,
                      granule='All Granules', granule_group=None)
             granule_groups = [fid[granule] for granule in scene.granules]
-            aggregate_ancillary(granule_groups, fid)
+            aggregate_ancillary(granule_groups)
 
         # atmospherics
         for grn_name in scene.granules:
@@ -187,8 +188,7 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
 
             # TODO check that the average ancilary group can be parsed to reflectance and other functions
             if scene.tiled:
-                pth = GroupName.ancillary_group.value
-                ancillary_group = granule_group[pth]
+                ancillary_group = granule_group[GroupName.ancillary_group.value]
             else:
                 ancillary_group = fid[GroupName.ancillary_group.value]
 
@@ -284,3 +284,12 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
                                               incident_grp, exiting_grp,
                                               shadow_grp, ancillary_group,
                                               rori, group, compression, y_tile)
+
+                # metadata yaml's
+                if model == Model.standard:
+                    create_ard_yaml(acq, ancillary_group, group)
+                    create_ard_yaml(acq, ancillary_group, group, True)
+                elif model == model.nbar:
+                    create_ard_yaml(acq, ancillary_group, group)
+                else:
+                    create_ard_yaml(acq, ancillary_group, group, True)
