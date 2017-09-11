@@ -260,8 +260,9 @@ class WriteTp5(luigi.Task):
         fnames = [inputs[key].path for key in inputs if 'ancillary' in key]
 
         if container.tiled:
-            ancillary_fname = pjoin(self.work_root, 'averaged-ancillary.h5')
-            _aggregate_ancillary(fnames, ancillary_fname)
+            # aggregate the necessary ancillary data
+            _aggregate_ancillary(fnames)
+            ancillary_fname = inputs[(self.granule, 'ancillary')].path
         else:
             ancillary_fname = fnames[0]
 
