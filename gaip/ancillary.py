@@ -416,13 +416,18 @@ def collect_nbar_ancillary(acquisition, aerosol_fname=None,
         return fid
 
 
-def _aggregate_ancillary(ancillary_fnames):
+def _aggregate_ancillary(ancillary_fnames, write_access):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
+    # a horrible mechanism to ensure an unneeded logic contiunes; sigh....
+    fnames = ancillary_fnames.copy()
+    fnames.pop(fnames.index(write_access))
+
     # get file ids
-    fids = [h5py.File(fname, 'a') for fname in ancillary_fnames]
+    fids = [h5py.File(fname, 'r') for fname in fnames]
+    fids.append(h5py.File(write_access, 'a'))
     aggregate_ancillary(fids)
 
     # close
@@ -464,7 +469,11 @@ def aggregate_ancillary(granule_groups):
     group_name = ppjoin(GroupName.ancillary_group.value,
                         GroupName.ancillary_avg_group.value)
     for granule in granule_groups:
-        group = granule.create_group(group_name)
+        # for the multifile workflow, we only want to write to one granule
+        try:
+            group = granule.create_group(group_name)
+        except ValueError:
+            continue
 
         dset = group.create_dataset(DatasetName.ozone.value, data=ozone)
         attrs['Description'] = description.format(*(2*['Ozone']))

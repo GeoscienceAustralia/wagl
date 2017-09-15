@@ -261,8 +261,8 @@ class WriteTp5(luigi.Task):
 
         if container.tiled:
             # aggregate the necessary ancillary data
-            _aggregate_ancillary(fnames)
             ancillary_fname = inputs[(self.granule, 'ancillary')].path
+            _aggregate_ancillary(fnames, ancillary_fname)
         else:
             ancillary_fname = fnames[0]
 
