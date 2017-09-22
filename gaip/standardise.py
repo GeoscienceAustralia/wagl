@@ -42,8 +42,8 @@ def get_buffer(group):
 
 
 def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
-           aerosol_fname, brdf_path, brdf_premodis_path, ozone_path,
-           water_vapour_path, dem_path, dsm_fname, invariant_fname,
+           aerosol, brdf_path, brdf_premodis_path, ozone_path,
+           water_vapour, dem_path, dsm_fname, invariant_fname,
            modtran_exe, out_fname, ecmwf_path=None, rori=0.52,
            compression='lzf', y_tile=100):
     """
@@ -153,8 +153,8 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
             # nbar and sbt ancillary
             LOG.info('Ancillary-Retrieval', scene=scene.label,
                      granule=grn_name, granule_group=None)
-            nbar_paths = {'aerosol_fname': aerosol_fname,
-                          'water_vapour_path': water_vapour_path,
+            nbar_paths = {'aerosol_dict': aerosol,
+                          'water_vapour_dict': water_vapour,
                           'ozone_path': ozone_path,
                           'dem_path': dem_path,
                           'brdf_path': brdf_path,
