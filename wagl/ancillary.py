@@ -116,8 +116,8 @@ def collect_ancillary(container, satellite_solar_group, nbar_paths,
         A `dict` containing the ancillary pathnames required for
         retrieving the NBAR ancillary data. Required keys:
 
-        * aerosol_fname
-        * water_vapour_path
+        * aerosol_data
+        * water_vapour_data
         * ozone_path
         * dem_path
         * brdf_path
@@ -316,8 +316,8 @@ def collect_sbt_ancillary(acquisition, lonlats, ancillary_path,
         return fid
 
 
-def collect_nbar_ancillary(container, aerosol_fname=None,
-                           water_vapour_path=None, ozone_path=None,
+def collect_nbar_ancillary(acquisition, aerosol_dict=None,
+                           water_vapour_dict=None, ozone_path=None,
                            dem_path=None, brdf_path=None,
                            brdf_premodis_path=None, out_group=None,
                            compression='lzf'):
@@ -327,13 +327,17 @@ def collect_nbar_ancillary(container, aerosol_fname=None,
     :param container:
         An instance of an `AcquisitionsContainer` object.
 
-    :param aerosol_fname:
-        A `str` containing the full file pathname to the `HDF5` file
-        containing the aerosol data.
+    :param aerosol_dict:
+        A `dict` defined as either of the following:
 
-    :param water_vapour_path:
-        A `str` containing the full file pathname to the directory
-        containing the water vapour data.
+        * {'default': <value>}
+        * {'pathname': <value>}
+
+    :param water_vapour_dict:
+        A `dict` defined as either of the following:
+
+        * {'default': <value>}
+        * {'pathname': <value>}
 
     :param ozone_path:
         A `str` containing the full file pathname to the directory
@@ -380,10 +384,10 @@ def collect_nbar_ancillary(container, aerosol_fname=None,
     dt = acquisition.acquisition_datetime
     geobox = acquisition.gridded_geo_box()
 
-    aerosol = get_aerosol_data(acquisition, aerosol_fname)
+    aerosol = get_aerosol_data(acquisition, aerosol_dict)
     write_scalar(aerosol[0], DatasetName.aerosol.value, fid, aerosol[1])
 
-    wv = get_water_vapour(acquisition, water_vapour_path)
+    wv = get_water_vapour(acquisition, water_vapour_dict)
     write_scalar(wv[0], DatasetName.water_vapour.value, fid, wv[1])
 
     ozone = get_ozone_data(ozone_path, geobox.centre_lonlat, dt)
@@ -488,7 +492,7 @@ def aggregate_ancillary(granule_groups):
         attach_attributes(dset, attrs)
 
 
-def get_aerosol_data(acquisition, aerosol_fname):
+def get_aerosol_data(acquisition, aerosol_dict):
     """
     Extract the aerosol value for an acquisition.
     The version 2 retrieves the data from a HDF5 file, and provides
@@ -506,6 +510,14 @@ def get_aerosol_data(acquisition, aerosol_fname):
              'aot_mean_%b_All_Aerosols']
     exts = ['/pix', '/cmp', '/cmp']
     pathnames = [ppjoin(ext, dt.strftime(n)) for ext, n in zip(exts, names)]
+
+    # temporary until we sort out a better default mechanism
+    # how do we want to support default values, whilst still support provenance
+    if 'default' in aerosol_dict:
+        metadata = {'data_source': 'Default value'}
+        return aerosol_dict['default'], metadata
+    else:
+        aerosol_fname = aerosol_dict['pathname']
 
     fid = h5py.File(aerosol_fname, 'r')
 
@@ -546,6 +558,9 @@ def get_aerosol_data(acquisition, aerosol_fname):
 
                     fid.close()
                     return data, metadata
+
+    # now we officially support a default value of 0.05 which
+    # should make the following redundant ....
 
     # default aerosol value
     # assumes we are only processing Australia in which case it it should
@@ -606,7 +621,7 @@ def get_ozone_data(ozone_path, lonlat, time):
     return data, metadata
 
 
-def get_water_vapour(acquisition, vapour_path, scale_factor=0.1):
+def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1):
     """
     Retrieve the water vapour value for an `acquisition` and the
     path for the water vapour ancillary data.
@@ -616,7 +631,13 @@ def get_water_vapour(acquisition, vapour_path, scale_factor=0.1):
 
     year = dt.strftime('%Y')
     filename = "pr_wtr.eatm.{year}.tif".format(year=year)
-    datafile = pjoin(vapour_path, filename)
+
+    if 'default' in water_vapour_dict:
+        metadata = {'data_source': 'Default value'}
+        return water_vapour_dict['default'], metadata
+    else:
+        water_vapour_path = water_vapour_dict['pathname']
+    datafile = pjoin(water_vapour_path, filename)
 
     # calculate the water vapour band number based on the datetime
 
