@@ -304,7 +304,6 @@ class Acquisition(object):
         with rasterio.open(self.pathname) as src:
             return GriddedGeoBox.from_dataset(src)
 
-    # @property
     def decimal_hour(self):
         """The time in decimal."""
         time = self.acquisition_datetime
@@ -313,7 +312,6 @@ class Acquisition(object):
                                  / 60.0) / 60.0)
         return dec_hour
 
-    # @property
     def julian_day(self):
         """
         Return the Juilan Day of the scene_centre_datetime.
@@ -547,8 +545,8 @@ def acquisitions_via_mtl(path):
                  and 'file_name' in k]
     bands_ = [b.replace('file_name', '').strip('_') for b in bandfiles]
 
-    # We now create an acquisition object for each band and make the
-    # parameters names nice.
+    # create an acquisition object for each band and attach
+    # some appropriate metadata/attributes
 
     # shortcuts to the requried levels
     prod_md = data['PRODUCT_METADATA']
@@ -567,6 +565,7 @@ def acquisitions_via_mtl(path):
     if sensor_id == 'ETM':
         sensor_id = 'ETM+'
 
+    # get the appropriate landsat acquisition class
     try:
         acqtype = ACQUISITION_TYPE['_'.join([platform_id, sensor_id])]
     except KeyError:
@@ -619,9 +618,6 @@ def acquisitions_via_mtl(path):
         max_quant = quant_md.get('qcalmax_{}'.format(band),
                                  quant_md['quantize_cal_max_{}'.format(band)])
 
-        # TODO; define the metadata dict for input into the acquisition
-        # TODO; initialise the acquisition, list of acqs, and the acq container
-
         # metadata
         attrs = {k: v for k, v in sensor_band_info.items()}
         attrs['solar_azimuth'] = solar_azimuth
@@ -632,103 +628,6 @@ def acquisitions_via_mtl(path):
         attrs['max_quantize'] = max_quant
 
         acqs.append(acqtype(fname, acq_datetime, band_name, band_id, attrs))
-
-        # bandparts = set(band.split('_'))
-
-        # for key in prod_md:
-        #     if band in key:
-        #         fname = pjoin(dir_name, prod_md[key])
-        #         break
-
-        # # create a new copy
-        # new = copy.deepcopy(data)
-
-        # # remove unnecessary values
-        # for kv in list(new.values()):
-        #     for k in list(kv.keys()):
-        #         if 'vcid' in k:
-        #             nk = k.replace('_vcid_', '')
-        #             kv[nk] = kv.pop(k)
-        #         else:
-        #             nk = k
-        #         if bandparts.issubset(set(nk.split('_'))): 
-        #             # remove the values for the other bands
-        #             rm = [nk.replace(band, b) for b in bands if b != band]
-        #             for r in rm:
-        #                 try:
-        #                     del kv[r]
-        #                 except KeyError:
-        #                     pass
-        #             # rename old key to remove band information
-        #             newkey = nk.replace(band, '').strip('_')
-        #             # print "band=%s, k=%s, newkey=%s" % (band, k, newkey)
-        #             kv[newkey] = kv[nk]
-        #             del kv[nk]
-
-        # # set path
-        # dir_name = os.path.dirname(os.path.abspath(filename))
-        # new['PRODUCT_METADATA']['dir_name'] = dir_name
-
-        # # set band name and number
-        # new['PRODUCT_METADATA']['band_name'] = band
-        # band_num = band.replace('band', '').strip('_')
-        # new['PRODUCT_METADATA']['band_num'] = band_num
-
-        # product = new['PRODUCT_METADATA']
-        # spacecraft = fixname(product['spacecraft_id'])
-        # product['spacecraft_id'] = spacecraft
-        # if product['sensor_id'] == 'ETM':
-        #     product['sensor_id'] = 'ETM+'
-        # sensor = product['sensor_id']
-
-        # # Account for a change in the new MTL files
-        # if 'acquisition_date' not in product:
-        #     product['acquisition_date'] = product['date_acquired']
-        # if 'scene_center_scan_time' not in product:
-        #     product['scene_center_scan_time'] = product['scene_center_time']
-        # if  'product_samples_ref' not in product:
-        #     product['product_samples_ref'] = product['reflective_samples']
-        # if  'product_lines_ref' not in product:
-        #     product['product_lines_ref'] = product['reflective_lines']
-
-        # # Account for missing thermal bands in OLI only products
-        # if product['sensor_id'] != 'OLI':
-        #     if  'product_samples_thm' not in product:
-        #         product['product_samples_thm'] = product['thermal_samples']
-        #     if  'product_lines_thm' not in product:
-        #         product['product_lines_thm'] = product['thermal_lines']
-
-        # new['SPACECRAFT'] = {}
-        # db = SENSORS[spacecraft]
-        # for k, v in db.items():
-        #     if k is not 'sensors':
-        #         try:
-        #             new['SPACECRAFT'][k] = v
-        #         except AttributeError:
-        #             new['SPACECRAFT'][k] = v
-
-        # new['SENSOR_INFO'] = {}
-        # db = db['sensors'][sensor]
-
-        # for k, v in db.items():
-        #     if k is not 'bands':
-        #         new['SENSOR_INFO'][k] = v
-
-        # bandname = band.replace('band', '').strip('_')
-        # new['BAND_INFO'] = {}
-        # db = db['bands'][bandname]
-
-        # for k, v in db.items():
-        #     new['BAND_INFO'][k] = v
-        # band_type = db['type_desc']
-        # new['BAND_INFO']['band_type'] = BandType[band_type]
-  
-        # try:
-        #     acqtype = ACQUISITION_TYPE[spacecraft + '_' + sensor]
-        # except KeyError:
-        #     acqtype = LandsatAcquisition
-
-        # acqs.append(acqtype(new))
 
     return AcquisitionsContainer(label=basename(path),
                                  groups={'product': sorted(acqs)})
