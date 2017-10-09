@@ -188,9 +188,6 @@ class Acquisition(object):
 
     """Acquisition metadata."""
 
-    # def __init__(self, metadata):
-    #     for v in metadata.values():
-    #         self.__dict__.update(v)
     def __init__(self, pathname, acquisition_datetime, band_name='BAND 1',
                  band_id='1', metadata=None):
         self._pathname = pathname
@@ -206,6 +203,8 @@ class Acquisition(object):
 
         if metadata is not None:
             for key, value in metadata.items():
+                if key == 'band_type':
+                    value = BandType[key]
                 setattr(self, key, value)
 
         self._open()
