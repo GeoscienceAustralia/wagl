@@ -8,13 +8,13 @@ import re
 import copy
 import json
 import datetime
-from dateutil import parser
 import glob
 from xml.etree import ElementTree
+from functools import total_ordering
+from dateutil import parser
 import pandas
 from pkg_resources import resource_stream
 
-from functools import total_ordering
 import rasterio
 from gaip.data import data, data_and_box, no_data
 from gaip.geobox import GriddedGeoBox
@@ -193,7 +193,7 @@ class Acquisition(object):
     #     for v in metadata.values():
     #         self.__dict__.update(v)
     def __init__(self, pathname, acquisition_datetime, band_name='BAND 1',
-                 band_id='1', metadata):
+                 band_id='1', metadata=None):
         self._pathname = pathname
         self._acquisition_datetime = acquisition_datetime
         self._band_name = band_name
@@ -205,14 +205,15 @@ class Acquisition(object):
         self._gain = 1.0
         self._bias = 0.0
 
-        for key, value in metadata.items():
-            setattr(self, key, value)
+        if metadata is not None:
+            for key, value in metadata.items():
+                setattr(self, key, value)
 
         self._open()
 
     def _open(self):
-        with rasterio.open(self.pathname) as:
-            self._samples = ds.wdith
+        with rasterio.open(self.pathname) as ds:
+            self._samples = ds.width
             self._lines = ds.height
 
     @property
@@ -273,12 +274,10 @@ class Acquisition(object):
 
     def sortkey(self):
         """Representation used for sorting objects."""
-        if isinstance(self.band_num, int):
-            return "%03d" % (self.band_num, )
-        else:
-            return self.band_name.replace('band', '')
+        return self.band_name
 
 
+    # TODO: remove func from data.py
     def data(self, out=None, window=None, masked=False,
              apply_gain_offset=False, out_no_data=-999):
         """
@@ -302,7 +301,7 @@ class Acquisition(object):
 
     def gridded_geo_box(self):
         """Return the `GriddedGeoBox` for this acquisition."""
-        with rasterio.open(pjoin(self.dir_name, self.file_name), 'r') as src:
+        with rasterio.open(self.pathname) as src:
             return GriddedGeoBox.from_dataset(src)
 
     # @property
@@ -344,26 +343,23 @@ class LandsatAcquisition(Acquisition):
     """A Landsat acquisition."""
 
     def __init__(self, pathname, acquisition_datetime, band_name='BAND 1',
-                 band_id='1', metadata):
+                 band_id='1', metadata=None):
         self.min_radiance = 0
         self.max_radiance = 1
         self.min_quantize = 0
         self.max_quantize = 1
 
-        super(LandsatAcquisition, self).__init__(metadata)
+        super(LandsatAcquisition, self).__init__(pathname,
+                                                 acquisition_datetime,
+                                                 band_name=band_name,
+                                                 band_id=band_id,
+                                                 metadata=metadata)
+
+        self._gain = ((self.max_radiance - self.min_radiance) /
+                      (self.max_quantize - self.min_quantize))
+        self._bias = self.max_radiance - (self.gain * self.max_quantize)
 
         self._scaled_radiance = True
-
-    @property
-    def gain(self):
-        """The sensor gain"""
-        return ((self.max_radiance - self.min_radiance) /
-                (self.max_quantize - self.min_quantize))
-
-    @property
-    def bias(self):
-        """Sensor bias"""
-        return self.max_radiance - (self.gain * self.max_quantize)
 
 
 class Landsat5Acquisition(LandsatAcquisition):
@@ -371,8 +367,12 @@ class Landsat5Acquisition(LandsatAcquisition):
     """ Landsat 5 acquisition. """
 
     def __init__(self, pathname, acquisition_datetime, band_name='BAND 1',
-                 band_id='1', metadata):
-        super(Landsat5Acquisition, self).__init__(metadata)
+                 band_id='1', metadata=None):
+        super(Landsat5Acquisition, self).__init__(pathname,
+                                                  acquisition_datetime,
+                                                  band_name=band_name,
+                                                  band_id=band_id,
+                                                  metadata=metadata)
 
         self.platform_id = 'LANDSAT-5'
         self.sensor_id = 'TM'
@@ -391,8 +391,12 @@ class Landsat7Acquisition(LandsatAcquisition):
     """ Landsat 7 acquisition. """
 
     def __init__(self, pathname, acquisition_datetime, band_name='BAND 1',
-                 band_id='1', metadata):
-        super(Landsat7Acquisition, self).__init__(metadata)
+                 band_id='1', metadata=None):
+        super(Landsat7Acquisition, self).__init__(pathname,
+                                                  acquisition_datetime,
+                                                  band_name=band_name,
+                                                  band_id=band_id,
+                                                  metadata=metadata)
 
         self.platform = 'LANDSAT-7'
         self.sensor_id = 'ETM+'
@@ -404,11 +408,6 @@ class Landsat7Acquisition(LandsatAcquisition):
         self.radius = 7285600.0
         self.semi_major_axis = 7083160.0
         self.maximum_view_angle = 9.0
-        self.K1 = 607.76
-        self.K2 = 1260.56
-
-    def sortkey(self):
-        return self.band_name.replace('band', '')
 
 
 class Landsat8Acquisition(LandsatAcquisition):
@@ -416,8 +415,12 @@ class Landsat8Acquisition(LandsatAcquisition):
     """ Landsat 8 acquisition. """
 
     def __init__(self, pathname, acquisition_datetime, band_name='BAND 1',
-                 band_id='1', metadata):
-        super(Landsat8Acquisition, self).__init__(metadata)
+                 band_id='1', metadata=None):
+        super(Landsat8Acquisition, self).__init__(pathname,
+                                                  acquisition_datetime,
+                                                  band_name=band_name,
+                                                  band_id=band_id,
+                                                  metadata=metadata)
 
         self.platform_id = 'LANDSAT-8'
         self.sensor_id = 'OLI'
@@ -429,7 +432,6 @@ class Landsat8Acquisition(LandsatAcquisition):
         self.radius = 7285600.0
         self.semi_major_axis = 7083160.0
         self.maximum_view_angle = 9.0
-
 
 
 ACQUISITION_TYPE = {
@@ -509,7 +511,7 @@ def acquisitions_via_safe2(pathname):
 
     if len(xmlfiles) == 0:
         pattern = pathname.replace('PRD_MSIL1C', 'MTD_SAFL1C')
-        pattern = pattern.replace('.zip','.xml')
+        pattern = pattern.replace('.zip', '.xml')
         xmlzipfiles = [s for s in archive.namelist() if pattern in s]
 
     mtd_xml = archive.read(xmlfiles[0])
@@ -548,7 +550,7 @@ def acquisitions_via_mtl(path):
     # We now create an acquisition object for each band and make the
     # parameters names nice.
 
-    # we're only interested in ['PRODUCT_METADATA'] and ['MIN_MAX_RADIANCE'] keys
+    # shortcuts to the requried levels
     prod_md = data['PRODUCT_METADATA']
     rad_md = data['MIN_MAX_RADIANCE']
     quant_md = data['MIN_MAX_PIXEL_VALUE']
@@ -560,13 +562,18 @@ def acquisitions_via_mtl(path):
     acq_datetime = datetime.datetime.combine(acq_date, centre_time)
 
     # platform and sensor id's
-    platform = fixme(prod_md['spacecraft_id'])
-    sensor = prod_md['sensor_id']
-    if sensor == 'ETM':
-        sensor = 'ETM+'
+    platform_id = fixname(prod_md['spacecraft_id'])
+    sensor_id = prod_md['sensor_id']
+    if sensor_id == 'ETM':
+        sensor_id = 'ETM+'
+
+    try:
+        acqtype = ACQUISITION_TYPE['_'.join([platform_id, sensor_id])]
+    except KeyError:
+        acqtype = LandsatAcquisition
 
     # solar angles
-    if 'sun_azimuth' in data['PRODUCT_PARAMETERS']:
+    if 'PRODUCT_PARAMETERS' in data:
         solar_azimuth = data['PRODUCT_PARAMETERS']['sun_azimuth']
         solar_elevation = data['PRODUCT_PARAMETERS']['sun_elevation']
     else:
@@ -576,128 +583,152 @@ def acquisitions_via_mtl(path):
     # bands to ignore
     ignore = ['band_quality']
 
+    # supported bands for the given platform & sensor id's
+    supported_bands = SENSORS[platform_id][sensor_id]['bands']
+
     acqs = []
-    for band in bands:
+    for band in bands_:
         if band in ignore:
             continue
 
+        # band id
+        if 'vcid' in band:
+            band_id = band.replace('_vcid_', '').replace('band', '').strip('_')
+        else:
+            band_id = band.replace('band', '').strip('_')
+
+        if band_id not in supported_bands:
+            continue
+
+        # band info stored in sensors.json
+        sensor_band_info = supported_bands[band_id]
+
+        # band id name, band filename, band full file pathname
+        band_name = 'BAND {}'.format(band_id)
         band_fname = prod_md.get('{}_file_name'.format(band),
                                  prod_md['file_name_{}'.format(band)])
         fname = pjoin(dir_name, band_fname)
 
         min_rad = rad_md.get('lmin_{}'.format(band),
-                             'radiance_minimum_{}'.format(band))
+                             rad_md['radiance_minimum_{}'.format(band)])
         max_rad = rad_md.get('lmax_{}'.format(band),
-                             'radiance_maximum_{}'.format(band))
+                             rad_md['radiance_maximum_{}'.format(band)])
 
         min_quant = quant_md.get('qcalmin_{}'.format(band),
-                                 'quantize_cal_min_{}'.format(band))
+                                 quant_md['quantize_cal_min_{}'.format(band)])
         max_quant = quant_md.get('qcalmax_{}'.format(band),
-                                 'quantize_cal_max_{}'.format(band))
+                                 quant_md['quantize_cal_max_{}'.format(band)])
 
-        # band name and id
-        if 'vcid' in k:
-            band = band.replace('_vcid_', '')
+        # TODO; define the metadata dict for input into the acquisition
+        # TODO; initialise the acquisition, list of acqs, and the acq container
 
-        band_id = band.replace('band', '').strip('_')
-        band_name = 'BAND {}'.format(band_id)
+        # metadata
+        attrs = {k: v for k, v in sensor_band_info.items()}
+        attrs['solar_azimuth'] = solar_azimuth
+        attrs['solar_elevation'] = solar_elevation
+        attrs['min_radiance'] = min_rad
+        attrs['max_radiance'] = max_rad
+        attrs['min_quantize'] = min_quant
+        attrs['max_quantize'] = max_quant
 
-        bandparts = set(band.split('_'))
+        acqs.append(acqtype(fname, acq_datetime, band_name, band_id, attrs))
 
-        for key in prod_md:
-            if band in key:
-                fname = pjoin(dir_name, prod_md[key])
-                break
+        # bandparts = set(band.split('_'))
 
-        # create a new copy
-        new = copy.deepcopy(data)
+        # for key in prod_md:
+        #     if band in key:
+        #         fname = pjoin(dir_name, prod_md[key])
+        #         break
 
-        # remove unnecessary values
-        for kv in list(new.values()):
-            for k in list(kv.keys()):
-                if 'vcid' in k:
-                    nk = k.replace('_vcid_', '')
-                    kv[nk] = kv.pop(k)
-                else:
-                    nk = k
-                if bandparts.issubset(set(nk.split('_'))): 
-                    # remove the values for the other bands
-                    rm = [nk.replace(band, b) for b in bands if b != band]
-                    for r in rm:
-                        try:
-                            del kv[r]
-                        except KeyError:
-                            pass
-                    # rename old key to remove band information
-                    newkey = nk.replace(band, '').strip('_')
-                    # print "band=%s, k=%s, newkey=%s" % (band, k, newkey)
-                    kv[newkey] = kv[nk]
-                    del kv[nk]
+        # # create a new copy
+        # new = copy.deepcopy(data)
 
-        # set path
-        dir_name = os.path.dirname(os.path.abspath(filename))
-        new['PRODUCT_METADATA']['dir_name'] = dir_name
+        # # remove unnecessary values
+        # for kv in list(new.values()):
+        #     for k in list(kv.keys()):
+        #         if 'vcid' in k:
+        #             nk = k.replace('_vcid_', '')
+        #             kv[nk] = kv.pop(k)
+        #         else:
+        #             nk = k
+        #         if bandparts.issubset(set(nk.split('_'))): 
+        #             # remove the values for the other bands
+        #             rm = [nk.replace(band, b) for b in bands if b != band]
+        #             for r in rm:
+        #                 try:
+        #                     del kv[r]
+        #                 except KeyError:
+        #                     pass
+        #             # rename old key to remove band information
+        #             newkey = nk.replace(band, '').strip('_')
+        #             # print "band=%s, k=%s, newkey=%s" % (band, k, newkey)
+        #             kv[newkey] = kv[nk]
+        #             del kv[nk]
 
-        # set band name and number
-        new['PRODUCT_METADATA']['band_name'] = band
-        band_num = band.replace('band', '').strip('_')
-        new['PRODUCT_METADATA']['band_num'] = band_num
+        # # set path
+        # dir_name = os.path.dirname(os.path.abspath(filename))
+        # new['PRODUCT_METADATA']['dir_name'] = dir_name
 
-        product = new['PRODUCT_METADATA']
-        spacecraft = fixname(product['spacecraft_id'])
-        product['spacecraft_id'] = spacecraft
-        if product['sensor_id'] == 'ETM':
-            product['sensor_id'] = 'ETM+'
-        sensor = product['sensor_id']
+        # # set band name and number
+        # new['PRODUCT_METADATA']['band_name'] = band
+        # band_num = band.replace('band', '').strip('_')
+        # new['PRODUCT_METADATA']['band_num'] = band_num
 
-        # Account for a change in the new MTL files
-        if 'acquisition_date' not in product:
-            product['acquisition_date'] = product['date_acquired']
-        if 'scene_center_scan_time' not in product:
-            product['scene_center_scan_time'] = product['scene_center_time']
-        if  'product_samples_ref' not in product:
-            product['product_samples_ref'] = product['reflective_samples']
-        if  'product_lines_ref' not in product:
-            product['product_lines_ref'] = product['reflective_lines']
+        # product = new['PRODUCT_METADATA']
+        # spacecraft = fixname(product['spacecraft_id'])
+        # product['spacecraft_id'] = spacecraft
+        # if product['sensor_id'] == 'ETM':
+        #     product['sensor_id'] = 'ETM+'
+        # sensor = product['sensor_id']
 
-        # Account for missing thermal bands in OLI only products
-        if product['sensor_id'] != 'OLI':
-            if  'product_samples_thm' not in product:
-                product['product_samples_thm'] = product['thermal_samples']
-            if  'product_lines_thm' not in product:
-                product['product_lines_thm'] = product['thermal_lines']
+        # # Account for a change in the new MTL files
+        # if 'acquisition_date' not in product:
+        #     product['acquisition_date'] = product['date_acquired']
+        # if 'scene_center_scan_time' not in product:
+        #     product['scene_center_scan_time'] = product['scene_center_time']
+        # if  'product_samples_ref' not in product:
+        #     product['product_samples_ref'] = product['reflective_samples']
+        # if  'product_lines_ref' not in product:
+        #     product['product_lines_ref'] = product['reflective_lines']
 
-        new['SPACECRAFT'] = {}
-        db = SENSORS[spacecraft]
-        for k, v in db.items():
-            if k is not 'sensors':
-                try:
-                    new['SPACECRAFT'][k] = v
-                except AttributeError:
-                    new['SPACECRAFT'][k] = v
+        # # Account for missing thermal bands in OLI only products
+        # if product['sensor_id'] != 'OLI':
+        #     if  'product_samples_thm' not in product:
+        #         product['product_samples_thm'] = product['thermal_samples']
+        #     if  'product_lines_thm' not in product:
+        #         product['product_lines_thm'] = product['thermal_lines']
 
-        new['SENSOR_INFO'] = {}
-        db = db['sensors'][sensor]
+        # new['SPACECRAFT'] = {}
+        # db = SENSORS[spacecraft]
+        # for k, v in db.items():
+        #     if k is not 'sensors':
+        #         try:
+        #             new['SPACECRAFT'][k] = v
+        #         except AttributeError:
+        #             new['SPACECRAFT'][k] = v
 
-        for k, v in db.items():
-            if k is not 'bands':
-                new['SENSOR_INFO'][k] = v
+        # new['SENSOR_INFO'] = {}
+        # db = db['sensors'][sensor]
 
-        bandname = band.replace('band', '').strip('_')
-        new['BAND_INFO'] = {}
-        db = db['bands'][bandname]
+        # for k, v in db.items():
+        #     if k is not 'bands':
+        #         new['SENSOR_INFO'][k] = v
 
-        for k, v in db.items():
-            new['BAND_INFO'][k] = v
-        band_type = db['type_desc']
-        new['BAND_INFO']['band_type'] = BandType[band_type]
+        # bandname = band.replace('band', '').strip('_')
+        # new['BAND_INFO'] = {}
+        # db = db['bands'][bandname]
+
+        # for k, v in db.items():
+        #     new['BAND_INFO'][k] = v
+        # band_type = db['type_desc']
+        # new['BAND_INFO']['band_type'] = BandType[band_type]
   
-        try:
-            acqtype = ACQUISITION_TYPE[spacecraft + '_' + sensor]
-        except KeyError:
-            acqtype = LandsatAcquisition
+        # try:
+        #     acqtype = ACQUISITION_TYPE[spacecraft + '_' + sensor]
+        # except KeyError:
+        #     acqtype = LandsatAcquisition
 
-        acqs.append(acqtype(new))
+        # acqs.append(acqtype(new))
 
     return AcquisitionsContainer(label=basename(path),
                                  groups={'product': sorted(acqs)})
@@ -840,15 +871,27 @@ def acquisitions_via_safe(path):
 
 class Sentinel2aAcquisition(Acquisition):
 
-    def __init__(self, metadata):
-        super(Sentinel2aAcquisition, self).__init__(metadata)
-        self.altitude: 786000.0
-        self.inclination: 1.721243708316808
+    def __init__(self, pathname, acquisition_datetime, band_name='BAND 1',
+                 band_id='1', metadata=None):
+        super(Sentinel2aAcquisition, self).__init__(pathname,
+                                                    acquisition_datetime,
+                                                    band_name=band_name,
+                                                    band_id=band_id,
+                                                    metadata=metadata)
+
         self.platform_id: 'SENTINEL-2A'
         self.sensor_id = 'MSI'
+        self.tle_format = 'S2A%4d%sASNNOR.S00'
+        self.tag = 'S2A'
+        self.altitude: 786000.0
+        self.inclination: 1.721243708316808
         self.omega: 0.001039918
         self.semi_major_axis: 7164137.0
         self.maximum_view_angle: 20.0
+
+        self._gps_file = True
+        self._gain = 0.01
+        self._bias = 0.0
 
         #geobox = self.gridded_geo_box()
         #ymin = numpy.min([geobox.ul_lonlat[1], geobox.ur_lonlat[1],
@@ -865,12 +908,3 @@ class Sentinel2aAcquisition(Acquisition):
         df = pandas.read_csv(self.GPS_Filename, sep=' ', names=['lon', 'lat'],
                              header=None)
         return df
-
-    @property
-    def gain(self):
-        return 0.01
-
-    @property
-    def bias(self):
-        return 0.0
-

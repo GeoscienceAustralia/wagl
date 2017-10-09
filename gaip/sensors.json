@@ -1,6 +1,7 @@
 {
     "LANDSAT_5": {
         "TM": {
+                "bands": {
                 "1": {
                     "desc": "Visible Blue",
                     "type_desc": "Reflective",
@@ -58,10 +59,12 @@
                     "spectral_filter_file": "landsat5_vsir.flt",
                     "spectral_range": [2600, 349, -1]
                 }
+              }
             }
          },
     "LANDSAT_7": {
         "ETM+": {
+                "bands": {
                 "1": {
                     "desc": "Visible Blue",
                     "type_desc": "Reflective",
@@ -122,10 +125,12 @@
                     "spectral_filter_file": "landsat5_vsir.flt",
                     "spectral_range": [2600, 349, -1]
                 }
+              }
             }
     },
     "LANDSAT_8": {
         "OLI": {
+                "bands": {
                 "1": {
                     "desc": "Coastal Aerosol",
                     "type_desc": "Reflective",
@@ -175,8 +180,10 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1]
                 }
+            }
         },
         "OLI_TIRS": {
+                "bands": {
                 "1": {
                     "desc": "Coastal Aerosol",
                     "type_desc": "Reflective",
@@ -244,15 +251,10 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1]
                 }
+            }
         }
     },
     "SENTINEL-2A": {
-        "altitude": 786000.0,
-        "inclination": 1.721243708316808,
-        "satellite_name": "Sentinel-2A",
-        "omega": 0.001039918,
-        "semi_major_axis": 7164137.0,
-        "maximum_view_angle": 20.0,
         "sensors": {
             "MSI": {
                 "bands": {
@@ -347,8 +349,6 @@
                     }
                 }
             }
-        },
-        "tag": "S2A",
-        "tle_format": "S2A%4d%sASNNOR.S00"
+        }
     }
 }
