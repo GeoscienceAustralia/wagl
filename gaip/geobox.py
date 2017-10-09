@@ -64,7 +64,7 @@ class GriddedGeoBox(object):
         """
         if isinstance(dataset, gdal.Dataset):
             return GriddedGeoBox.from_gdal_dataset(dataset)
-        elif isinstance(dataset, rio.io.DatasetReader):
+        elif isinstance(dataset, rio._io.DatasetReader):
             return GriddedGeoBox.from_rio_dataset(dataset)
         elif isinstance(dataset, h5py.Dataset):
             return GriddedGeoBox.from_h5_dataset(dataset)

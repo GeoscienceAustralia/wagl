@@ -213,9 +213,9 @@ def create_ard_yaml(acquisition, ancillary_group, out_group, sbt=False):
 
     level1_path = dirname(acquisition.dir_name)
     source_info = {'source_scene': level1_path,
-                   'scene_centre_datetime': acquisition.scene_centre_datetime,
-                   'platform': acquisition.spacecraft_id,
-                   'sensor': acquisition.sensor_id}
+                   'acquisition_datetime': acquisition.acquisition_datetime,
+                   'platform_id': acquisition.platform_id,
+                   'sensor_id': acquisition.sensor_id}
 
     # ancillary metadata tracking
     for key, value in extract_ancillary_metadata(level1_path).items():

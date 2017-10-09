@@ -125,9 +125,9 @@ class Landsat5Mtl1AcquisitionTest(unittest.TestCase):
             self.assertEqual(acq.scene_center_time,
                              datetime.time(23, 36, 9, 88050))
 
-    def test_scene_center_datetime(self):
+    def test_acquisition_datetime(self):
         for acq in self.acqs:
-            self.assertEqual(acq.scene_center_datetime,
+            self.assertEqual(acq.acquisition_datetime,
                              datetime.datetime(2009, 4, 7, 23, 36, 9, 88050))
 
     def test_min_max_radiance_band1(self):
@@ -212,9 +212,9 @@ class Landsat5Mtl2AcquisitionTest(unittest.TestCase):
             self.assertEqual(acq.scene_center_time,
                              datetime.time(0, 4, 43, 174081))
 
-    def test_scene_center_datetime(self):
+    def test_acquisition_datetime(self):
         for acq in self.acqs:
-            self.assertEqual(acq.scene_center_datetime,
+            self.assertEqual(acq.acquisition_datetime,
                              datetime.datetime(2010, 6, 1, 0, 4, 43, 174081))
 
     def test_min_max_radiance_band1(self):
@@ -290,9 +290,9 @@ class Landsat7Mtl1AcquisitionTest(unittest.TestCase):
             self.assertEqual(acq.scene_center_time,
                              datetime.time(23, 39, 26, 931462))
 
-    def test_scene_center_datetime(self):
+    def test_acquisition_datetime(self):
         for acq in self.acqs:
-            self.assertEqual(acq.scene_center_datetime,
+            self.assertEqual(acq.acquisition_datetime,
                              datetime.datetime(2009, 4, 15, 23, 39, 26, 931462))
 
     def test_min_max_radiance_band1(self):
@@ -381,9 +381,9 @@ class Landsat7Mtl2AcquisitionTest(unittest.TestCase):
             self.assertEqual(acq.scene_center_time,
                              datetime.time(1, 47, 55, 878250))
 
-    def test_scene_center_datetime(self):
+    def test_acquisition_datetime(self):
         for acq in self.acqs:
-            self.assertEqual(acq.scene_center_datetime,
+            self.assertEqual(acq.acquisition_datetime,
                              datetime.datetime(2002, 2, 18, 1, 47, 55, 878250))
 
     def test_min_max_radiance_band1(self):
@@ -461,9 +461,9 @@ class Landsat8Mtl1AcquisitionTest(unittest.TestCase):
     #     self.assertEqual(self.acqs[8].grid_cell_size, 25.0)
     #     self.assertEqual(self.acqs[9].grid_cell_size, 25.0)
 
-    def test_scene_center_datetime(self):
+    def test_acquisition_datetime(self):
         for acq in self.acqs:
-            self.assertEqual(acq.scene_center_datetime,
+            self.assertEqual(acq.acquisition_datetime,
                              datetime.datetime(2013, 10, 11, 23, 52, 10,
                                                108347))
 
@@ -556,9 +556,9 @@ class Landsat8Mtl2AcquisitionTest(unittest.TestCase):
     #     self.assertEqual(self.acqs[8].grid_cell_size, 25.0)
     #     self.assertEqual(self.acqs[9].grid_cell_size, 25.0)
 
-    def test_scene_center_datetime(self):
+    def test_acquisition_datetime(self):
         for acq in self.acqs:
-            self.assertEqual(acq.scene_center_datetime,
+            self.assertEqual(acq.acquisition_datetime,
                              datetime.datetime(2016, 10, 3, 0, 46, 10, 530409))
 
     def test_min_max_radiance_band1(self):

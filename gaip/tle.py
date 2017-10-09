@@ -45,7 +45,7 @@ def load_tle_from_archive(acquisition, data_root, day_radius=45):
         ephem EarthSatellite instance
 
     """
-    center_datetime = acquisition.scene_center_datetime
+    center_datetime = acquisition.acquisition_datetime
 
     offsets = sorted(range(-day_radius, day_radius),
                      key=cmp_to_key(lambda x, y: abs(x) - abs(y)))
@@ -106,7 +106,7 @@ def load_tle_from_files(acquisition, data_root, day_range=45):
                 tle1, tle2 = tle_text[1:3]
             return ephem.readtle(acquisition.satellite_name, tle1, tle2)
 
-    center_datetime = acquisition.scene_center_datetime
+    center_datetime = acquisition.acquisition_datetime
     scene_doy = center_datetime.strftime('%j')  # Note format: '%03d'
 
     tle_dir = os.path.join(data_root,
