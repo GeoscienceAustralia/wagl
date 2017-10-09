@@ -16,7 +16,6 @@ import pandas
 from pkg_resources import resource_stream
 
 import rasterio
-from gaip.data import data, data_and_box, no_data
 from gaip.geobox import GriddedGeoBox
 from gaip.modtran import read_spectral_response
 from gaip.mtl import load_mtl
@@ -276,8 +275,6 @@ class Acquisition(object):
         """Representation used for sorting objects."""
         return self.band_name
 
-
-    # TODO: remove func from data.py
     def data(self, out=None, window=None, masked=False,
              apply_gain_offset=False, out_no_data=-999):
         """
@@ -285,9 +282,26 @@ class Acquisition(object):
         If `out` is supplied, it must be a numpy.array into which
         the Acquisition's data will be read.
         """
-        return data(self, out=out, window=window, masked=masked,
-                    apply_gain_offset=apply_gain_offset,
-                    out_no_data=out_no_data)
+        with rasterio.open(self.pathname) as ds:
+            # convert to at sensor radiance as required
+            if apply_gain_offset:
+                if out is None:
+                    out = ds.read(1, window=window, masked=masked)
+                else:
+                    ds.read(1, out=out, window=window, masked=masked)
+
+                # check for no data
+                no_data = acq.no_data if acq.no_data is not None else 0
+                nulls = out == no_data
+
+                # gain & offset; y = mx + b
+                data = acq.gain * out + acq.bias
+
+                # set the out_no_data value inplace of the input no data value
+                data[nulls] = out_no_data
+
+                return data
+            return ds.read(1, out=out, window=window, masked=masked)
 
     def data_and_box(self, out=None, window=None, masked=False):
         """
@@ -298,6 +312,19 @@ class Acquisition(object):
         for this acquisition.
         """
         return data_and_box(self, out=out, window=window, masked=masked)
+        with rasterio.open(self.pathname) as ds:
+            box = GriddedGeoBox.from_dataset(ds)
+            if window is not None:
+                rows = window[0][1] - window[0][0]
+                cols = window[1][1] - window[1][0]
+                prj = ds.crs.wkt
+                res = ds.res
+
+                # Get the new UL co-ordinates of the array
+                ul_x, ul_y = ds.transform * (window[1][0], window[0][0])
+                box = GriddedGeoBox(shape=(rows, cols), origin=(ul_x, ul_y),
+                                    pixelsize=res, crs=prj)
+            return (fo.read(1, out=out, window=window, masked=masked), box)
 
     def gridded_geo_box(self):
         """Return the `GriddedGeoBox` for this acquisition."""
@@ -314,7 +341,7 @@ class Acquisition(object):
 
     def julian_day(self):
         """
-        Return the Juilan Day of the scene_centre_datetime.
+        Return the Juilan Day of the acquisition_datetime.
         """
         return int(self.acquisition_datetime.strftime('%j'))
 
@@ -322,8 +349,11 @@ class Acquisition(object):
     def no_data(self):
         """
         Return the no_data value for this acquisition.
+        Assumes that the acquisition is a single band file.
         """
-        return no_data(self)
+        with rasterio.open(self.pathname) as ds:
+            nodata_list = ds.nodatavals
+            return nodata_list[0]
 
     def spectral_response(self, as_list=False):
         """
