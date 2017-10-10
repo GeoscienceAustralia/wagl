@@ -27,9 +27,11 @@ with open(pjoin(dirname(__file__), 'sensors.json')) as fo:
     SENSORS = json.load(fo)
 
 def fixname(s):
-    """Fix satellite name. Performs 'Landsat7' to 'LANDSAT_7' but also
-    handles 'LANDSAT8' to 'LANDSAT_8'"""
-    return re.sub(r'([a-zA-Z]+)_?(\d)',
+    """Fix satellite name.
+       Performs 'Landsat7' to 'LANDSAT_7', 'LANDSAT8' to 'LANDSAT_8',
+       'Landsat-5' to 'LANDSAT_5'.
+    """
+    return re.sub(r'([a-zA-Z]+)[_-]?(\d)',
                   lambda m: m.group(1).upper() + '_' + m.group(2), s)
 
 
@@ -534,6 +536,19 @@ def acquisitions_via_safe2(pathname):
     """
     Read the SAFE format and return an acquisitions container.
     """
+    def group_helper(fname, resolution_groups):
+        """
+        A helper function to find the resolution group
+        and the band_id, and bail rather than loop over
+        everything.
+        """
+        for key, group in resolution_groups:
+            for item in group:
+                if item in fname:
+                    band_id = re.sub(r'B[0]?', '', item)
+                    band_name = 'BAND {}'.format(band_id)
+                    return key, band_name, band_id
+
     archive = zipfile.ZipFile(pathname)
     xmlfiles = [s for s in archive.namelist() if "MTD_MSIL1C.xml" in s]
 
@@ -549,9 +564,82 @@ def acquisitions_via_safe2(pathname):
     # DATATAKE_SENSING_START is another potential field to read...
     product_start_time = parser.parse(xml_root.findall('./*/Product_Info/PRODUCT_START_TIME')[0].text)
     product_stop_time = parser.parse(xml_root.findall('./*/Product_Info/PRODUCT_STOP_TIME')[0].text)
+    datatake_time = parser.parse(xml_root.findall('./*/Product_Info/*/DATATAKE_SENSING_START')[0].text)
 
-    platform = xml_root.findall('./*/Product_Info/*/SPACECRAFT_NAME')[0].text
+    platform_id = xml_root.findall('./*/Product_Info/*/SPACECRAFT_NAME')[0].text
     # need sensor name
+
+    # safe archive for S2a has two band name mappings, and we need to map ours
+    band_map = {'0': '1', '1': '2', '2': '3', '3': '4', '4': '5', '5': '6',
+                '6': '7', '7': '8', '8': '8a', '9': '9', '10': '10',
+                '11': '11'}
+    
+    # earth -> sun distance in AU
+    d2 = float(root.findall('./*/Product_Image_Characteristics/Reflectance_Conversion/U')[0].text)
+
+    # exoatmospheric solar irradiance
+    solar_irradiance = {}
+    for irradiance in xml_root.iter('SOLAR_IRRADIANCE'):
+        band_irradiance = irradiance.attrib
+        mapped_band_id = band_map[band_irradiance['bandId']]
+        solar_irradiance[mapped_band_id] = float(band_irradiance['value'])
+
+    # assume multiple granules
+    single_granule_archive = False
+
+    granules = {granule.get('granuleIdentifier'): [imid.text for imid in granule.findall('IMAGE_ID')]
+                for granule in xml_root.findall('./*/Product_Info/Product_Organisation/Granule_List/Granules')}
+
+    if not granules:
+        single_granule_archive = True
+        granules = {granule.get('granuleIdentifier'): [imid.text for imid in granule.findall('IMAGE_FILE')]
+                    for granule in xml_root.findall('./*/Product_Info/Product_Organisation/Granule_List/Granule')}
+
+    # resolution groups
+    band_groups = {'R10m': ['B02', 'B03', 'B04', 'B08'],
+                   'R20m': ['B05', 'B06', 'B07', 'B11', 'B12', 'B8A'],
+                   'R60m': ['B01', 'B09', 'B10']}
+    # r10m = ['B02', 'B03', 'B04', 'B08']
+    # r20m = ['B05', 'B06', 'B07', 'B11', 'B12', 'B8A']
+    # r60m = ['B01', 'B09', 'B10']
+            
+    for granule_id, images in granules.items():
+        res_groups = {'R10m': [],
+                      'R20m': [],
+                      'R60m': []}
+
+        granule_xmls = [s for s in archive.namelist() if 'MTD_TL.xml' in s]
+        if len(granule_xmls) == 0:
+            pattern = granule_id.replace('MSI', 'MTD')
+            pattern = pattern.replace(''.join(['_N', processing_baseline]),
+                                      '.xml')
+
+            granule_xmls = [s for s in archive.namelist() if pattern in s]
+
+        granule_xml = archive.read(granule_xmls[0])
+        granule_root = ElementTree.XML(granule_xml)
+
+        img_data_path = ''.join(['zip:', path, '!', archive.namelist()[0]])
+
+        if not single_granule_archive: 
+            img_data_path = ''.join([img_data_path,
+                                     pjoin('GRANULE', granule_id, 'IMG_DATA')])
+
+        # is this the acquisition time???
+        acq_time = parser.parse(granule_root.findall('./*/SENSING_TIME')[0].text)
+
+        for image in images:
+            # image filename
+            img_fname = ''.join([pjoin(img_data_path, image), '.jp2'])
+
+            # band name and id
+            group, band_name, band_id = group_helper(img_fname, band_groups)
+
+            irrad = [for i[band_mapsolar_irradiance
+
+            res_groups[group].append(Sentinel2aAcquisition(img_fname,
+                                                           band_name, band_id,
+                                                           attrs)
 
 
 def acquisitions_via_mtl(path):
@@ -602,12 +690,6 @@ def acquisitions_via_mtl(path):
         acqtype = LandsatAcquisition
 
     # solar angles
-    # if 'PRODUCT_PARAMETERS' in data:
-    #     solar_azimuth = data['PRODUCT_PARAMETERS']['sun_azimuth']
-    #     solar_elevation = data['PRODUCT_PARAMETERS']['sun_elevation']
-    # else:
-    #     solar_azimuth = data['IMAGE_ATTRIBUTES']['sun_azimuth']
-    #     solar_elevation = data['IMAGE_ATTRIBUTES']['sun_elevation']
     solar_azimuth = nested_lookup('sun_azimuth', data)[0]
     solar_elevation = nested_lookup('sun_elevation', data)[0]
 
