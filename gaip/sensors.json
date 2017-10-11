@@ -254,8 +254,7 @@
             }
         }
     },
-    "SENTINEL-2A": {
-        "sensors": {
+    "SENTINEL_2A": {
             "MSI": {
                 "bands": {
                     "1": {
@@ -350,5 +349,4 @@
                 }
             }
         }
-    }
 }
