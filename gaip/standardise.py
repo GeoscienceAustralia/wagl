@@ -56,7 +56,7 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
 
     scene = acquisitions(level1)
     acqs = scene.get_acquisitions()
-    satellite = acqs[0].spacecraft_id
+    satellite = acqs[0].platform_id
     sensor = acqs[0].sensor_id
 
     # NBAR and SBT band id's

@@ -193,7 +193,7 @@ def calculate_reflectance(acquisition, interpolation_group,
     brdf_geo = ancillary_group[dname_fmt.format(band=bn, factor='geo')][()]
 
     # Get the average reflectance values per band
-    nbar_constants = constants.NBARConstants(acq.spacecraft_id, acq.sensor_id)
+    nbar_constants = constants.NBARConstants(acq.platform_id, acq.sensor_id)
     avg_reflectance_values = nbar_constants.get_avg_ref_lut()
 
     # Initialise the output file

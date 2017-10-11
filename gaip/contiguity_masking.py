@@ -12,7 +12,7 @@ from gaip.data import stack_data
 from gaip.tiling import generate_tiles
 
 
-def calc_contiguity_mask(acquisitions, spacecraft_id):
+def calc_contiguity_mask(acquisitions, platform_id):
     """
     Determines locations of null values.
 
@@ -22,9 +22,9 @@ def calc_contiguity_mask(acquisitions, spacecraft_id):
     :param acquisitions:
         A `list` of `acquisition` objects.
 
-    :param spacecraft_id:
-        A `str` containing the spacecraft id as given by
-        `acquisition.spacecraft_id`.
+    :param platform_id:
+        A `str` containing the platform id as given by
+        `acquisition.platform_id`.
 
     :return:
         A single ndarray determining band/pixel contiguity. 1 for
@@ -48,8 +48,8 @@ def calc_contiguity_mask(acquisitions, spacecraft_id):
         mask[idx] = stack.all(0)
 
     # The following is only valid for Landsat 5 images
-    logging.debug('calc_contiguity_mask: spacecraft_id=%s', spacecraft_id)
-    if spacecraft_id == 'LANDSAT_5':
+    logging.debug('calc_contiguity_mask: platform_id=%s', platform_id)
+    if platform_id == 'LANDSAT_5':
         logging.debug('Finding thermal edge anomalies')
         # Apply thermal edge anomalies
         struct = numpy.ones((7, 7), dtype='bool')
@@ -88,8 +88,8 @@ def calc_contiguity_mask(acquisitions, spacecraft_id):
     return mask
 
 
-def set_contiguity_bit(l1t_acqs, spacecraft_id, pq_const, pqa_result):
+def set_contiguity_bit(l1t_acqs, platform_id, pq_const, pqa_result):
     """Set the contiguity bit."""
-    mask = calc_contiguity_mask(l1t_acqs, spacecraft_id)
+    mask = calc_contiguity_mask(l1t_acqs, platform_id)
     bit_index = pq_const.contiguity
     pqa_result.set_mask(mask, bit_index)

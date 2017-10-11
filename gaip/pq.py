@@ -41,7 +41,7 @@ def can_pq(level1):
     """
     supported = ['LANDSAT_5', 'LANDSAT_7', 'LANDSAT_8']
     acq = acquisitions(level1).get_acquisitions()[0]
-    return acq.spacecraft_id in supported
+    return acq.platform_id in supported
 
 
 class PQAResult(object):
@@ -200,12 +200,12 @@ def run_pq(level1, standardised_data_fname, land_sea_path, compression='lzf'):
     # filter out unwanted acquisitions
     acqs = [acq for acq in acqs if acq.band_type != BandType.Panchromatic]
 
-    spacecraft_id = acqs[0].spacecraft_id
+    platform_id = acqs[0].platform_id
     sensor = acqs[0].sensor_id
 
     # constants to be use for this PQA computation 
     pq_const = PQAConstants(sensor)
-    nbar_const = NBARConstants(spacecraft_id, sensor)
+    nbar_const = NBARConstants(platform_id, sensor)
     avail_bands = nbar_const.get_nbar_lut()
 
     # TODO: better method of band number access
@@ -235,7 +235,7 @@ def run_pq(level1, standardised_data_fname, land_sea_path, compression='lzf'):
         tests_run[PQbits(bit).name] = True
 
     # contiguity
-    set_contiguity_bit(acqs, spacecraft_id, pq_const, pqa_result)
+    set_contiguity_bit(acqs, platform_id, pq_const, pqa_result)
     tests_run['contiguity'] = True
 
     # land/sea
@@ -251,7 +251,7 @@ def run_pq(level1, standardised_data_fname, land_sea_path, compression='lzf'):
         # TODO: pass in scene metadata via acquisitions or mtl reader
         mtl = glob(pjoin(level1, '*/*_MTL.txt'))[0]
         mask = fmask_cloud_mask(mtl, null_mask=contiguity_mask,
-                                sat_tag=spacecraft_id, aux_data=aux_data)
+                                sat_tag=platform_id, aux_data=aux_data)
 
         # set the result
         pqa_result.set_mask(mask, pq_const.fmask)

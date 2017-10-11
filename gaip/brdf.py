@@ -479,7 +479,7 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
             * value -> The mean BRDF value covering your image extents.
     """
     # Retrieve the satellite and sensor for the acquisition
-    satellite = acquisition.spacecraft_id
+    satellite = acquisition.platform_id
     sensor = acquisition.sensor_id
 
     # Get the required BRDF LUT & factors list

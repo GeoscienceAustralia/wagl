@@ -52,7 +52,7 @@ def load_tle_from_archive(acquisition, data_root, day_radius=45):
     tds = [datetime.timedelta(days=d) for d in offsets]
     yyddd_list = [(center_datetime + d).strftime('%02y%03j') for d in tds]
 
-    name = acquisition.satellite_name.replace('-', '').upper()
+    name = acquisition.platform_id.replace('-', '').upper()
 
     tle_archive_path = os.path.join(data_root, name,
                                     'TLE', '%s_ARCHIVE.txt' % acquisition.tag)
@@ -78,7 +78,7 @@ def load_tle_from_archive(acquisition, data_root, day_radius=45):
             tle_text = (''.join(match.groups()[0:6])
                         + yyddd + ''.join(match.groups()[6:]))
             lines = tle_text.split('\n')
-            return ephem.readtle(acquisition.spacecraft_id, lines[0], lines[1])
+            return ephem.readtle(acquisition.platform_id, lines[0], lines[1])
 
     return None
 
@@ -94,7 +94,7 @@ def load_tle_from_files(acquisition, data_root, day_range=45):
         ephem EarthSatellite instance
     """
 
-    name = acquisition.satellite_name.replace('-', '').upper()
+    name = acquisition.platform_id.replace('-', '').upper()
 
     def open_tle(tle_path, center_datetime):
         """Open the TLE file and read."""
@@ -104,7 +104,7 @@ def load_tle_from_files(acquisition, data_root, day_range=45):
                 tle1, tle2 = tle_text[7:9]
             if acquisition.tag == 'LS7':
                 tle1, tle2 = tle_text[1:3]
-            return ephem.readtle(acquisition.satellite_name, tle1, tle2)
+            return ephem.readtle(acquisition.platform_id, tle1, tle2)
 
     center_datetime = acquisition.acquisition_datetime
     scene_doy = center_datetime.strftime('%j')  # Note format: '%03d'

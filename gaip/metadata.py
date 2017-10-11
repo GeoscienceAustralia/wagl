@@ -192,7 +192,7 @@ def create_ard_yaml(acquisition, ancillary_group, out_group, sbt=False):
                 ancillary[key] = sbt_ancillary[key]
         else:
             # Get the required BRDF LUT & factors list
-            nbar_constants = NBARConstants(acquisition.spacecraft_id,
+            nbar_constants = NBARConstants(acquisition.platform_id,
                                            acquisition.sensor_id)
             bands = nbar_constants.get_brdf_lut()
             brdf_factors = nbar_constants.get_brdf_factors()
