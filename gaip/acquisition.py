@@ -621,7 +621,6 @@ def acquisitions_via_mtl(path):
         sensor_band_info = supported_bands[band_id]
 
         # band id name, band filename, band full file pathname
-        band_name = 'BAND {}'.format(band_id)
         band_fname = prod_md.get('{}_file_name'.format(band),
                                  prod_md['file_name_{}'.format(band)])
         fname = pjoin(dir_name, band_fname)
@@ -644,6 +643,7 @@ def acquisitions_via_mtl(path):
         attrs['max_radiance'] = max_rad
         attrs['min_quantize'] = min_quant
         attrs['max_quantize'] = max_quant
+        band_name = attrs.pop('band_name')
 
         acqs.append(acqtype(fname, acq_datetime, band_name, band_id, attrs))
 
@@ -676,9 +676,8 @@ def acquisitions_via_safe(pathname):
             for item in group:
                 if item in fname:
                     band_id = re.sub(r'B[0]?', '', item)
-                    band_name = 'BAND {}'.format(band_id)
-                    return key, band_name, band_id
-        return None, None, None
+                    return key, band_id
+        return None, None
 
     archive = zipfile.ZipFile(pathname)
     xmlfiles = [s for s in archive.namelist() if "MTD_MSIL1C.xml" in s]
@@ -771,8 +770,8 @@ def acquisitions_via_safe(pathname):
             # image filename
             img_fname = ''.join([pjoin(img_data_path, image), '.jp2'])
 
-            # band name and id
-            group, band_name, band_id = group_helper(img_fname, band_groups)
+            # band id
+            group, band_id = group_helper(img_fname, band_groups)
             if band_id not in supported_bands:
                 continue
 
@@ -783,6 +782,7 @@ def acquisitions_via_safe(pathname):
             attrs = {k: v for k, v in sensor_band_info.items()}
             attrs['solar_irradiance'] = solar_irradiance[band_id]
             attrs['d2'] = d2
+            band_name = attrs.pop('band_name')
 
             res_groups[group].append(acqtype(img_fname, acq_time, band_name,
                                              band_id, attrs))
