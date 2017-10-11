@@ -381,7 +381,7 @@ class InterpolateCoefficient(luigi.Task):
     """
 
     vertices = luigi.TupleParameter()
-    band_num = luigi.Parameter()
+    band_id = luigi.Parameter()
     factor = luigi.Parameter()
     base_dir = luigi.Parameter(default='_interpolation', significant=False)
     model = luigi.EnumParameter(enum=Model)
@@ -396,7 +396,7 @@ class InterpolateCoefficient(luigi.Task):
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
-        out_fname = '{}-band-{}.h5'.format(self.factor, self.band_num)
+        out_fname = '{}-band-{}.h5'.format(self.factor, self.band_id)
         return luigi.LocalTarget(pjoin(out_path, self.base_dir, out_fname))
 
     def run(self):
@@ -406,7 +406,7 @@ class InterpolateCoefficient(luigi.Task):
         coefficients_fname = self.input()['coef'].path
         ancillary_fname = self.input()['ancillary'].path
 
-        acq = [acq for acq in acqs if acq.band_num == self.band_num][0]
+        acq = [acq for acq in acqs if acq.band_id == self.band_id][0]
 
         with self.output().temporary_path() as out_fname:
             _interpolate(acq, self.factor, sat_sol_angles_fname,
@@ -433,17 +433,17 @@ class InterpolateCoefficients(luigi.Task):
                                           granule=self.granule)
 
         # Retrieve the satellite and sensor for the acquisition
-        satellite = acqs[0].spacecraft_id
+        satellite = acqs[0].platform_id
         sensor = acqs[0].sensor_id
 
         # NBAR band id's
         nbar_constants = constants.NBARConstants(satellite, sensor)
         band_ids = nbar_constants.get_nbar_lut()
-        nbar_bands = [a.band_num for a in acqs if a.band_num in band_ids]
+        nbar_bands = [a.band_id for a in acqs if a.band_id in band_ids]
 
         # SBT band id's
         band_ids = constants.sbt_bands(satellite, sensor) 
-        sbt_bands = [a.band_num for a in acqs if a.band_num in band_ids]
+        sbt_bands = [a.band_id for a in acqs if a.band_id in band_ids]
 
         tasks = {}
         for factor in self.model.factors:
@@ -456,7 +456,7 @@ class InterpolateCoefficients(luigi.Task):
                 key = (band, factor)
                 kwargs = {'level1': self.level1, 'work_root': self.work_root,
                           'granule': self.granule, 'group': self.group,
-                          'band_num': band, 'factor': factor,
+                          'band_id': band, 'factor': factor,
                           'model': self.model, 'vertices': self.vertices,
                           'method': self.method}
                 tasks[key] = InterpolateCoefficient(**kwargs)
@@ -747,7 +747,7 @@ class SurfaceReflectance(luigi.Task):
 
     """Run the terrain correction over a given band."""
 
-    band_num = luigi.Parameter()
+    band_id = luigi.Parameter()
     rori = luigi.FloatParameter(default=0.52, significant=False)
     base_dir = luigi.Parameter(default='_standardised', significant=False)
 
@@ -766,7 +766,7 @@ class SurfaceReflectance(luigi.Task):
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
-        fname = 'reflectance-{band}.h5'.format(band=self.band_num)
+        fname = 'reflectance-{band}.h5'.format(band=self.band_id)
         return luigi.LocalTarget(pjoin(out_path, self.base_dir, fname))
 
     def run(self):
@@ -785,7 +785,7 @@ class SurfaceReflectance(luigi.Task):
         ancillary_fname = inputs['ancillary'].path
 
         # get the acquisition we wish to process
-        acq = [acq for acq in acqs if acq.band_num == self.band_num][0]
+        acq = [acq for acq in acqs if acq.band_id == self.band_id][0]
 
         with self.output().temporary_path() as out_fname:
             _calculate_reflectance(acq, interpolation_fname, sat_sol_fname,
@@ -811,13 +811,13 @@ class SurfaceTemperature(luigi.Task):
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
-        fname = 'temperature-{band}.h5'.format(band=self.band_num)
+        fname = 'temperature-{band}.h5'.format(band=self.band_id)
         return luigi.LocalTarget(pjoin(out_path, self.base_dir, fname))
 
     def run(self):
         container = acquisitions(self.level1)
         acqs = container.get_acquisitions(self.group, self.granule)
-        acq = [acq for acq in acqs if acq.band_num == self.band_num][0]
+        acq = [acq for acq in acqs if acq.band_id == self.band_id][0]
 
         with self.output().temporary_path() as out_fname:
             interpolation_fname = self.input()['interpolation'].path
@@ -844,25 +844,25 @@ class DataStandardisation(luigi.Task):
                                           granule=self.granule)
 
         # Retrieve the satellite and sensor for the acquisition
-        satellite = acqs[0].spacecraft_id
+        satellite = acqs[0].platform_id
         sensor = acqs[0].sensor_id
 
         # NBAR band id's
         if self.model == Model.standard or self.model == Model.nbar:
             nbar_constants = constants.NBARConstants(satellite, sensor)
             band_ids = nbar_constants.get_nbar_lut()
-            bands.extend([a for a in acqs if a.band_num in band_ids])
+            bands.extend([a for a in acqs if a.band_id in band_ids])
 
         # SBT band id's
         if self.model == Model.standard or self.model == Model.sbt:
             band_ids = constants.sbt_bands(satellite, sensor) 
-            bands.extend([a for a in acqs if a.band_num in band_ids])
+            bands.extend([a for a in acqs if a.band_id in band_ids])
 
         tasks = []
         for band in bands:
             kwargs = {'level1': self.level1, 'work_root': self.work_root,
                       'granule': self.granule, 'group': self.group,
-                      'band_num': band.band_num, 'model': self.model,
+                      'band_id': band.band_id, 'model': self.model,
                       'vertices': self.vertices, 'method': self.method}
             if band.band_type == BandType.Thermal:
                 tasks.append(SurfaceTemperature(**kwargs))

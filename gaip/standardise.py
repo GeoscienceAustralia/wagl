@@ -234,10 +234,10 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
 
                 # acquisitions and available bands for the current group level
                 acqs = scene.get_acquisitions(granule=grn_name, group=grp_name)
-                nbar_bands = [a.band_num for a in acqs if
-                              a.band_num in nbar_band_ids]
-                sbt_bands = [a.band_num for a in acqs if
-                             a.band_num in sbt_band_ids]
+                nbar_bands = [a.band_id for a in acqs if
+                              a.band_id in nbar_band_ids]
+                sbt_bands = [a.band_id for a in acqs if
+                             a.band_id in sbt_band_ids]
 
                 group = granule_group[grp_name]
                 sat_sol_grp = group[GroupName.sat_sol_group.value]
@@ -250,8 +250,8 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
                         bands = sbt_bands
 
                     for bn in bands:
-                        log.info('Interpolate', band_number=bn, factor=factor)
-                        acq = [acq for acq in acqs if acq.band_num == bn][0]
+                        log.info('Interpolate', band_id=bn, factor=factor)
+                        acq = [acq for acq in acqs if acq.band_id == bn][0]
                         interpolate(acq, factor, ancillary_group, sat_sol_grp,
                                     coef_grp, group, compression, y_tile,
                                     method)
@@ -260,17 +260,17 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
                 band_acqs = []
                 if model == Model.standard or model == model.nbar:
                     band_acqs.extend([a for a in acqs if
-                                      a.band_num in nbar_bands])
+                                      a.band_id in nbar_bands])
 
                 if model == Model.standard or model == model.sbt:
                     band_acqs.extend([a for a in acqs if
-                                      a.band_num in sbt_bands])
+                                      a.band_id in sbt_bands])
 
                 for acq in band_acqs:
                     interp_grp = group[GroupName.interp_group.value]
 
                     if acq.band_type == BandType.Thermal:
-                        log.info('SBT', band_number=acq.band_num)
+                        log.info('SBT', band_id=acq.band_id)
                         surface_brightness_temperature(acq, interp_grp, group,
                                                        compression, y_tile)
                     else:
@@ -280,7 +280,7 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
                         exiting_grp = group[GroupName.exiting_group.value]
                         shadow_grp = group[GroupName.shadow_group.value]
                         log.info('Surface-Reflectance',
-                                 band_number=acq.band_num)
+                                 band_id=acq.band_id)
                         calculate_reflectance(acq, interp_grp, sat_sol_grp,
                                               slp_asp_grp, rel_slp_asp,
                                               incident_grp, exiting_grp,

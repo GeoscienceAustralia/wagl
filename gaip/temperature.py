@@ -102,7 +102,7 @@ def surface_brightness_temperature(acquisition, interpolation_group,
     """
     acq = acquisition
     geobox = acq.gridded_geo_box()
-    bn = acq.band_num
+    bn = acq.band_id
 
     # retrieve the upwelling radiation and transmittance datasets
     dname_fmt = DatasetName.interpolation_fmt.value
@@ -135,12 +135,12 @@ def surface_brightness_temperature(acquisition, interpolation_group,
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
              'geotransform': geobox.transform.to_gdal(),
              'no_data_value': kwargs['fillvalue'],
-             'sattelite': acq.spacecraft_id,
-             'sensor': acq.sensor_id,
-             'band number': acq.band_num}
+             'platform_id': acq.platform_id,
+             'sensor_id': acq.sensor_id,
+             'band_id': acq.band_id}
 
     name_fmt = DatasetName.temperature_fmt.value
-    dataset_name = name_fmt.format(band=acq.band_num)
+    dataset_name = name_fmt.format(band=acq.band_id)
     out_dset = group.create_dataset(dataset_name, **kwargs)
 
     desc = "Surface Brightness Temperature in Kelvin."
@@ -244,7 +244,7 @@ def get_landsat_temperature(acquisitions, pq_const):
     thermal_band = pq_const.thermal_band
 
     # Function returns a list of one item. Take the first item.
-    acq = [a for a in acqs if a.band_num == thermal_band][0]
+    acq = [a for a in acqs if a.band_id == thermal_band][0]
     radiance = acq.data(apply_gain_offset=True)
 
     kelvin_array = temperature_conversion(radiance, acq.K1, acq.K2)

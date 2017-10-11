@@ -165,7 +165,7 @@ def calculate_reflectance(acquisition, interpolation_group,
     """
     acq = acquisition
     geobox = acq.gridded_geo_box()
-    bn = acq.band_num
+    bn = acq.band_id
 
     dname_fmt = DatasetName.interpolation_fmt.value
     fv_dataset = interpolation_group[dname_fmt.format(factor='fv', band=bn)]
@@ -229,9 +229,9 @@ def calculate_reflectance(acquisition, interpolation_group,
              'geotransform': geobox.transform.to_gdal(),
              'no_data_value': kwargs['fillvalue'],
              'rori_threshold_setting': rori,
-             'sattelite': acq.spacecraft_id,
-             'sensor': acq.sensor_id,
-             'band_number': bn}
+             'platform_id': acq.platform_id,
+             'sensor_id': acq.sensor_id,
+             'band_id': bn}
 
     desc = "Contains the lambertian reflectance data scaled by 10000."
     attrs['Description'] = desc
@@ -297,7 +297,7 @@ def calculate_reflectance(acquisition, interpolation_group,
 
         # Run terrain correction
         reflectance(xsize, ysize, rori, brdf_iso, brdf_vol, brdf_geo,
-                    avg_reflectance_values[acq.band_num], kwargs['fillvalue'],
+                    avg_reflectance_values[acq.band_id], kwargs['fillvalue'],
                     band_data, shadow, solar_zenith, solar_azimuth,
                     satellite_view, relative_angle, slope, aspect,
                     incident_angle, exiting_angle, relative_slope, a_mod,
