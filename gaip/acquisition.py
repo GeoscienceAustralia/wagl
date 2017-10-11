@@ -1,20 +1,28 @@
 """
-Core code.
+The acquisition is a core object passed throughout gaip,
+which provides a lightweight `Acquisition` class.
+An `Acquisition` instance provides data read methods,
+and contains various attributes/metadata regarding the band
+as well as the sensor, and sensor's platform.
+
+An `AcquisitionsContainer` provides a container like structure
+for handling scenes consisting of multiple Granules/Tiles,
+and of differing resolutions.
 """
 from __future__ import absolute_import, print_function
 import os
-from os.path import isdir, join as pjoin, dirname, basename, exists, splitext
+from os.path import isdir, join as pjoin, dirname, basename
 import re
-import copy
 import json
 import datetime
-import glob
 from xml.etree import ElementTree
 from functools import total_ordering
+import zipfile
 from dateutil import parser
 import pandas
 from pkg_resources import resource_stream
 from nested_lookup import nested_lookup
+import pyproj
 
 import rasterio
 from gaip.geobox import GriddedGeoBox
@@ -199,7 +207,7 @@ class Acquisition(object):
         self._band_id = band_id
 
         self._gps_file = False
-        self._scaled_radiance = False
+        self._scaled_radiance = True
 
         self._gain = 1.0
         self._bias = 0.0
@@ -213,24 +221,40 @@ class Acquisition(object):
         self._open()
 
     def _open(self):
+        """
+        A private method for opening the dataset and
+        retrieving the dimensional information.
+        """
         with rasterio.open(self.pathname) as ds:
             self._samples = ds.width
             self._lines = ds.height
 
     @property
     def pathname(self):
+        """
+        The pathname of the scene.
+        """
         return self._pathname
 
     @property
     def acquisition_datetime(self):
+        """
+        The acquisitions centre scantime.
+        """
         return self._acquisition_datetime
 
     @property
     def band_name(self):
+        """
+        The band name, which goes by the format `BAND {}`.
+        """
         return self._band_name
 
     @property
     def band_id(self):
+        """
+        The band id as given in the `sensors.json` file.
+        """
         return self._band_id
 
     @property
@@ -245,23 +269,30 @@ class Acquisition(object):
 
     @property
     def gps_file(self):
+        """
+        Does the acquisition have an associated GPS file?
+        """
         return self._gps_file
 
     @property
     def scaled_radiance(self):
         """
         Do we have a scaled "at sensor radiance" unit?
-        If `True`, then this property needs to be overridden, and define
-        the bias and gain properties.
         """
         return self._scaled_radiance
 
     @property
     def gain(self):
+        """
+        A multiplier used for scaling the data.
+        """
         return self._gain
 
     @property
     def bias(self):
+        """
+        An additive used for scaling the data.
+        """
         return self._bias
 
     def __eq__(self, other):
@@ -284,6 +315,7 @@ class Acquisition(object):
         If `out` is supplied, it must be a numpy.array into which
         the Acquisition's data will be read.
         """
+        print(self.pathname)
         with rasterio.open(self.pathname) as ds:
             # convert to at sensor radiance as required
             if apply_gain_offset:
@@ -293,11 +325,11 @@ class Acquisition(object):
                     ds.read(1, out=out, window=window, masked=masked)
 
                 # check for no data
-                no_data = acq.no_data if acq.no_data is not None else 0
+                no_data = self.no_data if self.no_data is not None else 0
                 nulls = out == no_data
 
                 # gain & offset; y = mx + b
-                data = acq.gain * out + acq.bias
+                data = self.gain * out + self.bias
 
                 # set the out_no_data value inplace of the input no data value
                 data[nulls] = out_no_data
@@ -313,7 +345,6 @@ class Acquisition(object):
         the Acquisition's data will be read.
         for this acquisition.
         """
-        return data_and_box(self, out=out, window=window, masked=masked)
         with rasterio.open(self.pathname) as ds:
             box = GriddedGeoBox.from_dataset(ds)
             if window is not None:
@@ -483,6 +514,7 @@ def find_in(path, s, suffix='txt'):
                 return os.path.join(root, f)
     return None
 
+
 def find_all_in(path, s):
     """
     Search through `path` and its children for all occurances of 
@@ -499,147 +531,19 @@ def find_all_in(path, s):
 
 def acquisitions(path):
     """
-    Return a list of Acquisition objects from `path`. The argument `path`
-    can be a MTL file or a directory name. 
-
-    If `path` is a directory will be searched to find an MTL file. If this 
-    search fails the directory will be searched for a collection of GeoTiff 
-    files.
-
-    The search will include the `path` directory and its children.
+    Return an instance of `AcquisitionsContainer` containing the
+    acquisitions for each Granule Group (if applicable) and
+    each sub Group.
     """
-
-    # try:
-    #     acqs = acquisitions_via_mtl(path)
-    # except OSError:
-    #     acqs = acquisitions_via_geotiff(path)
-
     try:
-        acqs = acquisitions_via_safe(path)
-    except IOError:
+        container = acquisitions_via_safe(path)
+    except zipfile.BadZipFile:
         try:
-            acqs = acquisitions_via_mtl(path)
+            container = acquisitions_via_mtl(path)
         except OSError:
             raise IOError("No acquisitions found in: {}".format(path))
 
-    return acqs
-
-def acquisitions2(pathname):
-    """
-    Return an acquisitions container.
-    """
-    if '.zip' in splitext(pathname):
-        # assume it is the SAFE format from ESA and open it
-        container = acquisitions_via_safe2(pathname)
-
-def acquisitions_via_safe2(pathname):
-    """
-    Read the SAFE format and return an acquisitions container.
-    """
-    def group_helper(fname, resolution_groups):
-        """
-        A helper function to find the resolution group
-        and the band_id, and bail rather than loop over
-        everything.
-        """
-        for key, group in resolution_groups:
-            for item in group:
-                if item in fname:
-                    band_id = re.sub(r'B[0]?', '', item)
-                    band_name = 'BAND {}'.format(band_id)
-                    return key, band_name, band_id
-
-    archive = zipfile.ZipFile(pathname)
-    xmlfiles = [s for s in archive.namelist() if "MTD_MSIL1C.xml" in s]
-
-    if len(xmlfiles) == 0:
-        pattern = pathname.replace('PRD_MSIL1C', 'MTD_SAFL1C')
-        pattern = pattern.replace('.zip', '.xml')
-        xmlzipfiles = [s for s in archive.namelist() if pattern in s]
-
-    mtd_xml = archive.read(xmlfiles[0])
-    xml_root = ElementTree.XML(mtd_xml)
-
-    # what do we do about the 'scene_centre_time' ???
-    # DATATAKE_SENSING_START is another potential field to read...
-    product_start_time = parser.parse(xml_root.findall('./*/Product_Info/PRODUCT_START_TIME')[0].text)
-    product_stop_time = parser.parse(xml_root.findall('./*/Product_Info/PRODUCT_STOP_TIME')[0].text)
-    datatake_time = parser.parse(xml_root.findall('./*/Product_Info/*/DATATAKE_SENSING_START')[0].text)
-
-    platform_id = xml_root.findall('./*/Product_Info/*/SPACECRAFT_NAME')[0].text
-    # need sensor name
-
-    # safe archive for S2a has two band name mappings, and we need to map ours
-    band_map = {'0': '1', '1': '2', '2': '3', '3': '4', '4': '5', '5': '6',
-                '6': '7', '7': '8', '8': '8a', '9': '9', '10': '10',
-                '11': '11'}
-    
-    # earth -> sun distance in AU
-    d2 = float(root.findall('./*/Product_Image_Characteristics/Reflectance_Conversion/U')[0].text)
-
-    # exoatmospheric solar irradiance
-    solar_irradiance = {}
-    for irradiance in xml_root.iter('SOLAR_IRRADIANCE'):
-        band_irradiance = irradiance.attrib
-        mapped_band_id = band_map[band_irradiance['bandId']]
-        solar_irradiance[mapped_band_id] = float(band_irradiance['value'])
-
-    # assume multiple granules
-    single_granule_archive = False
-
-    granules = {granule.get('granuleIdentifier'): [imid.text for imid in granule.findall('IMAGE_ID')]
-                for granule in xml_root.findall('./*/Product_Info/Product_Organisation/Granule_List/Granules')}
-
-    if not granules:
-        single_granule_archive = True
-        granules = {granule.get('granuleIdentifier'): [imid.text for imid in granule.findall('IMAGE_FILE')]
-                    for granule in xml_root.findall('./*/Product_Info/Product_Organisation/Granule_List/Granule')}
-
-    # resolution groups
-    band_groups = {'R10m': ['B02', 'B03', 'B04', 'B08'],
-                   'R20m': ['B05', 'B06', 'B07', 'B11', 'B12', 'B8A'],
-                   'R60m': ['B01', 'B09', 'B10']}
-    # r10m = ['B02', 'B03', 'B04', 'B08']
-    # r20m = ['B05', 'B06', 'B07', 'B11', 'B12', 'B8A']
-    # r60m = ['B01', 'B09', 'B10']
-            
-    for granule_id, images in granules.items():
-        res_groups = {'R10m': [],
-                      'R20m': [],
-                      'R60m': []}
-
-        granule_xmls = [s for s in archive.namelist() if 'MTD_TL.xml' in s]
-        if len(granule_xmls) == 0:
-            pattern = granule_id.replace('MSI', 'MTD')
-            pattern = pattern.replace(''.join(['_N', processing_baseline]),
-                                      '.xml')
-
-            granule_xmls = [s for s in archive.namelist() if pattern in s]
-
-        granule_xml = archive.read(granule_xmls[0])
-        granule_root = ElementTree.XML(granule_xml)
-
-        img_data_path = ''.join(['zip:', path, '!', archive.namelist()[0]])
-
-        if not single_granule_archive: 
-            img_data_path = ''.join([img_data_path,
-                                     pjoin('GRANULE', granule_id, 'IMG_DATA')])
-
-        # is this the acquisition time???
-        acq_time = parser.parse(granule_root.findall('./*/SENSING_TIME')[0].text)
-
-        for image in images:
-            # image filename
-            img_fname = ''.join([pjoin(img_data_path, image), '.jp2'])
-
-            # band name and id
-            group, band_name, band_id = group_helper(img_fname, band_groups)
-
-            irrad = [for i[band_mapsolar_irradiance
-
-            res_groups[group].append(Sentinel2aAcquisition(img_fname,
-                                                           band_name, band_id,
-                                                           attrs)
+    return container
 
 
 def acquisitions_via_mtl(path):
@@ -747,7 +651,7 @@ def acquisitions_via_mtl(path):
                                  groups={'product': sorted(acqs)})
 
 
-def acquisitions_via_safe(path):
+def acquisitions_via_safe(pathname):
     """
     Collect the TOA Radiance images for each granule within a scene.
     Multi-granule & multi-resolution hierarchy format.
@@ -762,127 +666,137 @@ def acquisitions_via_safe(path):
                    'R20m': [`acquisition_1`,...,`acquisition_n`],
                    'R60m': [`acquisition_1`,...,`acquisition_n`]}}
     """
-    granules = {}
-    spacecraft = "SENTINEL-2A"
-    sensor = "MSI"
+    def group_helper(fname, resolution_groups):
+        """
+        A helper function to find the resolution group
+        and the band_id, and bail rather than loop over
+        everything.
+        """
+        for key, group in resolution_groups.items():
+            for item in group:
+                if item in fname:
+                    band_id = re.sub(r'B[0]?', '', item)
+                    band_name = 'BAND {}'.format(band_id)
+                    return key, band_name, band_id
+        return None, None, None
 
-    gps_fname = pjoin(path, "GPS_points")
+    archive = zipfile.ZipFile(pathname)
+    xmlfiles = [s for s in archive.namelist() if "MTD_MSIL1C.xml" in s]
 
-    granule_dir = pjoin(path, 'GRANULE')
-    if not exists(granule_dir):
-        raise IOError("GRANULE directory not found: {}".format(granule_dir))
+    if not xmlfiles:
+        pattern = pathname.replace('PRD_MSIL1C', 'MTD_SAFL1C')
+        pattern = pattern.replace('.zip', '.xml')
+        xmlfiles = [s for s in archive.namelist() if pattern in s]
 
-    res_dirs = ["R10m", "R20m", "R60m"]
-    for granule in os.listdir(granule_dir):
-        resolutions = {}
+    mtd_xml = archive.read(xmlfiles[0])
+    xml_root = ElementTree.XML(mtd_xml)
 
-        img_dir = pjoin(pjoin(granule_dir, granule), 'IMG_DATA')
-        if not exists(img_dir):
-            continue
+    # platform id, TODO: sensor name
+    search_term = './*/Product_Info/*/SPACECRAFT_NAME'
+    platform_id = fixname(xml_root.findall(search_term)[0].text)
 
-        for res_dir in res_dirs:
-            acqs = []
-            data_dir = pjoin(img_dir, res_dir)
-            cwd = os.getcwd()
-            os.chdir(data_dir)
-            bands = glob.glob('L_output*.hdr')
-            os.chdir(cwd)
-            bands = [pjoin(data_dir, b.replace('.hdr', '')) for b in bands]
+    # alternate lookup for different granule versions
+    search_term = './*/Product_Info/PROCESSING_BASELINE'
+    processing_baseline = xml_root.findall(search_term)[0].text
 
-            tile_metadata_fname = 'tile_metadata_{}'.format(res_dir[1:3])
-            with open(pjoin(data_dir, tile_metadata_fname), 'r') as src:
-                md = src.readlines()
+    # supported bands for this sensor
+    supported_bands = SENSORS[platform_id]['MSI']['bands']
 
-            metadata = {}
-            for m in md:
-                k, v = m.split('=')
-                metadata[k.strip()] = v.strip()
+    # TODO: extend this to incorporate a S2b selection
+    acqtype = Sentinel2aAcquisition
 
-            metadata['EPSG'] = int(metadata['EPSG'])
+    # safe archive for S2a has two band name mappings, and we need to map ours
+    band_map = {'0': '1', '1': '2', '2': '3', '3': '4', '4': '5', '5': '6',
+                '6': '7', '7': '8', '8': '8a', '9': '9', '10': '10',
+                '11': '11', '12': '12'}
+    
+    # earth -> sun distance in AU
+    search_term = './*/Product_Image_Characteristics/Reflectance_Conversion/U'
+    d2 = float(xml_root.findall(search_term)[0].text)
 
-            dt = pandas.to_datetime(metadata['SENSING_TIME']).to_pydatetime()
-            metadata['SENSING_TIME'] = dt
+    # exoatmospheric solar irradiance
+    solar_irradiance = {}
+    for irradiance in xml_root.iter('SOLAR_IRRADIANCE'):
+        band_irradiance = irradiance.attrib
+        mapped_band_id = band_map[band_irradiance['bandId']]
+        solar_irradiance[mapped_band_id] = float(irradiance.text)
 
-            clon, clat = metadata['centre_lon_lat'].split()
-            metadata['centre_lon_lat'] = (float(clon), float(clat))
+    # assume multiple granules
+    single_granule_archive = False
 
-            ll_lon, ll_lat = metadata['ll_lon_and_ll_lat'].split()
-            metadata['ll_lon_and_ll_lat'] = (float(ll_lon), float(ll_lat))
+    search_term = './*/Product_Info/Product_Organisation/Granule_List/Granules'
+    granules = {granule.get('granuleIdentifier'):
+                    [imid.text for imid in granule.findall('IMAGE_ID')]
+                for granule in xml_root.findall(search_term)}
 
-            lr_lon, lr_lat = metadata['lr_lon_and_lr_lat'].split()
-            metadata['lr_lon_and_lr_lat'] = (float(lr_lon), float(lr_lat))
+    if not granules:
+        single_granule_archive = True
+        granules = {granule.get('granuleIdentifier'):
+                        [imid.text for imid in granule.findall('IMAGE_FILE')]
+                    for granule in xml_root.findall(search_term[:-1])}
 
-            ul_lon, ul_lat = metadata['ul_lon_and_ul_lat'].split()
-            metadata['ul_lon_and_ul_lat'] = (float(ul_lon), float(ul_lat))
+    # resolution groups
+    band_groups = {'R10m': ['B02', 'B03', 'B04', 'B08'],
+                   'R20m': ['B05', 'B06', 'B07', 'B11', 'B12', 'B8A'],
+                   'R60m': ['B01', 'B09', 'B10']}
 
-            ur_lon, ur_lat = metadata['ur_lon_and_ur_lat'].split()
-            metadata['ur_lon_and_ur_lat'] = (float(ur_lon), float(ur_lat))
+    granule_groups = {}
+    for granule_id, images in granules.items():
+        res_groups = {'R10m': [],
+                      'R20m': [],
+                      'R60m': []}
 
-            metadata['ncols'] = int(metadata['ncols'])
-            metadata['nrows'] = int(metadata['nrows'])
+        granule_xmls = [s for s in archive.namelist() if 'MTD_TL.xml' in s]
+        if not granule_xmls:
+            pattern = granule_id.replace('MSI', 'MTD')
+            pattern = pattern.replace(''.join(['_N', processing_baseline]),
+                                      '.xml')
 
-            metadata['ulx'] = float(metadata['ulx'])
-            metadata['uly'] = float(metadata['uly'])
+            granule_xmls = [s for s in archive.namelist() if pattern in s]
 
-            metadata['resolution'] = float(metadata['resolution'])
+        granule_xml = archive.read(granule_xmls[0])
+        granule_root = ElementTree.XML(granule_xml)
 
-            metadata['GPS_Filename'] = gps_fname
+        img_data_path = ''.join(['zip:', pathname, '!', archive.namelist()[0]])
 
-            metadata['sensor_id'] = "MSI"
+        if not single_granule_archive: 
+            img_data_path = ''.join([img_data_path,
+                                     pjoin('GRANULE', granule_id, 'IMG_DATA')])
 
-            data = {}
-            data['PRODUCT_METADATA'] = copy.deepcopy(metadata)
+        # acquisition centre datetime
+        search_term = './*/SENSING_TIME'
+        acq_time = parser.parse(granule_root.findall(search_term)[0].text)
 
-            #metadata['SPACECRAFT'] = {}
-            data['SPACECRAFT'] = {}
-            db = SENSORS[spacecraft]
-            for k, v in db.items():
-                if k is not 'sensors':
-                    try:
-                        data['SPACECRAFT'][k] = v
-                    except AttributeError:
-                        data['SPACECRAFT'][k] = v
+        for image in images:
+            # image filename
+            img_fname = ''.join([pjoin(img_data_path, image), '.jp2'])
 
-            data['SENSOR_INFO'] = {}
-            db = db['sensors'][sensor]
+            # band name and id
+            group, band_name, band_id = group_helper(img_fname, band_groups)
+            if band_id not in supported_bands:
+                continue
 
-            for k, v in db.items():
-                if k is not 'bands':
-                    data['SENSOR_INFO'][k] = v
+            # band info stored in sensors.json
+            sensor_band_info = supported_bands[band_id]
 
-            for band in bands:
-                dname = dirname(band)
-                fname = basename(band)
-                md = copy.deepcopy(data)
-                band_md = md['PRODUCT_METADATA']
-                band_md['dir_name'] = dname
-                band_md['file_name'] = fname
-                bnum = fname.split('_')[2]
-                band_name = bnum
+            # image attributes/metadata
+            attrs = {k: v for k, v in sensor_band_info.items()}
+            attrs['solar_irradiance'] = solar_irradiance[band_id]
+            attrs['d2'] = d2
 
-                md['BAND_INFO'] = {}
-                db_copy = copy.deepcopy(db)
-                db_copy = db_copy['bands'][band_name]
+            res_groups[group].append(acqtype(img_fname, acq_time, band_name,
+                                             band_id, attrs))
 
-                for k, v in db_copy.items():
-                    md['BAND_INFO'][k] = v
+        granule_groups[granule_id] = {k: sorted(v) for k, v in
+                                      res_groups.items()}
 
-                band_type = db_copy['type_desc']
-                md['BAND_INFO']['band_type'] = BandType[band_type]
-                band_md['band_type'] = BandType[band_type]
-
-                band_md['band_name'] = 'band_{}'.format(bnum)
-                band_md['band_num'] = bnum
-
-                acqs.append(Sentinel2aAcquisition(md))
-
-            resolutions[res_dir] = sorted(acqs)
-        granules[granule] = resolutions
-
-    return AcquisitionsContainer(label=basename(path), granules=granules)
+    return AcquisitionsContainer(label=basename(pathname),
+                                 granules=granule_groups)
 
 
 class Sentinel2aAcquisition(Acquisition):
+
+    """ Sentinel-2a acquisition. """
 
     def __init__(self, pathname, acquisition_datetime, band_name='BAND 1',
                  band_id='1', metadata=None):
@@ -892,32 +806,55 @@ class Sentinel2aAcquisition(Acquisition):
                                                     band_id=band_id,
                                                     metadata=metadata)
 
-        self.platform_id: 'SENTINEL-2A'
+        self.platform_id = 'SENTINEL_2A'
         self.sensor_id = 'MSI'
         self.tle_format = 'S2A%4d%sASNNOR.S00'
         self.tag = 'S2A'
-        self.altitude: 786000.0
-        self.inclination: 1.721243708316808
-        self.omega: 0.001039918
-        self.semi_major_axis: 7164137.0
-        self.maximum_view_angle: 20.0
+        self.altitude = 786000.0
+        self.inclination = 1.721243708316808
+        self.omega = 0.001039918
+        self.semi_major_axis = 7164137.0
+        self.maximum_view_angle = 20.0
 
+        self._scaled_radiance = False
         self._gps_file = True
         self._gain = 0.01
         self._bias = 0.0
 
-        #geobox = self.gridded_geo_box()
-        #ymin = numpy.min([geobox.ul_lonlat[1], geobox.ur_lonlat[1],
-        #                  geobox.lr_lonlat[1], geobox.ll_lonlat[1]])
-        #ymax= numpy.max([geobox.ul_lonlat[1], geobox.ur_lonlat[1],
-        #                 geobox.lr_lonlat[1], geobox.ll_lonlat[1]])
-
-        #subs = df[(df.lat >= ymin) & (df.lat <= ymax)]
-        #idx = subs.shape[0] // 2 - 1
-        #alon0 = subs.iloc[idx].lon
-        #alat0 = subs.iloc[idx].lat
-
     def read_gps_file(self):
-        df = pandas.read_csv(self.GPS_Filename, sep=' ', names=['lon', 'lat'],
-                             header=None)
-        return df
+        """
+        Returns the recorded gps data as a `pandas.DataFrame`.
+        """
+        # open the zip archive and get the xml root
+        archive = zipfile.ZipFile(self.pathname)
+        xml_file = [s for s in archive.namelist() if "MTD_DS.xml" in s][0]
+        xml_root = ElementTree.XML(archive.read(xml_file))
+
+        # coordinate transform
+        ecef = pyproj.Proj(proj='geocent', ellps='WGS84', datum='WGS84')
+        lla = pyproj.Proj(proj='latlong', ellps='WGS84', datum='WGS84')
+
+        # output container
+        data = {'longitude': [],
+                'latitude': [],
+                'altitude': [],
+                'timestamp': []}
+
+        # there are a few columns of data that could be of use
+        # but for now, just get the location and timestamp from the
+        # gps points list
+        gps = xml_root.findall('./*/Ephemeris/GPS_Points_List')[0]
+        for point in gps.iter('GPS_Point'):
+            x, y, z = [float(i) / 1000 for i in
+                       point.findtext('POSITION_VALUES').split()]
+            gps_time = parser.parse(point.findtext('GPS_TIME'))
+
+            # coordinate transformation
+            lon, lat, alt = pyproj.transform(ecef, lla, x, y, z, radians=False)
+
+            data['longitude'].append(lon)
+            data['latitude'].append(lat)
+            data['altitude'].append(alt)
+            data['timestamp'].append(gps_time)
+        
+        return pandas.DataFrame(data)
