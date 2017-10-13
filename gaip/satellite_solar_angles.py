@@ -779,9 +779,10 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     # which can be used for cases of image granules/tiles, eg Sentinel-2A
     if acq.gps_file:
         points = acq.read_gps_file()
-        subs = points[(points.lat >= min_lat) & (points.lat <= max_lat)]
+        subs = points[(points.latitude >= min_lat) &
+                      (points.latitude <= max_lat)]
         idx = subs.shape[0] // 2 - 1
-        centre_xy = (subs.iloc[idx].lon, subs.iloc[idx].lat)
+        centre_xy = (subs.iloc[idx].lonitude, subs.iloc[idx].latitude)
     else:
         centre_xy = geobox.centre_lonlat
 
