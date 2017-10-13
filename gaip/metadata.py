@@ -211,8 +211,8 @@ def create_ard_yaml(acquisition, ancillary_group, out_group, sbt=False):
 
         return ancillary
 
-    level1_path = dirname(acquisition.dir_name)
-    source_info = {'source_scene': level1_path,
+    level1_path = acquisition.pathname
+    source_info = {'source_level1': level1_path,
                    'acquisition_datetime': acquisition.acquisition_datetime,
                    'platform_id': acquisition.platform_id,
                    'sensor_id': acquisition.sensor_id}

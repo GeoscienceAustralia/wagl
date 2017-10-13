@@ -202,9 +202,10 @@ class Acquisition(object):
 
     """Acquisition metadata."""
 
-    def __init__(self, pathname, acquisition_datetime, band_name='BAND 1',
+    def __init__(self, pathname, uri, acquisition_datetime, band_name='BAND 1',
                  band_id='1', metadata=None):
         self._pathname = pathname
+        self._uri = uri
         self._acquisition_datetime = acquisition_datetime
         self._band_name = band_name
         self._band_id = band_id
@@ -224,16 +225,23 @@ class Acquisition(object):
         A private method for opening the dataset and
         retrieving the dimensional information.
         """
-        with rasterio.open(self.pathname) as ds:
+        with rasterio.open(self.uri) as ds:
             self._samples = ds.width
             self._lines = ds.height
 
     @property
     def pathname(self):
         """
-        The pathname of the scene.
+        The pathname of the level1 dataset.
         """
         return self._pathname
+
+    @property
+    def uri(self):
+        """
+        The uri of the acquisition.
+        """
+        return self._uri
 
     @property
     def acquisition_datetime(self):
@@ -292,7 +300,7 @@ class Acquisition(object):
         If `out` is supplied, it must be a numpy.array into which
         the Acquisition's data will be read.
         """
-        with rasterio.open(self.pathname) as ds:
+        with rasterio.open(self.uri) as ds:
             data = ds.read(1, out=out, window=window, masked=masked)
 
         return data
@@ -312,7 +320,7 @@ class Acquisition(object):
         the Acquisition's data will be read.
         for this acquisition.
         """
-        with rasterio.open(self.pathname) as ds:
+        with rasterio.open(self.uri) as ds:
             box = GriddedGeoBox.from_dataset(ds)
             if window is not None:
                 rows = window[0][1] - window[0][0]
@@ -328,7 +336,7 @@ class Acquisition(object):
 
     def gridded_geo_box(self):
         """Return the `GriddedGeoBox` for this acquisition."""
-        with rasterio.open(self.pathname) as src:
+        with rasterio.open(self.uri) as src:
             return GriddedGeoBox.from_dataset(src)
 
     def decimal_hour(self):
@@ -351,7 +359,7 @@ class Acquisition(object):
         Return the no_data value for this acquisition.
         Assumes that the acquisition is a single band file.
         """
-        with rasterio.open(self.pathname) as ds:
+        with rasterio.open(self.uri) as ds:
             nodata_list = ds.nodatavals
             return nodata_list[0]
 
@@ -370,7 +378,7 @@ class LandsatAcquisition(Acquisition):
 
     """A Landsat acquisition."""
 
-    def __init__(self, pathname, acquisition_datetime, band_name='BAND 1',
+    def __init__(self, pathname, uri, acquisition_datetime, band_name='BAND 1',
                  band_id='1', metadata=None):
         self.min_radiance = 0
         self.max_radiance = 1
@@ -424,9 +432,9 @@ class Landsat5Acquisition(LandsatAcquisition):
 
     """ Landsat 5 acquisition. """
 
-    def __init__(self, pathname, acquisition_datetime, band_name='BAND 1',
+    def __init__(self, pathname, uri, acquisition_datetime, band_name='BAND 1',
                  band_id='1', metadata=None):
-        super(Landsat5Acquisition, self).__init__(pathname,
+        super(Landsat5Acquisition, self).__init__(pathname, uri,
                                                   acquisition_datetime,
                                                   band_name=band_name,
                                                   band_id=band_id,
@@ -448,9 +456,9 @@ class Landsat7Acquisition(LandsatAcquisition):
 
     """ Landsat 7 acquisition. """
 
-    def __init__(self, pathname, acquisition_datetime, band_name='BAND 1',
+    def __init__(self, pathname, uri, acquisition_datetime, band_name='BAND 1',
                  band_id='1', metadata=None):
-        super(Landsat7Acquisition, self).__init__(pathname,
+        super(Landsat7Acquisition, self).__init__(pathname, uri,
                                                   acquisition_datetime,
                                                   band_name=band_name,
                                                   band_id=band_id,
@@ -472,9 +480,9 @@ class Landsat8Acquisition(LandsatAcquisition):
 
     """ Landsat 8 acquisition. """
 
-    def __init__(self, pathname, acquisition_datetime, band_name='BAND 1',
+    def __init__(self, pathname, uri, acquisition_datetime, band_name='BAND 1',
                  band_id='1', metadata=None):
-        super(Landsat8Acquisition, self).__init__(pathname,
+        super(Landsat8Acquisition, self).__init__(pathname, uri,
                                                   acquisition_datetime,
                                                   band_name=band_name,
                                                   band_id=band_id,
@@ -543,18 +551,18 @@ def acquisitions(path):
     return container
 
 
-def acquisitions_via_mtl(path):
+def acquisitions_via_mtl(pathname):
     """Obtain a list of Acquisition objects from `path`. The argument `path`
     can be a MTL file or a directory name. If `path` is a directory then the 
     MTL file will be search for in the directory and its children."""
 
-    if isdir(path):
-        filename = find_in(path, 'MTL')
+    if isdir(pathname):
+        filename = find_in(pathname, 'MTL')
     else:
-        filename = path
+        filename = pathname
 
     if filename is None:
-        raise OSError("Cannot find MTL file in %s" % path)
+        raise OSError("Cannot find MTL file in %s" % pathname)
 
     # set path
     dir_name = os.path.dirname(os.path.abspath(filename))
@@ -642,9 +650,10 @@ def acquisitions_via_mtl(path):
         attrs['max_quantize'] = max_quant
         band_name = attrs.pop('band_name')
 
-        acqs.append(acqtype(fname, acq_datetime, band_name, band_id, attrs))
+        acqs.append(acqtype(pathname, fname, acq_datetime, band_name, band_id,
+                            attrs))
 
-    return AcquisitionsContainer(label=basename(path),
+    return AcquisitionsContainer(label=basename(pathname),
                                  groups={'product': sorted(acqs)})
 
 
@@ -789,12 +798,11 @@ def acquisitions_via_safe(pathname):
             attrs['d2'] = 1 / u
             attrs['qv'] = qv
             attrs['c1'] = c1[band_id]
-            attrs['zipfname'] = pathname
             attrs['granule_xml'] = granule_xmls[0]
             band_name = attrs.pop('band_name')
 
-            res_groups[group].append(acqtype(img_fname, acq_time, band_name,
-                                             band_id, attrs))
+            res_groups[group].append(acqtype(pathname, img_fname, acq_time,
+                                             band_name, band_id, attrs))
 
         granule_groups[granule_id] = {k: sorted(v) for k, v in
                                       res_groups.items()}
@@ -807,9 +815,9 @@ class Sentinel2aAcquisition(Acquisition):
 
     """ Sentinel-2a acquisition. """
 
-    def __init__(self, pathname, acquisition_datetime, band_name='BAND 1',
+    def __init__(self, pathname, uri, acquisition_datetime, band_name='BAND 1',
                  band_id='1', metadata=None):
-        super(Sentinel2aAcquisition, self).__init__(pathname,
+        super(Sentinel2aAcquisition, self).__init__(pathname, uri,
                                                     acquisition_datetime,
                                                     band_name=band_name,
                                                     band_id=band_id,
@@ -833,7 +841,7 @@ class Sentinel2aAcquisition(Acquisition):
         Returns the recorded gps data as a `pandas.DataFrame`.
         """
         # open the zip archive and get the xml root
-        archive = zipfile.ZipFile(self.zipfname)
+        archive = zipfile.ZipFile(self.pathname)
         xml_file = [s for s in archive.namelist() if "MTD_DS.xml" in s][0]
         xml_root = ElementTree.XML(archive.read(xml_file))
 
@@ -886,7 +894,7 @@ class Sentinel2aAcquisition(Acquisition):
 
             return func(y_coords, x_coords)
 
-        archive = zipfile.ZipFile(self.zipfname)
+        archive = zipfile.ZipFile(self.pathname)
         xml_root = ElementTree.XML(archive.read(self.granule_xml))
         
         # read the low res solar zenith data
@@ -937,6 +945,7 @@ class Sentinel2aAcquisition(Acquisition):
                    slice(window[1][0], window[1][1]))
 
         # coefficients
+        #pylint: disable=unused-argument
         sf = numpy.float32(1 / (self.c1 * self.qv))
         pi_d2 = numpy.float32(numpy.pi * self.d2)
         esun = numpy.float32(self.solar_irradiance / 10)
