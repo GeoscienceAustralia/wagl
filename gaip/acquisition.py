@@ -19,6 +19,9 @@ from xml.etree import ElementTree
 from functools import total_ordering
 import zipfile
 from dateutil import parser
+import numpy
+import numexpr
+from scipy import interpolate
 import pandas
 from pkg_resources import resource_stream
 from nested_lookup import nested_lookup
@@ -207,10 +210,6 @@ class Acquisition(object):
         self._band_id = band_id
 
         self._gps_file = False
-        self._scaled_radiance = True
-
-        self._gain = 1.0
-        self._bias = 0.0
 
         if metadata is not None:
             for key, value in metadata.items():
@@ -274,27 +273,6 @@ class Acquisition(object):
         """
         return self._gps_file
 
-    @property
-    def scaled_radiance(self):
-        """
-        Do we have a scaled "at sensor radiance" unit?
-        """
-        return self._scaled_radiance
-
-    @property
-    def gain(self):
-        """
-        A multiplier used for scaling the data.
-        """
-        return self._gain
-
-    @property
-    def bias(self):
-        """
-        An additive used for scaling the data.
-        """
-        return self._bias
-
     def __eq__(self, other):
         return self.band_name == other.band_name
 
@@ -308,34 +286,23 @@ class Acquisition(object):
         """Representation used for sorting objects."""
         return self.band_name
 
-    def data(self, out=None, window=None, masked=False,
-             apply_gain_offset=False, out_no_data=-999):
+    def data(self, out=None, window=None, masked=False):
         """
         Return `numpy.array` of the data for this acquisition.
         If `out` is supplied, it must be a numpy.array into which
         the Acquisition's data will be read.
         """
-        print(self.pathname)
         with rasterio.open(self.pathname) as ds:
-            # convert to at sensor radiance as required
-            if apply_gain_offset:
-                if out is None:
-                    out = ds.read(1, window=window, masked=masked)
-                else:
-                    ds.read(1, out=out, window=window, masked=masked)
+            data = ds.read(1, out=out, window=window, masked=masked)
 
-                # check for no data
-                no_data = self.no_data if self.no_data is not None else 0
-                nulls = out == no_data
+        return data
 
-                # gain & offset; y = mx + b
-                data = self.gain * out + self.bias
-
-                # set the out_no_data value inplace of the input no data value
-                data[nulls] = out_no_data
-
-                return data
-            return ds.read(1, out=out, window=window, masked=masked)
+    def radiance_data(self, window=None, out_no_data=-999):
+        """
+        Return the data as radiance in watts/(m^2*micrometre).
+        Override with a custom version for a specific sensor.
+        """
+        raise NotImplementedError
 
     def data_and_box(self, out=None, window=None, masked=False):
         """
@@ -420,7 +387,37 @@ class LandsatAcquisition(Acquisition):
                       (self.max_quantize - self.min_quantize))
         self._bias = self.max_radiance - (self.gain * self.max_quantize)
 
-        self._scaled_radiance = True
+    @property
+    def gain(self):
+        """
+        A multiplier used for scaling the data.
+        """
+        return self._gain
+
+    @property
+    def bias(self):
+        """
+        An additive used for scaling the data.
+        """
+        return self._bias
+
+    def radiance_data(self, window=None, out_no_data=-999):
+        """
+        Return the data as radiance in watts/(m^2*micrometre).
+        """
+        data = self.data(window=window)
+
+        # check for no data
+        no_data = self.no_data if self.no_data is not None else 0
+        nulls = data == no_data
+
+        # gain & offset; y = mx + b
+        radiance = self.gain * data + self.bias
+
+        # set the out_no_data value inplace of the input no data value
+        radiance[nulls] = out_no_data
+
+        return radiance
 
 
 class Landsat5Acquisition(LandsatAcquisition):
@@ -708,10 +705,18 @@ def acquisitions_via_safe(pathname):
     band_map = {'0': '1', '1': '2', '2': '3', '3': '4', '4': '5', '5': '6',
                 '6': '7', '7': '8', '8': '8a', '9': '9', '10': '10',
                 '11': '11', '12': '12'}
+
+    # conversion factors
+    c1 = {band_map[str(i)]: float(v) for i, v in
+          enumerate(['0.001'] * 10 + ['0.0005'] + ['0.0002'] + ['0.00005'])}
     
-    # earth -> sun distance in AU
+    # earth -> sun distance correction factor; d2 =  1/ U
     search_term = './*/Product_Image_Characteristics/Reflectance_Conversion/U'
-    d2 = float(xml_root.findall(search_term)[0].text)
+    u = float(xml_root.findall(search_term)[0].text)
+
+    # quantification value
+    search_term = './*/Product_Image_Characteristics/QUANTIFICATION_VALUE'
+    qv = float(xml_root.findall(search_term)[0].text)
 
     # exoatmospheric solar irradiance
     solar_irradiance = {}
@@ -781,7 +786,11 @@ def acquisitions_via_safe(pathname):
             # image attributes/metadata
             attrs = {k: v for k, v in sensor_band_info.items()}
             attrs['solar_irradiance'] = solar_irradiance[band_id]
-            attrs['d2'] = d2
+            attrs['d2'] = 1 / u
+            attrs['qv'] = qv
+            attrs['c1'] = c1[band_id]
+            attrs['zipfname'] = pathname
+            attrs['granule_xml'] = granule_xmls[0]
             band_name = attrs.pop('band_name')
 
             res_groups[group].append(acqtype(img_fname, acq_time, band_name,
@@ -816,17 +825,15 @@ class Sentinel2aAcquisition(Acquisition):
         self.semi_major_axis = 7164137.0
         self.maximum_view_angle = 20.0
 
-        self._scaled_radiance = False
         self._gps_file = True
-        self._gain = 0.01
-        self._bias = 0.0
+        self._solar_zenith = None
 
     def read_gps_file(self):
         """
         Returns the recorded gps data as a `pandas.DataFrame`.
         """
         # open the zip archive and get the xml root
-        archive = zipfile.ZipFile(self.pathname)
+        archive = zipfile.ZipFile(self.zipfname)
         xml_file = [s for s in archive.namelist() if "MTD_DS.xml" in s][0]
         xml_root = ElementTree.XML(archive.read(xml_file))
 
@@ -858,3 +865,93 @@ class Sentinel2aAcquisition(Acquisition):
             data['timestamp'].append(gps_time)
         
         return pandas.DataFrame(data)
+
+    def _retrieve_solar_zenith(self):
+        """
+        If radiance is not available, calculate it into a
+        temporary file.
+        Can we use tempfile, that way it is removed from disk
+        upon object deletion?
+        Or simply keep it in memory?
+        Code adapted from https://github.com/umwilm/SEN2COR.
+        """
+        def rbspline(y_coords, x_coords, zdata):
+            """
+            A wrapper providing the call signiture for RectBivariateSpline.
+            Code adapted from https://github.com/umwilm/SEN2COR.
+            """
+            y = numpy.arange(zdata.shape[0], dtype=numpy.float32)
+            x = numpy.arange(zdata.shape[1], dtype=numpy.float32)
+            func = interpolate.RectBivariateSpline(x, y, zdata)
+
+            return func(y_coords, x_coords)
+
+        archive = zipfile.ZipFile(self.zipfname)
+        xml_root = ElementTree.XML(archive.read(self.granule_xml))
+        
+        # read the low res solar zenith data
+        search_term = './*/Tile_Angles/Sun_Angles_Grid/Zenith/Values_List'
+        values = xml_root.findall(search_term)[0]
+
+        dims = (len(values), len(values[0].text.split()))
+        data = numpy.zeros(dims, dtype='float32')
+        for i, val in enumerate(values.iter('VALUES')):
+            data[i] = val.text.split()
+
+        # correct solar_zenith dimensions
+        if self.lines < self.samples:
+            last_row = int(data[0].size * float(self.lines) /
+                           float(self.samples) + 0.5)
+            solar_zenith = data[0:last_row, :]
+        elif self.samples < self.lines:
+            last_col = int(data[1].size * float(self.samples) /
+                           float(self.lines) + 0.5)
+            solar_zenith = data[:, 0:last_col]
+        else:
+            solar_zenith = data
+
+        numpy.absolute(solar_zenith, out=solar_zenith)
+        numpy.clip(solar_zenith, 0, 70.0, out=solar_zenith)
+
+        # interpolate across the full dimensions of the acquisition
+        dims = solar_zenith.shape
+        y = numpy.arange(self.lines) / (self.lines - 1) * dims[0]
+        x = numpy.arange(self.samples) / (self.samples - 1) * dims[1]
+
+        solar_zenith = numpy.float32(rbspline(y, x, solar_zenith))
+        self._solar_zenith = numpy.radians(solar_zenith, out=solar_zenith)
+
+    def radiance_data(self, window=None, out_no_data=-999):
+        """
+        Return the data as radiance in watts/(m^2*micrometre).
+        """
+        # retrieve the solar zenith if we haven't already done so
+        if self._solar_zenith is None:
+            self._retrieve_solar_zenith()
+
+        # Python style index
+        if window is None:
+            idx = (slice(None, None), slice(None, None))
+        else:
+            idx = (slice(window[0][0], window[0][1]),
+                   slice(window[1][0], window[1][1]))
+
+        # coefficients
+        sf = numpy.float32(1 / (self.c1 * self.qv))
+        pi_d2 = numpy.float32(numpy.pi * self.d2)
+        esun = numpy.float32(self.solar_irradiance / 10)
+        solar_zenith = self._solar_zenith[idx]
+
+        # toa reflectance
+        data = self.data(window=window)
+
+        # check for no data
+        no_data = self.no_data if self.no_data is not None else 0
+        nulls = data == no_data
+
+        # inversion
+        expr = "((data * esun * cos(solar_zenith) * sf) / pi_d2) * 0.01"
+        radiance = numexpr.evaluate(expr)
+        radiance[nulls] = out_no_data
+
+        return radiance
