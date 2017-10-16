@@ -782,7 +782,7 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
         subs = points[(points.latitude >= min_lat) &
                       (points.latitude <= max_lat)]
         idx = subs.shape[0] // 2 - 1
-        centre_xy = (subs.iloc[idx].lonitude, subs.iloc[idx].latitude)
+        centre_xy = (subs.iloc[idx].longitude, subs.iloc[idx].latitude)
     else:
         centre_xy = geobox.centre_lonlat
 
