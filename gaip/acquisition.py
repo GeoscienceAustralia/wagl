@@ -689,7 +689,7 @@ def acquisitions_via_safe(pathname):
     xmlfiles = [s for s in archive.namelist() if "MTD_MSIL1C.xml" in s]
 
     if not xmlfiles:
-        pattern = pathname.replace('PRD_MSIL1C', 'MTD_SAFL1C')
+        pattern = basename(pathname.replace('PRD_MSIL1C', 'MTD_SAFL1C'))
         pattern = pattern.replace('.zip', '.xml')
         xmlfiles = [s for s in archive.namelist() if pattern in s]
 
