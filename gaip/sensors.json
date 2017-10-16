@@ -346,10 +346,10 @@
                         "spectral_filter_file": "sentinel2a_all.flt",
                         "spectral_range": [2600, 349, -1]
                     },
-                    "8a": {
+                    "8A": {
                         "desc": "Red Edge 4",
                         "band_type": "Reflective",
-                        "band_name": "BAND 8a",
+                        "band_name": "BAND 8A",
                         "wavelength": [0.855, 0.875],
                         "spectral_filter_file": "sentinel2a_all.flt",
                         "spectral_range": [2600, 349, -1]
