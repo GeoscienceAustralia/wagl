@@ -716,8 +716,12 @@ def acquisitions_via_safe(pathname):
                 '11': '11', '12': '12'}
 
     # conversion factors
-    c1 = {band_map[str(i)]: float(v) for i, v in
-          enumerate(['0.001'] * 10 + ['0.0005'] + ['0.0002'] + ['0.00005'])}
+    c1 = {band_map[str(i)]: v for i, v in
+          enumerate([0.001] * 10 + [0.0005] + [0.0002] + [0.00005])}
+
+    # radiance (w/m^2)  scale factors
+    rsf = {band_map[str(i)]: v for i, v in
+           enumerate([0.01] * 10 + [None] + [0.002] + [0.0005])
     
     # earth -> sun distance correction factor; d2 =  1/ U
     search_term = './*/Product_Image_Characteristics/Reflectance_Conversion/U'
@@ -798,6 +802,7 @@ def acquisitions_via_safe(pathname):
             attrs['d2'] = 1 / u
             attrs['qv'] = qv
             attrs['c1'] = c1[band_id]
+            attrs['radiance_scale_factor'] = rsf[band_id]
             attrs['granule_xml'] = granule_xmls[0]
             band_name = attrs.pop('band_name')
 
@@ -951,6 +956,7 @@ class Sentinel2aAcquisition(Acquisition):
         pi_d2 = numpy.float32(numpy.pi * self.d2)
         esun = numpy.float32(self.solar_irradiance / 10)
         solar_zenith = self._solar_zenith[idx]
+        rsf = numpy.float32(self.radiance_scale_factor)
 
         # toa reflectance
         data = self.data(window=window)
@@ -960,7 +966,7 @@ class Sentinel2aAcquisition(Acquisition):
         nulls = data == no_data
 
         # inversion
-        expr = "((data * esun * cos(solar_zenith) * sf) / pi_d2) * 0.01"
+        expr = "((data * esun * cos(solar_zenith) * sf) / pi_d2) * rsf"
         radiance = numexpr.evaluate(expr)
         radiance[nulls] = out_no_data
 
