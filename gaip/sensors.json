@@ -1,7 +1,7 @@
 {
     "LANDSAT_5": {
         "TM": {
-                "bands": {
+                "band_ids": {
                 "1": {
                     "desc": "Blue",
                     "band_type": "Reflective",

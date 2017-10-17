@@ -606,7 +606,7 @@ def acquisitions_via_mtl(pathname):
     ignore = ['band_quality']
 
     # supported bands for the given platform & sensor id's
-    supported_bands = SENSORS[platform_id][sensor_id]['bands']
+    supported_bands = SENSORS[platform_id][sensor_id]['band_ids']
 
     acqs = []
     for band in bands_:
@@ -705,7 +705,7 @@ def acquisitions_via_safe(pathname):
     processing_baseline = xml_root.findall(search_term)[0].text
 
     # supported bands for this sensor
-    supported_bands = SENSORS[platform_id]['MSI']['bands']
+    supported_bands = SENSORS[platform_id]['MSI']['band_ids']
 
     # TODO: extend this to incorporate a S2b selection
     acqtype = Sentinel2aAcquisition
