@@ -3,7 +3,7 @@
         "TM": {
                 "bands": {
                 "1": {
-                    "desc": "Visible Blue",
+                    "desc": "Blue",
                     "band_type": "Reflective",
                     "band_name": "BAND 1",
                     "wavelength": [0.45, 0.52],
@@ -11,7 +11,7 @@
                     "spectral_range": [2600, 349, -1]
                 },
                 "2": {
-                    "desc": "Visible Green",
+                    "desc": "Green",
                     "band_type": "Reflective",
                     "band_name": "BAND 2",
                     "wavelength": [0.52, 0.60],
@@ -19,7 +19,7 @@
                     "spectral_range": [2600, 349, -1]
                 },
                 "3": {
-                    "desc": "Visible Red",
+                    "desc": "Red",
                     "band_type": "Reflective",
                     "band_name": "BAND 3",
                     "wavelength": [0.63, 0.69],
@@ -27,7 +27,7 @@
                     "spectral_range": [2600, 349, -1]
                 },
                 "4": {
-                    "desc": "Near Infrared",
+                    "desc": "NIR",
                     "band_type": "Reflective",
                     "band_name": "BAND 4",
                     "wavelength": [0.76, 0.90],
@@ -35,7 +35,7 @@
                     "spectral_range": [2600, 349, -1]
                 },
                 "5": {
-                    "desc": "Middle Infrared 1",
+                    "desc": "SWIR 1",
                     "band_type": "Reflective",
                     "band_name": "BAND 5",
                     "wavelength": [1.55, 1.75],
@@ -53,7 +53,7 @@
                     "K2": 1260.56
                 },
                 "7": {
-                    "desc": "Middle Infrared 2",
+                    "desc": "SWIR 2",
                     "band_type": "Reflective",
                     "band_name": "BAND 7",
                     "wavelength": [2.08, 2.35],
@@ -67,7 +67,7 @@
         "ETM+": {
                 "bands": {
                 "1": {
-                    "desc": "Visible Blue",
+                    "desc": "Blue",
                     "band_type": "Reflective",
                     "band_name": "BAND 1",
                     "wavelength": [0.45, 0.52],
@@ -75,7 +75,7 @@
                     "spectral_range": [2600, 349, -1]
                      },
                 "2": {
-                    "desc": "Visible Green",
+                    "desc": "Green",
                     "band_type": "Reflective",
                     "band_name": "BAND 2",
                     "wavelength": [0.52, 0.60],
@@ -83,7 +83,7 @@
                     "spectral_range": [2600, 349, -1]
                 },
                 "3": {
-                    "desc": "Visible Red",
+                    "desc": "Red",
                     "band_type": "Reflective",
                     "band_name": "BAND 3",
                     "wavelength": [0.63, 0.69],
@@ -91,7 +91,7 @@
                     "spectral_range": [2600, 349, -1]
                 },
                 "4": {
-                    "desc": "Near Infrared",
+                    "desc": "NIR",
                     "band_type": "Reflective",
                     "band_name": "BAND 4",
                     "wavelength": [0.76, 0.90],
@@ -99,7 +99,7 @@
                     "spectral_range": [2600, 349, -1]
                 },
                 "5": {
-                    "desc": "Middle Infrared 1",
+                    "desc": "SWIR 1",
                     "band_type": "Reflective",
                     "band_name": "BAND 5",
                     "wavelength": [1.55, 1.75],
@@ -127,7 +127,7 @@
                     "K2": 1282.71
                 },
                 "7": {
-                    "desc": "Middle Infrared 2",
+                    "desc": "SWIR 2",
                     "band_type": "Reflective",
                     "band_name": "BAND 7",
                     "wavelength": [2.08, 2.35],
@@ -149,7 +149,7 @@
                     "spectral_range": [2600, 349, -1]
                 },
                 "2": {
-                    "desc": "Visible Blue",
+                    "desc": "Blue",
                     "band_type": "Reflective",
                     "band_name": "BAND 2",
                     "wavelength": [0.45, 0.515],
@@ -157,7 +157,7 @@
                     "spectral_range": [2600, 349, -1]
                 },
                 "3": {
-                    "desc": "Visible Green",
+                    "desc": "Green",
                     "band_type": "Reflective",
                     "band_name": "BAND 3",
                     "wavelength": [0.525, 0.60],
@@ -165,7 +165,7 @@
                     "spectral_range": [2600, 349, -1]
                 },
                 "4": {
-                    "desc": "Visible Red",
+                    "desc": "Red",
                     "band_type": "Reflective",
                     "band_name": "BAND 4",
                     "wavelength": [0.63, 0.68],
@@ -173,7 +173,7 @@
                     "spectral_range": [2600, 349, -1]
                 },
                 "5": {
-                    "desc": "Near Infrared",
+                    "desc": "NIR",
                     "band_type": "Reflective",
                     "band_name": "BAND 5",
                     "wavelength": [0.845, 0.885],
@@ -181,7 +181,7 @@
                     "spectral_range": [2600, 349, -1]
                 },
                 "6": {
-                    "desc": "Short-wave Infrared 1",
+                    "desc": "SWIR 1",
                     "band_type": "Reflective",
                     "band_name": "BAND 6",
                     "wavelength": [1.56,1.66],
@@ -189,7 +189,7 @@
                     "spectral_range": [2600, 349, -1]
                 },
                 "7": {
-                    "desc": "Short-wave Infrared 2",
+                    "desc": "SWIR 2",
                     "band_type": "Reflective",
                     "band_name": "BAND 7",
                     "wavelength": [2.1, 2.3],
@@ -229,7 +229,7 @@
                     "K2": 1201.1442
                 },
                 "2": {
-                    "desc": "Visible Blue",
+                    "desc": "Blue",
                     "band_type": "Reflective",
                     "band_name": "BAND 2",
                     "wavelength": [0.45, 0.515],
@@ -237,7 +237,7 @@
                     "spectral_range": [2600, 349, -1]
                 },
                 "3": {
-                    "desc": "Visible Green",
+                    "desc": "Green",
                     "band_type": "Reflective",
                     "band_name": "BAND 3",
                     "wavelength": [0.525, 0.60],
@@ -245,7 +245,7 @@
                     "spectral_range": [2600, 349, -1]
                 },
                 "4": {
-                    "desc": "Visible Red",
+                    "desc": "Red",
                     "band_type": "Reflective",
                     "band_name": "BAND 4",
                     "wavelength": [0.63, 0.68],
@@ -253,7 +253,7 @@
                     "spectral_range": [2600, 349, -1]
                 },
                 "5": {
-                    "desc": "Near Infrared",
+                    "desc": "NIR",
                     "band_type": "Reflective",
                     "band_name": "BAND 5",
                     "wavelength": [0.845, 0.885],
@@ -261,7 +261,7 @@
                     "spectral_range": [2600, 349, -1]
                 },
                 "6": {
-                    "desc": "Short-wave Infrared 1",
+                    "desc": "SWIR 1",
                     "band_type": "Reflective",
                     "band_name": "BAND 6",
                     "wavelength": [1.56, 1.66],
@@ -269,7 +269,7 @@
                     "spectral_range": [2600, 349, -1]
                 },
                 "7": {
-                    "desc": "Short-wave Infrared 2",
+                    "desc": "SWIR 2",
                     "band_type": "Reflective",
                     "band_name": "BAND 7",
                     "wavelength": [2.1, 2.3],
@@ -291,7 +291,7 @@
                         "spectral_range": [2600, 349, -1]
                     },
                     "2": {
-                        "desc": "Visible Blue",
+                        "desc": "Blue",
                         "band_type": "Reflective",
                         "band_name": "BAND 2",
                         "wavelength": [0.4575, 0.5225],
@@ -299,7 +299,7 @@
                         "spectral_range": [2600, 349, -1]
                     },
                     "3": {
-                        "desc": "Visible Green",
+                        "desc": "Green",
                         "band_type": "Reflective",
                         "band_name": "BAND 3",
                         "wavelength": [0.5425, 0.5775],
@@ -307,7 +307,7 @@
                         "spectral_range": [2600, 349, -1]
                     },
                     "4": {
-                        "desc": "Visible Red",
+                        "desc": "Red",
                         "band_type": "Reflective",
                         "band_name": "BAND 4",
                         "wavelength": [0.650, 0.680],
@@ -339,7 +339,7 @@
                         "spectral_range": [2600, 349, -1]
                     },
                     "8": {
-                        "desc": "Near Infrared",
+                        "desc": "NIR",
                         "band_type": "Reflective",
                         "band_name": "BAND 8",
                         "wavelength": [0.7845, 0.8995],
@@ -363,7 +363,7 @@
                         "spectral_range": [2600, 349, -1]
                     },
                     "11": {
-                        "desc": "Short-wave Infrared 1",
+                        "desc": "SWIR 1",
                         "band_type": "Reflective",
                         "band_name": "BAND 11",
                         "wavelength": [1.565, 1.655],
@@ -371,7 +371,7 @@
                         "spectral_range": [2600, 349, -1]
                     },
                     "12": {
-                        "desc": "Short-wave Infrared 2",
+                        "desc": "SWIR 2",
                         "band_type": "Reflective",
                         "band_name": "BAND 12",
                         "wavelength": [2.10, 2.280],
