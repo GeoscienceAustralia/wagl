@@ -165,7 +165,7 @@ def calculate_reflectance(acquisition, interpolation_group,
     """
     acq = acquisition
     geobox = acq.gridded_geo_box()
-    bn = acq.band_id
+    bn = acq.band_name
 
     dname_fmt = DatasetName.interpolation_fmt.value
     fv_dataset = interpolation_group[dname_fmt.format(factor='fv', band=bn)]
@@ -227,7 +227,9 @@ def calculate_reflectance(acquisition, interpolation_group,
              'rori_threshold_setting': rori,
              'platform_id': acq.platform_id,
              'sensor_id': acq.sensor_id,
-             'band_id': bn}
+             'band_id': acq.band_id,
+             'band_name': bn,
+             'band_description': acq.desc}
 
     desc = "Contains the lambertian reflectance data scaled by 10000."
     attrs['Description'] = desc
