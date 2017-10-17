@@ -502,76 +502,6 @@ def brdf_wavelength_lut(satellite_sensor):
     return brdf_lut
 
 
-def avg_reflectance_lut(satellite_sensor):
-    """
-    Retrieves the average reflectance values for a given
-    satellite-sensor.
-    Only those bands processed through NBAR will be returned.
-
-    :param satellite_sensor:
-        A string containing a valid satellite-sensor combination.
-        Valid combinations are:
-        landsat5tm
-        landsat7etm
-        landsat8oli
-        landsat8olitirs
-        sentinel2amsi
-
-    :return:
-        A dictionary containing the Band numbers of a sensor as the
-        keys, and the average reflectance as the values.
-
-    :notes:
-        These were copied from the files files in
-        /g/data/v10/ULA3-TESTDATA/brdf_modis_band%i.txt. They were
-        contained in the last line of those files.
-    """
-
-    input_str = str(satellite_sensor)
-
-    avg_reflectance_values = {'landsat5tm': {'1': 0.0365,
-                                             '2': 0.0667,
-                                             '3': 0.0880,
-                                             '4': 0.2231,
-                                             '5': 0.2512,
-                                             '7': 0.1648},
-                              'landsat7etm+': {'1': 0.0365,
-                                               '2': 0.0667,
-                                               '3': 0.0880,
-                                               '4': 0.2231,
-                                               '5': 0.2512,
-                                               '7': 0.1648},
-                              'landsat8oli': {'1': 0.0365,
-                                              '2': 0.0365,
-                                              '3': 0.0667,
-                                              '4': 0.0880,
-                                              '5': 0.2231,
-                                              '6': 0.2512,
-                                              '7': 0.1648},
-                              'landsat8olitirs': {'1': 0.0365,
-                                                  '2': 0.0365,
-                                                  '3': 0.0667,
-                                                  '4': 0.0880,
-                                                  '5': 0.2231,
-                                                  '6': 0.2512,
-                                                  '7': 0.1648},
-                              'sentinel2amsi': {'1': 0.0365,
-                                                '2': 0.0365,
-                                                '3': 0.0667,
-                                                '4': 0.088,
-                                                '5': 0.088,
-                                                '6': 0.088,
-                                                '7': 0.2231,
-                                                '8': 0.2231,
-                                                '8a': 0.2231,
-                                                '9': 0.2231,
-                                                '11': 0.2512,
-                                                '12': 0.1648}
-                             }
-
-    return avg_reflectance_values.get(input_str, 'Error')
-
-
 class NBARConstants(object):
 
     """
@@ -607,14 +537,6 @@ class NBARConstants(object):
         factors = ['geo', 'iso', 'vol']
 
         return factors
-
-    def get_avg_ref_lut(self):
-        """
-        Get the average reflectance lookup table.
-        """
-        avg_ref_lut = avg_reflectance_lut(self.sat_sensor)
-
-        return avg_ref_lut
 
 
 def combine_satellite_sensor(satellite, sensor):
