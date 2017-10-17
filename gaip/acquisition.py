@@ -882,11 +882,11 @@ class Sentinel2aAcquisition(Acquisition):
 
     def _retrieve_solar_zenith(self):
         """
-        If radiance is not available, calculate it into a
-        temporary file.
-        Can we use tempfile, that way it is removed from disk
-        upon object deletion?
-        Or simply keep it in memory?
+        We can't use our own zenith angle to invert TOAr back to
+        radiance, even though our angle array is more accurate.
+        This is because the correct radiance measurement won't be
+        guaranteed if a different value is used in the inversion.
+
         Code adapted from https://github.com/umwilm/SEN2COR.
         """
         def rbspline(y_coords, x_coords, zdata):
@@ -938,6 +938,13 @@ class Sentinel2aAcquisition(Acquisition):
     def radiance_data(self, window=None, out_no_data=-999):
         """
         Return the data as radiance in watts/(m^2*micrometre).
+
+        Sentinel-2a's package is a little convoluted with the various
+        different scale factors, and the code for radiance inversion
+        doesn't follow the general standard.
+        Hence the following code may look a little strange.
+
+        Code adapted from https://github.com/umwilm/SEN2COR.
         """
         # retrieve the solar zenith if we haven't already done so
         if self._solar_zenith is None:
