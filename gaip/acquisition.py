@@ -721,7 +721,7 @@ def acquisitions_via_safe(pathname):
 
     # radiance (w/m^2)  scale factors
     rsf = {band_map[str(i)]: v for i, v in
-           enumerate([0.01] * 10 + [None] + [0.002] + [0.0005])
+           enumerate([0.01] * 10 + [None] + [0.002] + [0.0005])}
     
     # earth -> sun distance correction factor; d2 =  1/ U
     search_term = './*/Product_Image_Characteristics/Reflectance_Conversion/U'
