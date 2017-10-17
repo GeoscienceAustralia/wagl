@@ -8,7 +8,8 @@
                     "band_name": "BAND 1",
                     "wavelength": [0.45, 0.52],
                     "spectral_filter_file": "landsat5_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.0365
                 },
                 "2": {
                     "desc": "Green",
@@ -16,7 +17,8 @@
                     "band_name": "BAND 2",
                     "wavelength": [0.52, 0.60],
                     "spectral_filter_file": "landsat5_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.0667
                 },
                 "3": {
                     "desc": "Red",
@@ -24,7 +26,8 @@
                     "band_name": "BAND 3",
                     "wavelength": [0.63, 0.69],
                     "spectral_filter_file": "landsat5_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.0880
                 },
                 "4": {
                     "desc": "NIR",
@@ -32,7 +35,8 @@
                     "band_name": "BAND 4",
                     "wavelength": [0.76, 0.90],
                     "spectral_filter_file": "landsat5_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.2231
                 },
                 "5": {
                     "desc": "SWIR 1",
@@ -40,7 +44,8 @@
                     "band_name": "BAND 5",
                     "wavelength": [1.55, 1.75],
                     "spectral_filter_file": "landsat5_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.2512
                 },
                 "6": {
                     "desc": "Thermal Infrared",
@@ -58,7 +63,8 @@
                     "band_name": "BAND 7",
                     "wavelength": [2.08, 2.35],
                     "spectral_filter_file": "landsat5_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.1648
                 }
               }
             }
@@ -72,7 +78,8 @@
                     "band_name": "BAND 1",
                     "wavelength": [0.45, 0.52],
                     "spectral_filter_file": "landsat7_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.0365
                      },
                 "2": {
                     "desc": "Green",
@@ -80,7 +87,8 @@
                     "band_name": "BAND 2",
                     "wavelength": [0.52, 0.60],
                     "spectral_filter_file": "landsat7_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.0667
                 },
                 "3": {
                     "desc": "Red",
@@ -88,7 +96,8 @@
                     "band_name": "BAND 3",
                     "wavelength": [0.63, 0.69],
                     "spectral_filter_file": "landsat7_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.0880
                 },
                 "4": {
                     "desc": "NIR",
@@ -96,7 +105,8 @@
                     "band_name": "BAND 4",
                     "wavelength": [0.76, 0.90],
                     "spectral_filter_file": "landsat7_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.2231
                 },
                 "5": {
                     "desc": "SWIR 1",
@@ -104,7 +114,8 @@
                     "band_name": "BAND 5",
                     "wavelength": [1.55, 1.75],
                     "spectral_filter_file": "landsat7_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.2512
                 },
                 "61": {
                     "desc": "Thermal Infrared [Low Gain]",
@@ -132,7 +143,8 @@
                     "band_name": "BAND 7",
                     "wavelength": [2.08, 2.35],
                     "spectral_filter_file": "landsat5_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.1648
                 }
               }
             }
@@ -146,7 +158,8 @@
                     "band_name": "BAND 1",
                     "wavelength": [0.433, 0.453],
                     "spectral_filter_file": "landsat8_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.0365
                 },
                 "2": {
                     "desc": "Blue",
@@ -154,7 +167,8 @@
                     "band_name": "BAND 2",
                     "wavelength": [0.45, 0.515],
                     "spectral_filter_file": "landsat8_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.0365
                 },
                 "3": {
                     "desc": "Green",
@@ -162,7 +176,8 @@
                     "band_name": "BAND 3",
                     "wavelength": [0.525, 0.60],
                     "spectral_filter_file": "landsat8_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.0667
                 },
                 "4": {
                     "desc": "Red",
@@ -170,7 +185,8 @@
                     "band_name": "BAND 4",
                     "wavelength": [0.63, 0.68],
                     "spectral_filter_file": "landsat8_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.0880
                 },
                 "5": {
                     "desc": "NIR",
@@ -178,7 +194,8 @@
                     "band_name": "BAND 5",
                     "wavelength": [0.845, 0.885],
                     "spectral_filter_file": "landsat8_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.2231
                 },
                 "6": {
                     "desc": "SWIR 1",
@@ -186,7 +203,8 @@
                     "band_name": "BAND 6",
                     "wavelength": [1.56,1.66],
                     "spectral_filter_file": "landsat8_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.2512
                 },
                 "7": {
                     "desc": "SWIR 2",
@@ -194,7 +212,8 @@
                     "band_name": "BAND 7",
                     "wavelength": [2.1, 2.3],
                     "spectral_filter_file": "landsat8_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.1648
                 }
             }
         },
@@ -206,7 +225,8 @@
                     "band_name": "BAND 1",
                     "wavelength": [0.433, 0.453],
                     "spectral_filter_file": "landsat8_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.0365
                 },
                 "10": {
                     "desc": "Thermal Infrared 1",
@@ -234,7 +254,8 @@
                     "band_name": "BAND 2",
                     "wavelength": [0.45, 0.515],
                     "spectral_filter_file": "landsat8_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.0365
                 },
                 "3": {
                     "desc": "Green",
@@ -242,7 +263,8 @@
                     "band_name": "BAND 3",
                     "wavelength": [0.525, 0.60],
                     "spectral_filter_file": "landsat8_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.0667
                 },
                 "4": {
                     "desc": "Red",
@@ -250,7 +272,8 @@
                     "band_name": "BAND 4",
                     "wavelength": [0.63, 0.68],
                     "spectral_filter_file": "landsat8_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.0880
                 },
                 "5": {
                     "desc": "NIR",
@@ -258,7 +281,8 @@
                     "band_name": "BAND 5",
                     "wavelength": [0.845, 0.885],
                     "spectral_filter_file": "landsat8_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.2231
                 },
                 "6": {
                     "desc": "SWIR 1",
@@ -266,7 +290,8 @@
                     "band_name": "BAND 6",
                     "wavelength": [1.56, 1.66],
                     "spectral_filter_file": "landsat8_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.2512
                 },
                 "7": {
                     "desc": "SWIR 2",
@@ -274,7 +299,8 @@
                     "band_name": "BAND 7",
                     "wavelength": [2.1, 2.3],
                     "spectral_filter_file": "landsat8_vsir.flt",
-                    "spectral_range": [2600, 349, -1]
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.1648
                 }
             }
         }
@@ -288,7 +314,8 @@
                         "band_name": "BAND 1",
                         "wavelength": [0.433, 0.453],
                         "spectral_filter_file": "sentinel2a_all.flt",
-                        "spectral_range": [2600, 349, -1]
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.0365
                     },
                     "2": {
                         "desc": "Blue",
@@ -296,7 +323,8 @@
                         "band_name": "BAND 2",
                         "wavelength": [0.4575, 0.5225],
                         "spectral_filter_file": "sentinel2a_all.flt",
-                        "spectral_range": [2600, 349, -1]
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.0365
                     },
                     "3": {
                         "desc": "Green",
@@ -304,7 +332,8 @@
                         "band_name": "BAND 3",
                         "wavelength": [0.5425, 0.5775],
                         "spectral_filter_file": "sentinel2a_all.flt",
-                        "spectral_range": [2600, 349, -1]
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.0365
                     },
                     "4": {
                         "desc": "Red",
@@ -312,7 +341,8 @@
                         "band_name": "BAND 4",
                         "wavelength": [0.650, 0.680],
                         "spectral_filter_file": "sentinel2a_all.flt",
-                        "spectral_range": [2600, 349, -1]
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.088
                     },
                     "5": {
                         "desc": "Red Edge 1",
@@ -320,7 +350,8 @@
                         "band_name": "BAND 5",
                         "wavelength": [0.6975, 0.7125],
                         "spectral_filter_file": "sentinel2a_all.flt",
-                        "spectral_range": [2600, 349, -1]
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.088
                     },
                     "6": {
                         "desc": "Red Edge 2",
@@ -328,7 +359,8 @@
                         "band_name": "BAND 6",
                         "wavelength": [0.7325, 0.7475],
                         "spectral_filter_file": "sentinel2a_all.flt",
-                        "spectral_range": [2600, 349, -1]
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.088
                     },
                     "7": {
                         "desc": "Red Edge 3",
@@ -336,7 +368,8 @@
                         "band_name": "BAND 7",
                         "wavelength": [0.773, 0.793],
                         "spectral_filter_file": "sentinel2a_all.flt",
-                        "spectral_range": [2600, 349, -1]
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.2231
                     },
                     "8": {
                         "desc": "NIR",
@@ -344,7 +377,8 @@
                         "band_name": "BAND 8",
                         "wavelength": [0.7845, 0.8995],
                         "spectral_filter_file": "sentinel2a_all.flt",
-                        "spectral_range": [2600, 349, -1]
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.2231
                     },
                     "8A": {
                         "desc": "Red Edge 4",
@@ -352,7 +386,8 @@
                         "band_name": "BAND 8A",
                         "wavelength": [0.855, 0.875],
                         "spectral_filter_file": "sentinel2a_all.flt",
-                        "spectral_range": [2600, 349, -1]
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.2231
                     },
                     "9": {
                         "desc": "Water Vapour",
@@ -360,7 +395,8 @@
                         "band_name": "BAND 9",
                         "wavelength": [0.935, 0.955],
                         "spectral_filter_file": "sentinel2a_all.flt",
-                        "spectral_range": [2600, 349, -1]
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.2231
                     },
                     "11": {
                         "desc": "SWIR 1",
@@ -368,7 +404,8 @@
                         "band_name": "BAND 11",
                         "wavelength": [1.565, 1.655],
                         "spectral_filter_file": "sentinel2a_all.flt",
-                        "spectral_range": [2600, 349, -1]
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.2512
                     },
                     "12": {
                         "desc": "SWIR 2",
@@ -376,7 +413,8 @@
                         "band_name": "BAND 12",
                         "wavelength": [2.10, 2.280],
                         "spectral_filter_file": "sentinel2a_all.flt",
-                        "spectral_range": [2600, 349, -1]
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.1648
                     }
                 }
             }
