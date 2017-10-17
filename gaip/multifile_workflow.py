@@ -41,7 +41,6 @@ from gaip.reflectance import _calculate_reflectance, link_standard_data
 from gaip.terrain_shadow_masks import _self_shadow, _calculate_cast_shadow
 from gaip.terrain_shadow_masks import _combine_shadow
 from gaip.slope_aspect import _slope_aspect_arrays
-from gaip import constants
 from gaip.constants import Model, BandType, Method
 from gaip.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
 from gaip.dsm import _get_dsm
@@ -432,31 +431,22 @@ class InterpolateCoefficients(luigi.Task):
         acqs = container.get_acquisitions(group=self.group,
                                           granule=self.granule)
 
-        # Retrieve the satellite and sensor for the acquisition
-        satellite = acqs[0].platform_id
-        sensor = acqs[0].sensor_id
-
-        # NBAR band id's
-        nbar_constants = constants.NBARConstants(satellite, sensor)
-        band_ids = nbar_constants.get_nbar_lut()
-        nbar_bands = [a.band_id for a in acqs if a.band_id in band_ids]
-
-        # SBT band id's
-        band_ids = constants.sbt_bands(satellite, sensor) 
-        sbt_bands = [a.band_id for a in acqs if a.band_id in band_ids]
+        # NBAR & SBT acquisitions
+        nbar_acqs = [a for a in acqs if a.band_type == BandType.Reflective]
+        sbt_acqs = [a for a in acqs if a.band_type == BandType.Thermal]
 
         tasks = {}
         for factor in self.model.factors:
             if factor in Model.nbar.factors:
-                bands = nbar_bands
+                band_acqs = nbar_acqs
             else:
-                bands = sbt_bands
+                band_acqs = sbt_acqs
 
-            for band in bands:
-                key = (band, factor)
+            for acq in band_acqs:
+                key = (acq.band_id, factor)
                 kwargs = {'level1': self.level1, 'work_root': self.work_root,
                           'granule': self.granule, 'group': self.group,
-                          'band_id': band, 'factor': factor,
+                          'band_id': acq.band_id, 'factor': factor,
                           'model': self.model, 'vertices': self.vertices,
                           'method': self.method}
                 tasks[key] = InterpolateCoefficient(**kwargs)
@@ -838,33 +828,28 @@ class DataStandardisation(luigi.Task):
     pixel_quality = luigi.BoolParameter()
 
     def requires(self):
-        bands = []
+        band_acqs = []
         container = acquisitions(self.level1)
         acqs = container.get_acquisitions(group=self.group,
                                           granule=self.granule)
 
-        # Retrieve the satellite and sensor for the acquisition
-        satellite = acqs[0].platform_id
-        sensor = acqs[0].sensor_id
-
-        # NBAR band id's
+        # NBAR acquisitions
         if self.model == Model.standard or self.model == Model.nbar:
-            nbar_constants = constants.NBARConstants(satellite, sensor)
-            band_ids = nbar_constants.get_nbar_lut()
-            bands.extend([a for a in acqs if a.band_id in band_ids])
+            band_acqs.extend([a for a in acqs if
+                              a.band_type == BandType.Reflective])
 
-        # SBT band id's
+        # SBT acquisitions
         if self.model == Model.standard or self.model == Model.sbt:
-            band_ids = constants.sbt_bands(satellite, sensor) 
-            bands.extend([a for a in acqs if a.band_id in band_ids])
+            band_acqs.extend([a for a in acqs if
+                              a.band_type == BandType.Thermal])
 
         tasks = []
-        for band in bands:
+        for acq in band_acqs:
             kwargs = {'level1': self.level1, 'work_root': self.work_root,
                       'granule': self.granule, 'group': self.group,
-                      'band_id': band.band_id, 'model': self.model,
+                      'band_id': acq.band_id, 'model': self.model,
                       'vertices': self.vertices, 'method': self.method}
-            if band.band_type == BandType.Thermal:
+            if acq.band_type == BandType.Thermal:
                 tasks.append(SurfaceTemperature(**kwargs))
             else:
                 tasks.append(SurfaceReflectance(**kwargs))

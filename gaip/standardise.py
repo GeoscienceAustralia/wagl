@@ -55,14 +55,6 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
     nvertices = vertices[0] * vertices[1]
 
     scene = acquisitions(level1)
-    acqs = scene.get_acquisitions()
-    satellite = acqs[0].platform_id
-    sensor = acqs[0].sensor_id
-
-    # NBAR and SBT band id's
-    nbar_constants = constants.NBARConstants(satellite, sensor)
-    nbar_band_ids = nbar_constants.get_nbar_lut()
-    sbt_band_ids = constants.sbt_bands(satellite, sensor) 
 
     with h5py.File(out_fname, 'w') as fid:
         for grn_name in scene.granules:
@@ -234,10 +226,11 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
 
                 # acquisitions and available bands for the current group level
                 acqs = scene.get_acquisitions(granule=grn_name, group=grp_name)
-                nbar_bands = [a.band_id for a in acqs if
-                              a.band_id in nbar_band_ids]
-                sbt_bands = [a.band_id for a in acqs if
-                             a.band_id in sbt_band_ids]
+                nbar_acqs = [acq for acq in acqs if
+                             acq.band_type == BandType.Reflective]
+                sbt_acqs = [acq for acq in acqs if
+                            acq.band_type == BandType.Thermal]
+
 
                 group = granule_group[grp_name]
                 sat_sol_grp = group[GroupName.sat_sol_group.value]
@@ -245,13 +238,13 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
 
                 for factor in model.factors:
                     if factor in Model.nbar.factors:
-                        bands = nbar_bands
+                        band_acqs = nbar_acqs
                     else:
-                        bands = sbt_bands
+                        band_acqs = sbt_acqs
 
-                    for bn in bands:
-                        log.info('Interpolate', band_id=bn, factor=factor)
-                        acq = [acq for acq in acqs if acq.band_id == bn][0]
+                    for acq in band_acqs:
+                        log.info('Interpolate', band_id=acq.band_id,
+                                 factor=factor)
                         interpolate(acq, factor, ancillary_group, sat_sol_grp,
                                     coef_grp, group, compression, y_tile,
                                     method)
@@ -259,12 +252,10 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
                 # standardised products
                 band_acqs = []
                 if model == Model.standard or model == model.nbar:
-                    band_acqs.extend([a for a in acqs if
-                                      a.band_id in nbar_bands])
+                    band_acqs.extend(nbar_acqs)
 
                 if model == Model.standard or model == model.sbt:
-                    band_acqs.extend([a for a in acqs if
-                                      a.band_id in sbt_bands])
+                    band_acqs.extend(sbt_acqs)
 
                 for acq in band_acqs:
                     interp_grp = group[GroupName.interp_group.value]

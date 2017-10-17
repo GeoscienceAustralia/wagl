@@ -502,45 +502,6 @@ def brdf_wavelength_lut(satellite_sensor):
     return brdf_lut
 
 
-def nbar_bands_lut(satellite_sensor):
-    """
-    Given a satellite_sensor string, retrieve a list bands to
-    process through the NBAR algorithm.
-
-    :param satellite_sensor:
-        A string containing a valid satellite-sensor combination.
-        Valid combinations are:
-        landsat5tm
-        landsat7etm
-        landsat8oli
-        landsat8olitirs
-        sentinel2amsi
-
-    :return:
-    """
-
-    input_str = str(satellite_sensor)
-
-    nbar_lut = {'landsat5tm': ['1', '2', '3', '4', '5', '7'],
-                'landsat7etm+': ['1', '2', '3', '4', '5', '7'],
-                'landsat8oli': ['1', '2', '3', '4', '5', '6', '7'],
-                'landsat8olitirs': ['1', '2', '3', '4', '5', '6', '7'],
-                'sentinel2amsi': ['1',
-                                  '2',
-                                  '3',
-                                  '4',
-                                  '5',
-                                  '6',
-                                  '7',
-                                  '8',
-                                  '8a',
-                                  '9',
-                                  '11',
-                                  '12']}
-
-    return nbar_lut.get(input_str, 'Error')
-
-
 def avg_reflectance_lut(satellite_sensor):
     """
     Retrieves the average reflectance values for a given
@@ -646,15 +607,6 @@ class NBARConstants(object):
         factors = ['geo', 'iso', 'vol']
 
         return factors
-
-    def get_nbar_lut(self):
-        """
-        Get the NBAR lookup table.
-        """
-
-        nbar_lut = nbar_bands_lut(self.sat_sensor)
-
-        return nbar_lut
 
     def get_avg_ref_lut(self):
         """

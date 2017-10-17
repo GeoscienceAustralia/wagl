@@ -205,11 +205,19 @@ def run_pq(level1, standardised_data_fname, land_sea_path, compression='lzf'):
 
     # constants to be use for this PQA computation 
     pq_const = PQAConstants(sensor)
-    nbar_const = NBARConstants(platform_id, sensor)
-    avail_bands = nbar_const.get_nbar_lut()
 
-    # TODO: better method of band number access
-    spectral_bands = avail_bands[1:] if pq_const.oli_tirs else avail_bands
+    # get the band names based on acquisition description
+    spectral_bands = []
+    band_descriptions = ["Blue",
+                         "Green",
+                         "Red",
+                         "NIR",
+                         "SWIR 1",
+                         "SWIR 2"]
+    for band_desc in band_descriptions:
+        spectral_bands.append([a.band_name for a in acqs if
+                               a.desc == band_desc][0])
+            
 
     # track the bits that have been set (tests that have been run)
     tests_run = {'band_1_saturated': False,
