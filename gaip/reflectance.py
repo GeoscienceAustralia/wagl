@@ -192,10 +192,6 @@ def calculate_reflectance(acquisition, interpolation_group,
     brdf_vol = ancillary_group[dname_fmt.format(band=bn, factor='vol')][()]
     brdf_geo = ancillary_group[dname_fmt.format(band=bn, factor='geo')][()]
 
-    # Get the average reflectance values per band
-    nbar_constants = constants.NBARConstants(acq.platform_id, acq.sensor_id)
-    avg_reflectance_values = nbar_constants.get_avg_ref_lut()
-
     # Initialise the output file
     if out_group is None:
         fid = h5py.File('surface-reflectance.h5', driver='core',
@@ -295,7 +291,7 @@ def calculate_reflectance(acquisition, interpolation_group,
 
         # Run terrain correction
         reflectance(xsize, ysize, rori, brdf_iso, brdf_vol, brdf_geo,
-                    avg_reflectance_values[acq.band_id], kwargs['fillvalue'],
+                    acq.reflectance_adjustment, kwargs['fillvalue'],
                     band_data, shadow, solar_zenith, solar_azimuth,
                     satellite_view, relative_angle, slope, aspect,
                     incident_angle, exiting_angle, relative_slope, a_mod,
