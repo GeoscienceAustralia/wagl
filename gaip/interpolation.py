@@ -15,6 +15,7 @@ from gaip.hdf5 import dataset_compression_kwargs
 from gaip.hdf5 import write_h5_image
 from gaip.hdf5 import read_h5_table
 from gaip.hdf5 import find
+from gaip.hdf5 import create_external_link
 import numexpr
 
 DEFAULT_ORIGIN = (0, 0)
@@ -471,13 +472,10 @@ def link_interpolated_data(data, out_fname):
     Links the individual interpolated results into a
     single file for easier access.
     """
-    group_path = GroupName.interp_group.value
     for key in data:
         fname = data[key]
         with h5py.File(fname, 'r') as fid:
             dataset_names = find(fid, dataset_class='IMAGE')
 
-        with h5py.File(out_fname, 'a') as fid:
-            for dname in dataset_names:
-                dataset_name = ppjoin(group_path, dname)
-                fid[dataset_name] = h5py.ExternalLink(fname, dataset_name)
+        for dname in dataset_names:
+            create_external_link(fname, dname, out_fname, dname)
