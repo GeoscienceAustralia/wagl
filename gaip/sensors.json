@@ -71,7 +71,7 @@
          },
     "LANDSAT_7": {
         "ETM+": {
-                "bands": {
+                "band_ids": {
                 "1": {
                     "desc": "Blue",
                     "band_type": "Reflective",
@@ -151,7 +151,7 @@
     },
     "LANDSAT_8": {
         "OLI": {
-                "bands": {
+                "band_ids": {
                 "1": {
                     "desc": "Coastal Aerosol",
                     "band_type": "Reflective",
@@ -218,7 +218,7 @@
             }
         },
         "OLI_TIRS": {
-                "bands": {
+                "band_ids": {
                 "1": {
                     "desc": "Coastal Aerosol",
                     "band_type": "Reflective",
@@ -307,7 +307,7 @@
     },
     "SENTINEL_2A": {
             "MSI": {
-                "bands": {
+                "band_ids": {
                     "1": {
                         "desc": "Aerosols",
                         "band_type": "Reflective",
