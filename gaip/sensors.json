@@ -32,7 +32,6 @@
                     "reflectance_adjustment": 0.0880,
                     "brdf_wavelength": '0620_0670nm'
                 },
-                },
                 "4": {
                     "desc": "NIR",
                     "band_type": "Reflective",
@@ -70,7 +69,7 @@
                     "wavelength": [2.08, 2.35],
                     "spectral_filter_file": "landsat5_vsir.flt",
                     "spectral_range": [2600, 349, -1],
-                    "reflectance_adjustment": 0.1648
+                    "reflectance_adjustment": 0.1648,
                     "brdf_wavelength": '2105_2155nm'
                 }
               }
