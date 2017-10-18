@@ -778,12 +778,10 @@ def read_modtran_channel(fname, acquisition, albedo):
         downward_radiation = pd.read_csv(fname, skiprows=10+nbands,
                                          header=None, delim_whitespace=True,
                                          nrows=nbands)
-        upward_radiation['band_name'] = (upward_radiation[16] + ' ' + 
-                                         upward_radiation[17].astype(str))
-        downward_radiation['band_name'] = (downward_radiation[16] + ' ' +
-                                           downward_radiation[17].astype(str))
-        upward_radiation.drop([16, 17], inplace=True, axis=1)
-        downward_radiation.drop([16, 17], inplace=True, axis=1)
+        upward_radiation['band_name'] = upward_radiation[16]
+        downward_radiation['band_name'] = downward_radiation[16]
+        upward_radiation.drop(16, inplace=True, axis=1)
+        downward_radiation.drop(16, inplace=True, axis=1)
         upward_radiation.set_index('band_name', inplace=True)
         downward_radiation.set_index('band_name', inplace=True)
         upward_radiation.columns = upward_radiation.columns.astype(str)
@@ -793,8 +791,8 @@ def read_modtran_channel(fname, acquisition, albedo):
     else:
         chn_data = pd.read_csv(fname, skiprows=5, header=None, nrows=nbands,
                                delim_whitespace=True)
-        chn_data['band_name'] = chn_data[20] + ' ' + chn_data[21].astype(str)
-        chn_data.drop([20, 21], inplace=True, axis=1)
+        chn_data['band_name'] = chn_data[20]
+        chn_data.drop(20, inplace=True, axis=1)
         chn_data.set_index('band_name', inplace=True)
         chn_data.columns = chn_data.columns.astype(str)
 
