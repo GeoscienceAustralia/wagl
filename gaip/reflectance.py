@@ -14,11 +14,12 @@ import numpy
 import h5py
 
 from gaip import constants
-from gaip.constants import DatasetName, Model, GroupName
+from gaip.constants import DatasetName, GroupName
 from gaip.data import as_array
 from gaip.hdf5 import dataset_compression_kwargs
 from gaip.hdf5 import attach_image_attributes
 from gaip.hdf5 import create_external_link
+from gaip.hdf5 import find
 from gaip.metadata import create_ard_yaml
 from gaip.tiling import generate_tiles
 from gaip.__surface_reflectance import reflectance
@@ -311,36 +312,18 @@ def calculate_reflectance(acquisition, interpolation_group,
         return fid
 
 
-def link_standard_data(input_fnames, out_fname, model):
+def link_standard_data(input_fnames, out_fname):
     # TODO: incorporate linking for multi-granule and multi-group
     #       datasets
     """
     Links the individual reflectance and surface temperature
     results into a single file for easier access.
     """
-    def exclude(obj):
-        """
-        A simple function to test an object against a
-        h5py.Group object.
-        """
-        return isinstance(obj, h5py.Group)
-
-    group_path = GroupName.standard_group.value
     for fname in input_fnames:
         with h5py.File(fname, 'r') as fid:
-            base_group = fid[group_path]
-            dataset_names = []
-            for group in model.ard_products:
-                if group not in base_group:
-                    continue
-                grp = base_group[group]
-                dnames = [k for k, v in grp.items() if not exclude(v)]
-                base_path = ppjoin(group_path, group)
-                dataset_names.extend([ppjoin(base_path, d) for d in dnames])
+            dataset_names = find(fid, dataset_class='IMAGE')
 
         for dname in dataset_names:
-            if isinstance(dname, h5py.Group):
-                continue
             create_external_link(fname, dname, out_fname, dname)
 
         # metadata

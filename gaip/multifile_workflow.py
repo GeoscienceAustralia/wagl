@@ -864,7 +864,7 @@ class DataStandardisation(luigi.Task):
     def run(self):
         with self.output().temporary_path() as out_fname:
             fnames = [target.path for target in self.input()]
-            link_standard_data(fnames, out_fname, self.model)
+            link_standard_data(fnames, out_fname)
             sbt_only = self.model == Model.sbt
             if self.pixel_quality and can_pq(self.level1) and not sbt_only:
                 run_pq(self.level1, out_fname, self.land_sea_path,
