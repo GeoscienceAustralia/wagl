@@ -28,7 +28,10 @@ POINT_FMT = 'point-{p}'
 ALBEDO_FMT = 'albedo-{a}'
 POINT_ALBEDO_FMT = ''.join([POINT_FMT, '-', ALBEDO_FMT])
 
-ARD_PRODUCTS = ['brdf', 'terrain', 'lambertian', 'thermal']
+ARD_PRODUCTS = ['brdf',
+                'terrain',
+                'lambertian',
+                'sbt']
 
 
 class Model(Enum):
