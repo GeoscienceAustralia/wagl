@@ -10,7 +10,7 @@
                     "spectral_filter_file": "landsat5_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
-                    "brdf_wavelength": '0459_0479nm'
+                    "brdf_wavelength": "0459_0479nm"
                 },
                 "2": {
                     "desc": "Green",
@@ -20,7 +20,7 @@
                     "spectral_filter_file": "landsat5_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0667,
-                    "brdf_wavelength": '0545_0565nm'
+                    "brdf_wavelength": "0545_0565nm"
                 },
                 "3": {
                     "desc": "Red",
@@ -30,7 +30,7 @@
                     "spectral_filter_file": "landsat5_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0880,
-                    "brdf_wavelength": '0620_0670nm'
+                    "brdf_wavelength": "0620_0670nm"
                 },
                 "4": {
                     "desc": "NIR",
@@ -40,7 +40,7 @@
                     "spectral_filter_file": "landsat5_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2231,
-                    "brdf_wavelength": '0841_0876nm'
+                    "brdf_wavelength": "0841_0876nm"
                 },
                 "5": {
                     "desc": "SWIR 1",
@@ -50,7 +50,7 @@
                     "spectral_filter_file": "landsat5_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2512,
-                    "brdf_wavelength": '1628_1652nm'
+                    "brdf_wavelength": "1628_1652nm"
                 },
                 "6": {
                     "desc": "Thermal Infrared",
@@ -70,7 +70,7 @@
                     "spectral_filter_file": "landsat5_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.1648,
-                    "brdf_wavelength": '2105_2155nm'
+                    "brdf_wavelength": "2105_2155nm"
                 }
               }
             }
@@ -86,7 +86,7 @@
                     "spectral_filter_file": "landsat7_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
-                    "brdf_wavelength": '0459_0479nm'
+                    "brdf_wavelength": "0459_0479nm"
                      },
                 "2": {
                     "desc": "Green",
@@ -96,7 +96,7 @@
                     "spectral_filter_file": "landsat7_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0667,
-                    "brdf_wavelength": '0545_0565nm'
+                    "brdf_wavelength": "0545_0565nm"
                 },
                 "3": {
                     "desc": "Red",
@@ -106,7 +106,7 @@
                     "spectral_filter_file": "landsat7_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0880,
-                    "brdf_wavelength": '0620_0670nm'
+                    "brdf_wavelength": "0620_0670nm"
                 },
                 "4": {
                     "desc": "NIR",
@@ -116,7 +116,7 @@
                     "spectral_filter_file": "landsat7_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2231,
-                    "brdf_wavelength": '0841_0876nm'
+                    "brdf_wavelength": "0841_0876nm"
                 },
                 "5": {
                     "desc": "SWIR 1",
@@ -126,7 +126,7 @@
                     "spectral_filter_file": "landsat7_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2512,
-                    "brdf_wavelength": '1628_1652nm'
+                    "brdf_wavelength": "1628_1652nm"
                 },
                 "61": {
                     "desc": "Thermal Infrared [Low Gain]",
@@ -156,7 +156,7 @@
                     "spectral_filter_file": "landsat5_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.1648,
-                    "brdf_wavelength": '2105_2155nm'
+                    "brdf_wavelength": "2105_2155nm"
                 }
               }
             }
@@ -172,7 +172,7 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
-                    "brdf_wavelength": '0459_0479nm'
+                    "brdf_wavelength": "0459_0479nm"
                 },
                 "2": {
                     "desc": "Blue",
@@ -182,7 +182,7 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
-                    "brdf_wavelength": '0459_0479nm'
+                    "brdf_wavelength": "0459_0479nm"
                 },
                 "3": {
                     "desc": "Green",
@@ -192,7 +192,7 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0667,
-                    "brdf_wavelength": '0545_0565nm'
+                    "brdf_wavelength": "0545_0565nm"
                 },
                 "4": {
                     "desc": "Red",
@@ -202,7 +202,7 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0880,
-                    "brdf_wavelength": '0620_0670nm'
+                    "brdf_wavelength": "0620_0670nm"
                 },
                 "5": {
                     "desc": "NIR",
@@ -212,7 +212,7 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2231,
-                    "brdf_wavelength": '0841_0876nm'
+                    "brdf_wavelength": "0841_0876nm"
                 },
                 "6": {
                     "desc": "SWIR 1",
@@ -222,7 +222,7 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2512,
-                    "brdf_wavelength": '1628_1652nm'
+                    "brdf_wavelength": "1628_1652nm"
                 },
                 "7": {
                     "desc": "SWIR 2",
@@ -232,7 +232,7 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.1648,
-                    "brdf_wavelength": '2105_2155nm'
+                    "brdf_wavelength": "2105_2155nm"
                 }
             }
         },
@@ -246,7 +246,7 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
-                    "brdf_wavelength": '0459_0479nm'
+                    "brdf_wavelength": "0459_0479nm"
                 },
                 "10": {
                     "desc": "Thermal Infrared 1",
@@ -276,7 +276,7 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
-                    "brdf_wavelength": '0459_0479nm'
+                    "brdf_wavelength": "0459_0479nm"
                 },
                 "3": {
                     "desc": "Green",
@@ -286,7 +286,7 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0667,
-                    "brdf_wavelength": '0545_0565nm'
+                    "brdf_wavelength": "0545_0565nm"
                 },
                 "4": {
                     "desc": "Red",
@@ -296,7 +296,7 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0880,
-                    "brdf_wavelength": '0620_0670nm'
+                    "brdf_wavelength": "0620_0670nm"
                 },
                 "5": {
                     "desc": "NIR",
@@ -306,7 +306,7 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2231,
-                    "brdf_wavelength": '0841_0876nm'
+                    "brdf_wavelength": "0841_0876nm"
                 },
                 "6": {
                     "desc": "SWIR 1",
@@ -316,7 +316,7 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2512,
-                    "brdf_wavelength": '1628_1652nm'
+                    "brdf_wavelength": "1628_1652nm"
                 },
                 "7": {
                     "desc": "SWIR 2",
@@ -326,7 +326,7 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.1648,
-                    "brdf_wavelength": '2105_2155nm'
+                    "brdf_wavelength": "2105_2155nm"
                 }
             }
         }
@@ -342,7 +342,7 @@
                         "spectral_filter_file": "sentinel2a_all.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.0365,
-                        "brdf_wavelength": '0459_0479nm'
+                        "brdf_wavelength": "0459_0479nm"
                     },
                     "2": {
                         "desc": "Blue",
@@ -352,7 +352,7 @@
                         "spectral_filter_file": "sentinel2a_all.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.0365,
-                        "brdf_wavelength": '0459_0479nm'
+                        "brdf_wavelength": "0459_0479nm"
                     },
                     "3": {
                         "desc": "Green",
@@ -362,7 +362,7 @@
                         "spectral_filter_file": "sentinel2a_all.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.0365,
-                        "brdf_wavelength": '0545_0565nm'
+                        "brdf_wavelength": "0545_0565nm"
                     },
                     "4": {
                         "desc": "Red",
@@ -372,7 +372,7 @@
                         "spectral_filter_file": "sentinel2a_all.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.088,
-                        "brdf_wavelength": '0620_0670nm'
+                        "brdf_wavelength": "0620_0670nm"
                     },
                     "5": {
                         "desc": "Red Edge 1",
@@ -382,7 +382,7 @@
                         "spectral_filter_file": "sentinel2a_all.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.088,
-                        "brdf_wavelength": '0620_0670nm'
+                        "brdf_wavelength": "0620_0670nm"
                     },
                     "6": {
                         "desc": "Red Edge 2",
@@ -392,7 +392,7 @@
                         "spectral_filter_file": "sentinel2a_all.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.088,
-                        "brdf_wavelength": '0620_0670nm'
+                        "brdf_wavelength": "0620_0670nm"
                     },
                     "7": {
                         "desc": "Red Edge 3",
@@ -402,7 +402,7 @@
                         "spectral_filter_file": "sentinel2a_all.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.2231,
-                        "brdf_wavelength": '0841_0876nm'
+                        "brdf_wavelength": "0841_0876nm"
                     },
                     "8": {
                         "desc": "NIR",
@@ -412,7 +412,7 @@
                         "spectral_filter_file": "sentinel2a_all.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.2231,
-                        "brdf_wavelength": '0841_0876nm'
+                        "brdf_wavelength": "0841_0876nm"
                     },
                     "8A": {
                         "desc": "Red Edge 4",
@@ -422,7 +422,7 @@
                         "spectral_filter_file": "sentinel2a_all.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.2231,
-                        "brdf_wavelength": '0841_0876nm'
+                        "brdf_wavelength": "0841_0876nm"
                     },
                     "9": {
                         "desc": "Water Vapour",
@@ -432,7 +432,7 @@
                         "spectral_filter_file": "sentinel2a_all.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.2231,
-                        "brdf_wavelength": '0841_0876nm'
+                        "brdf_wavelength": "0841_0876nm"
                     },
                     "11": {
                         "desc": "SWIR 1",
@@ -442,7 +442,7 @@
                         "spectral_filter_file": "sentinel2a_all.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.2512,
-                        "brdf_wavelength": '1628_1652nm'
+                        "brdf_wavelength": "1628_1652nm"
                     },
                     "12": {
                         "desc": "SWIR 2",
@@ -452,7 +452,7 @@
                         "spectral_filter_file": "sentinel2a_all.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.1648,
-                        "brdf_wavelength": '2105_2155nm'
+                        "brdf_wavelength": "2105_2155nm"
                     }
                 }
             }
