@@ -7,6 +7,7 @@ such as images and tables, as well as attaching metadata.
 
 from __future__ import absolute_import, print_function
 import datetime
+from functools import partial
 from posixpath import join as ppjoin, normpath
 from pprint import pprint
 import numpy
@@ -594,3 +595,42 @@ def read_scalar(group, dataset_name):
     data = {k: v for k, v in dataset.attrs.items()}
     data['value'] = dataset[()]
     return data
+
+
+def find(h5_obj, dataset_class=''):
+    """
+    Given an h5py `Group`, `File` (opened file id; fid),
+    recursively list all objects or optionally only list
+    `h5py.Dataset` objects matching a given class, for example:
+
+        * IMAGE
+        * TABLE
+        * SCALAR
+
+    :param h5_obj:
+        A h5py `Group` or `File` object to use as the
+        entry point from which to start listing the contents.
+
+    :param dataset_class:
+        A `str` containing a CLASS name identifier, eg:
+
+        * IMAGE
+        * TABLE
+        * SCALAR
+
+        Default is an empty string `''`.
+
+    :return:
+        A `list` containing the pathname to all matching objects.
+    """
+    def _find(items, dataset_class, name, obj):
+        """
+        An internal utility to find objects matching `dataset_class`.
+        """
+        if obj.attrs.get('CLASS') == dataset_class:
+            items.append(name)
+
+    items = []
+    h5_obj.visititems(partial(_find, items, dataset_class))
+
+    return items
