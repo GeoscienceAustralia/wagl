@@ -140,10 +140,10 @@ class DatasetName(Enum):
     relative_slope = 'relative-slope'
 
     # gaip.reflectance
-    reflectance_fmt = '{product}/reflectance-band-{band}'
+    reflectance_fmt = 'reflectance/{product}/{band}'
 
     # gaip.temperature
-    temperature_fmt = 'thermal/surface-brightness-temperature-band-{band}'
+    temperature_fmt = 'thermal/surface-brightness-temperature/{band}'
 
     # gaip.terrain_shadow_masks
     self_shadow = 'self-shadow'
@@ -159,7 +159,7 @@ class DatasetName(Enum):
     dsm_smoothed = 'dsm-smoothed'
 
     # gaip.interpolation
-    interpolation_fmt = '{factor}-band-{band}'
+    interpolation_fmt = '{factor}/{band}'
 
     # gaip.modtran
     tp5 = 'tp5-data'
@@ -201,7 +201,7 @@ class GroupName(Enum):
     exiting_group = 'exiting-angles'
     rel_slp_group = 'relative-slope'
     shadow_group = 'shadow-masks'
-    standard_group = 'standard-products'
+    standard_group = 'standardised-products'
 
 
 class Method(Enum):
