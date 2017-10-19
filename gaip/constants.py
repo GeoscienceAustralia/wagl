@@ -114,7 +114,7 @@ class DatasetName(Enum):
     water_vapour = 'water-vapour'
     ozone = 'ozone'
     elevation = 'elevation'
-    brdf_fmt = "BRDF-Band-{band}-{factor}"
+    brdf_fmt = "BRDF-{parameter}-{band_name}"
     ecmwf_path_fmt = pjoin('{product}', '{year}', 'tif', '{product}_*.tif')
 
     # gaip.longitude_latitude_arrays
@@ -143,10 +143,10 @@ class DatasetName(Enum):
     relative_slope = 'relative-slope'
 
     # gaip.reflectance
-    reflectance_fmt = 'reflectance/{product}/{band}'
+    reflectance_fmt = 'reflectance/{product}/{band_name}'
 
     # gaip.temperature
-    temperature_fmt = 'thermal/surface-brightness-temperature/{band}'
+    temperature_fmt = 'thermal/surface-brightness-temperature/{band_name}'
 
     # gaip.terrain_shadow_masks
     self_shadow = 'self-shadow'
@@ -162,7 +162,7 @@ class DatasetName(Enum):
     dsm_smoothed = 'dsm-smoothed'
 
     # gaip.interpolation
-    interpolation_fmt = '{factor}/{band}'
+    interpolation_fmt = '{factor}/{band_name}'
 
     # gaip.modtran
     tp5 = 'tp5-data'
@@ -218,6 +218,16 @@ class Method(Enum):
     shear = 2
     shearb = 3
     rbf = 4
+
+
+class BrdfParameters(Enum):
+    """
+    Defines the BRDF Parameters used in BRDF correction.
+    """
+
+    iso = 0
+    vol = 1
+    geo = 2
 
 
 class PQbits(Enum):

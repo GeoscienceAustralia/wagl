@@ -449,7 +449,7 @@ def interpolate(acq, factor, ancillary_group, satellite_solar_group,
     group = fid[GroupName.interp_group.value]
 
     fmt = DatasetName.interpolation_fmt.value
-    dset_name = fmt.format(factor=factor, band=acq.band_name)
+    dset_name = fmt.format(factor=factor, band_name=acq.band_name)
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))
     no_data = -999
