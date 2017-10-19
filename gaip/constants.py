@@ -246,10 +246,7 @@ class PQbits(Enum):
     cloud_shadow_fmask = 12
 
 
-# TODO: Re-work this entire file, and the class structures
-#       A pain but required as this file contains neccessary
-#       band exclusions, and hardwired BRDF wavelength matchups.
-
+# TODO: get rid or redo this class
 class PQAConstants(object):
 
     """
