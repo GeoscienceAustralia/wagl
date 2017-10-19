@@ -11,7 +11,7 @@ and of differing resolutions.
 """
 from __future__ import absolute_import, print_function
 import os
-from os.path import isdir, join as pjoin, dirname, basename
+from os.path import isdir, join as pjoin, dirname, basename, splitext
 import re
 import json
 import datetime
@@ -561,9 +561,9 @@ def acquisitions(path):
     acquisitions for each Granule Group (if applicable) and
     each sub Group.
     """
-    try:
+    if splitext(path)[1] == '.zip':
         container = acquisitions_via_safe(path)
-    except zipfile.BadZipFile:
+    else:
         try:
             container = acquisitions_via_mtl(path)
         except OSError:
