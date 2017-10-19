@@ -385,7 +385,7 @@ class LandsatAcquisition(Acquisition):
         self.min_quantize = 0
         self.max_quantize = 1
 
-        super(LandsatAcquisition, self).__init__(pathname,
+        super(LandsatAcquisition, self).__init__(pathname, uri,
                                                  acquisition_datetime,
                                                  band_name=band_name,
                                                  band_id=band_id,
