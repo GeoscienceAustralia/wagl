@@ -12,15 +12,15 @@ import logging
 import numpy
 import h5py
 import rasterio
-import gaip
+
 from gaip.acca_cloud_masking import calc_acca_cloud_mask
 from gaip.acquisition import acquisitions
 from gaip.cloud_shadow_masking import cloud_shadow
-from gaip.constants import BandType, DatasetName, NBARConstants
+from gaip.constants import BandType, DatasetName
 from gaip.constants import PQAConstants, PQbits
 from gaip.contiguity_masking import set_contiguity_bit
 from gaip.fmask_cloud_masking_wrapper import fmask_cloud_mask
-from gaip.hdf5 import dataset_compression_kwargs, write_h5_image, write_scalar
+from gaip.hdf5 import dataset_compression_kwargs, write_h5_image
 from gaip.land_sea_masking import set_land_sea_bit
 from gaip.metadata import create_pq_yaml
 from gaip.saturation_masking import set_saturation_bits
