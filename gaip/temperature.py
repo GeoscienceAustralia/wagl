@@ -18,7 +18,7 @@ from gaip.metadata import create_ard_yaml
 from gaip.tiling import generate_tiles
 
 
-def _surface_brightness_temperature(acquisition, bilinear_fname,
+def _surface_brightness_temperature(acquisition, acquisitions, bilinear_fname,
                                     ancillary_fname, out_fname, compression,
                                     y_tile):
     """
@@ -34,7 +34,7 @@ def _surface_brightness_temperature(acquisition, bilinear_fname,
                                        y_tile)
 
         grp2 = fid_anc[GroupName.ancillary_group.value]
-        create_ard_yaml(acquisition, grp2, fid, True)
+        create_ard_yaml(acquisitions, grp2, fid, True)
 
 
 def surface_brightness_temperature(acquisition, interpolation_group,
@@ -106,9 +106,9 @@ def surface_brightness_temperature(acquisition, interpolation_group,
 
     # retrieve the upwelling radiation and transmittance datasets
     dname_fmt = DatasetName.interpolation_fmt.value
-    dname = dname_fmt.format(factor='path-up', band=bn)
+    dname = dname_fmt.format(factor='path-up', band_name=bn)
     upwelling_radiation = interpolation_group[dname]
-    dname = dname_fmt.format(factor='transmittance-up', band=bn)
+    dname = dname_fmt.format(factor='transmittance-up', band_name=bn)
     transmittance = interpolation_group[dname]
 
     # tiling scheme
@@ -141,7 +141,7 @@ def surface_brightness_temperature(acquisition, interpolation_group,
              'band_name': bn}
 
     name_fmt = DatasetName.temperature_fmt.value
-    dataset_name = name_fmt.format(band=acq.band_name)
+    dataset_name = name_fmt.format(band_name=acq.band_name)
     out_dset = group.create_dataset(dataset_name, **kwargs)
 
     desc = "Surface Brightness Temperature in Kelvin."

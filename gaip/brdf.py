@@ -35,7 +35,7 @@ from osgeo import gdal
 from osgeo import gdalconst
 from osgeo import osr
 from shapely.geometry import Polygon
-from gaip import constants
+from gaip.constants import BrdfParameters
 from gaip.data import read_subset
 from gaip.geobox import GriddedGeoBox
 from gaip.hdf5 import write_h5_image
@@ -130,7 +130,7 @@ class BRDFLoader(object):
 
         intersection = brdf_poly.intersection(roi_poly)
 
-        if len(intersection.bounds) == 0:
+        if not intersection.bounds:
             self.intersects = False
             raise BRDFLoaderError(('%s: Region of interest %s extends beyond '
                                    'HDF domain {UL: %s, LR: %s}')
@@ -447,9 +447,9 @@ def get_brdf_dirs_pre_modis(brdf_root, scene_date):
 def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
                   hdf5_group, compression='lzf'):
     """
-    Calculates the mean BRDF value for each band wavelength of your
-    sensor, for each BRDF factor ['geo', 'iso', 'vol'] that covers
-    your image extents.
+    Calculates the mean BRDF value for the given acquisition,
+    for each BRDF parameter ['geo', 'iso', 'vol'] that covers
+    the acquisition's extents.
 
     :param acquisition:
         An instance of an acquisitions object.
@@ -469,34 +469,27 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
         image datasets.
 
     :return:
-        A dictionary with tuple (band, factor) as the keys. Each key
-        represents the band of your satllite/sensor and brdf factor.
-        Each key contains a dictionary with the following keys:
+        A `dict` with the keys:
 
-            * data_source -> BRDF
-            * data_file -> File system path to the location of the selected
-              BRDF wavelength and factor combination.
-            * value -> The mean BRDF value covering your image extents.
+            * BrdfParameters.iso
+            * BrdfParameters.vol
+            * BrdfParameters.geo
+
+        Values for each BRDF Parameter are accessed via the key named
+        `value`.
     """
-    # Retrieve the satellite and sensor for the acquisition
-    satellite = acquisition.platform_id
-    sensor = acquisition.sensor_id
-
-    # Get the required BRDF LUT & factors list
-    nbar_constants = constants.NBARConstants(satellite, sensor)
-
-    brdf_lut = nbar_constants.get_brdf_lut()
-    brdf_factors = nbar_constants.get_brdf_factors()
+    def find_file(files, brdf_wl, factor):
+        """Find file with a specific name."""
+        for f in files:
+            if f.find(brdf_wl) != -1 and f.find(factor) != -1:
+                return f
+        return None
 
     # Compute the geobox
     geobox = acquisition.gridded_geo_box()
 
     # Get the date of acquisition
     dt = acquisition.acquisition_datetime.date()
-
-    # Get the boundary extents of the image
-    nw = geobox.ul_lonlat
-    se = geobox.lr_lonlat
 
     # Compare the scene date and MODIS BRDF start date to select the
     # BRDF data root directory.
@@ -526,107 +519,100 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
             if f.endswith(".hdf.gz") or f.endswith(".hdf"):
                 hdflist.append(f)
 
-    # Initialise the brdf dictionary to store the results
-    brdf_dict = {}
+    # TODO: get the acceptance that we don't need to store both the full
+    #       image and the subset. We shouldn't be validating those steps
+    #       anymore
+    results = {}
+    for param in BrdfParameters:
+        hdf_fname = find_file(hdflist, acquisition.brdf_wavelength, param.name)
 
-    def find_file(files, band_wl, factor):
-        """Find file with a specific name."""
-        for f in files:
-            if f.find(band_wl) != -1 and f.find(factor) != -1:
-                return f
-        return None
+        hdfFile = pjoin(hdfhome, hdf_fname)
 
-    # Loop over each defined band and each BRDF factor
-    for band in brdf_lut.keys():
-        bandwl = brdf_lut[band]  # Band wavelength
-        for factor in brdf_factors:
-            hdf_fname = find_file(hdflist, bandwl, factor)
+        # Test if the file exists and has correct permissions
+        try:
+            with open(hdfFile, 'rb') as f:
+                pass
+        except IOError:
+            print("Unable to open file %s" % hdfFile)
 
-            hdfFile = pjoin(hdfhome, hdf_fname)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Unzip if we need to
+            if hdfFile.endswith(".hdf.gz"):
+                hdf_file = pjoin(tmpdir, re.sub(".hdf.gz", ".hdf",
+                                                basename(hdfFile)))
+                cmd = "gunzip -c %s > %s" % (hdfFile, hdf_file)
+                subprocess.check_call(cmd, shell=True)
+            else:
+                hdf_file = hdfFile
 
-            # Test if the file exists and has correct permissions
-            try:
-                with open(hdfFile, 'rb') as f:
-                    pass
-            except IOError:
-                print("Unable to open file %s" % hdfFile)
+            # Load the file
+            brdf_object = BRDFLoader(hdf_file, ul=geobox.ul_lonlat,
+                                     lr=geobox.lr_lonlat)
 
-            with tempfile.TemporaryDirectory() as tmpdir:
-                # Unzip if we need to
-                if hdfFile.endswith(".hdf.gz"):
-                    hdf_file = pjoin(tmpdir, re.sub(".hdf.gz", ".hdf",
-                                                    basename(hdfFile)))
-                    cmd = "gunzip -c %s > %s" % (hdfFile, hdf_file)
-                    subprocess.check_call(cmd, shell=True)
-                else:
-                    hdf_file = hdfFile
+            # setup the output filename
+            out_fname = '-'.join([acquisition.band_name,
+                                  acquisition.brdf_wavelength,
+                                  param.name]) 
+            # Convert the file format
+            attrs = {'BRDF-Wavelength': acquisition.brdf_wavelength,
+                     'BRDF-Parameter': param.name}
+            brdf_object.convert_format(out_fname, hdf5_group, attrs,
+                                       compression=compression)
 
-                # Load the file
-                brdf_object = BRDFLoader(hdf_file, ul=nw, lr=se)
+            # gauard against roi's that don't intersect
+            if not brdf_object.intersects:
+                msg = "ROI is outside the BRDF extents!"
+                log.error(msg)
+                raise Exception(msg)
 
-                # setup the output filename
-                out_fname = '_'.join(['Band', str(band), bandwl, factor])
+            roi = brdf_object.roi
+            ul_lon, ul_lat = roi['UL']
+            ur_lon, ur_lat = (roi['LR'][0], roi['UL'][1])
+            lr_lon, lr_lat = roi['UL']
+            ll_lon, ll_lat = (roi['UL'][0], roi['LR'][1])
 
-                # Convert the file format
-                attrs = {'band wavelength': bandwl,
-                         'factor': factor}
-                brdf_object.convert_format(out_fname, hdf5_group, attrs,
-                                           compression=compression)
+            # Read the subset and its geotransform
+            subset, geobox_subset = read_subset(hdf5_group[out_fname],
+                                                (ul_lon, ul_lat),
+                                                (ur_lon, ur_lat),
+                                                (lr_lon, lr_lat),
+                                                (ll_lon, ll_lat))
 
-                # gauard against roi's that don't intersect
-                if not brdf_object.intersects:
-                    msg = "ROI is outside the BRDF extents!"
-                    log.error(msg)
-                    raise Exception(msg)
+            # calculate the mean value
+            brdf_mean_value = brdf_object.get_mean(subset)
 
-                roi = brdf_object.roi
-                ul_lon, ul_lat = roi['UL']
-                ur_lon, ur_lat = (roi['LR'][0], roi['UL'][1])
-                lr_lon, lr_lat = roi['UL']
-                ll_lon, ll_lat = (roi['UL'][0], roi['LR'][1])
+            # Output the brdf subset
+            chunks = (1, geobox_subset.x_size())
+            kwargs = dataset_compression_kwargs(compression=compression,
+                                                chunks=chunks)
+            attrs = {'Description': 'Subsetted region of the BRDF image.',
+                     'crs_wkt': geobox_subset.crs.ExportToWkt(),
+                     'geotransform': geobox_subset.transform.to_gdal()}
+            out_fname_subset = out_fname + '_subset'
+            write_h5_image(subset, out_fname_subset, hdf5_group, attrs,
+                           **kwargs)
 
-                # Read the subset and its geotransform
-                subset, geobox_subset = read_subset(hdf5_group[out_fname],
-                                                    (ul_lon, ul_lat),
-                                                    (ur_lon, ur_lat),
-                                                    (lr_lon, lr_lat),
-                                                    (ll_lon, ll_lat))
+        # Add the brdf filename and mean value to brdf_dict
+        res = {'data_source': 'BRDF',
+               'data_file': hdfFile,
+               'value': brdf_mean_value}
 
-                # calculate the mean value
-                brdf_mean_value = brdf_object.get_mean(subset)
+        # ancillary metadata tracking
+        md = extract_ancillary_metadata(hdfFile)
+        for key in md:
+            res[key] = md[key]
 
-                # Output the brdf subset
-                chunks = (1, geobox_subset.x_size())
-                kwargs = dataset_compression_kwargs(compression=compression,
-                                                    chunks=chunks)
-                attrs = {'Description': 'Subsetted region of the BRDF image.',
-                         'crs_wkt': geobox_subset.crs.ExportToWkt(),
-                         'geotransform': geobox_subset.transform.to_gdal()}
-                out_fname_subset = out_fname + '_subset'
-                write_h5_image(subset, out_fname_subset, hdf5_group, attrs,
-                               **kwargs)
-
-            # Add the brdf filename and mean value to brdf_dict
-            res = {'data_source': 'BRDF',
-                   'data_file': hdfFile,
-                   'value': brdf_mean_value}
-
-            # ancillary metadata tracking
-            md = extract_ancillary_metadata(hdfFile)
-            for key in md:
-                res[key] = md[key]
-
-            brdf_dict[(band, factor)] = res
+        results[param] = res
 
     # check for no brdf (iso, vol, geo) (0, 0, 0) and convert to (1, 0, 0)
     # and strip any file level metadata
-    for band in brdf_lut.keys():
-        data = {}
-        for factor in brdf_factors:
-            data[factor] = brdf_dict[(band, factor)]['value']
-        if all([i == 0 for i in data.values()]):
-            brdf_dict[(band, 'iso')] = {'value': 1.0}
-            brdf_dict[(band, 'vol')] = {'value': 0.0}
-            brdf_dict[(band, 'geo')] = {'value': 0.0}
+    if all([v['value'] == 0 for k, v in results.items()]):
+        results[BrdfParameters.iso] = {'value': 1.0}
+        results[BrdfParameters.vol] = {'value': 0.0}
+        results[BrdfParameters.geo] = {'value': 0.0}
 
-    return brdf_dict
+    # add very basic brdf description metadata
+    for param in BrdfParameters:
+        results[param]['BRDF-Parameter'] = param.name
+
+    return results

@@ -24,7 +24,7 @@ from gaip.hdf5 import attach_attributes, write_scalar, write_dataframe
 from gaip.hdf5 import read_h5_table, dataset_compression_kwargs
 from gaip.hdf5 import attach_table_attributes
 from gaip.metadata import extract_ancillary_metadata, read_meatadata_tags
-from gaip.constants import DatasetName, POINT_FMT, GroupName
+from gaip.constants import DatasetName, POINT_FMT, GroupName, BandType
 from gaip.satellite_solar_angles import create_vertices
 
 
@@ -73,7 +73,7 @@ def relative_humdity(surface_temp, dewpoint_temp, kelvin=True):
     return rh
 
 
-def _collect_ancillary(acquisition, satellite_solar_fname, nbar_paths,
+def _collect_ancillary(container, satellite_solar_fname, nbar_paths,
                        sbt_path=None, invariant_fname=None, vertices=(3, 3),
                        out_fname=None, compression='lzf'):
     """
@@ -84,13 +84,13 @@ def _collect_ancillary(acquisition, satellite_solar_fname, nbar_paths,
         h5py.File(out_fname, 'w') as out_fid:
 
         sat_sol_grp = fid[GroupName.sat_sol_group.value]
-        collect_ancillary(acquisition, sat_sol_grp, nbar_paths, sbt_path,
+        collect_ancillary(container, sat_sol_grp, nbar_paths, sbt_path,
                           invariant_fname, vertices, out_fid, compression)
 
     return
 
 
-def collect_ancillary(acquisition, satellite_solar_group, nbar_paths,
+def collect_ancillary(container, satellite_solar_group, nbar_paths,
                       sbt_path=None, invariant_fname=None, vertices=(3, 3),
                       out_group=None, compression='lzf'):
     """
@@ -99,8 +99,8 @@ def collect_ancillary(acquisition, satellite_solar_group, nbar_paths,
     to handle ancillary retrieval, rather than directory passing,
     and filename grepping.
 
-    :param acquisition:
-        An instance of an `Acquisition` object.
+    :param container:
+        An instance of an `AcquisitionsContainer` object.
 
     :param satellite_solar_group:
         The root HDF5 `Group` that contains the solar zenith and
@@ -159,6 +159,8 @@ def collect_ancillary(acquisition, satellite_solar_group, nbar_paths,
 
     group = fid.create_group(GroupName.ancillary_group.value)
 
+    acquisition = container.get_acquisitions()[0]
+
     boxline_dataset = satellite_solar_group[DatasetName.boxline.value][:]
     coordinator = create_vertices(acquisition, boxline_dataset, vertices)
     lonlats = zip(coordinator['longitude'], coordinator['latitude'])
@@ -176,7 +178,7 @@ def collect_ancillary(acquisition, satellite_solar_group, nbar_paths,
         collect_sbt_ancillary(acquisition, lonlats, sbt_path, invariant_fname,
                               out_group=group, compression=compression)
 
-    collect_nbar_ancillary(acquisition, out_group=group, 
+    collect_nbar_ancillary(container, out_group=group, 
                            compression=compression, **nbar_paths)
 
     if out_group is None:
@@ -310,7 +312,7 @@ def collect_sbt_ancillary(acquisition, lonlats, ancillary_path,
         return fid
 
 
-def collect_nbar_ancillary(acquisition, aerosol_fname=None,
+def collect_nbar_ancillary(container, aerosol_fname=None,
                            water_vapour_path=None, ozone_path=None,
                            dem_path=None, brdf_path=None,
                            brdf_premodis_path=None, out_group=None,
@@ -318,8 +320,8 @@ def collect_nbar_ancillary(acquisition, aerosol_fname=None,
     """
     Collects the ancillary information required to create NBAR.
 
-    :param acquisition:
-        An instance of an `Acquisition` object.
+    :param container:
+        An instance of an `AcquisitionsContainer` object.
 
     :param aerosol_fname:
         A `str` containing the full file pathname to the `HDF5` file
@@ -363,19 +365,6 @@ def collect_nbar_ancillary(acquisition, aerosol_fname=None,
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
     """
-    def _format_brdf_attrs(factor):
-        """Converts BRDF shortnames to longnames"""
-        scattering_names = {'iso': 'isometric',
-                            'vol': 'volumetric',
-                            'geo': 'geometric'}
-
-        attrs = {}
-        description = ("Bidirectional Reflectance Distribution Function "
-                       "for the {} scattering fraction.")
-        attrs['Description'] = description.format(scattering_names[factor])
-
-        return attrs
-
     # Initialise the output files
     if out_group is None:
         fid = h5py.File('nbar-ancillary.h5', driver='core',
@@ -383,6 +372,7 @@ def collect_nbar_ancillary(acquisition, aerosol_fname=None,
     else:
         fid = out_group
 
+    acquisition = container.get_acquisitions()[0]
     dt = acquisition.acquisition_datetime
     geobox = acquisition.gridded_geo_box()
 
@@ -400,17 +390,20 @@ def collect_nbar_ancillary(acquisition, aerosol_fname=None,
 
     # brdf
     group = fid.create_group('brdf-image-datasets')
-    data = get_brdf_data(acquisition, brdf_path, brdf_premodis_path, group,
-                         compression)
     dname_format = DatasetName.brdf_fmt.value
-    for key in data:
-        band, factor = key
-        attrs = _format_brdf_attrs(factor)
-        for k in attrs:
-            data[key][k] = attrs[k]
-        dname = dname_format.format(band=band, factor=factor)
-        brdf_value = data[key].pop('value')
-        write_scalar(brdf_value, dname, fid, data[key])
+    for group in container.groups:
+        for acq in container.get_acquisitions(group=group):
+            if acq.band_type is not BandType.Reflective:
+                continue
+            data = get_brdf_data(acq, brdf_path, brdf_premodis_path, group,
+                                 compression)
+
+            # output
+            for param in data:
+                dname = dname_format.format(parameter=param.name,
+                                            band_name=acq.band_name)
+                brdf_value = data[param].pop('value')
+                write_scalar(brdf_value, dname, fid, data[param])
 
     if out_group is None:
         return fid

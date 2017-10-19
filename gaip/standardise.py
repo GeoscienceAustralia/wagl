@@ -280,7 +280,7 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
 
                 # metadata yaml's
                 if model == Model.standard or model == model.nbar:
-                    create_ard_yaml(acq, ancillary_group, group)
+                    create_ard_yaml(band_acqs, ancillary_group, group)
 
                 if model == Model.standard or model == model.sbt:
-                    create_ard_yaml(acq, ancillary_group, group, True)
+                    create_ard_yaml(band_acqs, ancillary_group, group, True)

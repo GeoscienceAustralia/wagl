@@ -187,7 +187,7 @@ class AncillaryData(luigi.Task):
 
     def run(self):
         container = acquisitions(self.level1)
-        acq = container.get_acquisitions(granule=self.granule)[0]
+        grn = container.get_granule(granule=self.granule, container=True)
         sbt_path = None
 
         nbar_paths = {'aerosol_fname': self.aerosol_fname,
@@ -201,7 +201,7 @@ class AncillaryData(luigi.Task):
             sbt_path = self.ecmwf_path
 
         with self.output().temporary_path() as out_fname:
-            _collect_ancillary(acq, self.input().path, nbar_paths, sbt_path,
+            _collect_ancillary(grn, self.input().path, nbar_paths, sbt_path,
                                self.invariant_height_fname, self.vertices,
                                out_fname, self.compression)
 
@@ -778,12 +778,12 @@ class SurfaceReflectance(luigi.Task):
         acq = [acq for acq in acqs if acq.band_id == self.band_id][0]
 
         with self.output().temporary_path() as out_fname:
-            _calculate_reflectance(acq, interpolation_fname, sat_sol_fname,
-                                   slp_asp_fname, relative_slope_fname,
-                                   incident_fname, exiting_fname,
-                                   shadow_fname, ancillary_fname,
-                                   self.rori, out_fname, self.compression,
-                                   self.y_tile)
+            _calculate_reflectance(acq, acqs, interpolation_fname,
+                                   sat_sol_fname, slp_asp_fname,
+                                   relative_slope_fname, incident_fname,
+                                   exiting_fname, shadow_fname,
+                                   ancillary_fname, self.rori, out_fname,
+                                   self.compression, self.y_tile)
 
 
 @inherits(SurfaceReflectance)
@@ -812,7 +812,7 @@ class SurfaceTemperature(luigi.Task):
         with self.output().temporary_path() as out_fname:
             interpolation_fname = self.input()['interpolation'].path
             ancillary_fname = self.input()['ancillary'].path
-            _surface_brightness_temperature(acq, interpolation_fname,
+            _surface_brightness_temperature(acq, acqs, interpolation_fname,
                                             ancillary_fname, out_fname,
                                             self.compression, self.y_tile)
 
