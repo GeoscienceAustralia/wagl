@@ -142,7 +142,7 @@ class AcquisitionsContainer(object):
 
         return acqs
 
-    def get_granule(self, granule=None):
+    def get_granule(self, granule=None, container=False):
         """
         Return a granule containing groups of `Acquisition` objects.
 
@@ -152,16 +152,37 @@ class AcquisitionsContainer(object):
             returns the the first granule in the
             `AcquisitionsContainer.granule` list.
 
+        :param container:
+            A boolean indicating whether to return the granule as an
+            `AcquisitionsContainer` containing a single granule.
+            If the `AcquisitionsContainer.tiled` is False, then a new
+            instance of the `AcquisitionsContainer` is returned.
+            Default is False.
+
         :return:
             A `dict` containing the groups of `Acquisition` objects
-            for a given scene.
+            for a given scene, unless container=True in which a new
+            instance of an `AcquisitionsContainer` is returned.
         """
         if not self.tiled:
-            return self._groups
+            grps = self._groups
+            if container:
+                return AcquisitionsContainer(label=self.label, groups=grps)
+            else:
+                return grps
         if granule is None:
-            return self._granules[self.granules[0]]
+            grn = self.granules[0]
+            if container:
+                grps = {grn: self._granules[grn]}
+                return AcquisitionsContainer(label=self.label, granules=grps)
+            else:
+                return self._granules[grn]
         else:
-            return self._granules[granule]
+            if container:
+                grps = {granule: self._granules[granule]}
+                return AcquisitionsContainer(label=self.label, granules=grps)
+            else:
+                return self._granules[granule]
 
     def get_root(self, path='/', group=None, granule=None):
         """
