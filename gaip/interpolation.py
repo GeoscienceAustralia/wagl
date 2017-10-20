@@ -413,9 +413,9 @@ def interpolate(acq, factor, ancillary_group, satellite_solar_group,
     map_x = coordinator.map_x.values
     map_y = coordinator.map_y.values
     coord[:, 1], coord[:, 0] = (map_x, map_y) * ~geobox.transform
-    centre = boxline.bisection_index.values + 1
-    start = boxline.start_index.values + 1
-    end = boxline.end_index.values + 1
+    centre = boxline.bisection_index.values
+    start = boxline.start_index.values
+    end = boxline.end_index.values
 
     band_records = coefficients.band_name == acq.band_name
     samples = coefficients[factor][band_records].values
