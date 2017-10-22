@@ -10,28 +10,28 @@ import re
 from enum import Enum
 
 
-ALL_FACTORS = ['fs',
-               'fv',
-               'a',
-               'b',
-               's',
-               'dir',
-               'dif',
-               'ts',
-               'path-up',
-               'path-down',
-               'transmittance-up']
+ALL_FACTORS = ['FS',
+               'FV',
+               'A',
+               'B',
+               'S',
+               'DIR',
+               'DIF',
+               'TS',
+               'PATH-UP',
+               'PATH-DOWN',
+               'TRANSMITTANCE-UP']
 
-ALL_ALBEDOS = ['0', '1', 't', 'th']
+ALL_ALBEDOS = ['0', '1', 'T', 'TH']
 
-POINT_FMT = 'point-{p}'
-ALBEDO_FMT = 'albedo-{a}'
+POINT_FMT = 'POINT-{p}'
+ALBEDO_FMT = 'ALBEDO-{a}'
 POINT_ALBEDO_FMT = ''.join([POINT_FMT, '-', ALBEDO_FMT])
 
-ARD_PRODUCTS = ['brdf',
-                'terrain',
-                'lambertian',
-                'sbt']
+ARD_PRODUCTS = ['BRDF',
+                'TERRAIN',
+                'LAMBERTIAN',
+                'SBT']
 
 
 class Model(Enum):
@@ -100,88 +100,88 @@ class DatasetName(Enum):
     """
 
     # gaip.ancillary
-    coordinator = 'coordinator'
-    dewpoint_temperature = 'dewpoint-temperature'
-    temperature_2m = 'temperature-2metre'
-    surface_pressure = 'surface-pressure'
-    surface_geopotential = 'surface-geopotential-height'
-    surface_relative_humidity = 'surface-relative-humidity'
-    geopotential = 'geo-potential'
-    temperature = 'temperature'
-    relative_humidity = 'relative-humidity'
-    atmospheric_profile = 'atmospheric-profile'
-    aerosol = 'aerosol'
-    water_vapour = 'water-vapour'
-    ozone = 'ozone'
-    elevation = 'elevation'
+    coordinator = 'COORDINATOR'
+    dewpoint_temperature = 'DEWPOINT-TEMPERATURE'
+    temperature_2m = 'TEMPERATURE-2METRE'
+    surface_pressure = 'SURFACE-PRESSURE'
+    surface_geopotential = 'SURFACE-GEOPOTENTIAL-HEIGHT'
+    surface_relative_humidity = 'SURFACE-RELATIVE-HUMIDITY'
+    geopotential = 'GEO-POTENTIAL'
+    temperature = 'TEMPERATURE'
+    relative_humidity = 'RELATIVE-HUMIDITY'
+    atmospheric_profile = 'ATMOSPHERIC-PROFILE'
+    aerosol = 'AEROSOL'
+    water_vapour = 'WATER-VAPOUR'
+    ozone = 'OZONE'
+    elevation = 'ELEVATION'
     brdf_fmt = "BRDF-{parameter}-{band_name}"
     ecmwf_path_fmt = pjoin('{product}', '{year}', 'tif', '{product}_*.tif')
 
     # gaip.longitude_latitude_arrays
-    lon = 'longitude'
-    lat = 'latitude'
+    lon = 'LONGITUDE'
+    lat = 'LATITUDE'
 
     # gaip.satellite_solar_angles
-    satellite_view = 'satellite-view'
-    satellite_azimuth = 'satellite-azimuth'
-    solar_zenith = 'solar-zenith'
-    solar_azimuth = 'solar-azimuth'
-    relative_azimuth = 'relative-azimuth'
-    acquisition_time = 'acquisition-time'
-    centreline = 'centreline'
-    boxline = 'boxline'
-    spheroid = 'spheroid'
-    orbital_elements = 'orbital-elements'
-    satellite_model = 'satellite-model'
-    satellite_track = 'satellite-track'
+    satellite_view = 'SATELLITE-VIEW'
+    satellite_azimuth = 'SATELLITE-AZIMUTH'
+    solar_zenith = 'SOLAR-ZENITH'
+    solar_azimuth = 'SOLAR-AZIMUTH'
+    relative_azimuth = 'RELATIVE-AZIMUTH'
+    acquisition_time = 'ACQUISITION-TIME'
+    centreline = 'CENTRELINE'
+    boxline = 'BOXLINE'
+    spheroid = 'SPHEROID'
+    orbital_elements = 'ORBITAL-ELEMENTS'
+    satellite_model = 'SATELLITE-MODEL'
+    satellite_track = 'SATELLITE-TRACK'
 
     # gaip.incident_exiting_angles
-    incident = 'incident'
-    azimuthal_incident = 'azimuthal-incident'
-    exiting = 'exiting'
-    azimuthal_exiting = 'azimuthal-exiting'
-    relative_slope = 'relative-slope'
+    incident = 'INCIDENT'
+    azimuthal_incident = 'AZIMUTHAL-INCIDENT'
+    exiting = 'EXITING'
+    azimuthal_exiting = 'AZIMUTHAL-EXITING'
+    relative_slope = 'RELATIVE-SLOPE'
 
     # gaip.reflectance
-    reflectance_fmt = 'reflectance/{product}/{band_name}'
+    reflectance_fmt = 'REFLECTANCE/{product}/{band_name}'
 
     # gaip.temperature
-    temperature_fmt = 'thermal/surface-brightness-temperature/{band_name}'
+    temperature_fmt = 'THERMAL/SURFACE-BRIGHTNESS-TEMPERATURE/{band_name}'
 
     # gaip.terrain_shadow_masks
-    self_shadow = 'self-shadow'
-    cast_shadow_fmt = 'cast-shadow-{source}'
-    combined_shadow = 'combined-shadow'
+    self_shadow = 'SELF-SHADOW'
+    cast_shadow_fmt = 'CAST-SHADOW-{source}'
+    combined_shadow = 'COMBINED-SHADOW'
 
     # gaip.slope_aspect
-    slope = 'slope'
-    aspect = 'aspect'
+    slope = 'SLOPE'
+    aspect = 'ASPECT'
 
     # gaip.dsm
-    dsm = 'dsm'
-    dsm_smoothed = 'dsm-smoothed'
+    dsm = 'DSM'
+    dsm_smoothed = 'DSM-SMOOTHED'
 
     # gaip.interpolation
     interpolation_fmt = '{factor}/{band_name}'
 
     # gaip.modtran
-    tp5 = 'tp5-data'
-    flux = 'flux'
-    altitudes = 'altitudes'
-    solar_irradiance = 'solar-irradiance'
-    upward_radiation_channel = 'upward-radiation-channel'
-    downward_radiation_channel = 'downward-radiation-channel'
-    channel = 'channel'
-    nbar_coefficients = 'nbar-coefficients'
-    sbt_coefficients = 'sbt-coefficients'
+    tp5 = 'TP5-DATA'
+    flux = 'FLUX'
+    altitudes = 'ALTITUDES'
+    solar_irradiance = 'SOLAR-IRRADIANCE'
+    upward_radiation_channel = 'UPWARD-RADIATION-CHANNEL'
+    downward_radiation_channel = 'DOWNWARD-RADIATION-CHANNEL'
+    channel = 'CHANNEL'
+    nbar_coefficients = 'NBAR-COEFFICIENTS'
+    sbt_coefficients = 'SBT-COEFFICIENTS'
 
     # gaip.pq
-    pixel_quality = 'pixel-quality/pixel-quality'
+    pixel_quality = 'PIXEL-QUALITY/PIXEL-QUALITY'
 
     # metadata
-    nbar_yaml = 'metadata/nbar-metadata'
-    pq_yaml = 'metadata/pq-metadata'
-    sbt_yaml = 'metadata/sbt-metadata'
+    nbar_yaml = 'METADATA/NBAR-METADATA'
+    pq_yaml = 'METADATA/PQ-METADATA'
+    sbt_yaml = 'METADATA/SBT-METADATA'
 
 
 class GroupName(Enum):
@@ -190,21 +190,21 @@ class GroupName(Enum):
     for creating and accessing throughout the code base.
     """
 
-    lon_lat_group = 'longitude-latitude'
-    sat_sol_group = 'satellite-solar'
-    ancillary_group = 'ancillary'
-    ancillary_avg_group = 'averaged-ancillary'
-    atmospheric_inputs_grp = 'atmospheric-inputs'
-    atmospheric_results_grp = 'atmospheric-results'
-    coefficients_group = 'coefficients'
-    interp_group = 'interpolated-coefficients'
-    elevation_group = 'elevation'
-    slp_asp_group = 'slope-aspect'
-    incident_group = 'incident-angles'
-    exiting_group = 'exiting-angles'
-    rel_slp_group = 'relative-slope'
-    shadow_group = 'shadow-masks'
-    standard_group = 'standardised-products'
+    lon_lat_group = 'LONGITUDE-LATITUDE'
+    sat_sol_group = 'SATELLITE-SOLAR'
+    ancillary_group = 'ANCILLARY'
+    ancillary_avg_group = 'AVERAGED-ANCILLARY'
+    atmospheric_inputs_grp = 'ATMOSPHERIC-INPUTS'
+    atmospheric_results_grp = 'ATMOSPHERIC-RESULTS'
+    coefficients_group = 'COEFFICIENTS'
+    interp_group = 'INTERPOLATED-COEFFICIENTS'
+    elevation_group = 'ELEVATION'
+    slp_asp_group = 'SLOPE-ASPECT'
+    incident_group = 'INCIDENT-ANGLES'
+    exiting_group = 'EXITING-ANGLES'
+    rel_slp_group = 'RELATIVE-SLOPE'
+    shadow_group = 'SHADOW-MASKS'
+    standard_group = 'STANDARDISED-PRODUCTS'
 
 
 class Method(Enum):
