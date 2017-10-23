@@ -101,6 +101,9 @@ def collect_ancillary(container, satellite_solar_group, nbar_paths,
 
     :param container:
         An instance of an `AcquisitionsContainer` object.
+        The container should consist of a single Granule or None,
+        only. Use `AcquisitionsContainer.get_granule` method prior to
+        calling this function.
 
     :param satellite_solar_group:
         The root HDF5 `Group` that contains the solar zenith and
