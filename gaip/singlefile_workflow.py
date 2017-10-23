@@ -85,7 +85,7 @@ class DataStandardisation(luigi.Task):
     y_tile = luigi.IntParameter(default=100, significant=False)
 
     def output(self):
-        fmt = '{scene}-{model}.h5'
+        fmt = '{scene}.gaip.h5'
         scene = basename(self.level1)
         out_fname = fmt.format(scene=scene, model=self.model.name)
         return luigi.LocalTarget(pjoin(self.outdir, out_fname))
