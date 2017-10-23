@@ -866,12 +866,6 @@ class Sentinel2aAcquisition(Acquisition):
         """
         Returns the recorded gps data as a `pandas.DataFrame`.
         """
-        # open the zip archive and get the xml root
-        archive = zipfile.ZipFile(self.pathname)
-        xml_file = [s for s in archive.namelist() if
-                    ("DATASTRIP" in s) & (".xml" in s)][0]
-        xml_root = ElementTree.XML(archive.read(xml_file))
-
         # coordinate transform
         ecef = pyproj.Proj(proj='geocent', ellps='WGS84', datum='WGS84')
         lla = pyproj.Proj(proj='latlong', ellps='WGS84', datum='WGS84')
@@ -882,10 +876,30 @@ class Sentinel2aAcquisition(Acquisition):
                 'altitude': [],
                 'timestamp': []}
 
+        # open the zip archive and get the xml root
+        archive = zipfile.ZipFile(self.pathname)
+        xml_files = [s for s in archive.namelist() if
+                     ("DATASTRIP" in s) & (".xml" in s)]
+
+        # there could be several matches; loop till we find one with GPS data
+        for xml_file in xml_files:
+            xml_root = ElementTree.XML(archive.read(xml_file))
+
+            gps_list = xml_root.findall('./*/Ephemeris/GPS_Points_List')
+            if gps_list:
+                break
+
+        try:
+            gps = gps_list[0]
+        except IndexError:
+            # we can't process without the gps file, as we aren't
+            # collecting the TLE data for S2A.
+            msg = "No GPS data found."
+            raise Exception(msg)
+
         # there are a few columns of data that could be of use
         # but for now, just get the location and timestamp from the
         # gps points list
-        gps = xml_root.findall('./*/Ephemeris/GPS_Points_List')[0]
         for point in gps.iter('GPS_Point'):
             x, y, z = [float(i) / 1000 for i in
                        point.findtext('POSITION_VALUES').split()]
