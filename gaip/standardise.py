@@ -151,7 +151,8 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
                           'dem_path': dem_path,
                           'brdf_path': brdf_path,
                           'brdf_premodis_path': brdf_premodis_path}
-            collect_ancillary(acqs[0], group[GroupName.sat_sol_group.value], 
+            grn_con = scene.get_granule(granule=grn_name, container=True)
+            collect_ancillary(grn_con, group[GroupName.sat_sol_group.value], 
                               nbar_paths, ecmwf_path, invariant_fname,
                               vertices, granule_group, compression)
 
