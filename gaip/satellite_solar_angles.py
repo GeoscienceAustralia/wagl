@@ -305,7 +305,7 @@ def create_vertices(acquisition, boxline_dataset, vertices=(3, 3)):
     if -1 in track_end_rows: # track doesn't intersect raster
         mid_col = cols // 2
     elif partial_track: # track intersects only part of raster
-        mid_col = ({xcentre[0], xcentre[1]} - {0, cols-1, 1, cols, -1}).pop() # TODO: omit 1,cols if not one-indexing ncentre
+        mid_col = ({xcentre[0], xcentre[-1]} - {0, cols-1, -1}).pop()
         mid_row = partial_track.pop()
     else: # track fully available for deference
         mid_col = None
