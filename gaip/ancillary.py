@@ -403,7 +403,7 @@ def collect_nbar_ancillary(container, aerosol_fname=None,
 
             # output
             for param in data:
-                dname = dname_format.format(parameter=param.name,
+                dname = dname_format.format(parameter=param.value,
                                             band_name=acq.band_name)
                 brdf_value = data[param].pop('value')
                 write_scalar(brdf_value, dname, fid, data[param])

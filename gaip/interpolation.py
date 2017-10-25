@@ -5,7 +5,6 @@ Various interpolation methods.
 """
 
 from __future__ import absolute_import
-from posixpath import join as ppjoin
 import math
 from scipy.interpolate import Rbf
 import numpy as np
@@ -365,26 +364,26 @@ def sheared_bilinear_interpolate(cols, rows, locations, samples,
     return result
 
 
-def _interpolate(acq, factor, sat_sol_angles_fname, coefficients_fname,
+def _interpolate(acq, component, sat_sol_angles_fname, components_fname,
                  ancillary_fname, out_fname, compression, y_tile, method):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
     with h5py.File(sat_sol_angles_fname, 'r') as sat_sol,\
-        h5py.File(coefficients_fname, 'r') as coef,\
+        h5py.File(components_fname, 'r') as comp,\
         h5py.File(ancillary_fname, 'r') as anc,\
         h5py.File(out_fname, 'w') as out_fid:
 
         grp1 = anc[GroupName.ancillary_group.value]
         grp2 = sat_sol[GroupName.sat_sol_group.value]
-        grp3 = coef[GroupName.coefficients_group.value]
-        interpolate(acq, factor, grp1, grp2, grp3, out_fid, compression,
+        grp3 = comp[GroupName.components_group.value]
+        interpolate(acq, component, grp1, grp2, grp3, out_fid, compression,
                     y_tile, method)
 
 
-def interpolate(acq, factor, ancillary_group, satellite_solar_group,
-                coefficients_group, out_group=None, compression='lzf',
+def interpolate(acq, component, ancillary_group, satellite_solar_group,
+                components_group, out_group=None, compression='lzf',
                 y_tile=100, method=Method.shearb):
     # TODO: more docstrings
     """Perform interpolation."""
@@ -399,15 +398,15 @@ def interpolate(acq, factor, ancillary_group, satellite_solar_group,
     coordinator = read_h5_table(ancillary_group, DatasetName.coordinator.value)
     boxline = read_h5_table(satellite_solar_group, DatasetName.boxline.value)
 
-    if factor in Model.nbar.factors:
-        dataset_name = DatasetName.nbar_coefficients.value
-    elif factor in Model.sbt.factors:
-        dataset_name = DatasetName.sbt_coefficients.value
+    if component in Model.nbar.atmos_components:
+        dataset_name = DatasetName.nbar_components.value
+    elif component in Model.sbt.atmos_components:
+        dataset_name = DatasetName.sbt_components.value
     else:
-        msg = "Factor name not found in available factors: {}"
-        raise ValueError(msg.format(Model.standard.factors))
+        msg = "Factor name not found in available components: {}"
+        raise ValueError(msg.format(Model.standard.atmos_components))
 
-    coefficients = read_h5_table(coefficients_group, dataset_name)
+    components = read_h5_table(components_group, dataset_name)
 
     coord = np.zeros((coordinator.shape[0], 2), dtype='int')
     map_x = coordinator.map_x.values
@@ -417,8 +416,8 @@ def interpolate(acq, factor, ancillary_group, satellite_solar_group,
     start = boxline.start_index.values
     end = boxline.end_index.values
 
-    band_records = coefficients.band_name == acq.band_name
-    samples = coefficients[factor][band_records].values
+    band_records = components.band_name == acq.band_name
+    samples = components[component.value][band_records].values
 
     func_map = {Method.bilinear: sheared_bilinear_interpolate,
                 Method.fbilinear: fortran_bilinear_interpolate,
@@ -438,7 +437,7 @@ def interpolate(acq, factor, ancillary_group, satellite_solar_group,
 
     # setup the output file/group as needed
     if out_group is None:
-        fid = h5py.File('interpolated-coefficients.h5', driver='core',
+        fid = h5py.File('interpolated-components.h5', driver='core',
                         backing_store=False)
     else:
         fid = out_group
@@ -449,7 +448,7 @@ def interpolate(acq, factor, ancillary_group, satellite_solar_group,
     group = fid[GroupName.interp_group.value]
 
     fmt = DatasetName.interpolation_fmt.value
-    dset_name = fmt.format(factor=factor, band_name=acq.band_name)
+    dset_name = fmt.format(component=component.value, band_name=acq.band_name)
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=(1, geobox.x_size()))
     no_data = -999
@@ -458,9 +457,10 @@ def interpolate(acq, factor, ancillary_group, satellite_solar_group,
              'geotransform': geobox.transform.to_gdal(),
              'no_data_value': no_data,
              'interpolation_method': method.name}
-    desc = ("Contains the interpolated result of factor {} "
+    desc = ("Contains the interpolated result of component {} "
             "for band {} from sensor {}.")
-    attrs['Description'] = desc.format(factor, acq.band_id, acq.sensor_id)
+    attrs['Description'] = desc.format(component.value, acq.band_id,
+                                       acq.sensor_id)
     write_h5_image(result, dset_name, group, attrs, **kwargs)
 
     if out_group is None:

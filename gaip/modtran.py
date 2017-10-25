@@ -17,8 +17,9 @@ from scipy.io import FortranFile
 import h5py
 import pandas as pd
 
-from gaip.constants import Model, BandType, DatasetName, GroupName
+from gaip.constants import Model, BandType, DatasetName, GroupName, Albedos
 from gaip.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
+from gaip.constants import AtmosphericComponents as AC
 from gaip.hdf5 import write_dataframe, read_h5_table, create_external_link
 from gaip.hdf5 import VLEN_STRING, write_scalar
 from gaip.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
@@ -36,21 +37,22 @@ def prepare_modtran(acquisitions, coordinate, albedos, basedir, modtran_exe):
 
     point_dir = pjoin(basedir, POINT_FMT.format(p=coordinate))
     for albedo in albedos:
-        if albedo == Model.sbt.albedos[0]:
+        if albedo == Albedos.albedo_th:
             band_type = BandType.Thermal
         else:
             band_type = BandType.Reflective
 
         acq = [acq for acq in acquisitions if acq.band_type == band_type][0]
 
-        modtran_work = pjoin(point_dir, ALBEDO_FMT.format(a=albedo))
+        modtran_work = pjoin(point_dir, ALBEDO_FMT.format(a=albedo.value))
 
         if not exists(modtran_work):
             os.makedirs(modtran_work)
 
         out_fname = pjoin(modtran_work, 'mod5root.in')
         with open(out_fname, 'w') as src:
-            src.write(POINT_ALBEDO_FMT.format(p=coordinate, a=albedo) + '\n')
+            src.write(POINT_ALBEDO_FMT.format(p=coordinate,
+                                              a=albedo.value) + '\n')
 
         symlink_dir = pjoin(modtran_work, 'DATA')
         if exists(symlink_dir):
@@ -172,12 +174,12 @@ def format_tp5(acquisitions, ancillary_group, satellite_solar_group,
                               'sat_view': view_corrected[p],
                               'doy': acquisitions[0].julian_day(),
                               'binary': 'T'}
-                if alb == Model.nbar.albedos[2]:
+                if alb == Albedos.albedo_t:
                     input_data['albedo'] = 0.0
                     input_data['sat_view_offset'] = 180.0-view_corrected[p]
                     data = trans_profile.format(**input_data)
                 else:
-                    input_data['albedo'] = float(alb)
+                    input_data['albedo'] = float(alb.value)
                     input_data['lat'] = lat[p]
                     input_data['lon'] = rlon[p]
                     input_data['time'] = acquisitions[0].decimal_hour()
@@ -187,7 +189,8 @@ def format_tp5(acquisitions, ancillary_group, satellite_solar_group,
                 tp5_data[(p, alb)] = data
 
                 dname = ppjoin(POINT_FMT.format(p=p),
-                               ALBEDO_FMT.format(a=alb), DatasetName.tp5.value)
+                               ALBEDO_FMT.format(a=alb.value),
+                               DatasetName.tp5.value)
                 write_scalar(numpy.string_(data), dname, group, input_data)
 
     # create tp5 for sbt if it has been collected
@@ -220,16 +223,16 @@ def format_tp5(acquisitions, ancillary_group, satellite_solar_group,
                           'atmospheric_profile': ''.join(atmospheric_profile)}
 
             data = THERMAL_TRANSMITTANCE.format(**input_data)
-            tp5_data[(p, Model.sbt.albedos[0])] = data
+            tp5_data[(p, Albedos.albedo_th)] = data
             out_dname = ppjoin(POINT_FMT.format(p=p),
-                               ALBEDO_FMT.format(a=Model.sbt.albedos[0]),
+                               ALBEDO_FMT.format(a=Albedos.albedo_th.value),
                                DatasetName.tp5.value)
             write_scalar(numpy.string_(data), out_dname, group, input_data)
 
     # attach location info to each point Group
     for p in range(npoints):
-       lonlat = (coordinator['longitude'][p], coordinator['latitude'][p])
-       group[POINT_FMT.format(p=p)].attrs['lonlat'] = lonlat
+        lonlat = (coordinator['longitude'][p], coordinator['latitude'][p])
+        group[POINT_FMT.format(p=p)].attrs['lonlat'] = lonlat
 
     return tp5_data, out_group
 
@@ -282,17 +285,17 @@ def run_modtran(acquisitions, atmospherics_group, model, npoints, point,
 
     acqs = acquisitions
     for albedo in albedos:
-        base_attrs['Albedo'] = albedo
+        base_attrs['Albedo'] = albedo.value
         workpath = pjoin(basedir, POINT_FMT.format(p=point),
-                         ALBEDO_FMT.format(a=albedo))
-        group_path = ppjoin(base_path, ALBEDO_FMT.format(a=albedo))
+                         ALBEDO_FMT.format(a=albedo.value))
+        group_path = ppjoin(base_path, ALBEDO_FMT.format(a=albedo.value))
 
         subprocess.check_call([modtran_exe], cwd=workpath)
         chn_fname = glob.glob(pjoin(workpath, '*.chn'))[0]
 
-        if albedo == Model.sbt.albedos[0]:
+        if albedo == Albedos.albedo_th:
             acq = [acq for acq in acqs if acq.band_type == BandType.Thermal][0]
-            channel_data = read_modtran_channel(chn_fname, acq, albedo)
+            channel_data = read_modtran_channel(chn_fname, acq, albedo.value)
 
             # upward radiation
             attrs = base_attrs.copy()
@@ -314,7 +317,7 @@ def run_modtran(acquisitions, atmospherics_group, model, npoints, point,
                    acq.band_type == BandType.Reflective][0]
             flux_fname = glob.glob(pjoin(workpath, '*_b.flx'))[0]
             flux_data, altitudes = read_modtran_flux(flux_fname)
-            channel_data = read_modtran_channel(chn_fname, acq, albedo)
+            channel_data = read_modtran_channel(chn_fname, acq, albedo.value)
 
             # ouput the flux data
             attrs = base_attrs.copy()
@@ -331,7 +334,7 @@ def run_modtran(acquisitions, atmospherics_group, model, npoints, point,
             write_dataframe(altitudes, dset_name, fid, attrs=attrs)
 
             # accumulate the solar irradiance
-            transmittance = True if albedo == Model.nbar.albedos[2] else False
+            transmittance = True if albedo == Albedos.albedo_t else False
             response = acq.spectral_response()
             accumulated = calculate_solar_radiation(flux_data, response,
                                                     altitudes.shape[0],
@@ -341,7 +344,7 @@ def run_modtran(acquisitions, atmospherics_group, model, npoints, point,
             dset_name = ppjoin(group_path, DatasetName.solar_irradiance.value)
             description = ("Accumulated solar irradiation for point {} "
                            "and albedo {}.")
-            attrs['Description'] = description.format(point, albedo)
+            attrs['Description'] = description.format(point, albedo.value)
             write_dataframe(accumulated, dset_name, fid, compression,
                             attrs=attrs)
 
@@ -352,15 +355,15 @@ def run_modtran(acquisitions, atmospherics_group, model, npoints, point,
             write_dataframe(channel_data, dset_name, fid, attrs=attrs)
 
     # metadata for a given point
+    alb_vals = [alb.value for alb in model.albedos]
     fid[base_path].attrs['lonlat'] = lonlat
-    fid[base_path].attrs.create('albedos', data=model.albedos,
-                                dtype=VLEN_STRING)
+    fid[base_path].attrs.create('albedos', data=alb_vals, dtype=VLEN_STRING)
 
     if out_group is None:
         return fid
 
 
-def _calculate_coefficients(atmosheric_results_fname, out_fname, compression):
+def _calculate_components(atmosheric_results_fname, out_fname, compression):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -369,17 +372,17 @@ def _calculate_coefficients(atmosheric_results_fname, out_fname, compression):
         h5py.File(out_fname, 'w') as fid:
 
         results_group = atmos_fid[GroupName.atmospheric_results_grp.value]
-        calculate_coefficients(results_group, fid, compression)
+        calculate_components(results_group, fid, compression)
 
 
-def calculate_coefficients(atmospheric_results_group, out_group,
-                           compression='lzf'):
+def calculate_components(atmospheric_results_group, out_group,
+                         compression='lzf'):
     """
-    Calculate the atmospheric coefficients from the MODTRAN output
+    Calculate the atmospheric components from the MODTRAN output
     and used in the BRDF and atmospheric correction.
-    Coefficients are computed for each band for each each coordinate
-    for each factor. The factors can be found in
-    `Model.standard.factors`.
+    Components are computed for each band for each each coordinate
+    for each atmospheric component. The atmospheric components can be
+    found in `Model.standard.atmos_components`.
 
     :param atmospheric_results_group:
         The root HDF5 `Group` that contains the atmospheric results
@@ -393,8 +396,8 @@ def calculate_coefficients(atmospheric_results_group, out_group,
         The datasets will be formatted to the HDF5 TABLE specification
         and the dataset names will be as follows:
 
-        * DatasetName.nbar_coefficients (if Model.standard or Model.nbar)
-        * DatasetName.sbt_coefficients (if Model.standard or Model.sbt)
+        * DatasetName.nbar_components (if Model.standard or Model.nbar)
+        * DatasetName.sbt_components (if Model.standard or Model.sbt)
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -409,16 +412,16 @@ def calculate_coefficients(atmospheric_results_group, out_group,
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
     """
-    nbar_coefficients = pd.DataFrame()
-    sbt_coefficients = pd.DataFrame()
-    nbar_albedos = Model.nbar.albedos
+    nbar_components = pd.DataFrame()
+    sbt_components = pd.DataFrame()
     accumulation_albedo_0 = accumulation_albedo_1 = None
     accumulation_albedo_t = None
     channel_data = upward = downward = None
 
     # Initialise the output group/file
     if out_group is None:
-        fid = h5py.File('coefficients.h5', driver='core', backing_store=False)
+        fid = h5py.File('atmospheric-components.h5', driver='core',
+                        backing_store=False)
     else:
         fid = out_group
 
@@ -431,13 +434,13 @@ def calculate_coefficients(atmospheric_results_group, out_group,
         grp_path = ppjoin(POINT_FMT.format(p=point), ALBEDO_FMT)
         if nbar_atmos:
             dataset_name = DatasetName.solar_irradiance.value
-            albedo_0_path = ppjoin(grp_path.format(a=nbar_albedos[0]),
+            albedo_0_path = ppjoin(grp_path.format(a=Albedos.albedo_0.value),
                                    dataset_name)
-            albedo_1_path = ppjoin(grp_path.format(a=nbar_albedos[1]),
+            albedo_1_path = ppjoin(grp_path.format(a=Albedos.albedo_1.value),
                                    dataset_name)
-            albedo_t_path = ppjoin(grp_path.format(a=nbar_albedos[2]),
+            albedo_t_path = ppjoin(grp_path.format(a=Albedos.albedo_t.value),
                                    dataset_name)
-            channel_path = ppjoin(grp_path.format(a=nbar_albedos[0]),
+            channel_path = ppjoin(grp_path.format(a=Albedos.albedo_0.value),
                                   DatasetName.channel.value)
 
             accumulation_albedo_0 = read_h5_table(res, albedo_0_path)
@@ -445,10 +448,10 @@ def calculate_coefficients(atmospheric_results_group, out_group,
             accumulation_albedo_t = read_h5_table(res, albedo_t_path)
             channel_data = read_h5_table(res, channel_path)
         if sbt_atmos:
-            dname = ppjoin(grp_path.format(a=Model.sbt.albedos[0]),
+            dname = ppjoin(grp_path.format(a=Albedos.albedo_th.value),
                            DatasetName.upward_radiation_channel.value)
             upward = read_h5_table(res, dname)
-            dname = ppjoin(grp_path.format(a=Model.sbt.albedos[0]),
+            dname = ppjoin(grp_path.format(a=Albedos.albedo_th.value),
                            DatasetName.downward_radiation_channel.value)
             downward = read_h5_table(res, dname)
 
@@ -460,53 +463,53 @@ def calculate_coefficients(atmospheric_results_group, out_group,
                   'downward_radiation': downward,
                   'point': point}
 
-        result = coefficients(**kwargs)
+        result = components(**kwargs)
 
-        nbar_coefficients = nbar_coefficients.append(result[0])
-        sbt_coefficients = sbt_coefficients.append(result[1])
+        nbar_components = nbar_components.append(result[0])
+        sbt_components = sbt_components.append(result[1])
 
         # TODO: check if number of records > (some chunksize)
         #       and write that portion of the table to disk
         # TODO: implement an append write_dataframe
         #       which will aid in reducing memory consumption
 
-    nbar_coefficients.reset_index(inplace=True)
-    sbt_coefficients.reset_index(inplace=True)
+    nbar_components.reset_index(inplace=True)
+    sbt_components.reset_index(inplace=True)
 
     attrs = {'npoints': npoints}
-    description = "Coefficients derived from the VNIR solar irradiation."
+    description = "Components derived from the VNIR solar irradiation."
     attrs['Description'] = description
-    dname = DatasetName.nbar_coefficients.value
+    dname = DatasetName.nbar_components.value
 
-    if GroupName.coefficients_group.value not in fid:
-        fid.create_group(GroupName.coefficients_group.value)
+    if GroupName.components.value not in fid:
+        fid.create_group(GroupName.components_group.value)
 
-    group = fid[GroupName.coefficients_group.value]
+    group = fid[GroupName.components_group.value]
     if nbar_atmos:
-        write_dataframe(nbar_coefficients, dname, group, compression,
+        write_dataframe(nbar_components, dname, group, compression,
                         attrs=attrs)
 
-    description = "Coefficients derived from the THERMAL solar irradiation."
+    description = "Components derived from the THERMAL solar irradiation."
     attrs['Description'] = description
-    dname = DatasetName.sbt_coefficients.value
+    dname = DatasetName.sbt_components.value
 
     if sbt_atmos:
-        write_dataframe(sbt_coefficients, dname, group, compression,
-                        attrs=attrs)
+        write_dataframe(sbt_components, dname, group, compression, attrs=attrs)
 
     if out_group is None:
         return fid
 
 
-def coefficients(accumulation_albedo_0=None, accumulation_albedo_1=None,
-                 accumulation_albedo_t=None, channel_data=None,
-                 upward_radiation=None, downward_radiation=None, point=0):
+def components(accumulation_albedo_0=None, accumulation_albedo_1=None,
+               accumulation_albedo_t=None, channel_data=None,
+               upward_radiation=None, downward_radiation=None, point=0):
     """
-    Calculate the coefficients for a given point.
-    Calculate the atmospheric coefficients from the MODTRAN output
+    Calculate the components for a given point.
+    Calculate the atmospheric components from the MODTRAN output
     and used in the BRDF and atmospheric correction.
-    Coefficients are computed for each band for each factor.
-    The factors can be found in `Model.standard.factors`.
+    Components are computed for each band.
+    The atmospheric components can be found in
+    `Model.standard.atmos_components`.
 
     :param accumulation_albedo_0:
         A `pandas.DataFrame` containing the solar accumulated
@@ -549,9 +552,9 @@ def coefficients(accumulation_albedo_0=None, accumulation_albedo_1=None,
         which MODTRAN was run. Default is 0.
 
     :return:
-        A `tuple` (nbar_coefficients, sbt_coefficients) whereby each
-        item is a `pandas.DataFrame` containing the coefficients for
-        each band for each factor.
+        A `tuple` (nbar_components, sbt_components) whereby each
+        item is a `pandas.DataFrame` containing the atmospheric
+        components for each band.
         If `accumulation_albedo_0` is None, then the first item in
         the returned `tuple` will be None.
         If `upward_radiation` is None, then the second item in the
@@ -572,31 +575,31 @@ def coefficients(accumulation_albedo_0=None, accumulation_albedo_1=None,
         tv_dir = dir_t / dirt_top
 
         # TODO: better descriptive names
-        columns = ['point']
-        columns.extend(Model.nbar.factors)
+        columns = ['POINT']
+        columns.extend([v.value for v in Model.nbar.atmos_components])
         nbar = pd.DataFrame(columns=columns, index=channel_data.index)
 
-        nbar['point'] = point
-        nbar['fs'] = ts_dir / ts_total
-        nbar['fv'] = tv_dir / tv_total
-        nbar['a'] = (diff_0 + dir_0) / numpy.pi * tv_total
-        nbar['b'] = channel_data['3'] * 10000000
-        nbar['s'] = 1 - (diff_0 + dir_0) / (diff_1 + dir_1)
-        nbar['dir'] = dir_0
-        nbar['dif'] = diff_0
-        nbar['ts'] = ts_dir
+        nbar['POINT'] = point
+        nbar[AC.fs.value] = ts_dir / ts_total
+        nbar[AC.fv.value] = tv_dir / tv_total
+        nbar[AC.a.value] = (diff_0 + dir_0) / numpy.pi * tv_total
+        nbar[AC.b.value] = channel_data['3'] * 10000000
+        nbar[AC.s.value] = 1 - (diff_0 + dir_0) / (diff_1 + dir_1)
+        nbar[AC.dir.value] = dir_0
+        nbar[AC.dif.value] = diff_0
+        nbar[AC.ts.value] = ts_dir
 
     if upward_radiation is not None:
-        columns = ['point']
-        columns.extend(Model.sbt.factors)
-        columns.extend(['transmittance-down'])
+        columns = ['POINT']
+        columns.extend([v.value for v in Model.sbt.atmos_components])
+        columns.extend(['TRANSMITTANCE-DOWN']) # Currently not required
         sbt = pd.DataFrame(columns=columns, index=upward_radiation.index)
 
-        sbt['point'] = point
-        sbt['path-up'] = upward_radiation['3'] * 10000000
-        sbt['transmittance-up'] = upward_radiation['14']
-        sbt['path-down'] = downward_radiation['3'] * 10000000
-        sbt['transmittance-down'] = downward_radiation['14']
+        sbt['POINT'] = point
+        sbt[AC.path_up.value] = upward_radiation['3'] * 10000000
+        sbt[AC.transmittance_up.value] = upward_radiation['14']
+        sbt[AC.path_down.value] = downward_radiation['3'] * 10000000
+        sbt['TRANSMITTANCE-DOWN'] = downward_radiation['14']
 
     return nbar, sbt
 
@@ -772,7 +775,7 @@ def read_modtran_channel(fname, acquisition, albedo):
     """
     response = acquisition.spectral_response()
     nbands = response.index.get_level_values('band_name').unique().shape[0]
-    if albedo == Model.sbt.albedos[0]:
+    if albedo == Albedos.albedo_th:
         upward_radiation = pd.read_csv(fname, skiprows=5, header=None,
                                        delim_whitespace=True, nrows=nbands)
         downward_radiation = pd.read_csv(fname, skiprows=10+nbands,
@@ -947,14 +950,13 @@ def link_atmospheric_results(input_targets, out_fname, npoints, model):
     base_group_name = GroupName.atmospheric_results_grp.value
     nbar_atmospherics = False
     sbt_atmospherics = False
-    albedos = model.albedos
     for fname in input_targets:
         with h5py.File(fname.path, 'r') as fid:
             points = list(fid[base_group_name].keys())
 
         for point in points:
-            for albedo in albedos:
-                if albedo == Model.sbt.albedos[0]:
+            for albedo in model.albedos:
+                if albedo == Albedos.albedo_th:
                     datasets = [DatasetName.upward_radiation_channel.value,
                                 DatasetName.downward_radiation_channel.value]
                     sbt_atmospherics = True
@@ -966,7 +968,7 @@ def link_atmospheric_results(input_targets, out_fname, npoints, model):
                     nbar_atmospherics = True
 
                 grp_path = ppjoin(base_group_name, point,
-                                  ALBEDO_FMT.format(a=albedo))
+                                  ALBEDO_FMT.format(a=albedo.value))
 
                 for dset in datasets:
                     dname = ppjoin(grp_path, dset)

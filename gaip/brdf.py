@@ -478,10 +478,10 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
         Values for each BRDF Parameter are accessed via the key named
         `value`.
     """
-    def find_file(files, brdf_wl, factor):
+    def find_file(files, brdf_wl, parameter):
         """Find file with a specific name."""
         for f in files:
-            if f.find(brdf_wl) != -1 and f.find(factor) != -1:
+            if f.find(brdf_wl) != -1 and f.find(parameter) != -1:
                 return f
         return None
 

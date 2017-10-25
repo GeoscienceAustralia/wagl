@@ -13,6 +13,8 @@ import numpy
 import h5py
 
 from gaip.constants import DatasetName, GroupName, BrdfParameters
+from gaip.constants import AtmosphericComponents as AC
+from gaip.constants import ArdProducts as AP
 from gaip.data import as_array
 from gaip.hdf5 import dataset_compression_kwargs
 from gaip.hdf5 import attach_image_attributes
@@ -72,7 +74,7 @@ def calculate_reflectance(acquisition, interpolation_group,
 
     :param interpolation_group:
         The root HDF5 `Group` that contains the interpolated
-        atmospheric coefficients.
+        atmospheric components.
         The dataset pathnames are given by:
 
         * DatasetName.interpolation_fmt
@@ -122,7 +124,7 @@ def calculate_reflectance(acquisition, interpolation_group,
 
     :param ancillary_group:
         The root HDF5 `Group` that contains the Isotropic (iso),
-        RossThick (vol), and LiSparseR (geo) BRDF scalar coefficients.
+        RossThick (vol), and LiSparseR (geo) BRDF scalar parameters.
         The dataset pathnames are given by:
 
         * DatasetName.brdf_fmt
@@ -143,8 +145,8 @@ def calculate_reflectance(acquisition, interpolation_group,
         The reflectance products are:
 
         * lambertian
-        * brdf
-        * terrain (brdf + terrain illumination correction)
+        * nbar (BRDF corrected reflectance)
+        * nbart (BRDF + terrain illumination corrected reflectance)
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -167,21 +169,21 @@ def calculate_reflectance(acquisition, interpolation_group,
     bn = acq.band_name
 
     dname_fmt = DatasetName.interpolation_fmt.value
-    fv_dataset = interpolation_group[dname_fmt.format(factor='fv',
+    fv_dataset = interpolation_group[dname_fmt.format(component=AC.fv.value,
                                                       band_name=bn)]
-    fs_dataset = interpolation_group[dname_fmt.format(factor='fs',
+    fs_dataset = interpolation_group[dname_fmt.format(component=AC.fs.value,
                                                       band_name=bn)]
-    b_dataset = interpolation_group[dname_fmt.format(factor='b',
+    b_dataset = interpolation_group[dname_fmt.format(component=AC.b.value,
                                                      band_name=bn)]
-    s_dataset = interpolation_group[dname_fmt.format(factor='s',
+    s_dataset = interpolation_group[dname_fmt.format(component=AC.s.value,
                                                      band_name=bn)]
-    a_dataset = interpolation_group[dname_fmt.format(factor='a',
+    a_dataset = interpolation_group[dname_fmt.format(component=AC.a.value,
                                                      band_name=bn)]
-    dir_dataset = interpolation_group[dname_fmt.format(factor='dir',
+    dir_dataset = interpolation_group[dname_fmt.format(component=AC.dir.value,
                                                        band_name=bn)]
-    dif_dataset = interpolation_group[dname_fmt.format(factor='dif',
+    dif_dataset = interpolation_group[dname_fmt.format(component=AC.dif.value,
                                                        band_name=bn)]
-    ts_dataset = interpolation_group[dname_fmt.format(factor='ts',
+    ts_dataset = interpolation_group[dname_fmt.format(component=AC.ts.value,
                                                       band_name=bn)]
     solar_zenith_dset = satellite_solar_group[DatasetName.solar_zenith.value]
     solar_azimuth_dset = satellite_solar_group[DatasetName.solar_azimuth.value]
@@ -195,13 +197,13 @@ def calculate_reflectance(acquisition, interpolation_group,
     shadow_dataset = shadow_masks_group[DatasetName.combined_shadow.value]
 
     dname_fmt = DatasetName.brdf_fmt.value
-    dname = dname_fmt.format(band_name=bn, parameter=BrdfParameters.iso.name)
+    dname = dname_fmt.format(band_name=bn, parameter=BrdfParameters.iso.value)
     brdf_iso = ancillary_group[dname][()]
 
-    dname = dname_fmt.format(band_name=bn, parameter=BrdfParameters.vol.name)
+    dname = dname_fmt.format(band_name=bn, parameter=BrdfParameters.vol.value)
     brdf_vol = ancillary_group[dname][()]
 
-    dname = dname_fmt.format(band_name=bn, parameter=BrdfParameters.geo.name)
+    dname = dname_fmt.format(band_name=bn, parameter=BrdfParameters.geo.value)
     brdf_geo = ancillary_group[dname][()]
 
     # Initialise the output file
@@ -223,14 +225,14 @@ def calculate_reflectance(acquisition, interpolation_group,
 
     # create the datasets
     dname_fmt = DatasetName.reflectance_fmt.value
-    dname = dname_fmt.format(product='lambertian', band_name=bn)
+    dname = dname_fmt.format(product=AP.lambertian.value, band_name=bn)
     lmbrt_dset = grp.create_dataset(dname, **kwargs)
 
-    dname = dname_fmt.format(product='brdf', band_name=bn)
-    brdf_dset = grp.create_dataset(dname, **kwargs)
+    dname = dname_fmt.format(product=AP.nbar.value, band_name=bn)
+    nbar_dset = grp.create_dataset(dname, **kwargs)
 
-    dname = dname_fmt.format(product='terrain', band_name=bn)
-    tc_dset = grp.create_dataset(dname, **kwargs)
+    dname = dname_fmt.format(product=AP.nbart.value, band_name=bn)
+    nbart_dset = grp.create_dataset(dname, **kwargs)
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
@@ -249,12 +251,12 @@ def calculate_reflectance(acquisition, interpolation_group,
 
     desc = "Contains the brdf corrected reflectance data scaled by 10000."
     attrs['Description'] = desc
-    attach_image_attributes(brdf_dset, attrs)
+    attach_image_attributes(nbar_dset, attrs)
 
     desc = ("Contains the brdf and terrain corrected reflectance data scaled "
             "by 10000.")
     attrs['Description'] = desc
-    attach_image_attributes(tc_dset, attrs)
+    attach_image_attributes(nbart_dset, attrs)
 
     # Initialise the tiling scheme for processing
     tiles = generate_tiles(acq.samples, acq.lines, acq.samples, y_tile)
@@ -316,8 +318,8 @@ def calculate_reflectance(acquisition, interpolation_group,
 
         # Write the current tile to disk
         lmbrt_dset[idx] = ref_lm
-        brdf_dset[idx] = ref_brdf
-        tc_dset[idx] = ref_terrain
+        nbar_dset[idx] = ref_brdf
+        nbart_dset[idx] = ref_terrain
 
     if out_group is None:
         return fid
