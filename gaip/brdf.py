@@ -36,7 +36,6 @@ from osgeo import gdalconst
 from osgeo import osr
 from shapely.geometry import Polygon
 from gaip.constants import BrdfParameters
-from gaip.data import read_subset
 from gaip.geobox import GriddedGeoBox
 from gaip.hdf5 import write_h5_image
 from gaip.hdf5 import dataset_compression_kwargs
@@ -445,7 +444,7 @@ def get_brdf_dirs_pre_modis(brdf_root, scene_date):
 
 
 def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
-                  hdf5_group, compression='lzf'):
+                  compression='lzf'):
     """
     Calculates the mean BRDF value for the given acquisition,
     for each BRDF parameter ['geo', 'iso', 'vol'] that covers
@@ -463,10 +462,6 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
         A string containing the full file system path to your directory
         containing the Jupp-Li backup BRDF data.  To be used for
         pre-MODIS and potentially post-MODIS acquisitions.
-
-    :param hdf5_group:
-        A HDF5 `Group` object that will be used to save the BRDF
-        image datasets.
 
     :return:
         A `dict` with the keys:
@@ -519,9 +514,6 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
             if f.endswith(".hdf.gz") or f.endswith(".hdf"):
                 hdflist.append(f)
 
-    # TODO: get the acceptance that we don't need to store both the full
-    #       image and the subset. We shouldn't be validating those steps
-    #       anymore
     results = {}
     for param in BrdfParameters:
         hdf_fname = find_file(hdflist, acquisition.brdf_wavelength, param.name)
@@ -549,48 +541,14 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
             brdf_object = BRDFLoader(hdf_file, ul=geobox.ul_lonlat,
                                      lr=geobox.lr_lonlat)
 
-            # setup the output filename
-            out_fname = '-'.join([acquisition.band_name,
-                                  acquisition.brdf_wavelength,
-                                  param.name]) 
-            # Convert the file format
-            attrs = {'BRDF-Wavelength': acquisition.brdf_wavelength,
-                     'BRDF-Parameter': param.name}
-            brdf_object.convert_format(out_fname, hdf5_group, attrs,
-                                       compression=compression)
-
             # gauard against roi's that don't intersect
             if not brdf_object.intersects:
                 msg = "ROI is outside the BRDF extents!"
                 log.error(msg)
                 raise Exception(msg)
 
-            roi = brdf_object.roi
-            ul_lon, ul_lat = roi['UL']
-            ur_lon, ur_lat = (roi['LR'][0], roi['UL'][1])
-            lr_lon, lr_lat = roi['UL']
-            ll_lon, ll_lat = (roi['UL'][0], roi['LR'][1])
-
-            # Read the subset and its geotransform
-            subset, geobox_subset = read_subset(hdf5_group[out_fname],
-                                                (ul_lon, ul_lat),
-                                                (ur_lon, ur_lat),
-                                                (lr_lon, lr_lat),
-                                                (ll_lon, ll_lat))
-
             # calculate the mean value
-            brdf_mean_value = brdf_object.get_mean(subset)
-
-            # Output the brdf subset
-            chunks = (1, geobox_subset.x_size())
-            kwargs = dataset_compression_kwargs(compression=compression,
-                                                chunks=chunks)
-            attrs = {'Description': 'Subsetted region of the BRDF image.',
-                     'crs_wkt': geobox_subset.crs.ExportToWkt(),
-                     'geotransform': geobox_subset.transform.to_gdal()}
-            out_fname_subset = out_fname + '_subset'
-            write_h5_image(subset, out_fname_subset, hdf5_group, attrs,
-                           **kwargs)
+            brdf_mean_value = brdf_object.mean_data_value()
 
         # Add the brdf filename and mean value to brdf_dict
         res = {'data_source': 'BRDF',

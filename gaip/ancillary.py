@@ -392,13 +392,12 @@ def collect_nbar_ancillary(container, aerosol_fname=None,
     write_scalar(elev[0], DatasetName.elevation.value, fid, elev[1])
 
     # brdf
-    h5group = fid.create_group('brdf-image-datasets')
     dname_format = DatasetName.brdf_fmt.value
     for group in container.groups:
         for acq in container.get_acquisitions(group=group):
             if acq.band_type is not BandType.Reflective:
                 continue
-            data = get_brdf_data(acq, brdf_path, brdf_premodis_path, h5group,
+            data = get_brdf_data(acq, brdf_path, brdf_premodis_path,
                                  compression)
 
             # output
