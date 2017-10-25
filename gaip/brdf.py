@@ -35,6 +35,7 @@ from osgeo import gdal
 from osgeo import gdalconst
 from osgeo import osr
 from shapely.geometry import Polygon
+from shapely import wkt
 from gaip.constants import BrdfParameters
 from gaip.geobox import GriddedGeoBox
 from gaip.hdf5 import write_h5_image
@@ -140,6 +141,7 @@ class BRDFLoader(object):
             i_ul = (intersection.bounds[0], intersection.bounds[-1])
             i_lr = (intersection.bounds[2], intersection.bounds[1])
             self.roi = {'UL': i_ul, 'LR': i_lr}
+            self.roi_polygon = roi_poly
 
     def load(self):
         """
@@ -569,8 +571,9 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
         results[BrdfParameters.vol] = {'value': 0.0}
         results[BrdfParameters.geo] = {'value': 0.0}
 
-    # add very basic brdf description metadata
+    # add very basic brdf description metadata and the roi polygon
     for param in BrdfParameters:
         results[param]['BRDF-Parameter'] = param.name
+        results[param]['roi_wkt'] = wkt.dumps(brdf_object.roi_polygon)
 
     return results
