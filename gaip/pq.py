@@ -18,6 +18,7 @@ from gaip.acquisition import acquisitions
 from gaip.cloud_shadow_masking import cloud_shadow
 from gaip.constants import BandType, DatasetName
 from gaip.constants import PQAConstants, PQbits
+from gaip.constants import ArdProducts as AP
 from gaip.contiguity_masking import set_contiguity_bit
 from gaip.fmask_cloud_masking_wrapper import fmask_cloud_mask
 from gaip.hdf5 import dataset_compression_kwargs, write_h5_image
@@ -275,17 +276,23 @@ def run_pq(level1, standardised_data_fname, land_sea_path, compression='lzf'):
     # read NBAR data
     dname_fmt = DatasetName.reflectance_fmt.value
     with h5py.File(standardised_data_fname, 'r') as fid:
-        dname = dname_fmt.format(product='brdf', band_name=spectral_bands[0])
+        dname = dname_fmt.format(product=AP.nbar.value,
+                                 band_name=spectral_bands[0])
         blue_dataset = fid[dname]
-        dname = dname_fmt.format(product='brdf', band_name=spectral_bands[1])
+        dname = dname_fmt.format(product=AP.nbar.value,
+                                 band_name=spectral_bands[1])
         green_dataset = fid[dname]
-        dname = dname_fmt.format(product='brdf', band_name=spectral_bands[2])
+        dname = dname_fmt.format(product=AP.nbar.value,
+                                 band_name=spectral_bands[2])
         red_dataset = fid[dname]
-        dname = dname_fmt.format(product='brdf', band_name=spectral_bands[3])
+        dname = dname_fmt.format(product=AP.nbar.value,
+                                 band_name=spectral_bands[3])
         nir_dataset = fid[dname]
-        dname = dname_fmt.format(product='brdf', band_name=spectral_bands[4])
+        dname = dname_fmt.format(product=AP.nbar.value,
+                                 band_name=spectral_bands[4])
         swir1_dataset = fid[dname]
-        dname = dname_fmt.format(product='brdf', band_name=spectral_bands[5])
+        dname = dname_fmt.format(product=AP.nbar.value,
+                                 band_name=spectral_bands[5])
         swir2_dataset = fid[dname]
 
         # acca cloud mask
