@@ -32,6 +32,7 @@ from gaip.geobox import GriddedGeoBox
 from gaip.modtran import read_spectral_response
 from gaip.mtl import load_mtl
 from gaip.constants import BandType
+from gaip.tiling import generate_tiles
 
 
 with open(pjoin(dirname(__file__), 'sensors.json')) as fo:
@@ -249,6 +250,7 @@ class Acquisition(object):
         with rasterio.open(self.uri) as ds:
             self._samples = ds.width
             self._lines = ds.height
+            self._tile_size = ds.block_shapes[0]
 
     @property
     def pathname(self):
@@ -294,6 +296,14 @@ class Acquisition(object):
     def lines(self):
         """The number of lines (aka. `height`)."""
         return self._lines
+
+    @property
+    def tile_size(self):
+        """
+        The native tile size of the file on disk in
+        (ysize, xsize) dimensions.
+        """
+        return self._tile_size
 
     @property
     def gps_file(self):
@@ -393,6 +403,24 @@ class Acquisition(object):
         with resource_stream(__name__, fname) as src:
             df = read_spectral_response(src, as_list, spectral_range)
         return df
+
+    def close(self):
+        """
+        A simple additional utility for acquisitions that need
+        to close any open files or set any specific properties to
+        None. Used as a general cleanup.
+        This utility might change over time as a better mechanism
+        for handling various read methods is resolved.
+        Override as needed.
+        """
+        pass
+
+    def tiles(self):
+        """
+        Generate the tiling regime for this acquisition.
+        """
+        ysize, xsize = self.tile_size
+        return generate_tiles(self.samples, self.lines, xsize, ysize)
 
 
 class LandsatAcquisition(Acquisition):
@@ -1013,3 +1041,9 @@ class Sentinel2aAcquisition(Acquisition):
         radiance[nulls] = out_no_data
 
         return radiance
+
+    def close(self):
+        """
+        Set self._solar_zenith back to None to reclaim memory.
+        """
+        self._solar_zenith = None
