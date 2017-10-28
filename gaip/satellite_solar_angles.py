@@ -14,7 +14,6 @@ from osgeo import osr
 from gaip.constants import DatasetName, GroupName
 from gaip.hdf5 import dataset_compression_kwargs, attach_image_attributes
 from gaip.hdf5 import attach_table_attributes, attach_attributes
-from gaip.tiling import generate_tiles
 from gaip.tle import load_tle
 from gaip.__sat_sol_angles import angle
 from gaip.__satellite_model import set_satmod
@@ -687,7 +686,7 @@ def _store_parameter_settings(fid, spheriod, orbital_elements,
 
 
 def _calculate_angles(acquisition, lon_lat_fname, out_fname=None,
-                      compression='lzf', tle_path=None, y_tile=100):
+                      compression='lzf', tle_path=None):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -695,12 +694,11 @@ def _calculate_angles(acquisition, lon_lat_fname, out_fname=None,
     with h5py.File(lon_lat_fname, 'r') as lon_lat_fid,\
         h5py.File(out_fname, 'w') as fid:
         lon_lat_grp = lon_lat_fid[GroupName.lon_lat_group.value]
-        calculate_angles(acquisition, lon_lat_grp, fid, compression, tle_path,
-                         y_tile)
+        calculate_angles(acquisition, lon_lat_grp, fid, compression, tle_path)
 
 
 def calculate_angles(acquisition, lon_lat_group, out_group=None,
-                     compression='lzf', tle_path=None, y_tile=100):
+                     compression='lzf', tle_path=None):
     """
     Calculate the satellite view, satellite azimuth, solar zenith,
     solar azimuth, and relative aziumth angle grids, as well as the
@@ -750,9 +748,6 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
 
     :param tle_path:
         A `str` to the directory containing the Two Line Element data.
-
-    :param y_tile:
-        Defines the tile size along the y-axis. Default is 100.
 
     :return:
         An opened `h5py.File` object, that is either in-memory using the
@@ -831,7 +826,7 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     out_dtype = 'float32'
     no_data = -999
     kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(1, acquisition.samples))
+                                        chunks=acq.tile_size)
     kwargs['shape'] = (acquisition.lines, acquisition.samples)
     kwargs['fillvalue'] = no_data
     kwargs['dtype'] = out_dtype
@@ -879,7 +874,7 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     n_cent = np.zeros((acq.lines), dtype=out_dtype)
 
     row_id = 0
-    for tile in generate_tiles(acq.samples, acq.lines, acq.samples, y_tile):
+    for tile in acq.tiles():
         idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
 
         # read the lon and lat tile
@@ -917,8 +912,9 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
         time_ds[idx] = time
 
     # outputs
+    # TODO: rework create_boxline so that it reads tiled data effectively
     create_centreline_dataset(geobox, x_cent, n_cent, grp)
-    create_boxline(geobox, sat_v_ds, grp[DatasetName.centreline.value], grp,
+    create_boxline(geobox, sat_v_ds[:], grp[DatasetName.centreline.value], grp,
                    acq.maximum_view_angle)
 
     if out_group is None:

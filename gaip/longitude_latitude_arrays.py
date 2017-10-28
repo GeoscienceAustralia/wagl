@@ -98,34 +98,34 @@ def get_lat_coordinate(y, x, geobox, geo_crs=None, centre=False):
     return y
 
 
-def _create_lon_lat_grids(geobox, out_fname=None, compression='lzf', depth=7,
-                          y_tile=100):
+def _create_lon_lat_grids(acquisition, out_fname=None, compression='lzf',
+                          depth=7):
     """
     A private wrapper for dealing with the internal custom workings of the
-    NBAR workflow.
+    multifile workflow.
     """
     with h5py.File(out_fname, 'w') as fid:
-        create_lon_lat_grids(geobox, fid, compression, depth, y_tile)
+        create_lon_lat_grids(acquisition, fid, compression, depth)
 
 
-def create_lon_lat_grids(geobox, out_group=None, compression='lzf', depth=7,
-                         y_tile=100):
+def create_lon_lat_grids(acquisition, out_group=None, compression='lzf',
+                         depth=7):
     """
     Creates 2 by 2D NumPy arrays containing longitude and latitude
     co-ordinates for each array element.
 
-    :param geobox:
-        An instance of an `GriddedGeoBox` object.
+    :param acquisition:
+        An instance of an `Acquisition` object.
 
     :param out_group:
         If set to None (default) then the results will be returned
         as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
         a writeable HDF5 `Group` object.
 
-        The dataset names will be as follows:
+        The dataset names will be given by:
 
-        * DatasetName.lon
-        * DatasetName.lat
+        * contants.DatasetName.lon.value
+        * contants.DatasetName.lat.value
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -136,13 +136,11 @@ def create_lon_lat_grids(geobox, out_group=None, compression='lzf', depth=7,
         * 'mafisc'
         * An integer [1-9] (Deflate/gzip)
 
-    :param y_tile:
-        Defines the tile size along the y-axis. Default is 100.
-
     :return:
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
     """
+    geobox = acquisition.gridded_geo_box()
     # Define the lon and lat transform funtions
     lon_func = partial(get_lon_coordinate, geobox=geobox, centre=True)
     lat_func = partial(get_lat_coordinate, geobox=geobox, centre=True)
@@ -173,7 +171,7 @@ def create_lon_lat_grids(geobox, out_group=None, compression='lzf', depth=7,
 
     attrs['Description'] = LON_DESC
     kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(1, geobox.x_size()))
+                                        chunks=acquisition.tile_size)
     lon_dset = grp.create_dataset(DatasetName.lon.value, data=result, **kwargs)
     attach_image_attributes(lon_dset, attrs)
 
@@ -216,12 +214,11 @@ def create_grid(geobox, coord_fn, depth=7):
     return arr
 
 
-def create_lon_grid(geobox, out_fname=None, compression='lzf', depth=7,
-                    y_tile=100):
+def create_lon_grid(acquisition, out_fname=None, compression='lzf', depth=7):
     """Create longitude grid.
 
-    :param geobox:
-        An instance of an `GriddedGeoBox` object.
+    :param acquisition:
+        An instance of an `Acquisition` object.
 
     :param out_fname:
         If set to None (default) then the results will be returned
@@ -232,7 +229,7 @@ def create_lon_grid(geobox, out_fname=None, compression='lzf', depth=7,
 
         The dataset path names will be as follows:
 
-        * longitude
+        * contants.DatasetName.lon.value
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -242,9 +239,6 @@ def create_lon_grid(geobox, out_fname=None, compression='lzf', depth=7,
         * 'lz4'
         * 'mafisc'
         * An integer [1-9] (Deflate/gzip)
-
-    :param y_tile:
-        Defines the tile size along the y-axis. Default is 100.
 
     :return:
         An opened `h5py.File` object, that is either in-memory using the
@@ -257,12 +251,14 @@ def create_lon_grid(geobox, out_fname=None, compression='lzf', depth=7,
     else:
         fid = h5py.File(out_fname, 'w')
 
+    geobox = acquisition.gridded_geo_box()
+
     # define some base attributes for the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
              'geotransform': geobox.transform.to_gdal()}
     attrs['Description'] = LON_DESC
     kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(1, geobox.x_size()))
+                                        chunks=acquisition.tile_size)
 
     lon_grid = create_grid(geobox, get_lon_coordinate, depth)
 
@@ -273,12 +269,11 @@ def create_lon_grid(geobox, out_fname=None, compression='lzf', depth=7,
     return fid
 
 
-def create_lat_grid(geobox, out_fname=None, compression='lzf', depth=7,
-                    y_tile=100):
+def create_lat_grid(acquisition, out_fname=None, compression='lzf', depth=7):
     """Create latitude grid.
 
-    :param geobox:
-        An instance of an `GriddedGeoBox` object.
+    :param acquisition:
+        An instance of an `Acquisition` object.
 
     :param out_fname:
         If set to None (default) then the results will be returned
@@ -289,7 +284,7 @@ def create_lat_grid(geobox, out_fname=None, compression='lzf', depth=7,
 
         The dataset path names will be as follows:
 
-        * latitude
+        * contants.DatasetName.lat.value
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -299,9 +294,6 @@ def create_lat_grid(geobox, out_fname=None, compression='lzf', depth=7,
         * 'lz4'
         * 'mafisc'
         * An integer [1-9] (Deflate/gzip)
-
-    :param y_tile:
-        Defines the tile size along the y-axis. Default is 100.
 
     :return:
         An opened `h5py.File` object, that is either in-memory using the
@@ -314,12 +306,14 @@ def create_lat_grid(geobox, out_fname=None, compression='lzf', depth=7,
     else:
         fid = h5py.File(out_fname, 'w')
 
+    geobox = acquisition.gridded_geo_box()
+
     # define some base attributes for the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
              'geotransform': geobox.transform.to_gdal()}
     attrs['Description'] = LAT_DESC
     kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(1, geobox.x_size()))
+                                        chunks=acquisition.tile_size)
 
     lat_grid = create_grid(geobox, get_lat_coordinate, depth)
 

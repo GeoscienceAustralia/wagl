@@ -19,8 +19,7 @@ from gaip.__incident_angle import incident_angle
 
 
 def _incident_exiting_angles(satellite_solar_fname, slope_aspect_fname,
-                             out_fname, compression='lzf', y_tile=100,
-                             incident=True):
+                             out_fname, compression='lzf', incident=True):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -32,13 +31,13 @@ def _incident_exiting_angles(satellite_solar_fname, slope_aspect_fname,
         grp1 = sat_sol[GroupName.sat_sol_group.value]
         grp2 = slp_asp[GroupName.slp_asp_group.value]
         if incident:
-            incident_angles(grp1, grp2, out_fid, compression, y_tile)
+            incident_angles(grp1, grp2, out_fid, compression)
         else:
-            exiting_angles(grp1, grp2, out_fid, compression, y_tile)
+            exiting_angles(grp1, grp2, out_fid, compression)
 
 
 def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
-                    compression='lzf', y_tile=100):
+                    compression='lzf'):
     """
     Calculates the incident angle and the azimuthal incident angle.
 
@@ -75,9 +74,6 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
         * 'mafisc'
         * An integer [1-9] (Deflate/gzip)
 
-    :param y_tile:
-        Defines the tile size along the y-axis. Default is 100.
-
     :return:
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
@@ -106,8 +102,8 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
         fid.create_group(GroupName.incident_group.value)
 
     grp = fid[GroupName.incident_group.value]
-    kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(1, geobox.x_size()))
+    tile_size = solar_zenith_dataset.chunks
+    kwargs = dataset_compression_kwargs(compression, chunks=tile_size)
     no_data = -999
     kwargs['shape'] = shape
     kwargs['fillvalue'] = no_data
@@ -131,11 +127,8 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
     attrs['Description'] = desc
     attach_image_attributes(azi_inc_dset, attrs)
 
-    # Initialise the tiling scheme for processing
-    tiles = generate_tiles(cols, rows, cols, y_tile)
-
-    # Loop over each tile
-    for tile in tiles:
+    # process by tile
+    for tile in generate_tiles(cols, rows, tile_size[1], tile_size[0]):
         # Row and column start and end locations
         ystart = tile[0][0]
         xstart = tile[1][0]
@@ -175,7 +168,7 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
 
 
 def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
-                   compression='lzf', y_tile=100):
+                   compression='lzf'):
     """
     Calculates the exiting angle and the azimuthal exiting angle.
 
@@ -212,9 +205,6 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
         * 'mafisc'
         * An integer [1-9] (Deflate/gzip)
 
-    :param y_tile:
-        Defines the tile size along the y-axis. Default is 100.
-
     :return:
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
@@ -243,8 +233,8 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
         fid.create_group(GroupName.exiting_group.value)
 
     grp = fid[GroupName.exiting_group.value]
-    kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(1, cols))
+    tile_size = satellite_view_dataset.chunks
+    kwargs = dataset_compression_kwargs(compression, chunks=tile_size)
     no_data = -999
     kwargs['shape'] = shape
     kwargs['fillvalue'] = no_data
@@ -268,11 +258,8 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
     attrs['Description'] = desc
     attach_image_attributes(azi_exit_dset, attrs)
 
-    # Initialise the tiling scheme for processing
-    tiles = generate_tiles(cols, rows, cols, y_tile)
-
-    # Loop over each tile
-    for tile in tiles:
+    # process by tile
+    for tile in generate_tiles(cols, rows, tile_size[1], tile_size[0]):
         # Row and column start and end locations
         ystart = tile[0][0]
         xstart = tile[1][0]
@@ -312,7 +299,7 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
 
 
 def _relative_azimuth_slope(incident_angles_fname, exiting_angles_fname,
-                            out_fname, compression='lzf', y_tile=100):
+                            out_fname, compression='lzf'):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -323,11 +310,11 @@ def _relative_azimuth_slope(incident_angles_fname, exiting_angles_fname,
 
         grp1 = inci_fid[GroupName.incident_group.value]
         grp2 = exit_fid[GroupName.exiting_group.value]
-        relative_azimuth_slope(grp1, grp2, out_fid, compression, y_tile)
+        relative_azimuth_slope(grp1, grp2, out_fid, compression)
 
 
 def relative_azimuth_slope(incident_angles_group, exiting_angles_group,
-                           out_group=None, compression='lzf', y_tile=100):
+                           out_group=None, compression='lzf'):
     """
     Calculates the relative azimuth angle on the slope surface.
 
@@ -361,9 +348,6 @@ def relative_azimuth_slope(incident_angles_group, exiting_angles_group,
         * 'mafisc'
         * An integer [1-9] (Deflate/gzip)
 
-    :param y_tile:
-        Defines the tile size along the y-axis. Default is 100.
-
     :return:
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
@@ -390,8 +374,8 @@ def relative_azimuth_slope(incident_angles_group, exiting_angles_group,
         fid.create_group(GroupName.rel_slp_group.value)
 
     grp = fid[GroupName.rel_slp_group.value]
-    kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(1, geobox.x_size()))
+    tile_size = azimuth_incident_dataset.chunks
+    kwargs = dataset_compression_kwargs(compression, chunks=tile_size)
     no_data = -999
     kwargs['shape'] = shape
     kwargs['fillvalue'] = no_data
@@ -409,11 +393,8 @@ def relative_azimuth_slope(incident_angles_group, exiting_angles_group,
     attrs['Description'] = desc
     attach_image_attributes(out_dset, attrs)
 
-    # Initialise the tiling scheme for processing
-    tiles = generate_tiles(cols, rows, cols, y_tile)
-
-    # Loop over each tile
-    for tile in tiles:
+    # process by tile
+    for tile in generate_tiles(cols, rows, tile_size[1], tile_size[0]):
         # Row and column start and end locations
         ystart, yend = tile[0]
         xstart, xend = tile[1]

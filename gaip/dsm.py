@@ -35,18 +35,17 @@ def filter_dsm(array):
     return filtered
 
 
-def _get_dsm(acquisition, national_dsm, margins, out_fname, compression='lzf',
-             y_tile=100):
+def _get_dsm(acquisition, national_dsm, margins, out_fname, compression='lzf'):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
     with h5py.File(out_fname, 'w') as fid:
-        get_dsm(acquisition, national_dsm, margins, fid, compression, y_tile)
+        get_dsm(acquisition, national_dsm, margins, fid, compression)
 
 
 def get_dsm(acquisition, national_dsm, margins, out_group=None,
-            compression='lzf', y_tile=100):
+            compression='lzf'):
     """
     Given an acquisition and a national Digitial Surface Model,
     extract a subset from the DSM based on the acquisition extents
@@ -87,9 +86,6 @@ def get_dsm(acquisition, national_dsm, margins, out_group=None,
         * 'mafisc'
         * An integer [1-9] (Deflate/gzip)
 
-    :param y_tile:
-        Defines the tile size along the y-axis. Default is 100.
-
     :return:
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
@@ -122,8 +118,16 @@ def get_dsm(acquisition, national_dsm, margins, out_group=None,
     else:
         fid = out_group
 
+    if acquisition.tile_size[0] == 1:
+        tile_size = (1, dem_cols)
+    else:
+        # TODO: rework the tiling regime for larger dsm
+        # for non single row based tiles, we won't have ideal
+        # matching reads for tiled processing between the acquisition
+        # and the DEM
+        tile_size = acquisition.tile_size
     kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(y_tile, geobox.x_size()))
+                                        chunks=tile_size)
 
     group = fid.create_group(GroupName.elevation_group.value)
 

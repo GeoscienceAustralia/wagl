@@ -21,16 +21,16 @@ from gaip.hdf5 import attach_image_attributes
 from gaip.hdf5 import create_external_link
 from gaip.hdf5 import find
 from gaip.metadata import create_ard_yaml
-from gaip.tiling import generate_tiles
 from gaip.__surface_reflectance import reflectance
+
+NO_DATA_VALUE = -999
 
 
 def _calculate_reflectance(acquisition, acquisitions, interpolation_fname,
                            satellite_solar_angles_fname, slope_aspect_fname,
                            relative_slope_fname, incident_angles_fname,
                            exiting_angles_fname, shadow_masks_fname,
-                           ancillary_fname, rori, out_fname,
-                           compression='lzf', y_tile=None):
+                           ancillary_fname, rori, out_fname, compression):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -54,7 +54,7 @@ def _calculate_reflectance(acquisition, acquisitions, interpolation_fname,
         grp7 = fid_shadow[GroupName.shadow_group.value]
         grp8 = fid_anc[GroupName.ancillary_group.value]
         calculate_reflectance(acquisition, grp1, grp2, grp3, grp4, grp5, grp6,
-                              grp7, grp8, rori, fid, compression, y_tile)
+                              grp7, grp8, rori, fid, compression)
 
         create_ard_yaml(acquisitions, grp8, fid)
 
@@ -64,7 +64,7 @@ def calculate_reflectance(acquisition, interpolation_group,
                           relative_slope_group, incident_angles_group,
                           exiting_angles_group, shadow_masks_group,
                           ancillary_group, rori, out_group=None,
-                          compression='lzf', y_tile=100):
+                          compression='lzf'):
     """
     Calculates Lambertian, BRDF corrected and BRDF + terrain
     illumination corrected surface reflectance.
@@ -157,9 +157,6 @@ def calculate_reflectance(acquisition, interpolation_group,
         * 'mafisc'
         * An integer [1-9] (Deflate/gzip)
 
-    :param y_tile:
-        Defines the tile size along the y-axis. Default is 100.
-
     :return:
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
@@ -217,10 +214,9 @@ def calculate_reflectance(acquisition, interpolation_group,
         fid.create_group(GroupName.standard_group.value)
 
     grp = fid[GroupName.standard_group.value]
-    kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(1, acq.samples))
+    kwargs = dataset_compression_kwargs(compression, chunks=acq.tile_size)
     kwargs['shape'] = (acq.lines, acq.samples)
-    kwargs['fillvalue'] = -999
+    kwargs['fillvalue'] = NO_DATA_VALUE
     kwargs['dtype'] = 'int16'
 
     # create the datasets
@@ -258,17 +254,14 @@ def calculate_reflectance(acquisition, interpolation_group,
     attrs['Description'] = desc
     attach_image_attributes(nbart_dset, attrs)
 
-    # Initialise the tiling scheme for processing
-    tiles = generate_tiles(acq.samples, acq.lines, acq.samples, y_tile)
-
-    # Loop over each tile
-    for tile in tiles:
+    # process by tile
+    for tile in acq.tiles():
         # tile indices
         idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
 
         # define some static arguments
         acq_args = {'window': tile,
-                    'out_no_data': kwargs['fillvalue']}
+                    'out_no_data': NO_DATA_VALUE}
         f32_args = {'dtype': numpy.float32, 'transpose': True}
 
         # Read the data corresponding to the current tile for all dataset

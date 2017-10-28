@@ -16,12 +16,12 @@ from gaip.constants import AtmosphericComponents as AC
 from gaip.hdf5 import dataset_compression_kwargs
 from gaip.hdf5 import attach_image_attributes
 from gaip.metadata import create_ard_yaml
-from gaip.tiling import generate_tiles
+
+NO_DATA_VALUE = -999
 
 
 def _surface_brightness_temperature(acquisition, acquisitions, bilinear_fname,
-                                    ancillary_fname, out_fname, compression,
-                                    y_tile):
+                                    ancillary_fname, out_fname, compression):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -31,16 +31,14 @@ def _surface_brightness_temperature(acquisition, acquisitions, bilinear_fname,
         h5py.File(out_fname, 'w') as fid:
 
         grp1 = interp_fid[GroupName.interp_group.value]
-        surface_brightness_temperature(acquisition, grp1, fid, compression,
-                                       y_tile)
+        surface_brightness_temperature(acquisition, grp1, fid, compression)
 
         grp2 = fid_anc[GroupName.ancillary_group.value]
         create_ard_yaml(acquisitions, grp2, fid, True)
 
 
 def surface_brightness_temperature(acquisition, interpolation_group,
-                                   out_group=None, compression='lzf',
-                                   y_tile=100):
+                                   out_group=None, compression='lzf'):
     """
     Convert Thermal acquisition to Surface Brightness Temperature.
 
@@ -86,9 +84,6 @@ def surface_brightness_temperature(acquisition, interpolation_group,
         * 'mafisc'
         * An integer [1-9] (Deflate/gzip)
 
-    :param y_tile:
-        Defines the tile size along the y-axis. Default is 100.
-
     :return:
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
@@ -112,9 +107,6 @@ def surface_brightness_temperature(acquisition, interpolation_group,
     dname = dname_fmt.format(component=AC.transmittance_up.value, band_name=bn)
     transmittance = interpolation_group[dname]
 
-    # tiling scheme
-    tiles = generate_tiles(acq.samples, acq.lines, acq.samples, y_tile)
-
     # Initialise the output file
     if out_group is None:
         fid = h5py.File('surface-temperature.h5', driver='core',
@@ -126,10 +118,9 @@ def surface_brightness_temperature(acquisition, interpolation_group,
         fid.create_group(GroupName.standard_group.value)
 
     group = fid[GroupName.standard_group.value]
-    kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=(1, acq.samples))
+    kwargs = dataset_compression_kwargs(compression, chunks=acq.tile_size)
     kwargs['shape'] = (acq.lines, acq.samples)
-    kwargs['fillvalue'] = -999
+    kwargs['fillvalue'] = NO_DATA_VALUE
     kwargs['dtype'] = 'float32'
 
     # attach some attributes to the image datasets
@@ -154,15 +145,10 @@ def surface_brightness_temperature(acquisition, interpolation_group,
     k2 = acq.K2
 
     # process each tile
-    for tile in tiles:
+    for tile in acq.tiles():
         idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
 
-        acq_args = {'window': tile,
-                    'masked': False,
-                    'apply_gain_offset': acq.scaled_radiance,
-                    'out_no_data': kwargs['fillvalue']}
-
-        radiance = acq.data(**acq_args)
+        radiance = acq.radiance_data(window=tile, out_no_data=NO_DATA_VALUE)
         path_up = upwelling_radiation[idx]
         trans = transmittance[idx]
         mask = ~numpy.isfinite(trans)

@@ -117,7 +117,6 @@ class CalculateLonLatGrids(luigi.Task):
     granule = luigi.Parameter(default=None)
     group = luigi.Parameter()
     compression = luigi.Parameter(default='lzf', significant=False)
-    y_tile = luigi.IntParameter(default=100, significant=False)
 
     def requires(self):
         return WorkRoot(self.level1, self.work_root)
@@ -132,8 +131,7 @@ class CalculateLonLatGrids(luigi.Task):
                                                          self.granule)[0]
 
         with self.output().temporary_path() as out_fname:
-            _create_lon_lat_grids(acq.gridded_geo_box(), out_fname,
-                                  self.compression, y_tile=self.y_tile)
+            _create_lon_lat_grids(acq, out_fname, self.compression)
 
 
 @inherits(CalculateLonLatGrids)
@@ -158,7 +156,7 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
 
         with self.output().temporary_path() as out_fname:
             _calculate_angles(acqs[0], self.input().path, out_fname,
-                              self.compression, self.tle_path, self.y_tile)
+                              self.compression, self.tle_path)
 
 
 class AncillaryData(luigi.Task):
@@ -416,7 +414,7 @@ class InterpolateComponent(luigi.Task):
         with self.output().temporary_path() as out_fname:
             _interpolate(acq, self.component, sat_sol_angles_fname,
                          components_fname, ancillary_fname, out_fname,
-                         self.compression, self.y_tile, self.method)
+                         self.compression, self.method)
 
 
 @inherits(CalculateLonLatGrids)
@@ -499,7 +497,7 @@ class DEMExctraction(luigi.Task):
 
         with self.output().temporary_path() as out_fname:
             _get_dsm(acqs[0], self.dsm_fname, margins, out_fname,
-                     self.compression, self.y_tile)
+                     self.compression)
 
 
 @requires(DEMExctraction)
@@ -522,7 +520,7 @@ class SlopeAndAspect(luigi.Task):
 
         with self.output().temporary_path() as out_fname:
             _slope_aspect_arrays(acqs[0], dsm_fname, margins, out_fname,
-                                 self.compression, self.y_tile)
+                                 self.compression)
 
 
 @inherits(CalculateLonLatGrids)
@@ -549,7 +547,7 @@ class IncidentAngles(luigi.Task):
 
         with self.output().temporary_path() as out_fname:
             _incident_exiting_angles(sat_sol_fname, slope_aspect_fname,
-                                     out_fname, self.compression, self.y_tile)
+                                     out_fname, self.compression)
 
 
 @inherits(IncidentAngles)
@@ -576,8 +574,7 @@ class ExitingAngles(luigi.Task):
 
         with self.output().temporary_path() as out_fname:
             _incident_exiting_angles(sat_sol_fname, slope_aspect_fname,
-                                     out_fname, self.compression, self.y_tile,
-                                     False)
+                                     out_fname, self.compression, False)
 
 
 @inherits(IncidentAngles)
@@ -603,7 +600,7 @@ class RelativeAzimuthSlope(luigi.Task):
 
         with self.output().temporary_path() as out_fname:
             _relative_azimuth_slope(incident_fname, exiting_fname,
-                                    out_fname, self.compression, self.y_tile)
+                                    out_fname, self.compression)
 
 
 @inherits(IncidentAngles)
@@ -632,7 +629,7 @@ class SelfShadow(luigi.Task):
 
         with self.output().temporary_path() as out_fname:
             _self_shadow(incident_fname, exiting_fname, out_fname,
-                         self.compression, self.y_tile)
+                         self.compression)
 
 
 @inherits(SelfShadow)
@@ -670,7 +667,7 @@ class CalculateCastShadowSun(luigi.Task):
         with self.output().temporary_path() as out_fname:
             _calculate_cast_shadow(acqs[0], dsm_fname, margins, window_height,
                                    window_width, sat_sol_fname, out_fname,
-                                   self.compression, self.y_tile)
+                                   self.compression)
 
 
 @inherits(SelfShadow)
@@ -708,7 +705,7 @@ class CalculateCastShadowSatellite(luigi.Task):
         with self.output().temporary_path() as out_fname:
             _calculate_cast_shadow(acqs[0], dsm_fname, margins, window_height,
                                    window_width, sat_sol_fname, out_fname,
-                                   self.compression, self.y_tile, False)
+                                   self.compression, False)
 
 
 @inherits(IncidentAngles)
@@ -734,8 +731,7 @@ class CalculateShadowMasks(luigi.Task):
         with self.output().temporary_path() as out_fname:
             inputs = self.input()
             _combine_shadow(inputs['self'].path, inputs['sun'].path,
-                            inputs['sat'].path, out_fname, self.compression,
-                            self.y_tile)
+                            inputs['sat'].path, out_fname, self.compression)
 
 
 @inherits(InterpolateComponents)
@@ -789,7 +785,7 @@ class SurfaceReflectance(luigi.Task):
                                    relative_slope_fname, incident_fname,
                                    exiting_fname, shadow_fname,
                                    ancillary_fname, self.rori, out_fname,
-                                   self.compression, self.y_tile)
+                                   self.compression)
 
 
 @inherits(SurfaceReflectance)
@@ -820,7 +816,7 @@ class SurfaceTemperature(luigi.Task):
             ancillary_fname = self.input()['ancillary'].path
             _surface_brightness_temperature(acq, acqs, interpolation_fname,
                                             ancillary_fname, out_fname,
-                                            self.compression, self.y_tile)
+                                            self.compression)
 
 
 @inherits(InterpolateComponents)
