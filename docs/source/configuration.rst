@@ -53,9 +53,6 @@ If you're a user that would like to intersect any part of the dependency tree, t
    # The compression filter to use (internally the code defaults to use *lzf*)
    compression = lzf
 
-   # The y-axis tile size to be used for processing
-   y_tile = 100
-
    [AncillaryData]
    # These parameters determine the directory locations required for ancillary retrieval
 
@@ -224,29 +221,17 @@ If you're a user that would like to intersect any part of the dependency tree, t
    # The compression filter to use (internally the code defaults to use *lzf*)
    compression = lzf
 
-   # The y-axis tile size to be used for processing
-   y_tile = 100
-
    [IncidentAngles]
    # The compression filter to use (internally the code defaults to use *lzf*)
    compression = lzf
-
-   # The y-axis tile size to be used for processing
-   y_tile = 100
 
    [ExitingAngles]
    # The compression filter to use (internally the code defaults to use *lzf*)
    compression = lzf
 
-   # The y-axis tile size to be used for processing
-   y_tile = 100
-
    [RelativeAzimuthSlope]
    # The compression filter to use (internally the code defaults to use *lzf*)
    compression = lzf
-
-   # The y-axis tile size to be used for processing
-   y_tile = 100
 
    [SelfShadow]
    # A name indicating the base directory to output the results to
@@ -256,9 +241,6 @@ If you're a user that would like to intersect any part of the dependency tree, t
    # The compression filter to use (internally the code defaults to use *lzf*)
    compression = lzf
 
-   # The y-axis tile size to be used for processing
-   y_tile = 100
-
    [CalculateCastShadowSun]
    # A name indicating the base directory to output the results to
    # internally defaults to _shadow
@@ -266,9 +248,6 @@ If you're a user that would like to intersect any part of the dependency tree, t
 
    # The compression filter to use (internally the code defaults to use *lzf*)
    compression = lzf
-
-   # The y-axis tile size to be used for processing
-   y_tile = 100
 
    [CalculateCastShadowSatellite]
    # A name indicating the base directory to output the results to
@@ -278,15 +257,9 @@ If you're a user that would like to intersect any part of the dependency tree, t
    # The compression filter to use (internally the code defaults to use *lzf*)
    compression = lzf
 
-   # The y-axis tile size to be used for processing
-   y_tile = 100
-
    [CalculateShadowMasks]
    # The compression filter to use (internally the code defaults to use *lzf*)
    compression = lzf
-
-   # The y-axis tile size to be used for processing
-   y_tile = 100
 
    [SurfaceReflectance]
    # A floating point value for surface reflectance adjustment (Fuqin to document)
@@ -306,6 +279,24 @@ If you're a user that would like to intersect any part of the dependency tree, t
    # A boolean indicating whether or not to run the pixel quality workflow
    # default is false
    pixel_quality = false
+
+   [LinkGaipOutputs]
+   # The path to the level-1 dataset
+   level1
+
+   # The model run to use; *standard*, *nbar*, or *sbt*
+   model = standard
+
+   # The number of vertices required for evaluating the radiative transfer over
+   vertices = (5, 5)
+
+   # A boolean indicating whether or not to run the pixel quality workflow
+   # default is false
+   pixel_quality = false
+
+   # The interpolation method to use;
+   # *bilinear*, *fbilinear*, *shear*, *shearb*, or *rbf*
+   method = shear
 
    [ARD]
    # The model run to use; *standard*, *nbar*, or *sbt*
