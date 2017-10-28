@@ -37,3 +37,8 @@ and how many *Groups* are contained within each *Granule*.
 
           >>> scene = acquisitions('S2A_USER_PRD_MSIL2A_PDMC_20160120T071902_R016_V20160120T003331_20160120T003331.SAFE')
           >>> print(scene.get_root('my/work/directory', granule='S2A_USER_MSI_L2A_TL_SGS__20160120T053143_A003016_T55KBQ_N02.01', group='R10m')
+
+An *Acquisition* instance also defines the tiling/chunking logic of any given image processing routine, as well as how the image result is stored on disk.
+This is to provide a more dynamic and flexible processing capability for a variety of sensors that become supported by gaip.
+The property `tile_size` describes the underlying storage tiles for the acquisition, and the method `tiles` returns a tile generator that can be looped over
+and return a tile/chunk of data for processing.
