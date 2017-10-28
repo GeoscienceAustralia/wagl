@@ -24,9 +24,9 @@ Some of the main reasons behind moving to HDF5 are:
   For example, the ancillary data required for surface brightness temperature, gathers data at a minimum of 25 points across a scene or granule.
   The point id is used as the group label to differentiate between the same ancillary data gathered at different locations. i.e.:
 
-    * /point-0/temperature
-    * /point-1/temperature
-    * /point-2/temperature
+    * /POINT-0/TEMPERATURE
+    * /POINT-1/TEMPERATURE
+    * /POINT-2/TEMPERATURE
 
 * Metadata; gaip can now store a lot more metadata such as longitude and latitude information with each ancillary point location, as opposed to a plain text label.
   Parameter settings used for a given algorithm such as for the satellite and solar angles calculation can be stored alongside the results, potentially making it easier for validation, and archive comparisons to be undertaken. Dataset descriptions have been useful for new people working with the code base.
