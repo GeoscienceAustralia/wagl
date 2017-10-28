@@ -50,84 +50,81 @@ Dataset Names
 Dataset names for each output are as follows:
 
 * ancillary.h5
-    * /ancillary/aerosol
-    * /ancillary/coordinator
-    * /ancillary/elevation
-    * /ancillary/ozone
-    * /ancillary/water-vapour
-    * /ancillary/BRDF-Band-{band_id}-geo *(combinations based on band_id)*
-    * /ancillary/BRDF-Band-{band_id}-iso *(combinations based on band_id)*
-    * /ancillary/BRDF-Band-{band_id}-vol *(combinations based on band_id)*
-    * /brdf-image-datasets/Band_{band_id}_0459_0479nm_geo *(combinations based on band_id and lower/upper brdf wavelength)*
-    * /brdf-image-datasets/Band_{band_id}_0459_0479nm_iso *(combinations based on band_id)*
-    * /brdf-image-datasets/Band_{band_id}_0459_0479nm_vol *(combinations based on band_id)*
+    * /ANCILLARY/AEROSOL
+    * /ANCILLARY/COORDINATOR
+    * /ANCILLARY/ELEVATION
+    * /ANCILLARY/OZONE
+    * /ANCILLARY/WATER-VAPOUR
+    * /ANCILLARY/BRDF-{band_name}-GEO *(combinations based on band_name)*
+    * /ANCILLARY/BRDF-{band_name}-ISO *(combinations based on band_name)*
+    * /ANCILLARY/BRDF-{band_name}-VOL *(combinations based on band_name)*
 * atmospheric-inputs.h5
-    * /atmospheric-inputs/point-0/albedo-0/tp5_data *(combinations based on point label, albedo label)*
-    * /atmospheric-inputs/point-1/albedo-1/tp5_data *(combinations based on point label, albedo label)*
-    * /atmospheric-inputs/point-2/albedo-t/tp5_data *(combinations based on point label, albedo label)*
-    * /atmospheric-inputs/point-3/albedo-th/tp5_data *(combinations based on point label, albedo label)*
+    * /ATMOSPHERIC-INPUTS/POINT-0/ALBEDO-0/TP5_DATA *(combinations based on point label, albedo label)*
+    * /ATMOSPHERIC-INPUTS/POINT-1/ALBEDO-1/TP5_DATA *(combinations based on point label, albedo label)*
+    * /ATMOSPHERIC-INPUTS/POINT-2/ALBEDO-T/TP5_DATA *(combinations based on point label, albedo label)*
+    * /ATMOSPHERIC-INPUTS/POINT-3/ALBEDO-TH/TP5_DATA *(combinations based on point label, albedo label)*
 * atmospheric-results.h5
-    * /atmospheric-results/point-0/albedo-0/flux *(combinations based on point label, albedo label)*
-    * /atmospheric-results/point-0/albedo-0/altitudes *(combinations based on point label, albedo label)*
-    * /atmospheric-results/point-0/albedo-0/channel *(combinations based on point label, albedo label)*
-    * /atmospheric-results/point-0/albedo-0/solar-irradiance *(combinations based on point label, albedo label)*
-    * /atmospheric-results/point-0/albedo-th/upward-radiation-channel **SBT Only** *(combinations based on point label)*
-    * /atmospheric-results/point-0/albedo-th/downward-radiation-channel **SBT Only** *(combinations based on point label)*
-* coefficients.h5
-    * /coefficients/nbar-coefficients
-    * /coefficients/sbt-coefficients
-* interpolated-coefficients.h5
-    * /interpolated-coefficients/a-band-{band_id} *(combinations based on the band_id)*
-    * /interpolated-coefficients/b-band-{band_id} *(combinations based on the band_id)*
-    * /interpolated-coefficients/dif-band-{band_id} *(combinations based on the band_id)*
-    * /interpolated-coefficients/dir-band-{band_id} *(combinations based on the band_id)*
-    * /interpolated-coefficients/fs-band-{band_id} *(combinations based on the band_id)*
-    * /interpolated-coefficients/fv-band-{band_id} *(combinations based on the band_id)*
-    * /interpolated-coefficients/s-band-{band_id} *(combinations based on the band_id)*
-    * /interpolated-coefficients/ts-band-{band_id} *(combinations based on the band_id)*
+    * /ATMOSPHERIC-RESULTS/POINT-0/ALBEDO-0/FLUX *(combinations based on point label, albedo label)*
+    * /ATMOSPHERIC-RESULTS/POINT-0/ALBEDO-0/ALTITUDES *(combinations based on point label, albedo label)*
+    * /ATMOSPHERIC-RESULTS/POINT-0/ALBEDO-0/CHANNEL *(combinations based on point label, albedo label)*
+    * /ATMOSPHERIC-RESULTS/POINT-0/ALBEDO-0/SOLAR-IRRADIANCE *(combinations based on point label, albedo label)*
+    * /ATMOSPHERIC-RESULTS/POINT-0/ALBEDO-TH/UPWARD-RADIATION-CHANNEL **SBT Only** *(combinations based on point label)*
+    * /ATMOSPHERIC-RESULTS/POINT-0/ALBEDO-TH/DOWNWARD-RADIATION-CHANNEL **SBT Only** *(combinations based on point label)*
+* components.h5
+    * /ATMOSPHERIC-COMPONENTS/NBAR-COMPONENTS
+    * /ATMOSPHERIC-COMPONENTS/SBT-COMPONENTS
+* interpolated-components.h5
+    * /INTERPOLATED-ATMOSPHERIC-COMPONENTS/A/{band_name} *(combinations based on the band_name)*
+    * /INTERPOLATED-ATMOSPHERIC-COMPONENTS/B/{band_name} *(combinations based on the band_name)*
+    * /INTERPOLATED-ATMOSPHERIC-COMPONENTS/DIF/{band_name} *(combinations based on the band_name)*
+    * /INTERPOLATED-ATMOSPHERIC-COMPONENTS/DIR/{band_name} *(combinations based on the band_name)*
+    * /INTERPOLATED-ATMOSPHERIC-COMPONENTS/FS/{band_name} *(combinations based on the band_name)*
+    * /INTERPOLATED-ATMOSPHERIC-COMPONENTS/FV/{band_name} *(combinations based on the band_name)*
+    * /INTERPOLATED-ATMOSPHERIC-COMPONENTS/S/{band_name} *(combinations based on the band_name)*
+    * /INTERPOLATED-ATMOSPHERIC-COMPONENTS/TS/{band_name} *(combinations based on the band_name)*
 * dsm-extract.h5
-    * /elevation/dsm
-    * /elevation/dsm-smoothed
+    * /ELEVATION/DSM
+    * /ELEVATION/DSM-SMOOTHED
 * exiting-angles.h5
-    * /exiting-angles/azimuthal-exiting
-    * /exiting-angles/exiting
+    * /EXITING-ANGLES/AZIMUTHAL-EXITING
+    * /EXITING-ANGLES/EXITING
 * incident-angles.h5
-    * /incident-angles/azimuthal-incident
-    * /incident-angles/incident
+    * /INCIDENT-ANGLES/AZIMUTHAL-INCIDENT
+    * /INCIDENT-ANGLES/INCIDENT
 * longitude-latitude.h5
-    * /longitude-latitude/longitude
-    * /longitude-latitude/latitude
+    * /LONGITUDE-LATITUDE/LONGITUDE
+    * /LONGITUDE-LATITUDE/LATITUDE
 * relative-slope.h5
-   * /relative-slope/relative-slope
+   * /RELATIVE-SLOPE/RELATIVE-SLOPE
 * satellite-solar.h5
-    * /satellite-solar/boxline
-    * /satellite-solar/centreline
-    * /satellite-solar/parameters/orbital-elements
-    * /satellite-solar/parameters/satellite-model
-    * /satellite-solar/parameters/satellite-track
-    * /satellite-solar/parameters/spheroid
-    * /satellite-solar/relative-azimuth
-    * /satellite-solar/satellite-azimuth
-    * /satellite-solar/satellite-view
-    * /satellite-solar/solar-azimuth
-    * /satellite-solar/solar-zenith
+    * /SATELLITE-SOLAR/BOXLINE
+    * /SATELLITE-SOLAR/CENTRELINE
+    * /SATELLITE-SOLAR/PARAMETERS/ORBITAL-ELEMENTS
+    * /SATELLITE-SOLAR/PARAMETERS/SATELLITE-MODEL
+    * /SATELLITE-SOLAR/PARAMETERS/SATELLITE-TRACK
+    * /SATELLITE-SOLAR/PARAMETERS/SPHEROID
+    * /SATELLITE-SOLAR/RELATIVE-AZIMUTH
+    * /SATELLITE-SOLAR/SATELLITE-AZIMUTH
+    * /SATELLITE-SOLAR/SATELLITE-VIEW
+    * /SATELLITE-SOLAR/SOLAR-AZIMUTH
+    * /SATELLITE-SOLAR/SOLAR-ZENITH
 * shadow-masks.h5
-    * /shadow-masks/cast-shadow-satellite
-    * /shadow-masks/cast-shadow-sun
-    * /shadow-masks/combined-shadow
-    * /shadow-masks/self-shadow
+    * /SHADOW-MASKS/CAST-SHADOW-SATELLITE
+    * /SHADOW-MASKS/CAST-SHADOW-SUN
+    * /SHADOW-MASKS/COMBINED-SHADOW
+    * /SHADOW-MASKS/SELF-SHADOW
 * slope-aspect.h5
-    * /slope-aspect/aspect
-    * /slope-aspect/slope
-* standard-products.h5
-    * /metadata/nbar-metadata
-    * /metadata/pq-metadata
-    * /metadata/sbt-metadata
-    * /standard-products/brdf/reflectance-band-{band_id} *(combinations based on the band_id)*
-    * /standard-products/lambertian/reflectance-band-{band_id} *(combinations based on the band_id)*
-    * /standard-products/pixel-quality/pixel-quality
-    * /standard-products/terrain/reflectance-band-{band_id} *(combinations based on the band_id)*
-    * /standard-products/themal/surface-brightness-temperature-band-{band_id} *(combinations based on the band_id)*
+    * /SLOPE-ASPECT/ASPECT
+    * /SLOPE-ASPECT/SLOPE
+* standardised-products.h5
+    * /METADATA/NBAR-METADATA
+    * /METADATA/PQ-METADATA
+    * /METADATA/SBT-METADATA
+    * /STANDARDISED-PRODUCTS/REFLECTANCE/LAMBERTIAN/{band_name} *(combinations based on the band_name)*
+    * /STANDARDISED-PRODUCTS/REFLECTANCE/NBAR/{band_name} *(combinations based on the band_name)*
+    * /STANDARDISED-PRODUCTS/REFLECTANCE/NBART/{band_name} *(combinations based on the band_name)*
+    * /STANDARDISED-PRODUCTS/PIXEL-QUALITY/PIXEL-QUALITY
+    * /STANDARDISED-PRODUCTS/THERMAL/SURFACE-BRIGHTNESS-TEMPERATURE/{band_name} *(combinations based on the band_name)*
 
 Geospatial Information
 ----------------------
