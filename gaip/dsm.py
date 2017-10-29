@@ -131,22 +131,15 @@ def get_dsm(acquisition, national_dsm, margins, out_group=None,
 
     group = fid.create_group(GroupName.elevation_group.value)
 
-    param_grp = group.create_group('parameters')
+    param_grp = group.create_group('PARAMETERS')
     param_grp.attrs['left_buffer'] = pixel_buf.left
     param_grp.attrs['right_buffer'] = pixel_buf.right
     param_grp.attrs['top_buffer'] = pixel_buf.top
     param_grp.attrs['bottom_buffer'] = pixel_buf.bottom
 
-    # output datasets
-    dname = DatasetName.dsm.value
-    out_dset = group.create_dataset(dname, data=dsm_data, **kwargs)
-
-    # attach some attributes to the image datasets
+    # dataset attributes
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
              'geotransform': dem_geobox.transform.to_gdal()}
-    desc = "A subset of a Digital Surface Model."
-    attrs['Description'] = desc
-    attach_image_attributes(out_dset, attrs)
 
     # Smooth the DSM
     dsm_data = filter_dsm(dsm_data)
