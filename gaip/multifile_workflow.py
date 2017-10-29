@@ -943,7 +943,7 @@ class ARD(luigi.WrapperTask):
                       'pixel_quality': self.pixel_quality,
                       'method': self.method}
 
-            yield LinkGaipOutputs(*kwargs)
+            yield LinkGaipOutputs(**kwargs)
             
 
 class CallTask(luigi.WrapperTask):
