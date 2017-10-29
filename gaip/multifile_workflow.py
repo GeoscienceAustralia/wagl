@@ -45,7 +45,7 @@ from gaip.reflectance import _calculate_reflectance, link_standard_data
 from gaip.terrain_shadow_masks import _self_shadow, _calculate_cast_shadow
 from gaip.terrain_shadow_masks import _combine_shadow
 from gaip.slope_aspect import _slope_aspect_arrays
-from gaip.constants import Model, BandType, Method
+from gaip.constants import Model, BandType, Method, AtmosphericComponents
 from gaip.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
 from gaip.dsm import _get_dsm
 from gaip.modtran import _format_tp5, _run_modtran
@@ -301,7 +301,7 @@ class AtmosphericsCase(luigi.Task):
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       granule=self.granule)
-        albedos = '-'.join([a.value for a in self.albedos])
+        albedos = '-'.join([a for a in self.albedos])
         out_fname = ''.join([POINT_ALBEDO_FMT.format(p=self.point,
                                                      a=albedos), '.h5'])
         return luigi.LocalTarget(pjoin(out_path, self.base_dir, out_fname))
@@ -338,10 +338,10 @@ class Atmospherics(luigi.Task):
             kwargs = {'point': point, 'model': self.model}
             if self.separate:
                 for albedo in self.model.albedos:
-                    kwargs['albedos'] = [albedo]
+                    kwargs['albedos'] = [albedo.value]
                     yield AtmosphericsCase(*args, **kwargs)
             else:
-                kwargs['albedos'] = self.model.albedos
+                kwargs['albedos'] = [a.value for a in self.model.albedos]
                 yield AtmosphericsCase(*args, **kwargs)
 
     def output(self):
@@ -385,7 +385,7 @@ class InterpolateComponent(luigi.Task):
 
     vertices = luigi.TupleParameter()
     band_id = luigi.Parameter()
-    component = luigi.Parameter()
+    component = luigi.EnumParameter(enum=AtmosphericComponents)
     base_dir = luigi.Parameter(default='_interpolation', significant=False)
     model = luigi.EnumParameter(enum=Model)
     method = luigi.EnumParameter(enum=Method, default=Method.shear)
