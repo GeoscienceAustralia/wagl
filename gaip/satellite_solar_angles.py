@@ -873,7 +873,8 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     x_cent = np.zeros((acq.lines), dtype=out_dtype)
     n_cent = np.zeros((acq.lines), dtype=out_dtype)
 
-    row_id = 0
+    # TODO: fix so that we can process in a way that doesn't require
+    #       all columns to parsed through
     for tile in acq.tiles():
         idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
 
@@ -881,27 +882,29 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
         lon_data = longitude[idx]
         lat_data = latitude[idx]
 
-        view = np.full(lon_data.shape, no_data, dtype=out_dtype)
-        azi = np.full(lon_data.shape, no_data, dtype=out_dtype)
-        asol = np.full(lon_data.shape, no_data, dtype=out_dtype)
-        soazi = np.full(lon_data.shape, no_data, dtype=out_dtype)
-        rela_angle = np.full(lon_data.shape, no_data, dtype=out_dtype)
-        time = np.full(lon_data.shape, no_data, dtype=out_dtype)
+        # may not be processing full row wise (all columns)
+        dims = lon_data.shape
+
+        view = np.full(dims, no_data, dtype=out_dtype)
+        azi = np.full(dims, no_data, dtype=out_dtype)
+        asol = np.full(dims, no_data, dtype=out_dtype)
+        soazi = np.full(dims, no_data, dtype=out_dtype)
+        rela_angle = np.full(dims, no_data, dtype=out_dtype)
+        time = np.full(dims, no_data, dtype=out_dtype)
 
         # loop each row within each tile (which itself could be a single row)
         for i in range(lon_data.shape[0]):
-            stat = angle(acq.samples, acq.lines, row_id + 1, lat_data[i],
-                         lon_data[i], spheroid[0], orbital_elements[0],
-                         acq.decimal_hour(), century, 12, smodel[0], track[0],
-                         view[i], azi[i], asol[i], soazi[i], rela_angle[i],
-                         time[i], x_cent, n_cent)
+            row_id = idx[0].start + i + 1 # FORTRAN 1 based index
+            stat = angle(dims[1], dims[0], row_id, lat_data[i], lon_data[i],
+                         spheroid[0], orbital_elements[0], acq.decimal_hour(),
+                         century, 12, smodel[0], track[0], view[i], azi[i],
+                         asol[i], soazi[i], rela_angle[i], time[i],
+                         x_cent[idx[0]], n_cent[idx[0]])
 
             if stat != 0:
                 msg = ("Error in calculating angles at row: {}.\n"
                        "No interval found in track!")
-                raise RuntimeError(msg.format(i))
-
-            row_id += 1
+                raise RuntimeError(msg.format(row_id - 1))
 
         # output to disk
         sat_v_ds[idx] = view
