@@ -314,6 +314,9 @@ def calculate_reflectance(acquisition, interpolation_group,
         nbar_dset[idx] = ref_brdf
         nbart_dset[idx] = ref_terrain
 
+    # close any still opened files, arrays etc associated with the acquisition
+    acq.close()
+
     if out_group is None:
         return fid
 
