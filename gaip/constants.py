@@ -231,7 +231,7 @@ class Albedos(Enum):
     """
 
     albedo_0 = '0'
-    albeod_1 = '1'
+    albedo_1 = '1'
     albedo_t = 'T'
     albedo_th = 'TH'
 
