@@ -400,7 +400,7 @@ class InterpolateComponent(luigi.Task):
     def output(self):
         out_path = acquisitions(self.level1).get_root(self.work_root,
                                                       self.group, self.granule)
-        out_fname = '{}-band-{}.h5'.format(self.component.value, self.band_id)
+        out_fname = '{}-{}.h5'.format(self.component.value, self.band_name)
         return luigi.LocalTarget(pjoin(out_path, self.base_dir, out_fname))
 
     def run(self):
