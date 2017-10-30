@@ -884,6 +884,7 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
 
         # may not be processing full row wise (all columns)
         dims = lon_data.shape
+        col_offset = idx[1].start
 
         view = np.full(dims, no_data, dtype=out_dtype)
         azi = np.full(dims, no_data, dtype=out_dtype)
@@ -895,7 +896,6 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
         # loop each row within each tile (which itself could be a single row)
         for i in range(lon_data.shape[0]):
             row_id = idx[0].start + i + 1 # FORTRAN 1 based index
-            col_offset = idx[0].start
             stat = angle(dims[1], acq.lines, row_id, col_offset, lat_data[i],
                          lon_data[i], spheroid[0], orbital_elements[0],
                          acq.decimal_hour(), century, 12, smodel[0], track[0],
