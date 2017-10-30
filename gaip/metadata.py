@@ -201,7 +201,7 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, sbt=False):
                 bn = acq.band_name
                 for param in BrdfParameters:
                     fmt = DatasetName.brdf_fmt.value
-                    dset = fid[fmt.format(band_name=bn, parameter=param.name)]
+                    dset = fid[fmt.format(band_name=bn, parameter=param.value)]
                     brdf[param.name] = {k: v for k, v in dset.attrs.items()}
                     brdf[param.name]['value'] = dset[()]
 
