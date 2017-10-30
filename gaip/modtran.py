@@ -247,7 +247,6 @@ def _run_modtran(acquisitions, modtran_exe, basedir, point, albedos, model,
     with h5py.File(atmospheric_inputs_fname, 'r') as atmos_fid,\
         h5py.File(out_fname, 'w') as fid:
 
-        albs = [Albedos(a) for a in albedos]
         atmos_grp = atmos_fid[GroupName.atmospheric_inputs_grp.value]
         run_modtran(acquisitions, atmos_grp, model, npoints, point, albedos,
                     modtran_exe, basedir, fid, compression)

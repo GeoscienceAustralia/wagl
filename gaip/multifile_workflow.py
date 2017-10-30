@@ -46,7 +46,7 @@ from gaip.terrain_shadow_masks import _self_shadow, _calculate_cast_shadow
 from gaip.terrain_shadow_masks import _combine_shadow
 from gaip.slope_aspect import _slope_aspect_arrays
 from gaip.constants import Model, BandType, Method, AtmosphericComponents
-from gaip.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
+from gaip.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT, Albedos
 from gaip.dsm import _get_dsm
 from gaip.modtran import _format_tp5, _run_modtran
 from gaip.modtran import _calculate_components, prepare_modtran
@@ -312,12 +312,13 @@ class AtmosphericsCase(luigi.Task):
         acqs = container.get_acquisitions(granule=self.granule)
         atmospheric_inputs_fname = self.input().path
         base_dir = pjoin(out_path, self.base_dir)
+        albedos = [Albedos(a) for a in self.albedos]
 
-        prepare_modtran(acqs, self.point, self.albedos, base_dir, self.exe)
+        prepare_modtran(acqs, self.point, albedos, base_dir, self.exe)
 
         with self.output().temporary_path() as out_fname:
             nvertices = self.vertices[0] * self.vertices[1]
-            _run_modtran(acqs, self.exe, base_dir, self.point, self.albedos,
+            _run_modtran(acqs, self.exe, base_dir, self.point, albedos,
                          self.model, nvertices, atmospheric_inputs_fname,
                          out_fname, self.compression)
 
