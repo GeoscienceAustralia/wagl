@@ -4,18 +4,15 @@ Data access functions
 """
 
 from __future__ import absolute_import, print_function
-import subprocess
 import numpy as np
 import h5py
 import rasterio
-import os
 
-from osgeo import gdal
 from rasterio.crs import CRS
 from rasterio.warp import reproject
 from rasterio.warp import Resampling
-from os.path import join as pjoin
 from gaip.geobox import GriddedGeoBox
+from gaip.tiling import generate_tiles
 
 
 def get_pixel(filename, lonlat, band=1):
@@ -129,6 +126,11 @@ def write_img(array, filename, fmt='ENVI', geobox=None, nodata=None,
         msg = "Datatype not supported: {dt}".format(dt=dtype)
         raise TypeError(msg)
 
+    # convert any bools to uin8
+    if dtype == 'bool':
+        array = np.uint8(array)
+        dtype = 'uint8'
+
     ndims = array.ndim
     dims = array.shape
 
@@ -183,12 +185,30 @@ def write_img(array, filename, fmt='ENVI', geobox=None, nodata=None,
         for key in options:
             kwargs[key] = options[key]
 
+    if isinstance(array, h5py.Dataset):
+        y_tile, x_tile = array.chunks
+        tiles = generate_tiles(samples, lines, x_tile, y_tile)
+
     with rasterio.open(filename, 'w', **kwargs) as outds:
         if bands == 1:
-            outds.write(array, 1)
+            if isinstance(array, h5py.Dataset):
+                for tile in tiles:
+                    idx = (slice(tile[0][0], tile[0][1]),
+                           slice(tile[1][0], tile[1][1]))
+                    outds.write(array[idx], 1, window=tile)
+            else:
+                outds.write(array, 1)
         else:
-            for i in range(bands):
-                outds.write(array[i], i + 1)
+            if isinstance(array, h5py.Dataset):
+                for tile in tiles:
+                    idx = (slice(tile[0][0], tile[0][1]),
+                           slice(tile[1][0], tile[1][1]))
+                    subs = array[:, idx[0], idx[1]]
+                    for i in range(bands):
+                        outds.write(subs[i], i + 1, window=tile)
+            else:
+                for i in range(bands):
+                    outds.write(array[i], i + 1)
         if tags is not None:
             outds.update_tags(**tags)
 
