@@ -481,7 +481,7 @@ def calculate_components(atmospheric_results_group, out_group,
     attrs['Description'] = description
     dname = DatasetName.nbar_components.value
 
-    if GroupName.components.value not in fid:
+    if GroupName.components_group.value not in fid:
         fid.create_group(GroupName.components_group.value)
 
     group = fid[GroupName.components_group.value]
