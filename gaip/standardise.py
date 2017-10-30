@@ -196,13 +196,15 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
             for key in tp5_data:
                 point, albedo = key
 
-                log.info('Radiative-Transfer', point=point, albedo=albedo)
+                log.info('Radiative-Transfer', point=point,
+                         albedo=albedo.value)
                 with tempfile.TemporaryDirectory() as tmpdir:
 
                     prepare_modtran(acqs, point, [albedo], tmpdir, modtran_exe)
 
                     # tp5 data
-                    fname = pjoin(tmpdir, tp5_fmt.format(p=point, a=albedo))
+                    fname = pjoin(tmpdir,
+                                  tp5_fmt.format(p=point, a=albedo.value))
                     with open(fname, 'w') as src:
                         src.writelines(tp5_data[key])
 
