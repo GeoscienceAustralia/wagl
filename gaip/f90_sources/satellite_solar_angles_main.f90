@@ -1,5 +1,5 @@
 ! subroutine angle
-subroutine angle(ncol,nrow,row_num,alat,alon,spheroid,orb_elements, &
+subroutine angle(ncol,nrow,row_num,col_offset,alat,alon,spheroid,orb_elements, &
              hours,century,ntpoints,smodel,track, &
              view,azi,asol,soazi,rela_angle,tim,X_cent,N_cent,istat)
 
@@ -14,6 +14,7 @@ subroutine angle(ncol,nrow,row_num,alat,alon,spheroid,orb_elements, &
 !       ncol
 !       nrow
 !       row_num
+!       col_offset
 !       alat
 !       alon
 !       spheroid
@@ -74,7 +75,7 @@ subroutine angle(ncol,nrow,row_num,alat,alon,spheroid,orb_elements, &
 
     implicit none
 
-    integer, intent(in) :: ncol, nrow, row_num
+    integer, intent(in) :: ncol, nrow, row_num, col_offset
     double precision, dimension(ncol), intent(in) :: alat, alon
     double precision, dimension(4), intent(in) :: spheroid
     double precision, dimension(3), intent(in) :: orb_elements
@@ -124,7 +125,7 @@ subroutine angle(ncol,nrow,row_num,alat,alon,spheroid,orb_elements, &
 !       We'll try and use istat and let Python create an error
 !       report if it found where any istat != 0
         if (istat .ne. 0) then
-            print*, 'cal_angles failed at i,j=', row_num, j
+            print*, 'cal_angles failed at i,j=', row_num, j + col_offset
             goto 99
         endif
 
@@ -134,7 +135,7 @@ subroutine angle(ncol,nrow,row_num,alat,alon,spheroid,orb_elements, &
         rela_angle(j) = azi(j)-soazi(j)
         if ((abs(timet) .gt. 1.0e-5) .and. (abs(view(j)) .lt. 1.0e-7) &
           .and. (abs(azi(j)) .lt. 1.0e-7)) then
-            X_cent(row_num) = X_cent(row_num)+real(j)
+            X_cent(row_num) = X_cent(row_num)+real(j + col_offset)
             N_cent(row_num) = N_cent(row_num)+1.0
         endif
     enddo

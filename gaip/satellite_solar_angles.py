@@ -895,11 +895,12 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
         # loop each row within each tile (which itself could be a single row)
         for i in range(lon_data.shape[0]):
             row_id = idx[0].start + i + 1 # FORTRAN 1 based index
-            stat = angle(dims[1], acq.lines, row_id, lat_data[i], lon_data[i],
-                         spheroid[0], orbital_elements[0], acq.decimal_hour(),
-                         century, 12, smodel[0], track[0], view[i], azi[i],
-                         asol[i], soazi[i], rela_angle[i], time[i],
-                         x_cent, n_cent)
+            col_offset = idx[0].start
+            stat = angle(dims[1], acq.lines, row_id, col_offset, lat_data[i],
+                         lon_data[i], spheroid[0], orbital_elements[0],
+                         acq.decimal_hour(), century, 12, smodel[0], track[0],
+                         view[i], azi[i], asol[i], soazi[i], rela_angle[i],
+                         time[i], x_cent, n_cent)
                          # x_cent[idx[0]], n_cent[idx[0]])
 
             if stat != 0:
