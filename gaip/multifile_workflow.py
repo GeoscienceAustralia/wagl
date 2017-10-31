@@ -904,6 +904,8 @@ class LinkGaipOutputs(luigi.Task):
     def run(self):
         with self.output().temporary_path() as out_fname:
             for root, _, files in os.walk(self.work_root):
+                if basename(root)[0] == '_':
+                    continue
                 for file_ in files:
                     if splitext(file_)[1] == '.h5':
                         fname = pjoin(root, file_)
