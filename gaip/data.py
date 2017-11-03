@@ -186,6 +186,7 @@ def write_img(array, filename, fmt='ENVI', geobox=None, nodata=None,
             kwargs[key] = options[key]
 
     if isinstance(array, h5py.Dataset):
+        # TODO: if array is 3D get x & y chunks
         y_tile, x_tile = array.chunks
         tiles = generate_tiles(samples, lines, x_tile, y_tile)
 
