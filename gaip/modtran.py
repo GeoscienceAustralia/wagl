@@ -267,7 +267,9 @@ def run_modtran(acquisitions, atmospherics_group, model, npoints, point,
         fid = out_group
 
     # initial attributes
-    base_attrs = {'Point': point, 'lonlat': lonlat}
+    base_attrs = {'Point': point,
+                  'lonlat': lonlat,
+                  'datetime': acquisitions[0].acquisition_datetime}
 
     base_path = ppjoin(GroupName.atmospheric_results_grp.value,
                        POINT_FMT.format(p=point))
@@ -357,6 +359,7 @@ def run_modtran(acquisitions, atmospherics_group, model, npoints, point,
     # metadata for a given point
     alb_vals = [alb.value for alb in model.albedos]
     fid[base_path].attrs['lonlat'] = lonlat
+    fid[base_path].attrs['datetime'] = acqs[0].acquisition_datetime.isoformat()
     fid[base_path].attrs.create('albedos', data=alb_vals, dtype=VLEN_STRING)
 
     if out_group is None:
@@ -431,6 +434,9 @@ def calculate_components(atmospheric_results_group, out_group,
     sbt_atmos = res.attrs['sbt_atmospherics']
 
     for point in range(npoints):
+        point_grp = res[POINT_FMT.format(p=point)]
+        lonlat = point_grp.attrs['lonlat']
+        timestamp = pd.to_datetime(point_grp.attrs['datetime'])
         grp_path = ppjoin(POINT_FMT.format(p=point), ALBEDO_FMT)
         if nbar_atmos:
             dataset_name = DatasetName.solar_irradiance.value
@@ -465,8 +471,19 @@ def calculate_components(atmospheric_results_group, out_group,
 
         result = components(**kwargs)
 
-        nbar_components = nbar_components.append(result[0])
-        sbt_components = sbt_components.append(result[1])
+        if result[0] is not None:
+            result[0].insert(0, 'POINT', point)
+            result[0].insert(1, 'LONGITUDE', lonlat[0])
+            result[0].insert(2, 'LATITUDE', lonlat[1])
+            result[0].insert(3, 'DATETIME', timestamp)
+            nbar_components = nbar_components.append(result[0])
+
+        if result[1] is not None:
+            result[1].insert(0, 'POINT', point)
+            result[1].insert(1, 'LONGITUDE', lonlat[0])
+            result[1].insert(2, 'LATITUDE', lonlat[1])
+            result[1].insert(3, 'DATETIME', pd.to_datetime(timestamp))
+            sbt_components = sbt_components.append(result[1])
 
         # TODO: check if number of records > (some chunksize)
         #       and write that portion of the table to disk
