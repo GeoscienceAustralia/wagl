@@ -417,7 +417,7 @@ def calculate_cast_shadow(acquisition, dsm_group, satellite_solar_group,
     if ierr:
         raise CastShadowError(ierr)
 
-    source_dir = 'sun' if solar_source else 'satellite'
+    source_dir = 'SUN' if solar_source else 'SATELLITE'
 
     # Initialise the output file
     if out_group is None:
@@ -523,8 +523,8 @@ def combine_shadow_masks(self_shadow_group, cast_shadow_sun_group,
     # access the datasets
     dname_fmt = DatasetName.cast_shadow_fmt.value
     self_shad = self_shadow_group[DatasetName.self_shadow.value]
-    cast_sun = cast_shadow_sun_group[dname_fmt.format(source='sun')]
-    dname = dname_fmt.format(source='satellite')
+    cast_sun = cast_shadow_sun_group[dname_fmt.format(source='SUN')]
+    dname = dname_fmt.format(source='SATELLITE')
     cast_sat = cast_shadow_satellite_group[dname]
     geobox = GriddedGeoBox.from_dataset(self_shad)
 
@@ -582,8 +582,8 @@ def link_shadow_datasets(self_shadow_fname, cast_shadow_sun_fname,
     dname = ppjoin(group_path, DatasetName.self_shadow.value)
     create_external_link(self_shadow_fname, dname, out_fname, dname)
 
-    dname = ppjoin(group_path, dname_fmt.format(source='sun'))
+    dname = ppjoin(group_path, dname_fmt.format(source='SUN'))
     create_external_link(cast_shadow_sun_fname, dname, out_fname, dname)
 
-    dname = ppjoin(group_path, dname_fmt.format(source='satellite'))
+    dname = ppjoin(group_path, dname_fmt.format(source='SATELLITE'))
     create_external_link(cast_shadow_satellite_fname, dname, out_fname, dname)
