@@ -53,7 +53,7 @@ from gaip.modtran import _calculate_components, prepare_modtran
 from gaip.modtran import link_atmospheric_results
 from gaip.interpolation import _interpolate, link_interpolated_data
 from gaip.temperature import _surface_brightness_temperature
-from gaip.pq import can_pq, run_pq
+from gaip.pq import can_pq, _run_pq
 from gaip.hdf5 import create_external_link
 
 
@@ -870,8 +870,8 @@ class DataStandardisation(luigi.Task):
             link_standard_data(fnames, out_fname)
             sbt_only = self.model == Model.sbt
             if self.pixel_quality and can_pq(self.level1) and not sbt_only:
-                run_pq(self.level1, out_fname, self.land_sea_path,
-                       self.compression)
+                _run_pq(self.level1, out_fname, self.group, self.land_sea_path,
+                        self.compression)
 
 
 class LinkGaipOutputs(luigi.Task):
@@ -921,6 +921,11 @@ class LinkGaipOutputs(luigi.Task):
                             new_path = ppjoin(grp_name, pth)
                             create_external_link(fname, pth, out_fname,
                                                  new_path)
+
+            with h5py.File(out_fname) as fid:
+                container = acquisitions(self.level1)
+                fid.attrs['level1_uri'] = self.level1
+                fid.attrs['tiled'] = container.tiled
 
 
 class ARD(luigi.WrapperTask):

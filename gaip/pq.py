@@ -130,20 +130,18 @@ class PQAResult(object):
             ds.write_band(1, self.array)
             ds.update_tags(1, **self.aux_data)
 
-    def save_as_h5_dataset(self, out_fname, compression):
+    def save_as_h5_dataset(self, out_group, acq, product, compression):
         """
         Save the PQ result and attribute information in a HDF5
         `IMAGE` Class dataset.
         """
-        with h5py.File(out_fname) as fid:
-            chunks = (1, self.geobox.x_size())
-            kwargs = dataset_compression_kwargs(compression=compression,
-                                                chunks=chunks)
-            attrs = self.aux_data.copy()
-            attrs['crs_wkt'] = self.geobox.crs.ExportToWkt()
-            attrs['geotransform'] = self.geobox.transform.to_gdal()
-            dname = DatasetName.pixel_quality.value
-            write_h5_image(self.array, dname, fid, attrs=attrs, **kwargs)
+        kwargs = dataset_compression_kwargs(compression=compression,
+                                            chunks=acq.tile_size)
+        attrs = self.aux_data.copy()
+        attrs['crs_wkt'] = self.geobox.crs.ExportToWkt()
+        attrs['geotransform'] = self.geobox.transform.to_gdal()
+        dname = DatasetName.pq_fmt.value.format(product=product.value)
+        write_h5_image(self.array, dname, out_group, attrs=attrs, **kwargs)
        
     @property
     def test_list(self):
@@ -163,7 +161,18 @@ class PQAResult(object):
         return ''.join(bit_list)
 
 
-def run_pq(level1, standardised_data_fname, land_sea_path, compression='lzf'):
+def _run_pq(level1, out_fname, scene_group, land_sea_path, compression):
+    """
+    A private wrapper for dealing with the internal custom workings of the
+    NBAR workflow.
+    """
+    with h5py.File(out_fname) as fid:
+        grp = fid[scene_group]
+        run_pq(level1, grp, land_sea_path, grp, compression, AP.nbar)
+        run_pq(level1, grp, land_sea_path, grp, compression, AP.nbart)
+
+def run_pq(level1, input_group, land_sea_path, out_group, compression='lzf',
+           product=AP.nbar):
     """
     Runs the PQ workflow and saves the result in the same file as
     given by the `standardised_data_fname` parameter.
@@ -172,14 +181,24 @@ def run_pq(level1, standardised_data_fname, land_sea_path, compression='lzf'):
         A `str` containing the file path name to the directory
         containing the level-1 data.
 
-    :param standardised_data_fname:
-        A `str` containing the file path name to the file containing
-        the standardised data (surface reflectance and surface
-        brightness temperature).
+    :param input_group:
+        The root HDF5 `Group` object containing the surface
+        reflectance data that can be accessible via the enum
+        specifier `constants.DatasetName.reflectance_fmt`.
 
     :param land_sea_path:
         A `str` containing the file path name to the directory
         containing the land/sea rasters.
+
+    :param out_group:
+        If set to None (default) then the results will be returned
+        as an in-memory hdf5 file, i.e. the `core` driver. Otherwise,
+        a writeable HDF5 `Group` object.
+
+        The dataset names will be given by the format string detailed
+        by:
+
+        * DatasetName.pq_fmt
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -189,6 +208,10 @@ def run_pq(level1, standardised_data_fname, land_sea_path, compression='lzf'):
         * 'lz4'
         * 'mafisc'
         * An integer [1-9] (Deflate/gzip)
+
+    :param product:
+        An enum representing the product type to use as input into the
+        PQ algorithm. Default is `ArdProduct.nbar`.
 
     :return:
         None; the pixel quality result is stored in the same file
@@ -274,104 +297,96 @@ def run_pq(level1, standardised_data_fname, land_sea_path, compression='lzf'):
     temperature = get_landsat_temperature(acqs, pq_const)
 
     # read NBAR data
-    dname_fmt = DatasetName.reflectance_fmt.value
-    with h5py.File(standardised_data_fname, 'r') as fid:
-        dname = dname_fmt.format(product=AP.nbar.value,
-                                 band_name=spectral_bands[0])
-        blue_dataset = fid[dname]
-        dname = dname_fmt.format(product=AP.nbar.value,
-                                 band_name=spectral_bands[1])
-        green_dataset = fid[dname]
-        dname = dname_fmt.format(product=AP.nbar.value,
-                                 band_name=spectral_bands[2])
-        red_dataset = fid[dname]
-        dname = dname_fmt.format(product=AP.nbar.value,
-                                 band_name=spectral_bands[3])
-        nir_dataset = fid[dname]
-        dname = dname_fmt.format(product=AP.nbar.value,
-                                 band_name=spectral_bands[4])
-        swir1_dataset = fid[dname]
-        dname = dname_fmt.format(product=AP.nbar.value,
-                                 band_name=spectral_bands[5])
-        swir2_dataset = fid[dname]
+    fmt = DatasetName.reflectance_fmt.value
+    dname = fmt.format(product=product.value, band_name=spectral_bands[0])
+    blue_dataset = input_group[dname]
+    dname = fmt.format(product=product.value, band_name=spectral_bands[1])
+    green_dataset = input_group[dname]
+    dname = fmt.format(product=product.value, band_name=spectral_bands[2])
+    red_dataset = input_group[dname]
+    dname = fmt.format(product=product.value, band_name=spectral_bands[3])
+    nir_dataset = input_group[dname]
+    dname = fmt.format(product=product.value, band_name=spectral_bands[4])
+    swir1_dataset = input_group[dname]
+    dname = fmt.format(product=product.value, band_name=spectral_bands[5])
+    swir2_dataset = input_group[dname]
 
-        # acca cloud mask
-        if pq_const.run_cloud:
-            aux_data = {}   # for collecting result metadata
-            mask = calc_acca_cloud_mask(blue_dataset, green_dataset,
-                                        red_dataset, nir_dataset,
-                                        swir1_dataset, swir2_dataset,
-                                        temperature, pq_const,
-                                        contiguity_mask, aux_data)
+    # acca cloud mask
+    if pq_const.run_cloud:
+        aux_data = {}   # for collecting result metadata
+        mask = calc_acca_cloud_mask(blue_dataset, green_dataset,
+                                    red_dataset, nir_dataset,
+                                    swir1_dataset, swir2_dataset,
+                                    temperature, pq_const,
+                                    contiguity_mask, aux_data)
 
-            # set the result
-            pqa_result.set_mask(mask, pq_const.acca)
-            pqa_result.add_to_aux_data(aux_data)
+        # set the result
+        pqa_result.set_mask(mask, pq_const.acca)
+        pqa_result.add_to_aux_data(aux_data)
 
-            tests_run['cloud_acca'] = True
-        else:
-            logging.warning(('ACCA Not Run! {} sensor not configured for the '
-                             'ACCA algorithm.').format(sensor))
+        tests_run['cloud_acca'] = True
+    else:
+        logging.warning(('ACCA Not Run! {} sensor not configured for the '
+                         'ACCA algorithm.').format(sensor))
 
 
-        # parameters for cloud shadow masks
-        land_sea_mask = pqa_result.get_mask(pq_const.land_sea)
-        temperature = get_landsat_temperature(acqs, pq_const)
+    # parameters for cloud shadow masks
+    land_sea_mask = pqa_result.get_mask(pq_const.land_sea)
+    temperature = get_landsat_temperature(acqs, pq_const)
 
-        # cloud shadow using the cloud mask generated by ACCA
-        if pq_const.run_cloud_shadow:
-            aux_data = {}   # for collecting result metadata
+    # cloud shadow using the cloud mask generated by ACCA
+    if pq_const.run_cloud_shadow:
+        aux_data = {}   # for collecting result metadata
 
-            cloud_mask = pqa_result.get_mask(pq_const.acca)
-            sun_az_deg = acqs[0].sun_azimuth
-            sun_elev_deg = acqs[0].sun_elevation
+        cloud_mask = pqa_result.get_mask(pq_const.acca)
+        sun_az_deg = acqs[0].sun_azimuth
+        sun_elev_deg = acqs[0].sun_elevation
 
-            mask = cloud_shadow(blue_dataset, green_dataset, red_dataset,
-                                nir_dataset, swir1_dataset, swir2_dataset,
-                                temperature, cloud_mask, geo_box, sun_az_deg,
-                                sun_elev_deg, pq_const,
-                                land_sea_mask=land_sea_mask,
-                                contiguity_mask=contiguity_mask,
-                                cloud_algorithm='ACCA',
-                                growregion=True, aux_data=aux_data)
+        mask = cloud_shadow(blue_dataset, green_dataset, red_dataset,
+                            nir_dataset, swir1_dataset, swir2_dataset,
+                            temperature, cloud_mask, geo_box, sun_az_deg,
+                            sun_elev_deg, pq_const,
+                            land_sea_mask=land_sea_mask,
+                            contiguity_mask=contiguity_mask,
+                            cloud_algorithm='ACCA',
+                            growregion=True, aux_data=aux_data)
 
-            pqa_result.set_mask(mask, pq_const.acca_shadow)
-            pqa_result.add_to_aux_data(aux_data)
+        pqa_result.set_mask(mask, pq_const.acca_shadow)
+        pqa_result.add_to_aux_data(aux_data)
 
-            tests_run['cloud_shadow_acca'] = True
-        else: # OLI/TIRS only
-            logging.warning(('Cloud Shadow Algorithm Not Run! {} sensor not '
-                             'configured for the cloud shadow '
-                             'algorithm.').format(sensor))
+        tests_run['cloud_shadow_acca'] = True
+    else: # OLI/TIRS only
+        logging.warning(('Cloud Shadow Algorithm Not Run! {} sensor not '
+                         'configured for the cloud shadow '
+                         'algorithm.').format(sensor))
 
-        # cloud shadow using the cloud mask generated by FMASK
-        if pq_const.run_cloud_shadow: # TM/ETM/OLI_TIRS
-            aux_data = {}   # for collecting result metadata
+    # cloud shadow using the cloud mask generated by FMASK
+    if pq_const.run_cloud_shadow: # TM/ETM/OLI_TIRS
+        aux_data = {}   # for collecting result metadata
 
-            cloud_mask = pqa_result.get_mask(pq_const.fmask)
-            sun_az_deg = acqs[0].sun_azimuth
-            sun_elev_deg = acqs[0].sun_elevation
+        cloud_mask = pqa_result.get_mask(pq_const.fmask)
+        sun_az_deg = acqs[0].sun_azimuth
+        sun_elev_deg = acqs[0].sun_elevation
 
-            mask = cloud_shadow(blue_dataset, green_dataset, red_dataset,
-                                nir_dataset, swir1_dataset, swir2_dataset,
-                                temperature, cloud_mask, geo_box, sun_az_deg,
-                                sun_elev_deg, pq_const,
-                                land_sea_mask=land_sea_mask,
-                                contiguity_mask=contiguity_mask,
-                                cloud_algorithm='FMASK',
-                                growregion=True, aux_data=aux_data)
+        mask = cloud_shadow(blue_dataset, green_dataset, red_dataset,
+                            nir_dataset, swir1_dataset, swir2_dataset,
+                            temperature, cloud_mask, geo_box, sun_az_deg,
+                            sun_elev_deg, pq_const,
+                            land_sea_mask=land_sea_mask,
+                            contiguity_mask=contiguity_mask,
+                            cloud_algorithm='FMASK',
+                            growregion=True, aux_data=aux_data)
 
-            pqa_result.set_mask(mask, pq_const.fmask_shadow)
-            pqa_result.add_to_aux_data(aux_data)
+        pqa_result.set_mask(mask, pq_const.fmask_shadow)
+        pqa_result.add_to_aux_data(aux_data)
 
-            tests_run['cloud_shadow_fmask'] = True
-        else: # OLI/TIRS only
-            logging.warning(('Cloud Shadow Algorithm Not Run! {} sensor not '
-                             'configured for the cloud shadow '
-                             'algorithm.').format(sensor))
+        tests_run['cloud_shadow_fmask'] = True
+    else: # OLI/TIRS only
+        logging.warning(('Cloud Shadow Algorithm Not Run! {} sensor not '
+                         'configured for the cloud shadow '
+                         'algorithm.').format(sensor))
 
     # write the pq result as an accompanying dataset to the standardised data
-    pqa_result.save_as_h5_dataset(standardised_data_fname, compression)
-
-    with h5py.File(standardised_data_fname) as out_fid:
-        create_pq_yaml(acqs[0], ancillary, tests_run, out_fid)
+    pqa_result.save_as_h5_dataset(out_group, acqs[0], product, compression)
+    # TODO: move metadata yaml creation outside of this func
+    create_pq_yaml(acqs[0], ancillary, tests_run, out_group)

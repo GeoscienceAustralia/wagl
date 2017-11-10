@@ -10,8 +10,7 @@ import h5py
 
 from gaip.acquisition import acquisitions
 from gaip.ancillary import collect_ancillary, aggregate_ancillary
-from gaip import constants
-from gaip.constants import GroupName, Model, BandType
+from gaip.constants import ArdProducts as AP, GroupName, Model, BandType
 from gaip.constants import ALBEDO_FMT, POINT_FMT, POINT_ALBEDO_FMT
 from gaip.dsm import get_dsm
 from gaip.incident_exiting_angles import incident_angles, exiting_angles
@@ -27,6 +26,7 @@ from gaip.terrain_shadow_masks import self_shadow, calculate_cast_shadow
 from gaip.terrain_shadow_masks import combine_shadow_masks
 from gaip.slope_aspect import slope_aspect_arrays
 from gaip.temperature import surface_brightness_temperature
+from gaip.pq import can_pq, run_pq
 
 
 LOG = wrap_logger(logging.getLogger('gaip-status'),
@@ -57,6 +57,9 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
     scene = acquisitions(level1)
 
     with h5py.File(out_fname, 'w') as fid:
+        fid.attrs['level1_uri'] = level1
+        fid.attrs['tiled'] = scene.tiled
+
         for grn_name in scene.granules:
             if grn_name is None:
                 granule_group = fid['/']
@@ -285,3 +288,9 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
 
                 if model == Model.standard or model == model.sbt:
                     create_ard_yaml(band_acqs, ancillary_group, group, True)
+
+                # pixel quality
+                sbt_only = model == Model.sbt
+                if pixel_quality and can_pq(level1) and not sbt_only:
+                    run_pq(level1, group, landsea, group, compression, AP.nbar)
+                    run_pq(level1, group, landsea, group, compression, AP.nbart)
