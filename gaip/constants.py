@@ -160,7 +160,7 @@ class DatasetName(Enum):
     sbt_components = 'SBT-COMPONENTS'
 
     # gaip.pq
-    pixel_quality = 'PIXEL-QUALITY/PIXEL-QUALITY'
+    pq_fmt = 'PIXEL-QUALITY/{produt}/PIXEL-QUALITY'
 
     # metadata
     nbar_yaml = 'METADATA/NBAR-METADATA'
