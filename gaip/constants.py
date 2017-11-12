@@ -431,10 +431,7 @@ class PQAConstants(object):
         spectral and temperature arrays.
         """
         sensor_list = ['TM', 'ETM+', 'OLI_TIRS']
-        if self.sensor in sensor_list:
-            self.run_cloud_shadow = True
-        else:
-            self.run_cloud_shadow = False
+        self.run_cloud_shadow = bool(self.sensor in sensor_list)
 
     def set_run_cloud(self):
         """
@@ -443,10 +440,7 @@ class PQAConstants(object):
         both spectral and temperature arrays.
         """
         sensor_list = ['TM', 'ETM+', 'OLI_TIRS']
-        if self.sensor in sensor_list:
-            self.run_cloud = True
-        else:
-            self.run_cloud = False
+        self.run_cloud = bool(self.sensor in sensor_list)
 
     def set_olitirs(self):
         """
@@ -456,10 +450,7 @@ class PQAConstants(object):
         the coastal aerosol band, but is automatcally read by the
         ReadAsArray() method.
         """
-        if self.sensor == 'OLI_TIRS':
-            self.oli_tirs = True
-        else:
-            self.oli_tirs = False
+        self.oli_tirs = bool(self.sensor == 'OLI_TIRS')
 
     def set_thermal_band(self):
         """

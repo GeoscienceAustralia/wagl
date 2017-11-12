@@ -153,6 +153,7 @@ def _submit_multiple(scattered, options, env, batchid, batch_logdir,
             subprocess.call(['qsub', out_fname])
 
 
+# pylint: disable=too-many-arguments
 def run(level1, vertices='(5, 5)', model='standard', method='linear',
         pixel_quality=False, outdir=None, logdir=None, env=None, nodes=10,
         project=None, queue='normal', hours=48,

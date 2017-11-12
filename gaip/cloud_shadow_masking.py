@@ -5,9 +5,10 @@ Cloud Shadow Masking
 from __future__ import absolute_import, print_function
 import datetime
 import logging
+import gc
+
 import numpy as np
 import numexpr
-import gc
 
 from scipy import ndimage
 from idl_functions import histogram
@@ -18,7 +19,7 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
                  swir1_dataset, swir2_dataset, kelvin_array, cloud_mask,
                  geo_box, sun_az_deg, sun_elev_deg, pq_const,
                  land_sea_mask=None, contiguity_mask=None,
-                 cloud_algorithm='ACCA', growregion=False, aux_data={}):
+                 cloud_algorithm='ACCA', growregion=False, aux_data=None):
     """
     Identifies cloud shadow and creates a mask.
 
@@ -98,6 +99,7 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
         An 2D np array mask with 0 for Shadow and the relevant bit
         specified in bitpos for Not Shadow.
     """
+    aux_data = aux_data or {}
     geoTransform = geo_box.transform.to_gdal()
 
     # Filter Thresholds:

@@ -169,21 +169,22 @@ class AcquisitionsContainer(object):
             grps = self._groups
             if container:
                 return AcquisitionsContainer(label=self.label, groups=grps)
-            else:
-                return grps
+
+            return grps
+
         if granule is None:
             grn = self.granules[0]
             if container:
                 grps = {grn: self._granules[grn]}
                 return AcquisitionsContainer(label=self.label, granules=grps)
-            else:
-                return self._granules[grn]
-        else:
-            if container:
-                grps = {granule: self._granules[granule]}
-                return AcquisitionsContainer(label=self.label, granules=grps)
-            else:
-                return self._granules[granule]
+
+            return self._granules[grn]
+
+        if container:
+            grps = {granule: self._granules[granule]}
+            return AcquisitionsContainer(label=self.label, granules=grps)
+
+        return self._granules[granule]
 
     def get_root(self, path='/', group=None, granule=None):
         """

@@ -191,7 +191,7 @@ class TiledOutput(object):
         """
 
         # Check we have the correct dimensions to create the file
-        if ((samples is None) or (lines is None)):
+        if samples is None or lines is None:
             msg = ("Samples and lines are required inputs! Samples: {ns} "
                    "Lines: {nl}").format(ns=samples, nl=lines)
             raise TypeError(msg)

@@ -27,8 +27,9 @@ def saturation_mask(band_array, under_sat=1, over_sat=255, use_numexpr=True):
         A 2D Numpy Boolean array with True == Unsaturated.
     """
 
-    if len(band_array) == 0: return None
-    assert type(band_array) == numpy.ndarray, 'Input is not valid'
+    if len(band_array) == 0:
+        return None
+    assert isinstance(band_array, numpy.ndarry), 'Input is not valid'
 
     if use_numexpr:
         msg = ('numexpr used: numexpr.evaluate("(band_array != {under_sat}) & '
@@ -60,7 +61,7 @@ def set_saturation_bits(acquisitions, pq_const, result):
 
     for band in band_list:
         if band not in full_band_list:
-            logging.warning('Ignoring invalid band number: {}'.format(band))
+            logging.warning('Ignoring invalid band number: %s', band)
             continue
 
         band_index = full_band_list.index(band)

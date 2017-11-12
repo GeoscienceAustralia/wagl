@@ -4,10 +4,11 @@ Satellite TLE (two-line element) Loading
 """
 from __future__ import absolute_import, print_function
 import datetime
-import ephem
 import re
 import os
 from functools import cmp_to_key
+
+import ephem
 
 TLE_ENTRY_RE = (r'^([1])(\s+)([%(NUMBER)s%(CLASSIFICATION)s]+)(\s+)'
                 r'([%(INTL_DESIGNATOR)s]+)(\s+)%(YYDDD)s(\.)(\d+)(\s+)'

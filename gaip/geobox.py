@@ -382,9 +382,9 @@ class GriddedGeoBox(object):
 
         (lon1, lat1) = self.transform * (x, y+0.5)
         (lon2, lat2) = self.transform * (x+1, y+0.5)
-        x_size, _az_to, _az_from = vinc_dist(spheroid[1], spheroid[0],
-                                             radians(lat1), radians(lon1),
-                                             radians(lat2), radians(lon2))
+        x_size, _, _ = vinc_dist(spheroid[1], spheroid[0],
+                                 radians(lat1), radians(lon1),
+                                 radians(lat2), radians(lon2))
 
         (lon1, lat1) = self.transform * (x+0.5, y)
         (lon2, lat2) = self.transform * (x+0.5, y+1)
@@ -508,4 +508,3 @@ class GriddedGeoBox(object):
         sr.SetFromUserInput(CRS)
         centre = self.transform_coordinates(self.centre, sr)
         return centre
-

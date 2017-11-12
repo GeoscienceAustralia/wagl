@@ -185,7 +185,7 @@ def interpolate_grid(depth=0, origin=DEFAULT_ORIGIN, shape=DEFAULT_SHAPE,
         interpolate_block(origin, shape, eval_func, grid)
     else:
         blocks = subdivide(origin, shape)
-        for (kUL, kUR, kLL, kLR) in blocks.values():
+        for (kUL, _, _, kLR) in blocks.values():
             block_shape = (kLR[0] - kUL[0] + 1, kLR[1] - kUL[1] + 1)
             interpolate_grid(depth - 1, kUL, block_shape, eval_func, grid)
 
@@ -274,7 +274,7 @@ def sheared_bilinear_interpolate(cols, rows, locations, samples,
     n = len(samples)
     grid_size = int(math.sqrt(n)) - 1
 
-    assert (grid_size+1)**2 == n and not (grid_size % 2)
+    assert (grid_size+1)**2 == n and not grid_size % 2
     # Assume count of samples is 9 or 25, 49, 81.. (Grid size is 2, 4, 6, ..)
 
     # facilitate indexing
@@ -315,8 +315,8 @@ def sheared_bilinear_interpolate(cols, rows, locations, samples,
 
             values = samples[i:i+2, j:j+2].reshape(4)
             vertices = locations[i:i+2, j:j+2].reshape(4, 2).astype(
-                                                        np.float32, copy=True)
-                                 # note, copying permits modification by shear
+                np.float32, copy=True)
+            # note, copying permits modification by shear
 
             # build numexpr to update cell with interpolation
 

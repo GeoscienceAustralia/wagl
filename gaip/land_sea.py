@@ -71,8 +71,8 @@ if __name__ == "__main__":
     # need this hack until set_epsilon patch v1.0.5
     # affine.set_epsilon(1e-9)
     import affine
-    affine.EPSILON=1e-9
-    affine.EPSILON2=1e-18
+    affine.EPSILON = 1e-9
+    affine.EPSILON2 = 1e-18
 
     # choose Flinders Islet bounding box
     flindersOrigin = (150.927659, -34.453309)
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     # same test for AGDC cell around  Darwin area
 
     scale = 0.00025
-    shape = (4000,4000)
+    shape = (4000, 4000)
     origin = (130.0, -12.0)
 
     corner = (shape[1]*scale+origin[0], origin[1]-shape[0]*scale)

@@ -10,9 +10,10 @@ Sensing, Vol. 72, No. 10, October 2006, pp. 1179-1188.
 from __future__ import absolute_import, print_function
 import datetime
 import logging
+import gc
+
 import numexpr
 import numpy
-import gc
 
 from scipy import ndimage
 
@@ -171,7 +172,7 @@ def skewness(cloud_thermal_array, mean_temp, stdv_temp, count):
 
 
 def acca_2nd_pass(cloud_mask, ambiguous_array, thermal_array,
-                  mean_cloud_temp, pq_const, aux_data={}):
+                  mean_cloud_temp, pq_const, aux_data=None):
     """
     The second pass of the ACCA algorithm.
 
@@ -206,6 +207,7 @@ def acca_2nd_pass(cloud_mask, ambiguous_array, thermal_array,
         Note: Any caller-supplied aux_data dict will be updated
     """
 
+    aux_data = aux_data or {}  # initialise aux_data to a dictionary
     logging.info('ACCA Pass Two Engaged')
     aux_data['acca_pass_2'] = 'engaged'
 
@@ -290,10 +292,7 @@ def acca_2nd_pass(cloud_mask, ambiguous_array, thermal_array,
                 if qmean2 < pq_const.acca_cold_cloud_mean:
                     # Combine lower threshold clouds and pass 1 clouds
                     return numexpr.evaluate("cloud_mask | query2")
-            else:  # Keep first pass cloud
-                return None
-        else:  # Keep fist pass cloud
-            return None
+        return None  # Keep first pass cloud
 
     else:
         query = numexpr.evaluate("((ambiguous_array * thermal_array)"
@@ -340,14 +339,11 @@ def acca_2nd_pass(cloud_mask, ambiguous_array, thermal_array,
                 if qmean2 < pq_const.acca_cold_cloud_mean:
                     # Combine lower threshold clouds and pass 1 clouds
                     return numexpr.evaluate("cloud_mask | query2")
-            else:  # Keep first pass cloud
-                return None
-        else:  # Keep fist pass cloud
-            return None
+        return None  # Keep fist pass cloud
 
 
 def acca(reflectance_stack, thermal_array, potential_cloud_array, pq_const,
-         aux_data={}):
+         aux_data=None):
     """
     The first pass processing of the ACCA algorithm.
 
@@ -377,6 +373,7 @@ def acca(reflectance_stack, thermal_array, potential_cloud_array, pq_const,
         Note: Any caller-supplied aux_data dict will be updated
     """
 
+    aux_data = aux_data or {}  # initialise aux_data to a dictionary
     dims = reflectance_stack.shape
 
     #===================================================================
@@ -560,19 +557,19 @@ def acca(reflectance_stack, thermal_array, potential_cloud_array, pq_const,
                                     pq_const=pq_const, aux_data=aux_data)
             if r_cloud is None:
                 return cloud
-            else:
-                return r_cloud
+            return r_cloud
+
         elif ((desert_index <= pq_const.acca_desert_index) and
               (numpy.mean(thermal_array[cloud], dtype='float') <
                pq_const.acca_cold_cloud_mean)):
             return cold_cloud
-        else:
-            aux_data['acca_desert_index'] = 'failed'
-            aux_data['acca_identified_pixels'] = 'all rejected'
-            return numpy.zeros((dims[1], dims[2]), dtype='uint8')
-    else:
+
+        aux_data['acca_desert_index'] = 'failed'
         aux_data['acca_identified_pixels'] = 'all rejected'
         return numpy.zeros((dims[1], dims[2]), dtype='uint8')
+
+    aux_data['acca_identified_pixels'] = 'all rejected'
+    return numpy.zeros((dims[1], dims[2]), dtype='uint8')
 
 
 def majority_filter(array, iterations=1):
@@ -599,7 +596,7 @@ def majority_filter(array, iterations=1):
 def calc_acca_cloud_mask(blue_dataset, green_dataset, red_dataset,
                          nir_dataset, swir1_dataset, swir2_dataset,
                          kelvin_array, pq_const, contiguity_mask,
-                         aux_data={}):
+                         aux_data=None):
     """
     Identifes the location of clouds.
 
@@ -652,7 +649,10 @@ def calc_acca_cloud_mask(blue_dataset, green_dataset, red_dataset,
         A Boolean ndarray with 1 as non-cloud and 0 as cloud.
         Note: Any caller-supplied aux_data dict will be updated
     """
+
     start_time = datetime.datetime.now()
+
+    aux_data = aux_data or {}  # set aux_data to empty dict if undefined
     dims = (6, kelvin_array.shape[0], kelvin_array.shape[1])
 
     # Contiguity masking

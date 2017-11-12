@@ -50,33 +50,33 @@ class PQAResult(object):
     Represents the PQA result
     """
 
-    def __init__(self, shape, aGriddedGeoBox, dtype=numpy.uint16, aux_data={}):
+    def __init__(self, shape, aGriddedGeoBox, dtype=numpy.uint16, aux_data=None):
         """
         Constructor
 
         Arguments:
-            :shape: 
+            :shape:
                 the shape of the numpy array holding the data
-            :aGriddedGeoBox: 
-                an instance of class GriddedGeoBox providing the 
+            :aGriddedGeoBox:
+                an instance of class GriddedGeoBox providing the
                 spatial location, scale and coordinate refernced system
                 for this PQAResult
             :dtype:
                 the datatype of the array
             :aux_data:
-                a dictionary hold auxillary data associated with 
-                the PQAResult object. These may represent metadata 
-                elements that could be written to the final output 
-                file 
-            
+                a dictionary hold auxillary data associated with
+                the PQAResult object. These may represent metadata
+                elements that could be written to the final output
+                file
+
         """
-        assert shape is not None 
+        assert shape is not None
 
         self.test_set = set()
         self.array = numpy.zeros(shape, dtype=dtype)
         self.dtype = dtype
         self.bitcount = self.array.itemsize * 8
-        self.aux_data = aux_data
+        self.aux_data = aux_data or {}
         self.geobox = aGriddedGeoBox
 
     def set_mask(self, mask, bit_index, unset_bits=False):
@@ -90,7 +90,7 @@ class PQAResult(object):
         self.test_set.add(bit_index)
 
         c = sum(sum(mask))
-        logging.debug('Setting result for bit %d, masking %d pixels' % (bit_index, c))
+        logging.debug('Setting result for bit %d, masking %d pixels', bit_index, c)
         numpy.bitwise_or(self.array, (mask << bit_index).astype(self.dtype),
                          self.array) # Set any 1 bits
         if unset_bits:
@@ -106,12 +106,12 @@ class PQAResult(object):
         assert bit_index in self.test_set, 'Test %d not run' % bit_index
         return (self.array & (1 << bit_index)) > 0
 
-    def add_to_aux_data(self, new_data={}):
+    def add_to_aux_data(self, new_data=None):
         """
         Add the elements in the supplied dictionary to this objects
         aux_data property
         """
-        self.aux_data.update(new_data)
+        self.aux_data.update(new_data or {})
 
     def save_as_tiff(self, path, crs=None):
         """
@@ -142,7 +142,7 @@ class PQAResult(object):
         attrs['geotransform'] = self.geobox.transform.to_gdal()
         dname = DatasetName.pq_fmt.value.format(product=product.value)
         write_h5_image(self.array, dname, out_group, attrs=attrs, **kwargs)
-       
+
     @property
     def test_list(self):
         """Returns a sorted list of all bit indices which have been set
@@ -227,7 +227,7 @@ def run_pq(level1, input_group, land_sea_path, out_group, compression='lzf',
     platform_id = acqs[0].platform_id
     sensor = acqs[0].sensor_id
 
-    # constants to be use for this PQA computation 
+    # constants to be use for this PQA computation
     pq_const = PQAConstants(sensor)
 
     # get the band names based on acquisition description
@@ -241,7 +241,7 @@ def run_pq(level1, input_group, land_sea_path, out_group, compression='lzf',
     for band_desc in band_descriptions:
         spectral_bands.append([a.band_name for a in acqs if
                                a.desc == band_desc][0])
-            
+
 
     # track the bits that have been set (tests that have been run)
     tests_run = {'band_1_saturated': False,
@@ -273,13 +273,13 @@ def run_pq(level1, input_group, land_sea_path, out_group, compression='lzf',
     # land/sea
     ancillary = set_land_sea_bit(geo_box, pq_const, pqa_result, land_sea_path)
     tests_run['land_obs'] = True
-  
+
     contiguity_mask = (pqa_result.array & (1 << pq_const.contiguity)) > 0
 
     # fmask cloud mask
     if pq_const.run_cloud:
         aux_data = {}   # for collecting result metadata
-        
+
         # TODO: pass in scene metadata via acquisitions or mtl reader
         mtl = glob(pjoin(level1, '*/*_MTL.txt'))[0]
         mask = fmask_cloud_mask(mtl, null_mask=contiguity_mask,
@@ -291,9 +291,9 @@ def run_pq(level1, input_group, land_sea_path, out_group, compression='lzf',
 
         tests_run['cloud_fmask'] = True
     else:
-        logging.warning(('FMASK Not Run! {} sensor not configured for the '
-                         'FMASK algorithm.').format(sensor))
-    
+        logging.warning('FMASK Not Run! %s sensor not configured for the '
+                        'FMASK algorithm.', sensor)
+
     temperature = get_landsat_temperature(acqs, pq_const)
 
     # read NBAR data

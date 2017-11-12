@@ -1,5 +1,7 @@
 from __future__ import absolute_import, print_function
-import os, numpy, logging
+import os
+import numpy
+
 from osgeo import gdal
 from osgeo import osr
 from gaip.metadata import extract_ancillary_metadata
@@ -49,7 +51,7 @@ def calc_land_sea_mask(geo_box, \
         mapx = pixel[1] * geoTransform[1] + geoTransform[0]
         mapy = geoTransform[3] - (pixel[0] * (numpy.abs(geoTransform[5])))
 
-        return (mapx,mapy)
+        return (mapx, mapy)
 
     def map2img(geoTransform, location):
         """
@@ -70,7 +72,7 @@ def calc_land_sea_mask(geo_box, \
                                geoTransform[1]))
         imgy = int(numpy.round((geoTransform[3] - location[1]) /
                                numpy.abs(geoTransform[5])))
-        return (imgy,imgx)
+        return (imgy, imgx)
 
     # get lat/long of geo_box origin
 
@@ -92,16 +94,17 @@ def calc_land_sea_mask(geo_box, \
     metadata['land_sea_mask'] = md
 
     geoTransform = geo_box.transform.to_gdal()
-    if geoTransform == None: raise Exception('Image geotransformation Info is needed')
+    if geoTransform is None:
+        raise Exception('Image geotransformation Info is needed')
 
     dims = geo_box.shape
 
-    lsobj   = gdal.Open(rasfile, gdal.gdalconst.GA_ReadOnly)
+    lsobj = gdal.Open(rasfile, gdal.gdalconst.GA_ReadOnly)
     ls_geoT = lsobj.GetGeoTransform()
 
     # Convert the images' image co-ords into map co-ords
-    mUL = img2map(geoTransform=geoTransform, pixel=(0,0))
-    mLR = img2map(geoTransform=geoTransform, pixel=(dims[0],dims[1]))
+    mUL = img2map(geoTransform=geoTransform, pixel=(0, 0))
+    mLR = img2map(geoTransform=geoTransform, pixel=(dims[0], dims[1]))
 
     # Convert the map co-ords into the rasfile image co-ords
     iUL = map2img(geoTransform=ls_geoT, location=mUL)
@@ -117,10 +120,9 @@ def calc_land_sea_mask(geo_box, \
     return (ls_arr.astype('bool'), metadata)
 
 def set_land_sea_bit(gridded_geo_box, pq_const, pqaResult,
-        ancillary_path='/g/data/v10/eoancillarydata/Land_Sea_Rasters'):
+                     ancillary_path='/g/data/v10/eoancillarydata/Land_Sea_Rasters'):
 
     mask, md = calc_land_sea_mask(gridded_geo_box, ancillary_path)
     bit_index = pq_const.land_sea
     pqaResult.set_mask(mask, bit_index)
     return md
-

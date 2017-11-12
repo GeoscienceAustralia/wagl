@@ -28,7 +28,6 @@ import traceback
 from structlog import wrap_logger
 from structlog.processors import JSONRenderer
 import luigi
-from luigi.util import inherits, requires
 
 from gaip.constants import Model, Method
 from gaip.standardise import card4l

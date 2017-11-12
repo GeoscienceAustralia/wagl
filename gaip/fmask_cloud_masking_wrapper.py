@@ -1,20 +1,18 @@
 from __future__ import absolute_import, print_function
-import os
-from glob import glob
-import logging
-from scipy import ndimage
 import numexpr
-from . import fmask_cloud_masking as _fmask
 from gaip.acca_cloud_masking import majority_filter
 
+from . import fmask_cloud_masking as _fmask
+
 def fmask_cloud_mask(mtl, null_mask=None, cloud_prob=None, wclr_max=None,
-                   sat_tag=None, aux_data={}):
-    Lnum=int(sat_tag[-1:])
-    (zen, azi, ptm, Temp, t_templ,
-     t_temph, WT, Snow, fmask_byte,
-     Shadow, dim, ul, resolu, zc,
-     geoT, prj) = _fmask.plcloud(filename=mtl, mask=null_mask, num_Lst=Lnum,
-                                 aux_data=aux_data)
+                     sat_tag=None, aux_data=None):
+
+    Lnum = int(sat_tag[-1:])
+    (_, _, _, _, _,
+     _, _, _, fmask_byte,
+     _, _, _, _, _,
+     _, _) = _fmask.plcloud(filename=mtl, mask=null_mask, num_Lst=Lnum,
+                            aux_data=aux_data or {})
 
     # Convert to bool, True = Cloud, False not Cloud
     fmask_byte = fmask_byte == 1

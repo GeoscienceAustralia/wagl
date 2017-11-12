@@ -799,15 +799,15 @@ def read_modtran_channel(fname, acquisition, albedo):
         downward_radiation.columns = downward_radiation.columns.astype(str)
 
         return upward_radiation, downward_radiation
-    else:
-        chn_data = pd.read_csv(fname, skiprows=5, header=None, nrows=nbands,
-                               delim_whitespace=True)
-        chn_data['band_name'] = chn_data[20]
-        chn_data.drop(20, inplace=True, axis=1)
-        chn_data.set_index('band_name', inplace=True)
-        chn_data.columns = chn_data.columns.astype(str)
 
-        return chn_data
+    chn_data = pd.read_csv(fname, skiprows=5, header=None, nrows=nbands,
+                           delim_whitespace=True)
+    chn_data['band_name'] = chn_data[20]
+    chn_data.drop(20, inplace=True, axis=1)
+    chn_data.set_index('band_name', inplace=True)
+    chn_data.columns = chn_data.columns.astype(str)
+
+    return chn_data
 
 
 def calculate_solar_radiation(flux_data, spectral_response, levels=36,

@@ -32,8 +32,46 @@ from skimage import segmentation
 
 
 # Sun earth distance look up table
-sun_earth_distance = {1: 0.98331, 2: 0.98330, 3: 0.98330, 4: 0.98330, 5: 0.98330, 6: 0.98332, 7: 0.98333, 8: 0.98335, 9: 0.98338, 10: 0.98341, 11: 0.98345, 12: 0.98349, 13: 0.98354, 14: 0.98359, 15: 0.98365, 16: 0.98371, 17: 0.98378, 18: 0.98385, 19: 0.98393, 20: 0.98401, 21: 0.98410, 22: 0.98419, 23: 0.98428, 24: 0.98439, 25: 0.98449, 26: 0.98460, 27: 0.98472, 28: 0.98484, 29: 0.98496, 30: 0.98509, 31: 0.98523, 32: 0.98536, 33: 0.98551, 34: 0.98565, 35: 0.98580, 36: 0.98596, 37: 0.98612, 38: 0.98628, 39: 0.98645, 40: 0.98662, 41: 0.98680, 42: 0.98698, 43: 0.98717, 44: 0.98735, 45: 0.98755, 46: 0.98774, 47: 0.98794, 48: 0.98814, 49: 0.98835, 50: 0.98856, 51: 0.98877, 52: 0.98899, 53: 0.98921, 54: 0.98944, 55: 0.98966, 56: 0.98989, 57: 0.99012, 58: 0.99036, 59: 0.99060, 60: 0.99084, 61: 0.99108, 62: 0.99133, 63: 0.99158, 64: 0.99183, 65: 0.99208, 66: 0.99234, 67: 0.99260, 68: 0.99286, 69: 0.99312, 70: 0.99339, 71: 0.99365, 72: 0.99392, 73: 0.99419, 74: 0.99446, 75: 0.99474, 76: 0.99501, 77: 0.99529, 78: 0.99556, 79: 0.99584, 80: 0.99612, 81: 0.99640, 82: 0.99669, 83: 0.99697, 84: 0.99725, 85: 0.99754, 86: 0.99782, 87: 0.99811, 88: 0.99840, 89: 0.99868, 90: 0.99897, 91: 0.99926, 92: 0.99954, 93: 0.99983, 94: 1.00012, 95: 1.00041, 96: 1.00069, 97: 1.00098, 98: 1.00127, 99: 1.00155, 100: 1.00184, 101: 1.00212, 102: 1.00240, 103: 1.00269, 104: 1.00297, 105: 1.00325, 106: 1.00353, 107: 1.00381, 108: 1.00409, 109: 1.00437, 110: 1.00464, 111: 1.00492, 112: 1.00519, 113: 1.00546, 114: 1.00573, 115: 1.00600, 116: 1.00626, 117: 1.00653, 118: 1.00679, 119: 1.00705, 120: 1.00731, 121: 1.00756, 122: 1.00781, 123: 1.00806, 124: 1.00831, 125: 1.00856, 126: 1.00880, 127: 1.00904, 128: 1.00928, 129: 1.00952, 130: 1.00975, 131: 1.00998, 132: 1.01020, 133: 1.01043, 134: 1.01065, 135: 1.01087, 136: 1.01108, 137: 1.01129, 138: 1.01150, 139: 1.01170, 140: 1.01191, 141: 1.01210, 142: 1.01230, 143: 1.01249, 144: 1.01267, 145: 1.01286, 146: 1.01304, 147: 1.01321, 148: 1.01338, 149: 1.01355, 150: 1.01371, 151: 1.01387, 152: 1.01403, 153: 1.01418, 154: 1.01433, 155: 1.01447, 156: 1.01461, 157: 1.01475, 158: 1.01488, 159: 1.01500, 160: 1.01513, 161: 1.01524, 162: 1.01536, 163: 1.01547, 164: 1.01557, 165: 1.01567, 166: 1.01577, 167: 1.01586, 168: 1.01595, 169: 1.01603, 170: 1.01610, 171: 1.01618, 172: 1.01625, 173: 1.01631, 174: 1.01637, 175: 1.01642, 176: 1.01647, 177: 1.01652, 178: 1.01656, 179: 1.01659, 180: 1.01662, 181: 1.01665, 182: 1.01667, 183: 1.01668, 184: 1.01670, 185: 1.01670, 186: 1.01670,
-                      187: 1.01670, 188: 1.01669, 189: 1.01668, 190: 1.01666, 191: 1.01664, 192: 1.01661, 193: 1.01658, 194: 1.01655, 195: 1.01650, 196: 1.01646, 197: 1.01641, 198: 1.01635, 199: 1.01629, 200: 1.01623, 201: 1.01616, 202: 1.01609, 203: 1.01601, 204: 1.01592, 205: 1.01584, 206: 1.01575, 207: 1.01565, 208: 1.01555, 209: 1.01544, 210: 1.01533, 211: 1.01522, 212: 1.01510, 213: 1.01497, 214: 1.01485, 215: 1.01471, 216: 1.01458, 217: 1.01444, 218: 1.01429, 219: 1.01414, 220: 1.01399, 221: 1.01383, 222: 1.01367, 223: 1.01351, 224: 1.01334, 225: 1.01317, 226: 1.01299, 227: 1.01281, 228: 1.01263, 229: 1.01244, 230: 1.01225, 231: 1.01205, 232: 1.01186, 233: 1.01165, 234: 1.01145, 235: 1.01124, 236: 1.01103, 237: 1.01081, 238: 1.01060, 239: 1.01037, 240: 1.01015, 241: 1.00992, 242: 1.00969, 243: 1.00946, 244: 1.00922, 245: 1.00898, 246: 1.00874, 247: 1.00850, 248: 1.00825, 249: 1.00800, 250: 1.00775, 251: 1.00750, 252: 1.00724, 253: 1.00698, 254: 1.00672, 255: 1.00646, 256: 1.00620, 257: 1.00593, 258: 1.00566, 259: 1.00539, 260: 1.00512, 261: 1.00485, 262: 1.00457, 263: 1.00430, 264: 1.00402, 265: 1.00374, 266: 1.00346, 267: 1.00318, 268: 1.00290, 269: 1.00262, 270: 1.00234, 271: 1.00205, 272: 1.00177, 273: 1.00148, 274: 1.00119, 275: 1.00091, 276: 1.00062, 277: 1.00033, 278: 1.00005, 279: 0.99976, 280: 0.99947, 281: 0.99918, 282: 0.99890, 283: 0.99861, 284: 0.99832, 285: 0.99804, 286: 0.99775, 287: 0.99747, 288: 0.99718, 289: 0.99690, 290: 0.99662, 291: 0.99634, 292: 0.99605, 293: 0.99577, 294: 0.99550, 295: 0.99522, 296: 0.99494, 297: 0.99467, 298: 0.99440, 299: 0.99412, 300: 0.99385, 301: 0.99359, 302: 0.99332, 303: 0.99306, 304: 0.99279, 305: 0.99253, 306: 0.99228, 307: 0.99202, 308: 0.99177, 309: 0.99152, 310: 0.99127, 311: 0.99102, 312: 0.99078, 313: 0.99054, 314: 0.99030, 315: 0.99007, 316: 0.98983, 317: 0.98961, 318: 0.98938, 319: 0.98916, 320: 0.98894, 321: 0.98872, 322: 0.98851, 323: 0.98830, 324: 0.98809, 325: 0.98789, 326: 0.98769, 327: 0.98750, 328: 0.98731, 329: 0.98712, 330: 0.98694, 331: 0.98676, 332: 0.98658, 333: 0.98641, 334: 0.98624, 335: 0.98608, 336: 0.98592, 337: 0.98577, 338: 0.98562, 339: 0.98547, 340: 0.98533, 341: 0.98519, 342: 0.98506, 343: 0.98493, 344: 0.98481, 345: 0.98469, 346: 0.98457, 347: 0.98446, 348: 0.98436, 349: 0.98426, 350: 0.98416, 351: 0.98407, 352: 0.98399, 353: 0.98391, 354: 0.98383, 355: 0.98376, 356: 0.98370, 357: 0.98363, 358: 0.98358, 359: 0.98353, 360: 0.98348, 361: 0.98344, 362: 0.98340, 363: 0.98337, 364: 0.98335, 365: 0.98333, 366: 0.98331}
+# pylint: disable=line-too-long
+sun_earth_distance = {
+    1: 0.98331, 2: 0.98330, 3: 0.98330, 4: 0.98330, 5: 0.98330, 6: 0.98332, 7: 0.98333, 8: 0.98335, 9: 0.98338, 10: 0.98341,
+    11: 0.98345, 12: 0.98349, 13: 0.98354, 14: 0.98359, 15: 0.98365, 16: 0.98371, 17: 0.98378, 18: 0.98385, 19: 0.98393, 20: 0.98401,
+    21: 0.98410, 22: 0.98419, 23: 0.98428, 24: 0.98439, 25: 0.98449, 26: 0.98460, 27: 0.98472, 28: 0.98484, 29: 0.98496, 30: 0.98509,
+    31: 0.98523, 32: 0.98536, 33: 0.98551, 34: 0.98565, 35: 0.98580, 36: 0.98596, 37: 0.98612, 38: 0.98628, 39: 0.98645, 40: 0.98662,
+    41: 0.98680, 42: 0.98698, 43: 0.98717, 44: 0.98735, 45: 0.98755, 46: 0.98774, 47: 0.98794, 48: 0.98814, 49: 0.98835, 50: 0.98856,
+    51: 0.98877, 52: 0.98899, 53: 0.98921, 54: 0.98944, 55: 0.98966, 56: 0.98989, 57: 0.99012, 58: 0.99036, 59: 0.99060, 60: 0.99084,
+    61: 0.99108, 62: 0.99133, 63: 0.99158, 64: 0.99183, 65: 0.99208, 66: 0.99234, 67: 0.99260, 68: 0.99286, 69: 0.99312, 70: 0.99339,
+    71: 0.99365, 72: 0.99392, 73: 0.99419, 74: 0.99446, 75: 0.99474, 76: 0.99501, 77: 0.99529, 78: 0.99556, 79: 0.99584, 80: 0.99612,
+    81: 0.99640, 82: 0.99669, 83: 0.99697, 84: 0.99725, 85: 0.99754, 86: 0.99782, 87: 0.99811, 88: 0.99840, 89: 0.99868, 90: 0.99897,
+    91: 0.99926, 92: 0.99954, 93: 0.99983, 94: 1.00012, 95: 1.00041, 96: 1.00069, 97: 1.00098, 98: 1.00127, 99: 1.00155, 100: 1.00184,
+    101: 1.00212, 102: 1.00240, 103: 1.00269, 104: 1.00297, 105: 1.00325, 106: 1.00353, 107: 1.00381, 108: 1.00409, 109: 1.00437, 110: 1.00464,
+    111: 1.00492, 112: 1.00519, 113: 1.00546, 114: 1.00573, 115: 1.00600, 116: 1.00626, 117: 1.00653, 118: 1.00679, 119: 1.00705, 120: 1.00731,
+    121: 1.00756, 122: 1.00781, 123: 1.00806, 124: 1.00831, 125: 1.00856, 126: 1.00880, 127: 1.00904, 128: 1.00928, 129: 1.00952, 130: 1.00975,
+    131: 1.00998, 132: 1.01020, 133: 1.01043, 134: 1.01065, 135: 1.01087, 136: 1.01108, 137: 1.01129, 138: 1.01150, 139: 1.01170, 140: 1.01191,
+    141: 1.01210, 142: 1.01230, 143: 1.01249, 144: 1.01267, 145: 1.01286, 146: 1.01304, 147: 1.01321, 148: 1.01338, 149: 1.01355, 150: 1.01371,
+    151: 1.01387, 152: 1.01403, 153: 1.01418, 154: 1.01433, 155: 1.01447, 156: 1.01461, 157: 1.01475, 158: 1.01488, 159: 1.01500, 160: 1.01513,
+    161: 1.01524, 162: 1.01536, 163: 1.01547, 164: 1.01557, 165: 1.01567, 166: 1.01577, 167: 1.01586, 168: 1.01595, 169: 1.01603, 170: 1.01610,
+    171: 1.01618, 172: 1.01625, 173: 1.01631, 174: 1.01637, 175: 1.01642, 176: 1.01647, 177: 1.01652, 178: 1.01656, 179: 1.01659, 180: 1.01662,
+    181: 1.01665, 182: 1.01667, 183: 1.01668, 184: 1.01670, 185: 1.01670, 186: 1.01670, 187: 1.01670, 188: 1.01669, 189: 1.01668, 190: 1.01666,
+    191: 1.01664, 192: 1.01661, 193: 1.01658, 194: 1.01655, 195: 1.01650, 196: 1.01646, 197: 1.01641, 198: 1.01635, 199: 1.01629, 200: 1.01623,
+    201: 1.01616, 202: 1.01609, 203: 1.01601, 204: 1.01592, 205: 1.01584, 206: 1.01575, 207: 1.01565, 208: 1.01555, 209: 1.01544, 210: 1.01533,
+    211: 1.01522, 212: 1.01510, 213: 1.01497, 214: 1.01485, 215: 1.01471, 216: 1.01458, 217: 1.01444, 218: 1.01429, 219: 1.01414, 220: 1.01399,
+    221: 1.01383, 222: 1.01367, 223: 1.01351, 224: 1.01334, 225: 1.01317, 226: 1.01299, 227: 1.01281, 228: 1.01263, 229: 1.01244, 230: 1.01225,
+    231: 1.01205, 232: 1.01186, 233: 1.01165, 234: 1.01145, 235: 1.01124, 236: 1.01103, 237: 1.01081, 238: 1.01060, 239: 1.01037, 240: 1.01015,
+    241: 1.00992, 242: 1.00969, 243: 1.00946, 244: 1.00922, 245: 1.00898, 246: 1.00874, 247: 1.00850, 248: 1.00825, 249: 1.00800, 250: 1.00775,
+    251: 1.00750, 252: 1.00724, 253: 1.00698, 254: 1.00672, 255: 1.00646, 256: 1.00620, 257: 1.00593, 258: 1.00566, 259: 1.00539, 260: 1.00512,
+    261: 1.00485, 262: 1.00457, 263: 1.00430, 264: 1.00402, 265: 1.00374, 266: 1.00346, 267: 1.00318, 268: 1.00290, 269: 1.00262, 270: 1.00234,
+    271: 1.00205, 272: 1.00177, 273: 1.00148, 274: 1.00119, 275: 1.00091, 276: 1.00062, 277: 1.00033, 278: 1.00005, 279: 0.99976, 280: 0.99947,
+    281: 0.99918, 282: 0.99890, 283: 0.99861, 284: 0.99832, 285: 0.99804, 286: 0.99775, 287: 0.99747, 288: 0.99718, 289: 0.99690, 290: 0.99662,
+    291: 0.99634, 292: 0.99605, 293: 0.99577, 294: 0.99550, 295: 0.99522, 296: 0.99494, 297: 0.99467, 298: 0.99440, 299: 0.99412, 300: 0.99385,
+    301: 0.99359, 302: 0.99332, 303: 0.99306, 304: 0.99279, 305: 0.99253, 306: 0.99228, 307: 0.99202, 308: 0.99177, 309: 0.99152, 310: 0.99127,
+    311: 0.99102, 312: 0.99078, 313: 0.99054, 314: 0.99030, 315: 0.99007, 316: 0.98983, 317: 0.98961, 318: 0.98938, 319: 0.98916, 320: 0.98894,
+    321: 0.98872, 322: 0.98851, 323: 0.98830, 324: 0.98809, 325: 0.98789, 326: 0.98769, 327: 0.98750, 328: 0.98731, 329: 0.98712, 330: 0.98694,
+    331: 0.98676, 332: 0.98658, 333: 0.98641, 334: 0.98624, 335: 0.98608, 336: 0.98592, 337: 0.98577, 338: 0.98562, 339: 0.98547, 340: 0.98533,
+    341: 0.98519, 342: 0.98506, 343: 0.98493, 344: 0.98481, 345: 0.98469, 346: 0.98457, 347: 0.98446, 348: 0.98436, 349: 0.98426, 350: 0.98416,
+    351: 0.98407, 352: 0.98399, 353: 0.98391, 354: 0.98383, 355: 0.98376, 356: 0.98370, 357: 0.98363, 358: 0.98358, 359: 0.98353, 360: 0.98348,
+    361: 0.98344, 362: 0.98340, 363: 0.98337, 364: 0.98335, 365: 0.98333, 366: 0.98331
+}
 
 # Replacement for original dir() function in this module.
 # Renamed to avoid name collision with builtin.
@@ -223,7 +261,7 @@ def lndhdrread(filename):
     LID = data['SPACECRAFT_ID']
     Lnum = int(LID[len(LID) - 1])
 
-    if ((Lnum >= 4) & (Lnum <= 7)):
+    if Lnum >= 4 and Lnum <= 7:
         # LS8 variables only. The original MATLAB function returns all
         # variables.
         Refmax = None
@@ -231,7 +269,7 @@ def lndhdrread(filename):
         # variables.
         Refmin = None
         # Test for New/Old MTL file
-        if not ('LANDSAT_SCENE_ID' in data.keys()):
+        if not 'LANDSAT_SCENE_ID' in data.keys():
             # Process Old version of MTL file
 
             # read in LMAX
@@ -414,7 +452,7 @@ def lndhdrread(filename):
             char_doy = data['LANDSAT_SCENE_ID']
             doy = int(char_doy[13:16])
 
-    elif (Lnum == 8):
+    elif Lnum == 8:
             # Retrieve LS8 info
         Lmax_B2 = numpy.float32(data['RADIANCE_MAXIMUM_BAND_2'])
         Lmax_B3 = numpy.float32(data['RADIANCE_MAXIMUM_BAND_3'])
@@ -521,14 +559,18 @@ def lndhdrread(filename):
     else:
         raise Exception('This sensor is not Landsat 4, 5, 7, or 8!')
 
-    if ((doy < 1) or (doy > 366)):
+    if doy < 1 or doy > 366:
         raise ValueError(
             'Invalid Day of Year metadata value - expected (1,366) got %s' % doy)
 
-    # The new version returns Lmax,Lmin,Qcalmax,Qcalmin,Refmax,Refmin,ijdim_ref,ijdim_thm,reso_ref,reso_thm,ul,zen,azi,zc,Lnum,doy
+    # The new version returns Lmax, Lmin, Qcalmax, Qcalmin, Refmax,
+    # Refmin, ijdim_ref, ijdim_thm, reso_ref, reso_thm, ul, zen,
+    # azi, zc, Lnum, doy
     # return
-    # (Lmax,Lmin,Qcalmax,Qcalmin,ijdim_ref,ijdim_thm,reso_ref,reso_thm,ul,zen,azi,zc,Lnum,doy)
-    return (Lmax, Lmin, Qcalmax, Qcalmin, Refmax, Refmin, ijdim_ref, ijdim_thm, reso_ref, reso_thm, ul, zen, azi, zc, Lnum, doy)
+    # (Lmax, Lmin, Qcalmax, Qcalmin, ijdim_ref, ijdim_thm,
+    #  reso_ref, reso_thm, ul, zen, azi, zc, Lnum, doy)
+    return (Lmax, Lmin, Qcalmax, Qcalmin, Refmax, Refmin, ijdim_ref, ijdim_thm,
+            reso_ref, reso_thm, ul, zen, azi, zc, Lnum, doy)
 
 
 def nd2toarbt(filename, images=None):
@@ -552,7 +594,7 @@ def nd2toarbt(filename, images=None):
     ul = (ul[0] - float(reso_ref) / 2, ul[1] + float(reso_ref) / 2)
     resolu = (reso_ref, reso_ref)
 
-    if ((Lnum >= 4) & (Lnum <= 7)):
+    if Lnum >= 4 and Lnum <= 7:
 
         # Band6
         if Lnum == 7:
@@ -563,7 +605,7 @@ def nd2toarbt(filename, images=None):
         # Check that the thermal band resolution matches the reflectance bands.
         ref_lines, ref_samples = ijdim_ref
         thm_lines, thm_samples = ijdim_thm
-        if ((thm_lines != ref_lines) | (thm_samples != ref_samples)):
+        if thm_lines != ref_lines or thm_samples != ref_samples:
             im_B6 = imread(
                 n_B6, resample=True, samples=ref_samples, lines=ref_lines).astype(numpy.float32)
         else:
@@ -641,20 +683,20 @@ def nd2toarbt(filename, images=None):
                 "(im_B1 == 0.0) | (im_B2 == 0.0) | (im_B3 == 0.0) | (im_B4 == 0.0) | (im_B5 == 0.0) | (im_B6 == 0.0) | (im_B7 == 0.0)")
 
             # ND to radiance first
-            im_B1 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B1 - Qmi) + Lmi", {
-                                     'Lma': Lmax[0], 'Lmi': Lmin[0], 'Qma': Qcalmax[0], 'Qmi': Qcalmin[0]}, locals())
-            im_B2 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B2 - Qmi) + Lmi", {
-                                     'Lma': Lmax[1], 'Lmi': Lmin[1], 'Qma': Qcalmax[1], 'Qmi': Qcalmin[1]}, locals())
-            im_B3 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B3 - Qmi) + Lmi", {
-                                     'Lma': Lmax[2], 'Lmi': Lmin[2], 'Qma': Qcalmax[2], 'Qmi': Qcalmin[2]}, locals())
-            im_B4 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B4 - Qmi) + Lmi", {
-                                     'Lma': Lmax[3], 'Lmi': Lmin[3], 'Qma': Qcalmax[3], 'Qmi': Qcalmin[3]}, locals())
-            im_B5 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B5 - Qmi) + Lmi", {
-                                     'Lma': Lmax[4], 'Lmi': Lmin[4], 'Qma': Qcalmax[4], 'Qmi': Qcalmin[4]}, locals())
-            im_B6 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B6 - Qmi) + Lmi", {
-                                     'Lma': Lmax[5], 'Lmi': Lmin[5], 'Qma': Qcalmax[5], 'Qmi': Qcalmin[5]}, locals())
-            im_B7 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B7 - Qmi) + Lmi", {
-                                     'Lma': Lmax[6], 'Lmi': Lmin[6], 'Qma': Qcalmax[6], 'Qmi': Qcalmin[6]}, locals())
+            im_B1 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B1 - Qmi) + Lmi",
+                                     {'Lma': Lmax[0], 'Lmi': Lmin[0], 'Qma': Qcalmax[0], 'Qmi': Qcalmin[0]}, locals())
+            im_B2 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B2 - Qmi) + Lmi",
+                                     {'Lma': Lmax[1], 'Lmi': Lmin[1], 'Qma': Qcalmax[1], 'Qmi': Qcalmin[1]}, locals())
+            im_B3 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B3 - Qmi) + Lmi",
+                                     {'Lma': Lmax[2], 'Lmi': Lmin[2], 'Qma': Qcalmax[2], 'Qmi': Qcalmin[2]}, locals())
+            im_B4 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B4 - Qmi) + Lmi",
+                                     {'Lma': Lmax[3], 'Lmi': Lmin[3], 'Qma': Qcalmax[3], 'Qmi': Qcalmin[3]}, locals())
+            im_B5 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B5 - Qmi) + Lmi",
+                                     {'Lma': Lmax[4], 'Lmi': Lmin[4], 'Qma': Qcalmax[4], 'Qmi': Qcalmin[4]}, locals())
+            im_B6 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B6 - Qmi) + Lmi",
+                                     {'Lma': Lmax[5], 'Lmi': Lmin[5], 'Qma': Qcalmax[5], 'Qmi': Qcalmin[5]}, locals())
+            im_B7 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B7 - Qmi) + Lmi",
+                                     {'Lma': Lmax[6], 'Lmi': Lmin[6], 'Qma': Qcalmax[6], 'Qmi': Qcalmin[6]}, locals())
 
             # radiance to TOA reflectances
             # fprintf('From Radiances to TOA ref\n')
@@ -736,13 +778,13 @@ def nd2toarbt(filename, images=None):
         # We'll modify the return argument for the Python implementation
         # (geoT,prj) are added to the list
         return [im_B6, images, ijdim_ref, ul, zen, azi, zc, B1Satu, B2Satu, B3Satu, resolu, geoT, prj]
-    elif (Lnum == 8):
+    elif Lnum == 8:
         n_B10 = match_file(base, '.*B10.TIF')
         # Check that the thermal band resolution matches the reflectance bands.
         ref_lines, ref_samples = ijdim_ref
         thm_lines, thm_samples = ijdim_thm
 
-        if ((thm_lines != ref_lines) | (thm_samples != ref_samples)):
+        if thm_lines != ref_lines or thm_samples != ref_samples:
             im_B10 = imread(
                 n_B10, resample=True, samples=ref_samples, lines=ref_lines).astype(numpy.float32)
         else:
@@ -788,22 +830,22 @@ def nd2toarbt(filename, images=None):
         # https://landsat.usgs.gov/Landsat8_Using_Product.php : Noted JS
         # 2013/11/28
         print('From DNs to TOA ref & BT\n')
-        im_B2 = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B2 - Qmi) + Rmi", {
-                                 'Rma': Refmax[0], 'Rmi': Refmin[0], 'Qma': Qcalmax[0], 'Qmi': Qcalmin[0]}, locals())
-        im_B3 = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B3 - Qmi) + Rmi", {
-                                 'Rma': Refmax[1], 'Rmi': Refmin[1], 'Qma': Qcalmax[1], 'Qmi': Qcalmin[1]}, locals())
-        im_B4 = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B4 - Qmi) + Rmi", {
-                                 'Rma': Refmax[2], 'Rmi': Refmin[2], 'Qma': Qcalmax[2], 'Qmi': Qcalmin[2]}, locals())
-        im_B5 = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B5 - Qmi) + Rmi", {
-                                 'Rma': Refmax[3], 'Rmi': Refmin[3], 'Qma': Qcalmax[3], 'Qmi': Qcalmin[3]}, locals())
-        im_B6 = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B6 - Qmi) + Rmi", {
-                                 'Rma': Refmax[4], 'Rmi': Refmin[4], 'Qma': Qcalmax[4], 'Qmi': Qcalmin[4]}, locals())
-        im_B7 = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B7 - Qmi) + Rmi", {
-                                 'Rma': Refmax[5], 'Rmi': Refmin[5], 'Qma': Qcalmax[5], 'Qmi': Qcalmin[5]}, locals())
-        im_B9 = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B9 - Qmi) + Rmi", {
-                                 'Rma': Refmax[6], 'Rmi': Refmin[6], 'Qma': Qcalmax[6], 'Qmi': Qcalmin[6]}, locals())
-        im_B10 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B10 - Qmi) + Lmi", {
-                                  'Lma': Lmax[7], 'Lmi': Lmin[7], 'Qma': Qcalmax[7], 'Qmi': Qcalmin[7]}, locals())
+        im_B2 = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B2 - Qmi) + Rmi",
+                                 {'Rma': Refmax[0], 'Rmi': Refmin[0], 'Qma': Qcalmax[0], 'Qmi': Qcalmin[0]}, locals())
+        im_B3 = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B3 - Qmi) + Rmi",
+                                 {'Rma': Refmax[1], 'Rmi': Refmin[1], 'Qma': Qcalmax[1], 'Qmi': Qcalmin[1]}, locals())
+        im_B4 = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B4 - Qmi) + Rmi",
+                                 {'Rma': Refmax[2], 'Rmi': Refmin[2], 'Qma': Qcalmax[2], 'Qmi': Qcalmin[2]}, locals())
+        im_B5 = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B5 - Qmi) + Rmi",
+                                 {'Rma': Refmax[3], 'Rmi': Refmin[3], 'Qma': Qcalmax[3], 'Qmi': Qcalmin[3]}, locals())
+        im_B6 = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B6 - Qmi) + Rmi",
+                                 {'Rma': Refmax[4], 'Rmi': Refmin[4], 'Qma': Qcalmax[4], 'Qmi': Qcalmin[4]}, locals())
+        im_B7 = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B7 - Qmi) + Rmi",
+                                 {'Rma': Refmax[5], 'Rmi': Refmin[5], 'Qma': Qcalmax[5], 'Qmi': Qcalmin[5]}, locals())
+        im_B9 = numexpr.evaluate("((Rma - Rmi) / (Qma - Qmi)) * (im_B9 - Qmi) + Rmi",
+                                 {'Rma': Refmax[6], 'Rmi': Refmin[6], 'Qma': Qcalmax[6], 'Qmi': Qcalmin[6]}, locals())
+        im_B10 = numexpr.evaluate("((Lma - Lmi) / (Qma - Qmi)) * (im_B10 - Qmi) + Lmi",
+                                  {'Lma': Lmax[7], 'Lmi': Lmin[7], 'Qma': Qcalmax[7], 'Qmi': Qcalmin[7]}, locals())
 
         s_zen = numpy.deg2rad(zen)
         im_B2 = numexpr.evaluate("10000 * im_B2 / cos(s_zen)")
@@ -1165,11 +1207,11 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, shadow_prob=False
     if ptm > 0.1:
         cloud_temp = Temp[cloud_mask]
 
-        logging.debug("FMASK snow percent: %f" %
+        logging.debug("FMASK snow percent: %f",
                       ((float(Snow[mask].sum()) / float(mask.sum())) * 100.0))
         aux_data['fmask_snow_percent'] = float(
             Snow[mask].sum()) * 100.0 / float(mask.sum())
-        logging.debug("FMASK cloud mean: %f C" %
+        logging.debug("FMASK cloud mean: %f C",
                       (numpy.mean(cloud_temp) / 100.0))
         aux_data['fmask_cloud_mean_temp_deg_C'] = numpy.mean(
             cloud_temp) / 100.0
@@ -1181,13 +1223,13 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, shadow_prob=False
             pct_lower = numpy.percentile(cloud_temp, 83.5) / 100.0
             pct_upper_max = numpy.percentile(cloud_temp, 98.75) / 100.0
 
-            logging.debug("FMASK Standard Deviation: %f C" % cloud_stddev)
+            logging.debug("FMASK Standard Deviation: %f C", cloud_stddev)
             aux_data['FMASK_std_dev_degC'] = cloud_stddev
-            logging.debug("FMASK 97.5 percentile: %f C" % pct_upper)
+            logging.debug("FMASK 97.5 percentile: %f C" , pct_upper)
             aux_data['FMASK_97.5_percentile'] = pct_upper
-            logging.debug("FMASK 83.5 percentile: %f C" % pct_lower)
+            logging.debug("FMASK 83.5 percentile: %f C", pct_lower)
             aux_data['FMASK_83.5_percentile'] = pct_lower
-            logging.debug("FMASK 98.75 percentile: %f C" % pct_upper_max)
+            logging.debug("FMASK 98.75 percentile: %f C", pct_upper_max)
             aux_data['FMASK_98.75_percentile'] = pct_upper_max
 
     cloud_skew = 0.0  # TODO
@@ -1197,7 +1239,7 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, shadow_prob=False
     except ZeroDivisionError:
         cloud_percent = 0.0
 
-    logging.debug("FMASK Final Cloud Layer Percent: %f" % cloud_percent)
+    logging.debug("FMASK Final Cloud Layer Percent: %f", cloud_percent)
     aux_data['FMASK_cloud_layer_percent'] = cloud_percent
     aux_data['FMASK_processing_time'] = processing_time
 
@@ -1366,7 +1408,7 @@ def fcssm(Sun_zen, Sun_azi, ptm, Temp, t_templ, t_temph, Water, Snow, plcim, pls
         # The properties is taking approx 3min, I can cut that down to just a
         # few seconds using another method, but will leave for the time being.
         s = measure.regionprops(
-            segm_cloud,  properties=['Area', 'Coordinates'])
+            segm_cloud, properties=['Area', 'Coordinates'])
 
         # Use iteration to get the optimal move distance
         # Calulate the moving cloud shadow
@@ -1436,8 +1478,10 @@ def fcssm(Sun_zen, Sun_azi, ptm, Temp, t_templ, t_temph, Water, Snow, plcim, pls
                 # Get the true postion of the cloud
                 # calculate cloud DEM with initial base height
                 h = (10 * (t_obj - temp_obj) / rate_elapse + base_h)
-                tmp_xys[1, :], tmp_xys[0, :] = mat_truecloud(orin_cid[1], orin_cid[
-                                                             0], h, A, B, C, omiga_par, omiga_per)  # Function is returned as (x_new,y_new)
+                tmp_xys[1, :], tmp_xys[0, :] = mat_truecloud(
+                    orin_cid[1],
+                    orin_cid[0],
+                    h, A, B, C, omiga_par, omiga_per)  # Function is returned as (x_new,y_new)
 
                 # shadow moved distance (pixel)
                 # i_xy=h*cos(sun_tazi_rad)/(sub_size*math.tan(sun_ele_rad))
@@ -1468,8 +1512,17 @@ def fcssm(Sun_zen, Sun_azi, ptm, Temp, t_templ, t_temph, Water, Snow, plcim, pls
                 tmp_id = [tmp_ii, tmp_jj]
 
                 # the id that is matched (exclude original cloud)
-                match_id = numexpr.evaluate("(b_test == 0) | ((seg != label) & ((cld_test > 0) | (shad_test == 1)))", {'b_test': boundary_test[
-                                            tmp_id], 'seg': segm_cloud[tmp_id], 'label': cld_label, 'cld_test': cloud_test[tmp_id], 'shad_test': shadow_test[tmp_id]})
+                match_id = numexpr.evaluate(
+                    "(b_test == 0) | ((seg != label) & ((cld_test > 0) | (shad_test == 1)))",
+                    {
+                        'b_test': boundary_test[tmp_id],
+                        'seg': segm_cloud[tmp_id],
+                        'label': cld_label,
+                        'cld_test': cloud_test[tmp_id],
+                        'shad_test': shadow_test[tmp_id]
+                    }
+                )
+
                 matched_all = numpy.sum(match_id) + out_all
 
                 # the id that is the total pixel (exclude original cloud)
