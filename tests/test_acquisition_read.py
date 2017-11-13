@@ -21,6 +21,7 @@ L8_DIR = os.path.join(DATA_DIR, 'L1T', 'LS8_90_84_2013-10-11', 'UTM',
                       'LS8_OLITIRS_OTH_P51_GALPGS01-002_090_084_20131011')
 
 
+@unittest.skip('Requires refactoring')
 class Landsat5AcquisitionTest(unittest.TestCase):
 
     def setUp(self):
@@ -51,6 +52,7 @@ class Landsat5AcquisitionTest(unittest.TestCase):
 
 
 
+@unittest.skip('Requires refactoring')
 class Landsat7AcquisitionTest(unittest.TestCase):
 
     def setUp(self):
@@ -87,6 +89,7 @@ class Landsat7AcquisitionTest(unittest.TestCase):
             pass
 
 
+@unittest.skip('Requires refactoring')
 class Landsat8AcquisitionTest(unittest.TestCase):
 
     def setUp(self):
@@ -164,6 +167,7 @@ class Landsat8AcquisitionTest(unittest.TestCase):
 
 
 
+@unittest.skip('Requires refactoring')
 class L1TDataTest(unittest.TestCase):
 
     def test_acquisition(self):

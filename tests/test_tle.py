@@ -14,6 +14,7 @@ L8_MTL1 = pjoin(DATA_DIR, 'LANDSAT8', 'LO80900842013284ASA00_MTL.txt')
 L8_MTL2 = pjoin(DATA_DIR, 'LANDSAT8', 'LC80990842016277LGN00_MTL.txt')
 
 
+@unittest.skip('Requires refactoring')
 class TLELoadingTest(unittest.TestCase):
 
     def test_load_tle_l5_mtl1(self):

@@ -9,6 +9,32 @@ import versioneer
 from numpy.distutils.core import setup
 
 
+tests_require = [
+    'pytest',
+]
+
+install_requires = [
+    'luigi>=2.4.0',
+    'numpy>=1.8',
+    'scipy>=0.14',
+    'numexpr>=2.4.6',
+    'ephem>=3.7.5.3',
+    'pyproj>1.9.5',
+    'scikit-image>=0.8.2',
+    'GDAL>=1.9.2',
+    'rasterio>0.9', # Hack to get the alpha release
+    'fiona>=1.7.0',
+    'shapely>=1.5.13',
+    'h5py>=2.5.0',
+    'tables>=3.4.2',
+    'pandas>=0.17.1',
+    'geopandas>=0.1.1',
+    'pyyaml>=3.11',
+    'nested_lookup>=0.1.3',
+    'python-dateutil>=2.6.1',
+]
+
+
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
 
@@ -44,4 +70,7 @@ setup(
              'utils/gaip_ls',
              'utils/gaip_residuals',
              'utils/gaip_pbs'],
+    setup_requires=['pytest-runner'],
+    tests_require=tests_require,
+    install_requires=install_requires
 )
