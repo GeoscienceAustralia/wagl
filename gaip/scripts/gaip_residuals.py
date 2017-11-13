@@ -11,11 +11,12 @@ import argparse
 from functools import partial
 import numpy
 import h5py
+import pandas
 
 from idl_functions import histogram
 from gaip.hdf5 import read_scalar, read_h5_table, write_dataframe
 from gaip.hdf5 import write_h5_image, write_h5_table, write_scalar
-from gaip.hdf5 import dataset_compression_kwargs, VLEN_STRING
+from gaip.hdf5 import dataset_compression_kwargs, VLEN_STRING, find
 from gaip.geobox import GriddedGeoBox
 
 
@@ -87,7 +88,6 @@ def image_residual(ref_fid, test_fid, pathname, out_fid, compression='lzf',
     max_residual = residual.max()
     pct_difference = (residual != 0).sum() / residual.size * 100
 
-
     geobox = GriddedGeoBox.from_dataset(ref_dset)
     chunks = ref_dset.chunks
     kwargs = dataset_compression_kwargs(compression=compression, chunks=chunks)
@@ -103,7 +103,7 @@ def image_residual(ref_fid, test_fid, pathname, out_fid, compression='lzf',
 
     base_dname = pbasename(pathname)
     group_name = ref_dset.parent.name.strip('/')
-    dname = ppjoin(class_name, 'RESIDUALS', group_name, base_dname)
+    dname = ppjoin('RESULTS', class_name, 'RESIDUALS', group_name, base_dname)
     write_h5_image(residual, dname, out_fid, attrs=attrs, **kwargs)
 
     # residuals distribution
@@ -121,8 +121,8 @@ def image_residual(ref_fid, test_fid, pathname, out_fid, compression='lzf',
     table['residuals_distribution'] = hist
 
     # output
-    dname = ppjoin('RESULTS', class_name, 'FREQUENCY-DISTRIBUTION', group_name,
-                   base_dname)
+    dname = ppjoin('RESULTS', class_name, 'FREQUENCY-DISTRIBUTIONS',
+                   group_name, base_dname)
     write_h5_table(table, dname, out_fid, compression=compression, attrs=attrs)
 
     # cumulative distribution
@@ -134,8 +134,8 @@ def image_residual(ref_fid, test_fid, pathname, out_fid, compression='lzf',
     attrs['Description'] = 'Cumulative distribution of the residuals'
     attrs['omin'] = h['omin']
     attrs['omax'] = h['omax']
-    attrs['90_percent'] = h['loc'][numpy.searchsorted(cdf, 0.9)]
-    attrs['99_percent'] = h['loc'][numpy.searchsorted(cdf, 0.99)]
+    attrs['90th_percentile'] = h['loc'][numpy.searchsorted(cdf, 0.9)]
+    attrs['99th_percentile'] = h['loc'][numpy.searchsorted(cdf, 0.99)]
     dtype = numpy.dtype([('bin_locations', h['loc'].dtype.name),
                          ('cumulative_distribution', cdf.dtype.name)])
     table = numpy.zeros(cdf.shape, dtype=dtype)
@@ -143,7 +143,7 @@ def image_residual(ref_fid, test_fid, pathname, out_fid, compression='lzf',
     table['cumulative_distribution'] = cdf
 
     # output
-    dname = ppjoin('RESULTS', class_name, 'CUMULATIVE-DISTRIBUTION',
+    dname = ppjoin('RESULTS', class_name, 'CUMULATIVE-DISTRIBUTIONS',
                    group_name, base_dname)
     write_h5_table(table, dname, out_fid, compression=compression, attrs=attrs)
 
@@ -271,7 +271,7 @@ def table_residual(ref_fid, test_fid, pathname, out_fid, compression,
     # output
     attrs = {'Description': 'Residuals of numerical columns only',
              'columns_ignored': numpy.array(cols, VLEN_STRING),
-             'equal': equal}
+             'equivalent': equal}
     base_dname = pbasename(pathname)
     group_name = ref_fid[pathname].parent.name.strip('/')
     dname = ppjoin('RESULTS', class_name, 'RESIDUALS', group_name, base_dname)
@@ -345,7 +345,113 @@ def residuals(ref_fid, test_fid, out_fid, compression, save_inputs, pathname):
             # but good to know what they are so they can be assigned one
             print("Skipping {}\t{}".format(pathname, type(obj)))
     else:
-        print('{} not found in test file: Skipping'.format(pathname))
+        print('{} not found in test file...Skipping...'.format(pathname))
+
+
+def image_results(image_group):
+    """
+    Combine the residual results of each IMAGE Dataset into a
+    single TABLE Dataset.
+    """
+    # potentially could just use visit...
+    img_paths = find(image_group, 'IMAGE')
+
+    min_ = []
+    max_ = []
+    percent = []
+    pct_90 = []
+    pct_99 = []
+    resid_paths = []
+    hist_paths = []
+    chist_paths = []
+    products = []
+    name = []
+
+    for pth in img_paths:
+        hist_pth = pth.replace('RESIDUALS', 'FREQUENCY-DISTRIBUTIONS')
+        chist_pth = pth.replace('RESIDUALS', 'CUMULATIVE-DISTRIBUTIONS')
+        resid_paths.append(ppjoin(image_group.name, pth))
+        hist_paths.append(ppjoin(image_group.name, hist_pth))
+        chist_paths.append(ppjoin(image_group.name, chist_pth))
+
+        dset = image_group[pth]
+        min_.append(dset.attrs['min_residual'])
+        max_.append(dset.attrs['max_residual'])
+        percent.append(dset.attrs['percent_difference'])
+        products.append(pbasename(dset.parent.name))
+        name.append(pbasename(dset.name))
+
+        dset = image_group[chist_pth]
+        pct_90.append(dset.attrs['90th_percentile'])
+        pct_99.append(dset.attrs['99th_percentile'])
+
+    df = pandas.DataFrame({'product': products,
+                           'dataset_name': name,
+                           'min_residual': min_,
+                           'max_residual': max_,
+                           'percent_difference': percent,
+                           '90th_percentile': pct_90,
+                           '99th_percentile': pct_99,
+                           'residual_image_pathname': resid_paths,
+                           'residual_histogram_pathname': hist_paths,
+                           'residual_cumulative_pathname': chist_paths})
+
+    # output
+    write_dataframe(df, 'IMAGE-RESIDUALS', image_group, title='RESIDUALS-TABLE')
+
+
+def scalar_results(scalar_group):
+    """
+    Combine the residual results of each SCALAR Dataset into a
+    single TABLE Dataset.
+    """
+    # potentially could just use visit...
+    paths = find(scalar_group, 'SCALAR')
+
+    equivalent = []
+    products = []
+    name = []
+
+    for pth in paths:
+        dset = scalar_group[pth]
+        equivalent.append(dset[()])
+        products.append(pbasename(dset.parent.name))
+        name.append(pbasename(dset.name))
+
+    df = pandas.DataFrame({'product': products,
+                           'dataset_name': name,
+                           'equivalent': equivalent})
+
+    # output
+    write_dataframe(df, 'SCALAR-EQUIVALENCY', scalar_group,
+                    title='EQUIVALENCY-RESULTS')
+
+
+def table_results(table_group):
+    """
+    Combine the residual results of each TABLE Dataset into a
+    single TABLE Dataset.
+    """
+    # potentially could just use visit...
+    paths = find(table_group, 'TABLE')
+
+    equivalent = []
+    products = []
+    name = []
+
+    for pth in paths:
+        dset = table_group[pth]
+        equivalent.append(dset.attrs['equal'])
+        products.append(pbasename(dset.parent.name))
+        name.append(pbasename(dset.name))
+
+    df = pandas.DataFrame({'product': products,
+                           'dataset_name': name,
+                           'equivalent': equivalent})
+
+    # output
+    write_dataframe(df, 'TABLE-EQUIVALENCY', table_group,
+                    title='EQUIVALENCY-RESULTS')
 
 
 def run(reference_fname, test_fname, out_fname, compression, save_inputs):
@@ -357,6 +463,20 @@ def run(reference_fname, test_fname, out_fname, compression, save_inputs):
                 root = h5py.h5g.open(ref_fid.id, b'/')
                 root.links.visit(partial(residuals, ref_fid, test_fid,
                                          out_fid, compression, save_inputs))
+
+                # create singular TABLES for each Dataset CLASS
+
+                # IMAGE
+                grp = out_fid[ppjoin('RESULTS', 'IMAGE')]
+                image_results(grp)
+
+                # SCALAR
+                grp = out_fid[ppjoin('RESULTS', 'SCALAR')]
+                scalar_results(grp)
+
+                # TABLE
+                grp = out_fid[ppjoin('RESULTS', 'TABLE')]
+                scalar_results(grp)
 
 
 def _parser():
