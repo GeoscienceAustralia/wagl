@@ -456,7 +456,11 @@ def interpolate(acq, component, ancillary_group, satellite_solar_group,
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
              'geotransform': geobox.transform.to_gdal(),
              'no_data_value': no_data,
-             'interpolation_method': method.name}
+             'interpolation_method': method.name,
+             'band_id': acq.band_id,
+             'band_name': acq.band_name,
+             'alias': acq.alias,
+             'component': component.value}
     desc = ("Contains the interpolated result of component {} "
             "for band {} from sensor {}.")
     attrs['Description'] = desc.format(component.value, acq.band_id,
