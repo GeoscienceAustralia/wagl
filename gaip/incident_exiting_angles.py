@@ -120,11 +120,11 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
              'geotransform': geobox.transform.to_gdal(),
              'no_data_value': no_data}
     desc = "Contains the incident angles in degrees."
-    attrs['Description'] = desc
+    attrs['description'] = desc
     attach_image_attributes(incident_dset, attrs)
 
     desc = "Contains the azimuthal incident angles in degrees."
-    attrs['Description'] = desc
+    attrs['description'] = desc
     attach_image_attributes(azi_inc_dset, attrs)
 
     # process by tile
@@ -251,11 +251,11 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
              'geotransform': geobox.transform.to_gdal(),
              'no_data_value': no_data}
     desc = "Contains the exiting angles in degrees."
-    attrs['Description'] = desc
+    attrs['description'] = desc
     attach_image_attributes(exiting_dset, attrs)
 
     desc = "Contains the azimuthal exiting angles in degrees."
-    attrs['Description'] = desc
+    attrs['description'] = desc
     attach_image_attributes(azi_exit_dset, attrs)
 
     # process by tile
@@ -390,7 +390,7 @@ def relative_azimuth_slope(incident_angles_group, exiting_angles_group,
              'no_data_value': no_data}
     desc = ("Contains the relative azimuth angles on the slope surface in "
             "degrees.")
-    attrs['Description'] = desc
+    attrs['description'] = desc
     attach_image_attributes(out_dset, attrs)
 
     # process by tile

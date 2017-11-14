@@ -463,7 +463,7 @@ def interpolate(acq, component, ancillary_group, satellite_solar_group,
              'component': component.value}
     desc = ("Contains the interpolated result of component {} "
             "for band {} from sensor {}.")
-    attrs['Description'] = desc.format(component.value, acq.band_id,
+    attrs['description'] = desc.format(component.value, acq.band_id,
                                        acq.sensor_id)
     write_h5_image(result, dset_name, group, attrs, **kwargs)
 

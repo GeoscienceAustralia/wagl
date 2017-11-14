@@ -146,7 +146,7 @@ def get_dsm(acquisition, national_dsm, margins, out_group=None,
     out_sm_dset = group.create_dataset(dname, data=dsm_data, **kwargs)
     desc = ("A subset of a Digital Surface Model smoothed with a gaussian "
             "kernel.")
-    attrs['Description'] = desc
+    attrs['description'] = desc
     attach_image_attributes(out_sm_dset, attrs)
 
     if out_group is None:

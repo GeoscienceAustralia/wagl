@@ -169,7 +169,7 @@ def create_lon_lat_grids(acquisition, out_group=None, compression='lzf',
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
              'geotransform': geobox.transform.to_gdal()}
 
-    attrs['Description'] = LON_DESC
+    attrs['description'] = LON_DESC
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=acquisition.tile_size)
     lon_dset = grp.create_dataset(DatasetName.lon.value, data=result, **kwargs)
@@ -179,7 +179,7 @@ def create_lon_lat_grids(acquisition, out_group=None, compression='lzf',
     interpolate_grid(depth=depth, origin=(0, 0), shape=shape,
                      eval_func=lat_func, grid=result)
 
-    attrs['Description'] = LAT_DESC
+    attrs['description'] = LAT_DESC
     lat_dset = grp.create_dataset(DatasetName.lat.value, data=result, **kwargs)
     attach_image_attributes(lat_dset, attrs)
 
@@ -256,7 +256,7 @@ def create_lon_grid(acquisition, out_fname=None, compression='lzf', depth=7):
     # define some base attributes for the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
              'geotransform': geobox.transform.to_gdal()}
-    attrs['Description'] = LON_DESC
+    attrs['description'] = LON_DESC
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=acquisition.tile_size)
 
@@ -311,7 +311,7 @@ def create_lat_grid(acquisition, out_fname=None, compression='lzf', depth=7):
     # define some base attributes for the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
              'geotransform': geobox.transform.to_gdal()}
-    attrs['Description'] = LAT_DESC
+    attrs['description'] = LAT_DESC
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=acquisition.tile_size)
 

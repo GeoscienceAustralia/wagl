@@ -111,7 +111,7 @@ def image_residual(ref_fid, test_fid, pathname, out_fid, compression='lzf',
     attrs = {}
     attrs['crs_wkt'] = geobox.crs.ExportToWkt()
     attrs['geotransform'] = geobox.transform.to_gdal(),
-    attrs['Description'] = 'Residual'
+    attrs['description'] = 'Residual'
     attrs['min_residual'] = min_residual
     attrs['max_residual'] = max_residual
     attrs['percent_difference'] = pct_difference
@@ -126,7 +126,7 @@ def image_residual(ref_fid, test_fid, pathname, out_fid, compression='lzf',
     hist = h['histogram']
 
     attrs = {}
-    attrs['Description'] = 'Frequency distribution of the residuals'
+    attrs['description'] = 'Frequency distribution of the residuals'
     attrs['omin'] = h['omin']
     attrs['omax'] = h['omax']
     dtype = numpy.dtype([('bin_locations', h['loc'].dtype.name),
@@ -146,7 +146,7 @@ def image_residual(ref_fid, test_fid, pathname, out_fid, compression='lzf',
     cdf = numpy.cumsum(hist / hist.sum())
 
     attrs = {}
-    attrs['Description'] = 'Cumulative distribution of the residuals'
+    attrs['description'] = 'Cumulative distribution of the residuals'
     attrs['omin'] = h['omin']
     attrs['omax'] = h['omax']
     attrs['90th_percentile'] = h['loc'][numpy.searchsorted(cdf, 0.9)]
@@ -208,7 +208,7 @@ def scalar_residual(ref_fid, test_fid, pathname, out_fid, save_inputs):
     # copy the attrs
     attrs = ref_data.copy()
     attrs.pop('value')
-    attrs['Description'] = 'Equivalency Test'
+    attrs['description'] = 'Equivalency Test'
 
     # this'll handle string types, but we won't get a numerical
     # difference value for numerical values, only a bool
@@ -284,7 +284,7 @@ def table_residual(ref_fid, test_fid, pathname, out_fid, compression,
             ref_df[col].dtype.name == 'object']
 
     # output
-    attrs = {'Description': 'Residuals of numerical columns only',
+    attrs = {'description': 'Residuals of numerical columns only',
              'columns_ignored': numpy.array(cols, VLEN_STRING),
              'equivalent': equal}
     base_dname = pbasename(pathname)

@@ -322,7 +322,7 @@ class BRDFLoader(object):
         # Write the dataset
         kwargs = dataset_compression_kwargs(compression='lzf',
                                             chunks=(1, dims[1]))
-        attrs['Description'] = 'Converted BRDF data from H4 to H5.'
+        attrs['description'] = 'Converted BRDF data from H4 to H5.'
         attrs['crs_wkt'] = prj
         attrs['geotransform'] = geobox.transform.to_gdal()
         write_h5_image(self.data[0], dataset_name, group, attrs, **kwargs)

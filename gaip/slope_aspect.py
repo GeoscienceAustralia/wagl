@@ -155,11 +155,11 @@ def slope_aspect_arrays(acquisition, dsm_group, margins, out_group=None,
              'geotransform': geobox.transform.to_gdal(),
              'no_data_value': no_data}
     desc = "The slope derived from the input elevation model."
-    attrs['Description'] = desc
+    attrs['description'] = desc
     attach_image_attributes(slope_dset, attrs)
 
     desc = "The aspect derived from the input elevation model."
-    attrs['Description'] = desc
+    attrs['description'] = desc
     attach_image_attributes(aspect_dset, attrs)
 
     if out_group is None:

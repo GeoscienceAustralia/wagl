@@ -170,7 +170,7 @@ def collect_ancillary(container, satellite_solar_group, nbar_paths,
 
     desc = ("Contains the row and column array coordinates used for the "
             "atmospheric calculations.")
-    attrs = {'Description': desc, 'array_coordinate_offset': 0}
+    attrs = {'description': desc, 'array_coordinate_offset': 0}
     kwargs = dataset_compression_kwargs(compression=compression)
     dset_name = DatasetName.coordinator.value
     coord_dset = group.create_dataset(dset_name, data=coordinator, **kwargs)
@@ -239,7 +239,7 @@ def collect_sbt_ancillary(acquisition, lonlats, ancillary_path,
 
     description = ('Combined Surface and Pressure Layer data retrieved from '
                    'the ECWMF catalogue.')
-    attrs = {'Description': description,
+    attrs = {'description': description,
              'Date used for querying ECWMF': dt}
 
     for i, lonlat in enumerate(lonlats):
@@ -265,7 +265,7 @@ def collect_sbt_ancillary(acquisition, lonlats, ancillary_path,
         write_scalar(sfc_hgt[0], dname, fid, sfc_hgt[1])
 
         dname = ppjoin(pnt, DatasetName.surface_relative_humidity.value)
-        attrs = {'Description': 'Relative Humidity calculated at the surface'}
+        attrs = {'description': 'Relative Humidity calculated at the surface'}
         write_scalar(sfc_rh, dname, fid, attrs)
 
         # get the data from each of the pressure levels (1 -> 1000 ISBL)
@@ -471,19 +471,19 @@ def aggregate_ancillary(granule_groups):
             continue
 
         dset = group.create_dataset(DatasetName.ozone.value, data=ozone)
-        attrs['Description'] = description.format(*(2*['Ozone']))
+        attrs['description'] = description.format(*(2*['Ozone']))
         attach_attributes(dset, attrs)
 
         dset = group.create_dataset(DatasetName.water_vapour.value, data=vapour)
-        attrs['Description'] = description.format(*(2*['Water Vapour']))
+        attrs['description'] = description.format(*(2*['Water Vapour']))
         attach_attributes(dset, attrs)
 
         dset = group.create_dataset(DatasetName.aerosol.value, data=aerosol)
-        attrs['Description'] = description.format(*(2*['Aerosol']))
+        attrs['description'] = description.format(*(2*['Aerosol']))
         attach_attributes(dset, attrs)
 
         dset = group.create_dataset(DatasetName.elevation.value, data=elevation)
-        attrs['Description'] = description.format(*(2*['Elevation']))
+        attrs['description'] = description.format(*(2*['Elevation']))
         attach_attributes(dset, attrs)
 
 
