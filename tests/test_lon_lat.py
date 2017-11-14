@@ -15,6 +15,7 @@ from gaip import unittesting_tools as ut
 # WGS84
 CRS = "EPSG:4326"
 
+@unittest.skip('Requires refactoring')
 class TestLonLatArrays(unittest.TestCase):
 
     def test_lon_array(self):

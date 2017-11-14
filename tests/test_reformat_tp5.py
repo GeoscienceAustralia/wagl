@@ -2,8 +2,11 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
-from gaip import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
-from gaip import MIDLAT_SUMMER_TRANSMITTANCE, TROPICAL_TRANSMITTANCE
+
+from gaip.modtran_profiles import (
+    MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO,
+    MIDLAT_SUMMER_TRANSMITTANCE, TROPICAL_TRANSMITTANCE
+)
 
 
 def main():
