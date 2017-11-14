@@ -78,12 +78,27 @@ def image_residual(ref_fid, test_fid, pathname, out_fid, compression='lzf',
         None; This routine will only return None or a print statement,
         this is essential for the HDF5 visit routine.
     """
+    def evaluate(ref_dset, test_dset):
+        """
+        Evaluate the image residual.
+        Caters for boolean types.
+        TODO: geobox intersection if dimensions are different.
+        TODO: handle no data values
+        TODO: handle classification datasets
+        TODO: handle bitwise datasets
+        """
+        if ref_dset.dtype.name == 'bool':
+            result = numpy.logical_xor(ref_dset, test_dset).astype('uint8')
+        else:
+            result = ref_dset[:] - test_dset
+        return result
+
     class_name = 'IMAGE'
     ref_dset = ref_fid[pathname]
     test_dset = test_fid[pathname]
 
     # ignore no data values for the time being
-    residual = ref_dset[:] - test_dset
+    residual = evaluate(ref_dset, test_dset)
     min_residual = residual.min()
     max_residual = residual.max()
     pct_difference = (residual != 0).sum() / residual.size * 100
