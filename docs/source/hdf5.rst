@@ -199,7 +199,7 @@ with just the base amount of information such as:
 * field/column names
 
 Most table datasets sourced from a NumPy `structured array <https://docs.scipy.org/doc/numpy/user/basics.rec.html>`_
-will be of this simpler form, and might have an additional attribute such as *Description*.
+will be of this simpler form, and might have an additional attribute such as *description*.
 
 If the source of the table was a pandas `DataFrame <https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.html>`_,
 then additional attributes will be attached such as:
@@ -213,7 +213,7 @@ An example of the attributes attached to a table dataset whose source is a Numpy
 .. code-block:: yaml
 
    CLASS: TABLE
-   Description: Contains the array, latitude and longitude coordinates of the satellite
+   description: Contains the array, latitude and longitude coordinates of the satellite
        track path.
    FIELD_0_NAME: row_index
    FIELD_1_NAME: col_index
@@ -230,7 +230,7 @@ An example of the attributes attached to a table dataset whose source is a panda
 
    Albedo: '0'
    CLASS: TABLE
-   Description: Accumulated solar irradiation for point 0 and albedo 0.
+   description: Accumulated solar irradiation for point 0 and albedo 0.
    FIELD_0_NAME: index
    FIELD_1_NAME: diffuse
    FIELD_2_NAME: direct
@@ -270,7 +270,7 @@ All images with geospatial context, which within *gaip* should be all images, wi
 
 As mentioned previously, is a simple method similar to other geospatial formats for storing the corner tie point of the array with a real
 world coordinate, along with the coordinate reference system. Both items are easily parsed to GDAL or rasterio for interpretation.
-A *Description* attribute is generally attached to every Image dataset as a means of easier understanding for anyone working with the code and wondering what a given image is representing.
+A *description* attribute is generally attached to every Image dataset as a means of easier understanding for anyone working with the code and wondering what a given image is representing.
 
 An example of the yaml document, as extracted using *gaip_convert*, for an IMAGE dataset written tile by tile is given as follows:
 
@@ -278,7 +278,7 @@ An example of the yaml document, as extracted using *gaip_convert*, for an IMAGE
 
    CLASS: IMAGE
    DISPLAY_ORIGIN: UL
-   Description: Contains the solar azimuth angle in degrees.
+   description: Contains the solar azimuth angle in degrees.
    IMAGE_VERSION: '1.2'
    crs_wkt: PROJCS["GDA94 / MGA zone 52",GEOGCS["GDA94",DATUM["Geocentric_Datum_of_Australia_1994",SPHEROID["GRS
        1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6283"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4283"]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",129],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",10000000],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],AUTHORITY["EPSG","28352"]]
@@ -297,7 +297,7 @@ An example of the yaml document, as extracted using *gaip_convert*, for an IMAGE
 
    CLASS: IMAGE
    DISPLAY_ORIGIN: UL
-   Description: Contains the interpolated result of factor a for band 6 from sensor Landsat-8.
+   description: Contains the interpolated result of factor a for band 6 from sensor Landsat-8.
    IMAGE_MINMAXRANGE:
    - -999.0
    - 32.484375
@@ -313,3 +313,43 @@ An example of the yaml document, as extracted using *gaip_convert*, for an IMAGE
    - -25.0
    interpolation_method: linear
    no_data_value: -999
+
+
+Compression filters
+-------------------
+
+By default, gaip (via) h5py, will provide access to sever filters:
+
+* lzf
+* gzip
+* shuffle
+
+The default filters used by gaip is the shuffle filter and lzf compression filter.
+The lzf filter is geared around speed, whilst still having modest compression.
+The shuffle filter is designed to reorganise the data so that similar bytes are
+closer together, thus potentially gaining better compression ratios.
+
+Additional HDF5 compression filters (optional)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Additional compression filters can be used via HDF5's
+`dynamically loaded filters <https://support.hdfgroup.org/HDF5/doc/Advanced/DynamicallyLoadedFilters/HDF5DynamicallyLoadedFilters.pdf>`_.
+Essentially the filter needs to be compiled against the HDF5 library, and
+installed into HDF5's plugin path, or a path of your choosing, and set the
+HDF5_PLUGIN_PATH environment variable. The filters are then automatically
+accessible by HDF5 via the `integer code  <https://support.hdfgroup.org/services/contributions.html>`_
+assigned to the filter.
+
+Mafisc compression filter
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Mafisc combines both a bitshuffling filter and lzma compression filter in order
+to get the best compression possible at the cost of lower compression speeds.
+To install the *mafisc* compression filter, follow these `instructions <https://wr.informatik.uni-hamburg.de/research/projects/icomex/mafisc>`_.
+
+Bitshuffle
+~~~~~~~~~~
+
+The `bitshuffle filter <https://github.com/kiyo-masui/bitshuffle>`_ can be installed
+from source, or conda via the supplied `conda recipe <https://github.com/kiyo-masui/bitshuffle/tree/master/conda-recipe>`_.
+It utilises a bitshuffling filter on top of either a lz4 or lzf compression filter.

@@ -58,17 +58,14 @@ accessible by HDF5 via the [integer code](https://support.hdfgroup.org/services/
 assigned to the filter.
 
 #### Mafisc compression filter
+Mafisc combines both a bitshuffling filter and lzma compression filter in order
+to get the best compression possible at the cost of lower compression speeds.
 To install the `mafisc` compression filter, follow these [instructions](https://wr.informatik.uni-hamburg.de/research/projects/icomex/mafisc).
-Or basic instructions are:
-
-`$ make install --prefix=<prefix>` to install into your own `<prefix>`.
-If specifying your own `<prefix>`, then set the following path:
-
-`$ export HDF5_PLUGIN_PATH=<prefix>`
 
 #### Bitshuffle
 The [bitshuffle filter](https://github.com/kiyo-masui/bitshuffle) can be installed
 from source, or conda via the supplied [conda recipe](https://github.com/kiyo-masui/bitshuffle/tree/master/conda-recipe).
+It utilises a bitshuffling filter on top of either a lz4 or lzf compression filter.
 
 ## Basic command line useage
 --------------------------
