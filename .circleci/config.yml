@@ -6,7 +6,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: 538673716275.dkr.ecr.ap-southeast-2.amazonaws.com/dev/gaip:circle-ci
+      - image: $ECR_IMAGE_URL
         aws_auth:
           aws_access_key_id: $ECR_AWS_ACCESS_KEY_ID
           aws_secret_access_key: $ECR_AWS_SECRET_ACCESS_KEY
