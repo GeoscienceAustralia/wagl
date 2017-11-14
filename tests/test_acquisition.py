@@ -16,6 +16,7 @@ LS7_SCENE1 = pjoin(DATA_DIR, 'LANDSAT7', 'LS7_ETM_OTH_P51_GALPGS01-002_090_081_2
 LS8_SCENE1 = pjoin(DATA_DIR, 'LANDSAT8', 'LS8_OLITIRS_OTH_P51_GALPGS01-032_090_084_20131011')
 
 
+@unittest.skip('Requires refactoring')
 class AcquisitionLoadMtlTest(unittest.TestCase):
 
     def test_load_acquisitions_ls5_scene1(self):
@@ -31,6 +32,7 @@ class AcquisitionLoadMtlTest(unittest.TestCase):
         self.assertEqual(len(acq), 9)
 
 
+@unittest.skip('Requires refactoring')
 class AcquisitionsContainerTest(unittest.TestCase):
 
     def test_groups_ls5_scene1(self):
@@ -58,6 +60,7 @@ class AcquisitionsContainerTest(unittest.TestCase):
         self.assertIsNone(scene.granules[0])
 
 
+@unittest.skip('Requires refactoring')
 class Landsat5Scene1AcquisitionTest(unittest.TestCase):
 
     def setUp(self):
@@ -114,6 +117,7 @@ class Landsat5Scene1AcquisitionTest(unittest.TestCase):
             self.assertEqual(acq.platform_id, 'LANDSAT_5')
 
 
+@unittest.skip('Requires refactoring')
 class Landsat7Mtl1AcquisitionTest(unittest.TestCase):
 
     def setUp(self):
@@ -171,6 +175,7 @@ class Landsat7Mtl1AcquisitionTest(unittest.TestCase):
             self.assertEqual(acq.platform_id, 'LANDSAT_7')
 
 
+@unittest.skip('Requires refactoring')
 class Landsat8Mtl1AcquisitionTest(unittest.TestCase):
 
     def setUp(self):
