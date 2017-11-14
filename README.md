@@ -30,7 +30,6 @@ The luigi task workflow for producing NBAR for a Landsat 5TM scene is given belo
 * [pyephem](http://rhodesmill.org/pyephem/)
 * [proj](https://github.com/OSGeo/proj.4)
 * [h5py](https://github.com/h5py/h5py)
-* [bitshuffle](https://github.com/kiyo-masui/bitshuffle)
 * [tables](https://github.com/PyTables/PyTables)
 * [pandas](https://github.com/pandas-dev/pandas)
 * [scikit-image](https://github.com/scikit-image/scikit-image)
@@ -40,18 +39,25 @@ The luigi task workflow for producing NBAR for a Landsat 5TM scene is given belo
 * [shapely](https://github.com/Toblerity/Shapely)
 * [geopandas](https://github.com/geopandas/geopandas)
 * [pyyaml](https://github.com/yaml/pyyaml)
-* [mafisc compression](https://wr.informatik.uni-hamburg.de/research/projects/icomex/mafisc)
-
-See [requirements.txt](requirements.txt) for specific version details.
 
 ## Installation
 ---------------
 
-### Requirements
-Installing the base requirements is done via pip:
-`$ pip install -r /path/to/requirements.txt`
+### gaip Package
+The gaip pacakage can be installed via:
 
-### Mafisc compression filter
+`$ python setup.py install --prefix=<prefix>`
+
+### Additional HDF5 compression filters (optional)
+Additional compression filters can be used via HDF5's
+[dynamically loaded filters](https://support.hdfgroup.org/HDF5/doc/Advanced/DynamicallyLoadedFilters/HDF5DynamicallyLoadedFilters.pdf).
+Essentially the filter needs to be compiled against the HDF5 library, and
+installed into HDF5's plugin path, or a path of your choosing, and set the
+HDF5_PLUGIN_PATH environment variable. The filters are then automatically
+accessible by HDF5 via the [integer code](https://support.hdfgroup.org/services/contributions.html)
+assigned to the filter.
+
+#### Mafisc compression filter
 To install the `mafisc` compression filter, follow these [instructions](https://wr.informatik.uni-hamburg.de/research/projects/icomex/mafisc).
 Or basic instructions are:
 
@@ -60,12 +66,9 @@ If specifying your own `<prefix>`, then set the following path:
 
 `$ export HDF5_PLUGIN_PATH=<prefix>`
 
-This allows HDF5 to use [dynamically loaded filters](https://support.hdfgroup.org/HDF5/doc/Advanced/DynamicallyLoadedFilters/HDF5DynamicallyLoadedFilters.pdf).
-
-### gaip Package
-The gaip pacakage can be installed via:
-
-`$ python setup.py install --prefix=<prefix>`
+#### Bitshuffle
+The [bitshuffle filter](https://github.com/kiyo-masui/bitshuffle) can be installed
+from source, or conda via the supplied [conda recipe](https://github.com/kiyo-masui/bitshuffle/tree/master/conda-recipe).
 
 ## Basic command line useage
 --------------------------
