@@ -8,7 +8,7 @@ jobs:
     docker:
       - image: 538673716275.dkr.ecr.ap-southeast-2.amazonaws.com/dev/gaip:circle-ci
         aws_auth:
-          aws_access_key_id: AKIAJ6V4U7KLSHSCVKFQ
+          aws_access_key_id: $ECR_AWS_ACCESS_KEY_ID
           aws_secret_access_key: $ECR_AWS_SECRET_ACCESS_KEY
 
     working_directory: ~/repo
