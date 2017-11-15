@@ -52,7 +52,7 @@ def load_tle_from_archive(acquisition, data_root, day_radius=45):
     tds = [datetime.timedelta(days=d) for d in offsets]
     yyddd_list = [(center_datetime + d).strftime('%02y%03j') for d in tds]
 
-    name = acquisition.platform_id.replace('-', '').upper()
+    name = acquisition.platform_id.replace('_', '').upper()
 
     tle_archive_path = os.path.join(data_root, name,
                                     'TLE', '%s_ARCHIVE.txt' % acquisition.tag)
@@ -66,9 +66,9 @@ def load_tle_from_archive(acquisition, data_root, day_radius=45):
         return None
 
     re_params = {
-        'NUMBER': acquisition.number,
-        'CLASSIFICATION': acquisition.classification,
-        'INTL_DESIGNATOR': acquisition.intl_designator}
+        'NUMBER': acquisition.norad_id,
+        'CLASSIFICATION': acquisition.classification_type,
+        'INTL_DESIGNATOR': acquisition.international_designator}
 
     for yyddd in yyddd_list:
         re_params['YYDDD'] = yyddd
