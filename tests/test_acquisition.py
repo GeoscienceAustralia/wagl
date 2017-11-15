@@ -10,13 +10,11 @@ from gaip.constants import BandType
 
 DATA_DIR = pjoin(dirname(abspath(__file__)), 'data')
 
-# TODO; update the scenes with resampled versions
 LS5_SCENE1 = pjoin(DATA_DIR, 'LANDSAT5', 'LS5_TM_OTH_P51_GALPGS01-002_090_081_20090407')
 LS7_SCENE1 = pjoin(DATA_DIR, 'LANDSAT7', 'LS7_ETM_OTH_P51_GALPGS01-002_090_081_20090415')
 LS8_SCENE1 = pjoin(DATA_DIR, 'LANDSAT8', 'LS8_OLITIRS_OTH_P51_GALPGS01-032_090_084_20131011')
 
 
-@unittest.skip('Requires refactoring')
 class AcquisitionLoadMtlTest(unittest.TestCase):
 
     def test_load_acquisitions_ls5_scene1(self):
@@ -32,7 +30,6 @@ class AcquisitionLoadMtlTest(unittest.TestCase):
         self.assertEqual(len(acq), 9)
 
 
-@unittest.skip('Requires refactoring')
 class AcquisitionsContainerTest(unittest.TestCase):
 
     def test_groups_ls5_scene1(self):
@@ -60,7 +57,6 @@ class AcquisitionsContainerTest(unittest.TestCase):
         self.assertIsNone(scene.granules[0])
 
 
-@unittest.skip('Requires refactoring')
 class Landsat5Scene1AcquisitionTest(unittest.TestCase):
 
     def setUp(self):
@@ -116,8 +112,16 @@ class Landsat5Scene1AcquisitionTest(unittest.TestCase):
         for acq in self.acqs:
             self.assertEqual(acq.platform_id, 'LANDSAT_5')
 
+    def test_samples(self):
+        self.assertEqual(self.acqs[0].samples, 95)
 
-@unittest.skip('Requires refactoring')
+    def test_lines(self):
+        self.assertEqual(self.acqs[0].lines, 83)
+
+    def test_read(self):
+        self.assertEqual(self.acqs[0].data()[70, 30], 65)
+
+
 class Landsat7Mtl1AcquisitionTest(unittest.TestCase):
 
     def setUp(self):
@@ -174,8 +178,16 @@ class Landsat7Mtl1AcquisitionTest(unittest.TestCase):
         for acq in self.acqs:
             self.assertEqual(acq.platform_id, 'LANDSAT_7')
 
+    def test_samples(self):
+        self.assertEqual(self.acqs[0].samples, 96)
 
-@unittest.skip('Requires refactoring')
+    def test_lines(self):
+        self.assertEqual(self.acqs[0].lines, 83)
+
+    def test_read(self):
+        self.assertEqual(self.acqs[0].data()[70, 30], 61)
+
+
 class Landsat8Mtl1AcquisitionTest(unittest.TestCase):
 
     def setUp(self):
@@ -233,6 +245,15 @@ class Landsat8Mtl1AcquisitionTest(unittest.TestCase):
     def test_platform_id(self):
         for acq in self.acqs:
             self.assertEqual(acq.platform_id, 'LANDSAT_8')
+
+    def test_samples(self):
+        self.assertEqual(self.acqs[0].samples, 94)
+
+    def test_lines(self):
+        self.assertEqual(self.acqs[0].lines, 95)
+
+    def test_read(self):
+        self.assertEqual(self.acqs[0].data()[70, 30], 11003)
 
 
 if __name__ == '__main__':
