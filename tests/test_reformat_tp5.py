@@ -2,12 +2,14 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
-from os.path import join as pjoin
+from os.path import join as pjoin, abspath, dirname
 import unittest
 import tempfile
 
 from gaip.modtran_profiles import MIDLAT_SUMMER_ALBEDO
 from gaip.modtran_profiles import MIDLAT_SUMMER_TRANSMITTANCE
+
+DATA_DIR = pjoin(dirname(abspath(__file__)), 'data')
 
 
 class Tp5ReformatTest(unittest.TestCase):
@@ -23,7 +25,7 @@ class Tp5ReformatTest(unittest.TestCase):
         """
         self.maxDiff = None
 
-        with open('data/TL_alb_0.tp5', 'r') as src:
+        with open(pjoin(DATA_DIR, 'TL_alb_0.tp5'), 'r') as src:
             ref_albedo = ''.join(src.readlines())
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -58,7 +60,7 @@ class Tp5ReformatTest(unittest.TestCase):
         """
         self.maxDiff = None
 
-        with open('data/TL_alb_t.tp5', 'r') as src:
+        with open(pjoin(DATA_DIR, 'TL_alb_t.tp5'), 'r') as src:
             ref_trans = ''.join(src.readlines())
 
         with tempfile.TemporaryDirectory() as tmpdir:
