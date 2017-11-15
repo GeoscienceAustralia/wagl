@@ -21,7 +21,8 @@ FNAME8 = pjoin(DATA_DIR, 'point-3-albedo-t_binary.tp5')
 class Tp5Test(unittest.TestCase):
 
     """
-    Test different configurations of the tp5 file format.
+    Test different configurations of the tp5 file format,
+    and that the input/output round trips.
     """
 
     def test_midlat_summer_albedo(self):
