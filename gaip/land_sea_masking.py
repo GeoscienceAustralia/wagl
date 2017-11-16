@@ -3,7 +3,6 @@ import os
 import numpy
 
 from osgeo import gdal
-from osgeo import osr
 from gaip.metadata import extract_ancillary_metadata
 
 
@@ -26,9 +25,9 @@ def calc_land_sea_mask(geo_box, \
         A 2D Numpy Boolean array. True = Land, False = Sea.
 
     :note:
-        The function does not currently support reprojections. The 
-        GriddedGeoBox must have CRS and Pixelsize matching the 
-        ancillary data GeoTiffs. 
+        The function does not currently support reprojections. The
+        GriddedGeoBox must have CRS and Pixelsize matching the
+        ancillary data GeoTiffs.
 
     :TODO:
         Support reprojection to any arbitrary GriddedGeoBox.
@@ -73,12 +72,6 @@ def calc_land_sea_mask(geo_box, \
         imgy = int(numpy.round((geoTransform[3] - location[1]) /
                                numpy.abs(geoTransform[5])))
         return (imgy, imgx)
-
-    # get lat/long of geo_box origin
-
-    to_crs = osr.SpatialReference()
-    to_crs.SetFromUserInput('EPSG:4326')
-    origin_longlat = geo_box.transform_coordinates(geo_box.origin, to_crs)
 
     # get Land/Sea data file for this bounding box
     utm_zone = geo_box.crs.GetUTMZone()

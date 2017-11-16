@@ -4,6 +4,8 @@
 PBS submission scripts.
 """
 
+from __future__ import print_function
+
 import os
 from os.path import join as pjoin, dirname, exists
 import subprocess

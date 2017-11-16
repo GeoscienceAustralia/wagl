@@ -140,6 +140,7 @@ def surface_brightness_temperature(acquisition, interpolation_group,
     attrs['description'] = desc
     attach_image_attributes(out_dset, attrs)
 
+    # pylint: disable=unused-variable
     # constants
     k1 = acq.K1
     k2 = acq.K2

@@ -7,9 +7,10 @@ Ancillary dataset retrieval and storage
 from __future__ import absolute_import, print_function
 import logging
 from os.path import join as pjoin, basename, splitext
-from posixpath import join as ppjoin
 import datetime
 import glob
+
+from posixpath import join as ppjoin
 import numpy
 import h5py
 import pandas
@@ -181,7 +182,7 @@ def collect_ancillary(container, satellite_solar_group, nbar_paths,
         collect_sbt_ancillary(acquisition, lonlats, sbt_path, invariant_fname,
                               out_group=group, compression=compression)
 
-    collect_nbar_ancillary(container, out_group=group, 
+    collect_nbar_ancillary(container, out_group=group,
                            compression=compression, **nbar_paths)
 
     if out_group is None:
@@ -429,7 +430,7 @@ def _aggregate_ancillary(ancillary_fnames, write_access):
     for fid in fids:
         fid.close()
 
-    
+
 def aggregate_ancillary(granule_groups):
     """
     If the acquisition is part of a `tiled` scene such as Sentinel-2a,

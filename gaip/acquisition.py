@@ -53,7 +53,7 @@ class AcquisitionsContainer(object):
     A container for dealing with a hierarchial structure
     of acquisitions from different groups, granules, but
     all part of the same geospatial area or scene.
-    
+
     Note: Assuming that each granule contains the same groups.
 
     The `AcquisitionsContainer.tiled` property indicates whether or
@@ -603,7 +603,7 @@ def find_in(path, s, suffix='txt'):
 
 def find_all_in(path, s):
     """
-    Search through `path` and its children for all occurances of 
+    Search through `path` and its children for all occurances of
     files with `s` in their name. Returns the (possibly empty) list
     of file paths
     """
@@ -634,7 +634,7 @@ def acquisitions(path):
 
 def acquisitions_via_mtl(pathname):
     """Obtain a list of Acquisition objects from `path`. The argument `path`
-    can be a MTL file or a directory name. If `path` is a directory then the 
+    can be a MTL file or a directory name. If `path` is a directory then the
     MTL file will be search for in the directory and its children."""
 
     if isdir(pathname):
@@ -803,7 +803,7 @@ def acquisitions_via_safe(pathname):
     # radiance (w/m^2)  scale factors
     rsf = {band_map[str(i)]: v for i, v in
            enumerate([0.01] * 10 + [None] + [0.002] + [0.0005])}
-    
+
     # earth -> sun distance correction factor; d2 =  1/ U
     search_term = './*/Product_Image_Characteristics/Reflectance_Conversion/U'
     u = float(xml_root.findall(search_term)[0].text)
@@ -857,7 +857,7 @@ def acquisitions_via_safe(pathname):
 
         img_data_path = ''.join(['zip:', pathname, '!', archive.namelist()[0]])
 
-        if not single_granule_archive: 
+        if not single_granule_archive:
             img_data_path = ''.join([img_data_path,
                                      pjoin('GRANULE', granule_id, 'IMG_DATA')])
 
@@ -976,7 +976,7 @@ class Sentinel2aAcquisition(Acquisition):
             data['latitude'].append(lat)
             data['altitude'].append(alt)
             data['timestamp'].append(gps_time)
-        
+
         return pandas.DataFrame(data)
 
     def _retrieve_solar_zenith(self):
@@ -1001,7 +1001,7 @@ class Sentinel2aAcquisition(Acquisition):
 
         archive = zipfile.ZipFile(self.pathname)
         xml_root = ElementTree.XML(archive.read(self.granule_xml))
-        
+
         # read the low res solar zenith data
         search_term = './*/Tile_Angles/Sun_Angles_Grid/Zenith/Values_List'
         values = xml_root.findall(search_term)[0]
@@ -1057,7 +1057,7 @@ class Sentinel2aAcquisition(Acquisition):
                    slice(window[1][0], window[1][1]))
 
         # coefficients
-        #pylint: disable=unused-argument
+        # pylint: disable=unused-argument,unused-variable
         sf = numpy.float32(1 / (self.c1 * self.qv))
         pi_d2 = numpy.float32(numpy.pi * self.d2)
         esun = numpy.float32(self.solar_irradiance / 10)

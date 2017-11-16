@@ -5,10 +5,13 @@ A recursive utility that compares and evaluates datasets within a
 reference file, with the equivalent dataset from a test file.
 """
 
-from posixpath import join as ppjoin
-from posixpath import basename as pbasename
+from __future__ import print_function
+
 import argparse
 from functools import partial
+
+from posixpath import join as ppjoin
+from posixpath import basename as pbasename
 import numpy
 import h5py
 import pandas
@@ -53,7 +56,7 @@ def image_residual(ref_fid, test_fid, pathname, out_fid, compression='lzf',
     :param ref_fid:
         A h5py file object (essentially the root Group), containing
         the reference data.
-    
+
     :param test_fid:
         A h5py file object (essentially the root Group), containing
         the test data.
@@ -73,7 +76,7 @@ def image_residual(ref_fid, test_fid, pathname, out_fid, compression='lzf',
         A `bool` indicating whether or not to save the input datasets
         used for evaluating the residuals alongside the results.
         Default is False.
-    
+
     :return:
         None; This routine will only return None or a print statement,
         this is essential for the HDF5 visit routine.
@@ -176,11 +179,11 @@ def scalar_residual(ref_fid, test_fid, pathname, out_fid, save_inputs):
     """
     Undertake a simple equivalency test, rather than a numerical
     difference. This allows strings to be compared.
-    
+
     :param ref_fid:
         A h5py file object (essentially the root Group), containing
         the reference data.
-    
+
     :param test_fid:
         A h5py file object (essentially the root Group), containing
         the test data.
@@ -196,7 +199,7 @@ def scalar_residual(ref_fid, test_fid, pathname, out_fid, save_inputs):
         A `bool` indicating whether or not to save the input datasets
         used for evaluating the residuals alongside the results.
         Default is False.
-    
+
     :return:
         None; This routine will only return None or a print statement,
         this is essential for the HDF5 visit routine.
@@ -238,11 +241,11 @@ def table_residual(ref_fid, test_fid, pathname, out_fid, compression,
     An equivalency test using `pandas.DataFrame.equals` is also
     undertaken which if False, requires further investigation to
     determine the column(s) and row(s) that are different.
-    
+
     :param ref_fid:
         A h5py file object (essentially the root Group), containing
         the reference data.
-    
+
     :param test_fid:
         A h5py file object (essentially the root Group), containing
         the test data.
@@ -262,7 +265,7 @@ def table_residual(ref_fid, test_fid, pathname, out_fid, compression,
         A `bool` indicating whether or not to save the input datasets
         used for evaluating the residuals alongside the results.
         Default is False.
-    
+
     :return:
         None; This routine will only return None or a print statement,
         this is essential for the HDF5 visit routine.
@@ -314,7 +317,7 @@ def residuals(ref_fid, test_fid, out_fid, compression, save_inputs, pathname):
     :param ref_fid:
         A h5py file object (essentially the root Group), containing
         the reference data.
-    
+
     :param test_fid:
         A h5py file object (essentially the root Group), containing
         the test data.
@@ -334,7 +337,7 @@ def residuals(ref_fid, test_fid, out_fid, compression, save_inputs, pathname):
         A `bool` indicating whether or not to save the input datasets
         used for evaluating the residuals alongside the results.
         Default is False.
-    
+
     :return:
         None; This routine will only return None or a print statement,
         this is essential for the HDF5 visit routine.
@@ -512,7 +515,7 @@ def _parser():
                         help="The comression filter to use.")
     parser.add_argument("--save-inputs", action='store_true',
                         help=("Save the reference and test datasets "
-                              "alongside the resdiual/difference datasets."))
+                              "alongside the residual/difference datasets."))
 
     return parser
 

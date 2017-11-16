@@ -10,6 +10,8 @@
 
 """Git implementation of _version.py."""
 
+from __future__ import print_function
+
 import errno
 import os
 import re
@@ -30,7 +32,7 @@ def get_keywords():
     return keywords
 
 
-class VersioneerConfig:
+class VersioneerConfig(object):
     """Container for Versioneer configuration parameters."""
 
 
@@ -226,7 +228,7 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
         git_executables = ["git.cmd", "git.exe"]
 
     _, rc = run_command(git_executables, ["rev-parse", "--git-dir"], cwd=root,
-                          hide_stderr=True)
+                        hide_stderr=True)
     if rc != 0:
         if verbose:
             print("Directory %s not under git control" % root)
@@ -235,8 +237,8 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
     # if there is a tag matching tag_prefix, this yields TAG-NUM-gHEX[-dirty]
     # if there isn't one, this yields HEX[-dirty] (no NUM)
     describe_out, rc = run_command(git_executables, ["describe", "--tags", "--dirty",
-                                          "--always", "--long",
-                                          "--match", "%s*" % tag_prefix],
+                                                     "--always", "--long",
+                                                     "--match", "%s*" % tag_prefix],
                                    cwd=root)
     # --long was added in git-1.5.5
     if describe_out is None:

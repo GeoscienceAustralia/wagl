@@ -30,6 +30,8 @@ from skimage import morphology
 from skimage import measure
 from skimage import segmentation
 
+# pylint: disable=invalid-name
+
 
 # Sun earth distance look up table
 # pylint: disable=line-too-long
@@ -118,8 +120,8 @@ def imread(filename, resample=False, samples=None, lines=None):
         outds.SetProjection(img.GetProjection())
         gdal.ReprojectImage(img, outds)
         return outds.ReadAsArray()
-    else:
-        return band.ReadAsArray()
+
+    return band.ReadAsArray()
 
 
 def imfill_pybuffer(img, ts):
@@ -583,6 +585,7 @@ def nd2toarbt(filename, images=None):
     :param images:
         A numpy.ndarray of pre-calculated reflectance values for each landsat band, to be used instead of calculating our own.
     """
+    # pylint: disable=unused-variable
     Lmax, Lmin, Qcalmax, Qcalmin, Refmax, Refmin, ijdim_ref, ijdim_thm, reso_ref, reso_thm, ul, zen, azi, zc, Lnum, doy = lndhdrread(
         filename)
 
@@ -891,7 +894,7 @@ def nd2toarbt(filename, images=None):
         raise Exception('This sensor is not Landsat 4, 5, 7, or 8!')
 
 
-def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, shadow_prob=False, mask=None, aux_data={}):
+def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, shadow_prob=False, mask=None, aux_data=None):
     """
     Calculates a cloud mask for a landsat 5/7 scene.
 
@@ -916,6 +919,10 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, shadow_prob=False
     :return:
         Tuple (zen,azi,ptm, temperature band (celcius*100),t_templ,t_temph, water mask, snow mask, cloud mask , shadow probability,dim,ul,resolu,zc).
     """
+
+    # pylint: disable=unused-variable
+
+    aux_data = aux_data or {}
     start_time = time.time()
 
     Temp, data, dim, ul, zen, azi, zc, satu_B1, satu_B2, satu_B3, resolu, geoT, prj = nd2toarbt(
@@ -1225,7 +1232,7 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, shadow_prob=False
 
             logging.debug("FMASK Standard Deviation: %f C", cloud_stddev)
             aux_data['FMASK_std_dev_degC'] = cloud_stddev
-            logging.debug("FMASK 97.5 percentile: %f C" , pct_upper)
+            logging.debug("FMASK 97.5 percentile: %f C", pct_upper)
             aux_data['FMASK_97.5_percentile'] = pct_upper
             logging.debug("FMASK 83.5 percentile: %f C", pct_lower)
             aux_data['FMASK_83.5_percentile'] = pct_lower

@@ -5,6 +5,8 @@ A recursive utility that lists all Groups and Datasets contained
 within a HDF5.
 """
 
+from __future__ import print_function
+
 import argparse
 import h5py
 from gaip.hdf5 import h5ls

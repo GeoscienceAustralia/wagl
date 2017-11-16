@@ -1,4 +1,4 @@
-#!/bin/env python 
+#!/bin/env python
 #
 # get Land/Sea mask from UTM dataset
 #-----------------------------------
@@ -9,6 +9,7 @@ from gaip.geobox import GriddedGeoBox
 from gaip.data import write_img
 import numpy
 
+# pylint: disable=invalid-name
 
 def get_utm_zone(pos_longlat):
     """
@@ -31,11 +32,11 @@ def get_land_sea_mask(gridded_geo_box, \
         ancillary_path='/g/data/v10/eoancillarydata/Land_Sea_Rasters'):
     """
     Return a land/sea 2D numpy boolean array in which Land = True, Sea = False
-    for the supplied GriddedGeoBox and using the UTM projected data in the 
+    for the supplied GriddedGeoBox and using the UTM projected data in the
     supplied ancillary_path.
 
     If the specified gridded_geo_box has a non-UTM CRS or a non-native
-    sample frequency, the data will be reprojected/resampled into the the 
+    sample frequency, the data will be reprojected/resampled into the the
     gridded_geo_box.
     """
 
@@ -50,7 +51,7 @@ def get_land_sea_mask(gridded_geo_box, \
     utmZone = abs(get_utm_zone(origin_longlat))
     utmDataPath = '%s/WORLDzone%d.tif' % (ancillary_path, utmZone)
 
-    # read the land/sea data 
+    # read the land/sea data
     with rio.open(utmDataPath) as ds:
 
         # get the gridded box for the full dataset extent

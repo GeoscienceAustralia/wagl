@@ -4,8 +4,9 @@ from __future__ import absolute_import, print_function, unicode_literals
 from datetime import datetime as dt
 import glob
 from os.path import join as pjoin, splitext, basename
-from posixpath import join as ppjoin
 import argparse
+
+from posixpath import join as ppjoin
 import numpy
 import h5py
 import pandas

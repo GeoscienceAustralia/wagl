@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 from os.path import join as pjoin
-from posixpath import join as ppjoin
 import logging
 import tempfile
+
+from posixpath import join as ppjoin
 from structlog import wrap_logger
 from structlog.processors import JSONRenderer
 import h5py
@@ -41,6 +42,7 @@ def get_buffer(group):
     return buf[group]
 
 
+# pylint disable=too-many-arguments
 def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
            aerosol_fname, brdf_path, brdf_premodis_path, ozone_path,
            water_vapour_path, dem_path, dsm_fname, invariant_fname,

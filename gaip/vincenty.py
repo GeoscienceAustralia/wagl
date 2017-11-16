@@ -54,6 +54,8 @@ import numpy
 
 __version__ = '1.0.1'
 
+# pylint: disable=invalid-name
+
 
 class GreatCircle(object):
 
@@ -162,6 +164,7 @@ class GreatCircle(object):
             lons = [math.degrees(lonpt)]
             lats = [math.degrees(latpt)]
             for n in range(npoints - 2):
+                # pylint: disable=unused-variable
                 latptnew, lonptnew, alpha21 = vinc_pt(self.f, self.a, latpt, lonpt, azimuth, incdist)
                 d, azimuth, a21 = vinc_dist(self.f, self.a, latptnew, lonptnew, lat2, lon2)
                 lats.append(math.degrees(latptnew))
