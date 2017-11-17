@@ -181,14 +181,19 @@ def write_img(array, filename, fmt='ENVI', geobox=None, nodata=None,
         kwargs['compress'] = compress
         kwargs['predictor'] = predictor[dtype]
 
-    if options is not None:
-        for key in options:
-            kwargs[key] = options[key]
-
     if isinstance(array, h5py.Dataset):
         # TODO: if array is 3D get x & y chunks
         y_tile, x_tile = array.chunks
         tiles = generate_tiles(samples, lines, x_tile, y_tile)
+
+        # add blocksizes to the creation keywords
+        kwargs['blockxsize'] = x_tile
+        kwargs['blockysize'] = y_tile
+
+    # the user can override any derived blocksizes by supplying `options`
+    if options is not None:
+        for key in options:
+            kwargs[key] = options[key]
 
     with rasterio.open(filename, 'w', **kwargs) as outds:
         if bands == 1:

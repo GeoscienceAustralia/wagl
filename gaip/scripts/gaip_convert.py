@@ -66,13 +66,10 @@ def convert_image(dataset, output_directory):
     tags['history'] = "Converted from HDF5 IMAGE to GeoTiff."
 
     # TODO: get x & y chunks from 3D images
-    options = {'zlevel': 1,
-               'blockxsize': dataset.chunks[1],
-               'blockysize': dataset.chunks[0]}
     kwargs = {'fmt': 'GTiff',
               'geobox': geobox,
               'compress': 'deflate',
-              'options': options,
+              'options': {'zlevel': 1},
               'tags': tags,
               'nodata': no_data}
 
