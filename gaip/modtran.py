@@ -9,9 +9,10 @@ MODTRAN drivers
 from __future__ import absolute_import, print_function
 import os
 from os.path import join as pjoin, exists, dirname
-from posixpath import join as ppjoin
 import subprocess
 import glob
+
+from posixpath import join as ppjoin
 import numpy
 from scipy.io import FortranFile
 import h5py
@@ -130,15 +131,15 @@ def format_tp5(acquisitions, ancillary_group, satellite_solar_group,
     # check if in western hemisphere
     idx = rlon >= 360
     rlon[idx] -= 360
-    
+
     idx = (180 - view_corrected) < 0.1
     view_corrected[idx] = 180
     azi_corrected[idx] = 0
-    
+
     idx = azi_corrected > 360
     azi_corrected[idx] -= 360
 
-    # get the modtran profiles to use based on the centre latitude 
+    # get the modtran profiles to use based on the centre latitude
     _, centre_lat = acquisitions[0].gridded_geo_box().centre_lonlat
     if centre_lat < -23.0:
         albedo_profile = MIDLAT_SUMMER_ALBEDO
@@ -211,7 +212,7 @@ def format_tp5(acquisitions, ancillary_group, satellite_solar_group,
                               'humidity': row['Relative_Humidity'],
                               'zero': 0.0}
                 atmospheric_profile.append(SBT_FORMAT.format(**input_data))
-            
+
             input_data = {'ozone': ozone,
                           'filter_function': acqs[0].spectral_filter_file,
                           'visibility': -aerosol,
@@ -799,15 +800,15 @@ def read_modtran_channel(fname, acquisition, albedo):
         downward_radiation.columns = downward_radiation.columns.astype(str)
 
         return upward_radiation, downward_radiation
-    else:
-        chn_data = pd.read_csv(fname, skiprows=5, header=None, nrows=nbands,
-                               delim_whitespace=True)
-        chn_data['band_name'] = chn_data[20]
-        chn_data.drop(20, inplace=True, axis=1)
-        chn_data.set_index('band_name', inplace=True)
-        chn_data.columns = chn_data.columns.astype(str)
 
-        return chn_data
+    chn_data = pd.read_csv(fname, skiprows=5, header=None, nrows=nbands,
+                           delim_whitespace=True)
+    chn_data['band_name'] = chn_data[20]
+    chn_data.drop(20, inplace=True, axis=1)
+    chn_data.set_index('band_name', inplace=True)
+    chn_data.columns = chn_data.columns.astype(str)
+
+    return chn_data
 
 
 def calculate_solar_radiation(flux_data, spectral_response, levels=36,

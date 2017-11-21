@@ -6,12 +6,15 @@ from a HDF5 file. Any hierarchial structure will be replicated on
 disk as directories.
 """
 
+from __future__ import print_function
+
 import os
 from os.path import join as pjoin, normpath, dirname, exists, basename
-from posixpath import join as ppjoin
-from posixpath import basename as pbasename
 from functools import partial
 import argparse
+
+from posixpath import basename as pbasename
+from posixpath import join as ppjoin
 import numpy
 import h5py
 import yaml

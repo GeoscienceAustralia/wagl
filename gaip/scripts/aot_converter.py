@@ -4,8 +4,9 @@ from __future__ import absolute_import, print_function, unicode_literals
 from datetime import datetime as dt
 import glob
 from os.path import join as pjoin, splitext, basename
-from posixpath import join as ppjoin
 import argparse
+
+from posixpath import join as ppjoin
 import numpy
 import h5py
 import pandas
@@ -29,8 +30,6 @@ def read_pix(filename):
                           count=recs[2] * 3).reshape(3, recs[2])
     time = numpy.fromfile(src, dtype='int16',
                           count=recs[2] * 3).reshape(3, recs[2])
-    lat = numpy.fromfile(src, dtype='float32', count=recs[2])
-    lon = numpy.fromfile(src, dtype='float32', count=recs[2])
     aot = numpy.fromfile(src, dtype='float32', count=recs[2])
     src.close()
 

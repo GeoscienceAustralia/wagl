@@ -185,7 +185,7 @@ def interpolate_grid(depth=0, origin=DEFAULT_ORIGIN, shape=DEFAULT_SHAPE,
         interpolate_block(origin, shape, eval_func, grid)
     else:
         blocks = subdivide(origin, shape)
-        for (kUL, kUR, kLL, kLR) in blocks.values():
+        for (kUL, _, _, kLR) in blocks.values():
             block_shape = (kLR[0] - kUL[0] + 1, kLR[1] - kUL[1] + 1)
             interpolate_grid(depth - 1, kUL, block_shape, eval_func, grid)
 
@@ -241,32 +241,32 @@ def sheared_bilinear_interpolate(cols, rows, locations, samples,
                                  shear=True, both_sides=False):
     """
     Generalisation of the original NBAR interpolation scheme
-    
+
     Same interface as:
         gaip.interpolation.fortran_bilinear_interpolate
     with following exceptions:
         -   locations/samples may be greater than 9 (e.g. 25, 49, etc)
         -   two additional configuation options:
-        
+
     :bool shear:
         If false then apply textbook bilinear interpolation. Note this
         expects that the locations describe a rectilinear grid. If true
         then make adjustments for grid distortion and curvature of
         boxlines (row_start, row_centre and row_end).
         See also `both_sides`.
-        
+
     :bool both_sides:
         Only has effect if shear is True.
         If false then apply original modification like used in the
-        previous fortran version. 
+        previous fortran version.
         If true then instead apply corrections for trapezoidal shape of
-        4-point grid cells. 
+        4-point grid cells.
         If the grid/boxlines have a sheared parallelogram shape (rather
-        than more general sheared trapezoidal shapes) then both 
-        methods should produce equivalent output, otherwise the 
-        original version is expected to introduce larger discontinuities 
+        than more general sheared trapezoidal shapes) then both
+        methods should produce equivalent output, otherwise the
+        original version is expected to introduce larger discontinuities
         between cells.
-        
+
     Optimised to reduce memory footprint (no large rasters are
     temporarily allocated).
     """
@@ -274,7 +274,7 @@ def sheared_bilinear_interpolate(cols, rows, locations, samples,
     n = len(samples)
     grid_size = int(math.sqrt(n)) - 1
 
-    assert (grid_size+1)**2 == n and not (grid_size % 2)
+    assert (grid_size+1)**2 == n and not grid_size % 2
     # Assume count of samples is 9 or 25, 49, 81.. (Grid size is 2, 4, 6, ..)
 
     # facilitate indexing
@@ -283,7 +283,7 @@ def sheared_bilinear_interpolate(cols, rows, locations, samples,
 
     # BOXLINE:
     # Parcel boundaries follow satellite track (by 1D linear interpolation)
-    
+
     lines = np.empty((grid_size+1, rows), dtype=np.uint32)
 
     middle_vertex = grid_size//2
@@ -315,8 +315,8 @@ def sheared_bilinear_interpolate(cols, rows, locations, samples,
 
             values = samples[i:i+2, j:j+2].reshape(4)
             vertices = locations[i:i+2, j:j+2].reshape(4, 2).astype(
-                                                        np.float32, copy=True)
-                                 # note, copying permits modification by shear
+                np.float32, copy=True)
+            # note, copying permits modification by shear
 
             # build numexpr to update cell with interpolation
 
@@ -331,9 +331,9 @@ def sheared_bilinear_interpolate(cols, rows, locations, samples,
                 if not both_sides:
                     sheared = 'x - row_start'
                 else:
-                    # if near-singular matrix warnings, multiply by a constant typical width-between-samples 
+                    # if near-singular matrix warnings, multiply by a constant typical width-between-samples
                     sheared = '(x - left) / (right - left)'
-                    
+
                 # apply shear to interpolation
                 exp = exp.replace('x', '(' + sheared + ')')
 
@@ -353,8 +353,9 @@ def sheared_bilinear_interpolate(cols, rows, locations, samples,
             matrix[:, 1:3] = vertices
             matrix[:, 3] = vertices[:, 0] * vertices[:, 1]
 
+            # pylint: disable=unused-variable
             a0, a1, a2, a3 = np.linalg.solve(matrix, values)
-            
+
             # update output raster
 
             expression = 'where({}, {}, result)'.format(subset, exp)

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# pragma pylint: disable=line-too-long
 
 from __future__ import absolute_import, print_function
 """
@@ -20,8 +21,8 @@ Parameters to be inserted are:
     * satellite view offset; (180 - angle); units: degrees
 """
 
-MIDLAT_SUMMER_ALBEDO = (
-"""TM{binary} 2    2    2    1    2    2    2    2    2    2    1    1    0  10.000{albedo:7.2f}
+MIDLAT_SUMMER_ALBEDO = ("""\
+TM{binary} 2    2    2    1    2    2    2    2    2    2    1    1    0  10.000{albedo:7.2f}
 TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0.3         0      0.70         0         0
 {filter_function:<75}
     1    0    0    0    0    0{visibility:10.3f}     0.000     0.000     0.000{elevation:10.3f}
@@ -32,8 +33,8 @@ TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0
     0                                                                                                         
 """)
 
-TROPICAL_ALBEDO = (
-"""TM{binary} 1    2    2    1    1    1    1    1    1    1    1    1    0  10.000{albedo:7.2f}
+TROPICAL_ALBEDO = ("""\
+TM{binary} 1    2    2    1    1    1    1    1    1    1    1    1    0  10.000{albedo:7.2f}
 TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0.3         0      0.70         0         0
 {filter_function:<75}
     1    0    0    0    0    0{visibility:10.3f}     0.000     0.000     0.000{elevation:10.3f}
@@ -44,8 +45,8 @@ TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0
     0                                                                                                         
 """)
 
-MIDLAT_SUMMER_TRANSMITTANCE = (
-"""TM{binary} 2    2    2    1    2    2    2    2    2    2    1    1    0  10.000{albedo:7.2f}
+MIDLAT_SUMMER_TRANSMITTANCE = ("""\
+TM{binary} 2    2    2    1    2    2    2    2    2    2    1    1    0  10.000{albedo:7.2f}
 TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0.3         0      0.70         0         0
 {filter_function:<75}
     1    0    0    0    0    0{visibility:10.5f}     0.000     0.000     0.000{elevation:10.3f}
@@ -56,8 +57,8 @@ TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0
     0                                                                                                         
 """)
 
-TROPICAL_TRANSMITTANCE = (
-"""TM{binary} 1    2    2    1    1    1    1    1    1    1    1    1    0  10.000{albedo:7.2f}
+TROPICAL_TRANSMITTANCE = ("""\
+TM{binary} 1    2    2    1    1    1    1    1    1    1    1    1    0  10.000{albedo:7.2f}
 TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0.3         0      0.70         0         0
 {filter_function:<75}
     1    0    0    0    0    0{visibility:10.5f}     0.000     0.000     0.000{elevation:10.3f}
@@ -68,8 +69,8 @@ TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0
     0                                                                                                         
 """)
 
-THERMAL_TRANSMITTANCE = (
-"""T {binary} 7    2    1    0    2    2    2    2    2    2    1    1    0  10.000   0.00
+THERMAL_TRANSMITTANCE = ("""\
+T {binary} 7    2    1    0    2    2    2    2    2    2    1    1    0  10.000   0.00
 F   0F   0   375.000       1.0    a{ozone:5.3f} 4   T                       
 {filter_function:<75}
     1    0    0    0    0    0{visibility:10.3f}     0.000     0.000     0.000{gpheight:10.3f}
