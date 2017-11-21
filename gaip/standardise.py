@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 from os.path import join as pjoin
-from posixpath import join as ppjoin
 import logging
 import tempfile
+
+from posixpath import join as ppjoin
 from structlog import wrap_logger
 from structlog.processors import JSONRenderer
 import h5py
@@ -41,6 +42,7 @@ def get_buffer(group):
     return buf[group]
 
 
+# pylint disable=too-many-arguments
 def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
            aerosol_fname, brdf_path, brdf_premodis_path, ozone_path,
            water_vapour_path, dem_path, dsm_fname, invariant_fname,
@@ -125,15 +127,15 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
                     dsm_group_name = GroupName.elevation_group.value
                     calculate_cast_shadow(acqs[0], group[dsm_group_name],
                                           group[GroupName.sat_sol_group.value],
-                                          get_buffer(grp_name), 500, 500, 
-                                          group, compression) 
+                                          get_buffer(grp_name), 500, 500,
+                                          group, compression)
 
                     # cast shadow satellite source direction
                     log.info('Cast-Shadow-Satellite-Direction')
                     calculate_cast_shadow(acqs[0], group[dsm_group_name],
                                           group[GroupName.sat_sol_group.value],
-                                          get_buffer(grp_name), 500, 500, 
-                                          group, compression, False) 
+                                          get_buffer(grp_name), 500, 500,
+                                          group, compression, False)
 
                     # combined shadow masks
                     log.info('Combined-Shadow')
@@ -153,7 +155,7 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
                           'brdf_premodis_path': brdf_premodis_path}
             grn_con = scene.get_granule(granule=grn_name, container=True)
             group = granule_group[scene.groups[0]]
-            collect_ancillary(grn_con, group[GroupName.sat_sol_group.value], 
+            collect_ancillary(grn_con, group[GroupName.sat_sol_group.value],
                               nbar_paths, ecmwf_path, invariant_fname,
                               vertices, granule_group, compression)
 
@@ -176,7 +178,8 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
             acqs = scene.get_acquisitions(granule=grn_name, group=grp_name)
             root_path = ppjoin(scene.get_root(granule=grn_name), grp_name)
 
-            # TODO check that the average ancilary group can be parsed to reflectance and other functions
+            # TODO: check that the average ancilary group can be parsed
+            #       to reflectance and other functions
             if scene.tiled:
                 ancillary_group = granule_group[GroupName.ancillary_group.value]
             else:

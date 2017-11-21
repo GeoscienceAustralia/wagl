@@ -25,10 +25,11 @@ Workflow settings can be configured in `luigi.cfg` file.
 from __future__ import absolute_import, print_function
 import os
 from os.path import join as pjoin, basename, dirname, normpath, splitext
-from posixpath import join as ppjoin
-from posixpath import normpath as pnormpath
 import logging
 import traceback
+
+from posixpath import join as ppjoin
+from posixpath import normpath as pnormpath
 from structlog import wrap_logger
 from structlog.processors import JSONRenderer
 import h5py
@@ -892,7 +893,7 @@ class LinkGaipOutputs(luigi.Task):
         for granule in container.granules:
             for group in container.groups:
                 kwargs = {'level1': self.level1, 'work_root': self.work_root,
-                          'granule': granule, 'group': group, 
+                          'granule': granule, 'group': group,
                           'model': self.model, 'vertices': self.vertices,
                           'pixel_quality': self.pixel_quality,
                           'method': self.method}
@@ -952,7 +953,7 @@ class ARD(luigi.WrapperTask):
                       'method': self.method}
 
             yield LinkGaipOutputs(**kwargs)
-            
+
 
 class CallTask(luigi.WrapperTask):
 

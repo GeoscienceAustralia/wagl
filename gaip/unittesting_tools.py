@@ -77,15 +77,15 @@ class ParameterisedTestCase(unittest.TestCase):
         suite = unittest.TestSuite()
         for name in testnames:
             suite.addTest(testcase_klass(name, reference_fname=reference_fname,
-                          test_fname=test_fname,
-                          tolerance=tolerance,
-                          decimal_precision=decimal_precision,
-                          integer_precision=integer_precision))
+                                         test_fname=test_fname,
+                                         tolerance=tolerance,
+                                         decimal_precision=decimal_precision,
+                                         integer_precision=integer_precision))
         return suite
 
 
-def create_test_image(dimensions=(1000,1000), geotransform=None,
-                      projection=None, resolution=(25.0,25.0), dtype='uint8'):
+def create_test_image(dimensions=(1000, 1000), geotransform=None,
+                      projection=None, resolution=(25.0, 25.0), dtype='uint8'):
     """
     Creates an image with geo-location information.
 
@@ -141,7 +141,7 @@ def create_test_image(dimensions=(1000,1000), geotransform=None,
     UL = (geotransform[0], geotransform[3])
 
     geobox = GriddedGeoBox(shape=dimensions, origin=UL, pixelsize=resolution,
-        crs=projection)
+                           crs=projection)
 
     return (img, geobox)
 
@@ -172,6 +172,5 @@ def random_pixel_locations(dimensions, npixels=100):
     x = numpy.random.randint(0, cols, npixels)
     y = numpy.random.randint(0, rows, npixels)
 
-    index = (y,x)
+    index = (y, x)
     return index
-

@@ -511,6 +511,8 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
     dbDir = pjoin(brdf_base_dir, brdf_dirs)
     three_tup = os.walk(dbDir)
     hdflist = []
+    hdfhome = None
+
     for (hdfhome, _, filelist) in three_tup:
         for f in filelist:
             if f.endswith(".hdf.gz") or f.endswith(".hdf"):
@@ -566,7 +568,7 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
 
     # check for no brdf (iso, vol, geo) (0, 0, 0) and convert to (1, 0, 0)
     # and strip any file level metadata
-    if all([v['value'] == 0 for k, v in results.items()]):
+    if all([v['value'] == 0 for _, v in results.items()]):
         results[BrdfParameters.iso] = {'value': 1.0}
         results[BrdfParameters.vol] = {'value': 0.0}
         results[BrdfParameters.geo] = {'value': 0.0}

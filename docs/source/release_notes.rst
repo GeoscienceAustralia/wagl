@@ -17,7 +17,7 @@ gaip 5.0
     * test_exiting_angles: *Compare and evaluate two* **exiting-angles.h5** *files.*
     * test_incident_angles: *Compare and evaluate two* **incident-angles.h5** *files.*
     * test_relative_slope *Compare and evaluate two* **relative-slope.h5** *files.*
-    * test_shadow_masks: *Compare and evaluate two* **shadow-masks** *files.*
+    * test_terrain_shadow_masks: *Compare and evaluate two* **shadow-masks** *files.*
     * test_slope_aspect: *Compare and evaluate two* **slope-aspect.h5** *files.*
 
 

@@ -8,8 +8,9 @@ such as images and tables, as well as attaching metadata.
 from __future__ import absolute_import, print_function
 import datetime
 from functools import partial
-from posixpath import join as ppjoin, normpath
 from pprint import pprint
+
+from posixpath import join as ppjoin, normpath
 import numpy
 import h5py
 import pandas
@@ -43,7 +44,7 @@ def safeguard_dtype(datatype):
     """
     Was observed under Python2 and setting unicode as the base
     datatype for string objects, where defining a custom NumPy
-    named datatype resulted in TypeError's. Hence this function. 
+    named datatype resulted in TypeError's. Hence this function.
     However it isn't required when using either Python versions'
     base string datatype, i.e. Py2->bytes, Py3->unicode.
     """
@@ -566,7 +567,7 @@ def h5ls(h5_obj, verbose=False):
             print('Attributes:')
             pprint(attrs, width=100)
             print('*'*80)
-        
+
     if isinstance(h5_obj, h5py.Dataset):
         custom_print(h5_obj.name)
     else:

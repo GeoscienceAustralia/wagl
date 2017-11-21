@@ -11,7 +11,7 @@ There are several command line scripts for either extracting datasets or unittes
     * test_exiting_angles: *Compare and evaluate two* **exiting-angles.h5** *files.*
     * test_incident_angles: *Compare and evaluate two* **incident-angles.h5** *files.*
     * test_relative_slope *Compare and evaluate two* **relative-slope.h5** *files.*
-    * test_shadow_masks: *Compare and evaluate two* **shadow-masks** *files.*
+    * test_terrain_shadow_masks: *Compare and evaluate two* **shadow-masks** *files.*
     * test_slope_aspect: *Compare and evaluate two* **slope-aspect.h5** *files.*
 
 **gaip_convert**
@@ -121,7 +121,7 @@ Compares and evaluates the following datasets:
 
    $ test_relative_slope --reference_fname /reference/relative-slope.h5 --test_fname /test/relative-slope.h5
 
-**test_shadow_masks**
+**test_terrain_shadow_masks**
 
 Compares and evaluates the following datasets:
 
@@ -132,7 +132,7 @@ Compares and evaluates the following datasets:
 
 .. code-block:: bash
 
-   $ test_shadow_masks --reference_fname /reference/shadow-masks.h5 --test_fname /test/shadow-masks.h5
+   $ test_terrain_shadow_masks --reference_fname /reference/shadow-masks.h5 --test_fname /test/shadow-masks.h5
 
 **test_slope_aspect**
 

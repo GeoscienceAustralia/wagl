@@ -29,7 +29,7 @@ class GriddedGeoBox(object):
 
     """
     Represents a north up rectangular region on the Earth's surface which
-    has been divided into equal size retangular pixels for the purpose of 
+    has been divided into equal size retangular pixels for the purpose of
     data processing.
 
     The position and extent of the GriddedGeoBox on the Earth's
@@ -45,14 +45,14 @@ class GriddedGeoBox(object):
     position relative to the origin pixel in the upper (northwest) corner.
     x values increase to the east, y value increase to the south.
 
-    All pixels are grid-aligned. Origin and corner will always be 
+    All pixels are grid-aligned. Origin and corner will always be
     located on grid corners
     """
 
     @staticmethod
     def from_dataset(dataset):
         """
-        Return the GriddedGeoBox that encloses the full extent of 
+        Return the GriddedGeoBox that encloses the full extent of
         the supplied Rasterio or GDAL dataset.
 
         :param dataset:
@@ -76,7 +76,7 @@ class GriddedGeoBox(object):
     @staticmethod
     def from_rio_dataset(dataset):
         """
-        Return the GriddedGeoBox that encloses the full extent of 
+        Return the GriddedGeoBox that encloses the full extent of
         the supplied Rasterio dataset.
 
         :param dataset:
@@ -96,7 +96,7 @@ class GriddedGeoBox(object):
     @staticmethod
     def from_gdal_dataset(dataset):
         """
-        Return the GriddedGeoBox that encloses the full extent of 
+        Return the GriddedGeoBox that encloses the full extent of
         the supplied GDAL dataset.
 
         :param dataset:
@@ -117,7 +117,7 @@ class GriddedGeoBox(object):
     @staticmethod
     def from_h5_dataset(dataset):
         """
-        Return the GriddedGeoBox that encloses the full extent of 
+        Return the GriddedGeoBox that encloses the full extent of
         the supplied Rasterio dataset.
 
         :param dataset:
@@ -236,7 +236,7 @@ class GriddedGeoBox(object):
         """
         Create a copy of this GriddedGeoBox transformed to the supplied
         Coordinate Reference System. The new GGB will have idential shape
-        to the old and will be grid aligned to the new CRS. Pixel size 
+        to the old and will be grid aligned to the new CRS. Pixel size
         may change to accommodate the new CRS.
         """
         newCrs = osr.SpatialReference()
@@ -361,7 +361,7 @@ class GriddedGeoBox(object):
         x, y = self.transform_point(transform, xy)
 
         return (x, y)
-    
+
     def get_pixelsize_metres(self, xy=None):
         """
         Compute the size (in metres) of the pixel at the specified xy position.
@@ -382,15 +382,15 @@ class GriddedGeoBox(object):
 
         (lon1, lat1) = self.transform * (x, y+0.5)
         (lon2, lat2) = self.transform * (x+1, y+0.5)
-        x_size, _az_to, _az_from = vinc_dist(spheroid[1], spheroid[0],
-                                             radians(lat1), radians(lon1),
-                                             radians(lat2), radians(lon2))
+        x_size, _, _ = vinc_dist(spheroid[1], spheroid[0],
+                                 radians(lat1), radians(lon1),
+                                 radians(lat2), radians(lon2))
 
         (lon1, lat1) = self.transform * (x+0.5, y)
         (lon2, lat2) = self.transform * (x+0.5, y+1)
-        y_size, _az_to, _az_from = vinc_dist(spheroid[1], spheroid[0],
-                                             radians(lat1), radians(lon1),
-                                             radians(lat2), radians(lon2))
+        y_size, _, _ = vinc_dist(spheroid[1], spheroid[0],
+                                 radians(lat1), radians(lon1),
+                                 radians(lat2), radians(lon2))
 
         return (x_size, y_size)
 
@@ -508,4 +508,3 @@ class GriddedGeoBox(object):
         sr.SetFromUserInput(CRS)
         centre = self.transform_coordinates(self.centre, sr)
         return centre
-
