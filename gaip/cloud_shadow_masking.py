@@ -388,7 +388,7 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
 
     # Get the indices of cloud
     # need the actual indices rather than a boolean array
-    cindex = np.where(cloud_mask is False)
+    cindex = np.where(~cloud_mask)
 
     # Return mask with all true there is no cloud
     if len(cindex[0]) == 0:
