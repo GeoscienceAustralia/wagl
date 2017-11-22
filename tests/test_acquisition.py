@@ -5,7 +5,7 @@ import datetime
 import rasterio
 from osgeo import osr
 from gaip.acquisition import acquisitions
-from gaip.acquisition import Landsat8Acquisition, LandsatAcquisition
+from gaip.acquisition.landsat import Landsat8Acquisition, LandsatAcquisition
 from gaip.constants import BandType
 from gaip.temperature import temperature_at_sensor
 

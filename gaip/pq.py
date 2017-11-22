@@ -28,7 +28,7 @@ from gaip.saturation_masking import set_saturation_bits
 from gaip.temperature import get_landsat_temperature
 
 
-def can_pq(level1):
+def can_pq(level1, acq_parser_hint=None):
     """
     A simple test to check if we can process a scene through the
     pq pipeline.
@@ -41,7 +41,7 @@ def can_pq(level1):
         True if the scene can be processed through PQ, else False.
     """
     supported = ['LANDSAT_5', 'LANDSAT_7', 'LANDSAT_8']
-    acq = acquisitions(level1).get_acquisitions()[0]
+    acq = acquisitions(level1, acq_parser_hint).get_acquisitions()[0]
     return acq.platform_id in supported
 
 
@@ -161,18 +161,18 @@ class PQAResult(object):
         return ''.join(bit_list)
 
 
-def _run_pq(level1, out_fname, scene_group, land_sea_path, compression):
+def _run_pq(level1, out_fname, scene_group, land_sea_path, compression, acq_parser_hint=None):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
     with h5py.File(out_fname) as fid:
         grp = fid[scene_group]
-        run_pq(level1, grp, land_sea_path, grp, compression, AP.nbar)
-        run_pq(level1, grp, land_sea_path, grp, compression, AP.nbart)
+        run_pq(level1, grp, land_sea_path, grp, compression, AP.nbar, acq_parser_hint)
+        run_pq(level1, grp, land_sea_path, grp, compression, AP.nbart, acq_parser_hint)
 
 def run_pq(level1, input_group, land_sea_path, out_group, compression='lzf',
-           product=AP.nbar):
+           product=AP.nbar, acq_parser_hint=None):
     """
     Runs the PQ workflow and saves the result in the same file as
     given by the `standardised_data_fname` parameter.
@@ -217,7 +217,7 @@ def run_pq(level1, input_group, land_sea_path, out_group, compression='lzf',
         None; the pixel quality result is stored in the same file
         as given by the `standardised_data_fname` parameter.
     """
-    container = acquisitions(level1)
+    container = acquisitions(level1, acq_parser_hint)
     acqs = container.get_acquisitions()
     geo_box = acqs[0].gridded_geo_box()
 

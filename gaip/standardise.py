@@ -29,7 +29,6 @@ from gaip.slope_aspect import slope_aspect_arrays
 from gaip.temperature import surface_brightness_temperature
 from gaip.pq import can_pq, run_pq
 
-
 LOG = wrap_logger(logging.getLogger('gaip-status'),
                   processors=[JSONRenderer(indent=1, sort_keys=True)])
 
@@ -47,7 +46,7 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
            aerosol_fname, brdf_path, brdf_premodis_path, ozone_path,
            water_vapour_path, dem_path, dsm_fname, invariant_fname,
            modtran_exe, out_fname, ecmwf_path=None, rori=0.52,
-           compression='lzf'):
+           compression='lzf', acq_parser_hint=None):
     """
     CEOS Analysis Ready Data for Land.
     A workflow for producing standardised products that meet the
@@ -56,7 +55,7 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
     tp5_fmt = pjoin(POINT_FMT, ALBEDO_FMT, ''.join([POINT_ALBEDO_FMT, '.tp5']))
     nvertices = vertices[0] * vertices[1]
 
-    scene = acquisitions(level1)
+    scene = acquisitions(level1, hint=acq_parser_hint)
 
     with h5py.File(out_fname, 'w') as fid:
         fid.attrs['level1_uri'] = level1
@@ -294,6 +293,6 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
 
                 # pixel quality
                 sbt_only = model == Model.sbt
-                if pixel_quality and can_pq(level1) and not sbt_only:
-                    run_pq(level1, group, landsea, group, compression, AP.nbar)
-                    run_pq(level1, group, landsea, group, compression, AP.nbart)
+                if pixel_quality and can_pq(level1, acq_parser_hint) and not sbt_only:
+                    run_pq(level1, group, landsea, group, compression, AP.nbar, acq_parser_hint)
+                    run_pq(level1, group, landsea, group, compression, AP.nbart, acq_parser_hint)
