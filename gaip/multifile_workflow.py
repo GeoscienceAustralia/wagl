@@ -88,6 +88,7 @@ class WorkRoot(luigi.Task):
     """
 
     level1 = luigi.Parameter()
+    acq_parser_hint = luigi.Parameter(default=None)
     work_root = luigi.Parameter(significant=False)
     reflectance_dir = '_standardised'
     shadow_dir = '_shadow'
@@ -96,7 +97,7 @@ class WorkRoot(luigi.Task):
     def output(self):
         out_dirs = [self.reflectance_dir, self.shadow_dir,
                     self.interpolation_dir]
-        container = acquisitions(self.level1)
+        container = acquisitions(self.level1, self.acq_parser_hint)
         for granule in container.granules:
             for group in container.groups:
                 pth = container.get_root(self.work_root, group, granule)
@@ -115,6 +116,7 @@ class CalculateLonLatGrids(luigi.Task):
 
     level1 = luigi.Parameter()
     work_root = luigi.Parameter(significant=False)
+    acq_parser_hint = luigi.Parameter(default=None)
     granule = luigi.Parameter(default=None)
     group = luigi.Parameter()
     compression = luigi.Parameter(default='lzf', significant=False)
@@ -123,13 +125,18 @@ class CalculateLonLatGrids(luigi.Task):
         return WorkRoot(self.level1, self.work_root)
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      self.group, self.granule)
+        out_path = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_root(self.work_root, self.group, self.granule)
+        )
+
         return luigi.LocalTarget(pjoin(out_path, 'longitude-latitude.h5'))
 
     def run(self):
-        acq = acquisitions(self.level1).get_acquisitions(self.group,
-                                                         self.granule)[0]
+        acq = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_acquisitions(self.group, self.granule)
+        )[0]
 
         with self.output().temporary_path() as out_fname:
             _create_lon_lat_grids(acq, out_fname, self.compression)
@@ -141,19 +148,24 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
     """Calculate the satellite and solar grids."""
 
     tle_path = luigi.Parameter(significant=False)
+    acq_parser_hint = luigi.Parameter(default=None)
 
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.group]
         return CalculateLonLatGrids(*args)
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      self.group, self.granule)
+        out_path = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_root(self.work_root, self.group, self.granule)
+        )
         return luigi.LocalTarget(pjoin(out_path, 'satellite-solar.h5'))
 
     def run(self):
-        acqs = acquisitions(self.level1).get_acquisitions(self.group,
-                                                          self.granule)
+        acqs = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_acquisitions(self.group, self.granule)
+        )
 
         with self.output().temporary_path() as out_fname:
             _calculate_angles(acqs[0], self.input().path, out_fname,
@@ -167,6 +179,7 @@ class AncillaryData(luigi.Task):
     level1 = luigi.Parameter()
     work_root = luigi.Parameter(significant=False)
     granule = luigi.Parameter(default=None)
+    acq_parser_hint = luigi.Parameter(default=None)
     vertices = luigi.TupleParameter()
     model = luigi.EnumParameter(enum=Model)
     aerosol_fname = luigi.Parameter(significant=False)
@@ -180,13 +193,15 @@ class AncillaryData(luigi.Task):
     compression = luigi.Parameter(default='lzf', significant=False)
 
     def requires(self):
-        group = acquisitions(self.level1).groups[0]
+        group = acquisitions(self.level1, self.acq_parser_hint).groups[0]
         args = [self.level1, self.work_root, self.granule, group]
         return CalculateSatelliteAndSolarGrids(*args)
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      granule=self.granule)
+        out_path = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_root(self.work_root, granule=self.granule)
+        )
         return luigi.LocalTarget(pjoin(out_path, 'ancillary.h5'))
 
     def run(self):
@@ -217,6 +232,7 @@ class WriteTp5(luigi.Task):
     level1 = luigi.Parameter()
     work_root = luigi.Parameter(significant=False)
     granule = luigi.Parameter(default=None)
+    acq_parser_hint = luigi.Parameter(default=None)
     vertices = luigi.TupleParameter()
     model = luigi.EnumParameter(enum=Model)
     base_dir = luigi.Parameter(default='_atmospherics', significant=False)
@@ -227,7 +243,7 @@ class WriteTp5(luigi.Task):
         # groups of acquisitions
         # current method requires to compute an average from all granules
         # if the scene is tiled
-        container = acquisitions(self.level1)
+        container = acquisitions(self.level1, self.acq_parser_hint)
         tasks = {}
 
         for granule in container.granules:
@@ -243,12 +259,12 @@ class WriteTp5(luigi.Task):
         return tasks
 
     def output(self):
-        container = acquisitions(self.level1)
+        container = acquisitions(self.level1, self.acq_parser_hint)
         out_path = container.get_root(self.work_root, granule=self.granule)
         return luigi.LocalTarget(pjoin(out_path, 'atmospheric-inputs.h5'))
 
     def run(self):
-        container = acquisitions(self.level1)
+        container = acquisitions(self.level1, self.acq_parser_hint)
         # as we have an all granules groups dependency, it doesn't matter which
         # group, so just get the first and use it to retrieve the angles
         group = container.groups[0]
@@ -297,18 +313,21 @@ class AtmosphericsCase(luigi.Task):
 
     point = luigi.Parameter()
     albedos = luigi.ListParameter()
+    acq_parser_hint = luigi.Parameter(default=None)
     exe = luigi.Parameter(significant=False)
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      granule=self.granule)
+        out_path = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_root(self.work_root, granule=self.granule)
+        )
         albedos = '-'.join([a for a in self.albedos])
         out_fname = ''.join([POINT_ALBEDO_FMT.format(p=self.point,
                                                      a=albedos), '.h5'])
         return luigi.LocalTarget(pjoin(out_path, self.base_dir, out_fname))
 
     def run(self):
-        container = acquisitions(self.level1)
+        container = acquisitions(self.level1, self.acq_parser_hint)
         out_path = container.get_root(self.work_root, granule=self.granule)
         acqs = container.get_acquisitions(granule=self.granule)
         atmospheric_inputs_fname = self.input().path
@@ -332,6 +351,7 @@ class Atmospherics(luigi.Task):
     """
 
     model = luigi.EnumParameter(enum=Model)
+    acq_parser_hint = luigi.Parameter(default=None)
     separate = luigi.BoolParameter()
 
     def requires(self):
@@ -347,8 +367,10 @@ class Atmospherics(luigi.Task):
                 yield AtmosphericsCase(*args, **kwargs)
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      granule=self.granule)
+        out_path = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_root(self.work_root, granule=self.granule)
+        )
         return luigi.LocalTarget(pjoin(out_path, 'atmospheric-results.h5'))
 
     def run(self):
@@ -365,10 +387,13 @@ class CalculateComponents(luigi.Task):
     Calculate the atmospheric components needed by BRDF and atmospheric
     correction model.
     """
+    acq_parser_hint = luigi.Parameter(default=None)
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      granule=self.granule)
+        out_path = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_root(self.work_root, granule=self.granule)
+        )
         out_fname = pjoin(out_path, 'atmospheric-components.h5')
         return luigi.LocalTarget(out_fname)
 
@@ -387,6 +412,7 @@ class InterpolateComponent(luigi.Task):
 
     vertices = luigi.TupleParameter()
     band_id = luigi.Parameter()
+    acq_parser_hint = luigi.Parameter(default=None)
     component = luigi.EnumParameter(enum=AtmosphericComponents)
     base_dir = luigi.Parameter(default='_interpolation', significant=False)
     model = luigi.EnumParameter(enum=Model)
@@ -399,14 +425,19 @@ class InterpolateComponent(luigi.Task):
                 'ancillary': AncillaryData(*args, model=self.model)}
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      self.group, self.granule)
+        out_path = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_root(self.work_root, self.group, self.granule)
+        )
         out_fname = '{}-BAND-{}.h5'.format(self.component.value, self.band_id)
         return luigi.LocalTarget(pjoin(out_path, self.base_dir, out_fname))
 
     def run(self):
-        acqs = acquisitions(self.level1).get_acquisitions(self.group,
-                                                          self.granule)
+        acqs = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_acquisitions(self.group, self.granule)
+        )
+
         sat_sol_angles_fname = self.input()['satsol'].path
         components_fname = self.input()['comp'].path
         ancillary_fname = self.input()['ancillary'].path
@@ -431,9 +462,10 @@ class InterpolateComponents(luigi.Task):
     vertices = luigi.TupleParameter()
     model = luigi.EnumParameter(enum=Model)
     method = luigi.EnumParameter(enum=Method, default=Method.shear)
+    acq_parser_hint = luigi.Parameter(default=None)
 
     def requires(self):
-        container = acquisitions(self.level1)
+        container = acquisitions(self.level1, self.acq_parser_hint)
         acqs = container.get_acquisitions(group=self.group,
                                           granule=self.granule)
 
@@ -459,8 +491,10 @@ class InterpolateComponents(luigi.Task):
         return tasks
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      self.group, self.granule)
+        out_path = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_root(self.work_root, self.group, self.granule)
+        )
         out_fname = pjoin(out_path, 'interpolated-components.h5')
         return luigi.LocalTarget(out_fname)
 
@@ -474,7 +508,7 @@ class InterpolateComponents(luigi.Task):
 
 
 @inherits(CalculateLonLatGrids)
-class DEMExctraction(luigi.Task):
+class DEMExtraction(luigi.Task):
 
     """
     Extract the DEM covering the acquisition extents plus an
@@ -483,18 +517,23 @@ class DEMExctraction(luigi.Task):
     """
 
     dsm_fname = luigi.Parameter(default='dsm.tif', significant=False)
+    acq_parser_hint = luigi.Parameter(default=None)
 
     def requires(self):
         return WorkRoot(self.level1, self.work_root)
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      self.group, self.granule)
+        out_path = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_root(self.work_root, self.group, self.granule)
+        )
         return luigi.LocalTarget(pjoin(out_path, 'dsm-subset.h5'))
 
     def run(self):
-        acqs = acquisitions(self.level1).get_acquisitions(self.group,
-                                                          self.granule)
+        acqs = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_acquisitions(self.group, self.granule)
+        )
         margins = get_buffer(self.group)
 
         with self.output().temporary_path() as out_fname:
@@ -502,21 +541,26 @@ class DEMExctraction(luigi.Task):
                      self.compression)
 
 
-@requires(DEMExctraction)
+@requires(DEMExtraction)
 class SlopeAndAspect(luigi.Task):
 
     """
     Compute the slope and aspect images.
     """
+    acq_parser_hint = luigi.Parameter(default=None)
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      self.group, self.granule)
+        out_path = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_root(self.work_root, self.group, self.granule)
+        )
         return luigi.LocalTarget(pjoin(out_path, 'slope-aspect.h5'))
 
     def run(self):
-        acqs = acquisitions(self.level1).get_acquisitions(self.group,
-                                                          self.granule)
+        acqs = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_acquisitions(self.group, self.granule)
+        )
         dsm_fname = self.input().path
         margins = get_buffer(self.group)
 
@@ -531,6 +575,7 @@ class IncidentAngles(luigi.Task):
     """
     Compute the incident angles.
     """
+    acq_parser_hint = luigi.Parameter(default=None)
 
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.group]
@@ -538,8 +583,10 @@ class IncidentAngles(luigi.Task):
                 'slp_asp': SlopeAndAspect(*args)}
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      self.group, self.granule)
+        out_path = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_root(self.work_root, self.group, self.granule)
+        )
         return luigi.LocalTarget(pjoin(out_path, 'incident-angles.h5'))
 
     def run(self):
@@ -558,6 +605,7 @@ class ExitingAngles(luigi.Task):
     """
     Compute the exiting angles.
     """
+    acq_parser_hint = luigi.Parameter(default=None)
 
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.group]
@@ -565,8 +613,10 @@ class ExitingAngles(luigi.Task):
                 'slp_asp': SlopeAndAspect(*args)}
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      self.group, self.granule)
+        out_path = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_root(self.work_root, self.group, self.granule)
+        )
         return luigi.LocalTarget(pjoin(out_path, 'exiting-angles.h5'))
 
     def run(self):
@@ -585,14 +635,17 @@ class RelativeAzimuthSlope(luigi.Task):
     """
     Compute the relative azimuth angle on the slope surface.
     """
+    acq_parser_hint = luigi.Parameter(default=None)
 
     def requires(self):
         return {'incident': self.clone(IncidentAngles),
                 'exiting': self.clone(ExitingAngles)}
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      self.group, self.granule)
+        out_path = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_root(self.work_root, self.group, self.granule)
+        )
         return luigi.LocalTarget(pjoin(out_path, 'relative-slope.h5'))
 
     def run(self):
@@ -611,7 +664,7 @@ class SelfShadow(luigi.Task):
     """
     Calculate the self shadow mask.
     """
-
+    acq_parser_hint = luigi.Parameter(default=None)
     base_dir = luigi.Parameter(default='_shadow', significant=False)
 
     def requires(self):
@@ -619,8 +672,10 @@ class SelfShadow(luigi.Task):
                 'exiting': self.clone(ExitingAngles)}
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      self.group, self.granule)
+        out_path = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_root(self.work_root, self.group, self.granule)
+        )
         out_fname = pjoin(out_path, self.base_dir, 'self-shadow.h5')
         return luigi.LocalTarget(out_fname)
 
@@ -641,21 +696,26 @@ class CalculateCastShadowSun(luigi.Task):
     Calculates the Cast shadow mask in the direction back to the
     sun.
     """
+    acq_parser_hint = luigi.Parameter(default=None)
 
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.group]
         return {'sat_sol': self.clone(CalculateSatelliteAndSolarGrids),
-                'dsm': DEMExctraction(*args)}
+                'dsm': DEMExtraction(*args)}
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      self.group, self.granule)
+        out_path = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_root(self.work_root, self.group, self.granule)
+        )
         out_fname = pjoin(out_path, self.base_dir, 'cast-shadow-sun.h5')
         return luigi.LocalTarget(out_fname)
 
     def run(self):
-        acqs = acquisitions(self.level1).get_acquisitions(self.group,
-                                                          self.granule)
+        acqs = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_acquisitions(self.group, self.granule)
+        )
 
         # input filenames
         dsm_fname = self.input()['dsm'].path
@@ -679,21 +739,26 @@ class CalculateCastShadowSatellite(luigi.Task):
     Calculates the Cast shadow mask in the direction back to the
     sun.
     """
+    acq_parser_hint = luigi.Parameter(default=None)
 
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.group]
         return {'sat_sol': self.clone(CalculateSatelliteAndSolarGrids),
-                'dsm': DEMExctraction(*args)}
+                'dsm': DEMExtraction(*args)}
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      self.group, self.granule)
+        out_path = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_root(self.work_root, self.group, self.granule)
+        )
         out_fname = pjoin(out_path, self.base_dir, 'cast-shadow-satellite.h5')
         return luigi.LocalTarget(out_fname)
 
     def run(self):
-        acqs = acquisitions(self.level1).get_acquisitions(self.group,
-                                                          self.granule)
+        acqs = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_acquisitions(self.group, self.granule)
+        )
 
         # input filenames
         dsm_fname = self.input()['dsm'].path
@@ -718,6 +783,7 @@ class CalculateShadowMasks(luigi.Task):
     the sun and the satellite. Acts as a helper task,
     but combines the results into a single file.
     """
+    acq_parser_hint = luigi.Parameter(default=None)
 
     def requires(self):
         return {'sun': self.clone(CalculateCastShadowSun),
@@ -725,8 +791,10 @@ class CalculateShadowMasks(luigi.Task):
                 'self': self.clone(SelfShadow)}
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      self.group, self.granule)
+        out_path = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_root(self.work_root, self.group, self.granule)
+        )
         return luigi.LocalTarget(pjoin(out_path, 'shadow-masks.h5'))
 
     def run(self):
@@ -744,6 +812,7 @@ class SurfaceReflectance(luigi.Task):
     band_id = luigi.Parameter()
     rori = luigi.FloatParameter(default=0.52, significant=False)
     base_dir = luigi.Parameter(default='_standardised', significant=False)
+    acq_parser_hint = luigi.Parameter(default=None)
 
     def requires(self):
         reqs = {'interpolation': self.clone(InterpolateComponents),
@@ -758,13 +827,15 @@ class SurfaceReflectance(luigi.Task):
         return reqs
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      self.group, self.granule)
+        out_path = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_root(self.work_root, self.group, self.granule)
+        )
         fname = 'reflectance-{band}.h5'.format(band=self.band_id)
         return luigi.LocalTarget(pjoin(out_path, self.base_dir, fname))
 
     def run(self):
-        container = acquisitions(self.level1)
+        container = acquisitions(self.level1, self.acq_parser_hint)
         acqs = container.get_acquisitions(self.group, self.granule)
 
         # inputs
@@ -796,6 +867,7 @@ class SurfaceTemperature(luigi.Task):
     """
     Calculates surface brightness temperature for a given band.
     """
+    acq_parser_hint = luigi.Parameter(default=None)
 
     def requires(self):
         reqs = {'interpolation': self.clone(InterpolateComponents),
@@ -803,13 +875,15 @@ class SurfaceTemperature(luigi.Task):
         return reqs
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      self.group, self.granule)
+        out_path = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_root(self.work_root, self.group, self.granule)
+        )
         fname = 'temperature-{band}.h5'.format(band=self.band_id)
         return luigi.LocalTarget(pjoin(out_path, self.base_dir, fname))
 
     def run(self):
-        container = acquisitions(self.level1)
+        container = acquisitions(self.level1, self.acq_parser_hint)
         acqs = container.get_acquisitions(self.group, self.granule)
         acq = [acq for acq in acqs if acq.band_id == self.band_id][0]
 
@@ -830,10 +904,11 @@ class DataStandardisation(luigi.Task):
     """
     land_sea_path = luigi.Parameter()
     pixel_quality = luigi.BoolParameter()
+    acq_parser_hint = luigi.Parameter(default=None)
 
     def requires(self):
         band_acqs = []
-        container = acquisitions(self.level1)
+        container = acquisitions(self.level1, self.acq_parser_hint)
         acqs = container.get_acquisitions(group=self.group,
                                           granule=self.granule)
 
@@ -861,8 +936,10 @@ class DataStandardisation(luigi.Task):
         return tasks
 
     def output(self):
-        out_path = acquisitions(self.level1).get_root(self.work_root,
-                                                      self.group, self.granule)
+        out_path = (
+            acquisitions(self.level1, self.acq_parser_hint)
+            .get_root(self.work_root, self.group, self.granule)
+        )
         return luigi.LocalTarget(pjoin(out_path, 'standardised-products.h5'))
 
     def run(self):
@@ -870,9 +947,9 @@ class DataStandardisation(luigi.Task):
             fnames = [target.path for target in self.input()]
             link_standard_data(fnames, out_fname)
             sbt_only = self.model == Model.sbt
-            if self.pixel_quality and can_pq(self.level1) and not sbt_only:
+            if self.pixel_quality and can_pq(self.level1, self.acq_parser_hint) and not sbt_only:
                 _run_pq(self.level1, out_fname, self.group, self.land_sea_path,
-                        self.compression)
+                        self.compression, self.acq_parser_hint)
 
 
 class LinkGaipOutputs(luigi.Task):
@@ -883,13 +960,14 @@ class LinkGaipOutputs(luigi.Task):
 
     level1 = luigi.Parameter()
     work_root = luigi.Parameter()
+    acq_parser_hint = luigi.Parameter(default=None)
     model = luigi.EnumParameter(enum=Model)
     vertices = luigi.TupleParameter(default=(5, 5))
     pixel_quality = luigi.BoolParameter()
     method = luigi.EnumParameter(enum=Method, default=Method.shear)
 
     def requires(self):
-        container = acquisitions(self.level1)
+        container = acquisitions(self.level1, self.acq_parser_hint)
         for granule in container.granules:
             for group in container.groups:
                 kwargs = {'level1': self.level1, 'work_root': self.work_root,
@@ -924,7 +1002,7 @@ class LinkGaipOutputs(luigi.Task):
                                                  new_path)
 
             with h5py.File(out_fname) as fid:
-                container = acquisitions(self.level1)
+                container = acquisitions(self.level1, self.acq_parser_hint)
                 fid.attrs['level1_uri'] = self.level1
                 fid.attrs['tiled'] = container.tiled
 
@@ -964,6 +1042,7 @@ class CallTask(luigi.WrapperTask):
     """
 
     level1_list = luigi.Parameter()
+    acq_parser_hint = luigi.Parameter(default=None)
     outdir = luigi.Parameter()
     task = luigi.TaskParameter()
 
@@ -974,7 +1053,7 @@ class CallTask(luigi.WrapperTask):
         for scene in level1_scenes:
             work_name = '{}.gaip'.format(basename(scene))
             work_root = pjoin(self.outdir, work_name)
-            container = acquisitions(scene)
+            container = acquisitions(scene, self.acq_parser_hint)
             for granule in container.granules:
                 if 'group' in self.task.get_param_names():
                     for group in container.groups:

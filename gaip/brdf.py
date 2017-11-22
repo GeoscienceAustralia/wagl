@@ -493,11 +493,15 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
     # Scene dates outside the range of the CSIRO mosaic data
     # should use the pre-MODIS, Jupp-Li BRDF.
     brdf_dir_list = sorted(os.listdir(brdf_primary_path))
-    brdf_dir_range = [brdf_dir_list[0], brdf_dir_list[-1]]
-    brdf_range = [datetime.date(*[int(x) for x in y.split('.')])
-                  for y in brdf_dir_range]
 
-    use_JuppLi_brdf = (dt < brdf_range[0] or dt > brdf_range[1])
+    try:
+        brdf_dir_range = [brdf_dir_list[0], brdf_dir_list[-1]]
+        brdf_range = [datetime.date(*[int(x) for x in y.split('.')])
+                      for y in brdf_dir_range]
+
+        use_JuppLi_brdf = (dt < brdf_range[0] or dt > brdf_range[1])
+    except IndexError:
+        use_JuppLi_brdf = True  # use JuppLi if no primary data available
 
     if use_JuppLi_brdf:
         brdf_base_dir = brdf_secondary_path
