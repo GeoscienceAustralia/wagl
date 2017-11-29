@@ -247,7 +247,7 @@ class Sentinel2aAcquisitionOnDisk(Sentinel2aAcquisition):
         # there could be several matches; loop till we find one with GPS data
         for xml_file in xml_files:
             xml_root = None
-            with open(xml_file, 'r') as fd:
+            with open(xml_file, 'rb') as fd:
                 xml_root = ElementTree.XML(fd.read())
 
             gps_list = xml_root.findall('./*/Ephemeris/GPS_Points_List')
@@ -267,6 +267,6 @@ class Sentinel2aAcquisitionOnDisk(Sentinel2aAcquisition):
     def _get_solar_zenith_xml(self):
         """Returns an in memory XML tree for the granule to retrieve solar zenith"""
         xml_root = None
-        with open(self.granule_xml, 'r') as fd:
+        with open(self.granule_xml, 'rb') as fd:
             xml_root = ElementTree.XML(fd.read())
         return xml_root
