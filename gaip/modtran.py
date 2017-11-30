@@ -959,9 +959,16 @@ def link_atmospheric_results(input_targets, out_fname, npoints, model):
     base_group_name = GroupName.atmospheric_results_grp.value
     nbar_atmospherics = False
     sbt_atmospherics = False
+    lonlats = []
     for fname in input_targets:
         with h5py.File(fname.path, 'r') as fid:
             points = list(fid[base_group_name].keys())
+
+            # copy across the lonlat attr as the link points to the
+            # dataset which has created a new point group
+            for point in points:
+                lonlat = fid[ppjoin(base_group_name, point)].attrs['lonlat']
+                lonlats.append((point, lonlat))
 
         for point in points:
             for albedo in model.albedos:
@@ -988,3 +995,7 @@ def link_atmospheric_results(input_targets, out_fname, npoints, model):
         group.attrs['npoints'] = npoints
         group.attrs['nbar_atmospherics'] = nbar_atmospherics
         group.attrs['sbt_atmospherics'] = sbt_atmospherics
+
+        # assign the lonlat attribute for each POINT Group
+        for point, lonlat in lonlats:
+            group[point].attrs['lonlat'] = lonlat
