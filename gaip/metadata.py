@@ -213,8 +213,9 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, sbt=False):
 
     acquisition = acquisitions[0]
     level1_path = acquisition.pathname
+    acq_datetime = acquisition.acquisition_datetime.isoformat()
     source_info = {'source_level1': level1_path,
-                   'acquisition_datetime': acquisition.acquisition_datetime,
+                   'acquisition_datetime': acq_datetime,
                    'platform_id': acquisition.platform_id,
                    'sensor_id': acquisition.sensor_id}
 
