@@ -88,8 +88,8 @@ class WorkRoot(luigi.Task):
     """
 
     level1 = luigi.Parameter()
-    acq_parser_hint = luigi.Parameter(default=None)
     work_root = luigi.Parameter(significant=False)
+    acq_parser_hint = luigi.Parameter(default=None)
     reflectance_dir = '_standardised'
     shadow_dir = '_shadow'
     interpolation_dir = '_interpolation'
