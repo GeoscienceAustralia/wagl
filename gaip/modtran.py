@@ -959,17 +959,21 @@ def link_atmospheric_results(input_targets, out_fname, npoints, model):
     base_group_name = GroupName.atmospheric_results_grp.value
     nbar_atmospherics = False
     sbt_atmospherics = False
-    lonlats = []
+    attributes = []
     for fname in input_targets:
         with h5py.File(fname.path, 'r') as fid:
             points = list(fid[base_group_name].keys())
 
-            # copy across the lonlat attr as the link points to the
-            # dataset which has created a new point group
+            # copy across several attributes on the POINT Group
+            # as the linking we do here links direct to a dataset
+            # which will create the required parent Groups
             for point in points:
-                lonlat = fid[ppjoin(base_group_name, point)].attrs['lonlat']
-                lonlats.append((point, lonlat))
-
+                group = ppjoin(base_group_name, point)
+                attributes.append((point,
+                                   fid[group].attrs['lonlat'],
+                                   fid[group].attrs['datetime'],
+                                   fid[group].attrs['albedos']))
+                
         for point in points:
             for albedo in model.albedos:
                 if albedo == Albedos.albedo_th:
@@ -997,5 +1001,8 @@ def link_atmospheric_results(input_targets, out_fname, npoints, model):
         group.attrs['sbt_atmospherics'] = sbt_atmospherics
 
         # assign the lonlat attribute for each POINT Group
-        for point, lonlat in lonlats:
+        for point, lonlat, date_time, albedos in attributes:
             group[point].attrs['lonlat'] = lonlat
+            group[point].attrs['datetime'] = date_time
+            group[point].attrs.create('albedos', data=albedos,
+                                      dtype=VLEN_STRING)
