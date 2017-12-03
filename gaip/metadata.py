@@ -221,7 +221,10 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, sbt=False):
 
     # ancillary metadata tracking
     for key, value in extract_ancillary_metadata(level1_path).items():
-        source_info[key] = value
+        if isinstance(value, dtime):
+            source_info[key] = value.isoformat()
+        else:
+            source_info[key] = value
 
     ancillary = load_ancillary(acquisitions, ancillary_group, sbt)
 
