@@ -510,7 +510,7 @@ class DEMExtraction(luigi.Task):
     filter.
     """
 
-    dsm_fname = luigi.Parameter(default='dsm.tif', significant=False)
+    dsm_fname = luigi.Parameter(significant=False)
 
     def requires(self):
         return WorkRoot(self.level1, self.work_root)
@@ -568,10 +568,12 @@ class IncidentAngles(luigi.Task):
     Compute the incident angles.
     """
 
+    dsm_fname = luigi.Parameter(significant=False)
+
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.group]
         return {'sat_sol': self.clone(CalculateSatelliteAndSolarGrids),
-                'slp_asp': SlopeAndAspect(*args)}
+                'slp_asp': SlopeAndAspect(*args, dsm_fname=self.dsm_fname)}
 
     def output(self):
         out_path = (
@@ -600,7 +602,7 @@ class ExitingAngles(luigi.Task):
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.group]
         return {'sat_sol': self.clone(CalculateSatelliteAndSolarGrids),
-                'slp_asp': SlopeAndAspect(*args)}
+                'slp_asp': SlopeAndAspect(*args, dsm_fname=self.dsm_fname)}
 
     def output(self):
         out_path = (
@@ -688,7 +690,7 @@ class CalculateCastShadowSun(luigi.Task):
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.group]
         return {'sat_sol': self.clone(CalculateSatelliteAndSolarGrids),
-                'dsm': DEMExtraction(*args)}
+                'dsm': DEMExtraction(*args, dsm_fname=self.dsm_fname)}
 
     def output(self):
         out_path = (
@@ -730,7 +732,7 @@ class CalculateCastShadowSatellite(luigi.Task):
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.group]
         return {'sat_sol': self.clone(CalculateSatelliteAndSolarGrids),
-                'dsm': DEMExtraction(*args)}
+                'dsm': DEMExtraction(*args, dsm_fname=self.dsm_fname)}
 
     def output(self):
         out_path = (
