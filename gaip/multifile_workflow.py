@@ -312,7 +312,7 @@ class AtmosphericsCase(luigi.Task):
 
     point = luigi.Parameter()
     albedos = luigi.ListParameter()
-    exe = luigi.Parameter(significant=False)
+    modtran_exe = luigi.Parameter(significant=False)
 
     def output(self):
         out_path = (
@@ -332,7 +332,7 @@ class AtmosphericsCase(luigi.Task):
         base_dir = pjoin(out_path, self.base_dir)
         albedos = [Albedos(a) for a in self.albedos]
 
-        prepare_modtran(acqs, self.point, albedos, base_dir, self.exe)
+        prepare_modtran(acqs, self.point, albedos, base_dir, self.modtran_exe)
 
         with self.output().temporary_path() as out_fname:
             nvertices = self.vertices[0] * self.vertices[1]
