@@ -247,7 +247,7 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, sbt=False):
 
     system_info = {'uname': ' '.join(os.uname()),
                    'hostname': socket.getfqdn(),
-                   'runtime_id': uuid.uuid1(),
+                   'runtime_id': str(uuid.uuid1()),
                    'time_processed': dtime.utcnow().isoformat()}
 
     metadata = {'system_information': system_info,
@@ -284,7 +284,7 @@ def create_pq_yaml(acquisition, ancillary, tests_run, out_group):
     """
     system_info = {'uname': ' '.join(os.uname()),
                    'hostname': socket.getfqdn(),
-                   'runtime_id': uuid.uuid1(),
+                   'runtime_id': str(uuid.uuid1()),
                    'time_processed': dtime.utcnow().isoformat()}
 
     source_info = {'source_l1t': dirname(acquisition.dir_name),
