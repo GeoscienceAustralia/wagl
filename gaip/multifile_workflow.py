@@ -336,7 +336,7 @@ class AtmosphericsCase(luigi.Task):
 
         with self.output().temporary_path() as out_fname:
             nvertices = self.vertices[0] * self.vertices[1]
-            _run_modtran(acqs, self.exe, base_dir, self.point, albedos,
+            _run_modtran(acqs, self.modtran_exe, base_dir, self.point, albedos,
                          self.model, nvertices, atmospheric_inputs_fname,
                          out_fname, self.compression)
 
