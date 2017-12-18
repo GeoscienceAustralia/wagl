@@ -799,6 +799,7 @@ class SurfaceReflectance(luigi.Task):
     band_id = luigi.Parameter()
     rori = luigi.FloatParameter(default=0.52, significant=False)
     base_dir = luigi.Parameter(default='_standardised', significant=False)
+    dsm_fname = luigi.Parameter(significant=False)
 
     def requires(self):
         reqs = {'interpolation': self.clone(InterpolateComponents),
@@ -880,7 +881,7 @@ class SurfaceTemperature(luigi.Task):
                                             self.compression)
 
 
-@inherits(InterpolateComponents)
+@inherits(SurfaceReflectance)
 class DataStandardisation(luigi.Task):
 
     """
@@ -908,14 +909,16 @@ class DataStandardisation(luigi.Task):
 
         tasks = []
         for acq in band_acqs:
-            kwargs = {'level1': self.level1, 'work_root': self.work_root,
-                      'granule': self.granule, 'group': self.group,
-                      'band_id': acq.band_id, 'model': self.model,
-                      'vertices': self.vertices, 'method': self.method}
+            # kwargs = {'level1': self.level1, 'work_root': self.work_root,
+            #           'granule': self.granule, 'group': self.group,
+            #           'band_id': acq.band_id, 'model': self.model,
+            #           'vertices': self.vertices, 'method': self.method}
             if acq.band_type == BandType.Thermal:
-                tasks.append(SurfaceTemperature(**kwargs))
+                # tasks.append(SurfaceTemperature(**kwargs))
+                tasks.append(self.clone(SurfaceTemperature))
             else:
-                tasks.append(SurfaceReflectance(**kwargs))
+                # tasks.append(SurfaceReflectance(**kwargs))
+                tasks.append(self.clone(SurfaceReflectance))
 
         return tasks
 
@@ -950,6 +953,7 @@ class LinkGaipOutputs(luigi.Task):
     pixel_quality = luigi.BoolParameter()
     method = luigi.EnumParameter(enum=Method, default=Method.shear)
     acq_parser_hint = luigi.Parameter(default=None)
+    dsm_fname = luigi.Parameter(significant=False)
 
     def requires(self):
         container = acquisitions(self.level1, self.acq_parser_hint)
@@ -959,7 +963,7 @@ class LinkGaipOutputs(luigi.Task):
                           'granule': granule, 'group': group,
                           'model': self.model, 'vertices': self.vertices,
                           'pixel_quality': self.pixel_quality,
-                          'method': self.method}
+                          'method': self.method, 'dsm_fname': self.dsm_fname}
                 yield DataStandardisation(**kwargs)
 
     def output(self):
@@ -1002,6 +1006,7 @@ class ARD(luigi.WrapperTask):
     vertices = luigi.TupleParameter(default=(5, 5))
     pixel_quality = luigi.BoolParameter()
     method = luigi.EnumParameter(enum=Method, default=Method.shear)
+    dsm_fname = luigi.Parameter(significant=False)
 
     def requires(self):
         with open(self.level1_list) as src:
@@ -1013,7 +1018,7 @@ class ARD(luigi.WrapperTask):
             kwargs = {'level1': level1, 'work_root': work_root,
                       'model': self.model, 'vertices': self.vertices,
                       'pixel_quality': self.pixel_quality,
-                      'method': self.method}
+                      'method': self.method, 'dsm_fname': self.dsm_fname}
 
             yield LinkGaipOutputs(**kwargs)
 
