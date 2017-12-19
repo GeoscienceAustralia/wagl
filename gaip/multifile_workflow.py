@@ -881,7 +881,7 @@ class SurfaceTemperature(luigi.Task):
                                             self.compression)
 
 
-@inherits(SurfaceReflectance)
+@inherits(InterpolateComponents)
 class DataStandardisation(luigi.Task):
 
     """
@@ -890,6 +890,7 @@ class DataStandardisation(luigi.Task):
     """
     land_sea_path = luigi.Parameter()
     pixel_quality = luigi.BoolParameter()
+    dsm_fname = luigi.Parameter(significant=False)
 
     def requires(self):
         band_acqs = []
@@ -909,16 +910,15 @@ class DataStandardisation(luigi.Task):
 
         tasks = []
         for acq in band_acqs:
-            # kwargs = {'level1': self.level1, 'work_root': self.work_root,
-            #           'granule': self.granule, 'group': self.group,
-            #           'band_id': acq.band_id, 'model': self.model,
-            #           'vertices': self.vertices, 'method': self.method}
+            kwargs = {'level1': self.level1, 'work_root': self.work_root,
+                      'granule': self.granule, 'group': self.group,
+                      'band_id': acq.band_id, 'model': self.model,
+                      'vertices': self.vertices, 'method': self.method}
             if acq.band_type == BandType.Thermal:
-                # tasks.append(SurfaceTemperature(**kwargs))
-                tasks.append(self.clone(SurfaceTemperature))
+                tasks.append(SurfaceTemperature(**kwargs))
             else:
-                # tasks.append(SurfaceReflectance(**kwargs))
-                tasks.append(self.clone(SurfaceReflectance))
+                kwargs['dsm_fname'] = self.dsm_fname
+                tasks.append(SurfaceReflectance(**kwargs))
 
         return tasks
 
