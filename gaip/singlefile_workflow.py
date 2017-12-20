@@ -65,7 +65,7 @@ class DataStandardisation(luigi.Task):
     outdir = luigi.Parameter()
     model = luigi.EnumParameter(enum=Model)
     vertices = luigi.TupleParameter(default=(5, 5))
-    method = luigi.Parameter(default='shear')
+    method = luigi.EnumParameter(enum=Method, default=Method.shear)
     pixel_quality = luigi.BoolParameter()
     land_sea_path = luigi.Parameter()
     aerosol_fname = luigi.Parameter(significant=False)
