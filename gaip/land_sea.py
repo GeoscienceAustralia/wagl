@@ -45,7 +45,6 @@ def get_land_sea_mask(gridded_geo_box, \
     to_crs = osr.SpatialReference()
     to_crs.SetFromUserInput('EPSG:4326')
     origin_longlat = gridded_geo_box.transform_coordinates(gridded_geo_box.origin, to_crs)
-#    print "origin_lonlat=%s" % (origin_longlat,)
 
     # get Land/Sea data file for this bounding box
     utmZone = abs(get_utm_zone(origin_longlat))
@@ -56,12 +55,9 @@ def get_land_sea_mask(gridded_geo_box, \
 
         # get the gridded box for the full dataset extent
         landSeaDataGGB = GriddedGeoBox.from_dataset(ds)
-#        print "land/sea geo_box=%s" % (str(landSeaDataGGB))
-#        print "land/ses affine=\n%s" % (str(landSeaDataGGB.affine))
 
         # read the subset relating to Flinders Islet
         window = landSeaDataGGB.window(gridded_geo_box)
-#        print "window=%s" % (str(window))
         out = numpy.zeros(gridded_geo_box.shape, dtype=numpy.uint8)
         ds.read(1, window=window, out=out)
 
@@ -122,5 +118,4 @@ if __name__ == "__main__":
     # self.assertEqual(total_pixels, 16000000)
 
     print("land=%f%%, sea=%f%%" % (land_pct, sea_pct))
-#    write_img(mask.astype('uint8'), 'mask.tif', fmt="GTiff", geobox=ggb)
-    write_img(mask, 'mask.tif', fmt="GTiff", geobox=ggb)
+    write_img(mask, 'mask.tif', driver="GTiff", geobox=ggb)

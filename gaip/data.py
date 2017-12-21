@@ -3,10 +3,11 @@ Data access functions
 ---------------------
 """
 
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import
 from os.path import join as pjoin, basename, dirname
 import subprocess
 import tempfile
+import logging
 import numpy as np
 import h5py
 import rasterio
@@ -169,7 +170,7 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
         lines = dims[1]
         bands = dims[0]
     else:
-        print('Input array is not of 2 or 3 dimensions!!!')
+        logging.error('Input array is not of 2 or 3 dimensions!!!')
         err = 'Array dimensions: {dims}'.format(dims=ndims)
         raise IndexError(err)
 
