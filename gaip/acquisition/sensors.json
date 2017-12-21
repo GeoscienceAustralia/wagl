@@ -339,7 +339,7 @@
                         "band_type": "Reflective",
                         "band_name": "BAND-1",
                         "wavelength": [0.433, 0.453],
-                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.0365,
                         "brdf_wavelength": "0459_0479nm"
@@ -349,7 +349,7 @@
                         "band_type": "Reflective",
                         "band_name": "BAND-2",
                         "wavelength": [0.4575, 0.5225],
-                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.0365,
                         "brdf_wavelength": "0459_0479nm"
@@ -359,7 +359,7 @@
                         "band_type": "Reflective",
                         "band_name": "BAND-3",
                         "wavelength": [0.5425, 0.5775],
-                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.0365,
                         "brdf_wavelength": "0545_0565nm"
@@ -369,7 +369,7 @@
                         "band_type": "Reflective",
                         "band_name": "BAND-4",
                         "wavelength": [0.650, 0.680],
-                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.088,
                         "brdf_wavelength": "0620_0670nm"
@@ -379,7 +379,7 @@
                         "band_type": "Reflective",
                         "band_name": "BAND-5",
                         "wavelength": [0.6975, 0.7125],
-                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.088,
                         "brdf_wavelength": "0620_0670nm"
@@ -389,7 +389,7 @@
                         "band_type": "Reflective",
                         "band_name": "BAND-6",
                         "wavelength": [0.7325, 0.7475],
-                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.088,
                         "brdf_wavelength": "0620_0670nm"
@@ -399,7 +399,7 @@
                         "band_type": "Reflective",
                         "band_name": "BAND-7",
                         "wavelength": [0.773, 0.793],
-                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.2231,
                         "brdf_wavelength": "0841_0876nm"
@@ -409,7 +409,7 @@
                         "band_type": "Reflective",
                         "band_name": "BAND-8",
                         "wavelength": [0.7845, 0.8995],
-                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.2231,
                         "brdf_wavelength": "0841_0876nm"
@@ -419,7 +419,7 @@
                         "band_type": "Reflective",
                         "band_name": "BAND-8A",
                         "wavelength": [0.855, 0.875],
-                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.2231,
                         "brdf_wavelength": "0841_0876nm"
@@ -429,7 +429,7 @@
                         "band_type": "Reflective",
                         "band_name": "BAND-9",
                         "wavelength": [0.935, 0.955],
-                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.2231,
                         "brdf_wavelength": "0841_0876nm"
@@ -439,7 +439,7 @@
                         "band_type": "Reflective",
                         "band_name": "BAND-11",
                         "wavelength": [1.565, 1.655],
-                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.2512,
                         "brdf_wavelength": "1628_1652nm"
@@ -449,7 +449,133 @@
                         "band_type": "Reflective",
                         "band_name": "BAND-12",
                         "wavelength": [2.10, 2.280],
-                        "spectral_filter_file": "sentinel2a_all.flt",
+                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.1648,
+                        "brdf_wavelength": "2105_2155nm"
+                    }
+                }
+            }
+        },
+    "SENTINEL_2B": {
+            "MSI": {
+                "band_ids": {
+                    "1": {
+                        "alias": "Aerosols",
+                        "band_type": "Reflective",
+                        "band_name": "BAND-1",
+                        "wavelength": [0.433, 0.453],
+                        "spectral_filter_file": "sentinel2b_all.flt",
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.0365,
+                        "brdf_wavelength": "0459_0479nm"
+                    },
+                    "2": {
+                        "alias": "Blue",
+                        "band_type": "Reflective",
+                        "band_name": "BAND-2",
+                        "wavelength": [0.4575, 0.5225],
+                        "spectral_filter_file": "sentinel2b_all.flt",
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.0365,
+                        "brdf_wavelength": "0459_0479nm"
+                    },
+                    "3": {
+                        "alias": "Green",
+                        "band_type": "Reflective",
+                        "band_name": "BAND-3",
+                        "wavelength": [0.5425, 0.5775],
+                        "spectral_filter_file": "sentinel2b_all.flt",
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.0365,
+                        "brdf_wavelength": "0545_0565nm"
+                    },
+                    "4": {
+                        "alias": "Red",
+                        "band_type": "Reflective",
+                        "band_name": "BAND-4",
+                        "wavelength": [0.650, 0.680],
+                        "spectral_filter_file": "sentinel2b_all.flt",
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.088,
+                        "brdf_wavelength": "0620_0670nm"
+                    },
+                    "5": {
+                        "alias": "Red Edge 1",
+                        "band_type": "Reflective",
+                        "band_name": "BAND-5",
+                        "wavelength": [0.6975, 0.7125],
+                        "spectral_filter_file": "sentinel2b_all.flt",
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.088,
+                        "brdf_wavelength": "0620_0670nm"
+                    },
+                    "6": {
+                        "alias": "Red Edge 2",
+                        "band_type": "Reflective",
+                        "band_name": "BAND-6",
+                        "wavelength": [0.7325, 0.7475],
+                        "spectral_filter_file": "sentinel2b_all.flt",
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.088,
+                        "brdf_wavelength": "0620_0670nm"
+                    },
+                    "7": {
+                        "alias": "Red Edge 3",
+                        "band_type": "Reflective",
+                        "band_name": "BAND-7",
+                        "wavelength": [0.773, 0.793],
+                        "spectral_filter_file": "sentinel2b_all.flt",
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.2231,
+                        "brdf_wavelength": "0841_0876nm"
+                    },
+                    "8": {
+                        "alias": "NIR",
+                        "band_type": "Reflective",
+                        "band_name": "BAND-8",
+                        "wavelength": [0.7845, 0.8995],
+                        "spectral_filter_file": "sentinel2b_all.flt",
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.2231,
+                        "brdf_wavelength": "0841_0876nm"
+                    },
+                    "8A": {
+                        "alias": "Red Edge 4",
+                        "band_type": "Reflective",
+                        "band_name": "BAND-8A",
+                        "wavelength": [0.855, 0.875],
+                        "spectral_filter_file": "sentinel2b_all.flt",
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.2231,
+                        "brdf_wavelength": "0841_0876nm"
+                    },
+                    "9": {
+                        "alias": "Water Vapour",
+                        "band_type": "Reflective",
+                        "band_name": "BAND-9",
+                        "wavelength": [0.935, 0.955],
+                        "spectral_filter_file": "sentinel2b_all.flt",
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.2231,
+                        "brdf_wavelength": "0841_0876nm"
+                    },
+                    "11": {
+                        "alias": "SWIR 1",
+                        "band_type": "Reflective",
+                        "band_name": "BAND-11",
+                        "wavelength": [1.565, 1.655],
+                        "spectral_filter_file": "sentinel2b_all.flt",
+                        "spectral_range": [2600, 349, -1],
+                        "reflectance_adjustment": 0.2512,
+                        "brdf_wavelength": "1628_1652nm"
+                    },
+                    "12": {
+                        "alias": "SWIR 2",
+                        "band_type": "Reflective",
+                        "band_name": "BAND-12",
+                        "wavelength": [2.10, 2.280],
+                        "spectral_filter_file": "sentinel2b_all.flt",
                         "spectral_range": [2600, 349, -1],
                         "reflectance_adjustment": 0.1648,
                         "brdf_wavelength": "2105_2155nm"

@@ -651,7 +651,11 @@ def _store_parameter_settings(fid, spheriod, orbital_elements,
     calculate_angles workflow.
     """
     group = fid.create_group('PARAMETERS')
-    attach_attributes(group, params)
+
+    # generic parameters
+    dname = DatasetName.generic.value
+    dset = group.create_dataset(dname, 'GENERIC PARAMETERS')
+    attach_attributes(dset, params)
 
     # sheroid
     desc = "The spheroid used in the satellite and solar angles calculation."
@@ -813,12 +817,12 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
               'lines': acq.lines,
               'samples': acq.samples,
               'century': century,
-              'hours': acq.decimal_hour(),
+              'decimal_hour': acq.decimal_hour(),
               'acquisition_datetime': acq.acquisition_datetime,
               'centre_longitude_latitude': centre_xy,
               'minimum_latiude': min_lat,
               'maximum_latiude': max_lat,
-              'latitude_buffer': '1.0 degrees',
+              'latitude_buffer': 1.0,
               'max_view_angle': acq.maximum_view_angle}
     _store_parameter_settings(grp, spheroid[1], orbital_elements[1],
                               smodel[1], track[1], params)
