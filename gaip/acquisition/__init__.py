@@ -22,7 +22,8 @@ from nested_lookup import nested_lookup
 
 
 from .base import Acquisition, AcquisitionsContainer
-from .sentinel import Sentinel2aAcquisition, Sentinel2aAcquisitionOnDisk
+from .sentinel import Sentinel2aAcquisition, Sentinel2bAcquisition
+from .sentinel import Sentinel2aAcquisitionOnDisk
 from .landsat import ACQUISITION_TYPE, LandsatAcquisition
 
 from ..mtl import load_mtl
@@ -176,7 +177,7 @@ def acquisitions_via_mtl(pathname):
                                  groups={'product': sorted(acqs)})
 
 
-class Sentinel2AConstants(object):
+class Sentinel2Constants(object):
     """
     Defines shared constants between the two sentinel2 metadata 
     retrieval patterns
@@ -223,7 +224,7 @@ def acquisitions_s2_directory(pathname):
 
     granule_xml = pathname + '/metadata.xml'
     acqtype = Sentinel2aAcquisitionOnDisk
-    s2a_const = Sentinel2AConstants()
+    s2_const = Sentinel2Constants()
 
     search_paths = {
         'datastrip/metadata.xml': [
@@ -287,11 +288,11 @@ def acquisitions_s2_directory(pathname):
                   'R20m': [],
                   'R60m': []}
 
-    for band_id in s2a_const.band_map:
-        if s2a_const.band_map[band_id] not in supported_bands:
+    for band_id in s2_const.band_map:
+        if s2_const.band_map[band_id] not in supported_bands:
             continue
 
-        band_name = 'B{}'.format(s2a_const.band_map[band_id].zfill(2))
+        band_name = 'B{}'.format(s2_const.band_map[band_id].zfill(2))
         img_fname = pathname + '/' + band_name + '.jp2'
 
         if not os.path.isfile(img_fname):
@@ -304,12 +305,12 @@ def acquisitions_s2_directory(pathname):
         else:
             continue  # group not found
 
-        attrs = {k: v for k, v in supported_bands[s2a_const.band_map[band_id]].items()}
+        attrs = {k: v for k, v in supported_bands[s2_const.band_map[band_id]].items()}
         attrs['solar_irradiance'] = acquisition_data['solar_irradiance_list'][band_id]
         attrs['d2'] = 1 / acquisition_data['u']
         attrs['qv'] = acquisition_data['qv']
-        attrs['c1'] = s2a_const.c1[s2a_const.band_map[band_id]]
-        attrs['radiance_scale_factor'] = s2a_const.rsf[s2a_const.band_map[band_id]]
+        attrs['c1'] = s2_const.c1[s2_const.band_map[band_id]]
+        attrs['radiance_scale_factor'] = s2_const.rsf[s2_const.band_map[band_id]]
         attrs['granule_xml'] = granule_xml
         band_name = attrs.pop('band_name')
 
@@ -356,7 +357,7 @@ def acquisitions_via_safe(pathname):
                     return key, band_id
         return None, None
 
-    s2a_const = Sentinel2AConstants()
+    s2_const = Sentinel2Constants()
 
     archive = zipfile.ZipFile(pathname)
     xmlfiles = [s for s in archive.namelist() if "MTD_MSIL1C.xml" in s]
@@ -381,7 +382,11 @@ def acquisitions_via_safe(pathname):
     supported_bands = SENSORS[platform_id]['MSI']['band_ids']
 
     # TODO: extend this to incorporate a S2b selection
-    acqtype = Sentinel2aAcquisition
+    if basename(pathname)[0:3] == 'S2A':
+        acqtype = Sentinel2aAcquisition
+    else:
+        # assume it is S2B
+        acqtype = Sentinel2bAcquisition
 
     # earth -> sun distance correction factor; d2 =  1/ U
     search_term = './*/Product_Image_Characteristics/Reflectance_Conversion/U'
@@ -395,7 +400,7 @@ def acquisitions_via_safe(pathname):
     solar_irradiance = {}
     for irradiance in xml_root.iter('SOLAR_IRRADIANCE'):
         band_irradiance = irradiance.attrib
-        mapped_band_id = s2a_const.band_map[band_irradiance['bandId']]
+        mapped_band_id = s2_const.band_map[band_irradiance['bandId']]
         solar_irradiance[mapped_band_id] = float(irradiance.text)
 
     # assume multiple granules
@@ -461,8 +466,8 @@ def acquisitions_via_safe(pathname):
             attrs['solar_irradiance'] = solar_irradiance[band_id]
             attrs['d2'] = 1 / u
             attrs['qv'] = qv
-            attrs['c1'] = s2a_const.c1[band_id]
-            attrs['radiance_scale_factor'] = s2a_const.rsf[band_id]
+            attrs['c1'] = s2_const.c1[band_id]
+            attrs['radiance_scale_factor'] = s2_const.rsf[band_id]
             attrs['granule_xml'] = granule_xmls[0]
             band_name = attrs.pop('band_name')
 

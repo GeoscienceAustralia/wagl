@@ -30,34 +30,18 @@ def find_all_in(path, s):
     return result
 
 
-class Sentinel2aAcquisition(Acquisition):
+class Sentinel2Acquisition(Acquisition):
 
-    """ Sentinel-2a acquisition. """
+    """ Base class for a Sentinel-2 acquisition. """
 
     def __init__(self, pathname, uri, acquisition_datetime, band_name='BAND 1',
                  band_id='1', metadata=None):
-        super(Sentinel2aAcquisition, self).__init__(pathname, uri,
-                                                    acquisition_datetime,
-                                                    band_name=band_name,
-                                                    band_id=band_id,
-                                                    metadata=metadata)
 
-        self.platform_id = 'SENTINEL_2A'
-        self.sensor_id = 'MSI'
-        self.tle_format = 'S2A%4d%sASNNOR.S00'
-        self.tag = 'S2A'
-        self.altitude = 786000.0
-        self.inclination = 1.721243708316808
-        self.omega = 0.001039918
-        self.semi_major_axis = 7164137.0
-        self.maximum_view_angle = 20.0
-
-        self._norad_id = 40697
-        self._classification_type = 'U'
-        self._international_designator = '15028A'
-
-        self._gps_file = True
-        self._solar_zenith = None
+        super(Sentinel2Acquisition, self).__init__(pathname, uri,
+                                                   acquisition_datetime,
+                                                   band_name=band_name,
+                                                   band_id=band_id,
+                                                   metadata=metadata)
 
     def _get_gps_xml(self):
         """Returns in memory XML tree for gps coordinates"""
@@ -226,6 +210,67 @@ class Sentinel2aAcquisition(Acquisition):
         Set self._solar_zenith back to None to reclaim memory.
         """
         self._solar_zenith = None
+
+
+class Sentinel2aAcquisition(Sentinel2Acquisition):
+
+    """ Sentinel-2a acquisition. """
+
+    def __init__(self, pathname, uri, acquisition_datetime, band_name='BAND 1',
+                 band_id='1', metadata=None):
+        super(Sentinel2aAcquisition, self).__init__(pathname, uri,
+                                                    acquisition_datetime,
+                                                    band_name=band_name,
+                                                    band_id=band_id,
+                                                    metadata=metadata)
+
+        self.platform_id = 'SENTINEL_2A'
+        self.sensor_id = 'MSI'
+        self.tle_format = 'S2A%4d%sASNNOR.S00'
+        self.tag = 'S2A'
+        self.altitude = 786000.0
+        self.inclination = 1.721243708316808
+        self.omega = 0.001039918
+        self.semi_major_axis = 7167000.0
+        self.maximum_view_angle = 20.0
+
+        self._norad_id = 40697
+        self._classification_type = 'U'
+        self._international_designator = '15028A'
+
+        self._gps_file = True
+        self._solar_zenith = None
+
+
+class Sentinel2bAcquisition(Sentinel2Acquisition):
+
+    """ Sentinel-2b acquisition. """
+
+    def __init__(self, pathname, uri, acquisition_datetime, band_name='BAND 1',
+                 band_id='1', metadata=None):
+        super(Sentinel2bAcquisition, self).__init__(pathname, uri,
+                                                    acquisition_datetime,
+                                                    band_name=band_name,
+                                                    band_id=band_id,
+                                                    metadata=metadata)
+
+        self.platform_id = 'SENTINEL_2B'
+        self.sensor_id = 'MSI'
+        self.tle_format = 'S2B%4d%sASNNOR.S00'
+        self.tag = 'S2B'
+        self.altitude = 786000.0
+        self.inclination = 1.721243708316808
+        self.omega = 0.001039918
+        self.semi_major_axis = 7167000.0
+        self.maximum_view_angle = 20.0
+
+        self._norad_id = 42063
+        self._classification_type = 'U'
+        self._international_designator = '17013A'
+
+        self._gps_file = True
+        self._solar_zenith = None
+
 
 class Sentinel2aAcquisitionOnDisk(Sentinel2aAcquisition):
 
