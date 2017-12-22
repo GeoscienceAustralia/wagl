@@ -118,6 +118,7 @@ class DatasetName(Enum):
     orbital_elements = 'ORBITAL-ELEMENTS'
     satellite_model = 'SATELLITE-MODEL'
     satellite_track = 'SATELLITE-TRACK'
+    generic = 'GENERIC'
 
     # gaip.incident_exiting_angles
     incident = 'INCIDENT'
