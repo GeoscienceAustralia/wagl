@@ -13,7 +13,7 @@ import h5py
 from osgeo import osr
 from gaip.constants import DatasetName, GroupName
 from gaip.hdf5 import dataset_compression_kwargs, attach_image_attributes
-from gaip.hdf5 import attach_table_attributes, attach_attributes
+from gaip.hdf5 import attach_table_attributes, write_scalar
 from gaip.tle import load_tle
 from gaip.__sat_sol_angles import angle
 from gaip.__satellite_model import set_satmod
@@ -654,8 +654,7 @@ def _store_parameter_settings(fid, spheriod, orbital_elements,
 
     # generic parameters
     dname = DatasetName.generic.value
-    dset = group.create_dataset(dname, 'GENERIC PARAMETERS')
-    attach_attributes(dset, params)
+    write_scalar('GENERIC PARAMETERS', dname, group, params)
 
     # sheroid
     desc = "The spheroid used in the satellite and solar angles calculation."
