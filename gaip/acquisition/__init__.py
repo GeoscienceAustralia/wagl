@@ -166,7 +166,8 @@ def acquisitions_via_mtl(pathname):
         attrs['min_quantize'] = min_quant
         attrs['max_quantize'] = max_quant
         attrs['sensor_band_configured'] = bool(band_id in supported_bands)
-        band_name = attrs.pop('band_name')
+        if 'band_name' in attrs:
+            band_name = attrs.pop('band_name')
 
         acqs.append(acqtype(pathname, fname, acq_datetime, band_name, band_id,
                             attrs))
@@ -311,7 +312,8 @@ def acquisitions_s2_directory(pathname):
         attrs['radiance_scale_factor'] = s2_const.rsf[s2_const.band_map[band_id]]
         attrs['granule_xml'] = granule_xml
         attrs['sensor_band_configured'] = bool(band_id in supported_bands)
-        band_name = attrs.pop('band_name')
+        if 'band_name' in attrs:
+            band_name = attrs.pop('band_name')
 
         acq_time = acquisition_data['acq_time']
 
@@ -467,7 +469,8 @@ def acquisitions_via_safe(pathname):
             attrs['radiance_scale_factor'] = s2_const.rsf[band_id]
             attrs['granule_xml'] = granule_xmls[0]
             attrs['sensor_band_configured'] = bool(band_id in supported_bands)
-            band_name = attrs.pop('band_name')
+            if 'band_name' in  attrs:
+                band_name = attrs.pop('band_name')
 
             res_groups[group].append(acqtype(pathname, img_fname, acq_time,
                                              band_name, band_id, attrs))
