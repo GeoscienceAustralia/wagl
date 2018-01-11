@@ -1,4 +1,4 @@
 #!/usr/bin/env python
 
-from gaip.scripts.test_satellite_solar_angles import main
+from wagl.scripts.test_satellite_solar_angles import main
 main()

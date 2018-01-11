@@ -6,8 +6,8 @@ from os.path import join as pjoin, abspath, dirname
 import unittest
 import tempfile
 
-from gaip.modtran_profiles import MIDLAT_SUMMER_ALBEDO
-from gaip.modtran_profiles import MIDLAT_SUMMER_TRANSMITTANCE
+from wagl.modtran_profiles import MIDLAT_SUMMER_ALBEDO
+from wagl.modtran_profiles import MIDLAT_SUMMER_TRANSMITTANCE
 
 DATA_DIR = pjoin(dirname(abspath(__file__)), 'data')
 

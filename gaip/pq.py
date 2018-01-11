@@ -13,19 +13,19 @@ import numpy
 import h5py
 import rasterio
 
-from gaip.acca_cloud_masking import calc_acca_cloud_mask
-from gaip.acquisition import acquisitions
-from gaip.cloud_shadow_masking import cloud_shadow
-from gaip.constants import BandType, DatasetName
-from gaip.constants import PQAConstants, PQbits
-from gaip.constants import ArdProducts as AP
-from gaip.contiguity_masking import set_contiguity_bit
-from gaip.fmask_cloud_masking_wrapper import fmask_cloud_mask
-from gaip.hdf5 import dataset_compression_kwargs, write_h5_image
-from gaip.land_sea_masking import set_land_sea_bit
-from gaip.metadata import create_pq_yaml
-from gaip.saturation_masking import set_saturation_bits
-from gaip.temperature import get_landsat_temperature
+from wagl.acca_cloud_masking import calc_acca_cloud_mask
+from wagl.acquisition import acquisitions
+from wagl.cloud_shadow_masking import cloud_shadow
+from wagl.constants import BandType, DatasetName
+from wagl.constants import PQAConstants, PQbits
+from wagl.constants import ArdProducts as AP
+from wagl.contiguity_masking import set_contiguity_bit
+from wagl.fmask_cloud_masking_wrapper import fmask_cloud_mask
+from wagl.hdf5 import dataset_compression_kwargs, write_h5_image
+from wagl.land_sea_masking import set_land_sea_bit
+from wagl.metadata import create_pq_yaml
+from wagl.saturation_masking import set_saturation_bits
+from wagl.temperature import get_landsat_temperature
 
 
 def can_pq(level1, acq_parser_hint=None):

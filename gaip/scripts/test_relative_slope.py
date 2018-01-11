@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Unittesting framework for the `gaip.relative_azimuth_slope` function.
+Unittesting framework for the `wagl.relative_azimuth_slope` function.
 """
 
 from __future__ import absolute_import, print_function, unicode_literals
@@ -11,13 +11,13 @@ from argparse import RawTextHelpFormatter
 import numpy.testing as npt
 import h5py
 
-from gaip.unittesting_tools import ParameterisedTestCase
+from wagl.unittesting_tools import ParameterisedTestCase
 
 
 class TestRelativeSlope(ParameterisedTestCase):
     """
     Unittesting for the relative azimuth slope computation
-    found in `gaip.relative_azimuth_slope`.
+    found in `wagl.relative_azimuth_slope`.
 
     Unittests will occur for the following datasets:
 
@@ -44,7 +44,7 @@ class TestRelativeSlope(ParameterisedTestCase):
 
 def _parser():
     """ Argument parser. """
-    description = ("Unittests for `gaip.relative_azimuth_slope` function.\n"
+    description = ("Unittests for `wagl.relative_azimuth_slope` function.\n"
                    "Comparisons tests will occur for the following "
                    "datasets: \n"
                    "\t* relative-slope\n")

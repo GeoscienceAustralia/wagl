@@ -9,27 +9,27 @@ from structlog import wrap_logger
 from structlog.processors import JSONRenderer
 import h5py
 
-from gaip.acquisition import acquisitions
-from gaip.ancillary import collect_ancillary, aggregate_ancillary
-from gaip.constants import ArdProducts as AP, GroupName, Model, BandType
-from gaip.constants import ALBEDO_FMT, POINT_FMT, POINT_ALBEDO_FMT
-from gaip.dsm import get_dsm
-from gaip.incident_exiting_angles import incident_angles, exiting_angles
-from gaip.incident_exiting_angles import relative_azimuth_slope
-from gaip.interpolation import interpolate
-from gaip.longitude_latitude_arrays import create_lon_lat_grids
-from gaip.metadata import create_ard_yaml
-from gaip.modtran import format_tp5, prepare_modtran, run_modtran
-from gaip.modtran import calculate_components
-from gaip.reflectance import calculate_reflectance
-from gaip.satellite_solar_angles import calculate_angles
-from gaip.terrain_shadow_masks import self_shadow, calculate_cast_shadow
-from gaip.terrain_shadow_masks import combine_shadow_masks
-from gaip.slope_aspect import slope_aspect_arrays
-from gaip.temperature import surface_brightness_temperature
-from gaip.pq import can_pq, run_pq
+from wagl.acquisition import acquisitions
+from wagl.ancillary import collect_ancillary, aggregate_ancillary
+from wagl.constants import ArdProducts as AP, GroupName, Model, BandType
+from wagl.constants import ALBEDO_FMT, POINT_FMT, POINT_ALBEDO_FMT
+from wagl.dsm import get_dsm
+from wagl.incident_exiting_angles import incident_angles, exiting_angles
+from wagl.incident_exiting_angles import relative_azimuth_slope
+from wagl.interpolation import interpolate
+from wagl.longitude_latitude_arrays import create_lon_lat_grids
+from wagl.metadata import create_ard_yaml
+from wagl.modtran import format_tp5, prepare_modtran, run_modtran
+from wagl.modtran import calculate_components
+from wagl.reflectance import calculate_reflectance
+from wagl.satellite_solar_angles import calculate_angles
+from wagl.terrain_shadow_masks import self_shadow, calculate_cast_shadow
+from wagl.terrain_shadow_masks import combine_shadow_masks
+from wagl.slope_aspect import slope_aspect_arrays
+from wagl.temperature import surface_brightness_temperature
+from wagl.pq import can_pq, run_pq
 
-LOG = wrap_logger(logging.getLogger('gaip-status'),
+LOG = wrap_logger(logging.getLogger('wagl-status'),
                   processors=[JSONRenderer(indent=1, sort_keys=True)])
 
 

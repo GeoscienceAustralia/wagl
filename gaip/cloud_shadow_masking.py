@@ -12,7 +12,7 @@ import numexpr
 
 from scipy import ndimage
 from idl_functions import histogram
-from gaip.acca_cloud_masking import majority_filter
+from wagl.acca_cloud_masking import majority_filter
 
 
 def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,

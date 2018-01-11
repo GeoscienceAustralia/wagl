@@ -1,4 +1,4 @@
 #!/usr/bin/env python
 
-from gaip.scripts.test_dsm import main
+from wagl.scripts.test_dsm import main
 main()

@@ -17,10 +17,10 @@ import h5py
 import pandas
 
 from idl_functions import histogram
-from gaip.hdf5 import read_scalar, read_h5_table, write_dataframe
-from gaip.hdf5 import write_h5_image, write_h5_table, write_scalar
-from gaip.hdf5 import dataset_compression_kwargs, VLEN_STRING, find
-from gaip.geobox import GriddedGeoBox
+from wagl.hdf5 import read_scalar, read_h5_table, write_dataframe
+from wagl.hdf5 import write_h5_image, write_h5_table, write_scalar
+from wagl.hdf5 import dataset_compression_kwargs, VLEN_STRING, find
+from wagl.geobox import GriddedGeoBox
 
 
 def distribution(data):

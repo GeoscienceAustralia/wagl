@@ -13,7 +13,7 @@ def configuration(parent_package='', top_path=None):
 
     from numpy.distutils.misc_util import Configuration
 
-    config = Configuration('gaip', parent_package, top_path)
+    config = Configuration('wagl', parent_package, top_path)
     config.add_subpackage('scripts')
     config.add_data_files('acquisition/sensors.json')
     config.add_data_dir('spectral_response')

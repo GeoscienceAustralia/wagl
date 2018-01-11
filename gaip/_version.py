@@ -43,9 +43,9 @@ def get_config():
     cfg = VersioneerConfig()
     cfg.VCS = "git"
     cfg.style = "pep440"
-    cfg.tag_prefix = "gaip-"
+    cfg.tag_prefix = "wagl-"
     cfg.parentdir_prefix = "None"
-    cfg.versionfile_source = "gaip/_version.py"
+    cfg.versionfile_source = "wagl/_version.py"
     cfg.verbose = False
     return cfg
 

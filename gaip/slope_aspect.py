@@ -8,13 +8,13 @@ from __future__ import absolute_import, print_function
 import numpy
 import h5py
 
-from gaip.data import as_array
-from gaip.constants import DatasetName, GroupName
-from gaip.margins import ImageMargins
-from gaip.satellite_solar_angles import setup_spheroid
-from gaip.hdf5 import dataset_compression_kwargs
-from gaip.hdf5 import attach_image_attributes
-from gaip.__slope_aspect import slope_aspect
+from wagl.data import as_array
+from wagl.constants import DatasetName, GroupName
+from wagl.margins import ImageMargins
+from wagl.satellite_solar_angles import setup_spheroid
+from wagl.hdf5 import dataset_compression_kwargs
+from wagl.hdf5 import attach_image_attributes
+from wagl.__slope_aspect import slope_aspect
 
 
 def _slope_aspect_arrays(acquisition, dsm_fname, margins, out_fname,

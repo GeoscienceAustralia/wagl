@@ -1,4 +1,4 @@
-name: gaip
+name: wagl
 channels:
   - conda-forge/label/dev
   - conda-forge

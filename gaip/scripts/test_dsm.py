@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Unittesting framework for the `gaip.get_dsm` function.
+Unittesting framework for the `wagl.get_dsm` function.
 """
 
 from __future__ import absolute_import, print_function, unicode_literals
@@ -11,13 +11,13 @@ from argparse import RawTextHelpFormatter
 import numpy.testing as npt
 import h5py
 
-from gaip.unittesting_tools import ParameterisedTestCase
+from wagl.unittesting_tools import ParameterisedTestCase
 
 
 class TestDsm(ParameterisedTestCase):
     """
     Unittesting for the dsm extraction and smoothing
-    found in `gaip.get_dsm`.
+    found in `wagl.get_dsm`.
 
     Unittests will occur for the following datasets:
 
@@ -58,7 +58,7 @@ class TestDsm(ParameterisedTestCase):
 
 def _parser():
     """ Argument parser. """
-    description = ("Unittests for `gaip.get_dsm` function.\n"
+    description = ("Unittests for `wagl.get_dsm` function.\n"
                    "Comparisons tests will occur for the following "
                    "datasets: \n"
                    "\t* dsm\n"

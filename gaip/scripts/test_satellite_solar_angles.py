@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Unittesting framework for the `gaip.satellite_solar_angles` function.
+Unittesting framework for the `wagl.satellite_solar_angles` function.
 """
 
 from __future__ import absolute_import, print_function, unicode_literals
@@ -11,14 +11,14 @@ from argparse import RawTextHelpFormatter
 import numpy.testing as npt
 import h5py
 
-from gaip.hdf5 import read_h5_table
-from gaip.unittesting_tools import ParameterisedTestCase
+from wagl.hdf5 import read_h5_table
+from wagl.unittesting_tools import ParameterisedTestCase
 
 
 class TestCalculateAngles(ParameterisedTestCase):
     """
     Unittesting for the satellite and solar angles computation
-    found in `gaip.satellite_solar_angles`.
+    found in `wagl.satellite_solar_angles`.
 
     Unittests will occur for the following datasets:
 
@@ -300,7 +300,7 @@ class TestCalculateAngles(ParameterisedTestCase):
 
 def _parser():
     """ Argument parser. """
-    description = ("Unittests for `gaip.satellite_solar_angles` function.\n"
+    description = ("Unittests for `wagl.satellite_solar_angles` function.\n"
                    "Comparisons tests will occur for the following "
                    "datasets: \n"
                    "\t* satellite-view-angles\n"

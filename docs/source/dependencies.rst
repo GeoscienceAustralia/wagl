@@ -1,4 +1,4 @@
-gaip dependencies
+wagl dependencies
 =================
 
 

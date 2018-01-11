@@ -1,10 +1,10 @@
-Invoking gaip
+Invoking wagl
 =============
 
-The gaip workflow can be called directly from the command line.
+The wagl workflow can be called directly from the command line.
 It uses `luigi's command line tool <http://luigi.readthedocs.io/en/stable/command_line.html>`_ to execute the workflow for producing Analysis Ready Data (ARD).
 
-Three options are available for the gaip model workflow:
+Three options are available for the wagl model workflow:
 
 * **standard**; Executes both the *NBAR* (Surface Reflectance) and the *SBT* (Surface Brightness Temperature) workflows.
 * **nbar**; Executes only the *NBAR* (Surface Reflectance) workflow
@@ -18,19 +18,19 @@ To run the entire standard ARD workflow using luigi's local scheduler, set the -
 
 .. code-block:: bash
 
-   $ luigi --module gaip.multifile_workflow ARD --level1-list scenes.txt --model standard --outdir /some/path --workers 4
+   $ luigi --module wagl.multifile_workflow ARD --level1-list scenes.txt --model standard --outdir /some/path --workers 4
 
 To run the entire *nbar* ARD workflow using luigi's local scheduler, set the --model parameter to *nbar*:
 
 .. code-block:: bash
 
-   $ luigi --module gaip.multifile_workflow ARD --level1-list scenes.txt --model nbar --outdir /some/path --workers 4
+   $ luigi --module wagl.multifile_workflow ARD --level1-list scenes.txt --model nbar --outdir /some/path --workers 4
 
 To run the entire *sbt* ARD workflow using luigi's local scheduler, set the --model parameter to *sbt*:
 
 .. code-block:: bash
 
-   $ luigi --module gaip.multifile_workflow ARD --level1-list scenes.txt --model sbt --outdir /some/path --workers 4 --local-scheduler
+   $ luigi --module wagl.multifile_workflow ARD --level1-list scenes.txt --model sbt --outdir /some/path --workers 4 --local-scheduler
 
 
 Central scheduler
@@ -42,13 +42,13 @@ To run using luigi's `central scheduler <http://luigi.readthedocs.io/en/stable/c
 
    $ luigid --background --pidfile <PATH_TO_PIDFILE> --logdir <PATH_TO_LOGDIR> --state-path <PATH_TO_STATEFILE>
 
-   $ luigi --module gaip.multifile_workflow ARD --level1-list scenes.txt --model standard --outdir /some/path --workers 4
+   $ luigi --module wagl.multifile_workflow ARD --level1-list scenes.txt --model standard --outdir /some/path --workers 4
 
 To include the pixel quality workflow as part of the main workflow, you need to set the pixel-quality switch as such:
 
 .. code-block:: bash
 
-   $ luigi --module gaip.multifile_workflow ARD --level1-list scenes.txt --model standard --pixel-quality --outdir /some/path --workers 4
+   $ luigi --module wagl.multifile_workflow ARD --level1-list scenes.txt --model standard --pixel-quality --outdir /some/path --workers 4
 
 Luigi will then execute, and manage, the entire ARD (Analysis Ready Data) workflow for every Level-1 scene listed in *scenes.txt*.
 
@@ -72,9 +72,9 @@ An example of running the *CalculateCoefficients* Task using the local scehduler
 
 .. code-block:: bash
 
-   $ luigi --module gaip.multifile_workflow CalculateCoefficients \
+   $ luigi --module wagl.multifile_workflow CalculateCoefficients \
      --level1 /path/to/LS5_TM_OTH_P51_GALPGS01-007_111_068_20000707 \
-     --work-root /my/work/LS5_TM_OTH_P51_GALPGS01-007_111_068_20000707.gaip-work --workers 4 --local-scheduler
+     --work-root /my/work/LS5_TM_OTH_P51_GALPGS01-007_111_068_20000707.wagl-work --workers 4 --local-scheduler
    
 
 Tasks available via the command line
@@ -83,7 +83,7 @@ Tasks available via the command line
 The Tasks callable from the command line are:
 
 * **ARD** (Issues full NBAR and/or SBT workflows for each level-1 in a list)
-* **LinkGaipOutputs** (Issues DataStandardisation Tasks for each level-1 dataset and links the results into a single file)
+* **LinkwaglOutputs** (Issues DataStandardisation Tasks for each level-1 dataset and links the results into a single file)
 * **DataStandardisation** (Issues SurfaceReflectance and SurfaceTemerature Tasks for each band in a level-1 dataset)
 * **SurfaceReflectance** (Calculates terrain corrected surface reflectance for a given band in a level-1 dataset)
 * **CalculateShadowMasks** (Issues *CalculateCastShadowSun*, *CalculateCastShadowSatellite*, and *SelfShadow* Tasks for a level-1 dataset)
@@ -117,9 +117,9 @@ Help on executing a Task can be retrieved, for example:
 
 .. code-block:: bash
 
-   $ luigi --module gaip.multifile_workflow CalculateCoefficients --help
+   $ luigi --module wagl.multifile_workflow CalculateCoefficients --help
 
-   $ luigi --module gaip.multifile_workflow CalculateCoefficients --help-all
+   $ luigi --module wagl.multifile_workflow CalculateCoefficients --help-all
 
 The number of workers to assign to the Task tree *--workers* tells luigi how many Tasks to run in parallel (for those tasks that don't depend on each other).
 While not making the best use of luigi (for such a quick and simple workflow), it does aid in quick research and development for a single scene to 100's of scenes,
@@ -131,7 +131,7 @@ such as the PBS task flow. In this example, luigi issues and monitors PBS jobs, 
 PBS submission
 --------------
 
-For users on a system that utilises a `PBS <https://en.wikipedia.org/wiki/Portable_Batch_System>`_ scheduler, gaip provides a command line tool *gaip_pbs* for automatic job submission into a PBS queue. The tool can partition the list of scenes into roughly equally sized chunks, based on the number of nodes requested. For example, a list containing 600 scenes, and a job requesting 10 nodes, will partition the list into 10 blocks each containing 60 scenes that a given node will process. Two flavours of jobs can be submitted to the PBS queue in this way:
+For users on a system that utilises a `PBS <https://en.wikipedia.org/wiki/Portable_Batch_System>`_ scheduler, wagl provides a command line tool *wagl_pbs* for automatic job submission into a PBS queue. The tool can partition the list of scenes into roughly equally sized chunks, based on the number of nodes requested. For example, a list containing 600 scenes, and a job requesting 10 nodes, will partition the list into 10 blocks each containing 60 scenes that a given node will process. Two flavours of jobs can be submitted to the PBS queue in this way:
 
 1. Individual single node jobs; i.e. A single node represents a single submitted job.
 
@@ -157,7 +157,7 @@ For users on a system that utilises a `PBS <https://en.wikipedia.org/wiki/Portab
 
     * Whilst the blocks of scenes allocated to each node are roughly equal, the time taken to process a scene is not. Some scenes may not have the required ancillary and will be skipped or fail (filtering the list of scenes prior to job submission can help with this), partial scenes can also process quicker. This means that while 1 or more of the nodes in the enitire job request have finished, the whole job has to wait until other nodes have finished their jobs. This can result in lower CPU utilisation over the jobs duration.
 
-The arguments for *gaip_pbs* are:
+The arguments for *wagl_pbs* are:
 
 --level1-list        The input level1 scene list.
 --vertices           Number of vertices to evaluate the radiative transfer at. JSON styled string is required, eg '(3, 3)'.
@@ -174,7 +174,7 @@ The arguments for *gaip_pbs* are:
 --email              Notification email address.
 --local-scheduler    Use a local scheduler instead of a central scheduler.
 --dsh                Run using PBS Distributed Shell.
---task               A luigi task defined within the gaip.multifile_workflow; eg *CalculateCoefficients*
+--task               A luigi task defined within the wagl.multifile_workflow; eg *CalculateCoefficients*
 --test               Test job execution (Don't submit the job to the PBS queue).
 
 An example of submitting individual jobs to the PBS queue using the following specifications:
@@ -189,15 +189,15 @@ An example of submitting individual jobs to the PBS queue using the following sp
 
 .. code-block:: bash
 
-   $ gaip_pbs --level1-list /path/to/level1-scenes.txt --vertices '(3, 3)' --model nbar --method bilinear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project nx200 --queue express --hours 2 --email your.name@something.com
+   $ wagl_pbs --level1-list /path/to/level1-scenes.txt --vertices '(3, 3)' --model nbar --method bilinear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project nx200 --queue express --hours 2 --email your.name@something.com
 
 The same job resources, but use PBSDSH instead of individual jobs being submitted to the PBS queue.
 
 .. code-block:: bash
 
-   $ gaip_pbs --level1-list /path/to/level1-scenes.txt --vertices '(3, 3)' --model nbar --method bilinear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh
+   $ wagl_pbs --level1-list /path/to/level1-scenes.txt --vertices '(3, 3)' --model nbar --method bilinear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh
 
-Each call to *gaip_pbs* will generate a new batch id, and each node will be assigned a job id. In this way each node will have its logs and output data contained in its own directory structure.  For example:
+Each call to *wagl_pbs* will generate a new batch id, and each node will be assigned a job id. In this way each node will have its logs and output data contained in its own directory structure.  For example:
 
 .. code-block:: bash
 
@@ -209,31 +209,31 @@ Each call to *gaip_pbs* will generate a new batch id, and each node will be assi
   $ /base/output/directory/batchid-b6cbadbe98/jobid-5b00d6/
 
 
-Intersecting the gaip workflow, and have it execute across a list of scenes
+Intersecting the wagl workflow, and have it execute across a list of scenes
 ---------------------------------------------------------------------------
 
-The *--task* command line option for *gaip_pbs* allows the user to have specific control of the workflow, whilst still retaining the capability of running it in bulk over a list of scenes.
-The example below only executes the workflow up to the end of CalculateCoefficients, and only for a single scene. This is because most of the luigi tasks defined in gaip.multifie_workflow are for a given scene's group and granules.
+The *--task* command line option for *wagl_pbs* allows the user to have specific control of the workflow, whilst still retaining the capability of running it in bulk over a list of scenes.
+The example below only executes the workflow up to the end of CalculateCoefficients, and only for a single scene. This is because most of the luigi tasks defined in wagl.multifie_workflow are for a given scene's group and granules.
 
 .. code-block:: bash
 
-   $ luigi --module gaip.multifile_workflow CalculateCoefficients \
+   $ luigi --module wagl.multifile_workflow CalculateCoefficients \
      --level1 /path/to/LS5_TM_OTH_P51_GALPGS01-007_111_068_20000707 \
-     --work-root /my/work/LS5_TM_OTH_P51_GALPGS01-007_111_068_20000707.gaip-work --workers 4 --local-scheduler
+     --work-root /my/work/LS5_TM_OTH_P51_GALPGS01-007_111_068_20000707.wagl-work --workers 4 --local-scheduler
    
-The bulk submission workflow entrypoint is defined in the luigi Task named *ARD*, which initialise the entire gaip.multifile_workflow tree. In order to submit a list of scenes but only execute a partial workflow such as *CalculateCoefficients*, then a generic luigi task class named *CallTask* has been defined for this very purpose.
+The bulk submission workflow entrypoint is defined in the luigi Task named *ARD*, which initialise the entire wagl.multifile_workflow tree. In order to submit a list of scenes but only execute a partial workflow such as *CalculateCoefficients*, then a generic luigi task class named *CallTask* has been defined for this very purpose.
 
 The example below will run the *CalculateCoefficients* for each input scene:
 
 .. code-block:: bash
 
-   $ luigi --module gaip.multifile_workflow CallTask --level1-list /path/to/level1-scenes.txt --outdir /path/to/the/output/directory --task CalculateCoefficients
+   $ luigi --module wagl.multifile_workflow CallTask --level1-list /path/to/level1-scenes.txt --outdir /path/to/the/output/directory --task CalculateCoefficients
 
-The example below is using the *gaip_pbs* command line utility:
+The example below is using the *wagl_pbs* command line utility:
 
 .. code-block:: bash
 
-   $ gaip_pbs --level1-list /path/to/level1-scenes.txt --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh --task CalculateCoefficients
+   $ wagl_pbs --level1-list /path/to/level1-scenes.txt --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh --task CalculateCoefficients
 
 You might notice that no arguments such as *--model*, *--vertices* or *--method* are present. This is because in order for the CallTask to be generic, it's easier to let any parameters that need parsing, and specify them using the *luigi.cfg* file and have luigi do all the work of parsing additional parameters.
 
@@ -247,7 +247,7 @@ An example configuration for executing the *CalculateCoefficients* task and its 
 
 This will parse in a 15x15 point grid at which to evaluate the radiative transfer, and only for the nbar model.
 
-The *CallTask* luigi task will work for any task in the *gaip.multifile_workflow* if the first 3 arguments of a task are:
+The *CallTask* luigi task will work for any task in the *wagl.multifile_workflow* if the first 3 arguments of a task are:
 [level1 (file pathname), work_root (directory pathname), granule]
 
 or for tasks that contain a scenes *group* parameter, the first 4 arguments of a task should be:

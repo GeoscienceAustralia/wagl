@@ -1,5 +1,5 @@
 """
-Defines the acquisition classes for the landsat satellite program for gaip
+Defines the acquisition classes for the landsat satellite program for wagl
 """
 
 from .base import Acquisition

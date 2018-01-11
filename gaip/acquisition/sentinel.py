@@ -1,5 +1,5 @@
 """
-Defines the acquisition classes for the sentinel satellite program for gaip
+Defines the acquisition classes for the sentinel satellite program for wagl
 """
 
 from xml.etree import ElementTree

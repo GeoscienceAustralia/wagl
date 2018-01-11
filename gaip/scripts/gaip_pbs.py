@@ -12,7 +12,7 @@ import subprocess
 import uuid
 import argparse
 
-from gaip.tiling import scatter
+from wagl.tiling import scatter
 
 
 PBS_RESOURCES = ("""#!/bin/bash
@@ -52,10 +52,10 @@ wait
 
 
 FMT1 = 'level1-scenes-{jobid}.txt'
-FMT2 = 'gaip-{jobid}.bash'
+FMT2 = 'wagl-{jobid}.bash'
 DAEMON_FMT = 'luigid --background --logdir {}'
-ARD_FMT = "--module gaip.{workflow} ARD --model {model} --vertices '{vertices}' --method {method}{pq}" # pylint: disable=line-too-long
-TASK_FMT = "--module gaip.multifile_workflow CallTask --task {task}"
+ARD_FMT = "--module wagl.{workflow} ARD --model {model} --vertices '{vertices}' --method {method}{pq}" # pylint: disable=line-too-long
+TASK_FMT = "--module wagl.multifile_workflow CallTask --task {task}"
 
 
 def _submit_dsh(scattered, options, env, batchid, batch_logdir, batch_outdir,
@@ -249,11 +249,11 @@ def _parser():
     parser.add_argument("--dsh", help="Run using PBS Distributed Shell.",
                         action='store_true')
     parser.add_argument("--singlefile", action='store_true',
-                        help=("Run gaip using the single-file workflow. "
+                        help=("Run wagl using the single-file workflow. "
                               "Default is to output multiple files."))
     parser.add_argument("--task",
                         help=("Specify a luigi Task contained within the "
-                              "gaip.multifile_workflow module and run "
+                              "wagl.multifile_workflow module and run "
                               "each scene listed in level1-list through to "
                               "that Task level."))
     parser.add_argument("--test", action='store_true',

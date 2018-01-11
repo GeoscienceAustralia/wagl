@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Unittesting framework for the `gaip.incident_angles` function.
+Unittesting framework for the `wagl.incident_angles` function.
 """
 
 from __future__ import absolute_import, print_function, unicode_literals
@@ -11,13 +11,13 @@ from argparse import RawTextHelpFormatter
 import numpy.testing as npt
 import h5py
 
-from gaip.unittesting_tools import ParameterisedTestCase
+from wagl.unittesting_tools import ParameterisedTestCase
 
 
 class TestIncidentAngles(ParameterisedTestCase):
     """
     Unittesting for the incident angles computation
-    found in `gaip.incident_angles`.
+    found in `wagl.incident_angles`.
 
     Unittests will occur for the following datasets:
 
@@ -58,7 +58,7 @@ class TestIncidentAngles(ParameterisedTestCase):
 
 def _parser():
     """ Argument parser. """
-    description = ("Unittests for `gaip.incident_angles` function.\n"
+    description = ("Unittests for `wagl.incident_angles` function.\n"
                    "Comparisons tests will occur for the following "
                    "datasets: \n"
                    "\t* incident\n"

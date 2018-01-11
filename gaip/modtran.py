@@ -18,14 +18,14 @@ from scipy.io import FortranFile
 import h5py
 import pandas as pd
 
-from gaip.constants import Model, BandType, DatasetName, GroupName, Albedos
-from gaip.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
-from gaip.constants import AtmosphericComponents as AC
-from gaip.hdf5 import write_dataframe, read_h5_table, create_external_link
-from gaip.hdf5 import VLEN_STRING, write_scalar
-from gaip.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
-from gaip.modtran_profiles import MIDLAT_SUMMER_TRANSMITTANCE, SBT_FORMAT
-from gaip.modtran_profiles import TROPICAL_TRANSMITTANCE, THERMAL_TRANSMITTANCE
+from wagl.constants import Model, BandType, DatasetName, GroupName, Albedos
+from wagl.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
+from wagl.constants import AtmosphericComponents as AC
+from wagl.hdf5 import write_dataframe, read_h5_table, create_external_link
+from wagl.hdf5 import VLEN_STRING, write_scalar
+from wagl.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
+from wagl.modtran_profiles import MIDLAT_SUMMER_TRANSMITTANCE, SBT_FORMAT
+from wagl.modtran_profiles import TROPICAL_TRANSMITTANCE, THERMAL_TRANSMITTANCE
 
 
 def prepare_modtran(acquisitions, coordinate, albedos, basedir, modtran_exe):
@@ -950,7 +950,7 @@ def link_atmospheric_results(input_targets, out_fname, npoints, model):
         evaluating the atmospheric conditions.
 
     :param model:
-        An Enum given by gaip.constants.Model.
+        An Enum given by wagl.constants.Model.
 
     :return:
         None. Results from each file in `input_targets` are linked

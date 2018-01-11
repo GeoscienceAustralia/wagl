@@ -11,11 +11,11 @@ import numpy
 import numexpr
 import h5py
 
-from gaip.constants import DatasetName, GroupName
-from gaip.constants import AtmosphericComponents as AC
-from gaip.hdf5 import dataset_compression_kwargs
-from gaip.hdf5 import attach_image_attributes
-from gaip.metadata import create_ard_yaml
+from wagl.constants import DatasetName, GroupName
+from wagl.constants import AtmosphericComponents as AC
+from wagl.hdf5 import dataset_compression_kwargs
+from wagl.hdf5 import attach_image_attributes
+from wagl.metadata import create_ard_yaml
 
 NO_DATA_VALUE = -999
 

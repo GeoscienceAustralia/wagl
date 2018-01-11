@@ -2,14 +2,14 @@
 
 """
 Unit test for the bilinear recursive bisection function found in
-gaip.interpolation.bilinear
+wagl.interpolation.bilinear
 """
 
 from __future__ import absolute_import
 import unittest
 import numpy
 import math
-from gaip.interpolation import bilinear, subdivide, indices, interpolate_block
+from wagl.interpolation import bilinear, subdivide, indices, interpolate_block
 
 
 class BLRBTest(unittest.TestCase):

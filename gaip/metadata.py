@@ -16,10 +16,10 @@ import pandas
 import rasterio
 import yaml
 from yaml.representer import Representer
-import gaip
-from gaip.constants import BrdfParameters, DatasetName, POINT_FMT, GroupName
-from gaip.constants import BandType
-from gaip.hdf5 import write_scalar, read_h5_table, read_scalar
+import wagl
+from wagl.constants import BrdfParameters, DatasetName, POINT_FMT, GroupName
+from wagl.constants import BandType
+from wagl.hdf5 import write_scalar, read_h5_table, read_scalar
 
 yaml.add_representer(numpy.int8, Representer.represent_int)
 yaml.add_representer(numpy.uint8, Representer.represent_int)
@@ -94,7 +94,7 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, sbt=False):
 
     :param ancillary_group:
         The root HDF5 `Group` that contains the ancillary data
-        collected via gaip.ancillary.collect_ancillary>
+        collected via wagl.ancillary.collect_ancillary>
 
     :param out_group:
         A `h5py.Group` object opened for write access.
@@ -228,8 +228,8 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, sbt=False):
 
     ancillary = load_ancillary(acquisitions, ancillary_group, sbt)
 
-    software_versions = {'gaip': {'version': gaip.__version__,
-                                  'repo_url': 'https://github.com/GeoscienceAustralia/gaip.git'}, # pylint: disable=line-too-long
+    software_versions = {'wagl': {'version': wagl.__version__,
+                                  'repo_url': 'https://github.com/GeoscienceAustralia/wagl.git'}, # pylint: disable=line-too-long
                          'modtran': {'version': '5.2.1',
                                      'repo_url': 'http://www.ontar.com/software/productdetails.aspx?item=modtran'} # pylint: disable=line-too-long
                         }
@@ -290,8 +290,8 @@ def create_pq_yaml(acquisition, ancillary, tests_run, out_group):
     source_info = {'source_l1t': dirname(acquisition.dir_name),
                    'source_reflectance': 'NBAR'}
 
-    algorithm = {'software_version': gaip.__version__,
-                 'software_repository': 'https://github.com/GeoscienceAustralia/gaip.git', # pylint: disable=line-too-long
+    algorithm = {'software_version': wagl.__version__,
+                 'software_repository': 'https://github.com/GeoscienceAustralia/wagl.git', # pylint: disable=line-too-long
                  'pq_doi': 'http://dx.doi.org/10.1109/IGARSS.2013.6723746'}
     
     metadata = {'system_information': system_info,

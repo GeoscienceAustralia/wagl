@@ -2,7 +2,7 @@ Release Notes
 =============
 
 
-gaip 5.0
+wagl 5.0
 --------
 
 * Version 5.0 has extra satellite/sensor functionality with the inclusion of Sentinel-2a.
@@ -11,7 +11,7 @@ gaip 5.0
 * Extra layers of hierarchy have been added to the return of what originally was a single list of *Acquisitions*. An *AcquisitionsContainer* is now returned instead, as it was necessary in order to handle scenes comprising of multiple *Granules*, and multiple *Resolutions*.
 * Additional bilinear interpolation functions. The intent is to deprecate the FORTRAN version.
 * Command line utilities:
-    * gaip_convert:  *An unpacking/converting utility that converts HDF5 Tables to CSV, HDF5 images to GeoTiff, and metadata to yaml files.*
+    * wagl_convert:  *An unpacking/converting utility that converts HDF5 Tables to CSV, HDF5 images to GeoTiff, and metadata to yaml files.*
     * test_calculate_angles: *Compares and evaluates each dataset contained within a* **satellite-solar.h5** *file against the same datasets contained within another file.*
     * test_dsm: *Compare and evaluate two* **dsm-extract.h5** *files.*
     * test_exiting_angles: *Compare and evaluate two* **exiting-angles.h5** *files.*
@@ -23,10 +23,10 @@ gaip 5.0
 
 Python compatibility
 ^^^^^^^^^^^^^^^^^^^^
-Support for Python 2.7* has been dropped, and gaip now requires Python 3.5 or later.
+Support for Python 2.7* has been dropped, and wagl now requires Python 3.5 or later.
 
 
-gaip 4.0
+wagl 4.0
 --------
 
 Version 4.0 has seen a major undertaking in regards to streamlining image I/O through 3rd party libraies, and for the better part, a single point of source.
@@ -36,7 +36,7 @@ A new workflow using Luigi has been introduced, and will simplify the job workfl
 
 Python compatibility
 ^^^^^^^^^^^^^^^^^^^^
-gaip requires Python 2.7.6 or later.  Support for Python 3 is not yet complete.
+wagl requires Python 2.7.6 or later.  Support for Python 3 is not yet complete.
 
 
 Most image based I/O is handled through rasterio, which itself is a wrapper for the GDAL library.  A new algorithm to calculate the solar and satellite angles was introduced, but unlike the previous Fortran code, this was built as a Python module via F2Py. This practice will continue and eventually replace the existing Fortran 77 code.  Other Fortran modules were replaced with existing Python libraries such as the gaussian filter.

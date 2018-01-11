@@ -20,9 +20,9 @@ import h5py
 import yaml
 from yaml.representer import Representer
 
-from gaip.data import write_img
-from gaip.geobox import GriddedGeoBox
-from gaip.hdf5 import read_h5_table
+from wagl.data import write_img
+from wagl.geobox import GriddedGeoBox
+from wagl.hdf5 import read_h5_table
 
 IGNORE = ['crs_wkt', 'geotransform']
 

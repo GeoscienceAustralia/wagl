@@ -1,2 +1,2 @@
 include versioneer.py
-include gaip/_version.py
+include wagl/_version.py

@@ -1,7 +1,7 @@
 HDF5
 ====
 
-As of gaip v5.0.0, the storage backend for all dataset outputs uses HDF5, whether the datasets be imagery, tables, or scalars.
+As of wagl v5.0.0, the storage backend for all dataset outputs uses HDF5, whether the datasets be imagery, tables, or scalars.
 Currently datasets can be stored according to the *IMAGE* Class, or *TABLE* Class.
 
 * **IMAGE** Class `image specification <https://support.hdfgroup.org/HDF5/doc/ADGuide/ImageSpec.html>`_
@@ -12,11 +12,11 @@ Moving to HDF5
 
 Some of the main reasons behind moving to HDF5 are:
 
-* Reduce the number of files being written to disk. Yes imagery could be stored multi-band, but band ordering would need to be explicity defined, and we have the added benefit of including metadata such as Dataset descriptions, thereby allowing an easier knowledge transfer for future developers. For some variations on processing a scene, the number of files output to disk was reduced by approximately 22% when using the *gaip.multifile_workflow*. When using the *gaip.singlefile_workflow* the number of files output is reduced to **1** (the MODTRAN working directory is automatically cleaned up after the results are saved into the HDF5 file).
+* Reduce the number of files being written to disk. Yes imagery could be stored multi-band, but band ordering would need to be explicity defined, and we have the added benefit of including metadata such as Dataset descriptions, thereby allowing an easier knowledge transfer for future developers. For some variations on processing a scene, the number of files output to disk was reduced by approximately 22% when using the *wagl.multifile_workflow*. When using the *wagl.singlefile_workflow* the number of files output is reduced to **1** (the MODTRAN working directory is automatically cleaned up after the results are saved into the HDF5 file).
 * Consequently, a reduction in the number of files, also reduces the number of parameters being passed back and forth between `luigi <https://github.com/spotify/luigi>`_ *Tasks*.
 * Consolodate the numerous text files that could be comma, tab, space, and variable space delimited variations, into a consistant *TABLE* structure that allows compression.
 * *TABLE* and *IMAGE* datasets can be stored and accessed together from the same file.
-* HDF5 has an `ExternalLink <http://docs.h5py.org/en/latest/high/group.html#group-extlinks>`_ feature, which for the case of the multitude of interpolated factors for each spectral band, all the outputs can be combined and accessed from the same file, thereby simplifying the workflow and functional architecture of gaip.
+* HDF5 has an `ExternalLink <http://docs.h5py.org/en/latest/high/group.html#group-extlinks>`_ feature, which for the case of the multitude of interpolated factors for each spectral band, all the outputs can be combined and accessed from the same file, thereby simplifying the workflow and functional architecture of wagl.
 * Various `compression <https://support.hdfgroup.org/services/contributions.html>`_ filters are available, ranging from extremely high I/O speed, to slower I/O but very high compression ratios.
   High compression ratios allow for better archiving, and with conjuction of being able to store *TABLES*, *IMAGES*, *SCALARS*, variable resolutions, all within the same file, can aid in keeping the number of inodes down on HPC systems.
   This presents an archiving solution without the need to create tarballs, whilst still maintaining the capacity to operate with the archives. Essentially creating a kind of operational archive.
@@ -28,19 +28,19 @@ Some of the main reasons behind moving to HDF5 are:
     * /POINT-1/TEMPERATURE
     * /POINT-2/TEMPERATURE
 
-* Metadata; gaip can now store a lot more metadata such as longitude and latitude information with each ancillary point location, as opposed to a plain text label.
+* Metadata; wagl can now store a lot more metadata such as longitude and latitude information with each ancillary point location, as opposed to a plain text label.
   Parameter settings used for a given algorithm such as for the satellite and solar angles calculation can be stored alongside the results, potentially making it easier for validation, and archive comparisons to be undertaken. Dataset descriptions have been useful for new people working with the code base.
-* Utilise a consistant library for data I/O, rather than a dozen or so different libraries. This helps to simplify the gaip data model.
+* Utilise a consistant library for data I/O, rather than a dozen or so different libraries. This helps to simplify the wagl data model.
 * It simplified the workflow **A LOT**. By writing multiple datasets within the same file, the parameter passing bewteen Task's and functions, was reduced in some cases from a dozen parameters, to a single parameter. Some Tasks would act as a helper task whose sole purpose was to manage a bunch of individual Tasks, and combine the results into a single file for easy access by downstream Tasks which then didn't have to open several dozen files. This is achieved by HDF5's ExternalLink feature, which allows the linking of Datasets contained within other files to be readable from a single file that acts as a Table Of Contents (TOC). It is similar to a UNIX symbolic link, or Windows shortcut.
-* A simpler structure for testing and evaluation; eg compare the same scene but different versions of gaip. And have the results stored directly alongside the inputs. That way, it is easier to track exactly what datasets were used to determine the comparison, and have it immediately in a form suitable for archiving and immediate access without having to decompress a tarball containing hundreds or thousands of scenes.
+* A simpler structure for testing and evaluation; eg compare the same scene but different versions of wagl. And have the results stored directly alongside the inputs. That way, it is easier to track exactly what datasets were used to determine the comparison, and have it immediately in a form suitable for archiving and immediate access without having to decompress a tarball containing hundreds or thousands of scenes.
 
 Singlefile workflow
 -------------------
 
 The singlefile workflow is useful in situations where you don't want several hundred files being output per scene, which can clog the filesystem, or if submitting a large list of scenes for processing and rather than clogging the scheduler with hundreds of tasks per scene, there'll be a single task per scene.
 This approach is useful for large scale production, and the results are stored in a fashion that serves as both an archive and operational use. One could call it an *operational archive*.
-Routine testing and comparisons between different versions of *gaip* (assuming that the base naming structure is the same), is also more easily evaluated.
-However, the *gaip.singlefile_workflow* isn't able to pickup from where the workflow left off, as is the case in the *gaip.multifile_workflow*, instead it starts off from scratch. The retry count is set to 1 for *gaip.singlefile_workflow*, rather than the default of 3. This allows luigi to attempt to reprocesss the scene one more time, before flagging it as an error.
+Routine testing and comparisons between different versions of *wagl* (assuming that the base naming structure is the same), is also more easily evaluated.
+However, the *wagl.singlefile_workflow* isn't able to pickup from where the workflow left off, as is the case in the *wagl.multifile_workflow*, instead it starts off from scratch. The retry count is set to 1 for *wagl.singlefile_workflow*, rather than the default of 3. This allows luigi to attempt to reprocesss the scene one more time, before flagging it as an error.
 
 The contents for a Landsat 8 scene going through the nbar model and (3, 3) vertices for the radiative transfer is list in :ref:`appendix_a`.
 
@@ -129,19 +129,19 @@ Dataset names for each output are as follows:
 Geospatial Information
 ----------------------
 
-Geospatial information for *IMAGE* Class datasets can be stored in various different ways. For gaip, we attach 2 attributes specifically related to geospatial context:
+Geospatial information for *IMAGE* Class datasets can be stored in various different ways. For wagl, we attach 2 attributes specifically related to geospatial context:
 
 * transform (GDAL like GeoTransform; 6 element array)
 * crs_wkt (CRS stored as a variable length string using the Well Known Text specification
 
 This approach is very simple, and similar to lots of other mainstream formats such as `ENVI <https://www.harrisgeospatial.com/docs/ENVIHeaderFiles.html>`_,
-`KEA <http://kealib.org/>`_. The geospatial information can automatically be interpreted using *gaip.geobox.GriddedGeoBox*.
+`KEA <http://kealib.org/>`_. The geospatial information can automatically be interpreted using *wagl.geobox.GriddedGeoBox*.
 
 Tables
 ------
 
-Tabulated data created by gaip is stored in HDF5 using the compound datatype, and read back into memory as either a custom *NumPy* datatype, or directly into a *pandas.DataFrame*.
-Datatypes are mapped between HDF5 and NumPy as best as possible. Additional attached attributes inlcuded by gaip can aid in the transitional mapping.
+Tabulated data created by wagl is stored in HDF5 using the compound datatype, and read back into memory as either a custom *NumPy* datatype, or directly into a *pandas.DataFrame*.
+Datatypes are mapped between HDF5 and NumPy as best as possible. Additional attached attributes inlcuded by wagl can aid in the transitional mapping.
 `PyTables <http://www.pytables.org/>`_ could've been used to store the tables, as well as the imagery, however `h5py <http://www.h5py.org/>`_ provides a simpler api, as well as optional mpi driver mode for when the case arises (HDF5 must be compiled with the MPI switch turned on).
 
 An example table is the *coordinator* table used to define the point locations at which to run the atmospheric calculations.
@@ -173,7 +173,7 @@ An example of how to read the coordinator table into a *pandas.DataFrame*:
 
        .. code-block:: python
 
-          >>> from gaip.hdf5 import read_h5_table
+          >>> from wagl.hdf5 import read_h5_table
           >>> import h5py
           >>> fid = h5py.File('coordinator.h5', 'r')
           >>> df = read_h5_table(fid, 'nbar-coordinator')
@@ -182,9 +182,9 @@ An example of how to read the coordinator table into a *pandas.DataFrame*:
 Attributes (metadata)
 ---------------------
 
-All datasets created by *gaip* have attributes attached to them. Each dataset class type eg *SCALAR*, *TABLE*, *IMAGE*, has its own unique attribute set, as well as some common attribute labels.
-The attributes can be printed to screen using the *gaip_ls --filename my-file.h5 --verbose* utility script, or the *gaip.hdf5.h5ls* function and setting the *verbose=True* parameter. Additionally one can also use HDF5's h5ls command line utility which *gaip's* version is fashioned afer.
-The attributes can also be extracted and written to disk using the `yaml <https://en.wikipedia.org/wiki/YAML>`_ format, using the *gaip_convert* utility script, which converts Images to GeoTiff, Tables to csv, and Scalars to yaml.
+All datasets created by *wagl* have attributes attached to them. Each dataset class type eg *SCALAR*, *TABLE*, *IMAGE*, has its own unique attribute set, as well as some common attribute labels.
+The attributes can be printed to screen using the *wagl_ls --filename my-file.h5 --verbose* utility script, or the *wagl.hdf5.h5ls* function and setting the *verbose=True* parameter. Additionally one can also use HDF5's h5ls command line utility which *wagl's* version is fashioned afer.
+The attributes can also be extracted and written to disk using the `yaml <https://en.wikipedia.org/wiki/YAML>`_ format, using the *wagl_convert* utility script, which converts Images to GeoTiff, Tables to csv, and Scalars to yaml.
 
 
 TABLE attributes
@@ -208,7 +208,7 @@ then additional attributes will be attached such as:
 * number of row the table contains
 * column(s) to be used as the index
 
-An example of the attributes attached to a table dataset whose source is a Numpy structured array is given below as a *yaml* document which is what would be yielded if using the command line utility *gaip_convert*:
+An example of the attributes attached to a table dataset whose source is a Numpy structured array is given below as a *yaml* document which is what would be yielded if using the command line utility *wagl_convert*:
 
 .. code-block:: yaml
 
@@ -262,8 +262,8 @@ with just the base amount of information such as:
 * IMAGE_VERSION
 * DISPLAY_ORIGIN
 
-Images written as a whole at once using the *gaip.hdf5.write_h5_image* routine will attach *IMAGE_MINMAXRANGE* as an additional attribute.
-All images with geospatial context, which within *gaip* should be all images, wiil attach the following two additional attributes:
+Images written as a whole at once using the *wagl.hdf5.write_h5_image* routine will attach *IMAGE_MINMAXRANGE* as an additional attribute.
+All images with geospatial context, which within *wagl* should be all images, wiil attach the following two additional attributes:
 
 * transform (GDAL like GeoTransform; 6 element array)
 * crs_wkt (CRS stored as a variable length string using the Well Known Text specification
@@ -272,7 +272,7 @@ As mentioned previously, is a simple method similar to other geospatial formats 
 world coordinate, along with the coordinate reference system. Both items are easily parsed to GDAL or rasterio for interpretation.
 A *description* attribute is generally attached to every Image dataset as a means of easier understanding for anyone working with the code and wondering what a given image is representing.
 
-An example of the yaml document, as extracted using *gaip_convert*, for an IMAGE dataset written tile by tile is given as follows:
+An example of the yaml document, as extracted using *wagl_convert*, for an IMAGE dataset written tile by tile is given as follows:
 
 .. code-block:: yaml
 
@@ -291,7 +291,7 @@ An example of the yaml document, as extracted using *gaip_convert*, for an IMAGE
    - -25.0
    no_data_value: -999
 
-An example of the yaml document, as extracted using *gaip_convert*, for an IMAGE dataset written using the *gaip.hdf5.write_h5_image* routine is given as follows:
+An example of the yaml document, as extracted using *wagl_convert*, for an IMAGE dataset written using the *wagl.hdf5.write_h5_image* routine is given as follows:
 
 .. code-block:: yaml
 
@@ -318,13 +318,13 @@ An example of the yaml document, as extracted using *gaip_convert*, for an IMAGE
 Compression filters
 -------------------
 
-By default, gaip (via) h5py, will provide access to sever filters:
+By default, wagl (via) h5py, will provide access to sever filters:
 
 * lzf
 * gzip
 * shuffle
 
-The default filters used by gaip is the shuffle filter and lzf compression filter.
+The default filters used by wagl is the shuffle filter and lzf compression filter.
 The lzf filter is geared around speed, whilst still having modest compression.
 The shuffle filter is designed to reorganise the data so that similar bytes are
 closer together, thus potentially gaining better compression ratios.

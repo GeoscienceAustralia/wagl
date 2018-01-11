@@ -12,7 +12,7 @@ import h5py
 import pandas
 from shapely.geometry import Polygon
 from shapely import wkt
-from gaip.hdf5 import write_dataframe
+from wagl.hdf5 import write_dataframe
 
 
 def read_pix(filename):

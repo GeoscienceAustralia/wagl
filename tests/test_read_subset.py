@@ -8,9 +8,9 @@ import unittest
 
 import numpy
 
-from gaip.data import read_subset
-from gaip.data import write_img
-from gaip import unittesting_tools as ut
+from wagl.data import read_subset
+from wagl.data import write_img
+from wagl import unittesting_tools as ut
 
 
 class TestReadSubset(unittest.TestCase):

@@ -1,7 +1,7 @@
-A Brief History of gaip
+A Brief History of wagl
 =======================
 
-The gaip code base has evolved through 4 major iterations evolving from a system starting as a system that was essentially a set of shell scripts that ran Fortran 77 executables to a job runner framework that utilises Luigi.  As part of the 4th iteration, a large portion of the Fortran 77 and C code has been re-written in Python, to take advantage of the larger codebase available through NumPy, SciPy, and GDAL.
+The wagl code base has evolved through 4 major iterations evolving from a system starting as a system that was essentially a set of shell scripts that ran Fortran 77 executables to a job runner framework that utilises Luigi.  As part of the 4th iteration, a large portion of the Fortran 77 and C code has been re-written in Python, to take advantage of the larger codebase available through NumPy, SciPy, and GDAL.
 Original implementations came about as part of the Unlocking the Landsat Archive (ULA) project.
 
 ULA1
@@ -56,17 +56,17 @@ The new system uses exactly the same algorithms as the previous ULA NBAR process
 * `Fuqin Li <mailto:fuqin.li@ga.gov.au>`_ (scientist), and
 * `Simon Knapp <mailto:simon.knapp@ga.gov.au>`_.
 
-gaip
+wagl
 ----
 
-The gaip module was re--architected to make use of F2Py for some of the Fortran 77 routines, make use of existing 3rd party libraries, reduce the overall memory footprint, modularise the code to make a simpler interface and encorages portability, as well as simplify the workflow using Luigi as the framework. Positive outcomes was a more simplified and maintainable codebase.  The Pixel Quality (PQ) and Fractional Cover (FC) modules were refactored into the Luigi framework as well as reductions in overall memory use.
+The wagl module was re--architected to make use of F2Py for some of the Fortran 77 routines, make use of existing 3rd party libraries, reduce the overall memory footprint, modularise the code to make a simpler interface and encorages portability, as well as simplify the workflow using Luigi as the framework. Positive outcomes was a more simplified and maintainable codebase.  The Pixel Quality (PQ) and Fractional Cover (FC) modules were refactored into the Luigi framework as well as reductions in overall memory use.
 The NBAR framework now outputs 3 different reflectance products:
 1. Lambertian
 2. BRDF corrected
 3. BRDF and Terrain corrected
 The BRDF correction also differs from the ULA3 BRDF correction, in that a more accurate model is used.
 
-**The people involved with gaip were:**
+**The people involved with wagl were:**
 
 * `Lan-Wei Wang <mailto:lan-wei.wang@ga.gov.au>`_ (Stream Lead),
 * `Dale Roberts <mailto:dale.roberts@ga.gov.au>`_ (Developer),
@@ -74,7 +74,7 @@ The BRDF correction also differs from the ULA3 BRDF correction, in that a more a
 * `Josh Sixsmith <mailto:joshua.sixsmith@ga.gov.au>`_ (Developer), and
 * `Fuqin Li <mailto:fuqin.li@ga.gov.au>`_ (Scientist).
 
-gaip 5.0
+wagl 5.0
 --------
 
 A redesign of the data I/O and workflow, that simplified the task interlinking, and reduced the number of outputs. Additional command line utilities that simplified data query, access, and conversion.  Additional metadata documenting accompanying each dataset that is created. Additional output products, and support for additional sensors. Simplified api, and job submission.  Improved logging and simplified configuration.

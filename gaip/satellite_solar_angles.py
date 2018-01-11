@@ -11,13 +11,13 @@ import numpy as np
 import h5py
 
 from osgeo import osr
-from gaip.constants import DatasetName, GroupName
-from gaip.hdf5 import dataset_compression_kwargs, attach_image_attributes
-from gaip.hdf5 import attach_table_attributes, write_scalar
-from gaip.tle import load_tle
-from gaip.__sat_sol_angles import angle
-from gaip.__satellite_model import set_satmod
-from gaip.__track_time_info import set_times
+from wagl.constants import DatasetName, GroupName
+from wagl.hdf5 import dataset_compression_kwargs, attach_image_attributes
+from wagl.hdf5 import attach_table_attributes, write_scalar
+from wagl.tle import load_tle
+from wagl.__sat_sol_angles import angle
+from wagl.__satellite_model import set_satmod
+from wagl.__track_time_info import set_times
 
 CRS = "EPSG:4326"
 

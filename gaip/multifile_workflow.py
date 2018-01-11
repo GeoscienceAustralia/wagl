@@ -36,29 +36,29 @@ import h5py
 import luigi
 from luigi.local_target import LocalFileSystem
 from luigi.util import inherits, requires
-from gaip.acquisition import acquisitions
-from gaip.ancillary import _collect_ancillary, _aggregate_ancillary
-from gaip.satellite_solar_angles import _calculate_angles
-from gaip.incident_exiting_angles import _incident_exiting_angles
-from gaip.incident_exiting_angles import _relative_azimuth_slope
-from gaip.longitude_latitude_arrays import _create_lon_lat_grids
-from gaip.reflectance import _calculate_reflectance, link_standard_data
-from gaip.terrain_shadow_masks import _self_shadow, _calculate_cast_shadow
-from gaip.terrain_shadow_masks import _combine_shadow
-from gaip.slope_aspect import _slope_aspect_arrays
-from gaip.constants import Model, BandType, Method, AtmosphericComponents
-from gaip.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT, Albedos
-from gaip.dsm import _get_dsm
-from gaip.modtran import _format_tp5, _run_modtran
-from gaip.modtran import _calculate_components, prepare_modtran
-from gaip.modtran import link_atmospheric_results
-from gaip.interpolation import _interpolate, link_interpolated_data
-from gaip.temperature import _surface_brightness_temperature
-from gaip.pq import can_pq, _run_pq
-from gaip.hdf5 import create_external_link
+from wagl.acquisition import acquisitions
+from wagl.ancillary import _collect_ancillary, _aggregate_ancillary
+from wagl.satellite_solar_angles import _calculate_angles
+from wagl.incident_exiting_angles import _incident_exiting_angles
+from wagl.incident_exiting_angles import _relative_azimuth_slope
+from wagl.longitude_latitude_arrays import _create_lon_lat_grids
+from wagl.reflectance import _calculate_reflectance, link_standard_data
+from wagl.terrain_shadow_masks import _self_shadow, _calculate_cast_shadow
+from wagl.terrain_shadow_masks import _combine_shadow
+from wagl.slope_aspect import _slope_aspect_arrays
+from wagl.constants import Model, BandType, Method, AtmosphericComponents
+from wagl.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT, Albedos
+from wagl.dsm import _get_dsm
+from wagl.modtran import _format_tp5, _run_modtran
+from wagl.modtran import _calculate_components, prepare_modtran
+from wagl.modtran import link_atmospheric_results
+from wagl.interpolation import _interpolate, link_interpolated_data
+from wagl.temperature import _surface_brightness_temperature
+from wagl.pq import can_pq, _run_pq
+from wagl.hdf5 import create_external_link
 
 
-ERROR_LOGGER = wrap_logger(logging.getLogger('gaip-error'),
+ERROR_LOGGER = wrap_logger(logging.getLogger('wagl-error'),
                            processors=[JSONRenderer(indent=1, sort_keys=True)])
 
 
@@ -939,10 +939,10 @@ class DataStandardisation(luigi.Task):
                         self.compression, self.acq_parser_hint)
 
 
-class LinkGaipOutputs(luigi.Task):
+class LinkwaglOutputs(luigi.Task):
 
     """
-    Link all the multifile outputs from gaip into a single file.
+    Link all the multifile outputs from wagl into a single file.
     """
 
     level1 = luigi.Parameter()
@@ -1013,14 +1013,14 @@ class ARD(luigi.WrapperTask):
             level1_scenes = [scene.strip() for scene in src.readlines()]
 
         for level1 in level1_scenes:
-            work_name = '{}.gaip'.format(basename(level1))
+            work_name = '{}.wagl'.format(basename(level1))
             work_root = pjoin(self.outdir, work_name)
             kwargs = {'level1': level1, 'work_root': work_root,
                       'model': self.model, 'vertices': self.vertices,
                       'pixel_quality': self.pixel_quality,
                       'method': self.method, 'dsm_fname': self.dsm_fname}
 
-            yield LinkGaipOutputs(**kwargs)
+            yield LinkwaglOutputs(**kwargs)
 
 
 class CallTask(luigi.WrapperTask):
@@ -1041,7 +1041,7 @@ class CallTask(luigi.WrapperTask):
             level1_scenes = [scene.strip() for scene in src.readlines()]
 
         for scene in level1_scenes:
-            work_name = '{}.gaip'.format(basename(scene))
+            work_name = '{}.wagl'.format(basename(scene))
             work_root = pjoin(self.outdir, work_name)
             container = acquisitions(scene, self.acq_parser_hint)
             for granule in container.granules:

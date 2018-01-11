@@ -17,7 +17,7 @@ POINT_ALBEDO_FMT = ''.join([POINT_FMT, '-', ALBEDO_FMT])
 
 class Model(Enum):
     """
-    Represents the model workflow that gaip can run.
+    Represents the model workflow that wagl can run.
 
     *standard* Indicates both NBAR and SBT workflows will run
     *nbar* Indicates NBAR only
@@ -83,7 +83,7 @@ class DatasetName(Enum):
     for creating and accessing throughout the code base.
     """
 
-    # gaip.ancillary
+    # wagl.ancillary
     coordinator = 'COORDINATOR'
     dewpoint_temperature = 'DEWPOINT-TEMPERATURE'
     temperature_2m = 'TEMPERATURE-2METRE'
@@ -101,11 +101,11 @@ class DatasetName(Enum):
     brdf_fmt = "BRDF-{parameter}-{band_name}"
     ecmwf_path_fmt = pjoin('{product}', '{year}', 'tif', '{product}_*.tif')
 
-    # gaip.longitude_latitude_arrays
+    # wagl.longitude_latitude_arrays
     lon = 'LONGITUDE'
     lat = 'LATITUDE'
 
-    # gaip.satellite_solar_angles
+    # wagl.satellite_solar_angles
     satellite_view = 'SATELLITE-VIEW'
     satellite_azimuth = 'SATELLITE-AZIMUTH'
     solar_zenith = 'SOLAR-ZENITH'
@@ -120,36 +120,36 @@ class DatasetName(Enum):
     satellite_track = 'SATELLITE-TRACK'
     generic = 'GENERIC'
 
-    # gaip.incident_exiting_angles
+    # wagl.incident_exiting_angles
     incident = 'INCIDENT'
     azimuthal_incident = 'AZIMUTHAL-INCIDENT'
     exiting = 'EXITING'
     azimuthal_exiting = 'AZIMUTHAL-EXITING'
     relative_slope = 'RELATIVE-SLOPE'
 
-    # gaip.reflectance
+    # wagl.reflectance
     reflectance_fmt = 'REFLECTANCE/{product}/{band_name}'
 
-    # gaip.temperature
+    # wagl.temperature
     temperature_fmt = 'THERMAL/SURFACE-BRIGHTNESS-TEMPERATURE/{band_name}'
 
-    # gaip.terrain_shadow_masks
+    # wagl.terrain_shadow_masks
     self_shadow = 'SELF-SHADOW'
     cast_shadow_fmt = 'CAST-SHADOW-{source}'
     combined_shadow = 'COMBINED-SHADOW'
 
-    # gaip.slope_aspect
+    # wagl.slope_aspect
     slope = 'SLOPE'
     aspect = 'ASPECT'
 
-    # gaip.dsm
+    # wagl.dsm
     dsm = 'DSM'
     dsm_smoothed = 'DSM-SMOOTHED'
 
-    # gaip.interpolation
+    # wagl.interpolation
     interpolation_fmt = '{component}/{band_name}'
 
-    # gaip.modtran
+    # wagl.modtran
     tp5 = 'TP5-DATA'
     flux = 'FLUX'
     altitudes = 'ALTITUDES'
@@ -160,7 +160,7 @@ class DatasetName(Enum):
     nbar_components = 'NBAR-COMPONENTS'
     sbt_components = 'SBT-COMPONENTS'
 
-    # gaip.pq
+    # wagl.pq
     pq_fmt = 'PIXEL-QUALITY/{produt}/PIXEL-QUALITY'
 
     # metadata
@@ -217,7 +217,7 @@ class BrdfParameters(Enum):
 
 class ArdProducts(Enum):
     """
-    Defines the output ARD products that gaip produces.
+    Defines the output ARD products that wagl produces.
     """
 
     nbar = 'NBAR'
@@ -228,7 +228,7 @@ class ArdProducts(Enum):
 
 class Albedos(Enum):
     """
-    Defines the albedo labels that gaip uses.
+    Defines the albedo labels that wagl uses.
     """
 
     albedo_0 = '0'
@@ -239,7 +239,7 @@ class Albedos(Enum):
 
 class AtmosphericComponents(Enum):# param, coeff, vari... what to use
     """
-    Defines the atmospheric component names that gaip uses.
+    Defines the atmospheric component names that wagl uses.
     """
 
     fs = 'FS'

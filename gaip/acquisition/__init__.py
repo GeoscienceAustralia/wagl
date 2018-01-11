@@ -1,5 +1,5 @@
 """
-The acquisition is a core object passed throughout gaip,
+The acquisition is a core object passed throughout wagl,
 which provides a lightweight `Acquisition` class.
 An `Acquisition` instance provides data read methods,
 and contains various attributes/metadata regarding the band

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Unittesting framework for the `gaip.terrain_shadow_masks` module.
+Unittesting framework for the `wagl.terrain_shadow_masks` module.
 """
 
 from __future__ import absolute_import, print_function, unicode_literals
@@ -11,14 +11,14 @@ from argparse import RawTextHelpFormatter
 import numpy
 import h5py
 
-from gaip.unittesting_tools import ParameterisedTestCase
+from wagl.unittesting_tools import ParameterisedTestCase
 
 
 class TestShadowMasks(ParameterisedTestCase):
     """
     Unittesting for the self shadow, cast shadow (from both
     the sun and satellite directions), and the combined shadow
-    masks, found in `gaip.terrain_shadow_masks`.
+    masks, found in `wagl.terrain_shadow_masks`.
 
     Unittests will occur for the following datasets:
 
@@ -83,7 +83,7 @@ class TestShadowMasks(ParameterisedTestCase):
 
 def _parser():
     """ Argument parser. """
-    description = ("Unittests for `gaip.terrain_shadow_masks` module.\n"
+    description = ("Unittests for `wagl.terrain_shadow_masks` module.\n"
                    "Comparisons tests will occur for the following "
                    "datasets: \n"
                    "\t* self-shadow\n"

@@ -12,16 +12,16 @@ from __future__ import absolute_import, print_function
 import numpy
 import h5py
 
-from gaip.constants import DatasetName, GroupName, BrdfParameters
-from gaip.constants import AtmosphericComponents as AC
-from gaip.constants import ArdProducts as AP
-from gaip.data import as_array
-from gaip.hdf5 import dataset_compression_kwargs
-from gaip.hdf5 import attach_image_attributes
-from gaip.hdf5 import create_external_link
-from gaip.hdf5 import find
-from gaip.metadata import create_ard_yaml
-from gaip.__surface_reflectance import reflectance
+from wagl.constants import DatasetName, GroupName, BrdfParameters
+from wagl.constants import AtmosphericComponents as AC
+from wagl.constants import ArdProducts as AP
+from wagl.data import as_array
+from wagl.hdf5 import dataset_compression_kwargs
+from wagl.hdf5 import attach_image_attributes
+from wagl.hdf5 import create_external_link
+from wagl.hdf5 import find
+from wagl.metadata import create_ard_yaml
+from wagl.__surface_reflectance import reflectance
 
 NO_DATA_VALUE = -999
 

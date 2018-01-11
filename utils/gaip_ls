@@ -1,4 +1,4 @@
 #!/usr/bin/env python
 
-from gaip.scripts.gaip_ls import main
+from wagl.scripts.wagl_ls import main
 main()

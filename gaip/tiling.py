@@ -45,7 +45,7 @@ def generate_tiles(samples, lines, xtile=None, ytile=None):
 
     Example:
 
-        >>> from gaip.tiling import generate_tiles
+        >>> from wagl.tiling import generate_tiles
         >>> tiles = generate_tiles(8624, 7567, xtile=1000, ytile=400)
         >>> for tile in tiles:
         >>>     ystart = int(tile[0][0])

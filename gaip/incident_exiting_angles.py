@@ -8,14 +8,14 @@ from __future__ import absolute_import, print_function
 import numpy
 import h5py
 
-from gaip.constants import DatasetName, GroupName
-from gaip.geobox import GriddedGeoBox
-from gaip.tiling import generate_tiles
-from gaip.data import as_array
-from gaip.hdf5 import dataset_compression_kwargs
-from gaip.hdf5 import attach_image_attributes
-from gaip.__exiting_angle import exiting_angle
-from gaip.__incident_angle import incident_angle
+from wagl.constants import DatasetName, GroupName
+from wagl.geobox import GriddedGeoBox
+from wagl.tiling import generate_tiles
+from wagl.data import as_array
+from wagl.hdf5 import dataset_compression_kwargs
+from wagl.hdf5 import attach_image_attributes
+from wagl.__exiting_angle import exiting_angle
+from wagl.__incident_angle import incident_angle
 
 
 def _incident_exiting_angles(satellite_solar_fname, slope_aspect_fname,

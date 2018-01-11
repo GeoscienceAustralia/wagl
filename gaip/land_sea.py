@@ -5,8 +5,8 @@
 from __future__ import absolute_import, print_function
 import rasterio as rio
 import osr
-from gaip.geobox import GriddedGeoBox
-from gaip.data import write_img
+from wagl.geobox import GriddedGeoBox
+from wagl.data import write_img
 import numpy
 
 # pylint: disable=invalid-name

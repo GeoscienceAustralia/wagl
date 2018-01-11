@@ -3,7 +3,7 @@ import os
 import numpy
 
 from osgeo import gdal
-from gaip.metadata import extract_ancillary_metadata
+from wagl.metadata import extract_ancillary_metadata
 
 
 

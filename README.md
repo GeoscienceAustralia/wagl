@@ -1,8 +1,8 @@
-# gaip
+# wagl
 ------
 
 
-gaip is a Python package for producing standarised imagery in the form of:
+wagl is a Python package for producing standarised imagery in the form of:
 
 * Nadir Bi-directional Reflectance Distribution Function Adjusted Reflectance (NBAR)
 * NBART; NBAR with Terrain Illumination correction
@@ -43,8 +43,8 @@ The luigi task workflow for producing NBAR for a Landsat 5TM scene is given belo
 ## Installation
 ---------------
 
-### gaip Package
-The gaip pacakage can be installed via:
+### wagl Package
+The wagl pacakage can be installed via:
 
 `$ python setup.py install --prefix=<prefix>`
 
@@ -71,14 +71,14 @@ It utilises a bitshuffling filter on top of either a lz4 or lzf compression filt
 --------------------------
 Using the [local scheduler](http://luigi.readthedocs.io/en/stable/command_line.html):
 
-    $ luigi --module gaip.multifile_workflow ARD --model nbar --level1-list scenes.txt --outdir /some/path --local-scheduler --workers 4
+    $ luigi --module wagl.multifile_workflow ARD --model nbar --level1-list scenes.txt --outdir /some/path --local-scheduler --workers 4
 
 Using the [central scheduler](http://luigi.readthedocs.io/en/stable/central_scheduler.html):
 
     $ luigid --background --pidfile <PATH_TO_PIDFILE> --logdir <PATH_TO_LOGDIR> --state-path <PATH_TO_STATEFILE>
 
-    $ luigi --module gaip.multifile_workflow ARD --level1-list scenes.txt --model standard --outdir /some/path --workers 4
+    $ luigi --module wagl.multifile_workflow ARD --level1-list scenes.txt --model standard --outdir /some/path --workers 4
 
-    $ luigi --module gaip.multifile_workflow ARD --level1-list scenes.txt --model nbar --outdir /some/path --workers 4
+    $ luigi --module wagl.multifile_workflow ARD --level1-list scenes.txt --model nbar --outdir /some/path --workers 4
 
-    $ luigi --module gaip.multifile_workflow ARD --level1-list scenes.txt --model sbt --outdir /some/path --workers 4
+    $ luigi --module wagl.multifile_workflow ARD --level1-list scenes.txt --model sbt --outdir /some/path --workers 4

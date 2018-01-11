@@ -2,8 +2,8 @@ from __future__ import absolute_import
 from os.path import join as pjoin, abspath, dirname
 import unittest
 import ephem
-from gaip.acquisition import acquisitions
-from gaip.tle import load_tle
+from wagl.acquisition import acquisitions
+from wagl.tle import load_tle
 
 DATA_DIR = TLE_DIR = pjoin(dirname(abspath(__file__)), 'data')
 LS5_SCENE1 = pjoin(DATA_DIR, 'LANDSAT5', 'LS5_TM_OTH_P51_GALPGS01-002_090_081_20090407')
