@@ -95,8 +95,8 @@ class BRDFLoader(object):
         self.filename = filename
         self.roi = {'UL': ul, 'LR': lr}
 
-        log.info('%s: filename=%s, roi=%s', self.__class__.__name__,
-                 self.filename, str(self.roi))
+        log.debug('%s: filename=%s, roi=%s', self.__class__.__name__,
+                  self.filename, str(self.roi))
 
         if ul is None or lr is None:
             raise BRDFLoaderError('%s: UL and/or LR not defined'
@@ -549,7 +549,7 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
             brdf_object = BRDFLoader(hdf_file, ul=geobox.ul_lonlat,
                                      lr=geobox.lr_lonlat)
 
-            # gauard against roi's that don't intersect
+            # guard against roi's that don't intersect
             if not brdf_object.intersects:
                 msg = "ROI is outside the BRDF extents!"
                 log.error(msg)

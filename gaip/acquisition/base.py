@@ -75,7 +75,7 @@ class AcquisitionsContainer(object):
             grps = sorted(list(self._groups.keys()))
         return grps
 
-    def get_acquisitions(self, group=None, granule=None):
+    def get_acquisitions(self, group=None, granule=None, only_configured_bands=True):
         """
         Return a list of acquisitions for a given granule and group.
 
@@ -90,6 +90,11 @@ class AcquisitionsContainer(object):
             the acquisitions from. If `None` (default), return the
             acquisitions from the the first granule in the
             `AcquisitionsContainer.granule` list.
+
+        :param only_configured_bands:
+            boolean if set to True will return all bands that are
+            defined in acquisition/sensors.json for the related platform.
+            If set to False it will return all acquisitions
 
         :return:
             A `list` of `Acquisition` objects.
@@ -106,7 +111,13 @@ class AcquisitionsContainer(object):
             else:
                 acqs = self._groups[group]
 
-        return acqs
+        if only_configured_bands:
+            return list(
+                filter(lambda acq: getattr(acq, 'sensor_band_configured', False) is True,
+                acqs)
+            )
+        else:
+            return acqs
 
     def get_granule(self, granule=None, container=False):
         """
