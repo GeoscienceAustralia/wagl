@@ -66,13 +66,13 @@ The same job resources, but use PBSDSH instead of individual jobs being submitte
 
 Compares and evaluates the following datasets:
 
-    * /boxline
-    * /centreline
-    * /relative-azimuth
-    * /satellite-azimuth
-    * /satellite-view
-    * /solar-azimuth
-    * /solar-zenith
+    * /BOXLINE
+    * /CENTRELINE
+    * /RELATIVE-AZIMUTH
+    * /SATELLITE-AZIMUTH
+    * /SATELLITE-VIEW
+    * /SOLAR-AZIMUTH
+    * /SOLAR-ZENITH
 
 .. code-block:: bash
 
@@ -82,8 +82,8 @@ Compares and evaluates the following datasets:
 
 Compares and evaluates the following datasets:
 
-    * /dsm
-    * /dsm-smoothed
+    * /DSM
+    * /DSM-SMOOTHED
 
 .. code-block:: bash
 
@@ -93,8 +93,8 @@ Compares and evaluates the following datasets:
 
 Compares and evaluates the following datasets:
 
-    * /azimuthal-exiting
-    * /exiting
+    * /AZIMUTHAL-EXITING
+    * /EXITING
 
 .. code-block:: bash
 
@@ -104,8 +104,8 @@ Compares and evaluates the following datasets:
 
 Compares and evaluates the following datasets:
 
-    * /azimuthal-incident
-    * /incident
+    * /AZIMUTHAL-INCIDENT
+    * /INCIDENT
 
 .. code-block:: bash
 
@@ -115,7 +115,7 @@ Compares and evaluates the following datasets:
 
 Compares and evaluates the following datasets:
 
-   * /relative-slope
+   * /RELATIVE-SLOPE
 
 .. code-block:: bash
 
@@ -125,10 +125,10 @@ Compares and evaluates the following datasets:
 
 Compares and evaluates the following datasets:
 
-    * /cast-shadow-satellite
-    * /cast-shadow-sun
-    * /combined-shadow
-    * /self-shadow
+    * /CAST-SHADOW-SATELLITE
+    * /CAST-SHADOW-SUN
+    * /COMBINED-SHADOW
+    * /SELF-SHADOW
 
 .. code-block:: bash
 
@@ -138,8 +138,8 @@ Compares and evaluates the following datasets:
 
 Compares and evaluates the following datasets:
 
-    * /aspect
-    * /slope
+    * /ASPECT
+    * /SLOPE
 
 .. code-block:: bash
 
