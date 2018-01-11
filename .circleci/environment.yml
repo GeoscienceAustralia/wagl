@@ -26,4 +26,3 @@ dependencies:
     - nested_lookup >= 0.1.3
     - structlog >= 16.1.0
     - git+git://github.com/sixy6e/idl-functions.git@master
-
