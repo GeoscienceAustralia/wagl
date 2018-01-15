@@ -330,13 +330,13 @@ def collect_nbar_ancillary(acquisition, aerosol_dict=None,
     :param aerosol_dict:
         A `dict` defined as either of the following:
 
-        * {'default': <value>}
+        * {'user': <value>}
         * {'pathname': <value>}
 
     :param water_vapour_dict:
         A `dict` defined as either of the following:
 
-        * {'default': <value>}
+        * {'user': <value>}
         * {'pathname': <value>}
 
     :param ozone_path:
@@ -513,9 +513,9 @@ def get_aerosol_data(acquisition, aerosol_dict):
 
     # temporary until we sort out a better default mechanism
     # how do we want to support default values, whilst still support provenance
-    if 'default' in aerosol_dict:
-        metadata = {'data_source': 'Default value'}
-        return aerosol_dict['default'], metadata
+    if 'user' in aerosol_dict:
+        metadata = {'data_source': 'User defined value'}
+        return aerosol_dict['user'], metadata
     else:
         aerosol_fname = aerosol_dict['pathname']
 
@@ -632,11 +632,12 @@ def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1):
     year = dt.strftime('%Y')
     filename = "pr_wtr.eatm.{year}.tif".format(year=year)
 
-    if 'default' in water_vapour_dict:
-        metadata = {'data_source': 'Default value'}
-        return water_vapour_dict['default'], metadata
+    if 'user' in water_vapour_dict:
+        metadata = {'data_source': 'User defined value'}
+        return water_vapour_dict['user'], metadata
     else:
         water_vapour_path = water_vapour_dict['pathname']
+
     datafile = pjoin(water_vapour_path, filename)
 
     # calculate the water vapour band number based on the datetime
