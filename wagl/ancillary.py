@@ -316,7 +316,7 @@ def collect_sbt_ancillary(acquisition, lonlats, ancillary_path,
         return fid
 
 
-def collect_nbar_ancillary(acquisition, aerosol_dict=None,
+def collect_nbar_ancillary(container, aerosol_dict=None,
                            water_vapour_dict=None, ozone_path=None,
                            dem_path=None, brdf_path=None,
                            brdf_premodis_path=None, out_group=None,
