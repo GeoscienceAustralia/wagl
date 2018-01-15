@@ -1,6 +1,6 @@
 * text=auto
 
-gaip/version.py  export-subst
+wagl/version.py  export-subst
 
 *.sh text eol=lf
 *.bash text eol=lf
@@ -12,4 +12,4 @@ gaip/version.py  export-subst
 *.bin binary
 *.tif binary
 
-gaip/_version.py export-subst
+wagl/_version.py export-subst

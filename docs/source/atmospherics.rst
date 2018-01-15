@@ -1,7 +1,7 @@
 Atmospherics
 ============
 
-Specifically dealing with evaluating the radiative transfer for a defined set of spectra. The *gaip* package utilises `MODTRAN <http://modtran.spectral.com/>`_ for evalutating the radiative transfer.
+Specifically dealing with evaluating the radiative transfer for a defined set of spectra. The *wagl* package utilises `MODTRAN <http://modtran.spectral.com/>`_ for evalutating the radiative transfer.
 
 The default number of points to evaluate the radiative transfer at is 9 for *nbar*, & 25 for *sbt*. If the *standard* model is chosen, then 25 points will be evaluated for both *nbar* and *sbt*. This is to make the workflow simpler and the output directories can be shared by both models, and share the same dependencies. The resulting *lambertian*, *nbar* and *nbart* datasets maybe slightly more accurate when using 25 points than 9 points.
 
@@ -83,7 +83,7 @@ For the *sbt* model, ancillary data is gathered at each point. This is different
 Radiative transfer outputs (MODTRAN)
 ------------------------------------
 
-The outputs from MODTRAN, when run via *gaip*, are converted from raw binary FORTRAN records into tables, for each point, for each albedo id (0, 1, t, th). The table names for the nbar model are:
+The outputs from MODTRAN, when run via *wagl*, are converted from raw binary FORTRAN records into tables, for each point, for each albedo id (0, 1, t, th). The table names for the nbar model are:
 
 * /ALTITUDES
 * /CHANNEL
@@ -134,7 +134,7 @@ The first 10 rows of data are:
 NBAR Solar Irradiance Tables
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The solar irradiance tables output by MODTRAN are stored by *gaip* using the following structures:
+The solar irradiance tables output by MODTRAN are stored by *wagl* using the following structures:
 
 Albedo id's 0 & 1
 ^^^^^^^^^^^^^^^^^
@@ -240,7 +240,7 @@ The table dataset names for the NBAR and SBT workflow models are:
 * /ATMOSPHERIC-COMPONENTS/NBAR-COMPONENTS
 * /ATMOSPHERIC-COMPONENTS/SBT-COMPONENTS
 
-if the scene is not composed of multiple tiles/granules in which case the *coefficiencts* Group is at the root layer of the *gaip.singlefile_workflow* or the *gaip.multifile_workflow*, otherwise the *granule name* eg *S2A_USER_MSI_L2A_TL_SGS__20160120T053143_A003016_T55KBQ_N02.01* would precede the *coefficients* Group in the *gaip.singlefile_workflow* like such:
+if the scene is not composed of multiple tiles/granules in which case the *coefficiencts* Group is at the root layer of the *wagl.singlefile_workflow* or the *wagl.multifile_workflow*, otherwise the *granule name* eg *S2A_USER_MSI_L2A_TL_SGS__20160120T053143_A003016_T55KBQ_N02.01* would precede the *coefficients* Group in the *wagl.singlefile_workflow* like such:
 
 * /S2A_USER_MSI_L2A_TL_SGS__20160120T053143_A003016_T55KBQ_N02.01/ATMOSPHERIC-COMPONENTS/NBAR-COMPONENTS
 * /S2A_USER_MSI_L2A_TL_SGS__20160120T053143_A003016_T55KBQ_N02.01/ATMOSPHERIC-COMPONENTS/SBT-COMPONENTS

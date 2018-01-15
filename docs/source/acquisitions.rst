@@ -1,7 +1,7 @@
 Acquisitions
 ============
 
-The core class for the gaip package is the *Acquisition* object. An *Acquistion* contains much of the required information about the spectral band,
+The core class for the wagl package is the *Acquisition* object. An *Acquistion* contains much of the required information about the spectral band,
 but also the satellite, sensor, datetime, gain, bias, spectral reponse etc.
 
 An *Acquisition* instance is created for every band contained within a given group, such as a particular resolution.
@@ -39,6 +39,6 @@ and how many *Groups* are contained within each *Granule*.
           >>> print(scene.get_root('my/work/directory', granule='S2A_USER_MSI_L2A_TL_SGS__20160120T053143_A003016_T55KBQ_N02.01', group='R10m')
 
 An *Acquisition* instance also defines the tiling/chunking logic of any given image processing routine, as well as how the image result is stored on disk.
-This is to provide a more dynamic and flexible processing capability for a variety of sensors that become supported by gaip.
+This is to provide a more dynamic and flexible processing capability for a variety of sensors that become supported by wagl.
 The property `tile_size` describes the underlying storage tiles for the acquisition, and the method `tiles` returns a tile generator that can be looped over
 and return a tile/chunk of data for processing.

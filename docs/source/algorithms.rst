@@ -1,4 +1,4 @@
-Products produced by gaip
+Products produced by wagl
 ==============================
 
 .. _lambertian-algorithm-label:

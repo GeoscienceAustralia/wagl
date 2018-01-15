@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# gaip documentation build configuration file, created by
+# wagl documentation build configuration file, created by
 # sphinx-quickstart on Tue Jan  6 14:54:34 2015.
 #
 # This file is execfile()d with the current directory set to its
@@ -48,7 +48,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'gaip'
+project = u'wagl'
 copyright = u'2015, Geoscience Australia'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -198,7 +198,7 @@ html_static_path = ['_static']
 #html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'gaipdoc'
+htmlhelp_basename = 'wagldoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -220,7 +220,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'gaip.tex', u'gaip Documentation',
+  ('index', 'wagl.tex', u'wagl Documentation',
    u'Geoscience Australia', 'manual'),
 ]
 
@@ -250,7 +250,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'gaip', u'gaip Documentation',
+    ('index', 'wagl', u'wagl Documentation',
      [u'Geoscience Australia'], 1)
 ]
 
@@ -264,8 +264,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'gaip', u'gaip Documentation',
-   u'Geoscience Australia', 'gaip', 'One line description of project.',
+  ('index', 'wagl', u'wagl Documentation',
+   u'Geoscience Australia', 'wagl', 'One line description of project.',
    'Miscellaneous'),
 ]
 

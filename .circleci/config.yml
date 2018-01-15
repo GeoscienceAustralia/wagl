@@ -37,7 +37,7 @@ jobs:
       - run:
           name: run tests
           command: |
-            source activate gaip
+            source activate wagl
             python3 setup.py test
 
       - store_artifacts:

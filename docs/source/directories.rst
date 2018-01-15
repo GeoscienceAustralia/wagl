@@ -1,11 +1,11 @@
-gaip Directory Structure
+wagl Directory Structure
 ========================
 
-* gaip
+* wagl
         * Contains Python modules and FORTRAN 90 code built as Python modules using F2Py.
         * acquisition
                 * Contains the acquisition base class and information regarding the satellite/sensors
-                  supported by gaip.
+                  supported by wagl.
         * f90_sources
                 * Contains the FORTRAN 90 code to be built as Python modules using F2Py.
         * spectral_response

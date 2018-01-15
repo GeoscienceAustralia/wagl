@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Test the various utilites contained in the gaip.hdf5 module.
+Test the various utilites contained in the wagl.hdf5 module.
 """
 
 import datetime
@@ -9,13 +9,13 @@ import unittest
 import numpy
 import h5py
 import pandas
-from gaip import hdf5
+from wagl import hdf5
 
 
 class HDF5Test(unittest.TestCase):
 
     """
-    Test the various utilites contained in the gaip.hdf5 module.
+    Test the various utilites contained in the wagl.hdf5 module.
     """
 
     scalar_data = 66

@@ -4,10 +4,10 @@ import unittest
 import datetime
 import rasterio
 from osgeo import osr
-from gaip.acquisition import acquisitions
-from gaip.acquisition.landsat import Landsat8Acquisition, LandsatAcquisition
-from gaip.constants import BandType
-from gaip.temperature import temperature_at_sensor
+from wagl.acquisition import acquisitions
+from wagl.acquisition.landsat import Landsat8Acquisition, LandsatAcquisition
+from wagl.constants import BandType
+from wagl.temperature import temperature_at_sensor
 
 DATA_DIR = pjoin(dirname(abspath(__file__)), 'data')
 

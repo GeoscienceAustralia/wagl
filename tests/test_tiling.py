@@ -10,7 +10,7 @@ import unittest
 
 import numpy
 
-from gaip.tiling import generate_tiles
+from wagl.tiling import generate_tiles
 
 
 class TestGetTile3(unittest.TestCase):

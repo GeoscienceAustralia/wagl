@@ -3,9 +3,9 @@ Command line utility scripts
 
 There are several command line scripts for either extracting datasets or unittesting.
 
-    * gaip_convert:  *An unpacking/converting utility that converts HDF5 Tables to CSV, HDF5 images to GeoTiff, and metadata to yaml files.*
-    * gaip_ls: *List the contents of an HDF5 file.*
-    * gaip_pbs: *Evenly distribute a list of level-1 scenes and submit each block for processing into the PBS queue.*
+    * wagl_convert:  *An unpacking/converting utility that converts HDF5 Tables to CSV, HDF5 images to GeoTiff, and metadata to yaml files.*
+    * wagl_ls: *List the contents of an HDF5 file.*
+    * wagl_pbs: *Evenly distribute a list of level-1 scenes and submit each block for processing into the PBS queue.*
     * test_calculate_angles: *Compares and evaluates each dataset contained within a* **satellite-solar.h5** *file against the same datasets contained within another file.*
     * test_dsm: *Compare and evaluate two* **dsm-extract.h5** *files.*
     * test_exiting_angles: *Compare and evaluate two* **exiting-angles.h5** *files.*
@@ -14,7 +14,7 @@ There are several command line scripts for either extracting datasets or unittes
     * test_terrain_shadow_masks: *Compare and evaluate two* **shadow-masks** *files.*
     * test_slope_aspect: *Compare and evaluate two* **slope-aspect.h5** *files.*
 
-**gaip_convert**
+**wagl_convert**
 
 Unpacks/converts SCALAR, TABLE & IMAGE HDF5 datasets to yaml, csv, and GeoTiff file respectively, along with an attributes to a yaml file. Any hierarchial structure will be replicated on disk as directories. Individual Groups or Datasets can be specified using the *--pathname* argument. Thereby only Dataset's contained under that Group, or the selected Dataset will be converted.
 
@@ -22,11 +22,11 @@ Example of use:
 
 .. code-block:: bash
 
-   $ gaip_convert --filename satellite-solar.h5 --outdir /some/output/directory
+   $ wagl_convert --filename satellite-solar.h5 --outdir /some/output/directory
 
-   $ gaip_convert --filename satellite-solar.h5 --outdir /some/output/directory --pathname /solar-zenith
+   $ wagl_convert --filename satellite-solar.h5 --outdir /some/output/directory --pathname /solar-zenith
 
-**gaip_ls**
+**wagl_ls**
 
 Lists the contents of a HDF5 file, printing the full pathname of each Group and Dataset from the root level of the HDF5 file, as well as the Class, eg *Group, Dataset, IMAGE Dataset, TABLE Dataset*. Optionally, attributes for the Group or Dataset can be output as well by specifying the *--verbose* argument.
 
@@ -34,11 +34,11 @@ Example of use:
 
 .. code-block:: bash
 
-   $ gaip_ls --filename satellite-solar.h5
+   $ wagl_ls --filename satellite-solar.h5
 
-   $ gaip_ls --filename satellite-solar.h5 --verbose
+   $ wagl_ls --filename satellite-solar.h5 --verbose
 
-**gaip_pbs**
+**wagl_pbs**
 
 Given a list of level-1 scenes, evenly distrubute the number of scenes across *n* nodes and submit as either a single job, or multiple jobs to the PBS queue.
 
@@ -54,13 +54,13 @@ An example of submitting individual jobs to the PBS queue using the following sp
 
 .. code-block:: bash
 
-   $ gaip_pbs --level1-list /path/to/level1-scenes.txt --vertices '(3, 3)' --model nbar --method bilinear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project nx200 --queue express --hours 2 --email your.name@something.com
+   $ wagl_pbs --level1-list /path/to/level1-scenes.txt --vertices '(3, 3)' --model nbar --method bilinear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project nx200 --queue express --hours 2 --email your.name@something.com
 
 The same job resources, but use PBSDSH instead of individual jobs being submitted to the PBS queue.
 
 .. code-block:: bash
 
-   $ gaip_pbs --level1-list /path/to/level1-scenes.txt --vertices '(3, 3)' --model nbar --method bilinear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh
+   $ wagl_pbs --level1-list /path/to/level1-scenes.txt --vertices '(3, 3)' --model nbar --method bilinear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh
 
 **test_calculate_angles**
 

@@ -9,8 +9,8 @@ import affine
 import rasterio as rio
 from osgeo import osr
 from osgeo import gdal
-from gaip.geobox import GriddedGeoBox
-from gaip import unittesting_tools as ut
+from wagl.geobox import GriddedGeoBox
+from wagl import unittesting_tools as ut
 
 affine.EPSILON = 1e-9
 affine.EPSILON2 = 1e-18

@@ -6,7 +6,7 @@ Test several different configurations of the tp5 file format.
 
 from os.path import join as pjoin, abspath, dirname
 import unittest
-from gaip import modtran_profiles as mp
+from wagl import modtran_profiles as mp
 
 DATA_DIR = pjoin(dirname(abspath(__file__)), 'data')
 FNAME1 = pjoin(DATA_DIR, 'TL_alb_0.tp5')

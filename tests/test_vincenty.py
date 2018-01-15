@@ -8,7 +8,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 import unittest
 import math
-from gaip.vincenty import vinc_dist, vinc_pt, GreatCircle
+from wagl.vincenty import vinc_dist, vinc_pt, GreatCircle
 
 
 class VincentyTestCase(unittest.TestCase):

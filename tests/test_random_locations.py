@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 import unittest
 
-from gaip import unittesting_tools as ut
+from wagl import unittesting_tools as ut
 
 class TestRandomPixelLocations(unittest.TestCase):
 

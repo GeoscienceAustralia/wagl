@@ -1,0 +1,4 @@
+#!/usr/bin/env python
+
+from wagl.scripts.wagl_residuals import main
+main()
