@@ -208,8 +208,8 @@ class AncillaryData(luigi.Task):
         grn = container.get_granule(granule=self.granule, container=True)
         sbt_path = None
 
-        nbar_paths = {'aerosol_data': self.aerosol,
-                      'water_vapour_data': self.water_vapour,
+        nbar_paths = {'aerosol_dict': self.aerosol,
+                      'water_vapour_dict': self.water_vapour,
                       'ozone_path': self.ozone_path,
                       'dem_path': self.dem_path,
                       'brdf_path': self.brdf_path,
