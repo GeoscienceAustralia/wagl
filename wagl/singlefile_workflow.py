@@ -28,6 +28,7 @@ import traceback
 from structlog import wrap_logger
 from structlog.processors import JSONRenderer
 import luigi
+from luigi.util import inherits
 
 from wagl.constants import Model, Method
 from wagl.standardise import card4l
@@ -68,11 +69,12 @@ class DataStandardisation(luigi.Task):
     method = luigi.EnumParameter(enum=Method, default=Method.shear)
     pixel_quality = luigi.BoolParameter()
     land_sea_path = luigi.Parameter()
-    aerosol = luigi.DictParameter({'user': 0.05}, significant=False)
+    aerosol = luigi.DictParameter(default={'user': 0.05}, significant=False)
     brdf_path = luigi.Parameter(significant=False)
     brdf_premodis_path = luigi.Parameter(significant=False)
     ozone_path = luigi.Parameter(significant=False)
-    water_vapour = luigi.DictParameter({'user': 1.5}, significant=False)
+    water_vapour = luigi.DictParameter(default={'user': 1.5},
+                                       significant=False)
     dem_path = luigi.Parameter(significant=False)
     ecmwf_path = luigi.Parameter(significant=False)
     invariant_height_fname = luigi.Parameter(significant=False)
@@ -134,7 +136,7 @@ class ARD(luigi.WrapperTask):
                       'ozone_path': self.ozone_path,
                       'water_vapour': self.water_vapour,
                       'dem_path': self.dem_path,
-                      'ecmwf_path': ecmwf_path,
+                      'ecmwf_path': self.ecmwf_path,
                       'invariant_height_fname': self.invariant_height_fname,
                       'dsm_fname': self.dsm_fname,
                       'tle_path': self.tle_path,
