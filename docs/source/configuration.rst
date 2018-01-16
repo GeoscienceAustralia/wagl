@@ -57,6 +57,7 @@ If you're a user that would like to intersect any part of the dependency tree, t
    # These parameters determine the directory locations required for ancillary retrieval
 
    # A dict defining a user input value or a pathname to ancillary sources
+   # internally the code defaults to {"user": 0.5}
    aerosol = {"user": 0.5}
    aerosol = {"pathname": "/path/to/data"}
 
@@ -70,6 +71,7 @@ If you're a user that would like to intersect any part of the dependency tree, t
    ozone_path = 
 
    # A dict defining a user input value or a pathname to ancillary sources
+   # internally the code defaults to {"user": 1.5}
    water_vapour = {"user": 1.5}
    water_vapour = {"pathname": "/path/to/data"}
 
