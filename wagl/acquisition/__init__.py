@@ -165,7 +165,7 @@ def acquisitions_via_mtl(pathname):
         attrs['max_radiance'] = max_rad
         attrs['min_quantize'] = min_quant
         attrs['max_quantize'] = max_quant
-        attrs['sensor_band_configured'] = bool(band_id in supported_bands)
+        attrs['sensor_band_configured'] = bool(band in supported_bands)
         if 'band_name' in attrs:
             band_name = attrs.pop('band_name')
 
@@ -311,7 +311,7 @@ def acquisitions_s2_directory(pathname):
         attrs['c1'] = s2_const.c1[s2_const.band_map[band_id]]
         attrs['radiance_scale_factor'] = s2_const.rsf[s2_const.band_map[band_id]]
         attrs['granule_xml'] = granule_xml
-        attrs['sensor_band_configured'] = bool(band_id in supported_bands)
+        attrs['sensor_band_configured'] = bool(s2_const.band_map[band_id] in supported_bands)
         if 'band_name' in attrs:
             band_name = attrs.pop('band_name')
 
@@ -456,6 +456,7 @@ def acquisitions_via_safe(pathname):
 
             # band id
             group, band_id = group_helper(img_fname, band_groups)
+            band_name = s2_const.band_map[band_id]
 
             # band info stored in sensors.json
             sensor_band_info = supported_bands.get(band_id, {})
@@ -468,7 +469,7 @@ def acquisitions_via_safe(pathname):
             attrs['c1'] = s2_const.c1[band_id]
             attrs['radiance_scale_factor'] = s2_const.rsf[band_id]
             attrs['granule_xml'] = granule_xmls[0]
-            attrs['sensor_band_configured'] = bool(band_id in supported_bands)
+            attrs['sensor_band_configured'] = bool(band_name in supported_bands)
             if 'band_name' in  attrs:
                 band_name = attrs.pop('band_name')
 
