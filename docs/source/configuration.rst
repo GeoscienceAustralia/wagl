@@ -56,8 +56,9 @@ If you're a user that would like to intersect any part of the dependency tree, t
    [AncillaryData]
    # These parameters determine the directory locations required for ancillary retrieval
 
-   # File path name to a file containing the aerosol data
-   aerosol_fname = 
+   # A dict defining a user input value or a pathname to ancillary sources
+   aerosol = {"user": 0.5}
+   aerosol = {"pathname": "/path/to/data"}
 
    # File path name to the directory containing the MODIS BRDF data
    brdf_path = 
@@ -68,8 +69,9 @@ If you're a user that would like to intersect any part of the dependency tree, t
    # File path name to the directory containing the ozone data
    ozone_path = 
 
-   # File path name to the directory containing the water vapour data
-   water_vapour_path = 
+   # A dict defining a user input value or a pathname to ancillary sources
+   water_vapour = {"user": 1.5}
+   water_vapour = {"pathname": "/path/to/data"}
 
    # File path name to the directory containing the world 1 degree DEM data
    dem_path = 
