@@ -187,7 +187,6 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
                 with open(fname, 'w') as src:
                     src.writelines(tp5_data[key])
 
-
                 run_modtran(acqs, inputs_grp, model, nvertices, key[0],
                             [key[1]], modtran_exe, tmpdir, fid, compression)
 
@@ -208,7 +207,6 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
                          acq.band_type == BandType.Reflective]
             sbt_acqs = [acq for acq in acqs if
                         acq.band_type == BandType.Thermal]
-
 
             group = fid[grp_name]
             sat_sol_grp = group[GroupName.sat_sol_group.value]
