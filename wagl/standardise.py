@@ -62,10 +62,22 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
         fid.attrs['level1_uri'] = level1
         fid.attrs['tiled'] = scene.tiled
 
+<<<<<<< HEAD
         for grp_name in scene.groups:
             log = LOG.bind(scene=scene.label, granule=granule,
                            granule_group=grp_name)
             group = fid.create_group(grp_name)
+=======
+        if granule is None:
+            granule_group = fid['/']
+        else:
+            granule_group = fid.create_group(granule)
+
+        for grp_name in scene.groups:
+            log = LOG.bind(scene=scene.label, granule=granule,
+                           granule_group=grp_name)
+            group = granule_group.create_group(grp_name)
+>>>>>>> Removed ancillary aggregation from the singlefile workflow.
             acqs = scene.get_acquisitions(granule=granule, group=grp_name)
 
             # longitude and latitude
@@ -148,6 +160,7 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
                       'brdf_path': brdf_path,
                       'brdf_premodis_path': brdf_premodis_path}
         grn_con = scene.get_granule(granule=granule, container=True)
+<<<<<<< HEAD
         group = fid[scene.groups[0]]
         collect_ancillary(grn_con, group[GroupName.sat_sol_group.value],
                           nbar_paths, ecmwf_path, invariant_fname,
@@ -184,10 +197,56 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
 
                 # tp5 data
                 fname = pjoin(tmpdir, tp5_fmt.format(p=key[0], a=key[1].value))
+=======
+        group = granule_group[scene.groups[0]]
+        collect_ancillary(grn_con, group[GroupName.sat_sol_group.value],
+                          nbar_paths, ecmwf_path, invariant_fname,
+                          vertices, granule_group, compression)
+
+        # atmospherics
+        log = LOG.bind(scene=scene.label, granule=granule, granule_group=None)
+        log.info('Atmospherics')
+
+        # any resolution group is fine
+        grp_name = scene.groups[0]
+        acqs = scene.get_acquisitions(granule=granule, group=grp_name)
+        root_path = ppjoin(scene.get_root(granule=granule), grp_name)
+
+        if scene.tiled:
+            ancillary_group = granule_group[GroupName.ancillary_group.value]
+        else:
+            ancillary_group = fid[GroupName.ancillary_group.value]
+
+        # satellite/solar angles and lon/lat for a resolution group
+        pth = ppjoin(root_path, GroupName.sat_sol_group.value)
+        sat_sol_grp = granule_group[pth]
+        pth = ppjoin(root_path, GroupName.lon_lat_group.value)
+        lon_lat_grp = granule_group[pth]
+
+        # tp5 files
+        tp5_data, _ = format_tp5(acqs, ancillary_group, sat_sol_grp,
+                                 lon_lat_grp, model, granule_group)
+
+        # atmospheric inputs group
+        inputs_grp = granule_group[GroupName.atmospheric_inputs_grp.value]
+
+        # radiative transfer for each point and albedo
+        for key in tp5_data:
+            point, albedo = key
+
+            log.info('Radiative-Transfer', point=point, albedo=albedo.value)
+            with tempfile.TemporaryDirectory() as tmpdir:
+
+                prepare_modtran(acqs, point, [albedo], tmpdir, modtran_exe)
+
+                # tp5 data
+                fname = pjoin(tmpdir, tp5_fmt.format(p=point, a=albedo.value))
+>>>>>>> Removed ancillary aggregation from the singlefile workflow.
                 with open(fname, 'w') as src:
                     src.writelines(tp5_data[key])
 
 
+<<<<<<< HEAD
                 run_modtran(acqs, inputs_grp, model, nvertices, key[0],
                             [key[1]], modtran_exe, tmpdir, fid, compression)
 
@@ -195,6 +254,17 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
         log.info('Components')
         results_group = fid[GroupName.atmospheric_results_grp.value]
         calculate_components(results_group, fid, compression)
+=======
+                run_modtran(acqs, inputs_grp, model, nvertices, point,
+                            [albedo], modtran_exe, tmpdir,
+                            granule_group, compression)
+
+        # atmospheric components
+        log.info('Components')
+        pth = GroupName.atmospheric_results_grp.value
+        results_group = granule_group[pth]
+        calculate_components(results_group, granule_group, compression)
+>>>>>>> Removed ancillary aggregation from the singlefile workflow.
 
         # interpolate components
         for grp_name in scene.groups:
@@ -210,9 +280,15 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
                         acq.band_type == BandType.Thermal]
 
 
+<<<<<<< HEAD
             group = fid[grp_name]
             sat_sol_grp = group[GroupName.sat_sol_group.value]
             comp_grp = fid[GroupName.components_group.value]
+=======
+            group = granule_group[grp_name]
+            sat_sol_grp = group[GroupName.sat_sol_group.value]
+            comp_grp = granule_group[GroupName.components_group.value]
+>>>>>>> Removed ancillary aggregation from the singlefile workflow.
 
             for component in model.atmos_components:
                 if component in Model.nbar.atmos_components:
