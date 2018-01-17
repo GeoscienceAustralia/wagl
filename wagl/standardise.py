@@ -189,43 +189,6 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
 
                 # tp5 data
                 fname = pjoin(tmpdir, tp5_fmt.format(p=key[0], a=key[1].value))
-
-        group = fid[scene.groups[0]]
-        collect_ancillary(grn_con, group[GroupName.sat_sol_group.value],
-                          nbar_paths, ecmwf_path, invariant_fname,
-                          vertices, fid, compression)
-
-        # atmospherics
-        log = LOG.bind(scene=scene.label, granule=granule, granule_group=None)
-        log.info('Atmospherics')
-
-        # any resolution group is fine
-        grp_name = scene.groups[0]
-        acqs = scene.get_acquisitions(granule=granule, group=grp_name)
-
-        ancillary_group = fid[GroupName.ancillary_group.value]
-
-        # satellite/solar angles and lon/lat for a resolution group
-        sat_sol_grp = fid[ppjoin(grp_name, GroupName.sat_sol_group.value)]
-        lon_lat_grp = fid[ppjoin(grp_name, GroupName.lon_lat_group.value)]
-
-        # tp5 files
-        tp5_data, _ = format_tp5(acqs, ancillary_group, sat_sol_grp,
-                                 lon_lat_grp, model, fid)
-
-        # atmospheric inputs group
-        inputs_grp = fid[GroupName.atmospheric_inputs_grp.value]
-
-        # radiative transfer for each point and albedo
-        for key in tp5_data:
-
-            log.info('Radiative-Transfer', point=key[0], albedo=key[1].value)
-            with tempfile.TemporaryDirectory() as tmpdir:
-
-                prepare_modtran(acqs, key[0], [key[1]], tmpdir, modtran_exe)
-
-                # tp5 data
-                fname = pjoin(tmpdir, tp5_fmt.format(p=key[0], a=key[1].value))
                 with open(fname, 'w') as src:
                     src.writelines(tp5_data[key])
 
