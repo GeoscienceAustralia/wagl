@@ -159,15 +159,17 @@ def acquisitions_via_mtl(pathname):
 
         # metadata
         attrs = {k: v for k, v in sensor_band_info.items()}
-        attrs['solar_azimuth'] = solar_azimuth
-        attrs['solar_elevation'] = solar_elevation
-        attrs['min_radiance'] = min_rad
-        attrs['max_radiance'] = max_rad
-        attrs['min_quantize'] = min_quant
-        attrs['max_quantize'] = max_quant
-        attrs['sensor_band_configured'] = bool(band in supported_bands)
-        if 'band_name' in attrs:
+        if attrs:
+            attrs['solar_azimuth'] = solar_azimuth
+            attrs['solar_elevation'] = solar_elevation
+            attrs['min_radiance'] = min_rad
+            attrs['max_radiance'] = max_rad
+            attrs['min_quantize'] = min_quant
+            attrs['max_quantize'] = max_quant
+            attrs['sensor_band_configured'] = bool(band in supported_bands)
             band_name = attrs.pop('band_name')
+        else:
+            band_name = band_id
 
         acqs.append(acqtype(pathname, fname, acq_datetime, band_name, band_id,
                             attrs))
@@ -304,15 +306,14 @@ def acquisitions_s2_directory(pathname):
 
         # Band may not be defined as a supported band
         attrs = {k: v for k, v in supported_bands.get(s2_const.band_map[band_id], {}).items()}
-
-        attrs['solar_irradiance'] = acquisition_data['solar_irradiance_list'][band_id]
-        attrs['d2'] = 1 / acquisition_data['u']
-        attrs['qv'] = acquisition_data['qv']
-        attrs['c1'] = s2_const.c1[s2_const.band_map[band_id]]
-        attrs['radiance_scale_factor'] = s2_const.rsf[s2_const.band_map[band_id]]
-        attrs['granule_xml'] = granule_xml
-        attrs['sensor_band_configured'] = bool(s2_const.band_map[band_id] in supported_bands)
-        if 'band_name' in attrs:
+        if attrs:
+            attrs['solar_irradiance'] = acquisition_data['solar_irradiance_list'][band_id]
+            attrs['d2'] = 1 / acquisition_data['u']
+            attrs['qv'] = acquisition_data['qv']
+            attrs['c1'] = s2_const.c1[s2_const.band_map[band_id]]
+            attrs['radiance_scale_factor'] = s2_const.rsf[s2_const.band_map[band_id]]
+            attrs['granule_xml'] = granule_xml
+            attrs['sensor_band_configured'] = bool(s2_const.band_map[band_id] in supported_bands)
             band_name = attrs.pop('band_name')
 
         acq_time = acquisition_data['acq_time']
@@ -419,7 +420,7 @@ def acquisitions_via_safe(pathname):
                     for granule in xml_root.findall(search_term[:-1])}
 
     # resolution groups
-    band_groups = {'R10m': ['B02', 'B03', 'B04', 'B08'],
+    band_groups = {'R10m': ['B02', 'B03', 'B04', 'B08', 'TCI'],
                    'R20m': ['B05', 'B06', 'B07', 'B11', 'B12', 'B8A'],
                    'R60m': ['B01', 'B09', 'B10']}
 
@@ -459,19 +460,22 @@ def acquisitions_via_safe(pathname):
             band_name = s2_const.band_map[band_id]
 
             # band info stored in sensors.json
-            sensor_band_info = supported_bands.get(band_id, {})
+            sensor_band_info = supported_bands.get(band_id)
 
             # image attributes/metadata
-            attrs = {k: v for k, v in sensor_band_info.items()}
-            attrs['solar_irradiance'] = solar_irradiance[band_id]
-            attrs['d2'] = 1 / u
-            attrs['qv'] = qv
-            attrs['c1'] = s2_const.c1[band_id]
-            attrs['radiance_scale_factor'] = s2_const.rsf[band_id]
-            attrs['granule_xml'] = granule_xmls[0]
-            attrs['sensor_band_configured'] = bool(band_name in supported_bands)
-            if 'band_name' in  attrs:
+            if sensor_band_info:
+                attrs = {k: v for k, v in sensor_band_info.items()}
+                attrs['solar_irradiance'] = solar_irradiance[band_id]
+                attrs['d2'] = 1 / u
+                attrs['qv'] = qv
+                attrs['c1'] = s2_const.c1[band_id]
+                attrs['radiance_scale_factor'] = s2_const.rsf[band_id]
+                attrs['granule_xml'] = granule_xmls[0]
+                attrs['sensor_band_configured'] = bool(band_name in supported_bands)
                 band_name = attrs.pop('band_name')
+            else:
+                attrs = None
+                band_name = band_id
 
             res_groups[group].append(acqtype(pathname, img_fname, acq_time,
                                              band_name, band_id, attrs))
