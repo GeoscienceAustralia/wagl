@@ -44,7 +44,7 @@ def get_config():
     cfg.VCS = "git"
     cfg.style = "pep440"
     cfg.tag_prefix = "wagl-"
-    cfg.parentdir_prefix = "None"
+    cfg.parentdir_prefix = "wagl-"
     cfg.versionfile_source = "wagl/_version.py"
     cfg.verbose = False
     return cfg
