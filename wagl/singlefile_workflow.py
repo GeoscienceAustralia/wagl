@@ -88,9 +88,10 @@ class DataStandardisation(luigi.Task):
     acq_parser_hint = luigi.Parameter(default=None)
 
     def output(self):
-        fmt = '{scene}.wagl.h5'
-        scene = basename(self.level1)
-        out_fname = fmt.format(scene=scene, model=self.model.name)
+        fmt = '{label}.wagl.h5'
+        label = self.granule if self.granule else basename(self.level1)
+        out_fname = fmt.format(label=label)
+         
         return luigi.LocalTarget(pjoin(self.outdir, out_fname))
 
     def run(self):
@@ -125,6 +126,7 @@ class ARD(luigi.WrapperTask):
 
         for scene in level1_scenes:
             container = acquisitions(scene)
+            outdir = pjoin(self.outdir, '{}.wagl'.format(container.label))
             for granule in container.granules:
                 kwargs = {'level1': scene,
                           'granule': granule,
@@ -133,7 +135,7 @@ class ARD(luigi.WrapperTask):
                           'pixel_quality': self.pixel_quality,
                           'method': self.method,
                           'modtran_exe': self.modtran_exe,
-                          'outdir': self.outdir,
+                          'outdir': outdir,
                           'land_sea_path': self.land_sea_path,
                           'aerosol': self.aerosol,
                           'brdf_path': self.brdf_path,
