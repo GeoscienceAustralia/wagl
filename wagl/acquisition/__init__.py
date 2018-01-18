@@ -22,7 +22,7 @@ from nested_lookup import nested_lookup
 
 
 from .base import Acquisition, AcquisitionsContainer
-from .sentinel import Sentinel2aAcquisition, Sentinel2bAcquisition, s2_band_index_to_id
+from .sentinel import Sentinel2aAcquisition, Sentinel2bAcquisition, s2_index_to_band_id
 from .sentinel import Sentinel2aAcquisitionOnDisk
 from .landsat import ACQUISITION_TYPE, LandsatAcquisition
 
@@ -372,7 +372,7 @@ def acquisitions_via_safe(pathname):
     # exoatmospheric solar irradiance
     solar_irradiance = {}
     for irradiance in xml_root.iter('SOLAR_IRRADIANCE'):
-        band_id = s2_band_index_to_id(irradiance.attrib['bandId'])
+        band_id = s2_index_to_band_id(irradiance.attrib['bandId'])
         solar_irradiance[band_id] = float(irradiance.text)
 
     # assume multiple granules
