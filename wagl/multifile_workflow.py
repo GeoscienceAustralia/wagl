@@ -256,7 +256,7 @@ class WriteTp5(luigi.Task):
                            ''.join([POINT_ALBEDO_FMT, '.tp5']))
 
         # input filenames
-        ancillary_fname = self.input()['ancillary']
+        ancillary_fname = self.input()['ancillary'].path
         sat_sol_fname = self.input()[group]['sat_sol'].path
         lon_lat_fname = self.input()[group]['lon_lat'].path
 
