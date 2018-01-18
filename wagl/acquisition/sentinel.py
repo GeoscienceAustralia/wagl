@@ -31,10 +31,10 @@ def find_all_in(path, s):
 
 
 def s2_index_to_band_id(band_index):
-    """id_to_index returns the band index from the band identifier
+    """s2_index_toBand_id returns the band_id from the band index 
 
-    :param band_identifier: Reference to the band aligned to the sensors.json file
-    :return: index number for band if exists else None
+    :param band_index: band index (0-12 inclusive) referencing sensors in ESA's metadata
+    :return: band_id for the band_index
     """
 
     return {
