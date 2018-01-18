@@ -30,6 +30,19 @@ def find_all_in(path, s):
     return result
 
 
+def s2_index_to_band_id(band_index):
+    """s2_index_toBand_id returns the band_id from the band index 
+
+    :param band_index: band index (0-12 inclusive) referencing sensors in ESA's metadata
+    :return: band_id for the band_index
+    """
+
+    return {
+        0: '1', 1: '2', 2: '3', 3: '4', 4: '5', 5: '6', 6: '7',
+        7: '8', 8: '8A', 9: '9', 10: '10', 11: '11', 12: '12'
+    }[int(band_index)]
+
+
 class Sentinel2Acquisition(Acquisition):
 
     """ Base class for a Sentinel-2 acquisition. """

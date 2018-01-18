@@ -75,7 +75,7 @@ class AcquisitionsContainer(object):
             grps = sorted(list(self._groups.keys()))
         return grps
 
-    def get_acquisitions(self, group=None, granule=None, only_configured_bands=True):
+    def get_acquisitions(self, group=None, granule=None, only_supported_bands=True):
         """
         Return a list of acquisitions for a given granule and group.
 
@@ -111,9 +111,9 @@ class AcquisitionsContainer(object):
             else:
                 acqs = self._groups[group]
 
-        if only_configured_bands:
+        if only_supported_bands:
             return list(
-                filter(lambda acq: getattr(acq, 'sensor_band_configured', False) is True,
+                filter(lambda acq: getattr(acq, 'supported_band', False) is True,
                 acqs)
             )
         else:

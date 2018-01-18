@@ -1,7 +1,7 @@
 {
     "LANDSAT_5": {
         "TM": {
-                "band_ids": {
+            "band_ids": {
                 "1": {
                     "alias": "Blue",
                     "band_type": "Reflective",
@@ -10,7 +10,8 @@
                     "spectral_filter_file": "landsat5_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
-                    "brdf_wavelength": "0459_0479nm"
+                    "brdf_wavelength": "0459_0479nm",
+                    "supported_band": true
                 },
                 "2": {
                     "alias": "Green",
@@ -20,7 +21,8 @@
                     "spectral_filter_file": "landsat5_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0667,
-                    "brdf_wavelength": "0545_0565nm"
+                    "brdf_wavelength": "0545_0565nm",
+                    "supported_band": true
                 },
                 "3": {
                     "alias": "Red",
@@ -30,7 +32,8 @@
                     "spectral_filter_file": "landsat5_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0880,
-                    "brdf_wavelength": "0620_0670nm"
+                    "brdf_wavelength": "0620_0670nm",
+                    "supported_band": true
                 },
                 "4": {
                     "alias": "NIR",
@@ -40,7 +43,8 @@
                     "spectral_filter_file": "landsat5_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2231,
-                    "brdf_wavelength": "0841_0876nm"
+                    "brdf_wavelength": "0841_0876nm",
+                    "supported_band": true
                 },
                 "5": {
                     "alias": "SWIR 1",
@@ -50,7 +54,8 @@
                     "spectral_filter_file": "landsat5_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2512,
-                    "brdf_wavelength": "1628_1652nm"
+                    "brdf_wavelength": "1628_1652nm",
+                    "supported_band": true
                 },
                 "6": {
                     "alias": "Thermal Infrared",
@@ -60,7 +65,8 @@
                     "spectral_filter_file": "landsat5_thermal.flt",
                     "spectral_range": [14100, 6999, -1],
                     "K1": 607.76,
-                    "K2": 1260.56
+                    "K2": 1260.56,
+                    "supported_band": true
                 },
                 "7": {
                     "alias": "SWIR 2",
@@ -70,14 +76,15 @@
                     "spectral_filter_file": "landsat5_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.1648,
-                    "brdf_wavelength": "2105_2155nm"
+                    "brdf_wavelength": "2105_2155nm",
+                    "supported_band": true
                 }
-              }
             }
-         },
+        }
+    },
     "LANDSAT_7": {
         "ETM+": {
-                "band_ids": {
+            "band_ids": {
                 "1": {
                     "alias": "Blue",
                     "band_type": "Reflective",
@@ -86,8 +93,9 @@
                     "spectral_filter_file": "landsat7_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
-                    "brdf_wavelength": "0459_0479nm"
-                     },
+                    "brdf_wavelength": "0459_0479nm",
+                    "supported_band": true
+                },
                 "2": {
                     "alias": "Green",
                     "band_type": "Reflective",
@@ -96,7 +104,8 @@
                     "spectral_filter_file": "landsat7_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0667,
-                    "brdf_wavelength": "0545_0565nm"
+                    "brdf_wavelength": "0545_0565nm",
+                    "supported_band": true
                 },
                 "3": {
                     "alias": "Red",
@@ -106,7 +115,8 @@
                     "spectral_filter_file": "landsat7_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0880,
-                    "brdf_wavelength": "0620_0670nm"
+                    "brdf_wavelength": "0620_0670nm",
+                    "supported_band": true
                 },
                 "4": {
                     "alias": "NIR",
@@ -116,7 +126,8 @@
                     "spectral_filter_file": "landsat7_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2231,
-                    "brdf_wavelength": "0841_0876nm"
+                    "brdf_wavelength": "0841_0876nm",
+                    "supported_band": true
                 },
                 "5": {
                     "alias": "SWIR 1",
@@ -126,7 +137,8 @@
                     "spectral_filter_file": "landsat7_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2512,
-                    "brdf_wavelength": "1628_1652nm"
+                    "brdf_wavelength": "1628_1652nm",
+                    "supported_band": true
                 },
                 "61": {
                     "alias": "Thermal Infrared [Low Gain]",
@@ -136,7 +148,8 @@
                     "spectral_filter_file": "landsat7_thermal.flt",
                     "spectral_range": [14100, 7000, -1],
                     "K1": 666.09,
-                    "K2": 1282.71
+                    "K2": 1282.71,
+                    "supported_band": true
                 },
                 "62": {
                     "alias": "Thermal Infrared [High Gain]",
@@ -146,7 +159,8 @@
                     "spectral_filter_file": "landsat7_thermal.flt",
                     "spectral_range": [14100, 6999, -1],
                     "K1": 666.09,
-                    "K2": 1282.71
+                    "K2": 1282.71,
+                    "supported_band": true
                 },
                 "7": {
                     "alias": "SWIR 2",
@@ -156,14 +170,15 @@
                     "spectral_filter_file": "landsat5_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.1648,
-                    "brdf_wavelength": "2105_2155nm"
+                    "brdf_wavelength": "2105_2155nm",
+                    "supported_band": true
                 }
-              }
             }
+        }
     },
     "LANDSAT_8": {
         "OLI": {
-                "band_ids": {
+            "band_ids": {
                 "1": {
                     "alias": "Coastal Aerosol",
                     "band_type": "Reflective",
@@ -172,7 +187,8 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
-                    "brdf_wavelength": "0459_0479nm"
+                    "brdf_wavelength": "0459_0479nm",
+                    "supported_band": true
                 },
                 "2": {
                     "alias": "Blue",
@@ -182,7 +198,8 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
-                    "brdf_wavelength": "0459_0479nm"
+                    "brdf_wavelength": "0459_0479nm",
+                    "supported_band": true
                 },
                 "3": {
                     "alias": "Green",
@@ -192,7 +209,8 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0667,
-                    "brdf_wavelength": "0545_0565nm"
+                    "brdf_wavelength": "0545_0565nm",
+                    "supported_band": true
                 },
                 "4": {
                     "alias": "Red",
@@ -202,7 +220,8 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0880,
-                    "brdf_wavelength": "0620_0670nm"
+                    "brdf_wavelength": "0620_0670nm",
+                    "supported_band": true
                 },
                 "5": {
                     "alias": "NIR",
@@ -212,7 +231,8 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2231,
-                    "brdf_wavelength": "0841_0876nm"
+                    "brdf_wavelength": "0841_0876nm",
+                    "supported_band": true
                 },
                 "6": {
                     "alias": "SWIR 1",
@@ -222,7 +242,8 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2512,
-                    "brdf_wavelength": "1628_1652nm"
+                    "brdf_wavelength": "1628_1652nm",
+                    "supported_band": true
                 },
                 "7": {
                     "alias": "SWIR 2",
@@ -232,12 +253,13 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.1648,
-                    "brdf_wavelength": "2105_2155nm"
+                    "brdf_wavelength": "2105_2155nm",
+                    "supported_band": true
                 }
             }
         },
         "OLI_TIRS": {
-                "band_ids": {
+            "band_ids": {
                 "1": {
                     "alias": "Coastal Aerosol",
                     "band_type": "Reflective",
@@ -246,7 +268,8 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
-                    "brdf_wavelength": "0459_0479nm"
+                    "brdf_wavelength": "0459_0479nm",
+                    "supported_band": true
                 },
                 "10": {
                     "alias": "Thermal Infrared 1",
@@ -256,7 +279,8 @@
                     "spectral_filter_file": "landsat8_thermal.flt",
                     "spectral_range": [14100, 6999, -1],
                     "K1": 774.8853,
-                    "K2": 1321.0789
+                    "K2": 1321.0789,
+                    "supported_band": true
                 },
                 "11": {
                     "alias": "Thermal Infrared 2",
@@ -266,7 +290,8 @@
                     "spectral_filter_file": "landsat8_thermal.flt",
                     "spectral_range": [14100, 6999, -1],
                     "K1": 480.8883,
-                    "K2": 1201.1442
+                    "K2": 1201.1442,
+                    "supported_band": true
                 },
                 "2": {
                     "alias": "Blue",
@@ -276,7 +301,8 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
-                    "brdf_wavelength": "0459_0479nm"
+                    "brdf_wavelength": "0459_0479nm",
+                    "supported_band": true
                 },
                 "3": {
                     "alias": "Green",
@@ -286,7 +312,8 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0667,
-                    "brdf_wavelength": "0545_0565nm"
+                    "brdf_wavelength": "0545_0565nm",
+                    "supported_band": true
                 },
                 "4": {
                     "alias": "Red",
@@ -296,7 +323,8 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0880,
-                    "brdf_wavelength": "0620_0670nm"
+                    "brdf_wavelength": "0620_0670nm",
+                    "supported_band": true
                 },
                 "5": {
                     "alias": "NIR",
@@ -306,7 +334,8 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2231,
-                    "brdf_wavelength": "0841_0876nm"
+                    "brdf_wavelength": "0841_0876nm",
+                    "supported_band": true
                 },
                 "6": {
                     "alias": "SWIR 1",
@@ -316,7 +345,8 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2512,
-                    "brdf_wavelength": "1628_1652nm"
+                    "brdf_wavelength": "1628_1652nm",
+                    "supported_band": true
                 },
                 "7": {
                     "alias": "SWIR 2",
@@ -326,261 +356,350 @@
                     "spectral_filter_file": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.1648,
-                    "brdf_wavelength": "2105_2155nm"
+                    "brdf_wavelength": "2105_2155nm",
+                    "supported_band": true
                 }
             }
         }
     },
     "SENTINEL_2A": {
-            "MSI": {
-                "band_ids": {
-                    "1": {
-                        "alias": "Aerosols",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-1",
-                        "wavelength": [0.433, 0.453],
-                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.0365,
-                        "brdf_wavelength": "0459_0479nm"
-                    },
-                    "2": {
-                        "alias": "Blue",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-2",
-                        "wavelength": [0.4575, 0.5225],
-                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.0365,
-                        "brdf_wavelength": "0459_0479nm"
-                    },
-                    "3": {
-                        "alias": "Green",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-3",
-                        "wavelength": [0.5425, 0.5775],
-                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.0365,
-                        "brdf_wavelength": "0545_0565nm"
-                    },
-                    "4": {
-                        "alias": "Red",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-4",
-                        "wavelength": [0.650, 0.680],
-                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.088,
-                        "brdf_wavelength": "0620_0670nm"
-                    },
-                    "5": {
-                        "alias": "Red Edge 1",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-5",
-                        "wavelength": [0.6975, 0.7125],
-                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.088,
-                        "brdf_wavelength": "0620_0670nm"
-                    },
-                    "6": {
-                        "alias": "Red Edge 2",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-6",
-                        "wavelength": [0.7325, 0.7475],
-                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.088,
-                        "brdf_wavelength": "0620_0670nm"
-                    },
-                    "7": {
-                        "alias": "Red Edge 3",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-7",
-                        "wavelength": [0.773, 0.793],
-                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.2231,
-                        "brdf_wavelength": "0841_0876nm"
-                    },
-                    "8": {
-                        "alias": "NIR",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-8",
-                        "wavelength": [0.7845, 0.8995],
-                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.2231,
-                        "brdf_wavelength": "0841_0876nm"
-                    },
-                    "8A": {
-                        "alias": "Red Edge 4",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-8A",
-                        "wavelength": [0.855, 0.875],
-                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.2231,
-                        "brdf_wavelength": "0841_0876nm"
-                    },
-                    "9": {
-                        "alias": "Water Vapour",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-9",
-                        "wavelength": [0.935, 0.955],
-                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.2231,
-                        "brdf_wavelength": "0841_0876nm"
-                    },
-                    "11": {
-                        "alias": "SWIR 1",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-11",
-                        "wavelength": [1.565, 1.655],
-                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.2512,
-                        "brdf_wavelength": "1628_1652nm"
-                    },
-                    "12": {
-                        "alias": "SWIR 2",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-12",
-                        "wavelength": [2.10, 2.280],
-                        "spectral_filter_file": "sentinel2ab_hybrid.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.1648,
-                        "brdf_wavelength": "2105_2155nm"
-                    }
-                }
-            }
-        },
+       "MSI": {
+           "band_ids": {
+               "1": {
+                   "alias": "Aerosols",
+                   "band_type": "Reflective",
+                   "band_name": "BAND-1",
+                   "wavelength": [0.433, 0.453],
+                   "spectral_filter_file": "sentinel2ab_hybrid.flt",
+                   "spectral_range": [2600, 349, -1],
+                   "reflectance_adjustment": 0.0365,
+                   "brdf_wavelength": "0459_0479nm",
+                   "c1": 0.001,
+                   "radiance_scale_factor": 0.01,
+                   "supported_band": true
+               },
+               "2": {
+                   "alias": "Blue",
+                   "band_type": "Reflective",
+                   "band_name": "BAND-2",
+                   "wavelength": [0.4575, 0.5225],
+                   "spectral_filter_file": "sentinel2ab_hybrid.flt",
+                   "spectral_range": [2600, 349, -1],
+                   "reflectance_adjustment": 0.0365,
+                   "brdf_wavelength": "0459_0479nm",
+                   "c1": 0.001,
+                   "radiance_scale_factor": 0.01,
+                   "supported_band": true
+               },
+               "3": {
+                   "alias": "Green",
+                   "band_type": "Reflective",
+                   "band_name": "BAND-3",
+                   "wavelength": [0.5425, 0.5775],
+                   "spectral_filter_file": "sentinel2ab_hybrid.flt",
+                   "spectral_range": [2600, 349, -1],
+                   "reflectance_adjustment": 0.0365,
+                   "brdf_wavelength": "0545_0565nm",
+                   "c1": 0.001,
+                   "radiance_scale_factor": 0.01,
+                   "supported_band": true
+               },
+               "4": {
+                   "alias": "Red",
+                   "band_type": "Reflective",
+                   "band_name": "BAND-4",
+                   "wavelength": [0.650, 0.680],
+                   "spectral_filter_file": "sentinel2ab_hybrid.flt",
+                   "spectral_range": [2600, 349, -1],
+                   "reflectance_adjustment": 0.088,
+                   "brdf_wavelength": "0620_0670nm",
+                   "c1": 0.001,
+                   "radiance_scale_factor": 0.01,
+                   "supported_band": true
+               },
+               "5": {
+                   "alias": "Red Edge 1",
+                   "band_type": "Reflective",
+                   "band_name": "BAND-5",
+                   "wavelength": [0.6975, 0.7125],
+                   "spectral_filter_file": "sentinel2ab_hybrid.flt",
+                   "spectral_range": [2600, 349, -1],
+                   "reflectance_adjustment": 0.088,
+                   "brdf_wavelength": "0620_0670nm",
+                   "c1": 0.001,
+                   "radiance_scale_factor": 0.01,
+                   "supported_band": true
+               },
+               "6": {
+                   "alias": "Red Edge 2",
+                   "band_type": "Reflective",
+                   "band_name": "BAND-6",
+                   "wavelength": [0.7325, 0.7475],
+                   "spectral_filter_file": "sentinel2ab_hybrid.flt",
+                   "spectral_range": [2600, 349, -1],
+                   "reflectance_adjustment": 0.088,
+                   "brdf_wavelength": "0620_0670nm",
+                   "c1": 0.001,
+                   "radiance_scale_factor": 0.01,
+                   "supported_band": true
+               },
+               "7": {
+                   "alias": "Red Edge 3",
+                   "band_type": "Reflective",
+                   "band_name": "BAND-7",
+                   "wavelength": [0.773, 0.793],
+                   "spectral_filter_file": "sentinel2ab_hybrid.flt",
+                   "spectral_range": [2600, 349, -1],
+                   "reflectance_adjustment": 0.2231,
+                   "brdf_wavelength": "0841_0876nm",
+                   "c1": 0.001,
+                   "radiance_scale_factor": 0.01,
+                   "supported_band": true
+               },
+               "8": {
+                   "alias": "NIR",
+                   "band_type": "Reflective",
+                   "band_name": "BAND-8",
+                   "wavelength": [0.7845, 0.8995],
+                   "spectral_filter_file": "sentinel2ab_hybrid.flt",
+                   "spectral_range": [2600, 349, -1],
+                   "reflectance_adjustment": 0.2231,
+                   "brdf_wavelength": "0841_0876nm",
+                   "c1": 0.001,
+                   "radiance_scale_factor": 0.01,
+                   "supported_band": true
+               },
+               "8A": {
+                   "alias": "Red Edge 4",
+                   "band_type": "Reflective",
+                   "band_name": "BAND-8A",
+                   "wavelength": [0.855, 0.875],
+                   "spectral_filter_file": "sentinel2ab_hybrid.flt",
+                   "spectral_range": [2600, 349, -1],
+                   "reflectance_adjustment": 0.2231,
+                   "brdf_wavelength": "0841_0876nm",
+                   "c1": 0.001,
+                   "radiance_scale_factor": 0.01,
+                   "supported_band": true
+               },
+               "9": {
+                   "alias": "Water Vapour",
+                   "band_type": "Reflective",
+                   "band_name": "BAND-9",
+                   "wavelength": [0.935, 0.955],
+                   "spectral_filter_file": "sentinel2ab_hybrid.flt",
+                   "spectral_range": [2600, 349, -1],
+                   "reflectance_adjustment": 0.2231,
+                   "brdf_wavelength": "0841_0876nm",
+                   "c1": 0.001,
+                   "radiance_scale_factor": 0.01,
+                   "supported_band": true
+               },
+               "10": {
+                   "c1": 0.0005,
+                   "radiance_scale_factor": null,
+                   "supported_band": false
+               },
+               "11": {
+                   "alias": "SWIR 1",
+                   "band_type": "Reflective",
+                   "band_name": "BAND-11",
+                   "wavelength": [1.565, 1.655],
+                   "spectral_filter_file": "sentinel2ab_hybrid.flt",
+                   "spectral_range": [2600, 349, -1],
+                   "reflectance_adjustment": 0.2512,
+                   "brdf_wavelength": "1628_1652nm",
+                   "c1": 0.0002,
+                   "radiance_scale_factor": 0.002,
+                   "supported_band": true
+               },
+               "12": {
+                   "alias": "SWIR 2",
+                   "band_type": "Reflective",
+                   "band_name": "BAND-12",
+                   "wavelength": [2.10, 2.280],
+                   "spectral_filter_file": "sentinel2ab_hybrid.flt",
+                   "spectral_range": [2600, 349, -1],
+                   "reflectance_adjustment": 0.1648,
+                   "brdf_wavelength": "2105_2155nm",
+                   "c1": 0.00005,
+                   "radiance_scale_factor": 0.0005,
+                   "supported_band": true
+               },
+               "TCI": {
+                 "supported_band": false
+               }
+           }
+       }
+    },
     "SENTINEL_2B": {
-            "MSI": {
-                "band_ids": {
-                    "1": {
-                        "alias": "Aerosols",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-1",
-                        "wavelength": [0.433, 0.453],
-                        "spectral_filter_file": "sentinel2b_all.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.0365,
-                        "brdf_wavelength": "0459_0479nm"
-                    },
-                    "2": {
-                        "alias": "Blue",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-2",
-                        "wavelength": [0.4575, 0.5225],
-                        "spectral_filter_file": "sentinel2b_all.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.0365,
-                        "brdf_wavelength": "0459_0479nm"
-                    },
-                    "3": {
-                        "alias": "Green",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-3",
-                        "wavelength": [0.5425, 0.5775],
-                        "spectral_filter_file": "sentinel2b_all.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.0365,
-                        "brdf_wavelength": "0545_0565nm"
-                    },
-                    "4": {
-                        "alias": "Red",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-4",
-                        "wavelength": [0.650, 0.680],
-                        "spectral_filter_file": "sentinel2b_all.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.088,
-                        "brdf_wavelength": "0620_0670nm"
-                    },
-                    "5": {
-                        "alias": "Red Edge 1",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-5",
-                        "wavelength": [0.6975, 0.7125],
-                        "spectral_filter_file": "sentinel2b_all.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.088,
-                        "brdf_wavelength": "0620_0670nm"
-                    },
-                    "6": {
-                        "alias": "Red Edge 2",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-6",
-                        "wavelength": [0.7325, 0.7475],
-                        "spectral_filter_file": "sentinel2b_all.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.088,
-                        "brdf_wavelength": "0620_0670nm"
-                    },
-                    "7": {
-                        "alias": "Red Edge 3",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-7",
-                        "wavelength": [0.773, 0.793],
-                        "spectral_filter_file": "sentinel2b_all.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.2231,
-                        "brdf_wavelength": "0841_0876nm"
-                    },
-                    "8": {
-                        "alias": "NIR",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-8",
-                        "wavelength": [0.7845, 0.8995],
-                        "spectral_filter_file": "sentinel2b_all.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.2231,
-                        "brdf_wavelength": "0841_0876nm"
-                    },
-                    "8A": {
-                        "alias": "Red Edge 4",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-8A",
-                        "wavelength": [0.855, 0.875],
-                        "spectral_filter_file": "sentinel2b_all.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.2231,
-                        "brdf_wavelength": "0841_0876nm"
-                    },
-                    "9": {
-                        "alias": "Water Vapour",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-9",
-                        "wavelength": [0.935, 0.955],
-                        "spectral_filter_file": "sentinel2b_all.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.2231,
-                        "brdf_wavelength": "0841_0876nm"
-                    },
-                    "11": {
-                        "alias": "SWIR 1",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-11",
-                        "wavelength": [1.565, 1.655],
-                        "spectral_filter_file": "sentinel2b_all.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.2512,
-                        "brdf_wavelength": "1628_1652nm"
-                    },
-                    "12": {
-                        "alias": "SWIR 2",
-                        "band_type": "Reflective",
-                        "band_name": "BAND-12",
-                        "wavelength": [2.10, 2.280],
-                        "spectral_filter_file": "sentinel2b_all.flt",
-                        "spectral_range": [2600, 349, -1],
-                        "reflectance_adjustment": 0.1648,
-                        "brdf_wavelength": "2105_2155nm"
-                    }
+        "MSI": {
+            "band_ids": {
+                "1": {
+                    "alias": "Aerosols",
+                    "band_type": "Reflective",
+                    "band_name": "BAND-1",
+                    "wavelength": [0.433, 0.453],
+                    "spectral_filter_file": "sentinel2b_all.flt",
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.0365,
+                    "brdf_wavelength": "0459_0479nm",
+                    "c1": 0.001,
+                    "radiance_scale_factor": 0.01,
+                    "supported_band": true
+                },
+                "2": {
+                    "alias": "Blue",
+                    "band_type": "Reflective",
+                    "band_name": "BAND-2",
+                    "wavelength": [0.4575, 0.5225],
+                    "spectral_filter_file": "sentinel2b_all.flt",
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.0365,
+                    "brdf_wavelength": "0459_0479nm",
+                    "c1": 0.001,
+                    "radiance_scale_factor": 0.01,
+                    "supported_band": true
+                },
+                "3": {
+                    "alias": "Green",
+                    "band_type": "Reflective",
+                    "band_name": "BAND-3",
+                    "wavelength": [0.5425, 0.5775],
+                    "spectral_filter_file": "sentinel2b_all.flt",
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.0365,
+                    "brdf_wavelength": "0545_0565nm",
+                    "c1": 0.001,
+                    "radiance_scale_factor": 0.01,
+                    "supported_band": true
+                },
+                "4": {
+                    "alias": "Red",
+                    "band_type": "Reflective",
+                    "band_name": "BAND-4",
+                    "wavelength": [0.650, 0.680],
+                    "spectral_filter_file": "sentinel2b_all.flt",
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.088,
+                    "brdf_wavelength": "0620_0670nm",
+                    "c1": 0.001,
+                    "radiance_scale_factor": 0.01,
+                    "supported_band": true
+                },
+                "5": {
+                    "alias": "Red Edge 1",
+                    "band_type": "Reflective",
+                    "band_name": "BAND-5",
+                    "wavelength": [0.6975, 0.7125],
+                    "spectral_filter_file": "sentinel2b_all.flt",
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.088,
+                    "brdf_wavelength": "0620_0670nm",
+                    "c1": 0.001,
+                    "radiance_scale_factor": 0.01,
+                    "supported_band": true
+                },
+                "6": {
+                    "alias": "Red Edge 2",
+                    "band_type": "Reflective",
+                    "band_name": "BAND-6",
+                    "wavelength": [0.7325, 0.7475],
+                    "spectral_filter_file": "sentinel2b_all.flt",
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.088,
+                    "brdf_wavelength": "0620_0670nm",
+                    "c1": 0.001,
+                    "radiance_scale_factor": 0.01,
+                    "supported_band": true
+                },
+                "7": {
+                    "alias": "Red Edge 3",
+                    "band_type": "Reflective",
+                    "band_name": "BAND-7",
+                    "wavelength": [0.773, 0.793],
+                    "spectral_filter_file": "sentinel2b_all.flt",
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.2231,
+                    "brdf_wavelength": "0841_0876nm",
+                    "c1": 0.001,
+                    "radiance_scale_factor": 0.01,
+                    "supported_band": true
+                },
+                "8": {
+                    "alias": "NIR",
+                    "band_type": "Reflective",
+                    "band_name": "BAND-8",
+                    "wavelength": [0.7845, 0.8995],
+                    "spectral_filter_file": "sentinel2b_all.flt",
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.2231,
+                    "brdf_wavelength": "0841_0876nm",
+                    "c1": 0.001,
+                    "radiance_scale_factor": 0.01,
+                    "supported_band": true
+                },
+                "8A": {
+                    "alias": "Red Edge 4",
+                    "band_type": "Reflective",
+                    "band_name": "BAND-8A",
+                    "wavelength": [0.855, 0.875],
+                    "spectral_filter_file": "sentinel2b_all.flt",
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.2231,
+                    "brdf_wavelength": "0841_0876nm",
+                    "c1": 0.001,
+                    "radiance_scale_factor": 0.01,
+                    "supported_band": true
+                },
+                "9": {
+                    "alias": "Water Vapour",
+                    "band_type": "Reflective",
+                    "band_name": "BAND-9",
+                    "wavelength": [0.935, 0.955],
+                    "spectral_filter_file": "sentinel2b_all.flt",
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.2231,
+                    "brdf_wavelength": "0841_0876nm",
+                    "c1": 0.001,
+                    "radiance_scale_factor": 0.01,
+                    "supported_band": true
+                },
+                "10": {
+                    "c1": "0.0005",
+                    "radiance_scale_factor": null,
+                    "supported_band": false
+                },
+                "11": {
+                    "alias": "SWIR 1",
+                    "band_type": "Reflective",
+                    "band_name": "BAND-11",
+                    "wavelength": [1.565, 1.655],
+                    "spectral_filter_file": "sentinel2b_all.flt",
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.2512,
+                    "brdf_wavelength": "1628_1652nm",
+                    "c1": 0.0002,
+                    "radiance_scale_factor": 0.002,
+                    "supported_band": true
+                },
+                "12": {
+                    "alias": "SWIR 2",
+                    "band_type": "Reflective",
+                    "band_name": "BAND-12",
+                    "wavelength": [2.10, 2.280],
+                    "spectral_filter_file": "sentinel2b_all.flt",
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.1648,
+                    "brdf_wavelength": "2105_2155nm",
+                    "c1": "0.00005",
+                    "radiance_scale_factor": "0.0005",
+                    "supported_band": true
+                },
+                "TCI": {
+                    "supported_band": false
                 }
             }
         }
+    }
 }
