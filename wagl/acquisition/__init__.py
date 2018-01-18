@@ -22,7 +22,7 @@ from nested_lookup import nested_lookup
 
 
 from .base import Acquisition, AcquisitionsContainer
-from .sentinel import Sentinel2aAcquisition, Sentinel2bAcquisition
+from .sentinel import Sentinel2aAcquisition, Sentinel2bAcquisition, s2_band_index_to_id
 from .sentinel import Sentinel2aAcquisitionOnDisk
 from .landsat import ACQUISITION_TYPE, LandsatAcquisition
 
@@ -126,7 +126,7 @@ def acquisitions_via_mtl(pathname):
     ignore = ['band_quality']
 
     # supported bands for the given platform & sensor id's
-    supported_bands = SENSORS[platform_id][sensor_id]['band_ids']
+    band_configurations = SENSORS[platform_id][sensor_id]['band_ids']
 
     acqs = []
     for band in bands_:
@@ -140,7 +140,7 @@ def acquisitions_via_mtl(pathname):
             band_id = band.replace('band', '').strip('_')
 
         # band info stored in sensors.json
-        sensor_band_info = supported_bands.get(band_id, {})
+        sensor_band_info = band_configurations.get(band_id, {})
 
         # band id name, band filename, band full file pathname
         band_fname = prod_md.get('{}_file_name'.format(band),
@@ -159,14 +159,13 @@ def acquisitions_via_mtl(pathname):
 
         # metadata
         attrs = {k: v for k, v in sensor_band_info.items()}
-        if attrs:
+        if attrs.get('supported_band'):
             attrs['solar_azimuth'] = solar_azimuth
             attrs['solar_elevation'] = solar_elevation
             attrs['min_radiance'] = min_rad
             attrs['max_radiance'] = max_rad
             attrs['min_quantize'] = min_quant
             attrs['max_quantize'] = max_quant
-            attrs['sensor_band_configured'] = bool(band in supported_bands)
             band_name = attrs.pop('band_name')
         else:
             band_name = band_id
@@ -176,30 +175,6 @@ def acquisitions_via_mtl(pathname):
 
     return AcquisitionsContainer(label=basename(pathname),
                                  groups={'product': sorted(acqs)})
-
-
-class Sentinel2Constants(object):
-    """
-    Defines shared constants between the two sentinel2 metadata 
-    retrieval patterns
-    """
-
-    def __init__(self):
-        # pylint: disable=invalid-name
-        # safe archive for S2a has two band name mappings, and we need to map ours
-        self.band_map = {
-            '0': '1', '1': '2', '2': '3', '3': '4', '4': '5', '5': '6',
-            '6': '7', '7': '8', '8': '8A', '9': '9', '10': '10',
-            '11': '11', '12': '12'
-        }
-        # conversion factors
-        self.c1 = {self.band_map[str(i)]: v for i, v in
-                   enumerate([0.001] * 10 + [0.0005] + [0.0002] + [0.00005])}
-
-        # radiance (w/m^2)  scale factors
-        self.rsf = {self.band_map[str(i)]: v for i, v in
-                    enumerate([0.01] * 10 + [None] + [0.002] + [0.0005])}
-
 
 
 def acquisitions_s2_directory(pathname):
@@ -225,7 +200,6 @@ def acquisitions_s2_directory(pathname):
 
     granule_xml = pathname + '/metadata.xml'
     acqtype = Sentinel2aAcquisitionOnDisk
-    s2_const = Sentinel2Constants()
 
     search_paths = {
         'datastrip/metadata.xml': [
@@ -279,7 +253,7 @@ def acquisitions_s2_directory(pathname):
         for term in terms:
             acquisition_data[term['key']] = term['parse'](xml_root.findall(term['search_path']))
 
-    supported_bands = SENSORS[acquisition_data['platform_id']]['MSI']['band_ids']
+    band_configurations = SENSORS[acquisition_data['platform_id']]['MSI']['band_ids']
     # resolution groups
     band_groups = {'R10m': ['B02', 'B03', 'B04', 'B08'],
                    'R20m': ['B05', 'B06', 'B07', 'B11', 'B12', 'B8A'],
@@ -289,9 +263,14 @@ def acquisitions_s2_directory(pathname):
                   'R20m': [],
                   'R60m': []}
 
-    for band_id in s2_const.band_map:
+    for band_id in band_configurations:
 
-        band_name = 'B{}'.format(s2_const.band_map[band_id].zfill(2))
+        # If it is a configured B-format transform it to the correct format
+        if re.match('[0-9].?', band_id):
+            band_name = 'B{}'.format(band_id.zfill(2))
+        else:
+            band_name = band_id
+
         img_fname = pathname + '/' + band_name + '.jp2'
 
         if not os.path.isfile(img_fname):
@@ -304,16 +283,11 @@ def acquisitions_s2_directory(pathname):
         else:
             continue  # group not found
 
-        # Band may not be defined as a supported band
-        attrs = {k: v for k, v in supported_bands.get(s2_const.band_map[band_id], {}).items()}
-        if attrs:
-            attrs['solar_irradiance'] = acquisition_data['solar_irradiance_list'][band_id]
+        attrs = {k: v for k, v in band_configurations[band_id]}
+        if attrs.get('supported_band'):
             attrs['d2'] = 1 / acquisition_data['u']
             attrs['qv'] = acquisition_data['qv']
-            attrs['c1'] = s2_const.c1[s2_const.band_map[band_id]]
-            attrs['radiance_scale_factor'] = s2_const.rsf[s2_const.band_map[band_id]]
             attrs['granule_xml'] = granule_xml
-            attrs['sensor_band_configured'] = bool(s2_const.band_map[band_id] in supported_bands)
             band_name = attrs.pop('band_name')
 
         acq_time = acquisition_data['acq_time']
@@ -359,8 +333,6 @@ def acquisitions_via_safe(pathname):
                     return key, band_id
         return None, None
 
-    s2_const = Sentinel2Constants()
-
     archive = zipfile.ZipFile(pathname)
     xmlfiles = [s for s in archive.namelist() if "MTD_MSIL1C.xml" in s]
 
@@ -381,9 +353,8 @@ def acquisitions_via_safe(pathname):
     processing_baseline = xml_root.findall(search_term)[0].text
 
     # supported bands for this sensor
-    supported_bands = SENSORS[platform_id]['MSI']['band_ids']
+    band_configurations = SENSORS[platform_id]['MSI']['band_ids']
 
-    # TODO: extend this to incorporate a S2b selection
     if basename(pathname)[0:3] == 'S2A':
         acqtype = Sentinel2aAcquisition
     else:
@@ -401,9 +372,8 @@ def acquisitions_via_safe(pathname):
     # exoatmospheric solar irradiance
     solar_irradiance = {}
     for irradiance in xml_root.iter('SOLAR_IRRADIANCE'):
-        band_irradiance = irradiance.attrib
-        mapped_band_id = s2_const.band_map[band_irradiance['bandId']]
-        solar_irradiance[mapped_band_id] = float(irradiance.text)
+        band_id = s2_band_index_to_id(irradiance.attrib['bandId'])
+        solar_irradiance[band_id] = float(irradiance.text)
 
     # assume multiple granules
     single_granule_archive = False
@@ -457,24 +427,19 @@ def acquisitions_via_safe(pathname):
 
             # band id
             group, band_id = group_helper(img_fname, band_groups)
-            band_name = s2_const.band_map[band_id]
 
             # band info stored in sensors.json
-            sensor_band_info = supported_bands.get(band_id)
+            sensor_band_info = band_configurations.get(band_id)
+            attrs = {k: v for k, v in sensor_band_info.items()}
 
             # image attributes/metadata
-            if sensor_band_info:
-                attrs = {k: v for k, v in sensor_band_info.items()}
+            if sensor_band_info.get('supported_band'):
                 attrs['solar_irradiance'] = solar_irradiance[band_id]
                 attrs['d2'] = 1 / u
                 attrs['qv'] = qv
-                attrs['c1'] = s2_const.c1[band_id]
-                attrs['radiance_scale_factor'] = s2_const.rsf[band_id]
                 attrs['granule_xml'] = granule_xmls[0]
-                attrs['sensor_band_configured'] = bool(band_name in supported_bands)
                 band_name = attrs.pop('band_name')
             else:
-                attrs = None
                 band_name = band_id
 
             res_groups[group].append(acqtype(pathname, img_fname, acq_time,

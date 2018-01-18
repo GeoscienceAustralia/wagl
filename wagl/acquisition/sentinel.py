@@ -30,6 +30,19 @@ def find_all_in(path, s):
     return result
 
 
+def s2_band_index_to_id(band_identifier):
+    """id_to_index returns the band index from the band identifier
+
+    :param band_identifier: Reference to the band aligned to the sensors.json file
+    :return: index number for band if exists else None
+    """
+
+    return {
+        '1': 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5, '7': 6,
+        '8': 7, '8A': 8, '9': 9, '10': 10, '11': 11, '12': 12
+    }.get(band_identifier)
+
+
 class Sentinel2Acquisition(Acquisition):
 
     """ Base class for a Sentinel-2 acquisition. """
