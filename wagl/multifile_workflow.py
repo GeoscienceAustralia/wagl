@@ -120,7 +120,9 @@ class CalculateLonLatGrids(luigi.Task):
     compression = luigi.Parameter(default='lzf', significant=False)
 
     def requires(self):
-        return WorkRoot(self.level1, self.work_root)
+        # we want to pass the scene root not the granule root
+        root = dirname(self.work_root) if self.granule else self.work_root
+        return WorkRoot(self.level1, root)
 
     def output(self):
         out_path = pjoin(self.work_root, self.group)
@@ -467,6 +469,8 @@ class DEMExtraction(luigi.Task):
     dsm_fname = luigi.Parameter(significant=False)
 
     def requires(self):
+        # we want to pass the scene root not the granule root
+        root = dirname(self.work_root) if self.granule else self.work_root
         return WorkRoot(self.level1, self.work_root)
 
     def output(self):
