@@ -285,13 +285,6 @@ class Sentinel2bAcquisition(Sentinel2Acquisition):
         self._solar_zenith = None
 
 
-class Sentinel2aSinergiseAcquisition(_Sentinel2SinergiseAcquisition, Sentinel2aAcquisition):
-    pass
-
-class Sentinel2bSinergiseAcquisition(_Sentinel2SinergiseAcquisition, Sentinel2bAcquisition):
-    pass
-
-
 class _Sentinel2SinergiseAcquisition(Sentinel2Acquisition):
 
     """
@@ -335,3 +328,11 @@ class _Sentinel2SinergiseAcquisition(Sentinel2Acquisition):
         with open(self.granule_xml, 'rb') as fd:
             xml_root = ElementTree.XML(fd.read())
         return xml_root
+
+
+class Sentinel2aSinergiseAcquisition(_Sentinel2SinergiseAcquisition, Sentinel2aAcquisition):
+    pass
+
+
+class Sentinel2bSinergiseAcquisition(_Sentinel2SinergiseAcquisition, Sentinel2bAcquisition):
+    pass
