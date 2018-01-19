@@ -91,7 +91,7 @@ class AcquisitionsContainer(object):
             acquisitions from the the first granule in the
             `AcquisitionsContainer.granule` list.
 
-        :param only_configured_bands:
+        :param only_supported_bands:
             boolean if set to True will return all bands that are
             defined in acquisition/sensors.json for the related platform.
             If set to False it will return all acquisitions
