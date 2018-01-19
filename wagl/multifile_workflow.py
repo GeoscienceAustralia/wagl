@@ -296,10 +296,10 @@ class AtmosphericsCase(luigi.Task):
 
     def run(self):
         container = acquisitions(self.level1, self.acq_parser_hint)
-        out_path = container.get_root(self.work_root, granule=self.granule)
+        # out_path = container.get_root(self.work_root, granule=self.granule)
         acqs = container.get_acquisitions(granule=self.granule)
         atmospheric_inputs_fname = self.input().path
-        base_dir = pjoin(out_path, self.base_dir)
+        base_dir = pjoin(self.work_root, self.base_dir)
         albedos = [Albedos(a) for a in self.albedos]
 
         prepare_modtran(acqs, self.point, albedos, base_dir, self.modtran_exe)
@@ -901,12 +901,15 @@ class LinkwaglOutputs(luigi.Task):
                 for file_ in files:
                     if splitext(file_)[1] == '.h5':
                         fname = pjoin(root, file_)
+                        grp_name = dirname(fname.replace(self.work_root, ''))
 
                         with h5py.File(fname, 'r') as fid:
                             groups = [g for g in fid]
 
-                        for grp in groups:
-                            create_external_link(fname, grp, out_fname, grp)
+                        for pth in groups:
+                            new_path = ppjoin(grp_name, pth)
+                            create_external_link(fname, pth, out_fname,
+                                                 new_path)
 
             with h5py.File(out_fname) as fid:
                 container = acquisitions(self.level1, self.acq_parser_hint)
@@ -936,7 +939,7 @@ class ARD(luigi.WrapperTask):
             for granule in container.granules:
                 sub_path = granule if granule else ''
                 work_root = pjoin(self.outdir, work_name, sub_path)
-                kwargs = {'level1': level1, 'work_root': work_root,
+                kwargs = {'level1': level1, 'work_root': normpath(work_root),
                           'granule': granule, 'model': self.model,
                           'vertices': self.vertices,
                           'pixel_quality': self.pixel_quality,
