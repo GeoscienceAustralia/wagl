@@ -692,8 +692,8 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.1648,
                     "brdf_wavelength": "2105_2155nm",
-                    "c1": "0.00005",
-                    "radiance_scale_factor": "0.0005",
+                    "c1": 0.00005,
+                    "radiance_scale_factor": 0.0005,
                     "supported_band": true
                 },
                 "TCI": {

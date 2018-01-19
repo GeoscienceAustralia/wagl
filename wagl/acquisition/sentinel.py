@@ -285,16 +285,23 @@ class Sentinel2bAcquisition(Sentinel2Acquisition):
         self._solar_zenith = None
 
 
-class Sentinel2aAcquisitionOnDisk(Sentinel2aAcquisition):
+class Sentinel2aSinergiseAcquisition(_Sentinel2SinergiseAcquisition, Sentinel2aAcquisition):
+    pass
+
+class Sentinel2bSinergiseAcquisition(_Sentinel2SinergiseAcquisition, Sentinel2bAcquisition):
+    pass
+
+
+class _Sentinel2SinergiseAcquisition(Sentinel2Acquisition):
 
     """
-    Sentinel2aAcquisitionOnDisk is a modification to retrieve
-    acquisition data from a custom format downloaded from the
-    AWS S3 bucket (s3://sentinel-s2-l1c).
-    It is assumed that the pathname points to the parent folder for
-    the granule information.
-    And the information retrieved from the ProductInfo.json is stored
-    in a subfolder of the pathname folder.
+    _Sentinel2SinergiseAcquisition provides a customisation on retrieval
+    for the ancillary information that is retrieved from AWS S3 Bucket
+    (s3://sentinel-s2-l1c).
+
+    It is assumed that the path a local directory containing the granule
+    location is provided as the acquisition location and that the metadata
+    for the datastrip is contained in a subdirectory of called 'datastrip'.
     """
 
     def _get_gps_xml(self):
