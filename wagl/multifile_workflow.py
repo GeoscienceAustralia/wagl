@@ -25,6 +25,7 @@ Workflow settings can be configured in `luigi.cfg` file.
 from __future__ import absolute_import, print_function
 import os
 from os.path import join as pjoin, basename, dirname, normpath, splitext
+from posixpath import join as ppjoin
 import logging
 import traceback
 
