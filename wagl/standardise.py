@@ -66,11 +66,6 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
             log = LOG.bind(scene=scene.label, granule=granule,
                            granule_group=grp_name)
             group = fid.create_group(grp_name)
-
-        for grp_name in scene.groups:
-            log = LOG.bind(scene=scene.label, granule=granule,
-                           granule_group=grp_name)
-            group = fid.create_group(grp_name)
             acqs = scene.get_acquisitions(granule=granule, group=grp_name)
 
             # longitude and latitude
