@@ -13,8 +13,8 @@ a user to rapidly test new features.
 
 This workflow can also pick-up exactly where it left off, if the files
 generated persist on disk.
-However, this method could flood the scheduler if thousands of scenes
-are submitted at once in a single call.
+However, this method could flood the scheduler if thousands of level1
+datasets are submitted at once in a single call.
 
 Workflow settings can be configured in `luigi.cfg` file.
 """
@@ -74,7 +74,7 @@ def on_failure(task, exception):
     """Capture any Task Failure here."""
     ERROR_LOGGER.error(task=task.get_task_family(),
                        params=task.to_str_params(),
-                       scene=task.level1,
+                       level1=task.level1,
                        exception=exception.__str__(),
                        traceback=traceback.format_exc().splitlines())
 
@@ -121,7 +121,7 @@ class CalculateLonLatGrids(luigi.Task):
     compression = luigi.Parameter(default='lzf', significant=False)
 
     def requires(self):
-        # we want to pass the scene root not the granule root
+        # we want to pass the level1 root not the granule root
         root = dirname(self.work_root) if self.granule else self.work_root
         return WorkRoot(self.level1, root)
 
@@ -470,7 +470,7 @@ class DEMExtraction(luigi.Task):
     dsm_fname = luigi.Parameter(significant=False)
 
     def requires(self):
-        # we want to pass the scene root not the granule root
+        # we want to pass the level1 root not the granule root
         root = dirname(self.work_root) if self.granule else self.work_root
         return WorkRoot(self.level1, root)
 
@@ -933,9 +933,9 @@ class ARD(luigi.WrapperTask):
 
     def requires(self):
         with open(self.level1_list) as src:
-            level1_scenes = [scene.strip() for scene in src.readlines()]
+            level1_list = [level1.strip() for level1 in src.readlines()]
 
-        for level1 in level1_scenes:
+        for level1 in level1_list:
             container = acquisitions(level1, self.acq_parser_hint)
             work_name = '{}.wagl'.format(container.label)
             for granule in container.granules:
@@ -953,7 +953,7 @@ class ARD(luigi.WrapperTask):
 class CallTask(luigi.WrapperTask):
 
     """An entry point for calling most tasks defined in the above
-       workflow. Useful for submitting a list of scenes to process
+       workflow. Useful for submitting a list of datasets to process
        a given task that could be the entire workflow, or only to
        the desired task.
     """
@@ -965,18 +965,18 @@ class CallTask(luigi.WrapperTask):
 
     def requires(self):
         with open(self.level1_list) as src:
-            level1_scenes = [scene.strip() for scene in src.readlines()]
+            level1_list = [level1.strip() for level1 in src.readlines()]
 
-        for scene in level1_scenes:
-            work_name = '{}.wagl'.format(basename(scene))
+        for level1 in level1_list:
+            work_name = '{}.wagl'.format(basename(level1))
             work_root = pjoin(self.outdir, work_name)
-            container = acquisitions(scene, self.acq_parser_hint)
+            container = acquisitions(level1, self.acq_parser_hint)
             for granule in container.granules:
                 if 'group' in self.task.get_param_names():
                     for group in container.groups:
-                        yield self.task(scene, work_root, granule, group)
+                        yield self.task(level1, work_root, granule, group)
                 else:
-                    yield self.task(scene, work_root, granule)
+                    yield self.task(level1, work_root, granule)
 
 
 if __name__ == '__main__':
