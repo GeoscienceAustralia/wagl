@@ -42,11 +42,11 @@ def get_buffer(group):
 
 
 # pylint disable=too-many-arguments
-def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
-           aerosol, brdf_path, brdf_premodis_path, ozone_path,
-           water_vapour, dem_path, dsm_fname, invariant_fname,
-           modtran_exe, out_fname, ecmwf_path=None, rori=0.52,
-           compression='lzf', acq_parser_hint=None, granule=None):
+def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
+           tle_path, aerosol, brdf_path, brdf_premodis_path, ozone_path,
+           water_vapour, dem_path, dsm_fname, invariant_fname, modtran_exe,
+           out_fname, ecmwf_path=None, rori=0.52, compression='lzf',
+           acq_parser_hint=None):
     """
     CEOS Analysis Ready Data for Land.
     A workflow for producing standardised products that meet the

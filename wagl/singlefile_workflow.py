@@ -101,13 +101,13 @@ class DataStandardisation(luigi.Task):
             ecmwf_path = None
 
         with self.output().temporary_path() as out_fname:
-            card4l(self.level1, self.model, self.vertices, self.method,
-                   self.pixel_quality, self.land_sea_path, self.tle_path,
-                   self.aerosol, self.brdf_path, self.brdf_premodis_path,
-                   self.ozone_path, self.water_vapour, self.dem_path,
-                   self.dsm_fname, self.invariant_height_fname,
+            card4l(self.level1, self.granule, self.model, self.vertices,
+                   self.method, self.pixel_quality, self.land_sea_path,
+                   self.tle_path, self.aerosol, self.brdf_path,
+                   self.brdf_premodis_path, self.ozone_path, self.water_vapour,
+                   self.dem_path, self.dsm_fname, self.invariant_height_fname,
                    self.modtran_exe, out_fname, ecmwf_path, self.rori,
-                   self.compression, self.acq_parser_hint, self.granule)
+                   self.compression, self.acq_parser_hint)
 
 
 @inherits(DataStandardisation)
