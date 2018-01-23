@@ -666,7 +666,7 @@
                     "supported_band": true
                 },
                 "10": {
-                    "c1": "0.0005",
+                    "c1": 0.0005,
                     "radiance_scale_factor": null,
                     "supported_band": false
                 },
