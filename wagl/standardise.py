@@ -139,8 +139,8 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
                                      group, compression)
 
         # nbar and sbt ancillary
-        LOG.info('Ancillary-Retrieval', scene=scene.label,
-                 granule=granule, granule_group=None)
+        log = LOG.bind(scene=scene.label, granule=granule, granule_group=None)
+        log.info('Ancillary-Retrieval')
         nbar_paths = {'aerosol_dict': aerosol,
                       'water_vapour_dict': water_vapour,
                       'ozone_path': ozone_path,
@@ -154,7 +154,6 @@ def card4l(level1, model, vertices, method, pixel_quality, landsea, tle_path,
                           vertices, fid, compression)
 
         # atmospherics
-        log = LOG.bind(scene=scene.label, granule=granule, granule_group=None)
         log.info('Atmospherics')
 
         # any resolution group is fine
