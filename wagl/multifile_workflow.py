@@ -194,7 +194,7 @@ class AncillaryData(luigi.Task):
         return luigi.LocalTarget(pjoin(self.work_root, 'ancillary.h5'))
 
     def run(self):
-        container = acquisitions(self.level1)
+        container = acquisitions(self.level1, self.acq_parser_hint))
         grn = container.get_granule(granule=self.granule, container=True)
         sbt_path = None
 
@@ -929,13 +929,14 @@ class ARD(luigi.WrapperTask):
     pixel_quality = luigi.BoolParameter()
     method = luigi.EnumParameter(enum=Method, default=Method.shear)
     dsm_fname = luigi.Parameter(significant=False)
+    acq_parser_hint = luigi.Parameter(default=None)
 
     def requires(self):
         with open(self.level1_list) as src:
             level1_scenes = [scene.strip() for scene in src.readlines()]
 
         for level1 in level1_scenes:
-            container = acquisitions(level1)
+            container = acquisitions(level1, self.acq_parser_hint)
             work_name = '{}.wagl'.format(container.label)
             for granule in container.granules:
                 sub_path = granule if granule else ''
