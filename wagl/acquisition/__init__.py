@@ -389,6 +389,12 @@ def acquisitions_via_safe(pathname):
                     [imid.text for imid in granule.findall('IMAGE_ID')]
                 for granule in xml_root.findall(search_term)}
 
+    # cater for another version of multi-granule xml, but uses 'Granule'
+    if not granules:
+        granules = {granule.get('granuleIdentifier'):
+                        [imid.text for imid in granule.findall('IMAGE_ID')]
+                    for granule in xml_root.findall(search_term[:-1])}
+
     if not granules:
         single_granule_archive = True
         granules = {granule.get('granuleIdentifier'):
