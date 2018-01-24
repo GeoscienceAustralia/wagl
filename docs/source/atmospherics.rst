@@ -233,7 +233,7 @@ Downward radiation channel (continued)
 
 
 Atmospheric Coefficients Tables
------------------------------
+-------------------------------
 
 The table dataset names for the NBAR and SBT workflow models are:
 
@@ -250,7 +250,7 @@ latitude and longitude and datetime of the sample. This coul
 
 
 NBAR Coefficients Table
-~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
 
 The first 10 rows of data for the NBAR coefficients are:
 
@@ -280,7 +280,7 @@ The first 10 rows of data for the NBAR coefficients are:
 
 
 SBT Coefficients Table
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
 
 The first 10 rows of data for the SBT coefficients are:
 
