@@ -29,12 +29,12 @@ class Model(Enum):
     sbt = 3
 
     @property
-    def atmos_components(self):
+    def atmos_coefficients(self):
         """
-        Returns the atmospheric components names used for interpolation
+        Returns the atmospheric coefficients names used for interpolation
         for a given Model.<option>.
         """
-        atmos_var = list(AtmosphericComponents)
+        atmos_var = list(AtmosphericCoefficients)
         fmap = {Model.standard: atmos_var,
                 Model.nbar: atmos_var[0:8],
                 Model.sbt: atmos_var[8:]}
@@ -147,7 +147,7 @@ class DatasetName(Enum):
     dsm_smoothed = 'DSM-SMOOTHED'
 
     # wagl.interpolation
-    interpolation_fmt = '{component}/{band_name}'
+    interpolation_fmt = '{coefficient}/{band_name}'
 
     # wagl.modtran
     tp5 = 'TP5-DATA'
@@ -157,8 +157,8 @@ class DatasetName(Enum):
     upward_radiation_channel = 'UPWARD-RADIATION-CHANNEL'
     downward_radiation_channel = 'DOWNWARD-RADIATION-CHANNEL'
     channel = 'CHANNEL'
-    nbar_components = 'NBAR-COMPONENTS'
-    sbt_components = 'SBT-COMPONENTS'
+    nbar_coefficients = 'NBAR-COEFFICIENTS'
+    sbt_coefficients = 'SBT-COEFFICIENTS'
 
     # wagl.pq
     pq_fmt = 'PIXEL-QUALITY/{produt}/PIXEL-QUALITY'
@@ -181,8 +181,8 @@ class GroupName(Enum):
     ancillary_avg_group = 'AVERAGED-ANCILLARY'
     atmospheric_inputs_grp = 'ATMOSPHERIC-INPUTS'
     atmospheric_results_grp = 'ATMOSPHERIC-RESULTS'
-    components_group = 'ATMOSPHERIC-COMPONENTS'
-    interp_group = 'INTERPOLATED-ATMOSPHERIC-COMPONENTS'
+    coefficients_group = 'ATMOSPHERIC-COEFFICIENTS'
+    interp_group = 'INTERPOLATED-ATMOSPHERIC-COEFFICIENTS'
     elevation_group = 'ELEVATION'
     slp_asp_group = 'SLOPE-ASPECT'
     incident_group = 'INCIDENT-ANGLES'
@@ -195,7 +195,7 @@ class GroupName(Enum):
 class Method(Enum):
     """
     Defines the Interpolation method used for interpolating the
-    atmospheric components.
+    atmospheric coefficients.
     """
 
     bilinear = 0
@@ -237,9 +237,9 @@ class Albedos(Enum):
     albedo_th = 'TH'
 
 
-class AtmosphericComponents(Enum):# param, coeff, vari... what to use
+class AtmosphericCoefficients(Enum):# param, coeff, vari... what to use
     """
-    Defines the atmospheric component names that wagl uses.
+    Defines the atmospheric coefficient names that wagl uses.
     """
 
     fs = 'FS'

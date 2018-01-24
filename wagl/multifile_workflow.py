@@ -8,7 +8,7 @@ allowing a form a parallelism. HDF5 Linking via a post task then allows
 the workflow to appear as if the IO is through a single file.
 
 The multifile workflow approach does allow more freedom of control in
-accessing individual components of the entire workflow, and easier for
+accessing individual coefficients of the entire workflow, and easier for
 a user to rapidly test new features.
 
 This workflow can also pick-up exactly where it left off, if the files
@@ -45,11 +45,11 @@ from wagl.reflectance import _calculate_reflectance, link_standard_data
 from wagl.terrain_shadow_masks import _self_shadow, _calculate_cast_shadow
 from wagl.terrain_shadow_masks import _combine_shadow
 from wagl.slope_aspect import _slope_aspect_arrays
-from wagl.constants import Model, BandType, Method, AtmosphericComponents
+from wagl.constants import Model, BandType, Method, AtmosphericCoefficients
 from wagl.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT, Albedos
 from wagl.dsm import _get_dsm
 from wagl.modtran import _format_tp5, _run_modtran
-from wagl.modtran import _calculate_components, prepare_modtran
+from wagl.modtran import _calculate_coefficients, prepare_modtran
 from wagl.modtran import link_atmospheric_results
 from wagl.interpolation import _interpolate, link_interpolated_data
 from wagl.temperature import _surface_brightness_temperature
@@ -346,46 +346,46 @@ class Atmospherics(luigi.Task):
 
 
 @requires(Atmospherics)
-class CalculateComponents(luigi.Task):
+class CalculateCoefficients(luigi.Task):
 
     """
-    Calculate the atmospheric components needed by BRDF and atmospheric
+    Calculate the atmospheric coefficients needed by BRDF and atmospheric
     correction model.
     """
 
     def output(self):
-        out_fname = pjoin(self.work_root, 'atmospheric-components.h5')
+        out_fname = pjoin(self.work_root, 'atmospheric-coefficients.h5')
         return luigi.LocalTarget(out_fname)
 
     def run(self):
         with self.output().temporary_path() as out_fname:
-            _calculate_components(self.input().path, out_fname,
+            _calculate_coefficients(self.input().path, out_fname,
                                   self.compression)
 
 
 @inherits(CalculateLonLatGrids)
-class InterpolateComponent(luigi.Task):
+class InterpolateCoefficient(luigi.Task):
     """
     Runs the interpolation function for a given band for a
-    given atmospheric component.
+    given atmospheric coefficient.
     """
 
     vertices = luigi.TupleParameter()
     band_id = luigi.Parameter()
-    component = luigi.EnumParameter(enum=AtmosphericComponents)
+    coefficient = luigi.EnumParameter(enum=AtmosphericCoefficients)
     base_dir = luigi.Parameter(default='_interpolation', significant=False)
     model = luigi.EnumParameter(enum=Model)
     method = luigi.EnumParameter(enum=Method, default=Method.shear)
 
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.vertices]
-        return {'comp': CalculateComponents(*args, model=self.model),
+        return {'comp': CalculateCoefficients(*args, model=self.model),
                 'satsol': self.clone(CalculateSatelliteAndSolarGrids),
                 'ancillary': AncillaryData(*args, model=self.model)}
 
     def output(self):
         out_path = pjoin(self.work_root, self.group, self.base_dir)
-        out_fname = '{}-BAND-{}.h5'.format(self.component.value, self.band_id)
+        out_fname = '{}-BAND-{}.h5'.format(self.coefficient.value, self.band_id)
         return luigi.LocalTarget(pjoin(out_path, out_fname))
 
     def run(self):
@@ -395,22 +395,22 @@ class InterpolateComponent(luigi.Task):
         )
 
         sat_sol_angles_fname = self.input()['satsol'].path
-        components_fname = self.input()['comp'].path
+        coefficients_fname = self.input()['comp'].path
         ancillary_fname = self.input()['ancillary'].path
 
         acq = [acq for acq in acqs if acq.band_id == self.band_id][0]
 
         with self.output().temporary_path() as out_fname:
-            _interpolate(acq, self.component, sat_sol_angles_fname,
-                         components_fname, ancillary_fname, out_fname,
+            _interpolate(acq, self.coefficient, sat_sol_angles_fname,
+                         coefficients_fname, ancillary_fname, out_fname,
                          self.compression, self.method)
 
 
 @inherits(CalculateLonLatGrids)
-class InterpolateComponents(luigi.Task):
+class InterpolateCoefficients(luigi.Task):
 
     """
-    Issues InterpolateComponent tasks.
+    Issues InterpolateCoefficient tasks.
     This acts as a helper task, and links the results from each
     InterpolateCoefficient task single HDF5 file.
     """
@@ -429,25 +429,25 @@ class InterpolateComponents(luigi.Task):
         sbt_acqs = [a for a in acqs if a.band_type == BandType.Thermal]
 
         tasks = {}
-        for component in self.model.atmos_components:
-            if component in Model.nbar.atmos_components:
+        for coefficient in self.model.atmos_coefficients:
+            if coefficient in Model.nbar.atmos_coefficients:
                 band_acqs = nbar_acqs
             else:
                 band_acqs = sbt_acqs
 
             for acq in band_acqs:
-                key = (acq.band_id, component)
+                key = (acq.band_id, coefficient)
                 kwargs = {'level1': self.level1, 'work_root': self.work_root,
                           'granule': self.granule, 'group': self.group,
-                          'band_id': acq.band_id, 'component': component,
+                          'band_id': acq.band_id, 'coefficient': coefficient,
                           'model': self.model, 'vertices': self.vertices,
                           'method': self.method}
-                tasks[key] = InterpolateComponent(**kwargs)
+                tasks[key] = InterpolateCoefficient(**kwargs)
         return tasks
 
     def output(self):
         out_path = pjoin(self.work_root, self.group)
-        return luigi.LocalTarget(pjoin(out_path, 'interpolated-components.h5'))
+        return luigi.LocalTarget(pjoin(out_path, 'interpolated-coefficients.h5'))
 
     def run(self):
         fnames = {}
@@ -723,7 +723,7 @@ class CalculateShadowMasks(luigi.Task):
                             inputs['sat'].path, out_fname, self.compression)
 
 
-@inherits(InterpolateComponents)
+@inherits(InterpolateCoefficients)
 class SurfaceReflectance(luigi.Task):
 
     """Run the terrain correction over a given band."""
@@ -734,7 +734,7 @@ class SurfaceReflectance(luigi.Task):
     dsm_fname = luigi.Parameter(significant=False)
 
     def requires(self):
-        reqs = {'interpolation': self.clone(InterpolateComponents),
+        reqs = {'interpolation': self.clone(InterpolateCoefficients),
                 'ancillary': self.clone(AncillaryData),
                 'rel_slope': self.clone(RelativeAzimuthSlope),
                 'shadow': self.clone(CalculateShadowMasks),
@@ -785,7 +785,7 @@ class SurfaceTemperature(luigi.Task):
     """
 
     def requires(self):
-        reqs = {'interpolation': self.clone(InterpolateComponents),
+        reqs = {'interpolation': self.clone(InterpolateCoefficients),
                 'ancillary': self.clone(AncillaryData)}
         return reqs
 
@@ -807,7 +807,7 @@ class SurfaceTemperature(luigi.Task):
                                             self.compression)
 
 
-@inherits(InterpolateComponents)
+@inherits(InterpolateCoefficients)
 class DataStandardisation(luigi.Task):
 
     """

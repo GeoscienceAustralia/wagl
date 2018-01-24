@@ -20,7 +20,7 @@ from wagl.interpolation import interpolate
 from wagl.longitude_latitude_arrays import create_lon_lat_grids
 from wagl.metadata import create_ard_yaml
 from wagl.modtran import format_tp5, prepare_modtran, run_modtran
-from wagl.modtran import calculate_components
+from wagl.modtran import calculate_coefficients
 from wagl.reflectance import calculate_reflectance
 from wagl.satellite_solar_angles import calculate_angles
 from wagl.terrain_shadow_masks import self_shadow, calculate_cast_shadow
@@ -192,12 +192,12 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
                 run_modtran(acqs, inputs_grp, model, nvertices, point,
                             [albedo], modtran_exe, tmpdir, fid, compression)
 
-        # atmospheric components
-        log.info('Components')
+        # atmospheric coefficients
+        log.info('Coefficients')
         results_group = fid[GroupName.atmospheric_results_grp.value]
-        calculate_components(results_group, fid, compression)
+        calculate_coefficients(results_group, fid, compression)
 
-        # interpolate components
+        # interpolate coefficients
         for grp_name in container.groups:
             log = LOG.bind(level1=container.label, granule=granule,
                            granule_group=grp_name)
@@ -212,18 +212,18 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
 
             group = fid[grp_name]
             sat_sol_grp = group[GroupName.sat_sol_group.value]
-            comp_grp = fid[GroupName.components_group.value]
+            comp_grp = fid[GroupName.coefficients_group.value]
 
-            for component in model.atmos_components:
-                if component in Model.nbar.atmos_components:
+            for coefficient in model.atmos_coefficients:
+                if coefficient in Model.nbar.atmos_coefficients:
                     band_acqs = nbar_acqs
                 else:
                     band_acqs = sbt_acqs
 
                 for acq in band_acqs:
                     log.info('Interpolate', band_id=acq.band_id,
-                             component=component.value)
-                    interpolate(acq, component, ancillary_group, sat_sol_grp,
+                             coefficient=coefficient.value)
+                    interpolate(acq, coefficient, ancillary_group, sat_sol_grp,
                                 comp_grp, group, compression, method)
 
             # standardised products

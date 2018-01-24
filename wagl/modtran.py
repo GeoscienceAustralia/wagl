@@ -20,7 +20,7 @@ import pandas as pd
 
 from wagl.constants import Model, BandType, DatasetName, GroupName, Albedos
 from wagl.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
-from wagl.constants import AtmosphericComponents as AC
+from wagl.constants import AtmosphericCoefficients as AC
 from wagl.hdf5 import write_dataframe, read_h5_table, create_external_link
 from wagl.hdf5 import VLEN_STRING, write_scalar
 from wagl.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
@@ -367,7 +367,7 @@ def run_modtran(acquisitions, atmospherics_group, model, npoints, point,
         return fid
 
 
-def _calculate_components(atmosheric_results_fname, out_fname, compression):
+def _calculate_coefficients(atmosheric_results_fname, out_fname, compression):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -376,17 +376,17 @@ def _calculate_components(atmosheric_results_fname, out_fname, compression):
         h5py.File(out_fname, 'w') as fid:
 
         results_group = atmos_fid[GroupName.atmospheric_results_grp.value]
-        calculate_components(results_group, fid, compression)
+        calculate_coefficients(results_group, fid, compression)
 
 
-def calculate_components(atmospheric_results_group, out_group,
+def calculate_coefficients(atmospheric_results_group, out_group,
                          compression='lzf'):
     """
-    Calculate the atmospheric components from the MODTRAN output
+    Calculate the atmospheric coefficients from the MODTRAN output
     and used in the BRDF and atmospheric correction.
-    Components are computed for each band for each each coordinate
-    for each atmospheric component. The atmospheric components can be
-    found in `Model.standard.atmos_components`.
+    Coefficients are computed for each band for each each coordinate
+    for each atmospheric coefficient. The atmospheric coefficients can be
+    found in `Model.standard.atmos_coefficients`.
 
     :param atmospheric_results_group:
         The root HDF5 `Group` that contains the atmospheric results
@@ -400,8 +400,8 @@ def calculate_components(atmospheric_results_group, out_group,
         The datasets will be formatted to the HDF5 TABLE specification
         and the dataset names will be as follows:
 
-        * DatasetName.nbar_components (if Model.standard or Model.nbar)
-        * DatasetName.sbt_components (if Model.standard or Model.sbt)
+        * DatasetName.nbar_coefficients (if Model.standard or Model.nbar)
+        * DatasetName.sbt_coefficients (if Model.standard or Model.sbt)
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -416,15 +416,15 @@ def calculate_components(atmospheric_results_group, out_group,
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
     """
-    nbar_components = pd.DataFrame()
-    sbt_components = pd.DataFrame()
+    nbar_coefficients = pd.DataFrame()
+    sbt_coefficients = pd.DataFrame()
     accumulation_albedo_0 = accumulation_albedo_1 = None
     accumulation_albedo_t = None
     channel_data = upward = downward = None
 
     # Initialise the output group/file
     if out_group is None:
-        fid = h5py.File('atmospheric-components.h5', driver='core',
+        fid = h5py.File('atmospheric-coefficients.h5', driver='core',
                         backing_store=False)
     else:
         fid = out_group
@@ -469,7 +469,7 @@ def calculate_components(atmospheric_results_group, out_group,
                   'upward_radiation': upward,
                   'downward_radiation': downward}
 
-        result = components(**kwargs)
+        result = coefficients(**kwargs)
 
         # insert some datetime/geospatial fields
         if result[0] is not None:
@@ -477,57 +477,57 @@ def calculate_components(atmospheric_results_group, out_group,
             result[0].insert(1, 'LONGITUDE', lonlat[0])
             result[0].insert(2, 'LATITUDE', lonlat[1])
             result[0].insert(3, 'DATETIME', timestamp)
-            nbar_components = nbar_components.append(result[0])
+            nbar_coefficients = nbar_coefficients.append(result[0])
 
         if result[1] is not None:
             result[1].insert(0, 'POINT', point)
             result[1].insert(1, 'LONGITUDE', lonlat[0])
             result[1].insert(2, 'LATITUDE', lonlat[1])
             result[1].insert(3, 'DATETIME', pd.to_datetime(timestamp))
-            sbt_components = sbt_components.append(result[1])
+            sbt_coefficients = sbt_coefficients.append(result[1])
 
         # TODO: check if number of records > (some chunksize)
         #       and write that portion of the table to disk
         # TODO: implement an append write_dataframe
         #       which will aid in reducing memory consumption
 
-    nbar_components.reset_index(inplace=True)
-    sbt_components.reset_index(inplace=True)
+    nbar_coefficients.reset_index(inplace=True)
+    sbt_coefficients.reset_index(inplace=True)
 
     attrs = {'npoints': npoints}
-    description = "Components derived from the VNIR solar irradiation."
+    description = "Coefficients derived from the VNIR solar irradiation."
     attrs['description'] = description
-    dname = DatasetName.nbar_components.value
+    dname = DatasetName.nbar_coefficients.value
 
-    if GroupName.components_group.value not in fid:
-        fid.create_group(GroupName.components_group.value)
+    if GroupName.coefficients_group.value not in fid:
+        fid.create_group(GroupName.coefficients_group.value)
 
-    group = fid[GroupName.components_group.value]
+    group = fid[GroupName.coefficients_group.value]
     if nbar_atmos:
-        write_dataframe(nbar_components, dname, group, compression,
+        write_dataframe(nbar_coefficients, dname, group, compression,
                         attrs=attrs)
 
-    description = "Components derived from the THERMAL solar irradiation."
+    description = "Coefficients derived from the THERMAL solar irradiation."
     attrs['description'] = description
-    dname = DatasetName.sbt_components.value
+    dname = DatasetName.sbt_coefficients.value
 
     if sbt_atmos:
-        write_dataframe(sbt_components, dname, group, compression, attrs=attrs)
+        write_dataframe(sbt_coefficients, dname, group, compression, attrs=attrs)
 
     if out_group is None:
         return fid
 
 
-def components(accumulation_albedo_0=None, accumulation_albedo_1=None,
+def coefficients(accumulation_albedo_0=None, accumulation_albedo_1=None,
                accumulation_albedo_t=None, channel_data=None,
                upward_radiation=None, downward_radiation=None):
     """
-    Calculate the components for a given point.
-    Calculate the atmospheric components from the MODTRAN output
+    Calculate the coefficients for a given point.
+    Calculate the atmospheric coefficients from the MODTRAN output
     and used in the BRDF and atmospheric correction.
-    Components are computed for each band.
-    The atmospheric components can be found in
-    `Model.standard.atmos_components`.
+    Coefficients are computed for each band.
+    The atmospheric coefficients can be found in
+    `Model.standard.atmos_coefficients`.
 
     :param accumulation_albedo_0:
         A `pandas.DataFrame` containing the solar accumulated
@@ -566,9 +566,9 @@ def components(accumulation_albedo_0=None, accumulation_albedo_1=None,
         Only used for SBT calculations.
 
     :return:
-        A `tuple` (nbar_components, sbt_components) whereby each
+        A `tuple` (nbar_coefficients, sbt_coefficients) whereby each
         item is a `pandas.DataFrame` containing the atmospheric
-        components for each band.
+        coefficients for each band.
         If `accumulation_albedo_0` is None, then the first item in
         the returned `tuple` will be None.
         If `upward_radiation` is None, then the second item in the
@@ -588,7 +588,7 @@ def components(accumulation_albedo_0=None, accumulation_albedo_1=None,
         ts_dir = dir_0 / dir0_top
         tv_dir = dir_t / dirt_top
 
-        columns = [v.value for v in Model.nbar.atmos_components]
+        columns = [v.value for v in Model.nbar.atmos_coefficients]
         nbar = pd.DataFrame(columns=columns, index=channel_data.index)
 
         nbar[AC.fs.value] = ts_dir / ts_total
@@ -601,7 +601,7 @@ def components(accumulation_albedo_0=None, accumulation_albedo_1=None,
         nbar[AC.ts.value] = ts_dir
 
     if upward_radiation is not None:
-        columns = [v.value for v in Model.sbt.atmos_components]
+        columns = [v.value for v in Model.sbt.atmos_coefficients]
         columns.extend(['TRANSMITTANCE-DOWN']) # Currently not required
         sbt = pd.DataFrame(columns=columns, index=upward_radiation.index)
 
