@@ -12,7 +12,7 @@ dependencies:
   - ephem >= 3.7.5.3
   - pyproj > 1.9.5
   - scikit-image >= 0.8.2
-  - GDAL >= 1.9.2
+  - GDAL >= 1.9.2,!=2.1.4 # 2.1.4 throws an error when importing version 2018-01-24 (conda-forge)
   - rasterio >= 0.9 # 0.9 gets around 1.0a ordering problems
   - fiona >= 1.7.0
   - shapely >= 1.5.13
