@@ -70,18 +70,18 @@ Dataset names for each output are as follows:
     * /ATMOSPHERIC-RESULTS/POINT-0/ALBEDO-0/SOLAR-IRRADIANCE *(combinations based on point label, albedo label)*
     * /ATMOSPHERIC-RESULTS/POINT-0/ALBEDO-TH/UPWARD-RADIATION-CHANNEL **SBT Only** *(combinations based on point label)*
     * /ATMOSPHERIC-RESULTS/POINT-0/ALBEDO-TH/DOWNWARD-RADIATION-CHANNEL **SBT Only** *(combinations based on point label)*
-* components.h5
-    * /ATMOSPHERIC-COMPONENTS/NBAR-COMPONENTS
-    * /ATMOSPHERIC-COMPONENTS/SBT-COMPONENTS
-* interpolated-components.h5
-    * /INTERPOLATED-ATMOSPHERIC-COMPONENTS/A/{band_name} *(combinations based on the band_name)*
-    * /INTERPOLATED-ATMOSPHERIC-COMPONENTS/B/{band_name} *(combinations based on the band_name)*
-    * /INTERPOLATED-ATMOSPHERIC-COMPONENTS/DIF/{band_name} *(combinations based on the band_name)*
-    * /INTERPOLATED-ATMOSPHERIC-COMPONENTS/DIR/{band_name} *(combinations based on the band_name)*
-    * /INTERPOLATED-ATMOSPHERIC-COMPONENTS/FS/{band_name} *(combinations based on the band_name)*
-    * /INTERPOLATED-ATMOSPHERIC-COMPONENTS/FV/{band_name} *(combinations based on the band_name)*
-    * /INTERPOLATED-ATMOSPHERIC-COMPONENTS/S/{band_name} *(combinations based on the band_name)*
-    * /INTERPOLATED-ATMOSPHERIC-COMPONENTS/TS/{band_name} *(combinations based on the band_name)*
+* coefficients.h5
+    * /ATMOSPHERIC-COEFFICIENTS/NBAR-COEFFICIENTS
+    * /ATMOSPHERIC-COEFFICIENTS/SBT-COEFFICIENTS
+* interpolated-coefficients.h5
+    * /INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/A/{band_name} *(combinations based on the band_name)*
+    * /INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/B/{band_name} *(combinations based on the band_name)*
+    * /INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/DIF/{band_name} *(combinations based on the band_name)*
+    * /INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/DIR/{band_name} *(combinations based on the band_name)*
+    * /INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/FS/{band_name} *(combinations based on the band_name)*
+    * /INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/FV/{band_name} *(combinations based on the band_name)*
+    * /INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/S/{band_name} *(combinations based on the band_name)*
+    * /INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/TS/{band_name} *(combinations based on the band_name)*
 * dsm-extract.h5
     * /ELEVATION/DSM
     * /ELEVATION/DSM-SMOOTHED

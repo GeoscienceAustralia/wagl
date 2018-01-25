@@ -17,7 +17,7 @@ For the *sbt* model, the label used for radiative transfer calculation is:
 
     * ALBEDO-TH
 
-The components for the *nbar* model are:
+The coefficients for the *nbar* model are:
 
     * DIR:
 
@@ -232,25 +232,25 @@ Downward radiation channel (continued)
 +-----------+----------+--------+---------+----------+-----+-----+-----+----------+-----+
 
 
-Atmospheric Components Tables
------------------------------
+Atmospheric Coefficients Tables
+-------------------------------
 
 The table dataset names for the NBAR and SBT workflow models are:
 
-* /ATMOSPHERIC-COMPONENTS/NBAR-COMPONENTS
-* /ATMOSPHERIC-COMPONENTS/SBT-COMPONENTS
+* /ATMOSPHERIC-COEFFICIENTS/NBAR-COEFFICIENTS
+* /ATMOSPHERIC-COEFFICIENTS/SBT-COEFFICIENTS
 
 if the scene is not composed of multiple tiles/granules in which case the *coefficiencts* Group is at the root layer of the *wagl.singlefile_workflow* or the *wagl.multifile_workflow*, otherwise the *granule name* eg *S2A_USER_MSI_L2A_TL_SGS__20160120T053143_A003016_T55KBQ_N02.01* would precede the *coefficients* Group in the *wagl.singlefile_workflow* like such:
 
-* /S2A_USER_MSI_L2A_TL_SGS__20160120T053143_A003016_T55KBQ_N02.01/ATMOSPHERIC-COMPONENTS/NBAR-COMPONENTS
-* /S2A_USER_MSI_L2A_TL_SGS__20160120T053143_A003016_T55KBQ_N02.01/ATMOSPHERIC-COMPONENTS/SBT-COMPONENTS
+* /S2A_USER_MSI_L2A_TL_SGS__20160120T053143_A003016_T55KBQ_N02.01/ATMOSPHERIC-COEFFICIENTS/NBAR-COEFFICIENTS
+* /S2A_USER_MSI_L2A_TL_SGS__20160120T053143_A003016_T55KBQ_N02.01/ATMOSPHERIC-COEFFICIENTS/SBT-COEFFICIENTS
 
 Additional columns not presented in the example tables below, include the
 latitude and longitude and datetime of the sample. This coul
 
 
-NBAR Components Table
-~~~~~~~~~~~~~~~~~~~~~
+NBAR Coefficients Table
+~~~~~~~~~~~~~~~~~~~~~~~
 
 The first 10 rows of data for the NBAR coefficients are:
 
@@ -279,8 +279,8 @@ The first 10 rows of data for the NBAR coefficients are:
 +-------+-----------+-------+------+------+--------+-------+-------+--------+--------+------+
 
 
-SBT Components Table
-~~~~~~~~~~~~~~~~~~~~
+SBT Coefficients Table
+~~~~~~~~~~~~~~~~~~~~~~
 
 The first 10 rows of data for the SBT coefficients are:
 

@@ -12,7 +12,7 @@ import numexpr
 import h5py
 
 from wagl.constants import DatasetName, GroupName
-from wagl.constants import AtmosphericComponents as AC
+from wagl.constants import AtmosphericCoefficients as AC
 from wagl.hdf5 import dataset_compression_kwargs
 from wagl.hdf5 import attach_image_attributes
 from wagl.metadata import create_ard_yaml
@@ -60,7 +60,7 @@ def surface_brightness_temperature(acquisition, interpolation_group,
 
     :param interpolation_group:
         The root HDF5 `Group` that contains the interpolated
-        atmospheric components.
+        atmospheric coefficients.
         The dataset pathnames are given by the following string format:
 
         * DatasetName.interpolation_fmt
@@ -102,9 +102,9 @@ def surface_brightness_temperature(acquisition, interpolation_group,
 
     # retrieve the upwelling radiation and transmittance datasets
     dname_fmt = DatasetName.interpolation_fmt.value
-    dname = dname_fmt.format(component=AC.path_up.value, band_name=bn)
+    dname = dname_fmt.format(coefficient=AC.path_up.value, band_name=bn)
     upwelling_radiation = interpolation_group[dname]
-    dname = dname_fmt.format(component=AC.transmittance_up.value, band_name=bn)
+    dname = dname_fmt.format(coefficient=AC.transmittance_up.value, band_name=bn)
     transmittance = interpolation_group[dname]
 
     # Initialise the output file

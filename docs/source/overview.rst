@@ -15,11 +15,11 @@ For thermal channels, the imagery is currently only standardised to:
 
 However, emissivity and Land Surface Temperature will soon become available.
 
-The aim of wagl is to allow anyone to be able to process satellite imagery to a standardised form allowing for comparative analysis across space and time, with minimal effort. The api allows for users who want finer grained control for testing individual components, as well the entire workflow.
+The aim of wagl is to allow anyone to be able to process satellite imagery to a standardised form allowing for comparative analysis across space and time, with minimal effort. The api allows for users who want finer grained control for testing individual tasks, as well as the entire workflow.
 
 The luigi task manager for the *wagl.multifile_workflow* allows the user to escape having to re-run the entire workflow from scratch each time. This allows a user to delete results for the task they're executing, then re-execute without having to re-calculate all the prior dependencies. This is extremely useful for testing and validation, and allows for rapid development.
 
-The *wagl.singlefile_workflow*, allows for mainstream mass production whilst not overloading the filesystem with hundreds/thousands of files being produced **per scene**. It also serves for direct archiving of results, easier file distribution/sharing with coleagues and users, as well as a simplified structure for testing and evaluation between versions and/or archives of wagl outputs.
+The *wagl.singlefile_workflow*, allows for mainstream mass production whilst not overloading the filesystem with hundreds/thousands of files being produced **per level-1 dataset**. It also serves for direct archiving of results, easier file distribution/sharing with coleagues and users, as well as a simplified structure for testing and evaluation between versions and/or archives of wagl outputs.
 
 The api provides command line access for executing any/all tasks of the *wagl.multifile_workflow*, as well as a bunch of tools useful for inspecting/converting/testing/comparing the file outputs created by wagl. And as usual for a Python package, all wagl modules and functions can be called interactively from within Python, allowing users to compute, test and develop using the standard Python interpretor. However, the command line access is recommended and allows the user to not worry about filenames and file I/O. In fact the primary requirement for wagl was to have command line access.
 
