@@ -111,7 +111,7 @@ class DatasetName(Enum):
     solar_zenith = 'SOLAR-ZENITH'
     solar_azimuth = 'SOLAR-AZIMUTH'
     relative_azimuth = 'RELATIVE-AZIMUTH'
-    acquisition_time = 'ACQUISITION-TIME'
+    time = 'TIME'
     centreline = 'CENTRELINE'
     boxline = 'BOXLINE'
     spheroid = 'SPHEROID'

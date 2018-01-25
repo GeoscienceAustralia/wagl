@@ -732,7 +732,7 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
         * DatasetName.solar_zenith
         * DatasetName.solar_azimuth
         * DatasetName.relative_azimuth
-        * DatasetName.acquisition_time
+        * DatasetName.time
         * DatasetName.centreline
         * DatasetName.boxline
         * DatasetName.spheroid
@@ -841,7 +841,7 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     sol_az_ds = grp.create_dataset(DatasetName.solar_azimuth.value, **kwargs)
     rel_az_ds = grp.create_dataset(DatasetName.relative_azimuth.value,
                                    **kwargs)
-    time_ds = grp.create_dataset(DatasetName.acquisition_time.value, **kwargs)
+    time_ds = grp.create_dataset(DatasetName.time.value, **kwargs)
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
@@ -849,35 +849,38 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
              'no_data_value': no_data}
     desc = "Contains the satellite viewing angle in degrees."
     attrs['description'] = desc
+    attrs['units'] = 'degrees'
     attach_image_attributes(sat_v_ds, attrs)
 
     desc = "Contains the satellite azimuth angle in degrees."
     attrs['description'] = desc
+    attrs['units'] = 'degrees'
     attach_image_attributes(sat_az_ds, attrs)
 
     desc = "Contains the solar zenith angle in degrees."
     attrs['description'] = desc
+    attrs['units'] = 'degrees'
     attach_image_attributes(sol_z_ds, attrs)
 
     desc = "Contains the solar azimuth angle in degrees."
     attrs['description'] = desc
+    attrs['units'] = 'degrees'
     attach_image_attributes(sol_az_ds, attrs)
 
     desc = "Contains the relative azimuth angle in degrees."
     attrs['description'] = desc
+    attrs['units'] = 'degrees'
     attach_image_attributes(rel_az_ds, attrs)
 
-    desc = ("Contains the satellite acquisition time grid in seconds before "
-            "and after the scene acquisition datetime.")
+    desc = "Contains the time from apogee in seconds."
     attrs['description'] = desc
+    attrs['units'] = 'seconds'
     attach_image_attributes(time_ds, attrs)
 
     # Initialise centre line variables
     x_cent = np.zeros((acq.lines), dtype=out_dtype)
     n_cent = np.zeros((acq.lines), dtype=out_dtype)
 
-    # TODO: fix so that we can process in a way that doesn't require
-    #       all columns to parsed through
     for tile in acq.tiles():
         idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
 
