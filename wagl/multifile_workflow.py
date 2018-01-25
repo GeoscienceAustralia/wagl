@@ -194,7 +194,7 @@ class AncillaryData(luigi.Task):
         return luigi.LocalTarget(pjoin(self.work_root, 'ancillary.h5'))
 
     def run(self):
-        container = acquisitions(self.level1, self.acq_parser_hint))
+        container = acquisitions(self.level1, self.acq_parser_hint)
         grn = container.get_granule(granule=self.granule, container=True)
         sbt_path = None
 
@@ -360,7 +360,7 @@ class CalculateCoefficients(luigi.Task):
     def run(self):
         with self.output().temporary_path() as out_fname:
             _calculate_coefficients(self.input().path, out_fname,
-                                  self.compression)
+                                    self.compression)
 
 
 @inherits(CalculateLonLatGrids)
