@@ -381,25 +381,21 @@ def acquisitions_via_safe(pathname):
         band_id = s2_index_to_band_id(irradiance.attrib['bandId'])
         solar_irradiance[band_id] = float(irradiance.text)
 
-    # assume multiple granules
-    single_granule_archive = False
-
     search_term = './*/Product_Info/Product_Organisation/Granule_List/Granules'
+    grn_elements = xml_root.findall(search_term)
+
+    # handling multi vs single granules + variants of each type
+    if not grn_elements:
+        grn_elements = xml_root.findall(search_term[:-1])
+
+    if grn_elements[0].findtext('IMAGE_ID'):
+        search_term = 'IMAGE_ID'
+    else:
+        search_term = 'IMAGE_FILE'
+
     granules = {granule.get('granuleIdentifier'):
-                    [imid.text for imid in granule.findall('IMAGE_ID')]
-                for granule in xml_root.findall(search_term)}
-
-    # cater for another version of multi-granule xml, but uses 'Granule'
-    if not granules:
-        granules = {granule.get('granuleIdentifier'):
-                        [imid.text for imid in granule.findall('IMAGE_ID')]
-                    for granule in xml_root.findall(search_term[:-1])}
-
-    if not granules:
-        single_granule_archive = True
-        granules = {granule.get('granuleIdentifier'):
-                        [imid.text for imid in granule.findall('IMAGE_FILE')]
-                    for granule in xml_root.findall(search_term[:-1])}
+                    [imid.text for imid in granule.findall(search_term)]
+                for granule in grn_elements}
 
     # resolution groups
     band_groups = {'R10m': ['B02', 'B03', 'B04', 'B08', 'TCI'],
@@ -423,9 +419,9 @@ def acquisitions_via_safe(pathname):
         granule_xml = archive.read(granule_xmls[0])
         granule_root = ElementTree.XML(granule_xml)
 
+        # handling different metadata versions for image paths
         img_data_path = ''.join(['zip:', pathname, '!', archive.namelist()[0]])
-
-        if not single_granule_archive:
+        if basename(images[0]) == images[0]:
             img_data_path = ''.join([img_data_path,
                                      pjoin('GRANULE', granule_id, 'IMG_DATA')])
 
