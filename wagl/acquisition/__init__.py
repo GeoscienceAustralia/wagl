@@ -10,6 +10,7 @@ for handling scenes consisting of multiple Granules/Tiles,
 and of differing resolutions.
 """
 from __future__ import absolute_import, print_function
+from collections import OrderedDict
 import os
 from os.path import isdir, join as pjoin, dirname, basename, splitext
 import re
@@ -27,6 +28,10 @@ from .sentinel import Sentinel2aSinergiseAcquisition, Sentinel2bSinergiseAcquisi
 from .landsat import ACQUISITION_TYPE, LandsatAcquisition
 
 from ..mtl import load_mtl
+
+
+# resolution group format
+RESG_FMT = "RES-GROUP-{}"
 
 
 with open(pjoin(dirname(__file__), 'sensors.json')) as fo:
@@ -122,6 +127,9 @@ def acquisitions_via_mtl(pathname):
     solar_azimuth = nested_lookup('sun_azimuth', data)[0]
     solar_elevation = nested_lookup('sun_elevation', data)[0]
 
+    # granule id
+    granule_id = nested_lookup('landsat_scene_id', data)[0]
+
     # bands to ignore
     ignore = ['band_quality']
 
@@ -173,8 +181,17 @@ def acquisitions_via_mtl(pathname):
         acqs.append(acqtype(pathname, fname, acq_datetime, band_name, band_id,
                             attrs))
 
+    # 0 -> n resolution sets (higest res to lowest res)
+    resolutions = sorted(set([acq.resolution for acq in acqs]))
+    res_groups = OrderedDict([(RESG_FMT.format(i), []) for i, _ in
+                              enumerate(resolutions)])
+
+    for acq in sorted(acqs):
+        group = RESG_FMT.format(resolutions.index(acq.resolution))
+        res_groups[group].append(acq)
+
     return AcquisitionsContainer(label=basename(pathname),
-                                 groups={'product': sorted(acqs)})
+                                 granules={granule_id: res_groups})
 
 
 def acquisitions_s2_sinergise(pathname):
