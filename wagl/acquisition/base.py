@@ -16,29 +16,23 @@ class AcquisitionsContainer(object):
 
     """
     A container for dealing with a hierarchial structure
-    of acquisitions from different groups, granules, but
-    all part of the same geospatial area or scene.
+    of acquisitions from different resolution groups, granules,
+    but all part of the same geospatial area or scene.
 
-    Note: Assuming that each granule contains the same groups.
-
-    The `AcquisitionsContainer.tiled` property indicates whether or
-    not a scene is partitioned into several tiles referred to as
-    granules.
+    Note: Assuming that each granule contains the same resolution
+    groups.
     """
 
-    def __init__(self, label, groups=None, granules=None):
-        self._tiled = False if granules is None else True
-        self._groups = groups
+    def __init__(self, label, granules):
         self._granules = granules
         self._label = label
 
     def __repr__(self):
-        fmt = ("****Tiled scene****:\n{tiled}\n"
-               "****Granules****:\n{granules}\n"
-               "****Groups****:\n{groups}")
-        granules = "\n".join(self.granules) if self.tiled else ""
+        fmt = ("****Granule ID's****:\n{granules}\n"
+               "\n****Resolution Groups****:\n{groups}")
+        granules = "\n".join(self.granules)
         groups = "\n".join(self.groups)
-        return fmt.format(tiled=self.tiled, granules=granules, groups=groups)
+        return fmt.format(granules=granules, groups=groups)
 
     @property
     def label(self):
@@ -48,32 +42,20 @@ class AcquisitionsContainer(object):
         return self._label
 
     @property
-    def tiled(self):
-        """
-        Indicates whether or not a scene is partitioned into several
-        tiles referred to as granules.
-        """
-        return self._tiled
-
-    @property
     def granules(self):
         """
         Lists the available granules within a scene.
         If `AcquisitionsContainer.tiled` is False, then [None] is
         returned.
         """
-        return sorted(list(self._granules.keys())) if self.tiled else [None]
+        return sorted(list(self._granules.keys()))
 
     @property
     def groups(self):
         """
         Lists the available groups within a scene.
         """
-        if self.tiled:
-            grps = sorted(list(self._granules.get(self.granules[0]).keys()))
-        else:
-            grps = sorted(list(self._groups.keys()))
-        return grps
+        return list(self._granules.get(self.granules[0]).keys())
 
     def get_acquisitions(self, group=None, granule=None, only_supported_bands=True):
         """
@@ -99,17 +81,11 @@ class AcquisitionsContainer(object):
         :return:
             A `list` of `Acquisition` objects.
         """
-        if self.tiled:
-            groups = self.get_granule(granule=granule)
-            if group is None:
-                acqs = groups[list(groups.keys())[0]]
-            else:
-                acqs = groups[group]
+        groups = self.get_granule(granule=granule)
+        if group is None:
+            acqs = groups[list(groups.keys())[0]]
         else:
-            if group is None:
-                acqs = self._groups[self.groups[0]]
-            else:
-                acqs = self._groups[group]
+            acqs = groups[group]
 
         if only_supported_bands:
             return list(
@@ -141,20 +117,8 @@ class AcquisitionsContainer(object):
             for a given scene, unless container=True in which a new
             instance of an `AcquisitionsContainer` is returned.
         """
-        if not self.tiled:
-            grps = self._groups
-            if container:
-                return AcquisitionsContainer(label=self.label, groups=grps)
-
-            return grps
-
         if granule is None:
-            grn = self.granules[0]
-            if container:
-                grps = {grn: self._granules[grn]}
-                return AcquisitionsContainer(label=self.label, granules=grps)
-
-            return self._granules[grn]
+            granule = self.granules[0]
 
         if container:
             grps = {granule: self._granules[granule]}
