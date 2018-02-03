@@ -232,6 +232,7 @@ class Acquisition(object):
             self._samples = ds.width
             self._lines = ds.height
             self._tile_size = ds.block_shapes[0]
+            self._resolution = ds.res
 
     @property
     def pathname(self):
@@ -300,6 +301,14 @@ class Acquisition(object):
         (ysize, xsize) dimensions.
         """
         return self._tile_size
+
+    @property
+    def resolution(self):
+        """
+        The resolution of the file on disk reported as
+        (y, x).
+        """
+        return self._resolution
 
     @property
     def gps_file(self):
