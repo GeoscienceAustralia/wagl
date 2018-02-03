@@ -915,7 +915,6 @@ class LinkwaglOutputs(luigi.Task):
             with h5py.File(out_fname) as fid:
                 container = acquisitions(self.level1, self.acq_parser_hint)
                 fid.attrs['level1_uri'] = self.level1
-                fid.attrs['tiled'] = container.tiled
 
 
 class ARD(luigi.WrapperTask):

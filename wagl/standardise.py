@@ -60,7 +60,6 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
     # TODO: pass through an acquisitions container rather than pathname
     with h5py.File(out_fname, 'w') as fid:
         fid.attrs['level1_uri'] = level1
-        fid.attrs['tiled'] = container.tiled
 
         for grp_name in container.groups:
             log = LOG.bind(level1=container.label, granule=granule,

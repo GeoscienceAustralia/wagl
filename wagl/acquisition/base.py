@@ -45,8 +45,6 @@ class AcquisitionsContainer(object):
     def granules(self):
         """
         Lists the available granules within a scene.
-        If `AcquisitionsContainer.tiled` is False, then [None] is
-        returned.
         """
         return sorted(list(self._granules.keys()))
 
@@ -108,8 +106,6 @@ class AcquisitionsContainer(object):
         :param container:
             A boolean indicating whether to return the granule as an
             `AcquisitionsContainer` containing a single granule.
-            If the `AcquisitionsContainer.tiled` is False, then a new
-            instance of the `AcquisitionsContainer` is returned.
             Default is False.
 
         :return:
