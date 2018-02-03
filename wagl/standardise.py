@@ -64,7 +64,7 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
         for grp_name in container.groups:
             log = LOG.bind(level1=container.label, granule=granule,
                            granule_group=grp_name)
-            group = fid.create_group(grp_name)
+            group = fid.create_group(ppjoin(granule, grp_name))
             acqs = container.get_acquisitions(granule=granule, group=grp_name)
 
             # longitude and latitude
