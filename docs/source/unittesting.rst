@@ -62,7 +62,7 @@ Calculates satellite and solar angles.
 
 optional arguments:
   -h, --help            show this help message and exit
-  --L1T_dir L1T_DIR     A directory path of a L1T scene.
+  --L1T_dir L1T_DIR     A directory path of a L1T dataset.
   --nbar_work_dir NBAR_WORK_DIR
                         A directory path to the associated NBAR working
                         directory.
@@ -89,7 +89,7 @@ calculates the satellite view shadow mask.
 
 optional arguments:
   -h, --help            show this help message and exit
-  --L1T_dir L1T_DIR     A directory path of a L1T scene.
+  --L1T_dir L1T_DIR     A directory path of a L1T dataset.
   --nbar_work_dir NBAR_WORK_DIR
                         A directory path to the associated NBAR working
                         directory.
@@ -119,7 +119,7 @@ cast shadow sun mask.
 
 optional arguments:
   -h, --help            show this help message and exit
-  --L1T_dir L1T_DIR     A directory path of a L1T scene.
+  --L1T_dir L1T_DIR     A directory path of a L1T dataset.
   --nbar_work_dir NBAR_WORK_DIR
                         A directory path to the associated NBAR working
                         directory.
@@ -140,7 +140,7 @@ The unittests for `test_smoothe_dsm.py`, `test_exiting_angles.py`, `test_inciden
 
 optional arguments:
   -h, --help            show this help message and exit
-  --L1T_dir L1T_DIR     A directory path of a L1T scene.
+  --L1T_dir L1T_DIR     A directory path of a L1T dataset.
   --nbar_work_dir NBAR_WORK_DIR
                         A directory path to the associated NBAR working
                         directory.
