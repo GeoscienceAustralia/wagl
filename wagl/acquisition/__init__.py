@@ -109,9 +109,13 @@ def create_resolution_groups(acqs):
 
 
 def acquisitions_via_mtl(pathname):
-    """Obtain a list of Acquisition objects from `path`. The argument `path`
-    can be a MTL file or a directory name. If `path` is a directory then the
-    MTL file will be search for in the directory and its children."""
+    """
+    Obtain a list of Acquisition objects from `pathname`.
+    The argument `pathname` can be a MTL file or a directory name.
+    If `pathname` is a directory then the MTL file will be search
+    for in the directory and its children.
+    Returns an instance of `AcquisitionsContainer`.
+    """
 
     if isdir(pathname):
         filename = find_in(pathname, 'MTL')
@@ -224,21 +228,12 @@ def acquisitions_s2_sinergise(pathname):
     """
     Collect the TOA Radiance images for each granule within a scene.
     Multi-granule & multi-resolution hierarchy format.
-    Returns a dict of granules, each granule contains a dict of resolutions,
-    and each resolution contains a list of acquisition objects.
+    Returns an instance of `AcquisitionsContainer`.
 
     it is assumed that the pathname points to a directory containing
     information pulled from AWS S3 granules (s3://sentinel-s2-l1c)
     with additional information retrieved from the productInfo.json
     sitting in a subfolder
-
-    Example:
-    {'GRANULE_1': {'R10m': [`acquisition_1`,...,`acquisition_n`],
-                   'R20m': [`acquisition_1`,...,`acquisition_n`],
-                   'R60m': [`acquisition_1`,...,`acquisition_n`]},
-     'GRANULE_N': {'R10m': [`acquisition_1`,...,`acquisition_n`],
-                   'R20m': [`acquisition_1`,...,`acquisition_n`],
-                   'R60m': [`acquisition_1`,...,`acquisition_n`]}}
     """
 
     granule_xml = pathname + '/metadata.xml'
@@ -296,14 +291,8 @@ def acquisitions_s2_sinergise(pathname):
             acquisition_data[term['key']] = term['parse'](xml_root.findall(term['search_path']))
 
     band_configurations = SENSORS[acquisition_data['platform_id']]['MSI']['band_ids']
-    # resolution groups
-    band_groups = {'R10m': ['B02', 'B03', 'B04', 'B08'],
-                   'R20m': ['B05', 'B06', 'B07', 'B11', 'B12', 'B8A'],
-                   'R60m': ['B01', 'B09', 'B10']}
-
-    res_groups = {'R10m': [],
-                  'R20m': [],
-                  'R60m': []}
+    esa_ids = ['B02', 'B03', 'B04', 'B08', 'B05', 'B06', 'B07', 'B11',
+               'B12', 'B8A', 'B01', 'B09', 'B10']
 
     if 'S2A' in acquisition_data['granule_id']:
         acqtype = Sentinel2aSinergiseAcquisition
@@ -311,6 +300,7 @@ def acquisitions_s2_sinergise(pathname):
         # assume it is S2B
         acqtype = Sentinel2bSinergiseAcquisition
 
+    acqs = []
     for band_id in band_configurations:
 
         # If it is a configured B-format transform it to the correct format
@@ -324,12 +314,8 @@ def acquisitions_s2_sinergise(pathname):
         if not os.path.isfile(img_fname):
             continue
 
-        group = None
-        for group, bands in band_groups.items():
-            if band_name in bands:
-                break
-        else:
-            continue  # group not found
+        if band_name not in esa_ids:
+            continue
 
         attrs = {k: v for k, v in band_configurations[band_id].items()}
         if attrs.get('supported_band'):
@@ -342,13 +328,14 @@ def acquisitions_s2_sinergise(pathname):
         acq_time = acquisition_data['acq_time']
 
 
-        res_groups[group].append(acqtype(pathname, img_fname, acq_time,
-                                         band_name, band_id, attrs))
+        acqs.append(acqtype(pathname, img_fname, acq_time, band_name, band_id,
+                            attrs))
 
     granule_id = acquisition_data['granule_id']
 
+    # resolution groups dict
     granule_groups = {}
-    granule_groups[granule_id] = {k: sorted(v) for k, v in res_groups.items()}
+    granule_groups[granule_id] = create_resolution_groups(acqs)
 
     return AcquisitionsContainer(label=basename(pathname),
                                  granules=granule_groups)
@@ -358,16 +345,7 @@ def acquisitions_via_safe(pathname):
     """
     Collect the TOA Radiance images for each granule within a scene.
     Multi-granule & multi-resolution hierarchy format.
-    Returns a dict of granules, each granule contains a dict of resolutions,
-    and each resolution contains a list of acquisition objects.
-
-    Example:
-    {'GRANULE_1': {'R10m': [`acquisition_1`,...,`acquisition_n`],
-                   'R20m': [`acquisition_1`,...,`acquisition_n`],
-                   'R60m': [`acquisition_1`,...,`acquisition_n`]},
-     'GRANULE_N': {'R10m': [`acquisition_1`,...,`acquisition_n`],
-                   'R20m': [`acquisition_1`,...,`acquisition_n`],
-                   'R60m': [`acquisition_1`,...,`acquisition_n`]}}
+    Returns an instance of `AcquisitionsContainer`.
     """
     def band_id_helper(fname, esa_ids):
         """
@@ -492,6 +470,7 @@ def acquisitions_via_safe(pathname):
             acqs.append(acqtype(pathname, img_fname, acq_time, band_name,
                                 band_id, attrs))
 
+        # resolution groups dict
         granule_groups[granule_id] = create_resolution_groups(acqs)
 
     return AcquisitionsContainer(label=basename(pathname),
