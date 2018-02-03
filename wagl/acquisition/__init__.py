@@ -76,6 +76,38 @@ def acquisitions(path, hint=None):
     return container
 
 
+def create_resolution_groups(acqs):
+    """
+    Given a list of acquisitions, return an OrderedDict containing
+    groups of acquisitions based on the resolution.
+    The order of groups is highest to lowest resolution.
+    Resolution group names are given as:
+
+    * RES-GROUP-0, RES-GROUP-1, ..., RES-GROUP-N
+
+    :param acqs:
+        A `list` of acquisition objects.
+
+    :return:
+        An OrderedDict detailed as follows:
+
+        {'RES-GROUP-0: [acquisition, acquisition],
+         'RES-GROUP-1: [acquisition, acquisition],
+         'RES-GROUP-N: [acquisition, acquisition]}
+    """
+    fmt = "RES-GROUP-{}"
+    # 0 -> n resolution sets (higest res to lowest res)
+    resolutions = sorted(set([acq.resolution for acq in acqs]))
+    res_groups = OrderedDict([(fmt.format(i), []) for i, _ in
+                              enumerate(resolutions)])
+
+    for acq in sorted(acqs):
+        group = fmt.format(resolutions.index(acq.resolution))
+        res_groups[group].append(acq)
+
+    return res_groups
+
+
 def acquisitions_via_mtl(pathname):
     """Obtain a list of Acquisition objects from `path`. The argument `path`
     can be a MTL file or a directory name. If `path` is a directory then the
@@ -181,14 +213,8 @@ def acquisitions_via_mtl(pathname):
         acqs.append(acqtype(pathname, fname, acq_datetime, band_name, band_id,
                             attrs))
 
-    # 0 -> n resolution sets (higest res to lowest res)
-    resolutions = sorted(set([acq.resolution for acq in acqs]))
-    res_groups = OrderedDict([(RESG_FMT.format(i), []) for i, _ in
-                              enumerate(resolutions)])
-
-    for acq in sorted(acqs):
-        group = RESG_FMT.format(resolutions.index(acq.resolution))
-        res_groups[group].append(acq)
+    # resolution groups dict
+    res_groups = create_resolution_groups(acqs)
 
     return AcquisitionsContainer(label=basename(pathname),
                                  granules={granule_id: res_groups})
@@ -343,18 +369,17 @@ def acquisitions_via_safe(pathname):
                    'R20m': [`acquisition_1`,...,`acquisition_n`],
                    'R60m': [`acquisition_1`,...,`acquisition_n`]}}
     """
-    def group_helper(fname, resolution_groups):
+    def band_id_helper(fname, esa_ids):
         """
-        A helper function to find the resolution group
-        and the band_id, and bail rather than loop over
-        everything.
+        A helper function to find the band_id.
         """
-        for key, group in resolution_groups.items():
-            for item in group:
-                if item in fname:
-                    band_id = re.sub(r'B[0]?', '', item)
-                    return key, band_id
-        return None, None
+        # TODO: do we need this func any more as res groups are now
+        # derived rather pre-determined
+        for esa_id in esa_ids:
+            if esa_id in fname:
+                band_id = re.sub(r'B[0]?', '', esa_id)
+                return band_id
+        return None
 
     archive = zipfile.ZipFile(pathname)
     xmlfiles = [s for s in archive.namelist() if "MTD_MSIL1C.xml" in s]
@@ -414,16 +439,12 @@ def acquisitions_via_safe(pathname):
                     [imid.text for imid in granule.findall(search_term)]
                 for granule in grn_elements}
 
-    # resolution groups
-    band_groups = {'R10m': ['B02', 'B03', 'B04', 'B08', 'TCI'],
-                   'R20m': ['B05', 'B06', 'B07', 'B11', 'B12', 'B8A'],
-                   'R60m': ['B01', 'B09', 'B10']}
+    # ESA image ids
+    esa_ids = ['B02', 'B03', 'B04', 'B08', 'TCI', 'B05', 'B06', 'B07', 'B11',
+               'B12', 'B8A', 'B01', 'B09', 'B10']
 
     granule_groups = {}
     for granule_id, images in granules.items():
-        res_groups = {'R10m': [],
-                      'R20m': [],
-                      'R60m': []}
 
         granule_xmls = [s for s in archive.namelist() if 'MTD_TL.xml' in s]
         if not granule_xmls:
@@ -446,12 +467,13 @@ def acquisitions_via_safe(pathname):
         search_term = './*/SENSING_TIME'
         acq_time = parser.parse(granule_root.findall(search_term)[0].text)
 
+        acqs = []
         for image in images:
             # image filename
             img_fname = ''.join([pjoin(img_data_path, image), '.jp2'])
 
             # band id
-            group, band_id = group_helper(img_fname, band_groups)
+            band_id = band_id_helper(img_fname, esa_ids)
 
             # band info stored in sensors.json
             sensor_band_info = band_configurations.get(band_id)
@@ -467,11 +489,10 @@ def acquisitions_via_safe(pathname):
             else:
                 band_name = band_id
 
-            res_groups[group].append(acqtype(pathname, img_fname, acq_time,
-                                             band_name, band_id, attrs))
+            acqs.append(acqtype(pathname, img_fname, acq_time, band_name,
+                                band_id, attrs))
 
-        granule_groups[granule_id] = {k: sorted(v) for k, v in
-                                      res_groups.items()}
+        granule_groups[granule_id] = create_resolution_groups(acqs)
 
     return AcquisitionsContainer(label=basename(pathname),
                                  granules=granule_groups)
