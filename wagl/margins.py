@@ -1,5 +1,5 @@
 """
-Image Margins and buffering.
+Defining and buffering image extents/margins.
 """
 from __future__ import absolute_import, print_function
 
@@ -53,6 +53,11 @@ def pixel_buffer(acquisition, distance=8000):
     of 8000 would equate to 8000 metres.
     The result of the number of pixels to buffer is rounded to
     the nearest whole integer.
+    For determining the approproate distance to use as a buffer
+    within your region of interest. You need to take into account 
+    not just the highest elevation, but also steepest solar angle.
+    For Australia, this was roughly 6.25km, and in order to be
+    extra conservative, a default value of 8km was selected.
 
     :param acquisition:
         An instance of an `Acquistion` object.
