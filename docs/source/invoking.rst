@@ -164,6 +164,7 @@ The arguments for *wagl_pbs* are:
 --model              The type of ARD workflow to invoke, eg standard, nbar, sbt.
 --method             The interpolation method to invoke, eg bilinear, shear, rbf.
 --pixel-quality      Whether to run the pixel quality workflow, if applicable, or not.
+--buffer-distance    The distance in units by which to buffer an image's extents by.
 --outdir             The base output directory.
 --logdir             The base logging and scripts output directory.
 --env                Environment script to source.

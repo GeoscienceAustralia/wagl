@@ -220,6 +220,9 @@ If you're a user that would like to intersect any part of the dependency tree, t
    [DEMExctraction]
    # The compression filter to use (internally the code defaults to use *lzf*)
    compression = lzf
+   # The distance in units by which to buffer an image's extents by
+   # (internally defaults to 8000)
+   buffer_distance = 8000
 
    [SlopeAndAspect]
    # The compression filter to use (internally the code defaults to use *lzf*)
