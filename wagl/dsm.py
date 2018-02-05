@@ -9,7 +9,7 @@ from scipy import ndimage
 import h5py
 from rasterio.warp import Resampling
 from wagl.constants import DatasetName, GroupName
-from wagl.margins import ImageMargins
+from wagl.margins import pixel_buffer
 from wagl.geobox import GriddedGeoBox
 from wagl.data import reproject_file_to_array
 from wagl.hdf5 import dataset_compression_kwargs
@@ -35,16 +35,17 @@ def filter_dsm(array):
     return filtered
 
 
-def _get_dsm(acquisition, national_dsm, margins, out_fname, compression='lzf'):
+def _get_dsm(acquisition, national_dsm, buffer_distance, out_fname,
+             compression='lzf'):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
     with h5py.File(out_fname, 'w') as fid:
-        get_dsm(acquisition, national_dsm, margins, fid, compression)
+        get_dsm(acquisition, national_dsm, buffer_distance, fid, compression)
 
 
-def get_dsm(acquisition, national_dsm, margins, out_group=None,
+def get_dsm(acquisition, national_dsm, buffer_distance=8000, out_group=None,
             compression='lzf'):
     """
     Given an acquisition and a national Digitial Surface Model,
@@ -60,12 +61,11 @@ def get_dsm(acquisition, national_dsm, margins, out_group=None,
         A string containing the full filepath name to an image on
         disk containing national digital surface model.
 
-    :param margin:
-        An integer indictaing the number of pixels to be used as a
-        margin around the aqcuisition.
-        Eg, a value of 250 indicates that 250 pixels to the top,
-        bottom, left and right will be added to the acquisition
-        margin/border.
+    :param buffer_distance:
+        A number representing the desired distance (in the same
+        units as the acquisition) in which to calculate the extra
+        number of pixels required to buffer an image.
+        Default is 8000.
 
     :param out_group:
         If set to None (default) then the results will be returned
@@ -93,15 +93,15 @@ def get_dsm(acquisition, national_dsm, margins, out_group=None,
     geobox = acquisition.gridded_geo_box()
     shape = geobox.get_shape_yx()
 
-    # Define Top, Bottom, Left, Right pixel margins
-    pixel_buf = ImageMargins(margins)
+    # buffered image extents/margins
+    margins = pixel_buffer(acquisition, buffer_distance)
 
     # Get the dimensions and geobox of the new image
-    dem_cols = shape[1] + pixel_buf.left + pixel_buf.right
-    dem_rows = shape[0] + pixel_buf.top + pixel_buf.bottom
+    dem_cols = shape[1] + margins.left + margins.right
+    dem_rows = shape[0] + margins.top + margins.bottom
     dem_shape = (dem_rows, dem_cols)
-    dem_origin = geobox.convert_coordinates((0 - pixel_buf.left,
-                                             0 - pixel_buf.top))
+    dem_origin = geobox.convert_coordinates((0 - margins.left,
+                                             0 - margins.top))
     dem_geobox = GriddedGeoBox(dem_shape, origin=dem_origin,
                                pixelsize=geobox.pixelsize,
                                crs=geobox.crs.ExportToWkt())
@@ -131,10 +131,10 @@ def get_dsm(acquisition, national_dsm, margins, out_group=None,
     group = fid.create_group(GroupName.elevation_group.value)
 
     param_grp = group.create_group('PARAMETERS')
-    param_grp.attrs['left_buffer'] = pixel_buf.left
-    param_grp.attrs['right_buffer'] = pixel_buf.right
-    param_grp.attrs['top_buffer'] = pixel_buf.top
-    param_grp.attrs['bottom_buffer'] = pixel_buf.bottom
+    param_grp.attrs['left_buffer'] = margins.left
+    param_grp.attrs['right_buffer'] = margins.right
+    param_grp.attrs['top_buffer'] = margins.top
+    param_grp.attrs['bottom_buffer'] = margins.bottom
 
     # dataset attributes
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),

@@ -33,20 +33,12 @@ LOG = wrap_logger(logging.getLogger('wagl-status'),
                   processors=[JSONRenderer(indent=1, sort_keys=True)])
 
 
-def get_buffer(group):
-    buf = {'product': 250,
-           'R10m': 700,
-           'R20m': 350,
-           'R60m': 120}
-    return buf[group]
-
-
 # pylint disable=too-many-arguments
 def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
            tle_path, aerosol, brdf_path, brdf_premodis_path, ozone_path,
            water_vapour, dem_path, dsm_fname, invariant_fname, modtran_exe,
-           out_fname, ecmwf_path=None, rori=0.52, compression='lzf',
-           acq_parser_hint=None):
+           out_fname, ecmwf_path=None, rori=0.52, buffer_distance=8000,
+           compression='lzf', acq_parser_hint=None):
     """
     CEOS Analysis Ready Data for Land.
     A workflow for producing standardised products that meet the
@@ -80,15 +72,13 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
 
                 # DEM
                 log.info('DEM-retriveal')
-                get_dsm(acqs[0], dsm_fname, get_buffer(grp_name), group,
-                        compression)
+                get_dsm(acqs[0], dsm_fname, buffer_distance, group, compression)
 
                 # slope & aspect
                 log.info('Slope-Aspect')
                 slope_aspect_arrays(acqs[0],
                                     group[GroupName.elevation_group.value],
-                                    get_buffer(grp_name), group,
-                                    compression)
+                                    buffer_distance, group, compression)
 
                 # incident angles
                 log.info('Incident-Angles')
@@ -120,15 +110,13 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
                 dsm_group_name = GroupName.elevation_group.value
                 calculate_cast_shadow(acqs[0], group[dsm_group_name],
                                       group[GroupName.sat_sol_group.value],
-                                      get_buffer(grp_name), 500, 500,
-                                      group, compression)
+                                      buffer_distance, group, compression)
 
                 # cast shadow satellite source direction
                 log.info('Cast-Shadow-Satellite-Direction')
                 calculate_cast_shadow(acqs[0], group[dsm_group_name],
                                       group[GroupName.sat_sol_group.value],
-                                      get_buffer(grp_name), 500, 500,
-                                      group, compression, False)
+                                      buffer_distance, group, compression, False)
 
                 # combined shadow masks
                 log.info('Combined-Shadow')

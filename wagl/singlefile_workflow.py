@@ -40,14 +40,6 @@ ERROR_LOGGER = wrap_logger(logging.getLogger('wagl-error'),
 INTERFACE_LOGGER = logging.getLogger('luigi-interface')
 
 
-def get_buffer(group):
-    buf = {'product': 250,
-           'R10m': 700,
-           'R20m': 350,
-           'R60m': 120}
-    return buf[group]
-
-
 @luigi.Task.event_handler(luigi.Event.FAILURE)
 def on_failure(task, exception):
     """Capture any Task Failure here."""
@@ -86,6 +78,7 @@ class DataStandardisation(luigi.Task):
     rori = luigi.FloatParameter(default=0.52, significant=False)
     compression = luigi.Parameter(default='lzf', significant=False)
     acq_parser_hint = luigi.Parameter(default=None)
+    buffer_distance = luigi.FloatParameter(default=8000, significant=False)
 
     def output(self):
         fmt = '{label}.wagl.h5'
@@ -107,7 +100,7 @@ class DataStandardisation(luigi.Task):
                    self.brdf_premodis_path, self.ozone_path, self.water_vapour,
                    self.dem_path, self.dsm_fname, self.invariant_height_fname,
                    self.modtran_exe, out_fname, ecmwf_path, self.rori,
-                   self.compression, self.acq_parser_hint)
+                   self.buffer_distance, self.compression, self.acq_parser_hint)
 
 
 @inherits(DataStandardisation)
@@ -147,7 +140,8 @@ class ARD(luigi.WrapperTask):
                           'invariant_height_fname': self.invariant_height_fname,
                           'dsm_fname': self.dsm_fname,
                           'tle_path': self.tle_path,
-                          'rori': self.rori}
+                          'rori': self.rori,
+                          'buffer_distance': self.buffer_distance}
                 yield DataStandardisation(**kwargs)
 
         

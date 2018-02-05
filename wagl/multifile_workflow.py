@@ -61,14 +61,6 @@ ERROR_LOGGER = wrap_logger(logging.getLogger('wagl-error'),
                            processors=[JSONRenderer(indent=1, sort_keys=True)])
 
 
-def get_buffer(group):
-    buf = {'product': 250,
-           'R10m': 700,
-           'R20m': 350,
-           'R60m': 120}
-    return buf[group]
-
-
 @luigi.Task.event_handler(luigi.Event.FAILURE)
 def on_failure(task, exception):
     """Capture any Task Failure here."""
@@ -462,12 +454,13 @@ class InterpolateCoefficients(luigi.Task):
 class DEMExtraction(luigi.Task):
 
     """
-    Extract the DEM covering the acquisition extents plus an
-    arbitrary buffer. The subset is then smoothed with a gaussian
+    Extract the DEM covering the acquisition extents plus a
+    buffer. The subset is then smoothed with a gaussian
     filter.
     """
 
     dsm_fname = luigi.Parameter(significant=False)
+    buffer_distance = luigi.FloatParameter(default=8000, significant=False)
 
     def requires(self):
         # we want to pass the level1 root not the granule root
@@ -483,10 +476,9 @@ class DEMExtraction(luigi.Task):
             acquisitions(self.level1, self.acq_parser_hint)
             .get_acquisitions(self.group, self.granule)
         )
-        margins = get_buffer(self.group)
 
         with self.output().temporary_path() as out_fname:
-            _get_dsm(acqs[0], self.dsm_fname, margins, out_fname,
+            _get_dsm(acqs[0], self.dsm_fname, self.buffer_distance, out_fname,
                      self.compression)
 
 
@@ -507,11 +499,10 @@ class SlopeAndAspect(luigi.Task):
             .get_acquisitions(self.group, self.granule)
         )
         dsm_fname = self.input().path
-        margins = get_buffer(self.group)
 
         with self.output().temporary_path() as out_fname:
-            _slope_aspect_arrays(acqs[0], dsm_fname, margins, out_fname,
-                                 self.compression)
+            _slope_aspect_arrays(acqs[0], dsm_fname, self.buffer_distance,
+                                 out_fname, self.compression)
 
 
 @inherits(CalculateLonLatGrids)
@@ -522,11 +513,13 @@ class IncidentAngles(luigi.Task):
     """
 
     dsm_fname = luigi.Parameter(significant=False)
+    buffer_distance = luigi.FloatParameter(default=8000, significant=False)
 
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.group]
         return {'sat_sol': self.clone(CalculateSatelliteAndSolarGrids),
-                'slp_asp': SlopeAndAspect(*args, dsm_fname=self.dsm_fname)}
+                'slp_asp': SlopeAndAspect(*args, dsm_fname=self.dsm_fname,
+                                          buffer_distance=self.buffer_distance)}
 
     def output(self):
         out_path = pjoin(self.work_root, self.group)
@@ -552,7 +545,8 @@ class ExitingAngles(luigi.Task):
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.group]
         return {'sat_sol': self.clone(CalculateSatelliteAndSolarGrids),
-                'slp_asp': SlopeAndAspect(*args, dsm_fname=self.dsm_fname)}
+                'slp_asp': SlopeAndAspect(*args, dsm_fname=self.dsm_fname,
+                                          buffer_distance=self.buffer_distance)}
 
     def output(self):
         out_path = pjoin(self.work_root, self.group)
@@ -633,7 +627,8 @@ class CalculateCastShadowSun(luigi.Task):
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.group]
         return {'sat_sol': self.clone(CalculateSatelliteAndSolarGrids),
-                'dsm': DEMExtraction(*args, dsm_fname=self.dsm_fname)}
+                'dsm': DEMExtraction(*args, dsm_fname=self.dsm_fname,
+                                     buffer_distance=self.buffer_distance)}
 
     def output(self):
         out_path = pjoin(self.work_root, self.group, self.base_dir)
@@ -649,15 +644,9 @@ class CalculateCastShadowSun(luigi.Task):
         dsm_fname = self.input()['dsm'].path
         sat_sol_fname = self.input()['sat_sol'].path
 
-        # TODO: convert to a func of distance and resolution
-        margins = get_buffer(self.group)
-        window_height = 500
-        window_width = 500
-
         with self.output().temporary_path() as out_fname:
-            _calculate_cast_shadow(acqs[0], dsm_fname, margins, window_height,
-                                   window_width, sat_sol_fname, out_fname,
-                                   self.compression)
+            _calculate_cast_shadow(acqs[0], dsm_fname, self.buffer_distance,
+                                   sat_sol_fname, out_fname, self.compression)
 
 
 @inherits(SelfShadow)
@@ -671,7 +660,8 @@ class CalculateCastShadowSatellite(luigi.Task):
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.group]
         return {'sat_sol': self.clone(CalculateSatelliteAndSolarGrids),
-                'dsm': DEMExtraction(*args, dsm_fname=self.dsm_fname)}
+                'dsm': DEMExtraction(*args, dsm_fname=self.dsm_fname,
+                                     buffer_distance=self.buffer_distance)}
 
     def output(self):
         out_path = pjoin(self.work_root, self.group, self.base_dir)
@@ -687,15 +677,10 @@ class CalculateCastShadowSatellite(luigi.Task):
         dsm_fname = self.input()['dsm'].path
         sat_sol_fname = self.input()['sat_sol'].path
 
-        # TODO: convert to a func of distance and resolution
-        margins = get_buffer(self.group)
-        window_height = 500
-        window_width = 500
-
         with self.output().temporary_path() as out_fname:
-            _calculate_cast_shadow(acqs[0], dsm_fname, margins, window_height,
-                                   window_width, sat_sol_fname, out_fname,
-                                   self.compression, False)
+            _calculate_cast_shadow(acqs[0], dsm_fname, self.buffer_distance,
+                                   sat_sol_fname, out_fname, self.compression,
+                                   False)
 
 
 @inherits(IncidentAngles)
@@ -913,7 +898,6 @@ class LinkwaglOutputs(luigi.Task):
                                                  new_path)
 
             with h5py.File(out_fname) as fid:
-                container = acquisitions(self.level1, self.acq_parser_hint)
                 fid.attrs['level1_uri'] = self.level1
 
 
