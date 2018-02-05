@@ -717,6 +717,7 @@ class SurfaceReflectance(luigi.Task):
     rori = luigi.FloatParameter(default=0.52, significant=False)
     base_dir = luigi.Parameter(default='_standardised', significant=False)
     dsm_fname = luigi.Parameter(significant=False)
+    buffer_distance = luigi.FloatParameter(default=8000, significant=False)
 
     def requires(self):
         reqs = {'interpolation': self.clone(InterpolateCoefficients),
@@ -802,6 +803,7 @@ class DataStandardisation(luigi.Task):
     land_sea_path = luigi.Parameter()
     pixel_quality = luigi.BoolParameter()
     dsm_fname = luigi.Parameter(significant=False)
+    buffer_distance = luigi.FloatParameter(default=8000, significant=False)
 
     def requires(self):
         band_acqs = []
@@ -829,6 +831,7 @@ class DataStandardisation(luigi.Task):
                 tasks.append(SurfaceTemperature(**kwargs))
             else:
                 kwargs['dsm_fname'] = self.dsm_fname
+                kwargs['buffer_distance'] = self.buffer_distance
                 tasks.append(SurfaceReflectance(**kwargs))
 
         return tasks
@@ -863,6 +866,7 @@ class LinkwaglOutputs(luigi.Task):
     method = luigi.EnumParameter(enum=Method, default=Method.shear)
     acq_parser_hint = luigi.Parameter(default=None)
     dsm_fname = luigi.Parameter(significant=False)
+    buffer_distance = luigi.FloatParameter(default=8000, significant=False)
 
     def requires(self):
         container = acquisitions(self.level1, self.acq_parser_hint)
@@ -871,7 +875,8 @@ class LinkwaglOutputs(luigi.Task):
                       'granule': self.granule, 'group': group,
                       'model': self.model, 'vertices': self.vertices,
                       'pixel_quality': self.pixel_quality,
-                      'method': self.method, 'dsm_fname': self.dsm_fname}
+                      'method': self.method, 'dsm_fname': self.dsm_fname,
+                       'buffer_distance': self.buffer_distance}
             yield DataStandardisation(**kwargs)
 
     def output(self):
@@ -913,6 +918,7 @@ class ARD(luigi.WrapperTask):
     method = luigi.EnumParameter(enum=Method, default=Method.shear)
     dsm_fname = luigi.Parameter(significant=False)
     acq_parser_hint = luigi.Parameter(default=None)
+    buffer_distance = luigi.FloatParameter(default=8000, significant=False)
 
     def requires(self):
         with open(self.level1_list) as src:
@@ -928,7 +934,8 @@ class ARD(luigi.WrapperTask):
                           'granule': granule, 'model': self.model,
                           'vertices': self.vertices,
                           'pixel_quality': self.pixel_quality,
-                          'method': self.method, 'dsm_fname': self.dsm_fname}
+                          'method': self.method, 'dsm_fname': self.dsm_fname,
+                          'buffer_distance': self.buffer_distance}
 
                 yield LinkwaglOutputs(**kwargs)
 
