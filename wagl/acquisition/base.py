@@ -164,12 +164,32 @@ class AcquisitionsContainer(object):
         Meaning that while there might exist a higher resolution
         group, the bands might not be supported, in which case
         the next highest resolution group will be searched.
+
+        :return:
+            A `tuple` of (`list`, group_name) where the `list`
+            contains the acquisitions of supported bands from
+            the highest resolution group, and group_name is the name
+            of the group that the acquisitions came from.
         """
         for group in self.groups:
             acqs = self.get_acquisitions(group, granule)
             if acqs:
                 break
-        return acqs
+        return acqs, group
+
+    @property
+    def supported_groups(self):
+        """
+        Return a list of resolution groups that have supported
+        bands.
+        """
+        groups = []
+        for group in self.groups:
+            acqs = self.get_acquisitions(group=group)
+            if acqs:
+                groups.append(group)
+
+        return groups
 
 
 @total_ordering
