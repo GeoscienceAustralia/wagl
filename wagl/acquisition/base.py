@@ -155,6 +155,22 @@ class AcquisitionsContainer(object):
 
         return root
 
+    def get_highest_resolution(self, granule=None):
+        """
+        Retrieve a list of supported acquisitions from the highest
+        resolution group for a given granule. The default is to
+        return the first listed granule, and the first resolution
+        group containing a supported band.
+        Meaning that while there might exist a higher resolution
+        group, the bands might not be supported, in which case
+        the next highest resolution group will be searched.
+        """
+        for group in self.groups:
+            acqs = self.get_acquisitions(group, granule)
+            if acqs:
+                break
+        return acqs
+
 
 @total_ordering
 class Acquisition(object):
