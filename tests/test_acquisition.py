@@ -39,7 +39,7 @@ class AcquisitionLoadMtlTest(unittest.TestCase):
 
     def test_highest_resolution_ls8_scene1(self):
         acq_cont = acquisitions(LS8_SCENE1)
-        self.assertEqual(len(acq_cont.get_highest_resolution()[0]), 8)
+        self.assertEqual(len(acq_cont.get_highest_resolution()[0]), 9)
 
 
 class AcquisitionsContainerTest(unittest.TestCase):
@@ -234,7 +234,7 @@ class Landsat7Mtl1AcquisitionTest(unittest.TestCase):
 class Landsat8Mtl1AcquisitionTest(unittest.TestCase):
 
     def setUp(self):
-        self.acqs = acquisitions(LS7_SCENE1).get_acquisitions(group='RES-GROUP-1')
+        self.acqs = acquisitions(LS8_SCENE1).get_acquisitions(group='RES-GROUP-1')
 
     def test_type(self):
         for acq in self.acqs:
