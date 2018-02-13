@@ -11,7 +11,7 @@ import numpy as np
 import h5py
 
 from osgeo import osr
-from wagl.constants import DatasetName, GroupName
+from wagl.constants import DatasetName, GroupName, TrackIntersection
 from wagl.hdf5 import dataset_compression_kwargs, attach_image_attributes
 from wagl.hdf5 import attach_table_attributes, write_scalar
 from wagl.tle import load_tle
@@ -170,13 +170,75 @@ def swathe_edges(threshold, array):
     return start, end
 
 
-def create_boxline(geobox, view_angle_dataset, centreline_dataset, out_group,
-                   max_angle=9.0):
+def track_bisection(acquisition, npoints, first_row, last_row):
+    """
+    Determine the type of intersection the satellite has with the
+    acquisition, and where the bi-section coordinates should occur.
+    Cases that are dealt with are:
+
+      * Full intersection; The track intersects both ends of the image.
+      * Partial; The track intersects only 1 end of the image, which
+        could be the top or bottom row.
+      * Empty; The track doesn't intersect the image at all.
+
+    The other case that is not currently considered (but may in
+    future releases), is where the track intersects the image, but not
+    at the top or bottom rows. Instead the intersection occurs
+    obliquely in relation to the image rectangle. This is most likely
+    to occur at latitudes +- 80 degrees.
+
+    :param acquisition:
+        An instance of an `Acquisition` object.
+
+    :param npoints:
+        A NumPy array containing the number of pixels the satellite
+        track touched for a given row. The dimensions of npoints
+        should match the number of rows for the acquisition.
+
+    :param first_row:
+        The column index of the satellite track intersection for the
+        first row. A value of -1 indicates no intersection.
+
+    :param last_row:
+        The column index of the satellite track intersection for the
+        last row. A value of -1 indicates no intersection.
+
+    :return:
+        A tuple (intersection, row_bisection, column_bisection).
+        Where intersection is an instance of TrackIntersection
+        detailing the type of intersection occuring with the
+        acquisition. The row_bisection and column_bisection are
+        the indices at which the bi-section should occur.
+    """
+    geobox = acquisition.gridded_geo_box()
+    rows, cols = geobox.shape
+
+    # special handling if the satellite track does not intersect both ends
+    # of the raster
+    track_end_rows = set(first_and_last(npoints))
+    partial_track = track_end_rows - {0, rows-1, -1}
+    row_bisection = rows // 2
+    if -1 in track_end_rows: # track doesn't intersect raster
+        column_bisection = cols // 2
+        intersection = TrackIntersection.empty
+    elif partial_track: # track intersects only part of raster
+        column_bisection = ({first_row, last_row} - {0, cols-1, -1}).pop()
+        row_bisection = partial_track.pop()
+        intersection = TrackIntersection.partial
+    else: # track fully available for deference
+        column_bisection = None
+        intersection = TrackIntersection.full
+
+    return intersection, row_bisection, column_bisection
+
+
+def create_boxline(acquisition, view_angle_dataset, centreline_dataset,
+                   out_group, max_angle=9.0):
     """
     Creates the boxline (satellite track bi-section) dataset.
 
-    :param geobox:
-        An instance of a GriddedGeoBox object.
+    :param acquisition:
+        An instance of an `Acquisition` object.
 
     :param view_angle_dataset:
         A `NumPy` or `NumPy` like dataset that allows indexing
@@ -196,6 +258,7 @@ def create_boxline(geobox, view_angle_dataset, centreline_dataset, out_group,
         None, results are written into the H5Group defined by
         out_group.
     """
+    geobox = acquisition.gridded_geo_box()
     rows, _ = view_angle_dataset.shape
     
     # calculate the column start and end indices
@@ -207,6 +270,10 @@ def create_boxline(geobox, view_angle_dataset, centreline_dataset, out_group,
 
     row_index = np.arange(rows)
     col_index = centreline_dataset['col_index'][:]
+    npoints = centreline_dataset['n_pixels'][:]
+
+    intersection, _, bisection = track_bisection(acquisition, npoints,
+                                                 col_index[0], col_index[-1])
 
     # record curves for parcellation (of the raster into interpolation cells)
     boxline_dtype = np.dtype([('row_index', 'int64'),
@@ -222,13 +289,18 @@ def create_boxline(geobox, view_angle_dataset, centreline_dataset, out_group,
                               ('end_latitude', 'float64')])
     boxline = np.empty(rows, dtype=boxline_dtype)
     boxline['row_index'] = row_index
-    boxline['bisection_index'] = col_index
-    boxline['npoints'] = centreline_dataset['n_pixels'][:]
+    boxline['npoints'] = npoints
     boxline['start_index'] = istart
     boxline['end_index'] = iend
 
+    # if not a full intersection, grab the bisection index
+    if intersection != TrackIntersection.full:
+        boxline['bisection_index'] = bisection
+    else:
+        boxline['bisection_index'] = col_index
+
     # lon/lat conversions
-    lon, lat = convert_to_lonlat(geobox, col_index, row_index)
+    lon, lat = convert_to_lonlat(geobox, boxline['bisection_index'], row_index)
     boxline['bisection_longitude'] = lon
     boxline['bisection_latitude'] = lat
 
@@ -244,7 +316,8 @@ def create_boxline(geobox, view_angle_dataset, centreline_dataset, out_group,
     desc = ("Contains the bi-section, column start and column end array "
             "coordinates.")
     attrs = {'description': desc,
-             'array_coordinate_offset': 0}
+             'array_coordinate_offset': 0,
+             'track_intersection': intersection.name}
     dname = DatasetName.boxline.value
     box_dset = out_group.create_dataset(dname, data=boxline, **kwargs)
     attach_table_attributes(box_dset, title='Boxline', attrs=attrs)
@@ -296,18 +369,8 @@ def create_vertices(acquisition, boxline_dataset, vertices=(3, 3)):
     istart = boxline_dataset['start_index']
     iend = boxline_dataset['end_index']
 
-    # special handling if the satellite track does not intersect both ends
-    # of the raster
-    track_end_rows = set(first_and_last(npoints))
-    partial_track = track_end_rows - {0, rows-1, -1}
-    mid_row = rows // 2
-    if -1 in track_end_rows: # track doesn't intersect raster
-        mid_col = cols // 2
-    elif partial_track: # track intersects only part of raster
-        mid_col = ({xcentre[0], xcentre[-1]} - {0, cols-1, -1}).pop()
-        mid_row = partial_track.pop()
-    else: # track fully available for deference
-        mid_col = None
+    _, mid_row, mid_col = track_bisection(acquisition, npoints, xcentre[0],
+                                          xcentre[-1])
 
     # Note, assumes that if track intersects two rows then it also
     # intersects all intervening rows.
@@ -925,7 +988,7 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     # outputs
     # TODO: rework create_boxline so that it reads tiled data effectively
     create_centreline_dataset(geobox, x_cent, n_cent, grp)
-    create_boxline(geobox, sat_v_ds[:], grp[DatasetName.centreline.value], grp,
+    create_boxline(acq, sat_v_ds[:], grp[DatasetName.centreline.value], grp,
                    acq.maximum_view_angle)
 
     if out_group is None:
