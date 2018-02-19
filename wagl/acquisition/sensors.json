@@ -457,7 +457,7 @@
                    "supported_band": true
                },
                "8": {
-                   "alias": "NIR",
+                   "alias": "NIR 1",
                    "band_type": "Reflective",
                    "band_name": "BAND-8",
                    "wavelength": [0.7845, 0.8995],
@@ -470,7 +470,7 @@
                    "supported_band": true
                },
                "8A": {
-                   "alias": "Red Edge 4",
+                   "alias": "NIR 2",
                    "band_type": "Reflective",
                    "band_name": "BAND-8A",
                    "wavelength": [0.855, 0.875],
@@ -493,7 +493,7 @@
                    "brdf_wavelength": "0841_0876nm",
                    "c1": 0.001,
                    "radiance_scale_factor": 0.01,
-                   "supported_band": true
+                   "supported_band": false
                },
                "10": {
                    "c1": 0.0005,
@@ -627,7 +627,7 @@
                     "supported_band": true
                 },
                 "8": {
-                    "alias": "NIR",
+                    "alias": "NIR 1",
                     "band_type": "Reflective",
                     "band_name": "BAND-8",
                     "wavelength": [0.7845, 0.8995],
@@ -640,7 +640,7 @@
                     "supported_band": true
                 },
                 "8A": {
-                    "alias": "Red Edge 4",
+                    "alias": "NIR 2",
                     "band_type": "Reflective",
                     "band_name": "BAND-8A",
                     "wavelength": [0.855, 0.875],
@@ -663,7 +663,7 @@
                     "brdf_wavelength": "0841_0876nm",
                     "c1": 0.001,
                     "radiance_scale_factor": 0.01,
-                    "supported_band": true
+                    "supported_band": false
                 },
                 "10": {
                     "c1": 0.0005,

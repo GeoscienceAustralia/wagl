@@ -1,7 +1,8 @@
 """
-Image Margins
+Defining and buffering image extents/margins.
 """
 from __future__ import absolute_import, print_function
+
 
 class ImageMargins(object):
 
@@ -42,3 +43,42 @@ class ImageMargins(object):
         msg = msg.format(left=self.left, right=self.right, top=self.top,
                          bottom=self.bottom)
         return msg
+
+
+def pixel_buffer(acquisition, distance=8000):
+    """
+    Determine a buffer in pixel units given an `Acquisition` and
+    distance.
+    If the acquistion's pixel units are in metres, then a distance
+    of 8000 would equate to 8000 metres.
+    The result of the number of pixels to buffer is rounded to
+    the nearest whole integer.
+    For determining the approproate distance to use as a buffer
+    within your region of interest. You need to take into account 
+    not just the highest elevation, but also steepest solar angle.
+    For Australia, this was roughly 6.25km, and in order to be
+    extra conservative, a default value of 8km was selected.
+
+    :param acquisition:
+        An instance of an `Acquistion` object.
+
+    :param distance:
+        A number representing the desired distance (in the same
+        units as the acquisition) in which to calculate the extra
+        number of pixels required to buffer an image.
+        Default is 8000.
+
+    :return:
+        An instance of an `ImageMargins` object with each of:
+
+        * ImageMargins.left
+        * ImageMargins.right
+        * ImageMargins.top
+        * ImageMargins.bottom
+
+        set to buffer in pixel units equivalent to that given by
+        distance.
+    """
+    pixels = [round(distance / i) for i in acquisition.resolution]
+    margins = ImageMargins(pixels[0], pixels[0], pixels[1], pixels[1])
+    return margins

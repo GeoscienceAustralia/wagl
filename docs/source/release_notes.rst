@@ -8,7 +8,7 @@ wagl 5.0
 * Version 5.0 has extra satellite/sensor functionality with the inclusion of Sentinel-2a.
 * HDF5 is used as the backend file format which has resulted in a simplified workflow, reduction in the number of files output during a process run, consolodated the file I/O, and various other advantages.
 * Surface Brightness Temperature (SBT) is now available as an accompanying product to NBAR and PQ.
-* Extra layers of hierarchy have been added to the return of what originally was a single list of *Acquisitions*. An *AcquisitionsContainer* is now returned instead, as it was necessary in order to handle scenes comprising of multiple *Granules*, and multiple *Resolutions*.
+* Extra layers of hierarchy have been added to the return of what originally was a single list of *Acquisitions*. An *AcquisitionsContainer* is now returned instead, as it was necessary in order to handle datasets comprising of multiple *Granules*, and multiple *Resolutions*.
 * Additional bilinear interpolation functions. The intent is to deprecate the FORTRAN version.
 * Command line utilities:
     * wagl_convert:  *An unpacking/converting utility that converts HDF5 Tables to CSV, HDF5 images to GeoTiff, and metadata to yaml files.*

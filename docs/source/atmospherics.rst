@@ -5,7 +5,7 @@ Specifically dealing with evaluating the radiative transfer for a defined set of
 
 The default number of points to evaluate the radiative transfer at is 9 for *nbar*, & 25 for *sbt*. If the *standard* model is chosen, then 25 points will be evaluated for both *nbar* and *sbt*. This is to make the workflow simpler and the output directories can be shared by both models, and share the same dependencies. The resulting *lambertian*, *nbar* and *nbart* datasets maybe slightly more accurate when using 25 points than 9 points.
 
-Currently, the number of points are defined to cover the extents of an entire *scene*, or *granule* if the scene is *tiled*. For example a Sentinel-2a scene containing 15 granules, will subsequently have 15 * n points to evaluate the radiative transfer.
+Currently, the number of points are defined to cover the extents of a given *granule*. For example a Sentinel-2a dataset containing 15 granules, will subsequently have 15 * n points to evaluate the radiative transfer.
 
 For the *nbar* model, the labels used for each radiative transfer calculation are:
 
@@ -75,9 +75,7 @@ The coefficients for the *sbt* model are:
     * TRANSMITTANCE-UP
     * TRANSMITTANCE-DOWN
 
-For scenes that are *tiled* such as Sentinel-2a, the ancillary data used for input into the radiative transfer calculation, are averaged. This is to get around higher resolution datasets, as well as the low resolution ancillary.
-
-For the *sbt* model, ancillary data is gathered at each point. This is different to the *nbar* model which (depending on the ancillary) is gathered at a single location, such as the scene centre, and used for input into each point location for the radiative transfer calculations.
+For the *sbt* model, ancillary data is gathered at each point. This is different to the *nbar* model which (depending on the ancillary) is gathered at a single location, such as the dataset centre, and used for input into each point location for the radiative transfer calculations.
 
 
 Radiative transfer outputs (MODTRAN)
@@ -240,7 +238,7 @@ The table dataset names for the NBAR and SBT workflow models are:
 * /ATMOSPHERIC-COEFFICIENTS/NBAR-COEFFICIENTS
 * /ATMOSPHERIC-COEFFICIENTS/SBT-COEFFICIENTS
 
-if the scene is not composed of multiple tiles/granules in which case the *coefficiencts* Group is at the root layer of the *wagl.singlefile_workflow* or the *wagl.multifile_workflow*, otherwise the *granule name* eg *S2A_USER_MSI_L2A_TL_SGS__20160120T053143_A003016_T55KBQ_N02.01* would precede the *coefficients* Group in the *wagl.singlefile_workflow* like such:
+if the dataset is not composed of multiple tiles/granules in which case the *coefficiencts* Group is at the root layer of the *wagl.singlefile_workflow* or the *wagl.multifile_workflow*, otherwise the *granule name* eg *S2A_USER_MSI_L2A_TL_SGS__20160120T053143_A003016_T55KBQ_N02.01* would precede the *coefficients* Group in the *wagl.singlefile_workflow* like such:
 
 * /S2A_USER_MSI_L2A_TL_SGS__20160120T053143_A003016_T55KBQ_N02.01/ATMOSPHERIC-COEFFICIENTS/NBAR-COEFFICIENTS
 * /S2A_USER_MSI_L2A_TL_SGS__20160120T053143_A003016_T55KBQ_N02.01/ATMOSPHERIC-COEFFICIENTS/SBT-COEFFICIENTS

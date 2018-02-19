@@ -15,7 +15,7 @@ import h5py
 
 from wagl.constants import DatasetName, GroupName
 from wagl.geobox import GriddedGeoBox
-from wagl.margins import ImageMargins
+from wagl.margins import pixel_buffer
 from wagl.satellite_solar_angles import setup_spheroid
 from wagl.hdf5 import dataset_compression_kwargs
 from wagl.hdf5 import attach_image_attributes
@@ -264,9 +264,9 @@ class CastShadowError(FortranError):
             return "matrix A does not have sufficient x margin"
 
 
-def _calculate_cast_shadow(acquisition, dsm_fname, margins, block_height,
-                           block_width, satellite_solar_angles_fname,
-                           out_fname, compression='lzf', solar_source=True):
+def _calculate_cast_shadow(acquisition, dsm_fname, buffer_distance,
+                           satellite_solar_angles_fname, out_fname,
+                           compression='lzf', solar_source=True):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -277,13 +277,13 @@ def _calculate_cast_shadow(acquisition, dsm_fname, margins, block_height,
 
         grp1 = dsm_fid[GroupName.elevation_group.value]
         grp2 = fid_sat_sol[GroupName.sat_sol_group.value]
-        calculate_cast_shadow(acquisition, grp1, grp2, margins, block_height,
-                              block_width, fid, compression, solar_source)
+        calculate_cast_shadow(acquisition, grp1, grp2, buffer_distance, fid,
+                              compression, solar_source)
 
 
 def calculate_cast_shadow(acquisition, dsm_group, satellite_solar_group,
-                          margins, block_height, block_width, out_group=None,
-                          compression='lzf', solar_source=True):
+                          buffer_distance, out_group=None, compression='lzf',
+                          solar_source=True):
     """
     This code is an interface to the fortran code
     cast_shadow_main.f90 written by Fuqin (and modified to
@@ -306,7 +306,7 @@ def calculate_cast_shadow(acquisition, dsm_group, satellite_solar_group,
     sub-marix A is set to 500x500
 
     we also need to set extra DEM lines/columns to run the Landsat
-    scene (see parameter ``pix_buf``. This will change with elevation
+    scene. This will change with elevation
     difference within the scene and solar zenith angle. For
     Australian region and Landsat scene with 0.00025 degree
     resolution, the maximum extra lines are set to 250 pixels/lines
@@ -335,19 +335,12 @@ def calculate_cast_shadow(acquisition, dsm_group, satellite_solar_group,
         * DatasetName.solar_azimuth
         * DatasetName.satellite_view
         * DatasetName.satellite_azimuth
-        
-    :param margins:
-        An object with members top, bottom, left and right giving the
-        size of the margins (in pixels) which have been added to the
-        corresponding sides of dsm.
 
-    :param block_height:
-        The height (rows) of the window/submatrix used in the cast
-        shadow algorithm.
-
-    :param block_width:
-        The width (rows) of the window/submatrix used in the cast
-        shadow algorithm.
+    :param buffer_distance:
+        A number representing the desired distance (in the same
+        units as the acquisition) in which to calculate the extra
+        number of pixels required to buffer an image.
+        Default is 8000.
 
     :param out_group:
         If set to None (default) then the results will be returned
@@ -394,7 +387,7 @@ def calculate_cast_shadow(acquisition, dsm_group, satellite_solar_group,
     spheroid, _ = setup_spheroid(geobox.crs.ExportToWkt())
 
     # Define Top, Bottom, Left, Right pixel buffer margins
-    pixel_buf = ImageMargins(margins)
+    margins = pixel_buffer(acquisition, buffer_distance)
 
     if solar_source:
         zenith_name = DatasetName.solar_zenith.value
@@ -407,12 +400,17 @@ def calculate_cast_shadow(acquisition, dsm_group, satellite_solar_group,
     azimuth_angle = satellite_solar_group[azimuth_name][:]
     elevation = dsm_group[DatasetName.dsm_smoothed.value][:]
 
+    # block height and width of the window/submatrix used in the cast
+    # shadow algorithm
+    block_width = margins.left + margins.right
+    block_height = margins.top + margins.bottom
+
     # Compute the cast shadow mask
     ierr, mask = cast_shadow_main(elevation, zenith_angle, azimuth_angle,
                                   x_res, y_res, spheroid, y_origin, x_origin,
-                                  pixel_buf.left, pixel_buf.right,
-                                  pixel_buf.top, pixel_buf.bottom,
-                                  block_height, block_width, is_utm)
+                                  margins.left, margins.right, margins.top,
+                                  margins.bottom, block_height, block_width,
+                                  is_utm)
 
     if ierr:
         raise CastShadowError(ierr)

@@ -33,20 +33,12 @@ LOG = wrap_logger(logging.getLogger('wagl-status'),
                   processors=[JSONRenderer(indent=1, sort_keys=True)])
 
 
-def get_buffer(group):
-    buf = {'product': 250,
-           'R10m': 700,
-           'R20m': 350,
-           'R60m': 120}
-    return buf[group]
-
-
 # pylint disable=too-many-arguments
 def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
            tle_path, aerosol, brdf_path, brdf_premodis_path, ozone_path,
            water_vapour, dem_path, dsm_fname, invariant_fname, modtran_exe,
-           out_fname, ecmwf_path=None, rori=0.52, compression='lzf',
-           acq_parser_hint=None):
+           out_fname, ecmwf_path=None, rori=0.52, buffer_distance=8000,
+           compression='lzf', acq_parser_hint=None):
     """
     CEOS Analysis Ready Data for Land.
     A workflow for producing standardised products that meet the
@@ -60,87 +52,94 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
     # TODO: pass through an acquisitions container rather than pathname
     with h5py.File(out_fname, 'w') as fid:
         fid.attrs['level1_uri'] = level1
-        fid.attrs['tiled'] = container.tiled
 
-        for grp_name in container.groups:
+        for grp_name in container.supported_groups:
             log = LOG.bind(level1=container.label, granule=granule,
                            granule_group=grp_name)
-            group = fid.create_group(grp_name)
+
+            # root group for a given granule and resolution group
+            root = fid.create_group(ppjoin(granule, grp_name))
             acqs = container.get_acquisitions(granule=granule, group=grp_name)
 
             # longitude and latitude
             log.info('Latitude-Longitude')
-            create_lon_lat_grids(acqs[0], group, compression)
+            create_lon_lat_grids(acqs[0], root, compression)
 
             # satellite and solar angles
             log.info('Satellite-Solar-Angles')
-            calculate_angles(acqs[0], group[GroupName.lon_lat_group.value],
-                             group, compression, tle_path)
+            calculate_angles(acqs[0], root[GroupName.lon_lat_group.value],
+                             root, compression, tle_path)
 
             if model == Model.standard or model == model.nbar:
 
                 # DEM
                 log.info('DEM-retriveal')
-                get_dsm(acqs[0], dsm_fname, get_buffer(grp_name), group,
-                        compression)
+                get_dsm(acqs[0], dsm_fname, buffer_distance, root, compression)
 
                 # slope & aspect
                 log.info('Slope-Aspect')
                 slope_aspect_arrays(acqs[0],
-                                    group[GroupName.elevation_group.value],
-                                    get_buffer(grp_name), group,
-                                    compression)
+                                    root[GroupName.elevation_group.value],
+                                    buffer_distance, root, compression)
 
                 # incident angles
                 log.info('Incident-Angles')
-                incident_angles(group[GroupName.sat_sol_group.value],
-                                group[GroupName.slp_asp_group.value],
-                                group, compression)
+                incident_angles(root[GroupName.sat_sol_group.value],
+                                root[GroupName.slp_asp_group.value],
+                                root, compression)
 
                 # exiting angles
                 log.info('Exiting-Angles')
-                exiting_angles(group[GroupName.sat_sol_group.value],
-                               group[GroupName.slp_asp_group.value],
-                               group, compression)
+                exiting_angles(root[GroupName.sat_sol_group.value],
+                               root[GroupName.slp_asp_group.value],
+                               root, compression)
 
                 # relative azimuth slope
                 log.info('Relative-Azimuth-Angles')
                 incident_group_name = GroupName.incident_group.value
                 exiting_group_name = GroupName.exiting_group.value
-                relative_azimuth_slope(group[incident_group_name],
-                                       group[exiting_group_name],
-                                       group, compression)
+                relative_azimuth_slope(root[incident_group_name],
+                                       root[exiting_group_name],
+                                       root, compression)
 
                 # self shadow
                 log.info('Self-Shadow')
-                self_shadow(group[incident_group_name],
-                            group[exiting_group_name], group, compression)
+                self_shadow(root[incident_group_name],
+                            root[exiting_group_name], root, compression)
 
                 # cast shadow solar source direction
                 log.info('Cast-Shadow-Solar-Direction')
                 dsm_group_name = GroupName.elevation_group.value
-                calculate_cast_shadow(acqs[0], group[dsm_group_name],
-                                      group[GroupName.sat_sol_group.value],
-                                      get_buffer(grp_name), 500, 500,
-                                      group, compression)
+                calculate_cast_shadow(acqs[0], root[dsm_group_name],
+                                      root[GroupName.sat_sol_group.value],
+                                      buffer_distance, root, compression)
 
                 # cast shadow satellite source direction
                 log.info('Cast-Shadow-Satellite-Direction')
-                calculate_cast_shadow(acqs[0], group[dsm_group_name],
-                                      group[GroupName.sat_sol_group.value],
-                                      get_buffer(grp_name), 500, 500,
-                                      group, compression, False)
+                calculate_cast_shadow(acqs[0], root[dsm_group_name],
+                                      root[GroupName.sat_sol_group.value],
+                                      buffer_distance, root, compression, False)
 
                 # combined shadow masks
                 log.info('Combined-Shadow')
-                combine_shadow_masks(group[GroupName.shadow_group.value],
-                                     group[GroupName.shadow_group.value],
-                                     group[GroupName.shadow_group.value],
-                                     group, compression)
+                combine_shadow_masks(root[GroupName.shadow_group.value],
+                                     root[GroupName.shadow_group.value],
+                                     root[GroupName.shadow_group.value],
+                                     root, compression)
 
         # nbar and sbt ancillary
         log = LOG.bind(level1=container.label, granule=granule,
                        granule_group=None)
+
+        # granule root group
+        root = fid[granule]
+
+        # get the highest resoltion group cotaining supported bands
+        acqs, grp_name = container.get_highest_resolution(granule=granule)
+
+        grn_con = container.get_granule(granule=granule, container=True)
+        res_group = root[grp_name]
+
         log.info('Ancillary-Retrieval')
         nbar_paths = {'aerosol_dict': aerosol,
                       'water_vapour_dict': water_vapour,
@@ -148,31 +147,26 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
                       'dem_path': dem_path,
                       'brdf_path': brdf_path,
                       'brdf_premodis_path': brdf_premodis_path}
-        grn_con = container.get_granule(granule=granule, container=True)
-        group = fid[container.groups[0]]
-        collect_ancillary(grn_con, group[GroupName.sat_sol_group.value],
+        collect_ancillary(grn_con, res_group[GroupName.sat_sol_group.value],
                           nbar_paths, ecmwf_path, invariant_fname,
-                          vertices, fid, compression)
+                          vertices, root, compression)
 
         # atmospherics
         log.info('Atmospherics')
 
-        # any resolution group is fine
-        grp_name = container.groups[0]
-        acqs = container.get_acquisitions(granule=granule, group=grp_name)
-
-        ancillary_group = fid[GroupName.ancillary_group.value]
+        ancillary_group = root[GroupName.ancillary_group.value]
 
         # satellite/solar angles and lon/lat for a resolution group
-        sat_sol_grp = fid[ppjoin(grp_name, GroupName.sat_sol_group.value)]
-        lon_lat_grp = fid[ppjoin(grp_name, GroupName.lon_lat_group.value)]
+        sat_sol_grp = res_group[GroupName.sat_sol_group.value]
+        lon_lat_grp = res_group[GroupName.lon_lat_group.value]
 
+        # TODO: supported acqs in different groups pointing to different response funcs
         # tp5 files
         tp5_data, _ = format_tp5(acqs, ancillary_group, sat_sol_grp,
-                                 lon_lat_grp, model, fid)
+                                 lon_lat_grp, model, root)
 
         # atmospheric inputs group
-        inputs_grp = fid[GroupName.atmospheric_inputs_grp.value]
+        inputs_grp = root[GroupName.atmospheric_inputs_grp.value]
 
         # radiative transfer for each point and albedo
         for key in tp5_data:
@@ -190,15 +184,15 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
                     src.writelines(tp5_data[key])
 
                 run_modtran(acqs, inputs_grp, model, nvertices, point,
-                            [albedo], modtran_exe, tmpdir, fid, compression)
+                            [albedo], modtran_exe, tmpdir, root, compression)
 
         # atmospheric coefficients
         log.info('Coefficients')
-        results_group = fid[GroupName.atmospheric_results_grp.value]
-        calculate_coefficients(results_group, fid, compression)
+        results_group = root[GroupName.atmospheric_results_grp.value]
+        calculate_coefficients(results_group, root, compression)
 
         # interpolate coefficients
-        for grp_name in container.groups:
+        for grp_name in container.supported_groups:
             log = LOG.bind(level1=container.label, granule=granule,
                            granule_group=grp_name)
             log.info('Interpolation')
@@ -210,9 +204,9 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
             sbt_acqs = [acq for acq in acqs if
                         acq.band_type == BandType.Thermal]
 
-            group = fid[grp_name]
-            sat_sol_grp = group[GroupName.sat_sol_group.value]
-            comp_grp = fid[GroupName.coefficients_group.value]
+            res_group = root[grp_name]
+            sat_sol_grp = res_group[GroupName.sat_sol_group.value]
+            comp_grp = root[GroupName.coefficients_group.value]
 
             for coefficient in model.atmos_coefficients:
                 if coefficient in Model.nbar.atmos_coefficients:
@@ -224,7 +218,7 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
                     log.info('Interpolate', band_id=acq.band_id,
                              coefficient=coefficient.value)
                     interpolate(acq, coefficient, ancillary_group, sat_sol_grp,
-                                comp_grp, group, compression, method)
+                                comp_grp, res_group, compression, method)
 
             # standardised products
             band_acqs = []
@@ -235,35 +229,35 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
                 band_acqs.extend(sbt_acqs)
 
             for acq in band_acqs:
-                interp_grp = group[GroupName.interp_group.value]
+                interp_grp = res_group[GroupName.interp_group.value]
 
                 if acq.band_type == BandType.Thermal:
                     log.info('SBT', band_id=acq.band_id)
-                    surface_brightness_temperature(acq, interp_grp, group,
+                    surface_brightness_temperature(acq, interp_grp, res_group,
                                                    compression)
                 else:
-                    slp_asp_grp = group[GroupName.slp_asp_group.value]
-                    rel_slp_asp = group[GroupName.rel_slp_group.value]
-                    incident_grp = group[GroupName.incident_group.value]
-                    exiting_grp = group[GroupName.exiting_group.value]
-                    shadow_grp = group[GroupName.shadow_group.value]
+                    slp_asp_grp = res_group[GroupName.slp_asp_group.value]
+                    rel_slp_asp = res_group[GroupName.rel_slp_group.value]
+                    incident_grp = res_group[GroupName.incident_group.value]
+                    exiting_grp = res_group[GroupName.exiting_group.value]
+                    shadow_grp = res_group[GroupName.shadow_group.value]
 
                     log.info('Surface-Reflectance', band_id=acq.band_id)
                     calculate_reflectance(acq, interp_grp, sat_sol_grp,
                                           slp_asp_grp, rel_slp_asp,
                                           incident_grp, exiting_grp,
                                           shadow_grp, ancillary_group,
-                                          rori, group, compression)
+                                          rori, res_group, compression)
 
             # metadata yaml's
             if model == Model.standard or model == Model.nbar:
-                create_ard_yaml(band_acqs, ancillary_group, group)
+                create_ard_yaml(band_acqs, ancillary_group, res_group)
 
             if model == Model.standard or model == Model.sbt:
-                create_ard_yaml(band_acqs, ancillary_group, group, True)
+                create_ard_yaml(band_acqs, ancillary_group, res_group, True)
 
             # pixel quality
             sbt_only = model == Model.sbt
             if pixel_quality and can_pq(level1, acq_parser_hint) and not sbt_only:
-                run_pq(level1, group, landsea, group, compression, AP.nbar, acq_parser_hint)
-                run_pq(level1, group, landsea, group, compression, AP.nbart, acq_parser_hint)
+                run_pq(level1, res_group, landsea, res_group, compression, AP.nbar, acq_parser_hint)
+                run_pq(level1, res_group, landsea, res_group, compression, AP.nbart, acq_parser_hint)

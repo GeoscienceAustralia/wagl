@@ -18,19 +18,19 @@ To run the entire standard ARD workflow using luigi's local scheduler, set the -
 
 .. code-block:: bash
 
-   $ luigi --module wagl.multifile_workflow ARD --level1-list scenes.txt --model standard --outdir /some/path --workers 4
+   $ luigi --module wagl.multifile_workflow ARD --level1-list datasets.txt --model standard --outdir /some/path --workers 4
 
 To run the entire *nbar* ARD workflow using luigi's local scheduler, set the --model parameter to *nbar*:
 
 .. code-block:: bash
 
-   $ luigi --module wagl.multifile_workflow ARD --level1-list scenes.txt --model nbar --outdir /some/path --workers 4
+   $ luigi --module wagl.multifile_workflow ARD --level1-list datasets.txt --model nbar --outdir /some/path --workers 4
 
 To run the entire *sbt* ARD workflow using luigi's local scheduler, set the --model parameter to *sbt*:
 
 .. code-block:: bash
 
-   $ luigi --module wagl.multifile_workflow ARD --level1-list scenes.txt --model sbt --outdir /some/path --workers 4 --local-scheduler
+   $ luigi --module wagl.multifile_workflow ARD --level1-list datasets.txt --model sbt --outdir /some/path --workers 4 --local-scheduler
 
 
 Central scheduler
@@ -42,15 +42,15 @@ To run using luigi's `central scheduler <http://luigi.readthedocs.io/en/stable/c
 
    $ luigid --background --pidfile <PATH_TO_PIDFILE> --logdir <PATH_TO_LOGDIR> --state-path <PATH_TO_STATEFILE>
 
-   $ luigi --module wagl.multifile_workflow ARD --level1-list scenes.txt --model standard --outdir /some/path --workers 4
+   $ luigi --module wagl.multifile_workflow ARD --level1-list datasets.txt --model standard --outdir /some/path --workers 4
 
 To include the pixel quality workflow as part of the main workflow, you need to set the pixel-quality switch as such:
 
 .. code-block:: bash
 
-   $ luigi --module wagl.multifile_workflow ARD --level1-list scenes.txt --model standard --pixel-quality --outdir /some/path --workers 4
+   $ luigi --module wagl.multifile_workflow ARD --level1-list datasets.txt --model standard --pixel-quality --outdir /some/path --workers 4
 
-Luigi will then execute, and manage, the entire ARD (Analysis Ready Data) workflow for every Level-1 scene listed in *scenes.txt*.
+Luigi will then execute, and manage, the entire ARD (Analysis Ready Data) workflow for every Level-1 dataset listed in *datasets.txt*.
 
 
 Intersecting the workfow at a given task
@@ -59,10 +59,10 @@ Intersecting the workfow at a given task
 If however, you want to run just a specific part of the workflow, say for example *CalculateCoefficients*, then you would need to
 specify the following arguments:
 
---level1         /path/to/level1/scene
+--level1         /path/to/level1/dataset
 --work-root      path/to/working/directory
 --granule        granule id name; Default is None; and can be ignored for Landsat
---vertices       the number of points atmospherical calculations will run across the scene; Default is 25
+--vertices       the number of points atmospherical calculations will run across the dataset; Default is 25
 --base-dir       the base directory to contain the atmospheric calculations; Default is _atmospherics
 --model          the ARD (Analysis Ready Data) workflow to produce *standard*, *nbar* or *sbt*
 --compression    the compression filter used when writing the outputs to disk; Default is lzf
@@ -122,22 +122,22 @@ Help on executing a Task can be retrieved, for example:
    $ luigi --module wagl.multifile_workflow CalculateCoefficients --help-all
 
 The number of workers to assign to the Task tree *--workers* tells luigi how many Tasks to run in parallel (for those tasks that don't depend on each other).
-While not making the best use of luigi (for such a quick and simple workflow), it does aid in quick research and development for a single scene to 100's of scenes,
+While not making the best use of luigi (for such a quick and simple workflow), it does aid in quick research and development for a single dataset to 100's of datasets,
 using this simple workflow.
 
-For even larger numbers of scenes, say several thousand or tens of thousands to be exectued as a single workflow, then an alternate luigi workflow can be implemented
+For even larger numbers of datasets, say several thousand or tens of thousands to be exectued as a single workflow, then an alternate luigi workflow can be implemented
 such as the PBS task flow. In this example, luigi issues and monitors PBS jobs, each job kicking off an MPI scheduler.
 
 PBS submission
 --------------
 
-For users on a system that utilises a `PBS <https://en.wikipedia.org/wiki/Portable_Batch_System>`_ scheduler, wagl provides a command line tool *wagl_pbs* for automatic job submission into a PBS queue. The tool can partition the list of scenes into roughly equally sized chunks, based on the number of nodes requested. For example, a list containing 600 scenes, and a job requesting 10 nodes, will partition the list into 10 blocks each containing 60 scenes that a given node will process. Two flavours of jobs can be submitted to the PBS queue in this way:
+For users on a system that utilises a `PBS <https://en.wikipedia.org/wiki/Portable_Batch_System>`_ scheduler, wagl provides a command line tool *wagl_pbs* for automatic job submission into a PBS queue. The tool can partition the list of datasets into roughly equally sized chunks, based on the number of nodes requested. For example, a list containing 600 datasets, and a job requesting 10 nodes, will partition the list into 10 blocks each containing 60 scenes that a given node will process. Two flavours of jobs can be submitted to the PBS queue in this way:
 
 1. Individual single node jobs; i.e. A single node represents a single submitted job.
 
   * Advantages:
 
-    * If a node finishes its block of scenes earlier, the whole job doesn't have to wait for the other nodes to finish, therefore higher CPU utilisation can be sustained for the jobs duration.
+    * If a node finishes its block of datasets earlier, the whole job doesn't have to wait for the other nodes to finish, therefore higher CPU utilisation can be sustained for the jobs duration.
 
   * Disadvantages:
 
@@ -155,15 +155,16 @@ For users on a system that utilises a `PBS <https://en.wikipedia.org/wiki/Portab
 
   * Disadvantages:
 
-    * Whilst the blocks of scenes allocated to each node are roughly equal, the time taken to process a scene is not. Some scenes may not have the required ancillary and will be skipped or fail (filtering the list of scenes prior to job submission can help with this), partial scenes can also process quicker. This means that while 1 or more of the nodes in the enitire job request have finished, the whole job has to wait until other nodes have finished their jobs. This can result in lower CPU utilisation over the jobs duration.
+    * Whilst the blocks of datasets allocated to each node are roughly equal, the time taken to process a dataset is not. Some scenes may not have the required ancillary and will be skipped or fail (filtering the list of scenes prior to job submission can help with this), partial scenes can also process quicker. This means that while 1 or more of the nodes in the enitire job request have finished, the whole job has to wait until other nodes have finished their jobs. This can result in lower CPU utilisation over the jobs duration.
 
 The arguments for *wagl_pbs* are:
 
---level1-list        The input level1 scene list.
+--level1-list        The input level1 dataset list.
 --vertices           Number of vertices to evaluate the radiative transfer at. JSON styled string is required, eg '(3, 3)'.
 --model              The type of ARD workflow to invoke, eg standard, nbar, sbt.
 --method             The interpolation method to invoke, eg bilinear, shear, rbf.
 --pixel-quality      Whether to run the pixel quality workflow, if applicable, or not.
+--buffer-distance    The distance in units by which to buffer an image's extents by.
 --outdir             The base output directory.
 --logdir             The base logging and scripts output directory.
 --env                Environment script to source.
@@ -189,13 +190,13 @@ An example of submitting individual jobs to the PBS queue using the following sp
 
 .. code-block:: bash
 
-   $ wagl_pbs --level1-list /path/to/level1-scenes.txt --vertices '(3, 3)' --model nbar --method bilinear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project nx200 --queue express --hours 2 --email your.name@something.com
+   $ wagl_pbs --level1-list /path/to/level1-datasets.txt --vertices '(3, 3)' --model nbar --method bilinear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project nx200 --queue express --hours 2 --email your.name@something.com
 
 The same job resources, but use PBSDSH instead of individual jobs being submitted to the PBS queue.
 
 .. code-block:: bash
 
-   $ wagl_pbs --level1-list /path/to/level1-scenes.txt --vertices '(3, 3)' --model nbar --method bilinear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh
+   $ wagl_pbs --level1-list /path/to/level1-datasets.txt --vertices '(3, 3)' --model nbar --method bilinear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh
 
 Each call to *wagl_pbs* will generate a new batch id, and each node will be assigned a job id. In this way each node will have its logs and output data contained in its own directory structure.  For example:
 
@@ -209,11 +210,11 @@ Each call to *wagl_pbs* will generate a new batch id, and each node will be assi
   $ /base/output/directory/batchid-b6cbadbe98/jobid-5b00d6/
 
 
-Intersecting the wagl workflow, and have it execute across a list of scenes
----------------------------------------------------------------------------
+Intersecting the wagl workflow, and have it execute across a list of datasets
+-----------------------------------------------------------------------------
 
-The *--task* command line option for *wagl_pbs* allows the user to have specific control of the workflow, whilst still retaining the capability of running it in bulk over a list of scenes.
-The example below only executes the workflow up to the end of CalculateCoefficients, and only for a single scene. This is because most of the luigi tasks defined in wagl.multifie_workflow are for a given scene's group and granules.
+The *--task* command line option for *wagl_pbs* allows the user to have specific control of the workflow, whilst still retaining the capability of running it in bulk over a list of datasets.
+The example below only executes the workflow up to the end of CalculateCoefficients, and only for a single dataset. This is because most of the luigi tasks defined in wagl.multifie_workflow are for a given dataset's group and granules.
 
 .. code-block:: bash
 
@@ -221,23 +222,23 @@ The example below only executes the workflow up to the end of CalculateCoefficie
      --level1 /path/to/LS5_TM_OTH_P51_GALPGS01-007_111_068_20000707 \
      --work-root /my/work/LS5_TM_OTH_P51_GALPGS01-007_111_068_20000707.wagl-work --workers 4 --local-scheduler
    
-The bulk submission workflow entrypoint is defined in the luigi Task named *ARD*, which initialise the entire wagl.multifile_workflow tree. In order to submit a list of scenes but only execute a partial workflow such as *CalculateCoefficients*, then a generic luigi task class named *CallTask* has been defined for this very purpose.
+The bulk submission workflow entrypoint is defined in the luigi Task named *ARD*, which initialise the entire wagl.multifile_workflow tree. In order to submit a list of datasets but only execute a partial workflow such as *CalculateCoefficients*, then a generic luigi task class named *CallTask* has been defined for this very purpose.
 
-The example below will run the *CalculateCoefficients* for each input scene:
+The example below will run the *CalculateCoefficients* for each input dataset:
 
 .. code-block:: bash
 
-   $ luigi --module wagl.multifile_workflow CallTask --level1-list /path/to/level1-scenes.txt --outdir /path/to/the/output/directory --task CalculateCoefficients
+   $ luigi --module wagl.multifile_workflow CallTask --level1-list /path/to/level1-datasets.txt --outdir /path/to/the/output/directory --task CalculateCoefficients
 
 The example below is using the *wagl_pbs* command line utility:
 
 .. code-block:: bash
 
-   $ wagl_pbs --level1-list /path/to/level1-scenes.txt --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh --task CalculateCoefficients
+   $ wagl_pbs --level1-list /path/to/level1-datasets.txt --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh --task CalculateCoefficients
 
 You might notice that no arguments such as *--model*, *--vertices* or *--method* are present. This is because in order for the CallTask to be generic, it's easier to let any parameters that need parsing, and specify them using the *luigi.cfg* file and have luigi do all the work of parsing additional parameters.
 
-An example configuration for executing the *CalculateCoefficients* task and its dependencies, for a list of scenes is given by:
+An example configuration for executing the *CalculateCoefficients* task and its dependencies, for a list of datasets is given by:
 
 .. code-block:: cfg
 
@@ -250,7 +251,7 @@ This will parse in a 15x15 point grid at which to evaluate the radiative transfe
 The *CallTask* luigi task will work for any task in the *wagl.multifile_workflow* if the first 3 arguments of a task are:
 [level1 (file pathname), work_root (directory pathname), granule]
 
-or for tasks that contain a scenes *group* parameter, the first 4 arguments of a task should be:
+or for tasks that contain a datasets *group* parameter, the first 4 arguments of a task should be:
 [level1 (file pathname), work_root (directory pathname), granule, group]
 
 
@@ -266,4 +267,4 @@ The above examples present the multifile workflow which is suitable for testing,
 The singlefile workflow presents a case more suitable for mass routine production, which as the name of the module suggests, outputs a single file.
 This makes it less demanding on the filesystem, eg more bands, more resolutions, and more points, equal more files, and easier for any scheduler to track, and easier to distribute the single file to other people.
 It could be thought of as an operational archive, that doesn't need to be untarred, or uncompressed, as the file can be accessed quite easily via `h5py <http://www.h5py.org/>`_ without decompressing the entire file.
-It also makes it easier for automatic testing and evaluation to occur between different version of the same scene, to not just test and compare the final outputs of the algorithm, but also for all the intermediate images, tables, constants that are calculated.
+It also makes it easier for automatic testing and evaluation to occur between different version of the same dataset, to not just test and compare the final outputs of the algorithm, but also for all the intermediate images, tables, constants that are calculated.

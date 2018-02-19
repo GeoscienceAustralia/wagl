@@ -255,6 +255,17 @@ class AtmosphericCoefficients(Enum):# param, coeff, vari... what to use
     transmittance_up = 'TRANSMITTANCE-UP'
 
 
+class TrackIntersection(Enum):
+    """
+    Defines the type of track intersection an acquisition
+    will have.
+    """
+
+    full = 0
+    partial = 1
+    empty = 2
+
+
 class PQbits(Enum):
     band_1_saturated = 0
     band_2_saturated = 1

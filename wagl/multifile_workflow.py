@@ -61,14 +61,6 @@ ERROR_LOGGER = wrap_logger(logging.getLogger('wagl-error'),
                            processors=[JSONRenderer(indent=1, sort_keys=True)])
 
 
-def get_buffer(group):
-    buf = {'product': 250,
-           'R10m': 700,
-           'R20m': 350,
-           'R60m': 120}
-    return buf[group]
-
-
 @luigi.Task.event_handler(luigi.Event.FAILURE)
 def on_failure(task, exception):
     """Capture any Task Failure here."""
@@ -98,7 +90,7 @@ class WorkRoot(luigi.Task):
                     self.interpolation_dir]
         container = acquisitions(self.level1, self.acq_parser_hint)
         for granule in container.granules:
-            for group in container.groups:
+            for group in container.supported_groups:
                 pth = container.get_root(self.work_root, group, granule)
                 for out_dir in out_dirs:
                     yield luigi.LocalTarget(pjoin(pth, out_dir))
@@ -186,7 +178,7 @@ class AncillaryData(luigi.Task):
     compression = luigi.Parameter(default='lzf', significant=False)
 
     def requires(self):
-        group = acquisitions(self.level1, self.acq_parser_hint).groups[0]
+        group = acquisitions(self.level1, self.acq_parser_hint).supported_groups[0]
         args = [self.level1, self.work_root, self.granule, group]
         return CalculateSatelliteAndSolarGrids(*args)
 
@@ -235,7 +227,7 @@ class WriteTp5(luigi.Task):
                                            self.granule, self.vertices,
                                            self.model)
 
-        for group in container.groups:
+        for group in container.supported_groups:
             args = [self.level1, self.work_root, self.granule, group]
             tsks = {'sat_sol': CalculateSatelliteAndSolarGrids(*args),
                     'lon_lat': CalculateLonLatGrids(*args)}
@@ -249,8 +241,7 @@ class WriteTp5(luigi.Task):
 
     def run(self):
         container = acquisitions(self.level1, self.acq_parser_hint)
-        group = container.groups[0]
-        acqs = container.get_acquisitions(group, granule=self.granule)
+        acqs, group = container.get_highest_resolution(granule=self.granule)
 
         # output filename format
         output_fmt = pjoin(POINT_FMT, ALBEDO_FMT,
@@ -462,12 +453,13 @@ class InterpolateCoefficients(luigi.Task):
 class DEMExtraction(luigi.Task):
 
     """
-    Extract the DEM covering the acquisition extents plus an
-    arbitrary buffer. The subset is then smoothed with a gaussian
+    Extract the DEM covering the acquisition extents plus a
+    buffer. The subset is then smoothed with a gaussian
     filter.
     """
 
     dsm_fname = luigi.Parameter(significant=False)
+    buffer_distance = luigi.FloatParameter(default=8000, significant=False)
 
     def requires(self):
         # we want to pass the level1 root not the granule root
@@ -483,10 +475,9 @@ class DEMExtraction(luigi.Task):
             acquisitions(self.level1, self.acq_parser_hint)
             .get_acquisitions(self.group, self.granule)
         )
-        margins = get_buffer(self.group)
 
         with self.output().temporary_path() as out_fname:
-            _get_dsm(acqs[0], self.dsm_fname, margins, out_fname,
+            _get_dsm(acqs[0], self.dsm_fname, self.buffer_distance, out_fname,
                      self.compression)
 
 
@@ -507,11 +498,10 @@ class SlopeAndAspect(luigi.Task):
             .get_acquisitions(self.group, self.granule)
         )
         dsm_fname = self.input().path
-        margins = get_buffer(self.group)
 
         with self.output().temporary_path() as out_fname:
-            _slope_aspect_arrays(acqs[0], dsm_fname, margins, out_fname,
-                                 self.compression)
+            _slope_aspect_arrays(acqs[0], dsm_fname, self.buffer_distance,
+                                 out_fname, self.compression)
 
 
 @inherits(CalculateLonLatGrids)
@@ -522,11 +512,13 @@ class IncidentAngles(luigi.Task):
     """
 
     dsm_fname = luigi.Parameter(significant=False)
+    buffer_distance = luigi.FloatParameter(default=8000, significant=False)
 
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.group]
         return {'sat_sol': self.clone(CalculateSatelliteAndSolarGrids),
-                'slp_asp': SlopeAndAspect(*args, dsm_fname=self.dsm_fname)}
+                'slp_asp': SlopeAndAspect(*args, dsm_fname=self.dsm_fname,
+                                          buffer_distance=self.buffer_distance)}
 
     def output(self):
         out_path = pjoin(self.work_root, self.group)
@@ -552,7 +544,8 @@ class ExitingAngles(luigi.Task):
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.group]
         return {'sat_sol': self.clone(CalculateSatelliteAndSolarGrids),
-                'slp_asp': SlopeAndAspect(*args, dsm_fname=self.dsm_fname)}
+                'slp_asp': SlopeAndAspect(*args, dsm_fname=self.dsm_fname,
+                                          buffer_distance=self.buffer_distance)}
 
     def output(self):
         out_path = pjoin(self.work_root, self.group)
@@ -633,7 +626,8 @@ class CalculateCastShadowSun(luigi.Task):
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.group]
         return {'sat_sol': self.clone(CalculateSatelliteAndSolarGrids),
-                'dsm': DEMExtraction(*args, dsm_fname=self.dsm_fname)}
+                'dsm': DEMExtraction(*args, dsm_fname=self.dsm_fname,
+                                     buffer_distance=self.buffer_distance)}
 
     def output(self):
         out_path = pjoin(self.work_root, self.group, self.base_dir)
@@ -649,15 +643,9 @@ class CalculateCastShadowSun(luigi.Task):
         dsm_fname = self.input()['dsm'].path
         sat_sol_fname = self.input()['sat_sol'].path
 
-        # TODO: convert to a func of distance and resolution
-        margins = get_buffer(self.group)
-        window_height = 500
-        window_width = 500
-
         with self.output().temporary_path() as out_fname:
-            _calculate_cast_shadow(acqs[0], dsm_fname, margins, window_height,
-                                   window_width, sat_sol_fname, out_fname,
-                                   self.compression)
+            _calculate_cast_shadow(acqs[0], dsm_fname, self.buffer_distance,
+                                   sat_sol_fname, out_fname, self.compression)
 
 
 @inherits(SelfShadow)
@@ -671,7 +659,8 @@ class CalculateCastShadowSatellite(luigi.Task):
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.group]
         return {'sat_sol': self.clone(CalculateSatelliteAndSolarGrids),
-                'dsm': DEMExtraction(*args, dsm_fname=self.dsm_fname)}
+                'dsm': DEMExtraction(*args, dsm_fname=self.dsm_fname,
+                                     buffer_distance=self.buffer_distance)}
 
     def output(self):
         out_path = pjoin(self.work_root, self.group, self.base_dir)
@@ -687,15 +676,10 @@ class CalculateCastShadowSatellite(luigi.Task):
         dsm_fname = self.input()['dsm'].path
         sat_sol_fname = self.input()['sat_sol'].path
 
-        # TODO: convert to a func of distance and resolution
-        margins = get_buffer(self.group)
-        window_height = 500
-        window_width = 500
-
         with self.output().temporary_path() as out_fname:
-            _calculate_cast_shadow(acqs[0], dsm_fname, margins, window_height,
-                                   window_width, sat_sol_fname, out_fname,
-                                   self.compression, False)
+            _calculate_cast_shadow(acqs[0], dsm_fname, self.buffer_distance,
+                                   sat_sol_fname, out_fname, self.compression,
+                                   False)
 
 
 @inherits(IncidentAngles)
@@ -732,6 +716,7 @@ class SurfaceReflectance(luigi.Task):
     rori = luigi.FloatParameter(default=0.52, significant=False)
     base_dir = luigi.Parameter(default='_standardised', significant=False)
     dsm_fname = luigi.Parameter(significant=False)
+    buffer_distance = luigi.FloatParameter(default=8000, significant=False)
 
     def requires(self):
         reqs = {'interpolation': self.clone(InterpolateCoefficients),
@@ -817,6 +802,7 @@ class DataStandardisation(luigi.Task):
     land_sea_path = luigi.Parameter()
     pixel_quality = luigi.BoolParameter()
     dsm_fname = luigi.Parameter(significant=False)
+    buffer_distance = luigi.FloatParameter(default=8000, significant=False)
 
     def requires(self):
         band_acqs = []
@@ -844,6 +830,7 @@ class DataStandardisation(luigi.Task):
                 tasks.append(SurfaceTemperature(**kwargs))
             else:
                 kwargs['dsm_fname'] = self.dsm_fname
+                kwargs['buffer_distance'] = self.buffer_distance
                 tasks.append(SurfaceReflectance(**kwargs))
 
         return tasks
@@ -878,15 +865,17 @@ class LinkwaglOutputs(luigi.Task):
     method = luigi.EnumParameter(enum=Method, default=Method.shear)
     acq_parser_hint = luigi.Parameter(default=None)
     dsm_fname = luigi.Parameter(significant=False)
+    buffer_distance = luigi.FloatParameter(default=8000, significant=False)
 
     def requires(self):
         container = acquisitions(self.level1, self.acq_parser_hint)
-        for group in container.groups:
+        for group in container.supported_groups:
             kwargs = {'level1': self.level1, 'work_root': self.work_root,
                       'granule': self.granule, 'group': group,
                       'model': self.model, 'vertices': self.vertices,
                       'pixel_quality': self.pixel_quality,
-                      'method': self.method, 'dsm_fname': self.dsm_fname}
+                      'method': self.method, 'dsm_fname': self.dsm_fname,
+                       'buffer_distance': self.buffer_distance}
             yield DataStandardisation(**kwargs)
 
     def output(self):
@@ -913,9 +902,7 @@ class LinkwaglOutputs(luigi.Task):
                                                  new_path)
 
             with h5py.File(out_fname) as fid:
-                container = acquisitions(self.level1, self.acq_parser_hint)
                 fid.attrs['level1_uri'] = self.level1
-                fid.attrs['tiled'] = container.tiled
 
 
 class ARD(luigi.WrapperTask):
@@ -930,6 +917,7 @@ class ARD(luigi.WrapperTask):
     method = luigi.EnumParameter(enum=Method, default=Method.shear)
     dsm_fname = luigi.Parameter(significant=False)
     acq_parser_hint = luigi.Parameter(default=None)
+    buffer_distance = luigi.FloatParameter(default=8000, significant=False)
 
     def requires(self):
         with open(self.level1_list) as src:
@@ -945,7 +933,8 @@ class ARD(luigi.WrapperTask):
                           'granule': granule, 'model': self.model,
                           'vertices': self.vertices,
                           'pixel_quality': self.pixel_quality,
-                          'method': self.method, 'dsm_fname': self.dsm_fname}
+                          'method': self.method, 'dsm_fname': self.dsm_fname,
+                          'buffer_distance': self.buffer_distance}
 
                 yield LinkwaglOutputs(**kwargs)
 
@@ -973,7 +962,7 @@ class CallTask(luigi.WrapperTask):
             container = acquisitions(level1, self.acq_parser_hint)
             for granule in container.granules:
                 if 'group' in self.task.get_param_names():
-                    for group in container.groups:
+                    for group in container.supported_groups:
                         yield self.task(level1, work_root, granule, group)
                 else:
                     yield self.task(level1, work_root, granule)

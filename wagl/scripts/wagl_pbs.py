@@ -54,7 +54,7 @@ wait
 FMT1 = 'level1-scenes-{jobid}.txt'
 FMT2 = 'wagl-{jobid}.bash'
 DAEMON_FMT = 'luigid --background --logdir {}'
-ARD_FMT = "--module wagl.{workflow} ARD --model {model} --vertices '{vertices}' --method {method}{pq}" # pylint: disable=line-too-long
+ARD_FMT = "--module wagl.{workflow} ARD --model {model} --vertices '{vertices}' --buffer-distance {distance} --method {method}{pq}" # pylint: disable=line-too-long
 TASK_FMT = "--module wagl.multifile_workflow CallTask --task {task}"
 
 
@@ -158,7 +158,7 @@ def _submit_multiple(scattered, options, env, batchid, batch_logdir,
 # pylint: disable=too-many-arguments
 def run(level1, vertices='(5, 5)', model='standard', method='linear',
         pixel_quality=False, outdir=None, logdir=None, env=None, nodes=10,
-        project=None, queue='normal', hours=48,
+        project=None, queue='normal', hours=48, buffer_distance=8000,
         email='your.name@something.com', local_scheduler=False, dsh=False,
         test=False, singlefile=False, task=None):
     """Base level program."""
@@ -187,7 +187,8 @@ def run(level1, vertices='(5, 5)', model='standard', method='linear',
     # luigi task workflow options
     if task is None:
         options = ARD_FMT.format(workflow=workflow, model=model, pq=pq,
-                                 vertices=vertices, method=method)
+                                 vertices=vertices, method=method,
+                                 distance=buffer_distance)
     else:
         options = TASK_FMT.format(task=task)
 
@@ -224,6 +225,9 @@ def _parser():
     parser.add_argument("--method", default="shear",
                         help=("The interpolation method to invoke, "
                               "eg linear, shear, rbf."))
+    parser.add_argument("--buffer-distance", default=8000, type=float,
+                        help=("The distance in units to buffer an image's "
+                              "extents by."))
     parser.add_argument("--pixel-quality", action='store_true',
                         help=("Whether to run the pixel quality workflow, "
                               "if applicable, or not."))
@@ -268,8 +272,9 @@ def main():
     args = parser.parse_args()
     run(args.level1_list, args.vertices, args.model, args.method,
         args.pixel_quality, args.outdir, args.logdir, args.env, args.nodes,
-        args.project, args.queue, args.hours, args.email, args.local_scheduler,
-        args.dsh, args.test, args.singlefile, args.task)
+        args.project, args.queue, args.hours, args.buffer_distance,
+        args.email, args.local_scheduler, args.dsh, args.test, args.singlefile,
+        args.task)
 
 
 if __name__ == '__main__':
