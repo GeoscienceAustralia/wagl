@@ -136,7 +136,7 @@ class DatasetName(Enum):
     # wagl.terrain_shadow_masks
     self_shadow = 'SELF-SHADOW'
     cast_shadow_fmt = 'CAST-SHADOW-{source}'
-    combined_shadow = 'COMBINED-SHADOW'
+    combined_shadow = 'COMBINED-TERRAIN-SHADOW'
 
     # wagl.slope_aspect
     slope = 'SLOPE'
