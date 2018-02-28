@@ -210,13 +210,18 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
 
     if isinstance(array, h5py.Dataset):
         # TODO: if array is 3D get x & y chunks
-        y_tile, x_tile = array.chunks
-        tiles = generate_tiles(samples, lines, x_tile, y_tile)
+        if array.chunks[1] == array.shape[1]:
+            # GDAL doesn't like tiled or blocksize options to be set
+            # the same length as the columns (probably true for rows as well)
+            array = array[:]
+        else:
+            y_tile, x_tile = array.chunks
+            tiles = generate_tiles(samples, lines, x_tile, y_tile)
 
-        # add blocksizes to the creation keywords
-        kwargs['tiled'] = 'yes'
-        kwargs['blockxsize'] = x_tile
-        kwargs['blockysize'] = y_tile
+            # add blocksizes to the creation keywords
+            kwargs['tiled'] = 'yes'
+            kwargs['blockxsize'] = x_tile
+            kwargs['blockysize'] = y_tile
 
     # the user can override any derived blocksizes by supplying `options`
     if options is not None:
