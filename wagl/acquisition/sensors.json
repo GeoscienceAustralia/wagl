@@ -667,6 +667,7 @@
                 },
                 "10": {
                     "c1": 0.0005,
+                    "band_type": "Reflective",
                     "radiance_scale_factor": null,
                     "supported_band": false
                 },
@@ -697,6 +698,7 @@
                     "supported_band": true
                 },
                 "TCI": {
+                    "band_type": "Quality",
                     "supported_band": false
                 }
             }
