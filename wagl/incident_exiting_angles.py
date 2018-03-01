@@ -121,10 +121,12 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
              'no_data_value': no_data}
     desc = "Contains the incident angles in degrees."
     attrs['description'] = desc
+    attrs['alias'] = 'incident'
     attach_image_attributes(incident_dset, attrs)
 
     desc = "Contains the azimuthal incident angles in degrees."
     attrs['description'] = desc
+    attrs['alias'] = 'azimuthal-incident'
     attach_image_attributes(azi_inc_dset, attrs)
 
     # process by tile
@@ -252,10 +254,12 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
              'no_data_value': no_data}
     desc = "Contains the exiting angles in degrees."
     attrs['description'] = desc
+    attrs['alias'] = 'exiting'
     attach_image_attributes(exiting_dset, attrs)
 
     desc = "Contains the azimuthal exiting angles in degrees."
     attrs['description'] = desc
+    attrs['alias'] = 'azimuthal-exiting'
     attach_image_attributes(azi_exit_dset, attrs)
 
     # process by tile
@@ -391,6 +395,7 @@ def relative_azimuth_slope(incident_angles_group, exiting_angles_group,
     desc = ("Contains the relative azimuth angles on the slope surface in "
             "degrees.")
     attrs['description'] = desc
+    attrs['alias'] = 'relative-slope'
     attach_image_attributes(out_dset, attrs)
 
     # process by tile

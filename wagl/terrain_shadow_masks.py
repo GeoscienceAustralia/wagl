@@ -107,6 +107,7 @@ def self_shadow(incident_angles_group, exiting_angles_group, out_group=None,
              'geotransform': geobox.transform.to_gdal()}
     desc = "Self shadow mask derived using the incident and exiting angles."
     attrs['description'] = desc
+    attrs['alias'] = 'self-shadow'
     attach_image_attributes(out_dset, attrs)
 
     # process by tile
@@ -442,6 +443,7 @@ def calculate_cast_shadow(acquisition, dsm_group, satellite_solar_group,
     desc = ("The cast shadow mask determined using the {} "
             "as the source direction.").format(source_dir)
     attrs['description'] = desc
+    attrs['alias'] = 'cast-shadow-{}'.format(source_dir).lower()
     attach_image_attributes(out_dset, attrs)
 
     if out_group is None:
@@ -554,6 +556,7 @@ def combine_shadow_masks(self_shadow_group, cast_shadow_sun_group,
             "3. cast shadow (satellite direction).")
     attrs['description'] = desc
     attrs['mask_values'] = "False = Shadow; True = Non Shadow"
+    attrs['alias'] = 'terrain-shadow'
     attach_image_attributes(out_dset, attrs)
 
     # process by tile
