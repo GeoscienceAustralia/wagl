@@ -47,7 +47,7 @@
                     "supported_band": true
                 },
                 "5": {
-                    "alias": "SWIR 1",
+                    "alias": "SWIR-1",
                     "band_type": "Reflective",
                     "band_name": "BAND-5",
                     "wavelength": [1.55, 1.75],
@@ -58,7 +58,7 @@
                     "supported_band": true
                 },
                 "6": {
-                    "alias": "Thermal Infrared",
+                    "alias": "Thermal-Infrared",
                     "band_type": "Thermal",
                     "band_name": "BAND-6",
                     "wavelength": [10.4, 12.5],
@@ -69,7 +69,7 @@
                     "supported_band": true
                 },
                 "7": {
-                    "alias": "SWIR 2",
+                    "alias": "SWIR-2",
                     "band_type": "Reflective",
                     "band_name": "BAND-7",
                     "wavelength": [2.08, 2.35],
@@ -130,7 +130,7 @@
                     "supported_band": true
                 },
                 "5": {
-                    "alias": "SWIR 1",
+                    "alias": "SWIR-1",
                     "band_type": "Reflective",
                     "band_name": "BAND-5",
                     "wavelength": [1.55, 1.75],
@@ -141,7 +141,7 @@
                     "supported_band": true
                 },
                 "61": {
-                    "alias": "Thermal Infrared [Low Gain]",
+                    "alias": "Thermal-Infrared-[Low-Gain]",
                     "band_type": "Thermal",
                     "band_name": "BAND-61",
                     "wavelength": [10.4, 12.5],
@@ -152,7 +152,7 @@
                     "supported_band": true
                 },
                 "62": {
-                    "alias": "Thermal Infrared [High Gain]",
+                    "alias": "Thermal-Infrared-[High-Gain]",
                     "band_type": "Thermal",
                     "band_name": "BAND-62",
                     "wavelength": [10.4, 12.5],
@@ -163,7 +163,7 @@
                     "supported_band": true
                 },
                 "7": {
-                    "alias": "SWIR 2",
+                    "alias": "SWIR-2",
                     "band_type": "Reflective",
                     "band_name": "BAND-7",
                     "wavelength": [2.08, 2.35],
@@ -180,7 +180,7 @@
         "OLI": {
             "band_ids": {
                 "1": {
-                    "alias": "Coastal Aerosol",
+                    "alias": "Coastal-Aerosol",
                     "band_type": "Reflective",
                     "band_name": "BAND-1",
                     "wavelength": [0.433, 0.453],
@@ -235,7 +235,7 @@
                     "supported_band": true
                 },
                 "6": {
-                    "alias": "SWIR 1",
+                    "alias": "SWIR-1",
                     "band_type": "Reflective",
                     "band_name": "BAND-6",
                     "wavelength": [1.56,1.66],
@@ -246,7 +246,7 @@
                     "supported_band": true
                 },
                 "7": {
-                    "alias": "SWIR 2",
+                    "alias": "SWIR-2",
                     "band_type": "Reflective",
                     "band_name": "BAND-7",
                     "wavelength": [2.1, 2.3],
@@ -261,7 +261,7 @@
         "OLI_TIRS": {
             "band_ids": {
                 "1": {
-                    "alias": "Coastal Aerosol",
+                    "alias": "Coastal-Aerosol",
                     "band_type": "Reflective",
                     "band_name": "BAND-1",
                     "wavelength": [0.433, 0.453],
@@ -272,7 +272,7 @@
                     "supported_band": true
                 },
                 "10": {
-                    "alias": "Thermal Infrared 1",
+                    "alias": "Thermal-Infrared-1",
                     "band_type": "Thermal",
                     "band_name": "BAND-10",
                     "wavelength": [10.3, 11.3],
@@ -283,7 +283,7 @@
                     "supported_band": true
                 },
                 "11": {
-                    "alias": "Thermal Infrared 2",
+                    "alias": "Thermal-Infrared-2",
                     "band_type": "Thermal",
                     "band_name": "BAND-11",
                     "wavelength": [11.5, 12.5],
@@ -338,7 +338,7 @@
                     "supported_band": true
                 },
                 "6": {
-                    "alias": "SWIR 1",
+                    "alias": "SWIR-1",
                     "band_type": "Reflective",
                     "band_name": "BAND-6",
                     "wavelength": [1.56, 1.66],
@@ -349,7 +349,7 @@
                     "supported_band": true
                 },
                 "7": {
-                    "alias": "SWIR 2",
+                    "alias": "SWIR-2",
                     "band_type": "Reflective",
                     "band_name": "BAND-7",
                     "wavelength": [2.1, 2.3],
@@ -366,7 +366,7 @@
        "MSI": {
            "band_ids": {
                "1": {
-                   "alias": "Aerosols",
+                   "alias": "Coastal-Aerosol",
                    "band_type": "Reflective",
                    "band_name": "BAND-1",
                    "wavelength": [0.433, 0.453],
@@ -418,7 +418,7 @@
                    "supported_band": true
                },
                "5": {
-                   "alias": "Red Edge 1",
+                   "alias": "Red-Edge-1",
                    "band_type": "Reflective",
                    "band_name": "BAND-5",
                    "wavelength": [0.6975, 0.7125],
@@ -431,7 +431,7 @@
                    "supported_band": true
                },
                "6": {
-                   "alias": "Red Edge 2",
+                   "alias": "Red-Edge-2",
                    "band_type": "Reflective",
                    "band_name": "BAND-6",
                    "wavelength": [0.7325, 0.7475],
@@ -444,7 +444,7 @@
                    "supported_band": true
                },
                "7": {
-                   "alias": "Red Edge 3",
+                   "alias": "Red-Edge-3",
                    "band_type": "Reflective",
                    "band_name": "BAND-7",
                    "wavelength": [0.773, 0.793],
@@ -457,7 +457,7 @@
                    "supported_band": true
                },
                "8": {
-                   "alias": "NIR 1",
+                   "alias": "NIR-1",
                    "band_type": "Reflective",
                    "band_name": "BAND-8",
                    "wavelength": [0.7845, 0.8995],
@@ -470,7 +470,7 @@
                    "supported_band": true
                },
                "8A": {
-                   "alias": "NIR 2",
+                   "alias": "NIR-2",
                    "band_type": "Reflective",
                    "band_name": "BAND-8A",
                    "wavelength": [0.855, 0.875],
@@ -483,7 +483,7 @@
                    "supported_band": true
                },
                "9": {
-                   "alias": "Water Vapour",
+                   "alias": "Water-Vapour",
                    "band_type": "Reflective",
                    "band_name": "BAND-9",
                    "wavelength": [0.935, 0.955],
@@ -496,12 +496,13 @@
                    "supported_band": false
                },
                "10": {
+                   "alias": "SWIR-1",
                    "c1": 0.0005,
                    "radiance_scale_factor": null,
                    "supported_band": false
                },
                "11": {
-                   "alias": "SWIR 1",
+                   "alias": "SWIR-2",
                    "band_type": "Reflective",
                    "band_name": "BAND-11",
                    "wavelength": [1.565, 1.655],
@@ -514,7 +515,7 @@
                    "supported_band": true
                },
                "12": {
-                   "alias": "SWIR 2",
+                   "alias": "SWIR-3",
                    "band_type": "Reflective",
                    "band_name": "BAND-12",
                    "wavelength": [2.10, 2.280],
@@ -536,7 +537,7 @@
         "MSI": {
             "band_ids": {
                 "1": {
-                    "alias": "Aerosols",
+                    "alias": "Coastal-Aerosol",
                     "band_type": "Reflective",
                     "band_name": "BAND-1",
                     "wavelength": [0.433, 0.453],
@@ -588,7 +589,7 @@
                     "supported_band": true
                 },
                 "5": {
-                    "alias": "Red Edge 1",
+                    "alias": "Red-Edge-1",
                     "band_type": "Reflective",
                     "band_name": "BAND-5",
                     "wavelength": [0.6975, 0.7125],
@@ -601,7 +602,7 @@
                     "supported_band": true
                 },
                 "6": {
-                    "alias": "Red Edge 2",
+                    "alias": "Red-Edge-2",
                     "band_type": "Reflective",
                     "band_name": "BAND-6",
                     "wavelength": [0.7325, 0.7475],
@@ -614,7 +615,7 @@
                     "supported_band": true
                 },
                 "7": {
-                    "alias": "Red Edge 3",
+                    "alias": "Red-Edge-3",
                     "band_type": "Reflective",
                     "band_name": "BAND-7",
                     "wavelength": [0.773, 0.793],
@@ -627,7 +628,7 @@
                     "supported_band": true
                 },
                 "8": {
-                    "alias": "NIR 1",
+                    "alias": "NIR-1",
                     "band_type": "Reflective",
                     "band_name": "BAND-8",
                     "wavelength": [0.7845, 0.8995],
@@ -640,7 +641,7 @@
                     "supported_band": true
                 },
                 "8A": {
-                    "alias": "NIR 2",
+                    "alias": "NIR-2",
                     "band_type": "Reflective",
                     "band_name": "BAND-8A",
                     "wavelength": [0.855, 0.875],
@@ -653,7 +654,7 @@
                     "supported_band": true
                 },
                 "9": {
-                    "alias": "Water Vapour",
+                    "alias": "Water-Vapour",
                     "band_type": "Reflective",
                     "band_name": "BAND-9",
                     "wavelength": [0.935, 0.955],
@@ -666,13 +667,14 @@
                     "supported_band": false
                 },
                 "10": {
+                    "alias": "SWIR-1",
                     "c1": 0.0005,
                     "band_type": "Reflective",
                     "radiance_scale_factor": null,
                     "supported_band": false
                 },
                 "11": {
-                    "alias": "SWIR 1",
+                    "alias": "SWIR-2",
                     "band_type": "Reflective",
                     "band_name": "BAND-11",
                     "wavelength": [1.565, 1.655],
@@ -685,7 +687,7 @@
                     "supported_band": true
                 },
                 "12": {
-                    "alias": "SWIR 2",
+                    "alias": "SWIR-3",
                     "band_type": "Reflective",
                     "band_name": "BAND-12",
                     "wavelength": [2.10, 2.280],
