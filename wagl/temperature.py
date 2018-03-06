@@ -11,7 +11,7 @@ import numpy
 import numexpr
 import h5py
 
-from wagl.constants import DatasetName, GroupName
+from wagl.constants import DatasetName, GroupName, ArdProducts
 from wagl.constants import AtmosphericCoefficients as AC
 from wagl.hdf5 import dataset_compression_kwargs
 from wagl.hdf5 import attach_image_attributes
@@ -134,7 +134,8 @@ def surface_brightness_temperature(acquisition, interpolation_group,
              'alias': acq.alias}
 
     name_fmt = DatasetName.temperature_fmt.value
-    dataset_name = name_fmt.format(band_name=acq.band_name)
+    dataset_name = name_fmt.format(product=ArdProducts.sbt.value,
+                                   band_name=acq.band_name)
     out_dset = group.create_dataset(dataset_name, **kwargs)
 
     desc = "Surface Brightness Temperature in Kelvin."
