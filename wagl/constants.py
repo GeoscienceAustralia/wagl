@@ -131,7 +131,7 @@ class DatasetName(Enum):
     reflectance_fmt = 'REFLECTANCE/{product}/{band_name}'
 
     # wagl.temperature
-    temperature_fmt = 'THERMAL/SURFACE-BRIGHTNESS-TEMPERATURE/{band_name}'
+    temperature_fmt = 'THERMAL/{product}/{band_name}'
 
     # wagl.terrain_shadow_masks
     self_shadow = 'SELF-SHADOW'
