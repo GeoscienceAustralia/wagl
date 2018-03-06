@@ -130,7 +130,8 @@ def surface_brightness_temperature(acquisition, interpolation_group,
              'platform_id': acq.platform_id,
              'sensor_id': acq.sensor_id,
              'band_id': acq.band_id,
-             'band_name': bn}
+             'band_name': bn,
+             'alias': acq.alias}
 
     name_fmt = DatasetName.temperature_fmt.value
     dataset_name = name_fmt.format(band_name=acq.band_name)
