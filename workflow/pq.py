@@ -378,7 +378,7 @@ class PackagePQ(luigi.Task):
     def run(self):
         out_path = dirname(self.pq_path)
         # run the packager
-        kwargs = {'driver': PACKAGE_DRIVERS['pqa'],
+        kwargs = {'driver': PACKAGE_DRIVERS['legacypqa'],
                   'input_data_paths': [Path(self.pq_path)],
                   'destination_path': Path(pjoin(out_path, 'pqa')),
                   'parent_dataset_paths': [Path(self.l1t_path),
