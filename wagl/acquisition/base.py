@@ -5,6 +5,7 @@ from os.path import join as pjoin
 from functools import total_ordering
 from pkg_resources import resource_stream
 
+import numpy
 import rasterio
 
 from ..geobox import GriddedGeoBox
@@ -177,6 +178,31 @@ class AcquisitionsContainer(object):
                 break
         return acqs, group
 
+    def get_mode_resolution(self, granule=None):
+        """
+        Retrieve the resolution group name that contains the mode
+        resolution. 
+
+        :return:
+            A `tuple` of (`list`, group_name) where the `list`
+            contains the acquisitions of supported bands from
+            the mode resolution group, and group_name is the name
+            of the group that the acquisitions came from.
+        """
+        dtype = numpy.dtype([('group', 'O'), ('frequency', 'int64')])
+        data = numpy.zeros(len(self.groups), dtype=dtype)
+
+        # insert data
+        data['group'] = self.groups
+        counts = [len(self.get_acquisitions(grp, None, False)) for grp in
+                  self.groups]
+        data['frequency'] = counts
+
+        mode_grp = data['group'][data['frequency'].argmax()]
+        acqs = self.get_acquisitions(mode_grp, granule)
+
+        return acqs, mode_grp
+
     @property
     def supported_groups(self):
         """
@@ -190,6 +216,21 @@ class AcquisitionsContainer(object):
                 groups.append(group)
 
         return groups
+
+    def get_all_acquisitions(self, granule=None):
+        """
+        Retrieve all supported acquisitions from a given granule.
+        This will ignore the fact that acquisitions could be from
+        different resolution groups, and put them all in a single
+        list.
+        """
+        acquisitions = []
+        for group in self.groups:
+            acqs =  self.get_acquisitions(group, granule)
+            if acqs:
+                acquisitions.extend(acqs)
+
+        return acquisitions
 
 
 @total_ordering

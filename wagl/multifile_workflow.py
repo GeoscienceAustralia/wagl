@@ -289,7 +289,7 @@ class AtmosphericsCase(luigi.Task):
     def run(self):
         container = acquisitions(self.level1, self.acq_parser_hint)
         # out_path = container.get_root(self.work_root, granule=self.granule)
-        acqs = container.get_acquisitions(granule=self.granule)
+        acqs = container.get_all_acquisitions(self.granule)
         atmospheric_inputs_fname = self.input().path
         base_dir = pjoin(self.work_root, self.base_dir)
         albedos = [Albedos(a) for a in self.albedos]

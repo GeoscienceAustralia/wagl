@@ -298,7 +298,7 @@ def run_modtran(acquisitions, atmospherics_group, model, npoints, point,
 
         if albedo == Albedos.albedo_th:
             acq = [acq for acq in acqs if acq.band_type == BandType.Thermal][0]
-            channel_data = read_modtran_channel(chn_fname, acq, albedo.value)
+            channel_data = read_modtran_channel(chn_fname, acq, albedo)
 
             # upward radiation
             attrs = base_attrs.copy()
@@ -320,7 +320,7 @@ def run_modtran(acquisitions, atmospherics_group, model, npoints, point,
                    acq.band_type == BandType.Reflective][0]
             flux_fname = glob.glob(pjoin(workpath, '*_b.flx'))[0]
             flux_data, altitudes = read_modtran_flux(flux_fname)
-            channel_data = read_modtran_channel(chn_fname, acq, albedo.value)
+            channel_data = read_modtran_channel(chn_fname, acq, albedo)
 
             # ouput the flux data
             attrs = base_attrs.copy()

@@ -913,31 +913,37 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     desc = "Contains the satellite viewing angle in degrees."
     attrs['description'] = desc
     attrs['units'] = 'degrees'
+    attrs['alias'] = 'satellite-view'
     attach_image_attributes(sat_v_ds, attrs)
 
     desc = "Contains the satellite azimuth angle in degrees."
     attrs['description'] = desc
     attrs['units'] = 'degrees'
+    attrs['alias'] = 'satellite-azimuth'
     attach_image_attributes(sat_az_ds, attrs)
 
     desc = "Contains the solar zenith angle in degrees."
     attrs['description'] = desc
     attrs['units'] = 'degrees'
+    attrs['alias'] = 'solar-zenith'
     attach_image_attributes(sol_z_ds, attrs)
 
     desc = "Contains the solar azimuth angle in degrees."
     attrs['description'] = desc
     attrs['units'] = 'degrees'
+    attrs['alias'] = 'solar-azimuth'
     attach_image_attributes(sol_az_ds, attrs)
 
     desc = "Contains the relative azimuth angle in degrees."
     attrs['description'] = desc
     attrs['units'] = 'degrees'
+    attrs['alias'] = 'relative-azimuth'
     attach_image_attributes(rel_az_ds, attrs)
 
     desc = "Contains the time from apogee in seconds."
     attrs['description'] = desc
     attrs['units'] = 'seconds'
+    attrs['alias'] = 'time'
     attach_image_attributes(time_ds, attrs)
 
     # Initialise centre line variables

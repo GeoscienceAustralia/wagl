@@ -58,7 +58,7 @@ class DataStandardisation(luigi.Task):
     level1 = luigi.Parameter()
     outdir = luigi.Parameter()
     granule = luigi.Parameter(default=None)
-    model = luigi.EnumParameter(enum=Model)
+    model = luigi.EnumParameter(enum=Model, default=Model.standard)
     vertices = luigi.TupleParameter(default=(5, 5))
     method = luigi.EnumParameter(enum=Method, default=Method.shear)
     pixel_quality = luigi.BoolParameter()
