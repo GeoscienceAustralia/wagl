@@ -196,7 +196,7 @@ If you're a user that would like to intersect any part of the dependency tree, t
    factor = 
 
    # The band number to run
-   band_num = 
+   band_name = 
 
    # The interpolation method to use;
    # *bilinear*, *fbilinear*, *shear*, *shearb*, or *rbf*
