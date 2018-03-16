@@ -24,7 +24,7 @@ Workflow settings can be configured in `luigi.cfg` file.
 
 from __future__ import absolute_import, print_function
 import os
-from os.path import join as pjoin, basename, dirname, normpath, splitext
+from os.path import join as pjoin, basename, dirname, splitext
 from posixpath import join as ppjoin
 import logging
 import traceback
@@ -114,12 +114,11 @@ class CalculateLonLatGrids(luigi.Task):
 
     def requires(self):
         # we want to pass the level1 root not the granule root
-        root = dirname(self.work_root) if self.granule else self.work_root
-        return WorkRoot(self.level1, root)
+        return WorkRoot(self.level1, dirname(self.work_root))
 
     def output(self):
-        out_path = pjoin(self.work_root, self.group)
-        return luigi.LocalTarget(pjoin(out_path, 'longitude-latitude.h5'))
+        out_fname = pjoin(self.work_root, self.group, 'longitude-latitude.h5')
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         acq = (
@@ -143,8 +142,8 @@ class CalculateSatelliteAndSolarGrids(luigi.Task):
         return CalculateLonLatGrids(*args)
 
     def output(self):
-        out_path = pjoin(self.work_root, self.group)
-        return luigi.LocalTarget(pjoin(out_path, 'satellite-solar.h5'))
+        out_fname = pjoin(self.work_root, self.group, 'satellite-solar.h5')
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         acqs = (
@@ -362,7 +361,7 @@ class InterpolateCoefficient(luigi.Task):
     """
 
     vertices = luigi.TupleParameter()
-    band_id = luigi.Parameter()
+    band_name = luigi.Parameter()
     coefficient = luigi.EnumParameter(enum=AtmosphericCoefficients)
     base_dir = luigi.Parameter(default='_interpolation', significant=False)
     model = luigi.EnumParameter(enum=Model)
@@ -376,7 +375,7 @@ class InterpolateCoefficient(luigi.Task):
 
     def output(self):
         out_path = pjoin(self.work_root, self.group, self.base_dir)
-        out_fname = '{}-BAND-{}.h5'.format(self.coefficient.value, self.band_id)
+        out_fname = '{}-{}.h5'.format(self.coefficient.value, self.band_name)
         return luigi.LocalTarget(pjoin(out_path, out_fname))
 
     def run(self):
@@ -389,7 +388,7 @@ class InterpolateCoefficient(luigi.Task):
         coefficients_fname = self.input()['comp'].path
         ancillary_fname = self.input()['ancillary'].path
 
-        acq = [acq for acq in acqs if acq.band_id == self.band_id][0]
+        acq = [acq for acq in acqs if acq.band_name == self.band_name][0]
 
         with self.output().temporary_path() as out_fname:
             _interpolate(acq, self.coefficient, sat_sol_angles_fname,
@@ -427,18 +426,18 @@ class InterpolateCoefficients(luigi.Task):
                 band_acqs = sbt_acqs
 
             for acq in band_acqs:
-                key = (acq.band_id, coefficient)
+                key = (acq.band_name, coefficient)
                 kwargs = {'level1': self.level1, 'work_root': self.work_root,
                           'granule': self.granule, 'group': self.group,
-                          'band_id': acq.band_id, 'coefficient': coefficient,
+                          'band_name': acq.band_name, 'coefficient': coefficient,
                           'model': self.model, 'vertices': self.vertices,
                           'method': self.method}
                 tasks[key] = InterpolateCoefficient(**kwargs)
         return tasks
 
     def output(self):
-        out_path = pjoin(self.work_root, self.group)
-        return luigi.LocalTarget(pjoin(out_path, 'interpolated-coefficients.h5'))
+        out_fname = pjoin(self.work_root, self.group, 'interpolated-coefficients.h5')
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         fnames = {}
@@ -467,8 +466,8 @@ class DEMExtraction(luigi.Task):
         return WorkRoot(self.level1, root)
 
     def output(self):
-        out_path = pjoin(self.work_root, self.group)
-        return luigi.LocalTarget(pjoin(out_path, 'dsm-subset.h5'))
+        out_fname = pjoin(self.work_root, self.group, 'dsm-subset.h5')
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         acqs = (
@@ -489,8 +488,8 @@ class SlopeAndAspect(luigi.Task):
     """
 
     def output(self):
-        out_path = pjoin(self.work_root, self.group)
-        return luigi.LocalTarget(pjoin(out_path, 'slope-aspect.h5'))
+        out_fname = pjoin(self.work_root, self.group, 'slope-aspect.h5')
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         acqs = (
@@ -521,8 +520,8 @@ class IncidentAngles(luigi.Task):
                                           buffer_distance=self.buffer_distance)}
 
     def output(self):
-        out_path = pjoin(self.work_root, self.group)
-        return luigi.LocalTarget(pjoin(out_path, 'incident-angles.h5'))
+        out_fname = pjoin(self.work_root, self.group, 'incident-angles.h5')
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         # input filenames
@@ -548,8 +547,8 @@ class ExitingAngles(luigi.Task):
                                           buffer_distance=self.buffer_distance)}
 
     def output(self):
-        out_path = pjoin(self.work_root, self.group)
-        return luigi.LocalTarget(pjoin(out_path, 'exiting-angles.h5'))
+        out_fname = pjoin(self.work_root, self.group, 'exiting-angles.h5')
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         # input filenames
@@ -573,11 +572,8 @@ class RelativeAzimuthSlope(luigi.Task):
                 'exiting': self.clone(ExitingAngles)}
 
     def output(self):
-        out_path = (
-            acquisitions(self.level1, self.acq_parser_hint)
-            .get_root(self.work_root, self.group, self.granule)
-        )
-        return luigi.LocalTarget(pjoin(out_path, 'relative-slope.h5'))
+        out_fname = pjoin(self.work_root, self.group, 'relative-slope.h5')
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         # input filenames
@@ -712,7 +708,7 @@ class SurfaceReflectance(luigi.Task):
 
     """Run the terrain correction over a given band."""
 
-    band_id = luigi.Parameter()
+    band_name = luigi.Parameter()
     rori = luigi.FloatParameter(default=0.52, significant=False)
     base_dir = luigi.Parameter(default='_standardised', significant=False)
     dsm_fname = luigi.Parameter(significant=False)
@@ -732,7 +728,7 @@ class SurfaceReflectance(luigi.Task):
 
     def output(self):
         out_path = pjoin(self.work_root, self.group, self.base_dir)
-        fname = 'reflectance-{band}.h5'.format(band=self.band_id)
+        fname = 'reflectance-{}.h5'.format(self.band_name)
         return luigi.LocalTarget(pjoin(out_path, fname))
 
     def run(self):
@@ -751,7 +747,7 @@ class SurfaceReflectance(luigi.Task):
         ancillary_fname = inputs['ancillary'].path
 
         # get the acquisition we wish to process
-        acq = [acq for acq in acqs if acq.band_id == self.band_id][0]
+        acq = [acq for acq in acqs if acq.band_name == self.band_name][0]
 
         with self.output().temporary_path() as out_fname:
             _calculate_reflectance(acq, acqs, interpolation_fname,
@@ -776,13 +772,13 @@ class SurfaceTemperature(luigi.Task):
 
     def output(self):
         out_path = pjoin(self.work_root, self.group, self.base_dir)
-        fname = 'temperature-{band}.h5'.format(band=self.band_id)
+        fname = 'temperature-{}.h5'.format(self.band_name)
         return luigi.LocalTarget(pjoin(out_path, fname))
 
     def run(self):
         container = acquisitions(self.level1, self.acq_parser_hint)
         acqs = container.get_acquisitions(self.group, self.granule)
-        acq = [acq for acq in acqs if acq.band_id == self.band_id][0]
+        acq = [acq for acq in acqs if acq.band_name == self.band_name][0]
 
         with self.output().temporary_path() as out_fname:
             interpolation_fname = self.input()['interpolation'].path
@@ -824,7 +820,7 @@ class DataStandardisation(luigi.Task):
         for acq in band_acqs:
             kwargs = {'level1': self.level1, 'work_root': self.work_root,
                       'granule': self.granule, 'group': self.group,
-                      'band_id': acq.band_id, 'model': self.model,
+                      'band_name': acq.band_name, 'model': self.model,
                       'vertices': self.vertices, 'method': self.method}
             if acq.band_type == BandType.Thermal:
                 tasks.append(SurfaceTemperature(**kwargs))
@@ -875,11 +871,12 @@ class LinkwaglOutputs(luigi.Task):
                       'model': self.model, 'vertices': self.vertices,
                       'pixel_quality': self.pixel_quality,
                       'method': self.method, 'dsm_fname': self.dsm_fname,
-                       'buffer_distance': self.buffer_distance}
+                      'buffer_distance': self.buffer_distance}
             yield DataStandardisation(**kwargs)
 
     def output(self):
-        return luigi.LocalTarget('{}.h5'.format(normpath(self.work_root)))
+        out_fname = pjoin(dirname(self.work_root), '{}.h5'.format(self.granule))
+        return luigi.LocalTarget(out_fname)
 
     def run(self):
         with self.output().temporary_path() as out_fname:
@@ -927,9 +924,9 @@ class ARD(luigi.WrapperTask):
             container = acquisitions(level1, self.acq_parser_hint)
             work_name = '{}.wagl'.format(container.label)
             for granule in container.granules:
-                sub_path = granule if granule else ''
-                work_root = pjoin(self.outdir, work_name, sub_path)
-                kwargs = {'level1': level1, 'work_root': normpath(work_root),
+                # as each granule is independent, include the granule as the work root
+                work_root = pjoin(self.outdir, work_name, granule)
+                kwargs = {'level1': level1, 'work_root': work_root,
                           'granule': granule, 'model': self.model,
                           'vertices': self.vertices,
                           'pixel_quality': self.pixel_quality,
@@ -957,10 +954,11 @@ class CallTask(luigi.WrapperTask):
             level1_list = [level1.strip() for level1 in src.readlines()]
 
         for level1 in level1_list:
-            work_name = '{}.wagl'.format(basename(level1))
-            work_root = pjoin(self.outdir, work_name)
+            work_name = '{}-wagl'.format(basename(level1))
             container = acquisitions(level1, self.acq_parser_hint)
             for granule in container.granules:
+                # as each granule is independent, include the granule as the work root
+                work_root = pjoin(self.outdir, work_name, granule)
                 if 'group' in self.task.get_param_names():
                     for group in container.supported_groups:
                         yield self.task(level1, work_root, granule, group)
