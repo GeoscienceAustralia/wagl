@@ -85,4 +85,5 @@ A redesign of the data I/O and workflow, that simplified the task interlinking, 
 * `Josh Sixsmith <mailto:joshua.sixsmith@ga.gov.au>`_ (Developer),
 * `Lan-Wei Wang <mailto:lan-wei.wang@ga.gov.au>`_ (Technical Lead),
 * `Fuqin Li <mailto:fuqin.li@ga.gov.au>`_ (Scientist), and
-* `Ben Lewis <mailto:ben.lewis@ga.gov.au>`_ (Scientist/Developer).
+* `Ben Lewis <mailto:ben.lewis@ga.gov.au>`_ (Scientist/Developer),
+* `Alexander Vincent <mailto:alexander.vincent@ga.gov.au>`_ (Developer).
