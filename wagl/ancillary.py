@@ -711,9 +711,7 @@ def ecwmf_temperature_2metre(input_path, lonlat, time):
     Retrieve a pixel value from the ECWMF 2 metre Temperature
     collection.
     """
-    product = 'temperature-2metre'
-    files = glob.glob(pjoin(input_path, '{}_*.tif'.format(product)))
-    product = DatasetName.temperature_2m.value
+    product = DatasetName.temperature_2m.value.lower()
     search = pjoin(input_path, DatasetName.ecmwf_path_fmt.value)
     files = glob.glob(search.format(product=product, year=time.year))
     data = None
@@ -745,7 +743,7 @@ def ecwmf_dewpoint_temperature(input_path, lonlat, time):
     Retrieve a pixel value from the ECWMF 2 metre Dewpoint
     Temperature collection.
     """
-    product = DatasetName.dewpoint_temperature.value
+    product = DatasetName.dewpoint_temperature.value.lower()
     search = pjoin(input_path, DatasetName.ecmwf_path_fmt.value)
     files = glob.glob(search.format(product=product, year=time.year))
     data = None
@@ -779,7 +777,7 @@ def ecwmf_surface_pressure(input_path, lonlat, time):
     collection.
     Scales the result by 100 before returning.
     """
-    product = DatasetName.surface_pressure.value
+    product = DatasetName.surface_pressure.value.lower()
     search = pjoin(input_path, DatasetName.ecmwf_path_fmt.value)
     files = glob.glob(search.format(product=product, year=time.year))
     data = None
@@ -811,7 +809,7 @@ def ecwmf_water_vapour(input_path, lonlat, time):
     Retrieve a pixel value from the ECWMF Total Column Water Vapour
     collection.
     """
-    product = DatasetName.water_vapour.value
+    product = DatasetName.water_vapour.value.lower()
     search = pjoin(input_path, DatasetName.ecmwf_path_fmt.value)
     files = glob.glob(search.format(product=product, year=time.year))
     data = None
@@ -848,7 +846,7 @@ def ecwmf_temperature(input_path, lonlat, time):
     Reverses the order of elements
     (1000 -> 1 mb, rather than 1 -> 1000 mb) before returning.
     """
-    product = DatasetName.temperature.value
+    product = DatasetName.temperature.value.lower()
     search = pjoin(input_path, DatasetName.ecmwf_path_fmt.value)
     files = glob.glob(search.format(product=product, year=time.year))
     data = None
@@ -890,7 +888,7 @@ def ecwmf_geo_potential(input_path, lonlat, time):
     the elements (1000 -> 1 mb, rather than 1 -> 1000 mb) before
     returning.
     """
-    product = DatasetName.geopotential.value
+    product = DatasetName.geopotential.value.lower()
     search = pjoin(input_path, DatasetName.ecmwf_path_fmt.value)
     files = glob.glob(search.format(product=product, year=time.year))
     data = None
@@ -933,7 +931,7 @@ def ecwmf_relative_humidity(input_path, lonlat, time):
     Reverses the order of elements
     (1000 -> 1 mb, rather than 1 -> 1000 mb) before returning.
     """
-    product = DatasetName.relative_humidity.value
+    product = DatasetName.relative_humidity.value.lower()
     search = pjoin(input_path, DatasetName.ecmwf_path_fmt.value)
     files = glob.glob(search.format(product=product, year=time.year))
     data = None
