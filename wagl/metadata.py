@@ -46,15 +46,15 @@ def extract_ancillary_metadata(fname):
         on disk.
 
     :return:
-        A `dictionary` with keys `change`, `modified`, `accessed`,
-        and `user`.
+        A `dictionary` with keys `ctime`, `mtime`, `atime`,
+        and `owner`.
     """
     res = {}
     fstat = os.stat(fname)
-    res['change'] = dtime.utcfromtimestamp(fstat.st_ctime)
-    res['modified'] = dtime.utcfromtimestamp(fstat.st_mtime)
-    res['accessed'] = dtime.utcfromtimestamp(fstat.st_atime)
-    res['user'] = pwd.getpwuid(fstat.st_uid).pw_gecos
+    res['ctime'] = dtime.utcfromtimestamp(fstat.st_ctime)
+    res['mtime'] = dtime.utcfromtimestamp(fstat.st_mtime)
+    res['atime'] = dtime.utcfromtimestamp(fstat.st_atime)
+    res['owner'] = pwd.getpwuid(fstat.st_uid).pw_gecos
     return res
 
 
@@ -192,22 +192,19 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, sbt=False):
             for key in sbt_ancillary:
                 ancillary[key] = sbt_ancillary[key]
         else:
-            brdf_data = {}
             for acq in acquisitions:
                 if acq.band_type == BandType.Thermal:
                     continue
 
-                brdf = {}
                 bn = acq.band_name
                 for param in BrdfParameters:
                     fmt = DatasetName.brdf_fmt.value
-                    dset = fid[fmt.format(band_name=bn, parameter=param.value)]
-                    brdf[param.name] = {k: v for k, v in dset.attrs.items()}
-                    brdf[param.name]['value'] = dset[()]
-
-                brdf_data[bn] = brdf
-
-            ancillary['brdf'] = brdf_data
+                    dname = fmt.format(band_name=bn, parameter=param.value)
+                    dset = fid[dname]
+                    key = dname.lower().replace('-', '_')
+                    ancillary[key] = {k: v for k, v in dset.attrs.items()}
+                    ancillary[key]['value'] = dset[()]
+                    ancillary[key]['type'] = key
 
         return ancillary
 
@@ -226,7 +223,11 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, sbt=False):
         else:
             source_info[key] = value
 
+    # load the ancillary and remove fields not of use to ODC
     ancillary = load_ancillary(acquisitions, ancillary_group, sbt)
+    for item in ancillary:
+        for remove in ['CLASS', 'VERSION', 'query_date', 'data_source']:
+            ancillary[item].pop(remove, None)
 
     software_versions = {'wagl': {'version': wagl.__version__,
                                   'repo_url': 'https://github.com/GeoscienceAustralia/wagl.git'}, # pylint: disable=line-too-long
@@ -251,8 +252,8 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, sbt=False):
                    'time_processed': dtime.utcnow().isoformat()}
 
     metadata = {'system_information': system_info,
-                'source_data': source_info,
-                'ancillary_data': ancillary,
+                'source_datasets': source_info,
+                'ancillary': ancillary,
                 'algorithm_information': algorithm,
                 'software_versions': software_versions}
     
