@@ -466,6 +466,9 @@ def interpolate(acq, coefficient, ancillary_group, satellite_solar_group,
             "for band {} from sensor {}.")
     attrs['description'] = desc.format(coefficient.value, acq.band_id,
                                        acq.sensor_id)
+
+    # convert any NaN's to -999 (for float data, NaN would be more ideal ...)
+    result[~np.isfinite(result)] = no_data
     write_h5_image(result, dset_name, group, attrs, **kwargs)
 
     if out_group is None:
