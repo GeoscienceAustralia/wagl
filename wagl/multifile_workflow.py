@@ -888,13 +888,13 @@ class LinkwaglOutputs(luigi.Task):
                 for file_ in files:
                     if splitext(file_)[1] == '.h5':
                         fname = pjoin(root, file_)
-                        grp_name = dirname(fname.replace(self.work_root, ''))
+                        grp_name = basename(dirname(fname.replace(self.work_root, ''))
 
                         with h5py.File(fname, 'r') as fid:
                             groups = [g for g in fid]
 
                         for pth in groups:
-                            new_path = ppjoin(grp_name, pth)
+                            new_path = ppjoin(self.granule, grp_name, pth)
                             create_external_link(fname, pth, out_fname,
                                                  new_path)
 
