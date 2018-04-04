@@ -29,7 +29,7 @@ from wagl.slope_aspect import slope_aspect_arrays
 from wagl.temperature import surface_brightness_temperature
 from wagl.pq import can_pq, run_pq
 
-LOG = wrap_logger(logging.getLogger('wagl-status'),
+LOG = wrap_logger(logging.getLogger('status'),
                   processors=[JSONRenderer(indent=1, sort_keys=True)])
 
 

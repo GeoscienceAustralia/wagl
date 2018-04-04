@@ -5,7 +5,6 @@ Ancillary dataset retrieval and storage
 """
 
 from __future__ import absolute_import, print_function
-import logging
 from os.path import join as pjoin, basename, splitext
 import datetime
 import glob
@@ -28,9 +27,6 @@ from wagl.hdf5 import attach_table_attributes
 from wagl.metadata import extract_ancillary_metadata, read_meatadata_tags
 from wagl.constants import DatasetName, POINT_FMT, GroupName, BandType
 from wagl.satellite_solar_angles import create_vertices
-
-
-log = logging.getLogger()
 
 
 ECWMF_LEVELS = [1, 2, 3, 5, 7, 10, 20, 30, 50, 70, 100, 125, 150, 175, 200,

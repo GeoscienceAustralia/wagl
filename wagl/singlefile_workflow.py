@@ -35,7 +35,7 @@ from wagl.constants import Model, Method
 from wagl.standardise import card4l
 
 
-ERROR_LOGGER = wrap_logger(logging.getLogger('wagl-error'),
+ERROR_LOGGER = wrap_logger(logging.getLogger('errors'),
                            processors=[JSONRenderer(indent=1, sort_keys=True)])
 INTERFACE_LOGGER = logging.getLogger('luigi-interface')
 
