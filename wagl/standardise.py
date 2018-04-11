@@ -70,7 +70,7 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
             calculate_angles(acqs[0], root[GroupName.LON_LAT_GROUP.value],
                              root, compression, tle_path)
 
-            if model == Model.STANDARD or model == model.NBAR:
+            if model == Model.STANDARD or model == Model.NBAR:
 
                 # DEM
                 log.info('DEM-retriveal')
