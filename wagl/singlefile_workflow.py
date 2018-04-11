@@ -58,9 +58,9 @@ class DataStandardisation(luigi.Task):
     level1 = luigi.Parameter()
     outdir = luigi.Parameter()
     granule = luigi.Parameter(default=None)
-    model = luigi.EnumParameter(enum=Model, default=Model.standard)
+    model = luigi.EnumParameter(enum=Model, default=Model.STANDARD)
     vertices = luigi.TupleParameter(default=(5, 5))
-    method = luigi.EnumParameter(enum=Method, default=Method.shear)
+    method = luigi.EnumParameter(enum=Method, default=Method.SHEAR)
     pixel_quality = luigi.BoolParameter()
     land_sea_path = luigi.Parameter()
     aerosol = luigi.DictParameter(default={'user': 0.05}, significant=False)
@@ -88,7 +88,7 @@ class DataStandardisation(luigi.Task):
         return luigi.LocalTarget(pjoin(self.outdir, out_fname))
 
     def run(self):
-        if self.model == Model.standard or self.model == Model.sbt:
+        if self.model == Model.STANDARD or self.model == Model.SBT:
             ecmwf_path = self.ecmwf_path
         else:
             ecmwf_path = None

@@ -30,10 +30,10 @@ def _surface_brightness_temperature(acquisition, acquisitions, bilinear_fname,
         h5py.File(ancillary_fname, 'r') as fid_anc,\
         h5py.File(out_fname, 'w') as fid:
 
-        grp1 = interp_fid[GroupName.interp_group.value]
+        grp1 = interp_fid[GroupName.INTERP_GROUP.value]
         surface_brightness_temperature(acquisition, grp1, fid, compression)
 
-        grp2 = fid_anc[GroupName.ancillary_group.value]
+        grp2 = fid_anc[GroupName.ANCILLARY_GROUP.value]
         create_ard_yaml(acquisitions, grp2, fid, True)
 
 
@@ -63,7 +63,7 @@ def surface_brightness_temperature(acquisition, interpolation_group,
         atmospheric coefficients.
         The dataset pathnames are given by the following string format:
 
-        * DatasetName.interpolation_fmt
+        * DatasetName.INTERPOLATION_FMT
 
     :param out_group:
         If set to None (default) then the results will be returned
@@ -73,7 +73,7 @@ def surface_brightness_temperature(acquisition, interpolation_group,
         The dataset names will be given by the format string detailed
         by:
 
-        * DatasetName.temperature_fmt
+        * DatasetName.TEMPERATURE_FMT
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -101,10 +101,10 @@ def surface_brightness_temperature(acquisition, interpolation_group,
     bn = acq.band_name
 
     # retrieve the upwelling radiation and transmittance datasets
-    dname_fmt = DatasetName.interpolation_fmt.value
-    dname = dname_fmt.format(coefficient=AC.path_up.value, band_name=bn)
+    dname_fmt = DatasetName.INTERPOLATION_FMT.value
+    dname = dname_fmt.format(coefficient=AC.PATH_UP.value, band_name=bn)
     upwelling_radiation = interpolation_group[dname]
-    dname = dname_fmt.format(coefficient=AC.transmittance_up.value, band_name=bn)
+    dname = dname_fmt.format(coefficient=AC.TRANSMITTANCE_UP.value, band_name=bn)
     transmittance = interpolation_group[dname]
 
     # Initialise the output file
@@ -114,10 +114,10 @@ def surface_brightness_temperature(acquisition, interpolation_group,
     else:
         fid = out_group
 
-    if GroupName.standard_group.value not in fid:
-        fid.create_group(GroupName.standard_group.value)
+    if GroupName.STANDARD_GROUP.value not in fid:
+        fid.create_group(GroupName.STANDARD_GROUP.value)
 
-    group = fid[GroupName.standard_group.value]
+    group = fid[GroupName.STANDARD_GROUP.value]
     kwargs = dataset_compression_kwargs(compression, chunks=acq.tile_size)
     kwargs['shape'] = (acq.lines, acq.samples)
     kwargs['fillvalue'] = NO_DATA_VALUE
@@ -133,8 +133,8 @@ def surface_brightness_temperature(acquisition, interpolation_group,
              'band_name': bn,
              'alias': acq.alias}
 
-    name_fmt = DatasetName.temperature_fmt.value
-    dataset_name = name_fmt.format(product=ArdProducts.sbt.value,
+    name_fmt = DatasetName.TEMPERATURE_FMT.value
+    dataset_name = name_fmt.format(product=ArdProducts.SBT.value,
                                    band_name=acq.band_name)
     out_dset = group.create_dataset(dataset_name, **kwargs)
 

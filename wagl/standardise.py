@@ -67,10 +67,10 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
 
             # satellite and solar angles
             log.info('Satellite-Solar-Angles')
-            calculate_angles(acqs[0], root[GroupName.lon_lat_group.value],
+            calculate_angles(acqs[0], root[GroupName.LON_LAT_GROUP.value],
                              root, compression, tle_path)
 
-            if model == Model.standard or model == model.nbar:
+            if model == Model.STANDARD or model == model.NBAR:
 
                 # DEM
                 log.info('DEM-retriveal')
@@ -79,25 +79,25 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
                 # slope & aspect
                 log.info('Slope-Aspect')
                 slope_aspect_arrays(acqs[0],
-                                    root[GroupName.elevation_group.value],
+                                    root[GroupName.ELEVATION_GROUP.value],
                                     buffer_distance, root, compression)
 
                 # incident angles
                 log.info('Incident-Angles')
-                incident_angles(root[GroupName.sat_sol_group.value],
-                                root[GroupName.slp_asp_group.value],
+                incident_angles(root[GroupName.SAT_SOL_GROUP.value],
+                                root[GroupName.SLP_ASP_GROUP.value],
                                 root, compression)
 
                 # exiting angles
                 log.info('Exiting-Angles')
-                exiting_angles(root[GroupName.sat_sol_group.value],
-                               root[GroupName.slp_asp_group.value],
+                exiting_angles(root[GroupName.SAT_SOL_GROUP.value],
+                               root[GroupName.SLP_ASP_GROUP.value],
                                root, compression)
 
                 # relative azimuth slope
                 log.info('Relative-Azimuth-Angles')
-                incident_group_name = GroupName.incident_group.value
-                exiting_group_name = GroupName.exiting_group.value
+                incident_group_name = GroupName.INCIDENT_GROUP.value
+                exiting_group_name = GroupName.EXITING_GROUP.value
                 relative_azimuth_slope(root[incident_group_name],
                                        root[exiting_group_name],
                                        root, compression)
@@ -109,22 +109,22 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
 
                 # cast shadow solar source direction
                 log.info('Cast-Shadow-Solar-Direction')
-                dsm_group_name = GroupName.elevation_group.value
+                dsm_group_name = GroupName.ELEVATION_GROUP.value
                 calculate_cast_shadow(acqs[0], root[dsm_group_name],
-                                      root[GroupName.sat_sol_group.value],
+                                      root[GroupName.SAT_SOL_GROUP.value],
                                       buffer_distance, root, compression)
 
                 # cast shadow satellite source direction
                 log.info('Cast-Shadow-Satellite-Direction')
                 calculate_cast_shadow(acqs[0], root[dsm_group_name],
-                                      root[GroupName.sat_sol_group.value],
+                                      root[GroupName.SAT_SOL_GROUP.value],
                                       buffer_distance, root, compression, False)
 
                 # combined shadow masks
                 log.info('Combined-Shadow')
-                combine_shadow_masks(root[GroupName.shadow_group.value],
-                                     root[GroupName.shadow_group.value],
-                                     root[GroupName.shadow_group.value],
+                combine_shadow_masks(root[GroupName.SHADOW_GROUP.value],
+                                     root[GroupName.SHADOW_GROUP.value],
+                                     root[GroupName.SHADOW_GROUP.value],
                                      root, compression)
 
         # nbar and sbt ancillary
@@ -147,18 +147,18 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
                       'dem_path': dem_path,
                       'brdf_path': brdf_path,
                       'brdf_premodis_path': brdf_premodis_path}
-        collect_ancillary(grn_con, res_group[GroupName.sat_sol_group.value],
+        collect_ancillary(grn_con, res_group[GroupName.SAT_SOL_GROUP.value],
                           nbar_paths, ecmwf_path, invariant_fname,
                           vertices, root, compression)
 
         # atmospherics
         log.info('Atmospherics')
 
-        ancillary_group = root[GroupName.ancillary_group.value]
+        ancillary_group = root[GroupName.ANCILLARY_GROUP.value]
 
         # satellite/solar angles and lon/lat for a resolution group
-        sat_sol_grp = res_group[GroupName.sat_sol_group.value]
-        lon_lat_grp = res_group[GroupName.lon_lat_group.value]
+        sat_sol_grp = res_group[GroupName.SAT_SOL_GROUP.value]
+        lon_lat_grp = res_group[GroupName.LON_LAT_GROUP.value]
 
         # TODO: supported acqs in different groups pointing to different response funcs
         # tp5 files
@@ -166,7 +166,7 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
                                  lon_lat_grp, model, root)
 
         # atmospheric inputs group
-        inputs_grp = root[GroupName.atmospheric_inputs_grp.value]
+        inputs_grp = root[GroupName.ATMOSPHERIC_INPUTS_GRP.value]
 
         # radiative transfer for each point and albedo
         for key in tp5_data:
@@ -188,7 +188,7 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
 
         # atmospheric coefficients
         log.info('Coefficients')
-        results_group = root[GroupName.atmospheric_results_grp.value]
+        results_group = root[GroupName.ATMOSPHERIC_RESULTS_GRP.value]
         calculate_coefficients(results_group, root, compression)
 
         # interpolate coefficients
@@ -200,16 +200,16 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
             # acquisitions and available bands for the current group level
             acqs = container.get_acquisitions(granule=granule, group=grp_name)
             nbar_acqs = [acq for acq in acqs if
-                         acq.band_type == BandType.Reflective]
+                         acq.band_type == BandType.REFLECTIVE]
             sbt_acqs = [acq for acq in acqs if
-                        acq.band_type == BandType.Thermal]
+                        acq.band_type == BandType.THERMAL]
 
             res_group = root[grp_name]
-            sat_sol_grp = res_group[GroupName.sat_sol_group.value]
-            comp_grp = root[GroupName.coefficients_group.value]
+            sat_sol_grp = res_group[GroupName.SAT_SOL_GROUP.value]
+            comp_grp = root[GroupName.COEFFICIENTS_GROUP.value]
 
             for coefficient in model.atmos_coefficients:
-                if coefficient in Model.nbar.atmos_coefficients:
+                if coefficient in Model.NBAR.atmos_coefficients:
                     band_acqs = nbar_acqs
                 else:
                     band_acqs = sbt_acqs
@@ -222,25 +222,25 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
 
             # standardised products
             band_acqs = []
-            if model == Model.standard or model == model.nbar:
+            if model == Model.STANDARD or model == model.NBAR:
                 band_acqs.extend(nbar_acqs)
 
-            if model == Model.standard or model == model.sbt:
+            if model == Model.STANDARD or model == model.SBT:
                 band_acqs.extend(sbt_acqs)
 
             for acq in band_acqs:
-                interp_grp = res_group[GroupName.interp_group.value]
+                interp_grp = res_group[GroupName.INTERP_GROUP.value]
 
-                if acq.band_type == BandType.Thermal:
+                if acq.band_type == BandType.THERMAL:
                     log.info('SBT', band_id=acq.band_id)
                     surface_brightness_temperature(acq, interp_grp, res_group,
                                                    compression)
                 else:
-                    slp_asp_grp = res_group[GroupName.slp_asp_group.value]
-                    rel_slp_asp = res_group[GroupName.rel_slp_group.value]
-                    incident_grp = res_group[GroupName.incident_group.value]
-                    exiting_grp = res_group[GroupName.exiting_group.value]
-                    shadow_grp = res_group[GroupName.shadow_group.value]
+                    slp_asp_grp = res_group[GroupName.SLP_ASP_GROUP.value]
+                    rel_slp_asp = res_group[GroupName.REL_SLP_GROUP.value]
+                    incident_grp = res_group[GroupName.INCIDENT_GROUP.value]
+                    exiting_grp = res_group[GroupName.EXITING_GROUP.value]
+                    shadow_grp = res_group[GroupName.SHADOW_GROUP.value]
 
                     log.info('Surface-Reflectance', band_id=acq.band_id)
                     calculate_reflectance(acq, interp_grp, sat_sol_grp,
@@ -250,14 +250,14 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
                                           rori, res_group, compression)
 
             # metadata yaml's
-            if model == Model.standard or model == Model.nbar:
+            if model == Model.STANDARD or model == Model.NBAR:
                 create_ard_yaml(band_acqs, ancillary_group, res_group)
 
-            if model == Model.standard or model == Model.sbt:
+            if model == Model.standard or model == Model.SBT:
                 create_ard_yaml(band_acqs, ancillary_group, res_group, True)
 
             # pixel quality
-            sbt_only = model == Model.sbt
+            sbt_only = model == Model.SBT
             if pixel_quality and can_pq(level1, acq_parser_hint) and not sbt_only:
-                run_pq(level1, res_group, landsea, res_group, compression, AP.nbar, acq_parser_hint)
-                run_pq(level1, res_group, landsea, res_group, compression, AP.nbart, acq_parser_hint)
+                run_pq(level1, res_group, landsea, res_group, compression, AP.NBAR, acq_parser_hint)
+                run_pq(level1, res_group, landsea, res_group, compression, AP.NBART, acq_parser_hint)

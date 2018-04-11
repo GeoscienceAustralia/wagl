@@ -4,7 +4,7 @@
             "band_ids": {
                 "1": {
                     "alias": "Blue",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-1",
                     "wavelength": [0.45, 0.52],
                     "spectral_filter_file": "landsat5_vsir.flt",
@@ -15,7 +15,7 @@
                 },
                 "2": {
                     "alias": "Green",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-2",
                     "wavelength": [0.52, 0.60],
                     "spectral_filter_file": "landsat5_vsir.flt",
@@ -26,7 +26,7 @@
                 },
                 "3": {
                     "alias": "Red",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-3",
                     "wavelength": [0.63, 0.69],
                     "spectral_filter_file": "landsat5_vsir.flt",
@@ -37,7 +37,7 @@
                 },
                 "4": {
                     "alias": "NIR",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-4",
                     "wavelength": [0.76, 0.90],
                     "spectral_filter_file": "landsat5_vsir.flt",
@@ -48,7 +48,7 @@
                 },
                 "5": {
                     "alias": "SWIR-1",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-5",
                     "wavelength": [1.55, 1.75],
                     "spectral_filter_file": "landsat5_vsir.flt",
@@ -59,7 +59,7 @@
                 },
                 "6": {
                     "alias": "Thermal-Infrared",
-                    "band_type": "Thermal",
+                    "band_type": "THERMAL",
                     "band_name": "BAND-6",
                     "wavelength": [10.4, 12.5],
                     "spectral_filter_file": "landsat5_thermal.flt",
@@ -70,7 +70,7 @@
                 },
                 "7": {
                     "alias": "SWIR-2",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-7",
                     "wavelength": [2.08, 2.35],
                     "spectral_filter_file": "landsat5_vsir.flt",
@@ -87,7 +87,7 @@
             "band_ids": {
                 "1": {
                     "alias": "Blue",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-1",
                     "wavelength": [0.45, 0.52],
                     "spectral_filter_file": "landsat7_vsir.flt",
@@ -98,7 +98,7 @@
                 },
                 "2": {
                     "alias": "Green",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-2",
                     "wavelength": [0.52, 0.60],
                     "spectral_filter_file": "landsat7_vsir.flt",
@@ -109,7 +109,7 @@
                 },
                 "3": {
                     "alias": "Red",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-3",
                     "wavelength": [0.63, 0.69],
                     "spectral_filter_file": "landsat7_vsir.flt",
@@ -120,7 +120,7 @@
                 },
                 "4": {
                     "alias": "NIR",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-4",
                     "wavelength": [0.76, 0.90],
                     "spectral_filter_file": "landsat7_vsir.flt",
@@ -131,7 +131,7 @@
                 },
                 "5": {
                     "alias": "SWIR-1",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-5",
                     "wavelength": [1.55, 1.75],
                     "spectral_filter_file": "landsat7_vsir.flt",
@@ -142,7 +142,7 @@
                 },
                 "61": {
                     "alias": "Thermal-Infrared-[Low-Gain]",
-                    "band_type": "Thermal",
+                    "band_type": "THERMAL",
                     "band_name": "BAND-61",
                     "wavelength": [10.4, 12.5],
                     "spectral_filter_file": "landsat7_thermal.flt",
@@ -153,7 +153,7 @@
                 },
                 "62": {
                     "alias": "Thermal-Infrared-[High-Gain]",
-                    "band_type": "Thermal",
+                    "band_type": "THERMAL",
                     "band_name": "BAND-62",
                     "wavelength": [10.4, 12.5],
                     "spectral_filter_file": "landsat7_thermal.flt",
@@ -164,7 +164,7 @@
                 },
                 "7": {
                     "alias": "SWIR-2",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-7",
                     "wavelength": [2.08, 2.35],
                     "spectral_filter_file": "landsat5_vsir.flt",
@@ -181,7 +181,7 @@
             "band_ids": {
                 "1": {
                     "alias": "Coastal-Aerosol",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-1",
                     "wavelength": [0.433, 0.453],
                     "spectral_filter_file": "landsat8_vsir.flt",
@@ -192,7 +192,7 @@
                 },
                 "2": {
                     "alias": "Blue",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-2",
                     "wavelength": [0.45, 0.515],
                     "spectral_filter_file": "landsat8_vsir.flt",
@@ -203,7 +203,7 @@
                 },
                 "3": {
                     "alias": "Green",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-3",
                     "wavelength": [0.525, 0.60],
                     "spectral_filter_file": "landsat8_vsir.flt",
@@ -214,7 +214,7 @@
                 },
                 "4": {
                     "alias": "Red",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-4",
                     "wavelength": [0.63, 0.68],
                     "spectral_filter_file": "landsat8_vsir.flt",
@@ -225,7 +225,7 @@
                 },
                 "5": {
                     "alias": "NIR",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-5",
                     "wavelength": [0.845, 0.885],
                     "spectral_filter_file": "landsat8_vsir.flt",
@@ -236,7 +236,7 @@
                 },
                 "6": {
                     "alias": "SWIR-1",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-6",
                     "wavelength": [1.56,1.66],
                     "spectral_filter_file": "landsat8_vsir.flt",
@@ -247,7 +247,7 @@
                 },
                 "7": {
                     "alias": "SWIR-2",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-7",
                     "wavelength": [2.1, 2.3],
                     "spectral_filter_file": "landsat8_vsir.flt",
@@ -262,7 +262,7 @@
             "band_ids": {
                 "1": {
                     "alias": "Coastal-Aerosol",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-1",
                     "wavelength": [0.433, 0.453],
                     "spectral_filter_file": "landsat8_vsir.flt",
@@ -273,7 +273,7 @@
                 },
                 "10": {
                     "alias": "Thermal-Infrared-1",
-                    "band_type": "Thermal",
+                    "band_type": "THERMAL",
                     "band_name": "BAND-10",
                     "wavelength": [10.3, 11.3],
                     "spectral_filter_file": "landsat8_thermal.flt",
@@ -284,7 +284,7 @@
                 },
                 "11": {
                     "alias": "Thermal-Infrared-2",
-                    "band_type": "Thermal",
+                    "band_type": "THERMAL",
                     "band_name": "BAND-11",
                     "wavelength": [11.5, 12.5],
                     "spectral_filter_file": "landsat8_thermal.flt",
@@ -295,7 +295,7 @@
                 },
                 "2": {
                     "alias": "Blue",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-2",
                     "wavelength": [0.45, 0.515],
                     "spectral_filter_file": "landsat8_vsir.flt",
@@ -306,7 +306,7 @@
                 },
                 "3": {
                     "alias": "Green",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-3",
                     "wavelength": [0.525, 0.60],
                     "spectral_filter_file": "landsat8_vsir.flt",
@@ -317,7 +317,7 @@
                 },
                 "4": {
                     "alias": "Red",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-4",
                     "wavelength": [0.63, 0.68],
                     "spectral_filter_file": "landsat8_vsir.flt",
@@ -328,7 +328,7 @@
                 },
                 "5": {
                     "alias": "NIR",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-5",
                     "wavelength": [0.845, 0.885],
                     "spectral_filter_file": "landsat8_vsir.flt",
@@ -339,7 +339,7 @@
                 },
                 "6": {
                     "alias": "SWIR-1",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-6",
                     "wavelength": [1.56, 1.66],
                     "spectral_filter_file": "landsat8_vsir.flt",
@@ -350,7 +350,7 @@
                 },
                 "7": {
                     "alias": "SWIR-2",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-7",
                     "wavelength": [2.1, 2.3],
                     "spectral_filter_file": "landsat8_vsir.flt",
@@ -367,7 +367,7 @@
            "band_ids": {
                "1": {
                    "alias": "Coastal-Aerosol",
-                   "band_type": "Reflective",
+                   "band_type": "REFLECTIVE",
                    "band_name": "BAND-1",
                    "wavelength": [0.433, 0.453],
                    "spectral_filter_file": "sentinel2a_all.flt",
@@ -380,7 +380,7 @@
                },
                "2": {
                    "alias": "Blue",
-                   "band_type": "Reflective",
+                   "band_type": "REFLECTIVE",
                    "band_name": "BAND-2",
                    "wavelength": [0.4575, 0.5225],
                    "spectral_filter_file": "sentinel2a_all.flt",
@@ -393,7 +393,7 @@
                },
                "3": {
                    "alias": "Green",
-                   "band_type": "Reflective",
+                   "band_type": "REFLECTIVE",
                    "band_name": "BAND-3",
                    "wavelength": [0.5425, 0.5775],
                    "spectral_filter_file": "sentinel2a_all.flt",
@@ -406,7 +406,7 @@
                },
                "4": {
                    "alias": "Red",
-                   "band_type": "Reflective",
+                   "band_type": "REFLECTIVE",
                    "band_name": "BAND-4",
                    "wavelength": [0.650, 0.680],
                    "spectral_filter_file": "sentinel2a_all.flt",
@@ -419,7 +419,7 @@
                },
                "5": {
                    "alias": "Red-Edge-1",
-                   "band_type": "Reflective",
+                   "band_type": "REFLECTIVE",
                    "band_name": "BAND-5",
                    "wavelength": [0.6975, 0.7125],
                    "spectral_filter_file": "sentinel2a_all.flt",
@@ -432,7 +432,7 @@
                },
                "6": {
                    "alias": "Red-Edge-2",
-                   "band_type": "Reflective",
+                   "band_type": "REFLECTIVE",
                    "band_name": "BAND-6",
                    "wavelength": [0.7325, 0.7475],
                    "spectral_filter_file": "sentinel2a_all.flt",
@@ -445,7 +445,7 @@
                },
                "7": {
                    "alias": "Red-Edge-3",
-                   "band_type": "Reflective",
+                   "band_type": "REFLECTIVE",
                    "band_name": "BAND-7",
                    "wavelength": [0.773, 0.793],
                    "spectral_filter_file": "sentinel2a_all.flt",
@@ -458,7 +458,7 @@
                },
                "8": {
                    "alias": "NIR-1",
-                   "band_type": "Reflective",
+                   "band_type": "REFLECTIVE",
                    "band_name": "BAND-8",
                    "wavelength": [0.7845, 0.8995],
                    "spectral_filter_file": "sentinel2a_all.flt",
@@ -471,7 +471,7 @@
                },
                "8A": {
                    "alias": "NIR-2",
-                   "band_type": "Reflective",
+                   "band_type": "REFLECTIVE",
                    "band_name": "BAND-8A",
                    "wavelength": [0.855, 0.875],
                    "spectral_filter_file": "sentinel2a_all.flt",
@@ -484,7 +484,7 @@
                },
                "9": {
                    "alias": "Water-Vapour",
-                   "band_type": "Reflective",
+                   "band_type": "REFLECTIVE",
                    "band_name": "BAND-9",
                    "wavelength": [0.935, 0.955],
                    "spectral_filter_file": "sentinel2a_all.flt",
@@ -503,7 +503,7 @@
                },
                "11": {
                    "alias": "SWIR-2",
-                   "band_type": "Reflective",
+                   "band_type": "REFLECTIVE",
                    "band_name": "BAND-11",
                    "wavelength": [1.565, 1.655],
                    "spectral_filter_file": "sentinel2a_all.flt",
@@ -516,7 +516,7 @@
                },
                "12": {
                    "alias": "SWIR-3",
-                   "band_type": "Reflective",
+                   "band_type": "REFLECTIVE",
                    "band_name": "BAND-12",
                    "wavelength": [2.10, 2.280],
                    "spectral_filter_file": "sentinel2a_all.flt",
@@ -538,7 +538,7 @@
             "band_ids": {
                 "1": {
                     "alias": "Coastal-Aerosol",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-1",
                     "wavelength": [0.433, 0.453],
                     "spectral_filter_file": "sentinel2b_all.flt",
@@ -551,7 +551,7 @@
                 },
                 "2": {
                     "alias": "Blue",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-2",
                     "wavelength": [0.4575, 0.5225],
                     "spectral_filter_file": "sentinel2b_all.flt",
@@ -564,7 +564,7 @@
                 },
                 "3": {
                     "alias": "Green",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-3",
                     "wavelength": [0.5425, 0.5775],
                     "spectral_filter_file": "sentinel2b_all.flt",
@@ -577,7 +577,7 @@
                 },
                 "4": {
                     "alias": "Red",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-4",
                     "wavelength": [0.650, 0.680],
                     "spectral_filter_file": "sentinel2b_all.flt",
@@ -590,7 +590,7 @@
                 },
                 "5": {
                     "alias": "Red-Edge-1",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-5",
                     "wavelength": [0.6975, 0.7125],
                     "spectral_filter_file": "sentinel2b_all.flt",
@@ -603,7 +603,7 @@
                 },
                 "6": {
                     "alias": "Red-Edge-2",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-6",
                     "wavelength": [0.7325, 0.7475],
                     "spectral_filter_file": "sentinel2b_all.flt",
@@ -616,7 +616,7 @@
                 },
                 "7": {
                     "alias": "Red-Edge-3",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-7",
                     "wavelength": [0.773, 0.793],
                     "spectral_filter_file": "sentinel2b_all.flt",
@@ -629,7 +629,7 @@
                 },
                 "8": {
                     "alias": "NIR-1",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-8",
                     "wavelength": [0.7845, 0.8995],
                     "spectral_filter_file": "sentinel2b_all.flt",
@@ -642,7 +642,7 @@
                 },
                 "8A": {
                     "alias": "NIR-2",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-8A",
                     "wavelength": [0.855, 0.875],
                     "spectral_filter_file": "sentinel2b_all.flt",
@@ -655,7 +655,7 @@
                 },
                 "9": {
                     "alias": "Water-Vapour",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-9",
                     "wavelength": [0.935, 0.955],
                     "spectral_filter_file": "sentinel2b_all.flt",
@@ -669,13 +669,13 @@
                 "10": {
                     "alias": "SWIR-1",
                     "c1": 0.0005,
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "radiance_scale_factor": null,
                     "supported_band": false
                 },
                 "11": {
                     "alias": "SWIR-2",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-11",
                     "wavelength": [1.565, 1.655],
                     "spectral_filter_file": "sentinel2b_all.flt",
@@ -688,7 +688,7 @@
                 },
                 "12": {
                     "alias": "SWIR-3",
-                    "band_type": "Reflective",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-12",
                     "wavelength": [2.10, 2.280],
                     "spectral_filter_file": "sentinel2b_all.flt",
@@ -700,7 +700,7 @@
                     "supported_band": true
                 },
                 "TCI": {
-                    "band_type": "Quality",
+                    "band_type": "QUALITY",
                     "supported_band": false
                 }
             }

@@ -81,7 +81,7 @@ def _collect_ancillary(container, satellite_solar_fname, nbar_paths,
     with h5py.File(satellite_solar_fname, 'r') as fid,\
         h5py.File(out_fname, 'w') as out_fid:
 
-        sat_sol_grp = fid[GroupName.sat_sol_group.value]
+        sat_sol_grp = fid[GroupName.SAT_SOL_GROUP.value]
         collect_ancillary(container, sat_sol_grp, nbar_paths, sbt_path,
                           invariant_fname, vertices, out_fid, compression)
 
@@ -107,7 +107,7 @@ def collect_ancillary(container, satellite_solar_group, nbar_paths,
         The root HDF5 `Group` that contains the solar zenith and
         solar azimuth datasets specified by the pathnames given by:
 
-        * DatasetName.boxline
+        * DatasetName.BOXLINE
 
     :param nbar_paths:
         A `dict` containing the ancillary pathnames required for
@@ -158,11 +158,11 @@ def collect_ancillary(container, satellite_solar_group, nbar_paths,
     else:
         fid = out_group
 
-    group = fid.create_group(GroupName.ancillary_group.value)
+    group = fid.create_group(GroupName.ANCILLARY_GROUP.value)
 
     acquisition = container.get_highest_resolution()[0][0]
 
-    boxline_dataset = satellite_solar_group[DatasetName.boxline.value][:]
+    boxline_dataset = satellite_solar_group[DatasetName.BOXLINE.value][:]
     coordinator = create_vertices(acquisition, boxline_dataset, vertices)
     lonlats = zip(coordinator['longitude'], coordinator['latitude'])
 
@@ -170,7 +170,7 @@ def collect_ancillary(container, satellite_solar_group, nbar_paths,
             "atmospheric calculations.")
     attrs = {'description': desc, 'array_coordinate_offset': 0}
     kwargs = dataset_compression_kwargs(compression=compression)
-    dset_name = DatasetName.coordinator.value
+    dset_name = DatasetName.COORDINATOR.value
     coord_dset = group.create_dataset(dset_name, data=coordinator, **kwargs)
     attach_table_attributes(coord_dset, title='Coordinator', attrs=attrs)
 
@@ -250,19 +250,19 @@ def collect_sbt_ancillary(acquisition, lonlats, ancillary_path,
         sfc_rh = relative_humdity(t2m[0], dew[0])
 
         # output the scalar data along with the attrs
-        dname = ppjoin(pnt, DatasetName.dewpoint_temperature.value)
+        dname = ppjoin(pnt, DatasetName.DEWPOINT_TEMPERATURE.value)
         write_scalar(dew[0], dname, fid, dew[1])
 
-        dname = ppjoin(pnt, DatasetName.temperature_2m.value)
+        dname = ppjoin(pnt, DatasetName.TEMPERATURE_2M.value)
         write_scalar(t2m[0], dname, fid, t2m[1])
 
-        dname = ppjoin(pnt, DatasetName.surface_pressure.value)
+        dname = ppjoin(pnt, DatasetName.SURFACE_PRESSURE.value)
         write_scalar(sfc_prs[0], dname, fid, sfc_prs[1])
 
-        dname = ppjoin(pnt, DatasetName.surface_geopotential.value)
+        dname = ppjoin(pnt, DatasetName.SURFACE_GEOPOTENTIAL.value)
         write_scalar(sfc_hgt[0], dname, fid, sfc_hgt[1])
 
-        dname = ppjoin(pnt, DatasetName.surface_relative_humidity.value)
+        dname = ppjoin(pnt, DatasetName.SURFACE_RELATIVE_HUMIDITY.value)
         attrs = {'description': 'Relative Humidity calculated at the surface'}
         write_scalar(sfc_rh, dname, fid, attrs)
 
@@ -271,13 +271,13 @@ def collect_sbt_ancillary(acquisition, lonlats, ancillary_path,
         tmp = ecwmf_temperature(ancillary_path, lonlat, dt)
         rh = ecwmf_relative_humidity(ancillary_path, lonlat, dt)
 
-        dname = ppjoin(pnt, DatasetName.geopotential.value)
+        dname = ppjoin(pnt, DatasetName.GEOPOTENTIAL.value)
         write_dataframe(gph[0], dname, fid, compression, attrs=gph[1])
 
-        dname = ppjoin(pnt, DatasetName.temperature.value)
+        dname = ppjoin(pnt, DatasetName.TEMPERATURE.value)
         write_dataframe(tmp[0], dname, fid, compression, attrs=tmp[1])
 
-        dname = ppjoin(pnt, DatasetName.relative_humidity.value)
+        dname = ppjoin(pnt, DatasetName.RELATIVE_HUMIDITY.value)
         write_dataframe(rh[0], dname, fid, compression, attrs=rh[1])
 
         # combine the surface and higher pressure layers into a single array
@@ -304,7 +304,7 @@ def collect_sbt_ancillary(acquisition, lonlats, ancillary_path,
         df = df.append(layers[wh])
         df.reset_index(drop=True, inplace=True)
 
-        dname = ppjoin(pnt, DatasetName.atmospheric_profile.value)
+        dname = ppjoin(pnt, DatasetName.ATMOSPHERIC_PROFILE.value)
         write_dataframe(df, dname, fid, compression, attrs=attrs)
 
         fid[pnt].attrs['lonlat'] = lonlat
@@ -382,22 +382,22 @@ def collect_nbar_ancillary(container, aerosol_dict=None,
     geobox = acquisition.gridded_geo_box()
 
     aerosol = get_aerosol_data(acquisition, aerosol_dict)
-    write_scalar(aerosol[0], DatasetName.aerosol.value, fid, aerosol[1])
+    write_scalar(aerosol[0], DatasetName.AEROSOL.value, fid, aerosol[1])
 
     wv = get_water_vapour(acquisition, water_vapour_dict)
-    write_scalar(wv[0], DatasetName.water_vapour.value, fid, wv[1])
+    write_scalar(wv[0], DatasetName.WATER_VAPOUR.value, fid, wv[1])
 
     ozone = get_ozone_data(ozone_path, geobox.centre_lonlat, dt)
-    write_scalar(ozone[0], DatasetName.ozone.value, fid, ozone[1])
+    write_scalar(ozone[0], DatasetName.OZONE.value, fid, ozone[1])
 
     elev = get_elevation_data(geobox.centre_lonlat, dem_path)
-    write_scalar(elev[0], DatasetName.elevation.value, fid, elev[1])
+    write_scalar(elev[0], DatasetName.ELEVATION.value, fid, elev[1])
 
     # brdf
-    dname_format = DatasetName.brdf_fmt.value
+    dname_format = DatasetName.BRDF_FMT.value
     for group in container.groups:
         for acq in container.get_acquisitions(group=group):
-            if acq.band_type is not BandType.Reflective:
+            if acq.band_type is not BandType.REFLECTIVE:
                 continue
             data = get_brdf_data(acq, brdf_path, brdf_premodis_path,
                                  compression)
@@ -445,12 +445,12 @@ def aggregate_ancillary(granule_groups):
     n_tiles = len(granule_groups)
 
     for granule in granule_groups:
-        group = granule[GroupName.ancillary_group.value]
+        group = granule[GroupName.ANCILLARY_GROUP.value]
 
-        ozone += group[DatasetName.ozone.value][()]
-        vapour += group[DatasetName.water_vapour.value][()]
-        aerosol += group[DatasetName.aerosol.value][()]
-        elevation += group[DatasetName.elevation.value][()]
+        ozone += group[DatasetName.OZONE.value][()]
+        vapour += group[DatasetName.WATER_VAPOUR.value][()]
+        aerosol += group[DatasetName.AEROSOL.value][()]
+        elevation += group[DatasetName.ELEVATION.value][()]
 
     # average
     ozone /= n_tiles
@@ -463,8 +463,8 @@ def aggregate_ancillary(granule_groups):
     attrs = {'data_source': 'granule_average'}
 
     # output each average value back into the same granule ancillary group
-    group_name = ppjoin(GroupName.ancillary_group.value,
-                        GroupName.ancillary_avg_group.value)
+    group_name = ppjoin(GroupName.ANCILLARY_GROUP.value,
+                        GroupName.ANCILLARY_AVG_GROUP.value)
     for granule in granule_groups:
         # for the multifile workflow, we only want to write to one granule
         try:
@@ -472,19 +472,19 @@ def aggregate_ancillary(granule_groups):
         except ValueError:
             continue
 
-        dset = group.create_dataset(DatasetName.ozone.value, data=ozone)
+        dset = group.create_dataset(DatasetName.OZONE.value, data=ozone)
         attrs['description'] = description.format(*(2*['Ozone']))
         attach_attributes(dset, attrs)
 
-        dset = group.create_dataset(DatasetName.water_vapour.value, data=vapour)
+        dset = group.create_dataset(DatasetName.WATER_VAPOUR.value, data=vapour)
         attrs['description'] = description.format(*(2*['Water Vapour']))
         attach_attributes(dset, attrs)
 
-        dset = group.create_dataset(DatasetName.aerosol.value, data=aerosol)
+        dset = group.create_dataset(DatasetName.AEROSOL.value, data=aerosol)
         attrs['description'] = description.format(*(2*['Aerosol']))
         attach_attributes(dset, attrs)
 
-        dset = group.create_dataset(DatasetName.elevation.value, data=elevation)
+        dset = group.create_dataset(DatasetName.ELEVATION.value, data=elevation)
         attrs['description'] = description.format(*(2*['Elevation']))
         attach_attributes(dset, attrs)
 
@@ -707,8 +707,8 @@ def ecwmf_temperature_2metre(input_path, lonlat, time):
     Retrieve a pixel value from the ECWMF 2 metre Temperature
     collection.
     """
-    product = DatasetName.temperature_2m.value.lower()
-    search = pjoin(input_path, DatasetName.ecmwf_path_fmt.value)
+    product = DatasetName.TEMPERATURE_2M.value.lower()
+    search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
     files = glob.glob(search.format(product=product, year=time.year))
     data = None
     required_ymd = datetime.datetime(time.year, time.month, time.day)
@@ -739,8 +739,8 @@ def ecwmf_dewpoint_temperature(input_path, lonlat, time):
     Retrieve a pixel value from the ECWMF 2 metre Dewpoint
     Temperature collection.
     """
-    product = DatasetName.dewpoint_temperature.value.lower()
-    search = pjoin(input_path, DatasetName.ecmwf_path_fmt.value)
+    product = DatasetName.DEWPOINT_TEMPERATURE.value.lower()
+    search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
     files = glob.glob(search.format(product=product, year=time.year))
     data = None
     required_ymd = datetime.datetime(time.year, time.month, time.day)
@@ -773,8 +773,8 @@ def ecwmf_surface_pressure(input_path, lonlat, time):
     collection.
     Scales the result by 100 before returning.
     """
-    product = DatasetName.surface_pressure.value.lower()
-    search = pjoin(input_path, DatasetName.ecmwf_path_fmt.value)
+    product = DatasetName.SURFACE_PRESSURE.value.lower()
+    search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
     files = glob.glob(search.format(product=product, year=time.year))
     data = None
     required_ymd = datetime.datetime(time.year, time.month, time.day)
@@ -805,8 +805,8 @@ def ecwmf_water_vapour(input_path, lonlat, time):
     Retrieve a pixel value from the ECWMF Total Column Water Vapour
     collection.
     """
-    product = DatasetName.water_vapour.value.lower()
-    search = pjoin(input_path, DatasetName.ecmwf_path_fmt.value)
+    product = DatasetName.WATER_VAPOUR.value.lower()
+    search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
     files = glob.glob(search.format(product=product, year=time.year))
     data = None
     required_ymd = datetime.datetime(time.year, time.month, time.day)
@@ -842,8 +842,8 @@ def ecwmf_temperature(input_path, lonlat, time):
     Reverses the order of elements
     (1000 -> 1 mb, rather than 1 -> 1000 mb) before returning.
     """
-    product = DatasetName.temperature.value.lower()
-    search = pjoin(input_path, DatasetName.ecmwf_path_fmt.value)
+    product = DatasetName.TEMPERATURE.value.lower()
+    search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
     files = glob.glob(search.format(product=product, year=time.year))
     data = None
     required_ymd = datetime.datetime(time.year, time.month, time.day)
@@ -884,8 +884,8 @@ def ecwmf_geo_potential(input_path, lonlat, time):
     the elements (1000 -> 1 mb, rather than 1 -> 1000 mb) before
     returning.
     """
-    product = DatasetName.geopotential.value.lower()
-    search = pjoin(input_path, DatasetName.ecmwf_path_fmt.value)
+    product = DatasetName.GEOPOTENTIAL.value.lower()
+    search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
     files = glob.glob(search.format(product=product, year=time.year))
     data = None
     required_ymd = datetime.datetime(time.year, time.month, time.day)
@@ -927,8 +927,8 @@ def ecwmf_relative_humidity(input_path, lonlat, time):
     Reverses the order of elements
     (1000 -> 1 mb, rather than 1 -> 1000 mb) before returning.
     """
-    product = DatasetName.relative_humidity.value.lower()
-    search = pjoin(input_path, DatasetName.ecmwf_path_fmt.value)
+    product = DatasetName.RELATIVE_HUMIDITY.value.lower()
+    search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
     files = glob.glob(search.format(product=product, year=time.year))
     data = None
     required_ymd = datetime.datetime(time.year, time.month, time.day)

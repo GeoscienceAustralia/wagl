@@ -26,7 +26,7 @@ def _slope_aspect_arrays(acquisition, dsm_fname, buffer_distance, out_fname,
     with h5py.File(dsm_fname, 'r') as dsm_fid,\
         h5py.File(out_fname, 'w') as fid:
 
-        dsm_grp = dsm_fid[GroupName.elevation_group.value]
+        dsm_grp = dsm_fid[GroupName.ELEVATION_GROUP.value]
         slope_aspect_arrays(acquisition, dsm_grp, buffer_distance, fid,
                             compression)
 
@@ -44,7 +44,7 @@ def slope_aspect_arrays(acquisition, dsm_group, buffer_distance,
         data.
         The dataset pathname is given by:
 
-        * DatasetName.dsm_smoothed
+        * DatasetName.DSM_SMOOTHED
 
         The dataset must have the same dimensions as `acquisition`
         plus a margin of widths specified by margin.
@@ -63,8 +63,8 @@ def slope_aspect_arrays(acquisition, dsm_group, buffer_distance,
         The dataset names will be given by the format string detailed
         by:
 
-        * DatasetName.slope
-        * DatasetName.aspect
+        * DatasetName.SLOPE
+        * DatasetName.ASPECT
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -108,7 +108,7 @@ def slope_aspect_arrays(acquisition, dsm_group, buffer_distance,
     idx = (slice(ystart, ystop), slice(xstart, xstop))
 
     # elevation dataset
-    elevation = dsm_group[DatasetName.dsm_smoothed.value]
+    elevation = dsm_group[DatasetName.DSM_SMOOTHED.value]
     subset = as_array(elevation[idx], dtype=numpy.float32, transpose=True)
 
     # Define an array of latitudes
@@ -124,10 +124,10 @@ def slope_aspect_arrays(acquisition, dsm_group, buffer_distance,
     else:
         fid = out_group
 
-    if GroupName.slp_asp_group.value not in fid:
-        fid.create_group(GroupName.slp_asp_group.value)
+    if GroupName.SLP_ASP_GROUP.value not in fid:
+        fid.create_group(GroupName.SLP_ASP_GROUP.value)
 
-    group = fid[GroupName.slp_asp_group.value]
+    group = fid[GroupName.SLP_ASP_GROUP.value]
 
     # metadata for calculation
     param_group = group.create_group('PARAMETERS')
@@ -147,9 +147,9 @@ def slope_aspect_arrays(acquisition, dsm_group, buffer_distance,
                  subset, slope.transpose(), aspect.transpose())
 
     # output datasets
-    dname = DatasetName.slope.value
+    dname = DatasetName.SLOPE.value
     slope_dset = group.create_dataset(dname, data=slope, **kwargs)
-    dname = DatasetName.aspect.value
+    dname = DatasetName.ASPECT.value
     aspect_dset = group.create_dataset(dname, data=aspect, **kwargs)
 
     # attach some attributes to the image datasets

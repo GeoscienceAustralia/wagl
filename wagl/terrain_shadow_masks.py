@@ -34,8 +34,8 @@ def _self_shadow(incident_angles_fname, exiting_angles_fname, out_fname,
         h5py.File(exiting_angles_fname, 'r') as fid_exiting,\
         h5py.File(out_fname, 'w') as fid:
 
-        grp1 = fid_incident[GroupName.incident_group.value]
-        grp2 = fid_exiting[GroupName.exiting_group.value]
+        grp1 = fid_incident[GroupName.INCIDENT_GROUP.value]
+        grp2 = fid_exiting[GroupName.EXITING_GROUP.value]
         self_shadow(grp1, grp2, fid, compression)
 
 
@@ -48,13 +48,13 @@ def self_shadow(incident_angles_group, exiting_angles_group, out_group=None,
         The root HDF5 `Group` that contains the incident
         angle dataset specified by the pathname given by:
 
-        * DatasetName.incident
+        * DatasetName.INCIDENT
 
     :param exiting_angles_group:
         The root HDF5 `Group` that contains the exiting
         angle dataset specified by the pathname given by:
 
-        * DatasetName.exiting
+        * DatasetName.EXITING
 
     :param out_group:
         If set to None (default) then the results will be returned
@@ -62,7 +62,7 @@ def self_shadow(incident_angles_group, exiting_angles_group, out_group=None,
         a writeable HDF5 `Group` object.
         The dataset name will be given by:
 
-        * DatasetName.self_shadow
+        * DatasetName.SELF_SHADOW
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -77,8 +77,8 @@ def self_shadow(incident_angles_group, exiting_angles_group, out_group=None,
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
     """
-    incident_angle = incident_angles_group[DatasetName.incident.value]
-    exiting_angle = exiting_angles_group[DatasetName.exiting.value]
+    incident_angle = incident_angles_group[DatasetName.INCIDENT.value]
+    exiting_angle = exiting_angles_group[DatasetName.EXITING.value]
     geobox = GriddedGeoBox.from_dataset(incident_angle)
 
     # Initialise the output file
@@ -87,10 +87,10 @@ def self_shadow(incident_angles_group, exiting_angles_group, out_group=None,
     else:
         fid = out_group
 
-    if GroupName.shadow_group.value not in fid:
-        fid.create_group(GroupName.shadow_group.value)
+    if GroupName.SHADOW_GROUP.value not in fid:
+        fid.create_group(GroupName.SHADOW_GROUP.value)
 
-    grp = fid[GroupName.shadow_group.value]
+    grp = fid[GroupName.SHADOW_GROUP.value]
 
     tile_size = exiting_angle.chunks
     kwargs = dataset_compression_kwargs(compression, chunks=tile_size)
@@ -99,7 +99,7 @@ def self_shadow(incident_angles_group, exiting_angles_group, out_group=None,
     kwargs['dtype'] = 'bool'
 
     # output dataset
-    dataset_name = DatasetName.self_shadow.value
+    dataset_name = DatasetName.SELF_SHADOW.value
     out_dset = grp.create_dataset(dataset_name, **kwargs)
 
     # attach some attributes to the image datasets
@@ -276,8 +276,8 @@ def _calculate_cast_shadow(acquisition, dsm_fname, buffer_distance,
         h5py.File(satellite_solar_angles_fname, 'r') as fid_sat_sol,\
         h5py.File(out_fname, 'w') as fid:
 
-        grp1 = dsm_fid[GroupName.elevation_group.value]
-        grp2 = fid_sat_sol[GroupName.sat_sol_group.value]
+        grp1 = dsm_fid[GroupName.ELEVATION_GROUP.value]
+        grp2 = fid_sat_sol[GroupName.SAT_SOL_GROUP.value]
         calculate_cast_shadow(acquisition, grp1, grp2, buffer_distance, fid,
                               compression, solar_source)
 
@@ -323,7 +323,7 @@ def calculate_cast_shadow(acquisition, dsm_group, satellite_solar_group,
         data.
         The dataset pathnames are given by:
 
-        * DatasetName.dsm_smoothed
+        * DatasetName.DSM_SMOOTHED
 
         The dataset must have the same dimensions as `acquisition`
         plus a margin of widths specified by margin.
@@ -332,10 +332,10 @@ def calculate_cast_shadow(acquisition, dsm_group, satellite_solar_group,
         The root HDF5 `Group` that contains the satellite and solar
         datasets specified by the pathnames given by:
 
-        * DatasetName.solar_zenith
-        * DatasetName.solar_azimuth
-        * DatasetName.satellite_view
-        * DatasetName.satellite_azimuth
+        * DatasetName.SOLAR_ZENITH
+        * DatasetName.SOLAR_AZIMUTH
+        * DatasetName.SATELLITE_VIEW
+        * DatasetName.SATELLITE_AZIMUTH
 
     :param buffer_distance:
         A number representing the desired distance (in the same
@@ -351,7 +351,7 @@ def calculate_cast_shadow(acquisition, dsm_group, satellite_solar_group,
         The dataset names will be given by the format string detailed
         by:
 
-        * DatasetName.cast_shadow_fmt
+        * DatasetName.CAST_SHADOW_FMT
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -391,15 +391,15 @@ def calculate_cast_shadow(acquisition, dsm_group, satellite_solar_group,
     margins = pixel_buffer(acquisition, buffer_distance)
 
     if solar_source:
-        zenith_name = DatasetName.solar_zenith.value
-        azimuth_name = DatasetName.solar_azimuth.value
+        zenith_name = DatasetName.SOLAR_ZENITH.value
+        azimuth_name = DatasetName.SOLAR_AZIMUTH.value
     else:
-        zenith_name = DatasetName.satellite_view.value
-        azimuth_name = DatasetName.satellite_azimuth.value
+        zenith_name = DatasetName.SATELLITE_VIEW.value
+        azimuth_name = DatasetName.SATELLITE_AZIMUTH.value
 
     zenith_angle = satellite_solar_group[zenith_name][:]
     azimuth_angle = satellite_solar_group[azimuth_name][:]
-    elevation = dsm_group[DatasetName.dsm_smoothed.value][:]
+    elevation = dsm_group[DatasetName.DSM_SMOOTHED.value][:]
 
     # block height and width of the window/submatrix used in the cast
     # shadow algorithm
@@ -425,15 +425,15 @@ def calculate_cast_shadow(acquisition, dsm_group, satellite_solar_group,
     else:
         fid = out_group
 
-    if GroupName.shadow_group.value not in fid:
-        fid.create_group(GroupName.shadow_group.value)
+    if GroupName.SHADOW_GROUP.value not in fid:
+        fid.create_group(GroupName.SHADOW_GROUP.value)
 
-    grp = fid[GroupName.shadow_group.value]
+    grp = fid[GroupName.SHADOW_GROUP.value]
     tile_size = satellite_solar_group[zenith_name].chunks
     kwargs = dataset_compression_kwargs(compression, chunks=tile_size)
     kwargs['dtype'] = 'bool'
 
-    dname_fmt = DatasetName.cast_shadow_fmt.value
+    dname_fmt = DatasetName.CAST_SHADOW_FMT.value
     out_dset = grp.create_dataset(dname_fmt.format(source=source_dir),
                                   data=mask, **kwargs)
 
@@ -461,9 +461,9 @@ def _combine_shadow(self_shadow_fname, cast_shadow_sun_fname,
         h5py.File(cast_shadow_satellite_fname, 'r') as fid_sat,\
         h5py.File(out_fname, 'w') as fid:
 
-        grp1 = fid_self[GroupName.shadow_group.value]
-        grp2 = fid_sun[GroupName.shadow_group.value]
-        grp3 = fid_sat[GroupName.shadow_group.value]
+        grp1 = fid_self[GroupName.SHADOW_GROUP.value]
+        grp2 = fid_sun[GroupName.SHADOW_GROUP.value]
+        grp3 = fid_sat[GroupName.SHADOW_GROUP.value]
         combine_shadow_masks(grp1, grp2, grp3, fid, compression)
 
     link_shadow_datasets(self_shadow_fname, cast_shadow_sun_fname,
@@ -481,21 +481,21 @@ def combine_shadow_masks(self_shadow_group, cast_shadow_sun_group,
         The root HDF5 `Group` that contains the self shadow
         dataset specified by the pathname given by:
 
-        * DatasetName.self_shadow
+        * DatasetName.SELF_SHADOW
 
     :param cast_shadow_sun_group:
         The root HDF5 `Group` that contains the cast shadow
         (solar direction) dataset specified by the pathname
         given by:
 
-        * DatasetName.cast_shadow_fmt
+        * DatasetName.CAST_SHADOW_FMT
 
     :param cast_shadow_sun_group:
         The root HDF5 `Group` that contains the cast shadow
         (satellite direction) dataset specified by the pathname
         given by:
 
-        * DatasetName.cast_shdadow_fmt
+        * DatasetName.CAST_SHDADOW_FMT
 
     :param out_group:
         If set to None (default) then the results will be returned
@@ -505,7 +505,7 @@ def combine_shadow_masks(self_shadow_group, cast_shadow_sun_group,
         The dataset names will be given by the format string detailed
         by:
 
-        * DatasetName.combined_shadow
+        * DatasetName.COMBINED_SHADOW
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -521,8 +521,8 @@ def combine_shadow_masks(self_shadow_group, cast_shadow_sun_group,
         `core` driver, or on disk.
     """
     # access the datasets
-    dname_fmt = DatasetName.cast_shadow_fmt.value
-    self_shad = self_shadow_group[DatasetName.self_shadow.value]
+    dname_fmt = DatasetName.CAST_SHADOW_FMT.value
+    self_shad = self_shadow_group[DatasetName.SELF_SHADOW.value]
     cast_sun = cast_shadow_sun_group[dname_fmt.format(source='SUN')]
     dname = dname_fmt.format(source='SATELLITE')
     cast_sat = cast_shadow_satellite_group[dname]
@@ -535,10 +535,10 @@ def combine_shadow_masks(self_shadow_group, cast_shadow_sun_group,
     else:
         fid = out_group
 
-    if GroupName.shadow_group.value not in fid:
-        fid.create_group(GroupName.shadow_group.value)
+    if GroupName.SHADOW_GROUP.value not in fid:
+        fid.create_group(GroupName.SHADOW_GROUP.value)
 
-    grp = fid[GroupName.shadow_group.value]
+    grp = fid[GroupName.SHADOW_GROUP.value]
     tile_size = cast_sun.chunks
     kwargs = dataset_compression_kwargs(compression, chunks=tile_size)
     cols, rows = geobox.get_shape_xy()
@@ -546,7 +546,7 @@ def combine_shadow_masks(self_shadow_group, cast_shadow_sun_group,
     kwargs['dtype'] = 'bool'
 
     # output dataset
-    out_dset = grp.create_dataset(DatasetName.combined_shadow.value, **kwargs)
+    out_dset = grp.create_dataset(DatasetName.COMBINED_SHADOW.value, **kwargs)
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
@@ -578,9 +578,9 @@ def link_shadow_datasets(self_shadow_fname, cast_shadow_sun_fname,
     Link the self shadow mask, and the two cast shadow masks into a
     single file for easier access.
     """
-    group_path = GroupName.shadow_group.value
-    dname_fmt = DatasetName.cast_shadow_fmt.value
-    dname = ppjoin(group_path, DatasetName.self_shadow.value)
+    group_path = GroupName.SHADOW_GROUP.value
+    dname_fmt = DatasetName.CAST_SHADOW_FMT.value
+    dname = ppjoin(group_path, DatasetName.SELF_SHADOW.value)
     create_external_link(self_shadow_fname, dname, out_fname, dname)
 
     dname = ppjoin(group_path, dname_fmt.format(source='SUN'))

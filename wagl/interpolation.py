@@ -376,16 +376,16 @@ def _interpolate(acq, coefficient, sat_sol_angles_fname, coefficients_fname,
         h5py.File(ancillary_fname, 'r') as anc,\
         h5py.File(out_fname, 'w') as out_fid:
 
-        grp1 = anc[GroupName.ancillary_group.value]
-        grp2 = sat_sol[GroupName.sat_sol_group.value]
-        grp3 = comp[GroupName.coefficients_group.value]
+        grp1 = anc[GroupName.ANCILLARY_GROUP.value]
+        grp2 = sat_sol[GroupName.SAT_SOL_GROUP.value]
+        grp3 = comp[GroupName.COEFFICIENTS_GROUP.value]
         interpolate(acq, coefficient, grp1, grp2, grp3, out_fid, compression,
                     method)
 
 
 def interpolate(acq, coefficient, ancillary_group, satellite_solar_group,
                 coefficients_group, out_group=None, compression='lzf',
-                method=Method.shearb):
+                method=Method.SHEARB):
     # TODO: more docstrings
     """Perform interpolation."""
     if method not in Method:
@@ -396,16 +396,16 @@ def interpolate(acq, coefficient, ancillary_group, satellite_solar_group,
     cols, rows = geobox.get_shape_xy()
 
     # read the relevant tables into DataFrames
-    coordinator = read_h5_table(ancillary_group, DatasetName.coordinator.value)
-    boxline = read_h5_table(satellite_solar_group, DatasetName.boxline.value)
+    coordinator = read_h5_table(ancillary_group, DatasetName.COORDINATOR.value)
+    boxline = read_h5_table(satellite_solar_group, DatasetName.BOXLINE.value)
 
-    if coefficient in Model.nbar.atmos_coefficients:
-        dataset_name = DatasetName.nbar_coefficients.value
-    elif coefficient in Model.sbt.atmos_coefficients:
-        dataset_name = DatasetName.sbt_coefficients.value
+    if coefficient in Model.NBAR.atmos_coefficients:
+        dataset_name = DatasetName.NBAR_COEFFICIENTS.value
+    elif coefficient in Model.SBT.atmos_coefficients:
+        dataset_name = DatasetName.SBT_COEFFICIENTS.value
     else:
         msg = "Factor name not found in available coefficients: {}"
-        raise ValueError(msg.format(Model.standard.atmos_coefficients))
+        raise ValueError(msg.format(Model.STANDARD.atmos_coefficients))
 
     coefficients = read_h5_table(coefficients_group, dataset_name)
 
@@ -420,16 +420,16 @@ def interpolate(acq, coefficient, ancillary_group, satellite_solar_group,
     band_records = coefficients.band_name == acq.band_name
     samples = coefficients[coefficient.value][band_records].values
 
-    func_map = {Method.bilinear: sheared_bilinear_interpolate,
-                Method.fbilinear: fortran_bilinear_interpolate,
-                Method.shear: sheared_bilinear_interpolate,
-                Method.shearb: sheared_bilinear_interpolate,
-                Method.rbf: rbf_interpolate}
+    func_map = {Method.BILINEAR: sheared_bilinear_interpolate,
+                Method.FBILINEAR: fortran_bilinear_interpolate,
+                Method.SHEAR: sheared_bilinear_interpolate,
+                Method.SHEARB: sheared_bilinear_interpolate,
+                Method.RBF: rbf_interpolate}
 
     args = [cols, rows, coord, samples, start, end, centre]
-    if method == Method.bilinear:
+    if method == Method.BILINEAR:
         args.extend([False, False])
-    elif method == Method.shearb:
+    elif method == Method.SHEARB:
         args.extend([True, True])
     else:
         pass
@@ -443,12 +443,12 @@ def interpolate(acq, coefficient, ancillary_group, satellite_solar_group,
     else:
         fid = out_group
 
-    if GroupName.interp_group.value not in fid:
-        fid.create_group(GroupName.interp_group.value)
+    if GroupName.INTERP_GROUP.value not in fid:
+        fid.create_group(GroupName.INTERP_GROUP.value)
 
-    group = fid[GroupName.interp_group.value]
+    group = fid[GroupName.INTERP_GROUP.value]
 
-    fmt = DatasetName.interpolation_fmt.value
+    fmt = DatasetName.INTERPOLATION_FMT.value
     dset_name = fmt.format(coefficient=coefficient.value, band_name=acq.band_name)
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=acq.tile_size)

@@ -196,7 +196,7 @@ class AncillaryData(luigi.Task):
                       'brdf_path': self.brdf_path,
                       'brdf_premodis_path': self.brdf_premodis_path}
 
-        if self.model == Model.standard or self.model == Model.sbt:
+        if self.model == Model.STANDARD or self.model == Model.SBT:
             sbt_path = self.ecmwf_path
 
         with self.output().temporary_path() as out_fname:
@@ -365,7 +365,7 @@ class InterpolateCoefficient(luigi.Task):
     coefficient = luigi.EnumParameter(enum=AtmosphericCoefficients)
     base_dir = luigi.Parameter(default='_interpolation', significant=False)
     model = luigi.EnumParameter(enum=Model)
-    method = luigi.EnumParameter(enum=Method, default=Method.shear)
+    method = luigi.EnumParameter(enum=Method, default=Method.SHEAR)
 
     def requires(self):
         args = [self.level1, self.work_root, self.granule, self.vertices]
@@ -407,7 +407,7 @@ class InterpolateCoefficients(luigi.Task):
 
     vertices = luigi.TupleParameter()
     model = luigi.EnumParameter(enum=Model)
-    method = luigi.EnumParameter(enum=Method, default=Method.shear)
+    method = luigi.EnumParameter(enum=Method, default=Method.SHEAR)
 
     def requires(self):
         container = acquisitions(self.level1, self.acq_parser_hint)
@@ -415,12 +415,12 @@ class InterpolateCoefficients(luigi.Task):
                                           granule=self.granule)
 
         # NBAR & SBT acquisitions
-        nbar_acqs = [a for a in acqs if a.band_type == BandType.Reflective]
-        sbt_acqs = [a for a in acqs if a.band_type == BandType.Thermal]
+        nbar_acqs = [a for a in acqs if a.band_type == BandType.REFLECTIVE]
+        sbt_acqs = [a for a in acqs if a.band_type == BandType.THERMAL]
 
         tasks = {}
         for coefficient in self.model.atmos_coefficients:
-            if coefficient in Model.nbar.atmos_coefficients:
+            if coefficient in Model.NBAR.atmos_coefficients:
                 band_acqs = nbar_acqs
             else:
                 band_acqs = sbt_acqs
@@ -807,14 +807,14 @@ class DataStandardisation(luigi.Task):
                                           granule=self.granule)
 
         # NBAR acquisitions
-        if self.model == Model.standard or self.model == Model.nbar:
+        if self.model == Model.STANDARD or self.model == Model.NBAR:
             band_acqs.extend([a for a in acqs if
-                              a.band_type == BandType.Reflective])
+                              a.band_type == BandType.REFLECTIVE])
 
         # SBT acquisitions
-        if self.model == Model.standard or self.model == Model.sbt:
+        if self.model == Model.STANDARD or self.model == Model.SBT:
             band_acqs.extend([a for a in acqs if
-                              a.band_type == BandType.Thermal])
+                              a.band_type == BandType.THERMAL])
 
         tasks = []
         for acq in band_acqs:
@@ -822,7 +822,7 @@ class DataStandardisation(luigi.Task):
                       'granule': self.granule, 'group': self.group,
                       'band_name': acq.band_name, 'model': self.model,
                       'vertices': self.vertices, 'method': self.method}
-            if acq.band_type == BandType.Thermal:
+            if acq.band_type == BandType.THERMAL:
                 tasks.append(SurfaceTemperature(**kwargs))
             else:
                 kwargs['dsm_fname'] = self.dsm_fname
@@ -839,7 +839,7 @@ class DataStandardisation(luigi.Task):
         with self.output().temporary_path() as out_fname:
             fnames = [target.path for target in self.input()]
             link_standard_data(fnames, out_fname)
-            sbt_only = self.model == Model.sbt
+            sbt_only = self.model == Model.SBT
             if self.pixel_quality and can_pq(self.level1, self.acq_parser_hint) and not sbt_only:
                 _run_pq(self.level1, out_fname, self.group, self.land_sea_path,
                         self.compression, self.acq_parser_hint)
@@ -858,7 +858,7 @@ class LinkwaglOutputs(luigi.Task):
     model = luigi.EnumParameter(enum=Model)
     vertices = luigi.TupleParameter(default=(5, 5))
     pixel_quality = luigi.BoolParameter()
-    method = luigi.EnumParameter(enum=Method, default=Method.shear)
+    method = luigi.EnumParameter(enum=Method, default=Method.SHEAR)
     acq_parser_hint = luigi.Parameter(default=None)
     dsm_fname = luigi.Parameter(significant=False)
     buffer_distance = luigi.FloatParameter(default=8000, significant=False)
@@ -911,7 +911,7 @@ class ARD(luigi.WrapperTask):
     model = luigi.EnumParameter(enum=Model)
     vertices = luigi.TupleParameter(default=(5, 5))
     pixel_quality = luigi.BoolParameter()
-    method = luigi.EnumParameter(enum=Method, default=Method.shear)
+    method = luigi.EnumParameter(enum=Method, default=Method.SHEAR)
     dsm_fname = luigi.Parameter(significant=False)
     acq_parser_hint = luigi.Parameter(default=None)
     buffer_distance = luigi.FloatParameter(default=8000, significant=False)
