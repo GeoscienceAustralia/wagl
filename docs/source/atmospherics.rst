@@ -3,21 +3,21 @@ Atmospherics
 
 Specifically dealing with evaluating the radiative transfer for a defined set of spectra. The *wagl* package utilises `MODTRAN <http://modtran.spectral.com/>`_ for evalutating the radiative transfer.
 
-The default number of points to evaluate the radiative transfer at is 9 for *nbar*, & 25 for *sbt*. If the *standard* model is chosen, then 25 points will be evaluated for both *nbar* and *sbt*. This is to make the workflow simpler and the output directories can be shared by both models, and share the same dependencies. The resulting *lambertian*, *nbar* and *nbart* datasets maybe slightly more accurate when using 25 points than 9 points.
+The default number of points to evaluate the radiative transfer at is 9 for *NBAR*, & 25 for *SBT*. If the *STANDARD* model is chosen, then 25 points will be evaluated for both *NBAR* and *SBT*. This is to make the workflow simpler and the output directories can be shared by both models, and share the same dependencies. The resulting *lambertian*, *nbar* and *nbart* datasets maybe slightly more accurate when using 25 points than 9 points.
 
 Currently, the number of points are defined to cover the extents of a given *granule*. For example a Sentinel-2a dataset containing 15 granules, will subsequently have 15 * n points to evaluate the radiative transfer.
 
-For the *nbar* model, the labels used for each radiative transfer calculation are:
+For the *NBAR* model, the labels used for each radiative transfer calculation are:
 
     * ALBEDO-0
     * ALBEDO-1
     * ALBEDO-T
 
-For the *sbt* model, the label used for radiative transfer calculation is:
+For the *SBT* model, the label used for radiative transfer calculation is:
 
     * ALBEDO-TH
 
-The coefficients for the *nbar* model are:
+The coefficients for the *NBAR* model are:
 
     * DIR:
 
@@ -68,27 +68,27 @@ The coefficients for the *nbar* model are:
       * :math:`A = (DIR + DIF) / pi * (TV + TDV)`
 
 
-The coefficients for the *sbt* model are:
+The coefficients for the *SBT* model are:
 
     * PATH-UP
     * PATH-DOWN
     * TRANSMITTANCE-UP
     * TRANSMITTANCE-DOWN
 
-For the *sbt* model, ancillary data is gathered at each point. This is different to the *nbar* model which (depending on the ancillary) is gathered at a single location, such as the dataset centre, and used for input into each point location for the radiative transfer calculations.
+For the *SBT* model, ancillary data is gathered at each point. This is different to the *NBAR* model which (depending on the ancillary) is gathered at a single location, such as the dataset centre, and used for input into each point location for the radiative transfer calculations.
 
 
 Radiative transfer outputs (MODTRAN)
 ------------------------------------
 
-The outputs from MODTRAN, when run via *wagl*, are converted from raw binary FORTRAN records into tables, for each point, for each albedo id (0, 1, t, th). The table names for the nbar model are:
+The outputs from MODTRAN, when run via *wagl*, are converted from raw binary FORTRAN records into tables, for each point, for each albedo id (0, 1, T, TH). The table names for the *NBAR* model are:
 
 * /ALTITUDES
 * /CHANNEL
 * /FLUX
 * /SOLAR-IRRADIANCE
 
-And the table names for the sbt model are:
+And the table names for the *SBT* model are:
 
 * /UPWARD-RADIATION-CHANNEL
 * /DOWNWARD-RADIATION-CHANNEL
@@ -97,7 +97,7 @@ And the table names for the sbt model are:
 NBAR Flux Tables
 ~~~~~~~~~~~~~~~~
 
-Albedo id's 0, 1 & t
+Albedo id's 0, 1 & T
 ^^^^^^^^^^^^^^^^^^^^
 
 **Note**; This represents the table structure only, the values might be different between Alebedo id's.
@@ -159,7 +159,7 @@ Albedo id's 0 & 1
 | BAND-8 | 1.633472e-05 | 0.000054 | 0.000078   |
 +--------+--------------+----------+------------+
 
-Albedo id 't'
+Albedo id 'T'
 ^^^^^^^^^^^^^
 
 +--------+--------------+----------+-------------+------------+---------------+
@@ -233,7 +233,7 @@ Downward radiation channel (continued)
 Atmospheric Coefficients Tables
 -------------------------------
 
-The table dataset names for the NBAR and SBT workflow models are:
+The table dataset names for the *NBAR* and *SBT* workflow models are:
 
 * /ATMOSPHERIC-COEFFICIENTS/NBAR-COEFFICIENTS
 * /ATMOSPHERIC-COEFFICIENTS/SBT-COEFFICIENTS
