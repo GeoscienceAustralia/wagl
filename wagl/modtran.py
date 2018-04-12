@@ -41,7 +41,7 @@ def prepare_modtran(acquisitions, coordinate, albedos, basedir, modtran_exe):
         if albedo == Albedos.ALBEDO_TH:
             band_type = BandType.THERMAL
         else:
-            band_type = BandType.ReFLECTIVE
+            band_type = BandType.REFLECTIVE
 
         acq = [acq for acq in acquisitions if acq.band_type == band_type][0]
 
