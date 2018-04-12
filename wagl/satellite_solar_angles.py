@@ -943,7 +943,7 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     desc = "Contains the time from apogee in seconds."
     attrs['description'] = desc
     attrs['units'] = 'seconds'
-    attrs['alias'] = 'time'
+    attrs['alias'] = 'timedelta'
     attach_image_attributes(time_ds, attrs)
 
     # Initialise centre line variables
