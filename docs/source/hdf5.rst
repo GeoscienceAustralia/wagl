@@ -42,7 +42,7 @@ This approach is useful for large scale production, and the results are stored i
 Routine testing and comparisons between different versions of *wagl* (assuming that the base naming structure is the same), is also more easily evaluated.
 However, the *wagl.singlefile_workflow* isn't able to pickup from where the workflow left off, as is the case in the *wagl.multifile_workflow*, instead it starts off from scratch. The retry count is set to 1 for *wagl.singlefile_workflow*, rather than the default of 3. This allows luigi to attempt to reprocesss the dataset one more time, before flagging it as an error.
 
-The contents for a Landsat 8 dataset going through the nbar model and (3, 3) vertices for the radiative transfer is list in :ref:`appendix_a`.
+The contents for a Landsat 5 dataset going through the *STANDARD* model and (5, 5) vertices for the radiative transfer is list in :ref:`appendix_a`.
 
 Dataset Names
 -------------
