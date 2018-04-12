@@ -219,12 +219,12 @@ def _parser():
     parser.add_argument("--vertices", default="(5, 5)", type=str,
                         help=("Number of vertices to evaluate the radiative "
                               "transfer at. JSON styled string is required."))
-    parser.add_argument("--model", default="standard",
+    parser.add_argument("--model", default="STANDARD",
                         help=("The type of ARD workflow to invoke, "
-                              "eg standard, nbar, sbt."))
-    parser.add_argument("--method", default="shear",
+                              "eg STANDARD, NBAR, SBT."))
+    parser.add_argument("--method", default="SHEAR",
                         help=("The interpolation method to invoke, "
-                              "eg linear, shear, rbf."))
+                              "eg LINEAR, SHEAR, RBF."))
     parser.add_argument("--buffer-distance", default=8000, type=float,
                         help=("The distance in units to buffer an image's "
                               "extents by."))
