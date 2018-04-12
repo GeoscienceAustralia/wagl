@@ -525,7 +525,8 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
 
     results = {}
     for param in BrdfParameters:
-        hdf_fname = find_file(hdflist, acquisition.brdf_wavelength, param.name)
+        hdf_fname = find_file(hdflist, acquisition.brdf_wavelength,
+                              param.name.lower())
 
         hdfFile = pjoin(hdfhome, hdf_fname)
 
