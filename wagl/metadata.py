@@ -111,34 +111,34 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, sbt=False):
         """
         Load the sbt ancillary data retrieved during the worlflow.
         """
-        point_data = {DatasetName.dewpoint_temperature.value: {},
-                      DatasetName.surface_geopotential.value: {},
-                      DatasetName.temperature_2m.value: {},
-                      DatasetName.surface_relative_humidity.value: {},
-                      DatasetName.geopotential.value: {},
-                      DatasetName.relative_humidity.value: {},
-                      DatasetName.temperature.value: {}}
+        point_data = {DatasetName.DEWPOINT_TEMPERATURE.value: {},
+                      DatasetName.SURFACE_GEOPOTENTIAL.value: {},
+                      DatasetName.TEMPERATURE_2M.value: {},
+                      DatasetName.SURFACE_RELATIVE_HUMIDITY.value: {},
+                      DatasetName.GEOPOTENTIAL.value: {},
+                      DatasetName.RELATIVE_HUMIDITY.value: {},
+                      DatasetName.TEMPERATURE.value: {}}
 
-        npoints = group[DatasetName.coordinator.value].shape[0]
+        npoints = group[DatasetName.COORDINATOR.value].shape[0]
         for point in range(npoints):
             pnt_grp = group[POINT_FMT.format(p=point)]
             lonlat = tuple(pnt_grp.attrs['lonlat'])
 
             # scalars
-            dname = DatasetName.dewpoint_temperature.value
+            dname = DatasetName.DEWPOINT_TEMPERATURE.value
             point_data[dname][lonlat] = read_scalar(pnt_grp, dname)
 
-            dname = DatasetName.surface_geopotential.value
+            dname = DatasetName.SURFACE_GEOPOTENTIAL.value
             point_data[dname][lonlat] = read_scalar(pnt_grp, dname)
 
-            dname = DatasetName.temperature_2m.value
+            dname = DatasetName.TEMPERATURE_2M.value
             point_data[dname][lonlat] = read_scalar(pnt_grp, dname)
 
-            dname = DatasetName.surface_relative_humidity.value
+            dname = DatasetName.SURFACE_RELATIVE_HUMIDITY.value
             point_data[dname][lonlat] = read_scalar(pnt_grp, dname)
 
             # tables
-            dname = DatasetName.geopotential.value
+            dname = DatasetName.GEOPOTENTIAL.value
             dset = pnt_grp[dname]
             attrs = {k: v for k, v in dset.attrs.items()}
             df = read_h5_table(pnt_grp, dname)
@@ -146,7 +146,7 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, sbt=False):
                 attrs[column] = df[column].values
             point_data[dname][lonlat] = attrs
 
-            dname = DatasetName.relative_humidity.value
+            dname = DatasetName.RELATIVE_HUMIDITY.value
             dset = pnt_grp[dname]
             attrs = {k: v for k, v in dset.attrs.items()}
             df = read_h5_table(pnt_grp, dname)
@@ -154,7 +154,7 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, sbt=False):
                 attrs[column] = df[column].values
             point_data[dname][lonlat] = attrs
             
-            dname = DatasetName.temperature.value
+            dname = DatasetName.TEMPERATURE.value
             dset = pnt_grp[dname]
             attrs = {k: v for k, v in dset.attrs.items()}
             df = read_h5_table(pnt_grp, dname)
@@ -169,17 +169,17 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, sbt=False):
         Load the ancillary data retrieved during the workflow.
         """
         # retrieve the averaged ancillary if available
-        anc_grp = fid.get(GroupName.ancillary_avg_group.value)
+        anc_grp = fid.get(GroupName.ANCILLARY_AVG_GROUP.value)
         if anc_grp is None:
             anc_grp = fid
 
-        dname = DatasetName.aerosol.value
+        dname = DatasetName.AEROSOL.value
         aerosol_data = read_scalar(anc_grp, dname)
-        dname = DatasetName.water_vapour.value
+        dname = DatasetName.WATER_VAPOUR.value
         water_vapour_data = read_scalar(anc_grp, dname)
-        dname = DatasetName.ozone.value
+        dname = DatasetName.OZONE.value
         ozone_data = read_scalar(anc_grp, dname)
-        dname = DatasetName.elevation.value
+        dname = DatasetName.ELEVATION.value
         elevation_data = read_scalar(anc_grp, dname)
 
         ancillary = {'aerosol': aerosol_data,
@@ -193,12 +193,12 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, sbt=False):
                 ancillary[key] = sbt_ancillary[key]
         else:
             for acq in acquisitions:
-                if acq.band_type == BandType.Thermal:
+                if acq.band_type == BandType.THERMAL:
                     continue
 
                 bn = acq.band_name
                 for param in BrdfParameters:
-                    fmt = DatasetName.brdf_fmt.value
+                    fmt = DatasetName.BRDF_FMT.value
                     dname = fmt.format(band_name=bn, parameter=param.value)
                     dset = fid[dname]
                     key = dname.lower().replace('-', '_')
@@ -237,10 +237,10 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, sbt=False):
 
     algorithm = {}
     if sbt:
-        dname = DatasetName.sbt_yaml.value
+        dname = DatasetName.SBT_YAML.value
         algorithm['sbt_doi'] = 'TODO'
     else:
-        dname = DatasetName.nbar_yaml.value
+        dname = DatasetName.NBAR_YAML.value
         algorithm['algorithm_version'] = 2.0
         algorithm['arg25_doi'] = 'http://dx.doi.org/10.4225/25/5487CC0D4F40B'
         algorithm['nbar_doi'] = 'http://dx.doi.org/10.1109/JSTARS.2010.2042281'
@@ -302,6 +302,6 @@ def create_pq_yaml(acquisition, ancillary, tests_run, out_group):
                 'tests_run': tests_run}
 
     # output
-    dname = DatasetName.pq_yaml.value
+    dname = DatasetName.PQ_YAML.value
     yml_data = yaml.dump(metadata, default_flow_style=False)
     write_scalar(yml_data, dname, out_group, attrs={'file_format': 'yaml'})

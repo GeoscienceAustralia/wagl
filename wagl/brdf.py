@@ -469,9 +469,9 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
     :return:
         A `dict` with the keys:
 
-            * BrdfParameters.iso
-            * BrdfParameters.vol
-            * BrdfParameters.geo
+            * BrdfParameters.ISO
+            * BrdfParameters.VOL
+            * BrdfParameters.GEO
 
         Values for each BRDF Parameter are accessed via the key named
         `value`.
@@ -525,7 +525,8 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
 
     results = {}
     for param in BrdfParameters:
-        hdf_fname = find_file(hdflist, acquisition.brdf_wavelength, param.name)
+        hdf_fname = find_file(hdflist, acquisition.brdf_wavelength,
+                              param.name.lower())
 
         hdfFile = pjoin(hdfhome, hdf_fname)
 
@@ -575,9 +576,9 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
     # check for no brdf (iso, vol, geo) (0, 0, 0) and convert to (1, 0, 0)
     # and strip any file level metadata
     if all([v['value'] == 0 for _, v in results.items()]):
-        results[BrdfParameters.iso] = {'value': 1.0}
-        results[BrdfParameters.vol] = {'value': 0.0}
-        results[BrdfParameters.geo] = {'value': 0.0}
+        results[BrdfParameters.ISO] = {'value': 1.0}
+        results[BrdfParameters.VOL] = {'value': 0.0}
+        results[BrdfParameters.GEO] = {'value': 0.0}
 
     # add very basic brdf description metadata and the roi polygon
     for param in BrdfParameters:

@@ -123,8 +123,8 @@ If you're a user that would like to intersect any part of the dependency tree, t
    # The number of vertices required for evaluating the radiative transfer over
    vertices = (5, 5)
 
-   # The model run to use; *standard*, *nbar*, or *sbt*
-   model = standard
+   # The model run to use; *STANDARD*, *NBAR*, or *SBT*
+   model = STANDARD
 
    [AtmosphericsCase]
    # This controls the running of MODTRAN
@@ -164,9 +164,9 @@ If you're a user that would like to intersect any part of the dependency tree, t
    # internally defaults to (5, 5)
    vertices = (5, 5)
 
-   # The model run to use; *standard*, *nbar*, or *sbt*
-   # internally defaults to standard
-   model = standard
+   # The model run to use; *STANDARD*, *NBAR*, or *SBT*
+   # internally defaults to STANDARD
+   model = STANDARD
 
    # A *boolean* to indicate whether MODTRAN evaluations for a single point should
    # be issued as separate tasks, or combined together in a single process
@@ -188,9 +188,9 @@ If you're a user that would like to intersect any part of the dependency tree, t
    # internally defaults to (5, 5)
    vertices = (5, 5)
 
-   # The model run to use; *standard*, *nbar*, or *sbt*
-   # internally defaults to standard
-   model = standard
+   # The model run to use; *STANDARD*, *NBAR*, or *SBT*
+   # internally defaults to STANDARD
+   model = STANDARD
 
    # The factor id to run
    factor = 
@@ -199,23 +199,23 @@ If you're a user that would like to intersect any part of the dependency tree, t
    band_name = 
 
    # The interpolation method to use;
-   # *bilinear*, *fbilinear*, *shear*, *shearb*, or *rbf*
-   # internally defaults to shear
-   method = shear
+   # *bilinear*, *FBILINEAR*, *SHEAR*, *SHEARB*, or *RBF*
+   # internally defaults to SHEAR
+   method = SHEAR
 
    [InterpolateCoefficients]
    # The number of vertices required for evaluating the radiative transfer over
    vertices = (5, 5)
 
-   # The model run to use; *standard*, *nbar*, or *sbt*
-   model = standard
+   # The model run to use; *STANDARD*, *NBAR*, or *SBT*
+   model = STANDARD
 
    # The compression filter to use (internally the code defaults to use *lzf*)
    compression = lzf
 
    # The interpolation method to use;
-   # *bilinear*, *fbilinear*, *shear*, *shearb*, or *rbf*
-   method = shear
+   # *BILINEAR*, *FBILINEAR*, *SHEAR*, *SHEARB*, or *RBF*
+   method = SHEAR
 
    [DEMExctraction]
    # The compression filter to use (internally the code defaults to use *lzf*)
@@ -291,8 +291,8 @@ If you're a user that would like to intersect any part of the dependency tree, t
    # The path to the level-1 dataset
    level1
 
-   # The model run to use; *standard*, *nbar*, or *sbt*
-   model = standard
+   # The model run to use; *STANDARD*, *NBAR*, or *SBT*
+   model = STANDARD
 
    # The number of vertices required for evaluating the radiative transfer over
    vertices = (5, 5)
@@ -302,12 +302,12 @@ If you're a user that would like to intersect any part of the dependency tree, t
    pixel_quality = false
 
    # The interpolation method to use;
-   # *bilinear*, *fbilinear*, *shear*, *shearb*, or *rbf*
-   method = shear
+   # *BILINEAR*, *FBILINEAR*, *SHEAR*, *SHEARB*, or *RBF*
+   method = SHEAR
 
    [ARD]
-   # The model run to use; *standard*, *nbar*, or *sbt*
-   model = standard
+   # The model run to use; *STANDARD*, *NBAR*, or *SBT*
+   model = STANDARD
 
    # The number of vertices required for evaluating the radiative transfer over
    vertices = (5, 5)
@@ -317,5 +317,5 @@ If you're a user that would like to intersect any part of the dependency tree, t
    pixel_quality = false
 
    # The interpolation method to use;
-   # *bilinear*, *fbilinear*, *shear*, *shearb*, or *rbf*
-   method = shear
+   # *BILINEAR*, *FBILINEAR*, *SHEAR*, *SHEARB*, or *RBF*
+   method = SHEAR

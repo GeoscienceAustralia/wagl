@@ -24,9 +24,9 @@ class Model(Enum):
     *sbt* Indicates SBT only
     """
 
-    standard = 1
-    nbar = 2
-    sbt = 3
+    STANDARD = 1
+    NBAR = 2
+    SBT = 3
 
     @property
     def atmos_coefficients(self):
@@ -35,9 +35,9 @@ class Model(Enum):
         for a given Model.<option>.
         """
         atmos_var = list(AtmosphericCoefficients)
-        fmap = {Model.standard: atmos_var,
-                Model.nbar: atmos_var[0:8],
-                Model.sbt: atmos_var[8:]}
+        fmap = {Model.STANDARD: atmos_var,
+                Model.NBAR: atmos_var[0:8],
+                Model.SBT: atmos_var[8:]}
         return fmap.get(self)
 
     @property
@@ -47,9 +47,9 @@ class Model(Enum):
         evaluations for a given Model.<option>.
         """
         albs = list(Albedos)
-        amap = {Model.standard: albs,
-                Model.nbar: albs[0:-1],
-                Model.sbt: [albs[-1]]}
+        amap = {Model.STANDARD: albs,
+                Model.NBAR: albs[0:-1],
+                Model.SBT: [albs[-1]]}
         return amap.get(self)
 
     @property
@@ -59,9 +59,9 @@ class Model(Enum):
         Model.<option>.
         """
         products = list(ArdProducts)
-        amap = {Model.standard: products,
-                Model.nbar: products[0:-1],
-                Model.sbt: [products[-1]]}
+        amap = {Model.STANDARD: products,
+                Model.NBAR: products[0:-1],
+                Model.SBT: [products[-1]]}
         return amap.get(self)
 
 
@@ -70,11 +70,11 @@ class BandType(Enum):
     Represents the Band Type a given acquisition falls under.
     """
 
-    Reflective = 0
-    Thermal = 1
-    Panchromatic = 2
-    Atmosphere = 3
-    Quality = 4
+    REFLECTIVE = 0
+    THERMAL = 1
+    PANCHROMATIC = 2
+    ATMOSPHERE = 3
+    QUALITY = 4
 
 
 class DatasetName(Enum):
@@ -84,89 +84,89 @@ class DatasetName(Enum):
     """
 
     # wagl.ancillary
-    coordinator = 'COORDINATOR'
-    dewpoint_temperature = 'DEWPOINT-TEMPERATURE'
-    temperature_2m = 'TEMPERATURE-2METRE'
-    surface_pressure = 'SURFACE-PRESSURE'
-    surface_geopotential = 'SURFACE-GEOPOTENTIAL-HEIGHT'
-    surface_relative_humidity = 'SURFACE-RELATIVE-HUMIDITY'
-    geopotential = 'GEO-POTENTIAL'
-    temperature = 'TEMPERATURE'
-    relative_humidity = 'RELATIVE-HUMIDITY'
-    atmospheric_profile = 'ATMOSPHERIC-PROFILE'
-    aerosol = 'AEROSOL'
-    water_vapour = 'WATER-VAPOUR'
-    ozone = 'OZONE'
-    elevation = 'ELEVATION'
-    brdf_fmt = "BRDF-{parameter}-{band_name}"
-    ecmwf_path_fmt = pjoin('{product}', '{year}', 'tif', '{product}_*.tif')
+    COORDINATOR = 'COORDINATOR'
+    DEWPOINT_TEMPERATURE = 'DEWPOINT-TEMPERATURE'
+    TEMPERATURE_2M = 'TEMPERATURE-2METRE'
+    SURFACE_PRESSURE = 'SURFACE-PRESSURE'
+    SURFACE_GEOPOTENTIAL = 'SURFACE-GEOPOTENTIAL-HEIGHT'
+    SURFACE_RELATIVE_HUMIDITY = 'SURFACE-RELATIVE-HUMIDITY'
+    GEOPOTENTIAL = 'GEO-POTENTIAL'
+    TEMPERATURE = 'TEMPERATURE'
+    RELATIVE_HUMIDITY = 'RELATIVE-HUMIDITY'
+    ATMOSPHERIC_PROFILE = 'ATMOSPHERIC-PROFILE'
+    AEROSOL = 'AEROSOL'
+    WATER_VAPOUR = 'WATER-VAPOUR'
+    OZONE = 'OZONE'
+    ELEVATION = 'ELEVATION'
+    BRDF_FMT = "BRDF-{parameter}-{band_name}"
+    ECMWF_PATH_FMT = pjoin('{product}', '{year}', 'tif', '{product}_*.tif')
 
     # wagl.longitude_latitude_arrays
-    lon = 'LONGITUDE'
-    lat = 'LATITUDE'
+    LON = 'LONGITUDE'
+    LAT = 'LATITUDE'
 
     # wagl.satellite_solar_angles
-    satellite_view = 'SATELLITE-VIEW'
-    satellite_azimuth = 'SATELLITE-AZIMUTH'
-    solar_zenith = 'SOLAR-ZENITH'
-    solar_azimuth = 'SOLAR-AZIMUTH'
-    relative_azimuth = 'RELATIVE-AZIMUTH'
-    time = 'TIME'
-    centreline = 'CENTRELINE'
-    boxline = 'BOXLINE'
-    spheroid = 'SPHEROID'
-    orbital_elements = 'ORBITAL-ELEMENTS'
-    satellite_model = 'SATELLITE-MODEL'
-    satellite_track = 'SATELLITE-TRACK'
-    generic = 'GENERIC'
+    SATELLITE_VIEW = 'SATELLITE-VIEW'
+    SATELLITE_AZIMUTH = 'SATELLITE-AZIMUTH'
+    SOLAR_ZENITH = 'SOLAR-ZENITH'
+    SOLAR_AZIMUTH = 'SOLAR-AZIMUTH'
+    RELATIVE_AZIMUTH = 'RELATIVE-AZIMUTH'
+    TIME = 'TIMEDELTA'
+    CENTRELINE = 'CENTRELINE'
+    BOXLINE = 'BOXLINE'
+    SPHEROID = 'SPHEROID'
+    ORBITAL_ELEMENTS = 'ORBITAL-ELEMENTS'
+    SATELLITE_MODEL = 'SATELLITE-MODEL'
+    SATELLITE_TRACK = 'SATELLITE-TRACK'
+    GENERIC = 'GENERIC'
 
     # wagl.incident_exiting_angles
-    incident = 'INCIDENT'
-    azimuthal_incident = 'AZIMUTHAL-INCIDENT'
-    exiting = 'EXITING'
-    azimuthal_exiting = 'AZIMUTHAL-EXITING'
-    relative_slope = 'RELATIVE-SLOPE'
+    INCIDENT = 'INCIDENT'
+    AZIMUTHAL_INCIDENT = 'AZIMUTHAL-INCIDENT'
+    EXITING = 'EXITING'
+    AZIMUTHAL_EXITING = 'AZIMUTHAL-EXITING'
+    RELATIVE_SLOPE = 'RELATIVE-SLOPE'
 
     # wagl.reflectance
-    reflectance_fmt = 'REFLECTANCE/{product}/{band_name}'
+    REFLECTANCE_FMT = 'REFLECTANCE/{product}/{band_name}'
 
     # wagl.temperature
-    temperature_fmt = 'THERMAL/{product}/{band_name}'
+    TEMPERATURE_FMT = 'THERMAL/{product}/{band_name}'
 
     # wagl.terrain_shadow_masks
-    self_shadow = 'SELF-SHADOW'
-    cast_shadow_fmt = 'CAST-SHADOW-{source}'
-    combined_shadow = 'COMBINED-TERRAIN-SHADOW'
+    SELF_SHADOW = 'SELF-SHADOW'
+    CAST_SHADOW_FMT = 'CAST-SHADOW-{source}'
+    COMBINED_SHADOW = 'COMBINED-TERRAIN-SHADOW'
 
     # wagl.slope_aspect
-    slope = 'SLOPE'
-    aspect = 'ASPECT'
+    SLOPE = 'SLOPE'
+    ASPECT = 'ASPECT'
 
     # wagl.dsm
-    dsm = 'DSM'
-    dsm_smoothed = 'DSM-SMOOTHED'
+    DSM = 'DSM'
+    DSM_SMOOTHED = 'DSM-SMOOTHED'
 
     # wagl.interpolation
-    interpolation_fmt = '{coefficient}/{band_name}'
+    INTERPOLATION_FMT = '{coefficient}/{band_name}'
 
     # wagl.modtran
-    tp5 = 'TP5-DATA'
-    flux = 'FLUX'
-    altitudes = 'ALTITUDES'
-    solar_irradiance = 'SOLAR-IRRADIANCE'
-    upward_radiation_channel = 'UPWARD-RADIATION-CHANNEL'
-    downward_radiation_channel = 'DOWNWARD-RADIATION-CHANNEL'
-    channel = 'CHANNEL'
-    nbar_coefficients = 'NBAR-COEFFICIENTS'
-    sbt_coefficients = 'SBT-COEFFICIENTS'
+    TP5 = 'TP5-DATA'
+    FLUX = 'FLUX'
+    ALTITUDES = 'ALTITUDES'
+    SOLAR_IRRADIANCE = 'SOLAR-IRRADIANCE'
+    UPWARD_RADIATION_CHANNEL = 'UPWARD-RADIATION-CHANNEL'
+    DOWNWARD_RADIATION_CHANNEL = 'DOWNWARD-RADIATION-CHANNEL'
+    CHANNEL = 'CHANNEL'
+    NBAR_COEFFICIENTS = 'NBAR-COEFFICIENTS'
+    SBT_COEFFICIENTS = 'SBT-COEFFICIENTS'
 
     # wagl.pq
-    pq_fmt = 'PIXEL-QUALITY/{produt}/PIXEL-QUALITY'
+    PQ_FMT = 'PIXEL-QUALITY/{produt}/PIXEL-QUALITY'
 
     # metadata
-    nbar_yaml = 'METADATA/NBAR-METADATA'
-    pq_yaml = 'METADATA/PQ-METADATA'
-    sbt_yaml = 'METADATA/SBT-METADATA'
+    NBAR_YAML = 'METADATA/NBAR-METADATA'
+    PQ_YAML = 'METADATA/PQ-METADATA'
+    SBT_YAML = 'METADATA/SBT-METADATA'
 
 
 class GroupName(Enum):
@@ -175,21 +175,21 @@ class GroupName(Enum):
     for creating and accessing throughout the code base.
     """
 
-    lon_lat_group = 'LONGITUDE-LATITUDE'
-    sat_sol_group = 'SATELLITE-SOLAR'
-    ancillary_group = 'ANCILLARY'
-    ancillary_avg_group = 'AVERAGED-ANCILLARY'
-    atmospheric_inputs_grp = 'ATMOSPHERIC-INPUTS'
-    atmospheric_results_grp = 'ATMOSPHERIC-RESULTS'
-    coefficients_group = 'ATMOSPHERIC-COEFFICIENTS'
-    interp_group = 'INTERPOLATED-ATMOSPHERIC-COEFFICIENTS'
-    elevation_group = 'ELEVATION'
-    slp_asp_group = 'SLOPE-ASPECT'
-    incident_group = 'INCIDENT-ANGLES'
-    exiting_group = 'EXITING-ANGLES'
-    rel_slp_group = 'RELATIVE-SLOPE'
-    shadow_group = 'SHADOW-MASKS'
-    standard_group = 'STANDARDISED-PRODUCTS'
+    LON_LAT_GROUP = 'LONGITUDE-LATITUDE'
+    SAT_SOL_GROUP = 'SATELLITE-SOLAR'
+    ANCILLARY_GROUP = 'ANCILLARY'
+    ANCILLARY_AVG_GROUP = 'AVERAGED-ANCILLARY'
+    ATMOSPHERIC_INPUTS_GRP = 'ATMOSPHERIC-INPUTS'
+    ATMOSPHERIC_RESULTS_GRP = 'ATMOSPHERIC-RESULTS'
+    COEFFICIENTS_GROUP = 'ATMOSPHERIC-COEFFICIENTS'
+    INTERP_GROUP = 'INTERPOLATED-ATMOSPHERIC-COEFFICIENTS'
+    ELEVATION_GROUP = 'ELEVATION'
+    SLP_ASP_GROUP = 'SLOPE-ASPECT'
+    INCIDENT_GROUP = 'INCIDENT-ANGLES'
+    EXITING_GROUP = 'EXITING-ANGLES'
+    REL_SLP_GROUP = 'RELATIVE-SLOPE'
+    SHADOW_GROUP = 'SHADOW-MASKS'
+    STANDARD_GROUP = 'STANDARDISED-PRODUCTS'
 
 
 class Method(Enum):
@@ -198,11 +198,11 @@ class Method(Enum):
     atmospheric coefficients.
     """
 
-    bilinear = 0
-    fbilinear = 1
-    shear = 2
-    shearb = 3
-    rbf = 4
+    BILINEAR = 0
+    FBILINEAR = 1
+    SHEAR = 2
+    SHEARB = 3
+    RBF = 4
 
 
 class BrdfParameters(Enum):
@@ -210,9 +210,9 @@ class BrdfParameters(Enum):
     Defines the BRDF Parameters used in BRDF correction.
     """
 
-    iso = 'ISO'
-    vol = 'VOL'
-    geo = 'GEO'
+    ISO = 'ISO'
+    VOL = 'VOL'
+    GEO = 'GEO'
 
 
 class ArdProducts(Enum):
@@ -220,10 +220,10 @@ class ArdProducts(Enum):
     Defines the output ARD products that wagl produces.
     """
 
-    nbar = 'NBAR'
-    nbart = 'NBART'
-    lambertian = 'LAMBERTIAN'
-    sbt = 'SBT'
+    NBAR = 'NBAR'
+    NBART = 'NBART'
+    LAMBERTIAN = 'LAMBERTIAN'
+    SBT = 'SBT'
 
 
 class Albedos(Enum):
@@ -231,10 +231,10 @@ class Albedos(Enum):
     Defines the albedo labels that wagl uses.
     """
 
-    albedo_0 = '0'
-    albedo_1 = '1'
-    albedo_t = 'T'
-    albedo_th = 'TH'
+    ALBEDO_0 = '0'
+    ALBEDO_1 = '1'
+    ALBEDO_T = 'T'
+    ALBEDO_TH = 'TH'
 
 
 class AtmosphericCoefficients(Enum):# param, coeff, vari... what to use
@@ -242,17 +242,17 @@ class AtmosphericCoefficients(Enum):# param, coeff, vari... what to use
     Defines the atmospheric coefficient names that wagl uses.
     """
 
-    fs = 'FS'
-    fv = 'FV'
-    a = 'A'
-    b = 'B'
-    s = 'S'
-    dir = 'DIR'
-    dif = 'DIF'
-    ts = 'TS'
-    path_up = 'PATH-UP'
-    path_down = 'PATH-DOWN'
-    transmittance_up = 'TRANSMITTANCE-UP'
+    FS = 'FS'
+    FV = 'FV'
+    A = 'A'
+    B = 'B'
+    S = 'S'
+    DIR = 'DIR'
+    DIF = 'DIF'
+    TS = 'TS'
+    PATH_UP = 'PATH-UP'
+    PATH_DOWN = 'PATH-DOWN'
+    TRANSMITTANCE_UP = 'TRANSMITTANCE-UP'
 
 
 class TrackIntersection(Enum):
@@ -261,25 +261,25 @@ class TrackIntersection(Enum):
     will have.
     """
 
-    full = 0
-    partial = 1
-    empty = 2
+    FULL = 0
+    PARTIAL = 1
+    EMPTY = 2
 
 
 class PQbits(Enum):
-    band_1_saturated = 0
-    band_2_saturated = 1
-    band_3_saturated = 2
-    band_4_saturated = 3
-    band_5_saturated = 4
-    band_6_saturated = 5
-    band_7_saturated = 6
-    contiguity = 7
-    land_obs = 8
-    cloud_acca = 9
-    cloud_fmask = 10
-    cloud_shadow_acca = 11
-    cloud_shadow_fmask = 12
+    BAND_1_SATURATED = 0
+    BAND_2_SATURATED = 1
+    BAND_3_SATURATED = 2
+    BAND_4_SATURATED = 3
+    BAND_5_SATURATED = 4
+    BAND_6_SATURATED = 5
+    BAND_7_SATURATED = 6
+    CONTIGUITY = 7
+    LAND_OBS = 8
+    CLOUD_ACCA = 9
+    CLOUD_FMASK = 10
+    CLOUD_SHADOW_ACCA = 11
+    CLOUD_SHADOW_FMASK = 12
 
 
 # TODO: get rid or redo this class

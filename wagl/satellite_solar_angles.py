@@ -116,7 +116,7 @@ def create_centreline_dataset(geobox, x, n, out_group):
     data['longitude'] = lon
 
     kwargs = dataset_compression_kwargs()
-    dname = DatasetName.centreline.value
+    dname = DatasetName.CENTRELINE.value
     cent_dset = out_group.create_dataset(dname, data=data, **kwargs)
     desc = ("Contains the array, latitude and longitude coordinates of the "
             "satellite track path.")
@@ -220,14 +220,14 @@ def track_bisection(acquisition, npoints, first_row, last_row):
     row_bisection = rows // 2
     if -1 in track_end_rows: # track doesn't intersect raster
         column_bisection = cols // 2
-        intersection = TrackIntersection.empty
+        intersection = TrackIntersection.EMPTY
     elif partial_track: # track intersects only part of raster
         column_bisection = ({first_row, last_row} - {0, cols-1, -1}).pop()
         row_bisection = partial_track.pop()
-        intersection = TrackIntersection.partial
+        intersection = TrackIntersection.PARTIAL
     else: # track fully available for deference
         column_bisection = None
-        intersection = TrackIntersection.full
+        intersection = TrackIntersection.FULL
 
     return intersection, row_bisection, column_bisection
 
@@ -294,7 +294,7 @@ def create_boxline(acquisition, view_angle_dataset, centreline_dataset,
     boxline['end_index'] = iend
 
     # if not a full intersection, grab the bisection index
-    if intersection != TrackIntersection.full:
+    if intersection != TrackIntersection.FULL:
         boxline['bisection_index'] = bisection
     else:
         boxline['bisection_index'] = col_index
@@ -318,7 +318,7 @@ def create_boxline(acquisition, view_angle_dataset, centreline_dataset,
     attrs = {'description': desc,
              'array_coordinate_offset': 0,
              'track_intersection': intersection.name}
-    dname = DatasetName.boxline.value
+    dname = DatasetName.BOXLINE.value
     box_dset = out_group.create_dataset(dname, data=boxline, **kwargs)
     attach_table_attributes(box_dset, title='Boxline', attrs=attrs)
 
@@ -716,13 +716,13 @@ def _store_parameter_settings(fid, spheriod, orbital_elements,
     group = fid.create_group('PARAMETERS')
 
     # generic parameters
-    dname = DatasetName.generic.value
+    dname = DatasetName.GENERIC.value
     write_scalar('GENERIC PARAMETERS', dname, group, params)
 
     # sheroid
     desc = "The spheroid used in the satellite and solar angles calculation."
     attrs = {'description': desc}
-    dname = DatasetName.spheroid.value
+    dname = DatasetName.SPHEROID.value
     sph_dset = group.create_dataset(dname, data=spheriod)
     attach_table_attributes(sph_dset, title='Spheroid', attrs=attrs)
 
@@ -730,7 +730,7 @@ def _store_parameter_settings(fid, spheriod, orbital_elements,
     desc = ("The satellite orbital parameters used in the satellite and "
             "solar angles calculation.")
     attrs = {'description': desc}
-    dname = DatasetName.orbital_elements.value
+    dname = DatasetName.ORBITAL_ELEMENTS.value
     orb_dset = group.create_dataset(dname, data=orbital_elements)
     attach_table_attributes(orb_dset, title='Orbital Elements', attrs=attrs)
 
@@ -738,7 +738,7 @@ def _store_parameter_settings(fid, spheriod, orbital_elements,
     desc = ("The satellite model used in the satellite and solar angles "
             "calculation.")
     attrs = {'description': desc}
-    dname = DatasetName.satellite_model.value
+    dname = DatasetName.SATELLITE_MODEL.value
     sat_dset = group.create_dataset(dname, data=satellite_model)
     attach_table_attributes(sat_dset, title='Satellite Model', attrs=attrs)
 
@@ -746,7 +746,7 @@ def _store_parameter_settings(fid, spheriod, orbital_elements,
     desc = ("The satellite track information used in the satellite and solar "
             "angles calculation.")
     attrs = {'description': desc}
-    dname = DatasetName.satellite_track.value
+    dname = DatasetName.SATELLITE_TRACK.value
     track_dset = group.create_dataset(dname, data=satellite_track)
     attach_table_attributes(track_dset, title='Satellite Track', attrs=attrs)
 
@@ -759,7 +759,7 @@ def _calculate_angles(acquisition, lon_lat_fname, out_fname=None,
     """
     with h5py.File(lon_lat_fname, 'r') as lon_lat_fid,\
         h5py.File(out_fname, 'w') as fid:
-        lon_lat_grp = lon_lat_fid[GroupName.lon_lat_group.value]
+        lon_lat_grp = lon_lat_fid[GroupName.LON_LAT_GROUP.value]
         calculate_angles(acquisition, lon_lat_grp, fid, compression, tle_path)
 
 
@@ -780,8 +780,8 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
         latitude datasets.
         The dataset pathnames are given by:
 
-        * DatasetName.lon
-        * DatasetName.lat
+        * DatasetName.LON
+        * DatasetName.LAT
 
     :param out_group:
         If set to None (default) then the results will be returned
@@ -790,18 +790,18 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
 
         The dataset names will be as follows:
 
-        * DatasetName.satellite_view
-        * DatasetName.satellite_azimuth
-        * DatasetName.solar_zenith
-        * DatasetName.solar_azimuth
-        * DatasetName.relative_azimuth
-        * DatasetName.time
-        * DatasetName.centreline
-        * DatasetName.boxline
-        * DatasetName.spheroid
-        * DatasetName.orbital_elements
-        * DatasetName.satellite_model
-        * DatasetName.satellite_track
+        * DatasetName.SATELLITE_VIEW
+        * DatasetName.SATELLITE_AZIMUTH
+        * DatasetName.SOLAR_ZENITH
+        * DatasetName.SOLAR_AZIMUTH
+        * DatasetName.RELATIVE_AZIMUTH
+        * DatasetName.TIME
+        * DatasetName.CENTRELINE
+        * DatasetName.BOXLINE
+        * DatasetName.SPHEROID
+        * DatasetName.ORBITAL_ELEMENTS
+        * DatasetName.SATELLITE_MODEL
+        * DatasetName.SATELLITE_TRACK
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -824,8 +824,8 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     geobox = acq.gridded_geo_box()
 
     # longitude and latitude datasets
-    longitude = lon_lat_group[DatasetName.lon.value]
-    latitude = lon_lat_group[DatasetName.lat.value]
+    longitude = lon_lat_group[DatasetName.LON.value]
+    latitude = lon_lat_group[DatasetName.LAT.value]
 
     # Min and Max lat extents
     # This method should handle northern and southern hemispheres
@@ -868,10 +868,10 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     else:
         fid = out_group
 
-    if GroupName.sat_sol_group.value not in fid:
-        fid.create_group(GroupName.sat_sol_group.value)
+    if GroupName.SAT_SOL_GROUP.value not in fid:
+        fid.create_group(GroupName.SAT_SOL_GROUP.value)
 
-    grp = fid[GroupName.sat_sol_group.value]
+    grp = fid[GroupName.SAT_SOL_GROUP.value]
 
     # store the parameter settings used with the satellite and solar angles
     # function
@@ -897,14 +897,14 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     kwargs['fillvalue'] = no_data
     kwargs['dtype'] = out_dtype
 
-    sat_v_ds = grp.create_dataset(DatasetName.satellite_view.value, **kwargs)
-    sat_az_ds = grp.create_dataset(DatasetName.satellite_azimuth.value,
+    sat_v_ds = grp.create_dataset(DatasetName.SATELLITE_VIEW.value, **kwargs)
+    sat_az_ds = grp.create_dataset(DatasetName.SATELLITE_AZIMUTH.value,
                                    **kwargs)
-    sol_z_ds = grp.create_dataset(DatasetName.solar_zenith.value, **kwargs)
-    sol_az_ds = grp.create_dataset(DatasetName.solar_azimuth.value, **kwargs)
-    rel_az_ds = grp.create_dataset(DatasetName.relative_azimuth.value,
+    sol_z_ds = grp.create_dataset(DatasetName.SOLAR_ZENITH.value, **kwargs)
+    sol_az_ds = grp.create_dataset(DatasetName.SOLAR_AZIMUTH.value, **kwargs)
+    rel_az_ds = grp.create_dataset(DatasetName.RELATIVE_AZIMUTH.value,
                                    **kwargs)
-    time_ds = grp.create_dataset(DatasetName.time.value, **kwargs)
+    time_ds = grp.create_dataset(DatasetName.TIME.value, **kwargs)
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
@@ -943,7 +943,7 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     desc = "Contains the time from apogee in seconds."
     attrs['description'] = desc
     attrs['units'] = 'seconds'
-    attrs['alias'] = 'time'
+    attrs['alias'] = 'timedelta'
     attach_image_attributes(time_ds, attrs)
 
     # Initialise centre line variables
@@ -994,7 +994,7 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     # outputs
     # TODO: rework create_boxline so that it reads tiled data effectively
     create_centreline_dataset(geobox, x_cent, n_cent, grp)
-    create_boxline(acq, sat_v_ds[:], grp[DatasetName.centreline.value], grp,
+    create_boxline(acq, sat_v_ds[:], grp[DatasetName.CENTRELINE.value], grp,
                    acq.maximum_view_angle)
 
     if out_group is None:

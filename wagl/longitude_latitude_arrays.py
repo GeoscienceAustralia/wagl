@@ -124,8 +124,8 @@ def create_lon_lat_grids(acquisition, out_group=None, compression='lzf',
 
         The dataset names will be given by:
 
-        * contants.DatasetName.lon.value
-        * contants.DatasetName.lat.value
+        * contants.DatasetName.LON.value
+        * contants.DatasetName.LAT.value
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -160,10 +160,10 @@ def create_lon_lat_grids(acquisition, out_group=None, compression='lzf',
     else:
         fid = out_group
 
-    if GroupName.lon_lat_group.value not in fid:
-        fid.create_group(GroupName.lon_lat_group.value)
+    if GroupName.LON_LAT_GROUP.value not in fid:
+        fid.create_group(GroupName.LON_LAT_GROUP.value)
 
-    grp = fid[GroupName.lon_lat_group.value]
+    grp = fid[GroupName.LON_LAT_GROUP.value]
 
     # define some base attributes for the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
@@ -172,7 +172,7 @@ def create_lon_lat_grids(acquisition, out_group=None, compression='lzf',
     attrs['description'] = LON_DESC
     kwargs = dataset_compression_kwargs(compression=compression,
                                         chunks=acquisition.tile_size)
-    lon_dset = grp.create_dataset(DatasetName.lon.value, data=result, **kwargs)
+    lon_dset = grp.create_dataset(DatasetName.LON.value, data=result, **kwargs)
     attach_image_attributes(lon_dset, attrs)
 
     result = numpy.zeros(shape, dtype='float64')
@@ -180,7 +180,7 @@ def create_lon_lat_grids(acquisition, out_group=None, compression='lzf',
                      eval_func=lat_func, grid=result)
 
     attrs['description'] = LAT_DESC
-    lat_dset = grp.create_dataset(DatasetName.lat.value, data=result, **kwargs)
+    lat_dset = grp.create_dataset(DatasetName.LAT.value, data=result, **kwargs)
     attach_image_attributes(lat_dset, attrs)
 
     return fid
@@ -229,7 +229,7 @@ def create_lon_grid(acquisition, out_fname=None, compression='lzf', depth=7):
 
         The dataset path names will be as follows:
 
-        * contants.DatasetName.lon.value
+        * contants.DatasetName.LON.value
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -262,8 +262,8 @@ def create_lon_grid(acquisition, out_fname=None, compression='lzf', depth=7):
 
     lon_grid = create_grid(geobox, get_lon_coordinate, depth)
 
-    grp = fid.create_group(GroupName.lon_lat_group.value)
-    dset = grp.create_dataset(DatasetName.lon.value, data=lon_grid, **kwargs)
+    grp = fid.create_group(GroupName.LON_LAT_GROUP.value)
+    dset = grp.create_dataset(DatasetName.LON.value, data=lon_grid, **kwargs)
     attach_image_attributes(dset, attrs)
 
     return fid
@@ -284,7 +284,7 @@ def create_lat_grid(acquisition, out_fname=None, compression='lzf', depth=7):
 
         The dataset path names will be as follows:
 
-        * contants.DatasetName.lat.value
+        * contants.DatasetName.LAT.value
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -317,8 +317,8 @@ def create_lat_grid(acquisition, out_fname=None, compression='lzf', depth=7):
 
     lat_grid = create_grid(geobox, get_lat_coordinate, depth)
 
-    grp = fid.create_group(GroupName.lon_lat_group.value)
-    dset = grp.create_dataset(DatasetName.lat.value, data=lat_grid, **kwargs)
+    grp = fid.create_group(GroupName.LON_LAT_GROUP.value)
+    dset = grp.create_dataset(DatasetName.LAT.value, data=lat_grid, **kwargs)
     attach_image_attributes(dset, attrs)
 
     return fid

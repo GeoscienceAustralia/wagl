@@ -45,14 +45,14 @@ def _calculate_reflectance(acquisition, acquisitions, interpolation_fname,
         h5py.File(ancillary_fname, 'r') as fid_anc,\
         h5py.File(out_fname, 'w') as fid:
 
-        grp1 = fid_interp[GroupName.interp_group.value]
-        grp2 = fid_sat_sol[GroupName.sat_sol_group.value]
-        grp3 = fid_slp_asp[GroupName.slp_asp_group.value]
-        grp4 = fid_rel_slp[GroupName.rel_slp_group.value]
-        grp5 = fid_inc[GroupName.incident_group.value]
-        grp6 = fid_exi[GroupName.exiting_group.value]
-        grp7 = fid_shadow[GroupName.shadow_group.value]
-        grp8 = fid_anc[GroupName.ancillary_group.value]
+        grp1 = fid_interp[GroupName.INTERP_GROUP.value]
+        grp2 = fid_sat_sol[GroupName.SAT_SOL_GROUP.value]
+        grp3 = fid_slp_asp[GroupName.SLP_ASP_GROUP.value]
+        grp4 = fid_rel_slp[GroupName.REL_SLP_GROUP.value]
+        grp5 = fid_inc[GroupName.INCIDENT_GROUP.value]
+        grp6 = fid_exi[GroupName.EXITING_GROUP.value]
+        grp7 = fid_shadow[GroupName.SHADOW_GROUP.value]
+        grp8 = fid_anc[GroupName.ANCILLARY_GROUP.value]
         calculate_reflectance(acquisition, grp1, grp2, grp3, grp4, grp5, grp6,
                               grp7, grp8, rori, fid, compression)
 
@@ -77,42 +77,42 @@ def calculate_reflectance(acquisition, interpolation_group,
         atmospheric coefficients.
         The dataset pathnames are given by:
 
-        * DatasetName.interpolation_fmt
+        * DatasetName.INTERPOLATION_FMT
 
     :param satellite_solar_group:
         The root HDF5 `Group` that contains the solar zenith and
         solar azimuth datasets specified by the pathnames given by:
 
-        * DatasetName.solar_zenith
-        * DatasetName.solar_azimuth
-        * DatasetName.satellite_view
-        * DatasetName.satellite_azimuth
-        * DatasetName.relative_azimuth
+        * DatasetName.SOLAR_ZENITH
+        * DatasetName.SOLAR_AZIMUTH
+        * DatasetName.SATELLITE_VIEW
+        * DatasetName.SATELLITE_AZIMUTH
+        * DatasetName.RELATIVE_AZIMUTH
         
     :param slope_aspect_group:
         The root HDF5 `Group` that contains the slope and aspect
         datasets specified by the pathnames given by:
 
-        * DatasetName.slope
-        * DatasetName.aspect
+        * DatasetName.SLOPE
+        * DatasetName.ASPECT
 
     :param relative_slope_group:
         The root HDF5 `Group` that contains the relative slope dataset
         specified by the pathname given by:
 
-        * DatasetName.relative_slope
+        * DatasetName.RELATIVE_SLOPE
 
     :param incident_angles_group:
         The root HDF5 `Group` that contains the incident
         angle dataset specified by the pathname given by:
 
-        * DatasetName.incident
+        * DatasetName.INCIDENT
 
     :param exiting_angles_group:
         The root HDF5 `Group` that contains the exiting
         angle dataset specified by the pathname given by:
 
-        * DatasetName.exiting
+        * DatasetName.EXITING
 
     :param shadow_masks_group:
         The root HDF5 `Group` that contains the combined shadow
@@ -120,14 +120,14 @@ def calculate_reflectance(acquisition, interpolation_group,
         cast shadow (satellite), dataset specified by the pathname
         given by:
 
-        * DatasetName.combined_shadow
+        * DatasetName.COMBINED_SHADOW
 
     :param ancillary_group:
         The root HDF5 `Group` that contains the Isotropic (iso),
         RossThick (vol), and LiSparseR (geo) BRDF scalar parameters.
         The dataset pathnames are given by:
 
-        * DatasetName.brdf_fmt
+        * DatasetName.BRDF_FMT
 
     :param rori:
         Threshold for terrain correction. Fuqin to document.
@@ -140,7 +140,7 @@ def calculate_reflectance(acquisition, interpolation_group,
         The dataset names will be given by the format string detailed
         by:
 
-        * DatasetName.reflectance_fmt
+        * DatasetName.REFLECTANCE_FMT
 
         The reflectance products are:
 
@@ -165,42 +165,42 @@ def calculate_reflectance(acquisition, interpolation_group,
     geobox = acq.gridded_geo_box()
     bn = acq.band_name
 
-    dname_fmt = DatasetName.interpolation_fmt.value
-    fv_dataset = interpolation_group[dname_fmt.format(coefficient=AC.fv.value,
+    dname_fmt = DatasetName.INTERPOLATION_FMT.value
+    fv_dataset = interpolation_group[dname_fmt.format(coefficient=AC.FV.value,
                                                       band_name=bn)]
-    fs_dataset = interpolation_group[dname_fmt.format(coefficient=AC.fs.value,
+    fs_dataset = interpolation_group[dname_fmt.format(coefficient=AC.FS.value,
                                                       band_name=bn)]
-    b_dataset = interpolation_group[dname_fmt.format(coefficient=AC.b.value,
+    b_dataset = interpolation_group[dname_fmt.format(coefficient=AC.B.value,
                                                      band_name=bn)]
-    s_dataset = interpolation_group[dname_fmt.format(coefficient=AC.s.value,
+    s_dataset = interpolation_group[dname_fmt.format(coefficient=AC.S.value,
                                                      band_name=bn)]
-    a_dataset = interpolation_group[dname_fmt.format(coefficient=AC.a.value,
+    a_dataset = interpolation_group[dname_fmt.format(coefficient=AC.A.value,
                                                      band_name=bn)]
-    dir_dataset = interpolation_group[dname_fmt.format(coefficient=AC.dir.value,
+    dir_dataset = interpolation_group[dname_fmt.format(coefficient=AC.DIR.value,
                                                        band_name=bn)]
-    dif_dataset = interpolation_group[dname_fmt.format(coefficient=AC.dif.value,
+    dif_dataset = interpolation_group[dname_fmt.format(coefficient=AC.DIF.value,
                                                        band_name=bn)]
-    ts_dataset = interpolation_group[dname_fmt.format(coefficient=AC.ts.value,
+    ts_dataset = interpolation_group[dname_fmt.format(coefficient=AC.TS.value,
                                                       band_name=bn)]
-    solar_zenith_dset = satellite_solar_group[DatasetName.solar_zenith.value]
-    solar_azimuth_dset = satellite_solar_group[DatasetName.solar_azimuth.value]
-    satellite_v_dset = satellite_solar_group[DatasetName.satellite_view.value]
-    relative_a_dset = satellite_solar_group[DatasetName.relative_azimuth.value]
-    slope_dataset = slope_aspect_group[DatasetName.slope.value]
-    aspect_dataset = slope_aspect_group[DatasetName.aspect.value]
-    relative_s_dset = relative_slope_group[DatasetName.relative_slope.value]
-    incident_angle_dataset = incident_angles_group[DatasetName.incident.value]
-    exiting_angle_dataset = exiting_angles_group[DatasetName.exiting.value]
-    shadow_dataset = shadow_masks_group[DatasetName.combined_shadow.value]
+    solar_zenith_dset = satellite_solar_group[DatasetName.SOLAR_ZENITH.value]
+    solar_azimuth_dset = satellite_solar_group[DatasetName.SOLAR_AZIMUTH.value]
+    satellite_v_dset = satellite_solar_group[DatasetName.SATELLITE_VIEW.value]
+    relative_a_dset = satellite_solar_group[DatasetName.RELATIVE_AZIMUTH.value]
+    slope_dataset = slope_aspect_group[DatasetName.SLOPE.value]
+    aspect_dataset = slope_aspect_group[DatasetName.ASPECT.value]
+    relative_s_dset = relative_slope_group[DatasetName.RELATIVE_SLOPE.value]
+    incident_angle_dataset = incident_angles_group[DatasetName.INCIDENT.value]
+    exiting_angle_dataset = exiting_angles_group[DatasetName.EXITING.value]
+    shadow_dataset = shadow_masks_group[DatasetName.COMBINED_SHADOW.value]
 
-    dname_fmt = DatasetName.brdf_fmt.value
-    dname = dname_fmt.format(band_name=bn, parameter=BrdfParameters.iso.value)
+    dname_fmt = DatasetName.BRDF_FMT.value
+    dname = dname_fmt.format(band_name=bn, parameter=BrdfParameters.ISO.value)
     brdf_iso = ancillary_group[dname][()]
 
-    dname = dname_fmt.format(band_name=bn, parameter=BrdfParameters.vol.value)
+    dname = dname_fmt.format(band_name=bn, parameter=BrdfParameters.VOL.value)
     brdf_vol = ancillary_group[dname][()]
 
-    dname = dname_fmt.format(band_name=bn, parameter=BrdfParameters.geo.value)
+    dname = dname_fmt.format(band_name=bn, parameter=BrdfParameters.GEO.value)
     brdf_geo = ancillary_group[dname][()]
 
     # Initialise the output file
@@ -210,24 +210,24 @@ def calculate_reflectance(acquisition, interpolation_group,
     else:
         fid = out_group
 
-    if GroupName.standard_group.value not in fid:
-        fid.create_group(GroupName.standard_group.value)
+    if GroupName.STANDARD_GROUP.value not in fid:
+        fid.create_group(GroupName.STANDARD_GROUP.value)
 
-    grp = fid[GroupName.standard_group.value]
+    grp = fid[GroupName.STANDARD_GROUP.value]
     kwargs = dataset_compression_kwargs(compression, chunks=acq.tile_size)
     kwargs['shape'] = (acq.lines, acq.samples)
     kwargs['fillvalue'] = NO_DATA_VALUE
     kwargs['dtype'] = 'int16'
 
     # create the datasets
-    dname_fmt = DatasetName.reflectance_fmt.value
-    dname = dname_fmt.format(product=AP.lambertian.value, band_name=bn)
+    dname_fmt = DatasetName.REFLECTANCE_FMT.value
+    dname = dname_fmt.format(product=AP.LAMBERTIAN.value, band_name=bn)
     lmbrt_dset = grp.create_dataset(dname, **kwargs)
 
-    dname = dname_fmt.format(product=AP.nbar.value, band_name=bn)
+    dname = dname_fmt.format(product=AP.NBAR.value, band_name=bn)
     nbar_dset = grp.create_dataset(dname, **kwargs)
 
-    dname = dname_fmt.format(product=AP.nbart.value, band_name=bn)
+    dname = dname_fmt.format(product=AP.NBART.value, band_name=bn)
     nbart_dset = grp.create_dataset(dname, **kwargs)
 
     # attach some attributes to the image datasets
@@ -338,10 +338,10 @@ def link_standard_data(input_fnames, out_fname):
         # metadata
         with h5py.File(fname, 'r') as fid:
             with h5py.File(out_fname) as out_fid:
-                yaml_dname = DatasetName.nbar_yaml.value
+                yaml_dname = DatasetName.NBAR_YAML.value
                 if yaml_dname in fid and yaml_dname not in out_fid:
                     fid.copy(yaml_dname, out_fid, name=yaml_dname)
 
-                yaml_dname = DatasetName.sbt_yaml.value
+                yaml_dname = DatasetName.SBT_YAML.value
                 if yaml_dname in fid and yaml_dname not in out_fid:
                     fid.copy(yaml_dname, out_fid, name=yaml_dname)

@@ -28,8 +28,8 @@ def _incident_exiting_angles(satellite_solar_fname, slope_aspect_fname,
         h5py.File(slope_aspect_fname, 'r') as slp_asp,\
         h5py.File(out_fname, 'w') as out_fid:
 
-        grp1 = sat_sol[GroupName.sat_sol_group.value]
-        grp2 = slp_asp[GroupName.slp_asp_group.value]
+        grp1 = sat_sol[GroupName.SAT_SOL_GROUP.value]
+        grp2 = slp_asp[GroupName.SLP_ASP_GROUP.value]
         if incident:
             incident_angles(grp1, grp2, out_fid, compression)
         else:
@@ -45,15 +45,15 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
         The root HDF5 `Group` that contains the solar zenith and
         solar azimuth datasets specified by the pathnames given by:
 
-        * DatasetName.solar_zenith
-        * DatasetName.solar_azimuth
+        * DatasetName.SOLAR_ZENITH
+        * DatasetName.SOLAR_AZIMUTH
         
     :param slope_aspect_group:
         The root HDF5 `Group` that contains the slope and aspect
         datasets specified by the pathnames given by:
 
-        * DatasetName.slope
-        * DatasetName.aspect
+        * DatasetName.SLOPE
+        * DatasetName.ASPECT
 
     :param out_group:
         If set to None (default) then the results will be returned
@@ -62,8 +62,8 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
 
         The dataset names will be as follows:
 
-        * DatasetName.incident
-        * DatasetName.azimuthal_incident
+        * DatasetName.INCIDENT
+        * DatasetName.AZIMUTHAL_INCIDENT
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -79,12 +79,12 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
         `core` driver, or on disk.
     """
     # dataset arrays
-    dname = DatasetName.solar_zenith.value
+    dname = DatasetName.SOLAR_ZENITH.value
     solar_zenith_dataset = satellite_solar_group[dname]
-    dname = DatasetName.solar_azimuth.value
+    dname = DatasetName.SOLAR_AZIMUTH.value
     solar_azimuth_dataset = satellite_solar_group[dname]
-    slope_dataset = slope_aspect_group[DatasetName.slope.value]
-    aspect_dataset = slope_aspect_group[DatasetName.aspect.value]
+    slope_dataset = slope_aspect_group[DatasetName.SLOPE.value]
+    aspect_dataset = slope_aspect_group[DatasetName.ASPECT.value]
 
     geobox = GriddedGeoBox.from_dataset(solar_zenith_dataset)
     shape = geobox.get_shape_yx()
@@ -98,10 +98,10 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
     else:
         fid = out_group
 
-    if GroupName.incident_group.value not in fid:
-        fid.create_group(GroupName.incident_group.value)
+    if GroupName.INCIDENT_GROUP.value not in fid:
+        fid.create_group(GroupName.INCIDENT_GROUP.value)
 
-    grp = fid[GroupName.incident_group.value]
+    grp = fid[GroupName.INCIDENT_GROUP.value]
     tile_size = solar_zenith_dataset.chunks
     kwargs = dataset_compression_kwargs(compression, chunks=tile_size)
     no_data = -999
@@ -110,9 +110,9 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
     kwargs['dtype'] = 'float32'
 
     # output datasets
-    dataset_name = DatasetName.incident.value
+    dataset_name = DatasetName.INCIDENT.value
     incident_dset = grp.create_dataset(dataset_name, **kwargs)
-    dataset_name = DatasetName.azimuthal_incident.value
+    dataset_name = DatasetName.AZIMUTHAL_INCIDENT.value
     azi_inc_dset = grp.create_dataset(dataset_name, **kwargs)
 
     # attach some attributes to the image datasets
@@ -178,15 +178,15 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
         The root HDF5 `Group` that contains the satellite view and
         satellite azimuth datasets specified by the pathnames given by:
 
-        * DatasetName.satellite_view
-        * DatasetName.satellite_azimuth
+        * DatasetName.SATELLITE_VIEW
+        * DatasetName.SATELLITE_AZIMUTH
         
     :param slope_aspect_group:
         The root HDF5 `Group` that contains the slope and aspect
         datasets specified by the pathnames given by:
 
-        * DatasetName.slope
-        * DatasetName.aspect
+        * DatasetName.SLOPE
+        * DatasetName.ASPECT
 
     :param out_group:
         If set to None (default) then the results will be returned
@@ -195,8 +195,8 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
 
         The dataset names will be as follows:
 
-        * DatasetName.exiting
-        * DatasetName.azimuthal_exiting
+        * DatasetName.EXITING
+        * DatasetName.AZIMUTHAL_EXITING
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -212,12 +212,12 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
         `core` driver, or on disk.
     """
     # dataset arrays
-    dname = DatasetName.satellite_view.value
+    dname = DatasetName.SATELLITE_VIEW.value
     satellite_view_dataset = satellite_solar_group[dname]
-    dname = DatasetName.satellite_azimuth.value
+    dname = DatasetName.SATELLITE_AZIMUTH.value
     satellite_azimuth_dataset = satellite_solar_group[dname]
-    slope_dataset = slope_aspect_group[DatasetName.slope.value]
-    aspect_dataset = slope_aspect_group[DatasetName.aspect.value]
+    slope_dataset = slope_aspect_group[DatasetName.SLOPE.value]
+    aspect_dataset = slope_aspect_group[DatasetName.ASPECT.value]
 
     geobox = GriddedGeoBox.from_dataset(satellite_view_dataset)
     shape = geobox.get_shape_yx()
@@ -231,10 +231,10 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
     else:
         fid = out_group
 
-    if GroupName.exiting_group.value not in fid:
-        fid.create_group(GroupName.exiting_group.value)
+    if GroupName.EXITING_GROUP.value not in fid:
+        fid.create_group(GroupName.EXITING_GROUP.value)
 
-    grp = fid[GroupName.exiting_group.value]
+    grp = fid[GroupName.EXITING_GROUP.value]
     tile_size = satellite_view_dataset.chunks
     kwargs = dataset_compression_kwargs(compression, chunks=tile_size)
     no_data = -999
@@ -243,9 +243,9 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
     kwargs['dtype'] = 'float32'
 
     # output datasets
-    dataset_name = DatasetName.exiting.value
+    dataset_name = DatasetName.EXITING.value
     exiting_dset = grp.create_dataset(dataset_name, **kwargs)
-    dataset_name = DatasetName.azimuthal_exiting.value
+    dataset_name = DatasetName.AZIMUTHAL_EXITING.value
     azi_exit_dset = grp.create_dataset(dataset_name, **kwargs)
 
     # attach some attributes to the image datasets
@@ -312,8 +312,8 @@ def _relative_azimuth_slope(incident_angles_fname, exiting_angles_fname,
         h5py.File(exiting_angles_fname, 'r') as exit_fid,\
         h5py.File(out_fname, 'w') as out_fid:
 
-        grp1 = inci_fid[GroupName.incident_group.value]
-        grp2 = exit_fid[GroupName.exiting_group.value]
+        grp1 = inci_fid[GroupName.INCIDENT_GROUP.value]
+        grp2 = exit_fid[GroupName.EXITING_GROUP.value]
         relative_azimuth_slope(grp1, grp2, out_fid, compression)
 
 
@@ -326,13 +326,13 @@ def relative_azimuth_slope(incident_angles_group, exiting_angles_group,
         The root HDF5 `Group` that contains the azimuthal incident
         angle dataset specified by the pathname given by:
 
-        * DatasetName.azimuthal_incident
+        * DatasetName.AZIMUTHAL_INCIDENT
 
     :param exiting_angles_group:
         The root HDF5 `Group` that contains the azimuthal exiting
         angle dataset specified by the pathname given by:
 
-        * DatasetName.azimuthal_exiting
+        * DatasetName.AZIMUTHAL_EXITING
 
     :param out_group:
         If set to None (default) then the results will be returned
@@ -341,7 +341,7 @@ def relative_azimuth_slope(incident_angles_group, exiting_angles_group,
 
         The dataset names will be as follows:
 
-        * DatasetName.relative_slope
+        * DatasetName.RELATIVE_SLOPE
 
     :param compression:
         The compression filter to use. Default is 'lzf'.
@@ -357,9 +357,9 @@ def relative_azimuth_slope(incident_angles_group, exiting_angles_group,
         `core` driver, or on disk.
     """
     # dataset arrays
-    dname = DatasetName.azimuthal_incident.value
+    dname = DatasetName.AZIMUTHAL_INCIDENT.value
     azimuth_incident_dataset = incident_angles_group[dname]
-    dname = DatasetName.azimuthal_exiting.value
+    dname = DatasetName.AZIMUTHAL_EXITING.value
     azimuth_exiting_dataset = exiting_angles_group[dname]
 
     geobox = GriddedGeoBox.from_dataset(azimuth_incident_dataset)
@@ -374,10 +374,10 @@ def relative_azimuth_slope(incident_angles_group, exiting_angles_group,
     else:
         fid = out_group
 
-    if GroupName.rel_slp_group.value not in fid:
-        fid.create_group(GroupName.rel_slp_group.value)
+    if GroupName.REL_SLP_GROUP.value not in fid:
+        fid.create_group(GroupName.REL_SLP_GROUP.value)
 
-    grp = fid[GroupName.rel_slp_group.value]
+    grp = fid[GroupName.REL_SLP_GROUP.value]
     tile_size = azimuth_incident_dataset.chunks
     kwargs = dataset_compression_kwargs(compression, chunks=tile_size)
     no_data = -999
@@ -386,7 +386,7 @@ def relative_azimuth_slope(incident_angles_group, exiting_angles_group,
     kwargs['dtype'] = 'float32'
 
     # output datasets
-    out_dset = grp.create_dataset(DatasetName.relative_slope.value, **kwargs)
+    out_dset = grp.create_dataset(DatasetName.RELATIVE_SLOPE.value, **kwargs)
 
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': crs,
