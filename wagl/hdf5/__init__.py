@@ -14,6 +14,10 @@ import numpy
 import h5py
 import pandas
 
+from .compression import H5CompressionFilter, BloscCompression, BloscShuffle
+from .compression import H5CompressionConfig, H5lzf, H5gzip, H5zstandard
+from .compression import H5bitshuffle, H5mafisc, H5blosc
+
 DEFAULT_IMAGE_CLASS = {'CLASS': 'IMAGE',
                        'IMAGE_VERSION': '1.2',
                        'DISPLAY_ORIGIN': 'UL'}
