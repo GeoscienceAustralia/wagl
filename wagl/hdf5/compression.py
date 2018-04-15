@@ -133,8 +133,6 @@ class H5lzf(H5CompressionConfig):
     compression_filter = attr.ib(default=H5CompressionFilter.LZF)
     compression = attr.ib(default='lzf')
     compression_opts = attr.ib(default=None)
-    chunks: bool = attr.ib(default=True)
-    shuffle: bool = attr.ib(default=True)
 
     @compression_opts.validator
     def check_compression_opts(self, attribute, value):
@@ -248,6 +246,7 @@ class H5mafisc(H5bitshuffle):
 
     compression_filter = attr.ib(default=H5CompressionFilter.MAFISC)
     compression: int = attr.ib(default=32002)
+    compression_opts = attr.ib((1, 0))
 
 
 @attr.s(frozen=True)
