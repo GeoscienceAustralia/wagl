@@ -21,7 +21,7 @@ from wagl.constants import PQAConstants, PQbits
 from wagl.constants import ArdProducts as AP
 from wagl.contiguity_masking import set_contiguity_bit
 from wagl.fmask_cloud_masking_wrapper import fmask_cloud_mask
-from wagl.hdf5 import dataset_compression_kwargs, write_h5_image
+from wagl.hdf5 import H5CompressionFilter, write_h5_image
 from wagl.land_sea_masking import set_land_sea_bit
 from wagl.metadata import create_pq_yaml
 from wagl.saturation_masking import set_saturation_bits
@@ -130,18 +130,24 @@ class PQAResult(object):
             ds.write_band(1, self.array)
             ds.update_tags(1, **self.aux_data)
 
-    def save_as_h5_dataset(self, out_group, acq, product, compression):
+    def save_as_h5_dataset(self, out_group, acq, product,
+                           compression=H5CompressionFilter.LZF,
+                           filter_opts=None):
         """
         Save the PQ result and attribute information in a HDF5
         `IMAGE` Class dataset.
         """
-        kwargs = dataset_compression_kwargs(compression=compression,
-                                            chunks=acq.tile_size)
+        if filter_opts is None:
+            fopts = {}
+        else:
+            fopts = filter_opts.copy()
+
+        fopts['chunks'] = acq.tile_size
         attrs = self.aux_data.copy()
         attrs['crs_wkt'] = self.geobox.crs.ExportToWkt()
         attrs['geotransform'] = self.geobox.transform.to_gdal()
         dname = DatasetName.PQ_FMT.value.format(product=product.value)
-        write_h5_image(self.array, dname, out_group, attrs=attrs, **kwargs)
+        write_h5_image(self.array, dname, out_group, compression, attrs, fopts)
 
     @property
     def test_list(self):
@@ -161,17 +167,22 @@ class PQAResult(object):
         return ''.join(bit_list)
 
 
-def _run_pq(level1, out_fname, scene_group, land_sea_path, compression, acq_parser_hint=None):
+def _run_pq(level1, out_fname, scene_group, land_sea_path,
+            compression=H5CompressionFilter.LZF, filter_opts=None,
+            acq_parser_hint=None):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
     with h5py.File(out_fname) as fid:
         grp = fid[scene_group]
-        run_pq(level1, grp, land_sea_path, grp, compression, AP.NBAR, acq_parser_hint)
-        run_pq(level1, grp, land_sea_path, grp, compression, AP.NBART, acq_parser_hint)
+        run_pq(level1, grp, land_sea_path, grp, compression, filter_opts,
+               AP.NBAR, acq_parser_hint)
+        run_pq(level1, grp, land_sea_path, grp, compression, filter_opts,
+               AP.NBART, acq_parser_hint)
 
-def run_pq(level1, input_group, land_sea_path, out_group, compression='lzf',
+def run_pq(level1, input_group, land_sea_path, out_group,
+           compression=H5CompressionFilter.LZF, filter_opts=None,
            product=AP.NBAR, acq_parser_hint=None):
     """
     Runs the PQ workflow and saves the result in the same file as
@@ -201,13 +212,16 @@ def run_pq(level1, input_group, land_sea_path, out_group, compression='lzf',
         * DatasetName.PQ_FMT
 
     :param compression:
-        The compression filter to use. Default is 'lzf'.
-        Options include:
+        The compression filter to use.
+        Default is H5CompressionFilter.LZF 
 
-        * 'lzf' (Default)
-        * 'lz4'
-        * 'mafisc'
-        * An integer [1-9] (Deflate/gzip)
+    :filter_opts:
+        A dict of key value pairs available to the given configuration
+        instance of H5CompressionFilter. For example
+        H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
+        available.
+        Default is None, which will use the default settings for the
+        chosen H5CompressionFilter instance.
 
     :param product:
         An enum representing the product type to use as input into the
@@ -387,6 +401,7 @@ def run_pq(level1, input_group, land_sea_path, out_group, compression='lzf',
                         'algorithm.', sensor)
 
     # write the pq result as an accompanying dataset to the standardised data
-    pqa_result.save_as_h5_dataset(out_group, acqs[0], product, compression)
+    pqa_result.save_as_h5_dataset(out_group, acqs[0], product, compression,
+                                  filter_opts)
     # TODO: move metadata yaml creation outside of this func
     create_pq_yaml(acqs[0], ancillary, tests_run, out_group)

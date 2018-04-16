@@ -22,7 +22,7 @@ from wagl.constants import Model, BandType, DatasetName, GroupName, Albedos
 from wagl.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
 from wagl.constants import AtmosphericCoefficients as AC
 from wagl.hdf5 import write_dataframe, read_h5_table, create_external_link
-from wagl.hdf5 import VLEN_STRING, write_scalar
+from wagl.hdf5 import VLEN_STRING, write_scalar, H5CompressionFilter
 from wagl.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
 from wagl.modtran_profiles import MIDLAT_SUMMER_TRANSMITTANCE, SBT_FORMAT
 from wagl.modtran_profiles import TROPICAL_TRANSMITTANCE, THERMAL_TRANSMITTANCE
@@ -240,7 +240,7 @@ def format_tp5(acquisitions, ancillary_group, satellite_solar_group,
 
 def _run_modtran(acquisitions, modtran_exe, basedir, point, albedos, model,
                  npoints, atmospheric_inputs_fname, out_fname,
-                 compression='lzf'):
+                 compression=H5CompressionFilter.LZF, filter_opts=None):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -250,11 +250,12 @@ def _run_modtran(acquisitions, modtran_exe, basedir, point, albedos, model,
 
         atmos_grp = atmos_fid[GroupName.ATMOSPHERIC_INPUTS_GRP.value]
         run_modtran(acquisitions, atmos_grp, model, npoints, point, albedos,
-                    modtran_exe, basedir, fid, compression)
+                    modtran_exe, basedir, fid, compression, filter_opts)
 
 
 def run_modtran(acquisitions, atmospherics_group, model, npoints, point,
-                albedos, modtran_exe, basedir, out_group, compression):
+                albedos, modtran_exe, basedir, out_group,
+                compression=H5CompressionFilter.LZF, filter_opts=None):
     """
     Run MODTRAN and return the flux and channel results.
     """
@@ -306,7 +307,8 @@ def run_modtran(acquisitions, atmospherics_group, model, npoints, point,
             attrs['description'] = ('Upward radiation channel output from '
                                     'MODTRAN')
             dset_name = ppjoin(group_path, dataset_name)
-            write_dataframe(channel_data[0], dset_name, fid, attrs=attrs)
+            write_dataframe(channel_data[0], dset_name, fid, compression,
+                            attrs=attrs, filter_opts=filter_opts)
 
             # downward radiation
             attrs = base_attrs.copy()
@@ -314,7 +316,8 @@ def run_modtran(acquisitions, atmospherics_group, model, npoints, point,
             attrs['description'] = ('Downward radiation channel output from '
                                     'MODTRAN')
             dset_name = ppjoin(group_path, dataset_name)
-            write_dataframe(channel_data[1], dset_name, fid, attrs=attrs)
+            write_dataframe(channel_data[1], dset_name, fid, compression,
+                            attrs=attrs, filter_opts=filter_opts)
         else:
             acq = [acq for acq in acqs if
                    acq.band_type == BandType.REFLECTIVE][0]
@@ -326,7 +329,8 @@ def run_modtran(acquisitions, atmospherics_group, model, npoints, point,
             attrs = base_attrs.copy()
             dset_name = ppjoin(group_path, DatasetName.FLUX.value)
             attrs['description'] = 'Flux output from MODTRAN'
-            write_dataframe(flux_data, dset_name, fid, attrs=attrs)
+            write_dataframe(flux_data, dset_name, fid, compression,
+                            attrs=attrs, filter_opts=filter_opts)
 
             # output the altitude data
             attrs = base_attrs.copy()
@@ -334,7 +338,8 @@ def run_modtran(acquisitions, atmospherics_group, model, npoints, point,
             attrs['altitude_levels'] = altitudes.shape[0]
             attrs['units'] = 'km'
             dset_name = ppjoin(group_path, DatasetName.ALTITUDES.value)
-            write_dataframe(altitudes, dset_name, fid, attrs=attrs)
+            write_dataframe(altitudes, dset_name, fid, compression,
+                            attrs=attrs, filter_opts=filter_opts)
 
             # accumulate the solar irradiance
             transmittance = True if albedo == Albedos.ALBEDO_T else False
@@ -349,13 +354,14 @@ def run_modtran(acquisitions, atmospherics_group, model, npoints, point,
                            "and albedo {}.")
             attrs['description'] = description.format(point, albedo.value)
             write_dataframe(accumulated, dset_name, fid, compression,
-                            attrs=attrs)
+                            attrs=attrs, filter_opts=filter_opts)
 
             attrs = base_attrs.copy()
             dataset_name = DatasetName.CHANNEL.value
             attrs['description'] = 'Channel output from MODTRAN'
             dset_name = ppjoin(group_path, dataset_name)
-            write_dataframe(channel_data, dset_name, fid, attrs=attrs)
+            write_dataframe(channel_data, dset_name, fid, compression,
+                            attrs=attrs, filter_opts=filter_opts)
 
     # metadata for a given point
     alb_vals = [alb.value for alb in model.albedos]
@@ -367,7 +373,9 @@ def run_modtran(acquisitions, atmospherics_group, model, npoints, point,
         return fid
 
 
-def _calculate_coefficients(atmosheric_results_fname, out_fname, compression):
+def _calculate_coefficients(atmosheric_results_fname, out_fname,
+                            compression=H5CompressionFilter.LZF,
+                            filter_opts=None):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -376,11 +384,12 @@ def _calculate_coefficients(atmosheric_results_fname, out_fname, compression):
         h5py.File(out_fname, 'w') as fid:
 
         results_group = atmos_fid[GroupName.ATMOSPHERIC_RESULTS_GRP.value]
-        calculate_coefficients(results_group, fid, compression)
+        calculate_coefficients(results_group, fid, compression, filter_opts)
 
 
 def calculate_coefficients(atmospheric_results_group, out_group,
-                         compression='lzf'):
+                           compression=H5CompressionFilter.LZF,
+                           filter_opts=None):
     """
     Calculate the atmospheric coefficients from the MODTRAN output
     and used in the BRDF and atmospheric correction.
@@ -404,13 +413,16 @@ def calculate_coefficients(atmospheric_results_group, out_group,
         * DatasetName.SBT_COEFFICIENTS (if Model.STANDARD or Model.SBT)
 
     :param compression:
-        The compression filter to use. Default is 'lzf'.
-        Options include:
+        The compression filter to use.
+        Default is H5CompressionFilter.LZF 
 
-        * 'lzf' (Default)
-        * 'lz4'
-        * 'mafisc'
-        * An integer [1-9] (Deflate/gzip)
+    :filter_opts:
+        A dict of key value pairs available to the given configuration
+        instance of H5CompressionFilter. For example
+        H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
+        available.
+        Default is None, which will use the default settings for the
+        chosen H5CompressionFilter instance.
 
     :return:
         An opened `h5py.File` object, that is either in-memory using the
@@ -505,22 +517,23 @@ def calculate_coefficients(atmospheric_results_group, out_group,
     group = fid[GroupName.COEFFICIENTS_GROUP.value]
     if nbar_atmos:
         write_dataframe(nbar_coefficients, dname, group, compression,
-                        attrs=attrs)
+                        attrs=attrs, filter_opts=filter_opts)
 
     description = "Coefficients derived from the THERMAL solar irradiation."
     attrs['description'] = description
     dname = DatasetName.SBT_COEFFICIENTS.value
 
     if sbt_atmos:
-        write_dataframe(sbt_coefficients, dname, group, compression, attrs=attrs)
+        write_dataframe(sbt_coefficients, dname, group, compression,
+                        attrs=attrs, filter_opts=filter_opts)
 
     if out_group is None:
         return fid
 
 
 def coefficients(accumulation_albedo_0=None, accumulation_albedo_1=None,
-               accumulation_albedo_t=None, channel_data=None,
-               upward_radiation=None, downward_radiation=None):
+                 accumulation_albedo_t=None, channel_data=None,
+                 upward_radiation=None, downward_radiation=None):
     """
     Calculate the coefficients for a given point.
     Calculate the atmospheric coefficients from the MODTRAN output

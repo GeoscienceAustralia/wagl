@@ -13,15 +13,16 @@ import h5py
 
 from wagl.constants import DatasetName, GroupName, ArdProducts
 from wagl.constants import AtmosphericCoefficients as AC
-from wagl.hdf5 import dataset_compression_kwargs
-from wagl.hdf5 import attach_image_attributes
+from wagl.hdf5 import H5CompressionFilter, attach_image_attributes
 from wagl.metadata import create_ard_yaml
 
 NO_DATA_VALUE = -999
 
 
 def _surface_brightness_temperature(acquisition, acquisitions, bilinear_fname,
-                                    ancillary_fname, out_fname, compression):
+                                    ancillary_fname, out_fname,
+                                    compression=H5CompressionFilter.LZF,
+                                    filter_opts=None):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -31,14 +32,17 @@ def _surface_brightness_temperature(acquisition, acquisitions, bilinear_fname,
         h5py.File(out_fname, 'w') as fid:
 
         grp1 = interp_fid[GroupName.INTERP_GROUP.value]
-        surface_brightness_temperature(acquisition, grp1, fid, compression)
+        surface_brightness_temperature(acquisition, grp1, fid, compression,
+                                       filter_opts)
 
         grp2 = fid_anc[GroupName.ANCILLARY_GROUP.value]
         create_ard_yaml(acquisitions, grp2, fid, True)
 
 
 def surface_brightness_temperature(acquisition, interpolation_group,
-                                   out_group=None, compression='lzf'):
+                                   out_group=None,
+                                   compression=H5CompressionFilter.LZF,
+                                   filter_opts=None):
     """
     Convert Thermal acquisition to Surface Brightness Temperature.
 
@@ -76,13 +80,16 @@ def surface_brightness_temperature(acquisition, interpolation_group,
         * DatasetName.TEMPERATURE_FMT
 
     :param compression:
-        The compression filter to use. Default is 'lzf'.
-        Options include:
+        The compression filter to use.
+        Default is H5CompressionFilter.LZF 
 
-        * 'lzf' (Default)
-        * 'lz4'
-        * 'mafisc'
-        * An integer [1-9] (Deflate/gzip)
+    :filter_opts:
+        A dict of key value pairs available to the given configuration
+        instance of H5CompressionFilter. For example
+        H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
+        available.
+        Default is None, which will use the default settings for the
+        chosen H5CompressionFilter instance.
 
     :return:
         An opened `h5py.File` object, that is either in-memory using the
@@ -117,8 +124,14 @@ def surface_brightness_temperature(acquisition, interpolation_group,
     if GroupName.STANDARD_GROUP.value not in fid:
         fid.create_group(GroupName.STANDARD_GROUP.value)
 
+    if filter_opts is None:
+        filter_opts = {}
+    else:
+        filter_opts = filter_opts.copy()
+    filter_opts['chunks'] = acq.tile_size
+
     group = fid[GroupName.STANDARD_GROUP.value]
-    kwargs = dataset_compression_kwargs(compression, chunks=acq.tile_size)
+    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
     kwargs['shape'] = (acq.lines, acq.samples)
     kwargs['fillvalue'] = NO_DATA_VALUE
     kwargs['dtype'] = 'float32'

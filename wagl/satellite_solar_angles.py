@@ -12,8 +12,8 @@ import h5py
 
 from osgeo import osr
 from wagl.constants import DatasetName, GroupName, TrackIntersection
-from wagl.hdf5 import dataset_compression_kwargs, attach_image_attributes
-from wagl.hdf5 import attach_table_attributes, write_scalar
+from wagl.hdf5 import H5CompressionFilter, attach_image_attributes
+from wagl.hdf5 import attach_table_attributes, write_scalar, attach_attributes
 from wagl.tle import load_tle
 from wagl.__sat_sol_angles import angle
 from wagl.__satellite_model import set_satmod
@@ -115,7 +115,7 @@ def create_centreline_dataset(geobox, x, n, out_group):
     data['latitude'] = lat
     data['longitude'] = lon
 
-    kwargs = dataset_compression_kwargs()
+    kwargs = H5CompressionFilter.LZF.config().dataset_compression_kwargs()
     dname = DatasetName.CENTRELINE.value
     cent_dset = out_group.create_dataset(dname, data=data, **kwargs)
     desc = ("Contains the array, latitude and longitude coordinates of the "
@@ -312,7 +312,7 @@ def create_boxline(acquisition, view_angle_dataset, centreline_dataset,
     boxline['end_longitude'] = lon
     boxline['end_latitude'] = lat
 
-    kwargs = dataset_compression_kwargs()
+    kwargs = H5CompressionFilter.LZF.config().dataset_compression_kwargs()
     desc = ("Contains the bi-section, column start and column end array "
             "coordinates.")
     attrs = {'description': desc,
@@ -752,7 +752,8 @@ def _store_parameter_settings(fid, spheriod, orbital_elements,
 
 
 def _calculate_angles(acquisition, lon_lat_fname, out_fname=None,
-                      compression='lzf', tle_path=None):
+                      compression=H5CompressionFilter.LZF, filter_opts=None,
+                      tle_path=None):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -760,11 +761,13 @@ def _calculate_angles(acquisition, lon_lat_fname, out_fname=None,
     with h5py.File(lon_lat_fname, 'r') as lon_lat_fid,\
         h5py.File(out_fname, 'w') as fid:
         lon_lat_grp = lon_lat_fid[GroupName.LON_LAT_GROUP.value]
-        calculate_angles(acquisition, lon_lat_grp, fid, compression, tle_path)
+        calculate_angles(acquisition, lon_lat_grp, fid, compression,
+                         filter_opts, tle_path)
 
 
 def calculate_angles(acquisition, lon_lat_group, out_group=None,
-                     compression='lzf', tle_path=None):
+                     compression=H5CompressionFilter.LZF, filter_opts=None,
+                     tle_path=None):
     """
     Calculate the satellite view, satellite azimuth, solar zenith,
     solar azimuth, and relative aziumth angle grids, as well as the
@@ -804,13 +807,16 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
         * DatasetName.SATELLITE_TRACK
 
     :param compression:
-        The compression filter to use. Default is 'lzf'.
-        Options include:
+        The compression filter to use.
+        Default is H5CompressionFilter.LZF 
 
-        * 'lzf' (Default)
-        * 'lz4'
-        * 'mafisc'
-        * An integer [1-9] (Deflate/gzip)
+    :filter_opts:
+        A dict of key value pairs available to the given configuration
+        instance of H5CompressionFilter. For example
+        H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
+        available.
+        Default is None, which will use the default settings for the
+        chosen H5CompressionFilter instance.
 
     :param tle_path:
         A `str` to the directory containing the Two Line Element data.
@@ -819,9 +825,8 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
     """
-    acq = acquisition
-    century = calculate_julian_century(acq.acquisition_datetime)
-    geobox = acq.gridded_geo_box()
+    century = calculate_julian_century(acquisition.acquisition_datetime)
+    geobox = acquisition.gridded_geo_box()
 
     # longitude and latitude datasets
     longitude = lon_lat_group[DatasetName.LON.value]
@@ -838,8 +843,8 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     # Get the lat/lon of the scene centre
     # check if we have a file with GPS satellite track points
     # which can be used for cases of image granules/tiles, eg Sentinel-2A
-    if acq.gps_file:
-        points = acq.read_gps_file()
+    if acquisition.gps_file:
+        points = acquisition.read_gps_file()
         subs = points[(points.latitude >= min_lat) &
                       (points.latitude <= max_lat)]
         idx = subs.shape[0] // 2 - 1
@@ -851,7 +856,7 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     spheroid = setup_spheroid(geobox.crs.ExportToWkt())
 
     # Get the satellite orbital elements
-    orbital_elements = setup_orbital_elements(acq, tle_path)
+    orbital_elements = setup_orbital_elements(acquisition, tle_path)
 
     # Get the satellite model paramaters
     smodel = setup_smodel(centre_xy[0], centre_xy[1], spheroid[0],
@@ -871,28 +876,31 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     if GroupName.SAT_SOL_GROUP.value not in fid:
         fid.create_group(GroupName.SAT_SOL_GROUP.value)
 
+    if filter_opts is None:
+        filter_opts = filter_opts.copy()
+    filter_opts['chunks'] = acquisition.tile_size
+
     grp = fid[GroupName.SAT_SOL_GROUP.value]
 
     # store the parameter settings used with the satellite and solar angles
     # function
-    params = {'dimensions': (acq.lines, acq.samples),
-              'lines': acq.lines,
-              'samples': acq.samples,
+    params = {'dimensions': (acquisition.lines, acquisition.samples),
+              'lines': acquisition.lines,
+              'samples': acquisition.samples,
               'century': century,
-              'decimal_hour': acq.decimal_hour(),
-              'acquisition_datetime': acq.acquisition_datetime,
+              'decimal_hour': acquisition.decimal_hour(),
+              'acquisition_datetime': acquisition.acquisition_datetime,
               'centre_longitude_latitude': centre_xy,
               'minimum_latiude': min_lat,
               'maximum_latiude': max_lat,
               'latitude_buffer': 1.0,
-              'max_view_angle': acq.maximum_view_angle}
+              'max_view_angle': acquisition.maximum_view_angle}
     _store_parameter_settings(grp, spheroid[1], orbital_elements[1],
                               smodel[1], track[1], params)
 
     out_dtype = 'float32'
     no_data = -999
-    kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=acq.tile_size)
+    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
     kwargs['shape'] = (acquisition.lines, acquisition.samples)
     kwargs['fillvalue'] = no_data
     kwargs['dtype'] = out_dtype
@@ -906,51 +914,66 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
                                    **kwargs)
     time_ds = grp.create_dataset(DatasetName.TIME.value, **kwargs)
 
-    # attach some attributes to the image datasets
-    attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
-             'geotransform': geobox.transform.to_gdal(),
-             'no_data_value': no_data}
-    desc = "Contains the satellite viewing angle in degrees."
-    attrs['description'] = desc
-    attrs['units'] = 'degrees'
-    attrs['alias'] = 'satellite-view'
+    # base attributes for image datasets
+    attrs = {
+        'crs_wkt': geobox.crs.ExportToWkt(),
+        'geotransform': geobox.transform.to_gdal(),
+        'no_data_value': no_data
+        }
     attach_image_attributes(sat_v_ds, attrs)
-
-    desc = "Contains the satellite azimuth angle in degrees."
-    attrs['description'] = desc
-    attrs['units'] = 'degrees'
-    attrs['alias'] = 'satellite-azimuth'
     attach_image_attributes(sat_az_ds, attrs)
-
-    desc = "Contains the solar zenith angle in degrees."
-    attrs['description'] = desc
-    attrs['units'] = 'degrees'
-    attrs['alias'] = 'solar-zenith'
     attach_image_attributes(sol_z_ds, attrs)
-
-    desc = "Contains the solar azimuth angle in degrees."
-    attrs['description'] = desc
-    attrs['units'] = 'degrees'
-    attrs['alias'] = 'solar-azimuth'
     attach_image_attributes(sol_az_ds, attrs)
-
-    desc = "Contains the relative azimuth angle in degrees."
-    attrs['description'] = desc
-    attrs['units'] = 'degrees'
-    attrs['alias'] = 'relative-azimuth'
     attach_image_attributes(rel_az_ds, attrs)
-
-    desc = "Contains the time from apogee in seconds."
-    attrs['description'] = desc
-    attrs['units'] = 'seconds'
-    attrs['alias'] = 'timedelta'
     attach_image_attributes(time_ds, attrs)
 
-    # Initialise centre line variables
-    x_cent = np.zeros((acq.lines), dtype=out_dtype)
-    n_cent = np.zeros((acq.lines), dtype=out_dtype)
+    attrs = {
+        'description': "Contains the satellite viewing angle in degrees.",
+        'units': 'degrees',
+        'alias': 'satellite-view'
+        }
+    attach_attributes(sat_v_ds, attrs)
 
-    for tile in acq.tiles():
+    attrs = {
+        'description': "Contains the satellite azimuth angle in degrees.",
+        'units': 'degrees',
+        'alias': 'satellite-azimuth'
+        }
+    attach_attributes(sat_az_ds, attrs)
+
+    attrs = {
+        'description': "Contains the solar zenith angle in degrees.",
+        'units': 'degrees',
+        'alias': 'solar-zenith'
+        }
+    attach_attributes(sol_z_ds, attrs)
+
+    attrs = {
+        'description': "Contains the solar azimuth angle in degrees.",
+        'units': 'degrees',
+        'alias': 'solar-azimuth'
+        }
+    attach_attributes(sol_az_ds, attrs)
+
+    attrs = {
+        'description': "Contains the relative azimuth angle in degrees.",
+        'units': 'degrees',
+        'alias': 'relative-azimuth'
+        }
+    attach_attributes(rel_az_ds, attrs)
+
+    attrs = {
+        'description': "Contains the time from apogee in seconds.",
+        'units': 'seconds',
+        'alias': 'timedelta'
+        }
+    attach_attributes(time_ds, attrs)
+
+    # Initialise centre line variables
+    x_cent = np.zeros((acquisition.lines), dtype=out_dtype)
+    n_cent = np.zeros((acquisition.lines), dtype=out_dtype)
+
+    for tile in acquisition.tiles():
         idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
 
         # read the lon and lat tile
@@ -971,9 +994,9 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
         # loop each row within each tile (which itself could be a single row)
         for i in range(lon_data.shape[0]):
             row_id = idx[0].start + i + 1 # FORTRAN 1 based index
-            stat = angle(dims[1], acq.lines, row_id, col_offset, lat_data[i],
+            stat = angle(dims[1], acquisition.lines, row_id, col_offset, lat_data[i],
                          lon_data[i], spheroid[0], orbital_elements[0],
-                         acq.decimal_hour(), century, 12, smodel[0], track[0],
+                         acquisition.decimal_hour(), century, 12, smodel[0], track[0],
                          view[i], azi[i], asol[i], soazi[i], rela_angle[i],
                          time[i], x_cent, n_cent)
                          # x_cent[idx[0]], n_cent[idx[0]])
@@ -994,8 +1017,8 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     # outputs
     # TODO: rework create_boxline so that it reads tiled data effectively
     create_centreline_dataset(geobox, x_cent, n_cent, grp)
-    create_boxline(acq, sat_v_ds[:], grp[DatasetName.CENTRELINE.value], grp,
-                   acq.maximum_view_angle)
+    create_boxline(acquisition, sat_v_ds[:], grp[DatasetName.CENTRELINE.value],
+                   grp, acquisition.maximum_view_angle)
 
     if out_group is None:
         return fid

@@ -12,8 +12,7 @@ from wagl.constants import DatasetName, GroupName
 from wagl.margins import pixel_buffer
 from wagl.geobox import GriddedGeoBox
 from wagl.data import reproject_file_to_array
-from wagl.hdf5 import dataset_compression_kwargs
-from wagl.hdf5 import attach_image_attributes
+from wagl.hdf5 import H5CompressionFilter, attach_image_attributes
 
 
 def filter_dsm(array):
@@ -36,17 +35,18 @@ def filter_dsm(array):
 
 
 def _get_dsm(acquisition, national_dsm, buffer_distance, out_fname,
-             compression='lzf'):
+             compression=H5CompressionFilter.LZF, filter_opts=None):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
     with h5py.File(out_fname, 'w') as fid:
-        get_dsm(acquisition, national_dsm, buffer_distance, fid, compression)
+        get_dsm(acquisition, national_dsm, buffer_distance, fid, compression,
+                filter_opts)
 
 
 def get_dsm(acquisition, national_dsm, buffer_distance=8000, out_group=None,
-            compression='lzf'):
+            compression=H5CompressionFilter.LZF, filter_opts=None):
     """
     Given an acquisition and a national Digitial Surface Model,
     extract a subset from the DSM based on the acquisition extents
@@ -77,13 +77,16 @@ def get_dsm(acquisition, national_dsm, buffer_distance=8000, out_group=None,
         * DatasetName.DSM_SMOOTHED
 
     :param compression:
-        The compression filter to use. Default is 'lzf'.
-        Options include:
+        The compression filter to use.
+        Default is H5CompressionFilter.LZF 
 
-        * 'lzf' (Default)
-        * 'lz4'
-        * 'mafisc'
-        * An integer [1-9] (Deflate/gzip)
+    :filter_opts:
+        A dict of key value pairs available to the given configuration
+        instance of H5CompressionFilter. For example
+        H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
+        available.
+        Default is None, which will use the default settings for the
+        chosen H5CompressionFilter instance.
 
     :return:
         An opened `h5py.File` object, that is either in-memory using the
@@ -117,16 +120,20 @@ def get_dsm(acquisition, national_dsm, buffer_distance=8000, out_group=None,
     else:
         fid = out_group
 
+    if filter_opts is None:
+        fopts = {}
+    else:
+        fopts = filter_opts.copy()
+
     if acquisition.tile_size[0] == 1:
-        tile_size = (1, dem_cols)
+        fopts['chunks'] = (1, dem_cols)
     else:
         # TODO: rework the tiling regime for larger dsm
         # for non single row based tiles, we won't have ideal
         # matching reads for tiled processing between the acquisition
         # and the DEM
-        tile_size = acquisition.tile_size
-    kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=tile_size)
+        fopts['chunks'] = acquisition.tile_size
+    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
 
     group = fid.create_group(GroupName.ELEVATION_GROUP.value)
 

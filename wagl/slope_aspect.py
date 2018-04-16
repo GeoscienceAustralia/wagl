@@ -12,13 +12,13 @@ from wagl.data import as_array
 from wagl.constants import DatasetName, GroupName
 from wagl.margins import pixel_buffer
 from wagl.satellite_solar_angles import setup_spheroid
-from wagl.hdf5 import dataset_compression_kwargs
-from wagl.hdf5 import attach_image_attributes
+from wagl.hdf5 import H5CompressionFilter, attach_image_attributes
 from wagl.__slope_aspect import slope_aspect
 
 
 def _slope_aspect_arrays(acquisition, dsm_fname, buffer_distance, out_fname,
-                         compression='lzf'):
+                         compression=H5CompressionFilter.LZF,
+                         filter_opts=None):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -32,7 +32,8 @@ def _slope_aspect_arrays(acquisition, dsm_fname, buffer_distance, out_fname,
 
 
 def slope_aspect_arrays(acquisition, dsm_group, buffer_distance,
-                        out_group=None, compression='lzf'):
+                        out_group=None, compression=H5CompressionFilter.LZF,
+                        filter_opts=None):
     """
     Calculates slope and aspect.
 
@@ -67,13 +68,16 @@ def slope_aspect_arrays(acquisition, dsm_group, buffer_distance,
         * DatasetName.ASPECT
 
     :param compression:
-        The compression filter to use. Default is 'lzf'.
-        Options include:
+        The compression filter to use.
+        Default is H5CompressionFilter.LZF 
 
-        * 'lzf' (Default)
-        * 'lz4'
-        * 'mafisc'
-        * An integer [1-9] (Deflate/gzip)
+    :filter_opts:
+        A dict of key value pairs available to the given configuration
+        instance of H5CompressionFilter. For example
+        H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
+        available.
+        Default is None, which will use the default settings for the
+        chosen H5CompressionFilter instance.
 
     :return:
         An opened `h5py.File` object, that is either in-memory using the
@@ -127,6 +131,12 @@ def slope_aspect_arrays(acquisition, dsm_group, buffer_distance,
     if GroupName.SLP_ASP_GROUP.value not in fid:
         fid.create_group(GroupName.SLP_ASP_GROUP.value)
 
+    if filter_opts is None:
+        filter_opts = {}
+    else:
+        filter_opts = filter_opts.copy()
+    filter_opts['chunks'] = acquisition.tile_size
+
     group = fid[GroupName.SLP_ASP_GROUP.value]
 
     # metadata for calculation
@@ -134,8 +144,7 @@ def slope_aspect_arrays(acquisition, dsm_group, buffer_distance,
     param_group.attrs['dsm_index'] = ((ystart, ystop), (xstart, xstop))
     param_group.attrs['pixel_buffer'] = '1 pixel'
 
-    kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=acquisition.tile_size)
+    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
     no_data = -999
     kwargs['fillvalue'] = no_data
 
