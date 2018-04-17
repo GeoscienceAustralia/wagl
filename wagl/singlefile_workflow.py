@@ -77,8 +77,9 @@ class DataStandardisation(luigi.Task):
     modtran_exe = luigi.Parameter(significant=False)
     tle_path = luigi.Parameter(significant=False)
     rori = luigi.FloatParameter(default=0.52, significant=False)
-    compression = luigi.Parameter(default=H5CompressionFilter.LZF,
-                                  significant=False)
+    compression = luigi.EnumParameter(enum=H5CompressionFilter,
+                                      default=H5CompressionFilter.LZF,
+                                      significant=False)
     filter_opts = luigi.DictParameter(default=None, significant=False)
     acq_parser_hint = luigi.Parameter(default=None)
     buffer_distance = luigi.FloatParameter(default=8000, significant=False)

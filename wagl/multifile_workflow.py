@@ -110,8 +110,9 @@ class CalculateLonLatGrids(luigi.Task):
     granule = luigi.Parameter(default=None)
     group = luigi.Parameter()
     acq_parser_hint = luigi.Parameter(default=None)
-    compression = luigi.Parameter(default=H5CompressionFilter.LZF,
-                                  significant=False)
+    compression = luigi.EnumParameter(enum=H5CompressionFilter,
+                                      default=H5CompressionFilter.LZF,
+                                      significant=False)
     filter_opts = luigi.DictParameter(default=None, significant=False)
     acq_parser_hint = luigi.Parameter(default=None)
     buffer_distance = luigi.FloatParameter(default=8000, significant=False)
@@ -179,8 +180,9 @@ class AncillaryData(luigi.Task):
     dem_path = luigi.Parameter(significant=False)
     ecmwf_path = luigi.Parameter(significant=False)
     invariant_height_fname = luigi.Parameter(significant=False)
-    compression = luigi.Parameter(default=H5CompressionFilter.LZF,
-                                  significant=False)
+    compression = luigi.EnumParameter(enum=H5CompressionFilter,
+                                      default=H5CompressionFilter.LZF,
+                                      significant=False)
     filter_opts = luigi.DictParameter(default=None, significant=False)
 
     def requires(self):
@@ -223,8 +225,9 @@ class WriteTp5(luigi.Task):
     acq_parser_hint = luigi.Parameter(default=None)
     model = luigi.EnumParameter(enum=Model)
     base_dir = luigi.Parameter(default='_atmospherics', significant=False)
-    compression = luigi.Parameter(default=H5CompressionFilter.LZF,
-                                  significant=False)
+    compression = luigi.EnumParameter(enum=H5CompressionFilter,
+                                      default=H5CompressionFilter.LZF,
+                                      significant=False)
     filter_opts = luigi.DictParameter(default=None, significant=False)
 
     def requires(self):
