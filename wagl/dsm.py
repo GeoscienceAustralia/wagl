@@ -121,18 +121,18 @@ def get_dsm(acquisition, national_dsm, buffer_distance=8000, out_group=None,
         fid = out_group
 
     if filter_opts is None:
-        fopts = {}
+        filter_opts = {}
     else:
-        fopts = filter_opts.copy()
+        filter_opts = filter_opts.copy()
 
     if acquisition.tile_size[0] == 1:
-        fopts['chunks'] = (1, dem_cols)
+        filter_opts['chunks'] = (1, dem_cols)
     else:
         # TODO: rework the tiling regime for larger dsm
         # for non single row based tiles, we won't have ideal
         # matching reads for tiled processing between the acquisition
         # and the DEM
-        fopts['chunks'] = acquisition.tile_size
+        filter_opts['chunks'] = acquisition.tile_size
     kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
 
     group = fid.create_group(GroupName.ELEVATION_GROUP.value)

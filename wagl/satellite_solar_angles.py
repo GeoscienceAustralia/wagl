@@ -877,6 +877,8 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
         fid.create_group(GroupName.SAT_SOL_GROUP.value)
 
     if filter_opts is None:
+        filter_opts = {}
+    else:
         filter_opts = filter_opts.copy()
     filter_opts['chunks'] = acquisition.tile_size
 
