@@ -65,42 +65,42 @@ class HDF5Test(unittest.TestCase):
         'chunks': True,
         'shuffle': False,
         'compression': 32001,
-        'compression_opts': [0, 0, 0, 0, 4, 1, 0]
+        'compression_opts': (0, 0, 0, 0, 4, 1, 0)
         }
 
     blosc_lz4_default = {
         'chunks': True,
         'shuffle': False,
         'compression': 32001,
-        'compression_opts': [0, 0, 0, 0, 4, 1, 1]
+        'compression_opts': (0, 0, 0, 0, 4, 1, 1)
         }
 
     blosc_lz4hc_default = {
         'chunks': True,
         'shuffle': False,
         'compression': 32001,
-        'compression_opts': [0, 0, 0, 0, 4, 1, 2]
+        'compression_opts': (0, 0, 0, 0, 4, 1, 2)
         }
 
     blosc_snappy_default = {
         'chunks': True,
         'shuffle': False,
         'compression': 32001,
-        'compression_opts': [0, 0, 0, 0, 4, 1, 3]
+        'compression_opts': (0, 0, 0, 0, 4, 1, 3)
         }
 
     blosc_zlib_default = {
         'chunks': True,
         'shuffle': False,
         'compression': 32001,
-        'compression_opts': [0, 0, 0, 0, 4, 1, 4]
+        'compression_opts': (0, 0, 0, 0, 4, 1, 4)
         }
 
     blosc_zstandard_default = {
         'chunks': True,
         'shuffle': False,
         'compression': 32001,
-        'compression_opts': [0, 0, 0, 0, 4, 1, 5]
+        'compression_opts': (0, 0, 0, 0, 4, 1, 5)
         }
 
     memory_kwargs = {'driver': 'core', 'backing_store': False}
