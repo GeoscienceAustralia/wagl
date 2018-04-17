@@ -117,7 +117,8 @@ class H5CompressionConfig(object):
                    attr.fields(self.__class__).compression_opts,
                    attr.fields(self.__class__).chunks,
                    attr.fields(self.__class__).shuffle)
-        kwargs = attr.asdict(self, filter=attr.filters.include(*include))
+        kwargs = attr.asdict(self, filter=attr.filters.include(*include),
+                             retain_collection_types=True)
         return kwargs
 
 
