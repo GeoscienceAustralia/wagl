@@ -31,6 +31,17 @@ class H5CompressionFilter(IntEnum):
 
     """
     The available HDF5 compression filters.
+
+    :example:
+        >>> import numpy
+        >>> import h5py
+        >>> from wagl.hdf5 import H5CompressionFilter
+        >>> compressor = H5CompressionFilter.LZF
+        >>> config = compressor.config(chunks=(200, 300), shuffle=False)
+        >>> kwargs = config.dataset_compression_kwargs()
+        >>> with h5py.File('tmp.h5', 'w') as fid:
+        >>>     data = numpy.random.randint(0, 256, (2000, 3000))
+        >>>     fid.create_dataset('random-ints', data=data, **kwargs)
     """
 
     BLOSC_LZ = 0
