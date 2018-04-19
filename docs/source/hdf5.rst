@@ -420,7 +420,7 @@ Example:
     import numpy
     import h5py
     from wagl.hdf5 import H5CompressionFilter, BloscShuffle
-    data = numpy.randon.ranf((4000, 6000))
+    data = numpy.random.ranf((4000, 6000))
     lzf = H5CompressionFilter.LZF
     snappy = H5CompressionFilter.BLOSC_SNAPPY
     kwargs1 = lzf.config().dataset_compression_kwargs() # default lzf configuration (auto chunks, and shuffle)
