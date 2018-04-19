@@ -32,6 +32,7 @@ from luigi.util import inherits
 
 from wagl.acquisition import acquisitions
 from wagl.constants import Model, Method
+from wagl.hdf5 import H5CompressionFilter
 from wagl.standardise import card4l
 
 
@@ -76,7 +77,10 @@ class DataStandardisation(luigi.Task):
     modtran_exe = luigi.Parameter(significant=False)
     tle_path = luigi.Parameter(significant=False)
     rori = luigi.FloatParameter(default=0.52, significant=False)
-    compression = luigi.Parameter(default='lzf', significant=False)
+    compression = luigi.EnumParameter(enum=H5CompressionFilter,
+                                      default=H5CompressionFilter.LZF,
+                                      significant=False)
+    filter_opts = luigi.DictParameter(default=None, significant=False)
     acq_parser_hint = luigi.Parameter(default=None)
     buffer_distance = luigi.FloatParameter(default=8000, significant=False)
 
@@ -100,7 +104,8 @@ class DataStandardisation(luigi.Task):
                    self.brdf_premodis_path, self.ozone_path, self.water_vapour,
                    self.dem_path, self.dsm_fname, self.invariant_height_fname,
                    self.modtran_exe, out_fname, ecmwf_path, self.rori,
-                   self.buffer_distance, self.compression, self.acq_parser_hint)
+                   self.buffer_distance, self.compression, self.filter_opts,
+                   self.acq_parser_hint)
 
 
 @inherits(DataStandardisation)
@@ -141,6 +146,8 @@ class ARD(luigi.WrapperTask):
                           'dsm_fname': self.dsm_fname,
                           'tle_path': self.tle_path,
                           'rori': self.rori,
+                          'compression': self.compression,
+                          'filter_opts': self.filter_opts,
                           'buffer_distance': self.buffer_distance}
                 yield DataStandardisation(**kwargs)
 

@@ -10,6 +10,7 @@ import numpy
 import h5py
 import pandas
 from wagl import hdf5
+from wagl.hdf5 import H5CompressionFilter
 
 
 class HDF5Test(unittest.TestCase):
@@ -26,43 +27,160 @@ class HDF5Test(unittest.TestCase):
     table_data['float_data'] = numpy.random.ranf(10)
     table_data['integer_data'] = numpy.random.randint(0, 10001, (10))
 
-    default_kwargs = {'compression': 'lzf',
-                      'shuffle': True,
-                      'chunks': True,
-                      'compression_opts': None}
+    lzf_default = {
+        'compression': 'lzf',
+        'shuffle': True,
+        'chunks': True,
+        'compression_opts': None
+        }
 
-    mafisc_kwargs = {'compression': 32002,
-                     'shuffle': False,
-                     'chunks': True,
-                     'compression_opts': (1, 0)}
+    mafisc_default = {
+        'compression': 32002,
+        'shuffle': False,
+        'chunks': True,
+        'compression_opts': (1, 0)
+        }
 
-    bitshuffle_kwargs = {'compression': 32008,
-                         'shuffle': False,
-                         'chunks': True,
-                         'compression_opts': (0, 2)}
+    bitshuffle_default = {
+        'compression': 32008,
+        'shuffle': False,
+        'chunks': True,
+        'compression_opts': (0, 2)}
+
+    zstandard_default = {
+        'compression': 32015,
+        'shuffle': True,
+        'chunks': True,
+        'compression_opts': (6,)
+        }
+
+    gzip_default = {
+        'compression': 'gzip',
+        'chunks': True,
+        'shuffle': True,
+        'compression_opts': 4
+        }
+
+    blosc_lz_default = {
+        'chunks': True,
+        'shuffle': False,
+        'compression': 32001,
+        'compression_opts': (0, 0, 0, 0, 4, 1, 0)
+        }
+
+    blosc_lz4_default = {
+        'chunks': True,
+        'shuffle': False,
+        'compression': 32001,
+        'compression_opts': (0, 0, 0, 0, 4, 1, 1)
+        }
+
+    blosc_lz4hc_default = {
+        'chunks': True,
+        'shuffle': False,
+        'compression': 32001,
+        'compression_opts': (0, 0, 0, 0, 4, 1, 2)
+        }
+
+    blosc_snappy_default = {
+        'chunks': True,
+        'shuffle': False,
+        'compression': 32001,
+        'compression_opts': (0, 0, 0, 0, 4, 1, 3)
+        }
+
+    blosc_zlib_default = {
+        'chunks': True,
+        'shuffle': False,
+        'compression': 32001,
+        'compression_opts': (0, 0, 0, 0, 4, 1, 4)
+        }
+
+    blosc_zstandard_default = {
+        'chunks': True,
+        'shuffle': False,
+        'compression': 32001,
+        'compression_opts': (0, 0, 0, 0, 4, 1, 5)
+        }
 
     memory_kwargs = {'driver': 'core', 'backing_store': False}
 
-    def test_default_filter(self):
+    def test_lzf_default(self):
         """
-        Test the default compression keyword settings.
+        Test the default lzf compression settings.
         """
-        kwargs = hdf5.dataset_compression_kwargs()
-        self.assertDictEqual(kwargs, self.default_kwargs)
+        kwargs = H5CompressionFilter.LZF.config().dataset_compression_kwargs()
+        self.assertDictEqual(kwargs, self.lzf_default)
 
-    def test_mafisc_filter(self):
+    def test_mafisc_default(self):
         """
-        Test the mafisc compression keyword settings.
+        Test the default mafisc compression settings.
         """
-        kwargs = hdf5.dataset_compression_kwargs(compression='mafisc')
-        self.assertDictEqual(kwargs, self.mafisc_kwargs)
+        kwargs = H5CompressionFilter.MAFISC.config().dataset_compression_kwargs()
+        self.assertDictEqual(kwargs, self.mafisc_default)
 
-    def test_bitshuffle_filter(self):
+    def test_bitshuffle_default(self):
         """
-        Test the bitshuffle compression keyword settings.
+        Test the default bitshuffle compression settings.
         """
-        kwargs = hdf5.dataset_compression_kwargs(compression='bitshuffle')
-        self.assertDictEqual(kwargs, self.bitshuffle_kwargs)
+        kwargs = H5CompressionFilter.BITSHUFFLE.config().dataset_compression_kwargs()
+        self.assertDictEqual(kwargs, self.bitshuffle_default)
+
+    def test_zstandard_default(self):
+        """
+        Test the default zstandard compression settings.
+        """
+        kwargs = H5CompressionFilter.ZSTANDARD.config().dataset_compression_kwargs()
+        self.assertDictEqual(kwargs, self.zstandard_default)
+
+    def test_gzip_default(self):
+        """
+        Test the default bitshuffle compression settings.
+        """
+        kwargs = H5CompressionFilter.GZIP.config().dataset_compression_kwargs()
+        self.assertDictEqual(kwargs, self.gzip_default)
+
+    def test_blosc_lz_default(self):
+        """
+        Test the default blosc lz compression settings.
+        """
+        kwargs = H5CompressionFilter.BLOSC_LZ.config().dataset_compression_kwargs()
+        self.assertDictEqual(kwargs, self.blosc_lz_default)
+
+    def test_blosc_lz4_default(self):
+        """
+        Test the default blosc lz4 compression settings.
+        """
+        kwargs = H5CompressionFilter.BLOSC_LZ4.config().dataset_compression_kwargs()
+        self.assertDictEqual(kwargs, self.blosc_lz4_default)
+
+    def test_blosc_lz4hc_default(self):
+        """
+        Test the default blosc lz4hc compression settings.
+        """
+        kwargs = H5CompressionFilter.BLOSC_LZ4HC.config().dataset_compression_kwargs()
+        self.assertDictEqual(kwargs, self.blosc_lz4hc_default)
+
+    def test_blosc_snappy_default(self):
+        """
+        Test the default blosc snappy compression settings.
+        """
+        kwargs = H5CompressionFilter.BLOSC_SNAPPY.config().dataset_compression_kwargs()
+        self.assertDictEqual(kwargs, self.blosc_snappy_default)
+
+    def test_blosc_zlib_default(self):
+        """
+        Test the default blosc zlib compression settings.
+        """
+        kwargs = H5CompressionFilter.BLOSC_ZLIB.config().dataset_compression_kwargs()
+        self.assertDictEqual(kwargs, self.blosc_zlib_default)
+
+    def test_blosc_zstandard_default(self):
+        """
+        Test the default blosc zstandard compression settings.
+        """
+        kwargs = H5CompressionFilter.BLOSC_ZSTANDARD.config().dataset_compression_kwargs()
+        self.assertDictEqual(kwargs, self.blosc_zstandard_default)
 
     def test_write_scalar(self):
         """

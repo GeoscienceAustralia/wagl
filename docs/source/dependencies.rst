@@ -24,6 +24,7 @@ Software requirements
 * `pytables <https://github.com/PyTables/PyTables>`_,
 * `pandas <https://github.com/pandas-dev/pandas>`_,
 * `geopandas <https://github.com/geopandas/geopandas>`_
+* `attr <https://github.com/python-attrs/attrs>`_
 
 
 Radiative Transfer packages

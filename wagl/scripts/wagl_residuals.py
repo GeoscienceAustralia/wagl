@@ -19,7 +19,7 @@ import pandas
 from idl_functions import histogram
 from wagl.hdf5 import read_scalar, read_h5_table, write_dataframe
 from wagl.hdf5 import write_h5_image, write_h5_table, write_scalar
-from wagl.hdf5 import dataset_compression_kwargs, VLEN_STRING, find
+from wagl.hdf5 import H5CompressionFilter, VLEN_STRING, find
 from wagl.geobox import GriddedGeoBox
 
 
@@ -46,8 +46,9 @@ def distribution(data):
     return h
 
 
-def image_residual(ref_fid, test_fid, pathname, out_fid, compression='lzf',
-                   save_inputs=False):
+def image_residual(ref_fid, test_fid, pathname, out_fid,
+                   compression=H5CompressionFilter.LZF, save_inputs=False,
+                   filter_opts=None):
     """
     Undertake residual analysis for IMAGE CLASS Datasets.
     A histogram and a cumulative histogram of the residuals are
@@ -70,13 +71,21 @@ def image_residual(ref_fid, test_fid, pathname, out_fid, compression='lzf',
         writing the output data.
 
     :param compression:
-        The compression filter to use when writing the results to disk.
-        Default is 'lzf'.
+        The compression filter to use.
+        Default is H5CompressionFilter.LZF 
 
     :param save_inputs:
         A `bool` indicating whether or not to save the input datasets
         used for evaluating the residuals alongside the results.
         Default is False.
+
+    :filter_opts:
+        A dict of key value pairs available to the given configuration
+        instance of H5CompressionFilter. For example
+        H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
+        available.
+        Default is None, which will use the default settings for the
+        chosen H5CompressionFilter instance.
 
     :return:
         None; This routine will only return None or a print statement,
@@ -107,32 +116,38 @@ def image_residual(ref_fid, test_fid, pathname, out_fid, compression='lzf',
     max_residual = numpy.nanmax(residual)
     pct_difference = (residual != 0).sum() / residual.size * 100
 
+    if filter_opts is None:
+        filter_opts = {}
+    else:
+        fopts = filter_opts.copy()
+    fopts['chunks'] = ref_dset.chunks
+
     geobox = GriddedGeoBox.from_dataset(ref_dset)
-    chunks = ref_dset.chunks
-    kwargs = dataset_compression_kwargs(compression=compression, chunks=chunks)
 
     # output residual
-    attrs = {}
-    attrs['crs_wkt'] = geobox.crs.ExportToWkt()
-    attrs['geotransform'] = geobox.transform.to_gdal()
-    attrs['description'] = 'Residual'
-    attrs['min_residual'] = min_residual
-    attrs['max_residual'] = max_residual
-    attrs['percent_difference'] = pct_difference
+    attrs = {
+        'crs_wkt': geobox.crs.ExportToWkt(),
+        'geotransform': geobox.transform.to_gdal(),
+        'description': 'Residual',
+        'min_residual': min_residual,
+        'max_residual': max_residual,
+        'percent_difference': pct_difference
+        }
 
     base_dname = pbasename(pathname)
     group_name = ref_dset.parent.name.strip('/')
     dname = ppjoin('RESULTS', class_name, 'RESIDUALS', group_name, base_dname)
-    write_h5_image(residual, dname, out_fid, attrs=attrs, **kwargs)
+    write_h5_image(residual, dname, out_fid, compression, attrs, fopts)
 
     # residuals distribution
     h = distribution(residual)
     hist = h['histogram']
 
-    attrs = {}
-    attrs['description'] = 'Frequency distribution of the residuals'
-    attrs['omin'] = h['omin']
-    attrs['omax'] = h['omax']
+    attrs = {
+        'description': 'Frequency distribution of the residuals',
+        'omin': h['omin'],
+        'omax': h['omax']
+        }
     dtype = numpy.dtype([('bin_locations', h['loc'].dtype.name),
                          ('residuals_distribution', hist.dtype.name)])
     table = numpy.zeros(hist.shape, dtype=dtype)
@@ -140,21 +155,24 @@ def image_residual(ref_fid, test_fid, pathname, out_fid, compression='lzf',
     table['residuals_distribution'] = hist
 
     # output
+    fopts.drop('chunks')
     dname = ppjoin('RESULTS', class_name, 'FREQUENCY-DISTRIBUTIONS',
                    group_name, base_dname)
-    write_h5_table(table, dname, out_fid, compression=compression, attrs=attrs)
+    write_h5_table(table, dname, out_fid, compression, attrs=attrs,
+                   filter_opts=fopts)
 
     # cumulative distribution
     h = distribution(numpy.abs(residual))
     hist = h['histogram']
     cdf = numpy.cumsum(hist / hist.sum())
 
-    attrs = {}
-    attrs['description'] = 'Cumulative distribution of the residuals'
-    attrs['omin'] = h['omin']
-    attrs['omax'] = h['omax']
-    attrs['90th_percentile'] = h['loc'][numpy.searchsorted(cdf, 0.9)]
-    attrs['99th_percentile'] = h['loc'][numpy.searchsorted(cdf, 0.99)]
+    attrs = {
+        'description': 'Cumulative distribution of the residuals',
+        'omin': h['omin'],
+        'omax': h['omax'],
+        '90th_percentile': h['loc'][numpy.searchsorted(cdf, 0.9)],
+        '99th_percentile': h['loc'][numpy.searchsorted(cdf, 0.99)]
+        }
     dtype = numpy.dtype([('bin_locations', h['loc'].dtype.name),
                          ('cumulative_distribution', cdf.dtype.name)])
     table = numpy.zeros(cdf.shape, dtype=dtype)
@@ -164,7 +182,8 @@ def image_residual(ref_fid, test_fid, pathname, out_fid, compression='lzf',
     # output
     dname = ppjoin('RESULTS', class_name, 'CUMULATIVE-DISTRIBUTIONS',
                    group_name, base_dname)
-    write_h5_table(table, dname, out_fid, compression=compression, attrs=attrs)
+    write_h5_table(table, dname, out_fid, compression=compression, attrs=attrs,
+                   filter_opts=fopts)
 
     if save_inputs:
         # copy the reference data
@@ -240,8 +259,9 @@ def scalar_residual(ref_fid, test_fid, pathname, out_fid, save_inputs):
         test_fid.copy(test_fid[pathname], out_grp)
 
 
-def table_residual(ref_fid, test_fid, pathname, out_fid, compression,
-                   save_inputs):
+def table_residual(ref_fid, test_fid, pathname, out_fid,
+                   compression=H5CompressionFilter.LZF, save_inputs=False,
+                   filter_opts=None):
     """
     Output a residual TABLE of the numerical columns, ignoring
     columns with the dtype `object`.
@@ -265,13 +285,21 @@ def table_residual(ref_fid, test_fid, pathname, out_fid, compression,
         writing the output data.
 
     :param compression:
-        The compression filter to use when writing the results to disk.
-        Default is 'lzf'.
+        The compression filter to use.
+        Default is H5CompressionFilter.LZF 
 
     :param save_inputs:
         A `bool` indicating whether or not to save the input datasets
         used for evaluating the residuals alongside the results.
         Default is False.
+
+    :filter_opts:
+        A dict of key value pairs available to the given configuration
+        instance of H5CompressionFilter. For example
+        H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
+        available.
+        Default is None, which will use the default settings for the
+        chosen H5CompressionFilter instance.
 
     :return:
         None; This routine will only return None or a print statement,
@@ -300,7 +328,8 @@ def table_residual(ref_fid, test_fid, pathname, out_fid, compression,
     base_dname = pbasename(pathname)
     group_name = ref_fid[pathname].parent.name.strip('/')
     dname = ppjoin('RESULTS', class_name, 'RESIDUALS', group_name, base_dname)
-    write_dataframe(df, dname, out_fid, attrs=attrs)
+    write_dataframe(df, dname, out_fid, compression, attrs=attrs,
+                    filter_opts=filter_opts)
 
     if save_inputs:
         # copy the reference data
@@ -312,7 +341,8 @@ def table_residual(ref_fid, test_fid, pathname, out_fid, compression,
         test_fid.copy(test_fid[pathname], out_grp)
 
 
-def residuals(ref_fid, test_fid, out_fid, compression, save_inputs, pathname):
+def residuals(ref_fid, test_fid, out_fid, compression=H5CompressionFilter.LZF,
+              save_inputs=False, filter_opts=None, pathname=''):
     """
     Undertake residual analysis for each dataset found within the
     reference file.
@@ -337,13 +367,21 @@ def residuals(ref_fid, test_fid, out_fid, compression, save_inputs, pathname):
         writing the output data.
 
     :param compression:
-        The compression filter to use when writing the results to disk.
-        Default is 'lzf'.
+        The compression filter to use.
+        Default is H5CompressionFilter.LZF 
 
     :param save_inputs:
         A `bool` indicating whether or not to save the input datasets
         used for evaluating the residuals alongside the results.
         Default is False.
+
+    :filter_opts:
+        A dict of key value pairs available to the given configuration
+        instance of H5CompressionFilter. For example
+        H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
+        available.
+        Default is None, which will use the default settings for the
+        chosen H5CompressionFilter instance.
 
     :return:
         None; This routine will only return None or a print statement,
@@ -359,12 +397,12 @@ def residuals(ref_fid, test_fid, out_fid, compression, save_inputs, pathname):
         class_name = obj.attrs.get('CLASS')
         if class_name == 'IMAGE':
             image_residual(ref_fid, test_fid, pathname, out_fid, compression,
-                           save_inputs)
+                           save_inputs, filter_opts)
         elif class_name == 'SCALAR':
             scalar_residual(ref_fid, test_fid, pathname, out_fid, save_inputs)
         elif class_name == 'TABLE':
             table_residual(ref_fid, test_fid, pathname, out_fid, compression,
-                           save_inputs)
+                           save_inputs, filter_opts)
         else:
             # potentially datasets with no assigned class attribute
             # but good to know what they are so they can be assigned one
@@ -373,7 +411,8 @@ def residuals(ref_fid, test_fid, out_fid, compression, save_inputs, pathname):
         print('{} not found in test file...Skipping...'.format(pathname))
 
 
-def image_results(image_group):
+def image_results(image_group, compression=H5CompressionFilter.LZF,
+                  filter_opts=None):
     """
     Combine the residual results of each IMAGE Dataset into a
     single TABLE Dataset.
@@ -422,10 +461,12 @@ def image_results(image_group):
                            'residual_cumulative_pathname': chist_paths})
 
     # output
-    write_dataframe(df, 'IMAGE-RESIDUALS', image_group, title='RESIDUALS-TABLE')
+    write_dataframe(df, 'IMAGE-RESIDUALS', image_group, compression,
+                    title='RESIDUALS-TABLE', filter_opts=filter_opts)
 
 
-def scalar_results(scalar_group):
+def scalar_results(scalar_group, compression=H5CompressionFilter.LZF,
+                   filter_opts=None):
     """
     Combine the residual results of each SCALAR Dataset into a
     single TABLE Dataset.
@@ -448,11 +489,12 @@ def scalar_results(scalar_group):
                            'equivalent': equivalent})
 
     # output
-    write_dataframe(df, 'SCALAR-EQUIVALENCY', scalar_group,
-                    title='EQUIVALENCY-RESULTS')
+    write_dataframe(df, 'SCALAR-EQUIVALENCY', scalar_group, compression,
+                    title='EQUIVALENCY-RESULTS', filter_opts=filter_opts)
 
 
-def table_results(table_group):
+def table_results(table_group, compression=H5CompressionFilter.LZF,
+                  filter_opts=None):
     """
     Combine the residual results of each TABLE Dataset into a
     single TABLE Dataset.
@@ -475,11 +517,12 @@ def table_results(table_group):
                            'equivalent': equivalent})
 
     # output
-    write_dataframe(df, 'TABLE-EQUIVALENCY', table_group,
-                    title='EQUIVALENCY-RESULTS')
+    write_dataframe(df, 'TABLE-EQUIVALENCY', table_group, compression,
+                    title='EQUIVALENCY-RESULTS', filter_opts=filter_opts)
 
 
-def run(reference_fname, test_fname, out_fname, compression, save_inputs):
+def run(reference_fname, test_fname, out_fname, compression, save_inputs,
+        filter_opts):
     """ Run the residuals analysis. """
     # note: lower level h5py access is required in order to visit links
     with h5py.File(reference_fname, 'r') as ref_fid:
@@ -493,7 +536,7 @@ def run(reference_fname, test_fname, out_fname, compression, save_inputs):
 
                 # IMAGE
                 grp = out_fid[ppjoin('RESULTS', 'IMAGE')]
-                image_results(grp)
+                image_results(grp, compression, filter_opts)
 
                 # SCALAR
                 grp = out_fid[ppjoin('RESULTS', 'SCALAR')]
@@ -501,7 +544,7 @@ def run(reference_fname, test_fname, out_fname, compression, save_inputs):
 
                 # TABLE
                 grp = out_fid[ppjoin('RESULTS', 'TABLE')]
-                scalar_results(grp)
+                table_results(grp)
 
 
 def _parser():
@@ -532,4 +575,4 @@ def main():
     parser = _parser()
     args = parser.parse_args()
     run(args.test_filename, args.reference_filename, args.out_filename,
-        args.compression, args.save_inputs)
+        args.compression, args.save_inputs, args.filter_opts)

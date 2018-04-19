@@ -10,11 +10,8 @@ from scipy.interpolate import Rbf
 import numpy as np
 import h5py
 from wagl.constants import DatasetName, Model, GroupName, Method
-from wagl.hdf5 import dataset_compression_kwargs
-from wagl.hdf5 import write_h5_image
-from wagl.hdf5 import read_h5_table
-from wagl.hdf5 import find
-from wagl.hdf5 import create_external_link
+from wagl.hdf5 import H5CompressionFilter, find, create_external_link
+from wagl.hdf5 import write_h5_image, read_h5_table
 import numexpr
 
 DEFAULT_ORIGIN = (0, 0)
@@ -366,7 +363,9 @@ def sheared_bilinear_interpolate(cols, rows, locations, samples,
 
 
 def _interpolate(acq, coefficient, sat_sol_angles_fname, coefficients_fname,
-                 ancillary_fname, out_fname, compression, method):
+                 ancillary_fname, out_fname,
+                 compression=H5CompressionFilter.LZF, filter_opts=None,
+                 method=Method.SHEARB):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -380,11 +379,12 @@ def _interpolate(acq, coefficient, sat_sol_angles_fname, coefficients_fname,
         grp2 = sat_sol[GroupName.SAT_SOL_GROUP.value]
         grp3 = comp[GroupName.COEFFICIENTS_GROUP.value]
         interpolate(acq, coefficient, grp1, grp2, grp3, out_fid, compression,
-                    method)
+                    filter_opts, method)
 
 
 def interpolate(acq, coefficient, ancillary_group, satellite_solar_group,
-                coefficients_group, out_group=None, compression='lzf',
+                coefficients_group, out_group=None,
+                compression=H5CompressionFilter.LZF, filter_opts=None,
                 method=Method.SHEARB):
     # TODO: more docstrings
     """Perform interpolation."""
@@ -446,14 +446,17 @@ def interpolate(acq, coefficient, ancillary_group, satellite_solar_group,
     if GroupName.INTERP_GROUP.value not in fid:
         fid.create_group(GroupName.INTERP_GROUP.value)
 
+    if filter_opts is None:
+        filter_opts = {}
+    else:
+        filter_opts = filter_opts.copy()
+    filter_opts['chunks'] = acq.tile_size
+
     group = fid[GroupName.INTERP_GROUP.value]
 
     fmt = DatasetName.INTERPOLATION_FMT.value
     dset_name = fmt.format(coefficient=coefficient.value, band_name=acq.band_name)
-    kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=acq.tile_size)
     no_data = -999
-    kwargs['fillvalue'] = no_data
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
              'geotransform': geobox.transform.to_gdal(),
              'no_data_value': no_data,
@@ -469,7 +472,7 @@ def interpolate(acq, coefficient, ancillary_group, satellite_solar_group,
 
     # convert any NaN's to -999 (for float data, NaN would be more ideal ...)
     result[~np.isfinite(result)] = no_data
-    write_h5_image(result, dset_name, group, attrs, **kwargs)
+    write_h5_image(result, dset_name, group, compression, attrs, filter_opts)
 
     if out_group is None:
         return fid

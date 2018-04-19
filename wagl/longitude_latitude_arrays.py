@@ -12,8 +12,7 @@ import h5py
 
 from wagl.constants import DatasetName, GroupName
 from wagl.interpolation import interpolate_grid
-from wagl.hdf5 import dataset_compression_kwargs
-from wagl.hdf5 import attach_image_attributes
+from wagl.hdf5 import H5CompressionFilter, attach_image_attributes
 
 CRS = "EPSG:4326"
 LON_DESC = "Contains the longitude values for each pixel."
@@ -98,18 +97,20 @@ def get_lat_coordinate(y, x, geobox, geo_crs=None, centre=False):
     return y
 
 
-def _create_lon_lat_grids(acquisition, out_fname=None, compression='lzf',
-                          depth=7):
+def _create_lon_lat_grids(acquisition, out_fname=None,
+                          compression=H5CompressionFilter.LZF,
+                          filter_opts=None, depth=7):
     """
     A private wrapper for dealing with the internal custom workings of the
     multifile workflow.
     """
     with h5py.File(out_fname, 'w') as fid:
-        create_lon_lat_grids(acquisition, fid, compression, depth)
+        create_lon_lat_grids(acquisition, fid, compression, filter_opts, depth)
 
 
-def create_lon_lat_grids(acquisition, out_group=None, compression='lzf',
-                         depth=7):
+def create_lon_lat_grids(acquisition, out_group=None,
+                         compression=H5CompressionFilter.LZF,
+                         filter_opts=None, depth=7):
     """
     Creates 2 by 2D NumPy arrays containing longitude and latitude
     co-ordinates for each array element.
@@ -128,13 +129,16 @@ def create_lon_lat_grids(acquisition, out_group=None, compression='lzf',
         * contants.DatasetName.LAT.value
 
     :param compression:
-        The compression filter to use. Default is 'lzf'.
-        Options include:
+        The compression filter to use.
+        Default is H5CompressionFilter.LZF 
 
-        * 'lzf' (Default)
-        * 'lz4'
-        * 'mafisc'
-        * An integer [1-9] (Deflate/gzip)
+    :filter_opts:
+        A dict of key value pairs available to the given configuration
+        instance of H5CompressionFilter. For example
+        H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
+        available.
+        Default is None, which will use the default settings for the
+        chosen H5CompressionFilter instance.
 
     :return:
         An opened `h5py.File` object, that is either in-memory using the
@@ -167,11 +171,14 @@ def create_lon_lat_grids(acquisition, out_group=None, compression='lzf',
 
     # define some base attributes for the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
-             'geotransform': geobox.transform.to_gdal()}
+             'geotransform': geobox.transform.to_gdal(),
+             'description': LON_DESC}
 
-    attrs['description'] = LON_DESC
-    kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=acquisition.tile_size)
+    if filter_opts is None:
+        filter_opts = {}
+
+    filter_opts['chunks'] = acquisition.tile_size
+    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
     lon_dset = grp.create_dataset(DatasetName.LON.value, data=result, **kwargs)
     attach_image_attributes(lon_dset, attrs)
 
@@ -214,7 +221,9 @@ def create_grid(geobox, coord_fn, depth=7):
     return arr
 
 
-def create_lon_grid(acquisition, out_fname=None, compression='lzf', depth=7):
+def create_lon_grid(acquisition, out_fname=None,
+                    compression=H5CompressionFilter.LZF, filter_opts=None,
+                    depth=7):
     """Create longitude grid.
 
     :param acquisition:
@@ -232,13 +241,16 @@ def create_lon_grid(acquisition, out_fname=None, compression='lzf', depth=7):
         * contants.DatasetName.LON.value
 
     :param compression:
-        The compression filter to use. Default is 'lzf'.
-        Options include:
+        The compression filter to use.
+        Default is H5CompressionFilter.LZF 
 
-        * 'lzf' (Default)
-        * 'lz4'
-        * 'mafisc'
-        * An integer [1-9] (Deflate/gzip)
+    :filter_opts:
+        A dict of key value pairs available to the given configuration
+        instance of H5CompressionFilter. For example
+        H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
+        available.
+        Default is None, which will use the default settings for the
+        chosen H5CompressionFilter instance.
 
     :return:
         An opened `h5py.File` object, that is either in-memory using the
@@ -255,10 +267,14 @@ def create_lon_grid(acquisition, out_fname=None, compression='lzf', depth=7):
 
     # define some base attributes for the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
-             'geotransform': geobox.transform.to_gdal()}
-    attrs['description'] = LON_DESC
-    kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=acquisition.tile_size)
+             'geotransform': geobox.transform.to_gdal(),
+             'description': LON_DESC}
+
+    if filter_opts is None:
+        filter_opts = {}
+
+    filter_opts['chunks'] = acquisition.tile_size
+    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
 
     lon_grid = create_grid(geobox, get_lon_coordinate, depth)
 
@@ -269,7 +285,9 @@ def create_lon_grid(acquisition, out_fname=None, compression='lzf', depth=7):
     return fid
 
 
-def create_lat_grid(acquisition, out_fname=None, compression='lzf', depth=7):
+def create_lat_grid(acquisition, out_fname=None,
+                    compression=H5CompressionFilter.LZF, filter_opts=None,
+                    depth=7):
     """Create latitude grid.
 
     :param acquisition:
@@ -287,13 +305,16 @@ def create_lat_grid(acquisition, out_fname=None, compression='lzf', depth=7):
         * contants.DatasetName.LAT.value
 
     :param compression:
-        The compression filter to use. Default is 'lzf'.
-        Options include:
+        The compression filter to use.
+        Default is H5CompressionFilter.LZF 
 
-        * 'lzf' (Default)
-        * 'lz4'
-        * 'mafisc'
-        * An integer [1-9] (Deflate/gzip)
+    :filter_opts:
+        A dict of key value pairs available to the given configuration
+        instance of H5CompressionFilter. For example
+        H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
+        available.
+        Default is None, which will use the default settings for the
+        chosen H5CompressionFilter instance.
 
     :return:
         An opened `h5py.File` object, that is either in-memory using the
@@ -310,10 +331,14 @@ def create_lat_grid(acquisition, out_fname=None, compression='lzf', depth=7):
 
     # define some base attributes for the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
-             'geotransform': geobox.transform.to_gdal()}
-    attrs['description'] = LAT_DESC
-    kwargs = dataset_compression_kwargs(compression=compression,
-                                        chunks=acquisition.tile_size)
+             'geotransform': geobox.transform.to_gdal(),
+             'description': LAT_DESC}
+
+    if filter_opts is None:
+        filter_opts = {}
+
+    filter_opts['chunks'] = acquisition.tile_size
+    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
 
     lat_grid = create_grid(geobox, get_lat_coordinate, depth)
 

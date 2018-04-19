@@ -318,7 +318,7 @@ An example of the yaml document, as extracted using *wagl_convert*, for an IMAGE
 Compression filters
 -------------------
 
-By default, wagl (via) h5py, will provide access to sever filters:
+By default, wagl (via) h5py, will provide access to several filters:
 
 * lzf
 * gzip
@@ -353,3 +353,133 @@ Bitshuffle
 The `bitshuffle filter <https://github.com/kiyo-masui/bitshuffle>`_ can be installed
 from source, or conda via the supplied `conda recipe <https://github.com/kiyo-masui/bitshuffle/tree/master/conda-recipe>`_.
 It utilises a bitshuffling filter on top of either a lz4 or lzf compression filter.
+
+Blosc
+~~~~~
+
+Described as a metafamily of compressors, blosc provides access to various different
+compression algorithms, as well both shuffle and bitshuffle filters.
+The available compressors include:
+
+* lz
+* lz4
+* lz4hc
+* snappy
+* zlib
+* zstandard
+
+What is required is the `blosc HDF5 plugin <https://github.com/Blosc/hdf5-blosc>`_ and the
+`blosc library <https://github.com/Blosc/c-blosc>`_.
+
+ZStandard
+~~~~~~~~~
+
+The `ZStandard HDF5 plugin <https://github.com/aparamon/HDF5Plugin-Zstandard>`_ requires the
+`ZStandard library <https://github.com/facebook/zstd>`_ be installed on your system.
+It has a wide range of a aggression options geared towards speed or compression,
+or mixture of both.
+
+Filter access via wagl
+~~~~~~~~~~~~~~~~~~~~~~
+
+An Enum representation for each of the above compression filters is provided by wagl,
+but only *lzf* and *gzip* will be immediately accessible via the h5py installation.
+At this stage, wagl makes no attempt to install the different filters, but can provide
+an easy interface to them if they're available and on the *HDF5_PLUGIN_PATH*.
+
+The Enum class is represented below:
+
+.. code-block:: python
+
+    class H5CompressionFilter(IntEnum):
+    
+        BLOSC_LZ = 0
+        BLOSC_LZ4 = 1
+        BLOSC_LZ4HC = 2
+        BLOSC_SNAPPY = 3
+        BLOSC_ZLIB = 4
+        BLOSC_ZSTANDARD = 5
+        LZF = 6
+        GZIP = 7
+        BITSHUFFLE = 8
+        MAFISC = 9
+        ZSTANDARD = 10
+
+Each compression filter has it's own compression options available, and some
+will be similar across each compression filter such as *chunks*.
+
+Each filter within the Enum returns a default configuration which is immuteable.
+`Additional details <http://www.attrs.org/en/stable/examples.html#immutability>`_.
+The configuration class returns the keyword arguments that are directly insertable
+into h5py's `Group.create_dataset <http://docs.h5py.org/en/latest/high/group.html#Group.create_dataset>`_.
+
+Example:
+
+.. code-block:: python
+
+    import numpy
+    import h5py
+    from wagl.hdf5 import H5CompressionFilter, BloscShuffle
+    data = numpy.random.ranf((4000, 6000))
+    lzf = H5CompressionFilter.LZF
+    snappy = H5CompressionFilter.BLOSC_SNAPPY
+    kwargs1 = lzf.config().dataset_compression_kwargs() # default lzf configuration (auto chunks, and shuffle)
+    kwargs2 = lzf.config(chunks=(100, 100), shuffle=False).dataset_compression_kwargs() # define the chunks and no shuffle
+    kwargs3 = snappy.config(chunks=(200, 300)).dataset_compression_kwargs() # uses shuffle
+    kwargs4 = snappy.config(chunks=(200, 300), shuffle_id=BloscShuffle.BITSHUFFLE).dataset_compression_kwargs() # uses bitshuffle
+
+    config = snappy.config()
+    print("Default config for BLOSC_SNAPPY:")
+    print(config)
+
+    with h5py.File('tmp.h5', 'w') as fid:
+        fid.create_dataset('lzf-default', data=data, **kwargs1)
+        fid.create_dataset('lzf-no-shuffle', data=data, **kwargs2)
+        fid.create_dataset('snappy-default', data=data, **kwargs3)
+        fid.create_dataset('snappy-bitshuffle', data=data, **kwargs4)
+
+The config class itself attempts to simplify the population of the *compression* keyword
+with the appropriate id, as well as the *compression_opts* keyword. The base config class
+also allows users to populate the fields themselves should they choose to utilise
+other HDF5 compression filters that have not been captured in the H5CompressionFilter
+enum class.
+
+
+Filter options
+~~~~~~~~~~~~~~
+
+LZF
+^^^
+
+* shuffle; boolean true or false
+
+GZIP
+^^^^
+
+* shuffle; boolean true or false
+* aggression; an integer in the interval [0, 9]
+
+MAFISC
+^^^^^^
+
+More work is requried to understand the options available from the mafisc library.
+As such only the default configuration is available.
+
+BITSHUFFLE
+^^^^^^^^^^
+
+Whilst both LZF and LZ4 are available via this filter plugin, only the LZ4
+compression filter is made available.
+As such only the default configuration is available.
+
+ZSTANDARD
+^^^^^^^^^
+
+* shuffle; boolean true or false
+* aggression; an integer in the interval [0, 22]
+
+Blosc
+^^^^^
+
+* aggression; an integer in the interval [0, 9]
+* shuffle_id; an enum *NO_SHUFFLE*, *SHUFFLE*, *BITSHUFFLE*
