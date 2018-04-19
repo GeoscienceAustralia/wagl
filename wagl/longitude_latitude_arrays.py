@@ -105,7 +105,7 @@ def _create_lon_lat_grids(acquisition, out_fname=None,
     multifile workflow.
     """
     with h5py.File(out_fname, 'w') as fid:
-        create_lon_lat_grids(acquisition, fid, compression, depth, filter_opts)
+        create_lon_lat_grids(acquisition, fid, compression, filter_opts, depth)
 
 
 def create_lon_lat_grids(acquisition, out_group=None,
