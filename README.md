@@ -39,7 +39,7 @@ The luigi task workflow for producing NBAR for a Landsat 5TM scene is given belo
 * [shapely](https://github.com/Toblerity/Shapely)
 * [geopandas](https://github.com/geopandas/geopandas)
 * [pyyaml](https://github.com/yaml/pyyaml)
-* [attr](https://github.com/python-attrs/attrs)
+* [attrs](https://github.com/python-attrs/attrs)
 
 ## Installation
 ---------------
