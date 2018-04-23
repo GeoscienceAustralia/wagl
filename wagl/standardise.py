@@ -40,11 +40,128 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
            water_vapour, dem_path, dsm_fname, invariant_fname, modtran_exe,
            out_fname, ecmwf_path=None, rori=0.52, buffer_distance=8000,
            compression=H5CompressionFilter.LZF, filter_opts=None,
-           acq_parser_hint=None):
+           h5_driver=None, acq_parser_hint=None):
     """
     CEOS Analysis Ready Data for Land.
     A workflow for producing standardised products that meet the
     CARD4L specification.
+
+    :param level1:
+        A string containing the full file pathname to the level1
+        dataset.
+
+    :param granule:
+        A string containing the granule id to process.
+
+    :param model:
+        An enum from wagl.constants.Model representing which
+        workflow model to run.
+
+    :param vertices:
+        An integer 2-tuple indicating the number of rows and columns
+        of sample-locations ("coordinator") to produce.
+        The vertex columns should be an odd number.
+
+    :param method:
+        An enum from wagl.constants.Method representing the
+        interpolation method to use during the interpolation
+        of the atmospheric coefficients.
+
+    :param pixel_quality:
+        A bool indicating whether or not to run pixel quality.
+
+    :param landsea:
+        A string containing the full file pathname to the directory
+        containing the land/sea mask datasets.
+
+    :param tle_path:
+        A string containing the full file pathname to the directory
+        containing the two line element datasets.
+
+    :param aerosol:
+        A string containing the full file pathname to the HDF5 file
+        containing the aerosol data.
+
+    :param brdf_path:
+        A string containing the full file pathname to the directory
+        containing the BRDF data.
+
+    :param brdf_premodis_path:
+        A string containing the full file pathname to the directory
+        containing the decadal averaged BRDF data used for acquisitions
+        prior to TERRA/AQUA satellite operations, or for near real time
+        applications.
+
+    :param ozone_path:
+        A string containing the full file pathname to the directory
+        containing the ozone datasets.
+
+    :param water_vapour:
+        A string containing the full file pathname to the directory
+        containing the water vapour datasets.
+
+    :param dem_path:
+        A string containing the full file pathname to the directory
+        containing the reduced resolution DEM.
+
+    :param dsm_path:
+        A string containing the full file pathname to the directory
+        containing the Digital Surface Model for use in terrain
+        illumination correction.
+
+    :param invariant_fname:
+        A string containing the full file pathname to the image file
+        containing the invariant geo-potential data for use within
+        the SBT process.
+
+    :param modtran_exe:
+        A string containing the full file pathname to the MODTRAN
+        executable.
+
+    :param out_fname:
+        A string containing the full file pathname that will contain
+        the output data from the data standardisation process.
+        executable.
+
+    :param ecmwf_path:
+        A string containing the full file pathname to the directory
+        containing the data from the European Centre for Medium Weather
+        Forcast, for use within the SBT process.
+
+    :param rori:
+        A floating point value for surface reflectance adjustment.
+        TODO Fuqin to add additional documentation for this parameter.
+        Default is 0.52.
+
+    :param buffer_distance:
+        A number representing the desired distance (in the same
+        units as the acquisition) in which to calculate the extra
+        number of pixels required to buffer an image.
+        Default is 8000, which for an acquisition using metres would
+        equate to 8000 metres.
+
+    :param compression:
+        An enum from hdf5.compression.H5CompressionFilter representing
+        the desired compression filter to use for writing H5 IMAGE and
+        TABLE class datasets to disk.
+        Default is H5CompressionFilter.LZF.
+
+    :param filter_opts:
+        A dict containing any additional keyword arguments when
+        generating the configuration for the given compression Filter.
+        Default is None.
+
+    :param h5_driver:
+        The specific HDF5 file driver to use when creating the output
+        HDF5 file.
+        See http://docs.h5py.org/en/latest/high/file.html#file-drivers
+        for more details.
+        Default is None; which writes direct to disk using the
+        appropriate driver for the underlying OS.
+
+    :param acq_parser_hint:
+        A string containing any hints to provide the acquisitions
+        loader with.
     """
     tp5_fmt = pjoin(POINT_FMT, ALBEDO_FMT, ''.join([POINT_ALBEDO_FMT, '.tp5']))
     nvertices = vertices[0] * vertices[1]
@@ -52,7 +169,7 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
     container = acquisitions(level1, hint=acq_parser_hint)
 
     # TODO: pass through an acquisitions container rather than pathname
-    with h5py.File(out_fname, 'w') as fid:
+    with h5py.File(out_fname, 'w', driver=h5_driver) as fid:
         fid.attrs['level1_uri'] = level1
 
         for grp_name in container.supported_groups:
