@@ -44,7 +44,7 @@ Given a list of level-1 datasets, evenly distrubute the number of datasets acros
 
 An example of submitting individual jobs to the PBS queue using the following specifications:
 
-  * Run using the *nbar* model.
+  * Run using the *nbar* workflow.
   * The *bilinear* interpolation function.
   * Specify a 3x3 point grid location to calculate the radiative transfer at.
   * 10 nodes.
@@ -54,13 +54,13 @@ An example of submitting individual jobs to the PBS queue using the following sp
 
 .. code-block:: bash
 
-   $ wagl_pbs --level1-list /path/to/level1-datasets.txt --vertices '(3, 3)' --model nbar --method bilinear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project nx200 --queue express --hours 2 --email your.name@something.com
+   $ wagl_pbs --level1-list /path/to/level1-datasets.txt --vertices '(3, 3)' --workflow nbar --method bilinear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project nx200 --queue express --hours 2 --email your.name@something.com
 
 The same job resources, but use PBSDSH instead of individual jobs being submitted to the PBS queue.
 
 .. code-block:: bash
 
-   $ wagl_pbs --level1-list /path/to/level1-datasets.txt --vertices '(3, 3)' --model nbar --method bilinear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh
+   $ wagl_pbs --level1-list /path/to/level1-datasets.txt --vertices '(3, 3)' --workflow nbar --method bilinear --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh
 
 **test_calculate_angles**
 
