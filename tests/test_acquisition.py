@@ -79,13 +79,13 @@ class Landsat5Scene1AcquisitionTest(unittest.TestCase):
             self.assertTrue(isinstance(acq, LandsatAcquisition))
 
     def test_band_type(self):
-        self.assertEqual(self.acqs[0].band_type, BandType.Reflective)
-        self.assertEqual(self.acqs[1].band_type, BandType.Reflective)
-        self.assertEqual(self.acqs[2].band_type, BandType.Reflective)
-        self.assertEqual(self.acqs[3].band_type, BandType.Reflective)
-        self.assertEqual(self.acqs[4].band_type, BandType.Reflective)
-        self.assertEqual(self.acqs[5].band_type, BandType.Thermal)
-        self.assertEqual(self.acqs[6].band_type, BandType.Reflective)
+        self.assertEqual(self.acqs[0].band_type, BandType.REFLECTIVE)
+        self.assertEqual(self.acqs[1].band_type, BandType.REFLECTIVE)
+        self.assertEqual(self.acqs[2].band_type, BandType.REFLECTIVE)
+        self.assertEqual(self.acqs[3].band_type, BandType.REFLECTIVE)
+        self.assertEqual(self.acqs[4].band_type, BandType.REFLECTIVE)
+        self.assertEqual(self.acqs[5].band_type, BandType.THERMAL)
+        self.assertEqual(self.acqs[6].band_type, BandType.REFLECTIVE)
 
     def test_acquisition_datetime(self):
         for acq in self.acqs:
@@ -157,14 +157,14 @@ class Landsat7Mtl1AcquisitionTest(unittest.TestCase):
             self.assertTrue(isinstance(acq, LandsatAcquisition))
 
     def test_band_type(self):
-        self.assertEqual(self.acqs[0].band_type, BandType.Reflective)
-        self.assertEqual(self.acqs[1].band_type, BandType.Reflective)
-        self.assertEqual(self.acqs[2].band_type, BandType.Reflective)
-        self.assertEqual(self.acqs[3].band_type, BandType.Reflective)
-        self.assertEqual(self.acqs[4].band_type, BandType.Reflective)
-        self.assertEqual(self.acqs[5].band_type, BandType.Thermal)
-        self.assertEqual(self.acqs[6].band_type, BandType.Thermal)
-        self.assertEqual(self.acqs[7].band_type, BandType.Reflective)
+        self.assertEqual(self.acqs[0].band_type, BandType.REFLECTIVE)
+        self.assertEqual(self.acqs[1].band_type, BandType.REFLECTIVE)
+        self.assertEqual(self.acqs[2].band_type, BandType.REFLECTIVE)
+        self.assertEqual(self.acqs[3].band_type, BandType.REFLECTIVE)
+        self.assertEqual(self.acqs[4].band_type, BandType.REFLECTIVE)
+        self.assertEqual(self.acqs[5].band_type, BandType.THERMAL)
+        self.assertEqual(self.acqs[6].band_type, BandType.THERMAL)
+        self.assertEqual(self.acqs[7].band_type, BandType.REFLECTIVE)
 
     def test_acquisition_datetime(self):
         for acq in self.acqs:
@@ -241,15 +241,15 @@ class Landsat8Mtl1AcquisitionTest(unittest.TestCase):
             self.assertTrue(isinstance(acq, Landsat8Acquisition))
 
     def test_band_type(self):
-        self.assertEqual(self.acqs[0].band_type, BandType.Reflective)
-        self.assertEqual(self.acqs[1].band_type, BandType.Thermal)
-        self.assertEqual(self.acqs[2].band_type, BandType.Thermal)
-        self.assertEqual(self.acqs[3].band_type, BandType.Reflective)
-        self.assertEqual(self.acqs[4].band_type, BandType.Reflective)
-        self.assertEqual(self.acqs[5].band_type, BandType.Reflective)
-        self.assertEqual(self.acqs[6].band_type, BandType.Reflective)
-        self.assertEqual(self.acqs[6].band_type, BandType.Reflective)
-        self.assertEqual(self.acqs[6].band_type, BandType.Reflective)
+        self.assertEqual(self.acqs[0].band_type, BandType.REFLECTIVE)
+        self.assertEqual(self.acqs[1].band_type, BandType.THERMAL)
+        self.assertEqual(self.acqs[2].band_type, BandType.THERMAL)
+        self.assertEqual(self.acqs[3].band_type, BandType.REFLECTIVE)
+        self.assertEqual(self.acqs[4].band_type, BandType.REFLECTIVE)
+        self.assertEqual(self.acqs[5].band_type, BandType.REFLECTIVE)
+        self.assertEqual(self.acqs[6].band_type, BandType.REFLECTIVE)
+        self.assertEqual(self.acqs[6].band_type, BandType.REFLECTIVE)
+        self.assertEqual(self.acqs[6].band_type, BandType.REFLECTIVE)
 
     def test_acquisition_datetime(self):
         for acq in self.acqs:
