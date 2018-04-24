@@ -37,8 +37,8 @@ class TestLonLatArrays(unittest.TestCase):
         acq = acquisitions(LS5_SCENE1).get_acquisitions()[0]
         geobox = acq.gridded_geo_box()
         fid = create_lon_lat_grids(acq, depth=5)
-        dataset_name = ppjoin(GroupName.lon_lat_group.value,
-                              DatasetName.lon.value)
+        dataset_name = ppjoin(GroupName.LON_LAT_GROUP.value,
+                              DatasetName.LON.value)
         lon = fid[dataset_name][:]
         ids = ut.random_pixel_locations(lon.shape)
 
@@ -82,8 +82,8 @@ class TestLonLatArrays(unittest.TestCase):
         acq = acquisitions(LS5_SCENE1).get_acquisitions()[0]
         geobox = acq.gridded_geo_box()
         fid = create_lon_lat_grids(acq, depth=5)
-        dataset_name = ppjoin(GroupName.lon_lat_group.value,
-                              DatasetName.lat.value)
+        dataset_name = ppjoin(GroupName.LON_LAT_GROUP.value,
+                              DatasetName.LAT.value)
         lat = fid[dataset_name][:]
         ids = ut.random_pixel_locations(lat.shape)
 
