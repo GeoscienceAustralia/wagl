@@ -15,9 +15,9 @@ ALBEDO_FMT = 'ALBEDO-{a}'
 POINT_ALBEDO_FMT = ''.join([POINT_FMT, '-', ALBEDO_FMT])
 
 
-class Model(Enum):
+class Workflow(Enum):
     """
-    Represents the model workflow that wagl can run.
+    Represents the different workflow that wagl can run.
 
     *standard* Indicates both NBAR and SBT workflows will run
     *nbar* Indicates NBAR only
@@ -32,36 +32,36 @@ class Model(Enum):
     def atmos_coefficients(self):
         """
         Returns the atmospheric coefficients names used for interpolation
-        for a given Model.<option>.
+        for a given Workflow.<option>.
         """
         atmos_var = list(AtmosphericCoefficients)
-        fmap = {Model.STANDARD: atmos_var,
-                Model.NBAR: atmos_var[0:8],
-                Model.SBT: atmos_var[8:]}
+        fmap = {Workflow.STANDARD: atmos_var,
+                Workflow.NBAR: atmos_var[0:8],
+                Workflow.SBT: atmos_var[8:]}
         return fmap.get(self)
 
     @property
     def albedos(self):
         """
         Returns the albedo names used for specific Atmospheric
-        evaluations for a given Model.<option>.
+        evaluations for a given Workflow.<option>.
         """
         albs = list(Albedos)
-        amap = {Model.STANDARD: albs,
-                Model.NBAR: albs[0:-1],
-                Model.SBT: [albs[-1]]}
+        amap = {Workflow.STANDARD: albs,
+                Workflow.NBAR: albs[0:-1],
+                Workflow.SBT: [albs[-1]]}
         return amap.get(self)
 
     @property
     def ard_products(self):
         """
         Returns the ARD products available for a given
-        Model.<option>.
+        Workflow.<option>.
         """
         products = list(ArdProducts)
-        amap = {Model.STANDARD: products,
-                Model.NBAR: products[0:-1],
-                Model.SBT: [products[-1]]}
+        amap = {Workflow.STANDARD: products,
+                Workflow.NBAR: products[0:-1],
+                Workflow.SBT: [products[-1]]}
         return amap.get(self)
 
 
