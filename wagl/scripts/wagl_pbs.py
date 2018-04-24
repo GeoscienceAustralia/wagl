@@ -54,7 +54,7 @@ wait
 FMT1 = 'level1-scenes-{jobid}.txt'
 FMT2 = 'wagl-{jobid}.bash'
 DAEMON_FMT = 'luigid --background --logdir {}'
-ARD_FMT = "--module wagl.{workflow} ARD --model {model} --vertices '{vertices}' --buffer-distance {distance} --method {method}{pq}" # pylint: disable=line-too-long
+ARD_FMT = "--module wagl.{workflow_type} ARD --workflow {workflow} --vertices '{vertices}' --buffer-distance {distance} --method {method}{pq}" # pylint: disable=line-too-long
 TASK_FMT = "--module wagl.multifile_workflow CallTask --task {task}"
 
 
@@ -156,7 +156,7 @@ def _submit_multiple(scattered, options, env, batchid, batch_logdir,
 
 
 # pylint: disable=too-many-arguments
-def run(level1, vertices='(5, 5)', model='standard', method='linear',
+def run(level1, vertices='(5, 5)', workflow='standard', method='linear',
         pixel_quality=False, outdir=None, logdir=None, env=None, nodes=10,
         project=None, queue='normal', hours=48, buffer_distance=8000,
         email='your.name@something.com', local_scheduler=False, dsh=False,
@@ -182,11 +182,12 @@ def run(level1, vertices='(5, 5)', model='standard', method='linear',
 
     pq = ' --pixel-quality' if pixel_quality else ''
 
-    workflow = 'singlefile_workflow' if singlefile else 'multifile_workflow'
+    workflow_type = 'singlefile_workflow' if singlefile else 'multifile_workflow'
 
     # luigi task workflow options
     if task is None:
-        options = ARD_FMT.format(workflow=workflow, model=model, pq=pq,
+        options = ARD_FMT.format(workflow_type=workflow_type,
+                                 workflow=workflow, pq=pq,
                                  vertices=vertices, method=method,
                                  distance=buffer_distance)
     else:
@@ -219,7 +220,7 @@ def _parser():
     parser.add_argument("--vertices", default="(5, 5)", type=str,
                         help=("Number of vertices to evaluate the radiative "
                               "transfer at. JSON styled string is required."))
-    parser.add_argument("--model", default="STANDARD",
+    parser.add_argument("--workflow", default="STANDARD",
                         help=("The type of ARD workflow to invoke, "
                               "eg STANDARD, NBAR, SBT."))
     parser.add_argument("--method", default="SHEAR",
@@ -270,7 +271,7 @@ def main():
     """ Main execution. """
     parser = _parser()
     args = parser.parse_args()
-    run(args.level1_list, args.vertices, args.model, args.method,
+    run(args.level1_list, args.vertices, args.workflow, args.method,
         args.pixel_quality, args.outdir, args.logdir, args.env, args.nodes,
         args.project, args.queue, args.hours, args.buffer_distance,
         args.email, args.local_scheduler, args.dsh, args.test, args.singlefile,

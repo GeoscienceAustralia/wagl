@@ -18,7 +18,7 @@ from scipy.io import FortranFile
 import h5py
 import pandas as pd
 
-from wagl.constants import Model, BandType, DatasetName, GroupName, Albedos
+from wagl.constants import Workflow, BandType, DatasetName, GroupName, Albedos
 from wagl.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
 from wagl.constants import AtmosphericCoefficients as AC
 from wagl.hdf5 import write_dataframe, read_h5_table, create_external_link
@@ -68,7 +68,7 @@ def prepare_modtran(acquisitions, coordinate, albedos, basedir, modtran_exe):
 
 
 def _format_tp5(acquisitions, satellite_solar_angles_fname,
-                longitude_latitude_fname, ancillary_fname, out_fname, model):
+                longitude_latitude_fname, ancillary_fname, out_fname, workflow):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -81,13 +81,13 @@ def _format_tp5(acquisitions, satellite_solar_angles_fname,
         grp1 = anc_fid[GroupName.ANCILLARY_GROUP.value]
         grp2 = sat_sol_fid[GroupName.SAT_SOL_GROUP.value]
         grp3 = lon_lat_fid[GroupName.LON_LAT_GROUP.value]
-        tp5_data, _ = format_tp5(acquisitions, grp1, grp2, grp3, model, fid)
+        tp5_data, _ = format_tp5(acquisitions, grp1, grp2, grp3, workflow, fid)
 
     return tp5_data
 
 
 def format_tp5(acquisitions, ancillary_group, satellite_solar_group,
-               lon_lat_group, model, out_group):
+               lon_lat_group, workflow, out_group):
     """
     Creates str formatted tp5 files for the albedo (0, 1) and
     transmittance (t).
@@ -161,11 +161,11 @@ def format_tp5(acquisitions, ancillary_group, satellite_solar_group,
     tp5_data = {}
 
     # setup the tp5 files required by MODTRAN
-    if model == Model.STANDARD or model == Model.NBAR:
+    if workflow == Workflow.STANDARD or workflow == Workflow.NBAR:
         acqs = [a for a in acquisitions if a.band_type == BandType.REFLECTIVE]
 
         for p in range(npoints):
-            for alb in Model.NBAR.albedos:
+            for alb in Workflow.NBAR.albedos:
                 input_data = {'water': water_vapour,
                               'ozone': ozone,
                               'filter_function': acqs[0].spectral_filter_file,
@@ -238,7 +238,7 @@ def format_tp5(acquisitions, ancillary_group, satellite_solar_group,
     return tp5_data, out_group
 
 
-def _run_modtran(acquisitions, modtran_exe, basedir, point, albedos, model,
+def _run_modtran(acquisitions, modtran_exe, basedir, point, albedos, workflow,
                  npoints, atmospheric_inputs_fname, out_fname,
                  compression=H5CompressionFilter.LZF, filter_opts=None):
     """
@@ -249,11 +249,11 @@ def _run_modtran(acquisitions, modtran_exe, basedir, point, albedos, model,
         h5py.File(out_fname, 'w') as fid:
 
         atmos_grp = atmos_fid[GroupName.ATMOSPHERIC_INPUTS_GRP.value]
-        run_modtran(acquisitions, atmos_grp, model, npoints, point, albedos,
+        run_modtran(acquisitions, atmos_grp, workflow, npoints, point, albedos,
                     modtran_exe, basedir, fid, compression, filter_opts)
 
 
-def run_modtran(acquisitions, atmospherics_group, model, npoints, point,
+def run_modtran(acquisitions, atmospherics_group, workflow, npoints, point,
                 albedos, modtran_exe, basedir, out_group,
                 compression=H5CompressionFilter.LZF, filter_opts=None):
     """
@@ -282,9 +282,9 @@ def run_modtran(acquisitions, atmospherics_group, model, npoints, point,
         fid.create_group(group_name)
 
     fid[group_name].attrs['npoints'] = npoints
-    applied = model == Model.STANDARD or model == Model.NBAR
+    applied = workflow == Workflow.STANDARD or workflow == Workflow.NBAR
     fid[group_name].attrs['nbar_atmospherics'] = applied
-    applied = model == Model.STANDARD or model == Model.SBT
+    applied = workflow == Workflow.STANDARD or workflow == Workflow.SBT
     fid[group_name].attrs['sbt_atmospherics'] = applied
 
     acqs = acquisitions
@@ -364,7 +364,7 @@ def run_modtran(acquisitions, atmospherics_group, model, npoints, point,
                             attrs=attrs, filter_opts=filter_opts)
 
     # metadata for a given point
-    alb_vals = [alb.value for alb in model.albedos]
+    alb_vals = [alb.value for alb in workflow.albedos]
     fid[base_path].attrs['lonlat'] = lonlat
     fid[base_path].attrs['datetime'] = acqs[0].acquisition_datetime.isoformat()
     fid[base_path].attrs.create('albedos', data=alb_vals, dtype=VLEN_STRING)
@@ -395,7 +395,7 @@ def calculate_coefficients(atmospheric_results_group, out_group,
     and used in the BRDF and atmospheric correction.
     Coefficients are computed for each band for each each coordinate
     for each atmospheric coefficient. The atmospheric coefficients can be
-    found in `Model.STANDARD.atmos_coefficients`.
+    found in `Workflow.STANDARD.atmos_coefficients`.
 
     :param atmospheric_results_group:
         The root HDF5 `Group` that contains the atmospheric results
@@ -409,8 +409,8 @@ def calculate_coefficients(atmospheric_results_group, out_group,
         The datasets will be formatted to the HDF5 TABLE specification
         and the dataset names will be as follows:
 
-        * DatasetName.NBAR_COEFFICIENTS (if Model.STANDARD or Model.NBAR)
-        * DatasetName.SBT_COEFFICIENTS (if Model.STANDARD or Model.SBT)
+        * DatasetName.NBAR_COEFFICIENTS (if Workflow.STANDARD or Workflow.NBAR)
+        * DatasetName.SBT_COEFFICIENTS (if Workflow.STANDARD or Workflow.SBT)
 
     :param compression:
         The compression filter to use.
@@ -540,7 +540,7 @@ def coefficients(accumulation_albedo_0=None, accumulation_albedo_1=None,
     and used in the BRDF and atmospheric correction.
     Coefficients are computed for each band.
     The atmospheric coefficients can be found in
-    `Model.STANDARD.atmos_coefficients`.
+    `Workflow.STANDARD.atmos_coefficients`.
 
     :param accumulation_albedo_0:
         A `pandas.DataFrame` containing the solar accumulated
@@ -601,7 +601,7 @@ def coefficients(accumulation_albedo_0=None, accumulation_albedo_1=None,
         ts_dir = dir_0 / dir0_top
         tv_dir = dir_t / dirt_top
 
-        columns = [v.value for v in Model.NBAR.atmos_coefficients]
+        columns = [v.value for v in Workflow.NBAR.atmos_coefficients]
         nbar = pd.DataFrame(columns=columns, index=channel_data.index)
 
         nbar[AC.FS.value] = ts_dir / ts_total
@@ -614,7 +614,7 @@ def coefficients(accumulation_albedo_0=None, accumulation_albedo_1=None,
         nbar[AC.TS.value] = ts_dir
 
     if upward_radiation is not None:
-        columns = [v.value for v in Model.SBT.atmos_coefficients]
+        columns = [v.value for v in Workflow.SBT.atmos_coefficients]
         columns.extend(['TRANSMITTANCE-DOWN']) # Currently not required
         sbt = pd.DataFrame(columns=columns, index=upward_radiation.index)
 
@@ -788,8 +788,8 @@ def read_modtran_channel(fname, acquisition, albedo):
         An instance of an acquisition object.
 
     :param albedo:
-        An albedo identifier from either Model.nbar.albedos or
-        Model.SBT.albedos
+        An albedo identifier from either Workflow.nbar.albedos or
+        Workflow.SBT.albedos
 
     :return:
         A `pandas.DataFrame` containing the channel data, and index
@@ -947,7 +947,7 @@ def calculate_solar_radiation(flux_data, spectral_response, levels=36,
     return df
 
 
-def link_atmospheric_results(input_targets, out_fname, npoints, model):
+def link_atmospheric_results(input_targets, out_fname, npoints, workflow):
     """
     Uses h5py's ExternalLink to combine the atmospheric results into
     a single file.
@@ -962,8 +962,8 @@ def link_atmospheric_results(input_targets, out_fname, npoints, model):
         An `int` containing the number of points (vertices) used for
         evaluating the atmospheric conditions.
 
-    :param model:
-        An Enum given by wagl.constants.Model.
+    :param workflow:
+        An Enum given by wagl.constants.Workflow.
 
     :return:
         None. Results from each file in `input_targets` are linked
@@ -988,7 +988,7 @@ def link_atmospheric_results(input_targets, out_fname, npoints, model):
                                    fid[group].attrs['albedos']))
                 
         for point in points:
-            for albedo in model.albedos:
+            for albedo in workflow.albedos:
                 if albedo == Albedos.ALBEDO_TH:
                     datasets = [DatasetName.UPWARD_RADIATION_CHANNEL.value,
                                 DatasetName.DOWNWARD_RADIATION_CHANNEL.value]

@@ -11,7 +11,7 @@ import h5py
 
 from wagl.acquisition import acquisitions
 from wagl.ancillary import collect_ancillary
-from wagl.constants import ArdProducts as AP, GroupName, Model, BandType
+from wagl.constants import ArdProducts as AP, GroupName, Workflow, BandType
 from wagl.constants import ALBEDO_FMT, POINT_FMT, POINT_ALBEDO_FMT
 from wagl.dsm import get_dsm
 from wagl.hdf5 import H5CompressionFilter
@@ -35,7 +35,7 @@ LOG = wrap_logger(logging.getLogger('status'),
 
 
 # pylint disable=too-many-arguments
-def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
+def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
            tle_path, aerosol, brdf_path, brdf_premodis_path, ozone_path,
            water_vapour, dem_path, dsm_fname, invariant_fname, modtran_exe,
            out_fname, ecmwf_path=None, rori=0.52, buffer_distance=8000,
@@ -53,9 +53,9 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
     :param granule:
         A string containing the granule id to process.
 
-    :param model:
-        An enum from wagl.constants.Model representing which
-        workflow model to run.
+    :param workflow:
+        An enum from wagl.constants.Workflow representing which
+        workflow workflow to run.
 
     :param vertices:
         An integer 2-tuple indicating the number of rows and columns
@@ -106,7 +106,7 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
 
     :param dsm_path:
         A string containing the full file pathname to the directory
-        containing the Digital Surface Model for use in terrain
+        containing the Digital Surface Workflow for use in terrain
         illumination correction.
 
     :param invariant_fname:
@@ -189,7 +189,7 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
             calculate_angles(acqs[0], root[GroupName.LON_LAT_GROUP.value],
                              root, compression, filter_opts, tle_path)
 
-            if model == Model.STANDARD or model == Model.NBAR:
+            if workflow == Workflow.STANDARD or workflow == Workflow.NBAR:
 
                 # DEM
                 log.info('DEM-retriveal')
@@ -287,7 +287,7 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
         # TODO: supported acqs in different groups pointing to different response funcs
         # tp5 files
         tp5_data, _ = format_tp5(acqs, ancillary_group, sat_sol_grp,
-                                 lon_lat_grp, model, root)
+                                 lon_lat_grp, workflow, root)
 
         # atmospheric inputs group
         inputs_grp = root[GroupName.ATMOSPHERIC_INPUTS_GRP.value]
@@ -307,7 +307,7 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
                 with open(fname, 'w') as src:
                     src.writelines(tp5_data[key])
 
-                run_modtran(acqs, inputs_grp, model, nvertices, point,
+                run_modtran(acqs, inputs_grp, workflow, nvertices, point,
                             [albedo], modtran_exe, tmpdir, root, compression,
                             filter_opts)
 
@@ -333,8 +333,8 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
             sat_sol_grp = res_group[GroupName.SAT_SOL_GROUP.value]
             comp_grp = root[GroupName.COEFFICIENTS_GROUP.value]
 
-            for coefficient in model.atmos_coefficients:
-                if coefficient in Model.NBAR.atmos_coefficients:
+            for coefficient in workflow.atmos_coefficients:
+                if coefficient in Workflow.NBAR.atmos_coefficients:
                     band_acqs = nbar_acqs
                 else:
                     band_acqs = sbt_acqs
@@ -348,10 +348,10 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
 
             # standardised products
             band_acqs = []
-            if model == Model.STANDARD or model == model.NBAR:
+            if workflow == Workflow.STANDARD or workflow == Workflow.NBAR:
                 band_acqs.extend(nbar_acqs)
 
-            if model == Model.STANDARD or model == model.SBT:
+            if workflow == Workflow.STANDARD or workflow == Workflow.SBT:
                 band_acqs.extend(sbt_acqs)
 
             for acq in band_acqs:
@@ -377,14 +377,14 @@ def card4l(level1, granule, model, vertices, method, pixel_quality, landsea,
                                           filter_opts)
 
             # metadata yaml's
-            if model == Model.STANDARD or model == Model.NBAR:
+            if workflow == Workflow.STANDARD or workflow == Workflow.NBAR:
                 create_ard_yaml(band_acqs, ancillary_group, res_group)
 
-            if model == Model.STANDARD or model == Model.SBT:
+            if workflow == Workflow.STANDARD or workflow == Workflow.SBT:
                 create_ard_yaml(band_acqs, ancillary_group, res_group, True)
 
             # pixel quality
-            sbt_only = model == Model.SBT
+            sbt_only = workflow == Workflow.SBT
             if pixel_quality and can_pq(level1, acq_parser_hint) and not sbt_only:
                 run_pq(level1, res_group, landsea, res_group, compression, filter_opts, AP.NBAR, acq_parser_hint)
                 run_pq(level1, res_group, landsea, res_group, compression, filter_opts, AP.NBART, acq_parser_hint)

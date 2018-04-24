@@ -123,8 +123,8 @@ If you're a user that would like to intersect any part of the dependency tree, t
    # The number of vertices required for evaluating the radiative transfer over
    vertices = (5, 5)
 
-   # The model run to use; *STANDARD*, *NBAR*, or *SBT*
-   model = STANDARD
+   # The workflow run to use; *STANDARD*, *NBAR*, or *SBT*
+   workflow = STANDARD
 
    [AtmosphericsCase]
    # This controls the running of MODTRAN
@@ -164,9 +164,9 @@ If you're a user that would like to intersect any part of the dependency tree, t
    # internally defaults to (5, 5)
    vertices = (5, 5)
 
-   # The model run to use; *STANDARD*, *NBAR*, or *SBT*
+   # The workflow run to use; *STANDARD*, *NBAR*, or *SBT*
    # internally defaults to STANDARD
-   model = STANDARD
+   workflow = STANDARD
 
    # A *boolean* to indicate whether MODTRAN evaluations for a single point should
    # be issued as separate tasks, or combined together in a single process
@@ -188,9 +188,9 @@ If you're a user that would like to intersect any part of the dependency tree, t
    # internally defaults to (5, 5)
    vertices = (5, 5)
 
-   # The model run to use; *STANDARD*, *NBAR*, or *SBT*
+   # The workflow run to use; *STANDARD*, *NBAR*, or *SBT*
    # internally defaults to STANDARD
-   model = STANDARD
+   workflow = STANDARD
 
    # The factor id to run
    factor = 
@@ -207,8 +207,8 @@ If you're a user that would like to intersect any part of the dependency tree, t
    # The number of vertices required for evaluating the radiative transfer over
    vertices = (5, 5)
 
-   # The model run to use; *STANDARD*, *NBAR*, or *SBT*
-   model = STANDARD
+   # The workflow run to use; *STANDARD*, *NBAR*, or *SBT*
+   workflow = STANDARD
 
    # The compression filter to use (internally the code defaults to use *lzf*)
    compression = lzf
@@ -291,8 +291,8 @@ If you're a user that would like to intersect any part of the dependency tree, t
    # The path to the level-1 dataset
    level1
 
-   # The model run to use; *STANDARD*, *NBAR*, or *SBT*
-   model = STANDARD
+   # The workflow run to use; *STANDARD*, *NBAR*, or *SBT*
+   workflow = STANDARD
 
    # The number of vertices required for evaluating the radiative transfer over
    vertices = (5, 5)
@@ -306,8 +306,8 @@ If you're a user that would like to intersect any part of the dependency tree, t
    method = SHEAR
 
    [ARD]
-   # The model run to use; *STANDARD*, *NBAR*, or *SBT*
-   model = STANDARD
+   # The workflow run to use; *STANDARD*, *NBAR*, or *SBT*
+   workflow = STANDARD
 
    # The number of vertices required for evaluating the radiative transfer over
    vertices = (5, 5)

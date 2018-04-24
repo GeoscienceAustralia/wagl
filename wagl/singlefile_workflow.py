@@ -31,7 +31,7 @@ import luigi
 from luigi.util import inherits
 
 from wagl.acquisition import acquisitions
-from wagl.constants import Model, Method
+from wagl.constants import Workflow, Method
 from wagl.hdf5 import H5CompressionFilter
 from wagl.standardise import card4l
 
@@ -59,7 +59,7 @@ class DataStandardisation(luigi.Task):
     level1 = luigi.Parameter()
     outdir = luigi.Parameter()
     granule = luigi.Parameter(default=None)
-    model = luigi.EnumParameter(enum=Model, default=Model.STANDARD)
+    workflow = luigi.EnumParameter(enum=Workflow, default=Workflow.STANDARD)
     vertices = luigi.TupleParameter(default=(5, 5))
     method = luigi.EnumParameter(enum=Method, default=Method.SHEAR)
     pixel_quality = luigi.BoolParameter()
@@ -93,13 +93,13 @@ class DataStandardisation(luigi.Task):
         return luigi.LocalTarget(pjoin(self.outdir, out_fname))
 
     def run(self):
-        if self.model == Model.STANDARD or self.model == Model.SBT:
+        if self.workflow == Workflow.STANDARD or self.workflow == Workflow.SBT:
             ecmwf_path = self.ecmwf_path
         else:
             ecmwf_path = None
 
         with self.output().temporary_path() as out_fname:
-            card4l(self.level1, self.granule, self.model, self.vertices,
+            card4l(self.level1, self.granule, self.workflow, self.vertices,
                    self.method, self.pixel_quality, self.land_sea_path,
                    self.tle_path, self.aerosol, self.brdf_path,
                    self.brdf_premodis_path, self.ozone_path, self.water_vapour,
@@ -129,7 +129,7 @@ class ARD(luigi.WrapperTask):
             for granule in container.granules:
                 kwargs = {'level1': level1,
                           'granule': granule,
-                          'model': self.model,
+                          'workflow': self.workflow,
                           'vertices': self.vertices,
                           'pixel_quality': self.pixel_quality,
                           'method': self.method,

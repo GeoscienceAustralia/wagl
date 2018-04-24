@@ -4,7 +4,7 @@ Invoking wagl
 The wagl workflow can be called directly from the command line.
 It uses `luigi's command line tool <http://luigi.readthedocs.io/en/stable/command_line.html>`_ to execute the workflow for producing Analysis Ready Data (ARD).
 
-Three options are available for the wagl model workflow:
+Three options are available for the wagl workflow:
 
 * **STANDARD**; Executes both the *NBAR* (Surface Reflectance) and the *SBT* (Surface Brightness Temperature) workflows.
 * **NBAR**; Executes only the *NBAR* (Surface Reflectance) workflow
@@ -14,23 +14,23 @@ Three options are available for the wagl model workflow:
 Local scheduler
 ---------------
 
-To run the entire standard ARD workflow using luigi's local scheduler, set the --model parameter to *STANDARD*:
+To run the entire standard ARD workflow using luigi's local scheduler, set the --workflow parameter to *STANDARD*:
 
 .. code-block:: bash
 
-   $ luigi --module wagl.multifile_workflow ARD --level1-list datasets.txt --model STANDARD --outdir /some/path --workers 4
+   $ luigi --module wagl.multifile_workflow ARD --level1-list datasets.txt --workflow STANDARD --outdir /some/path --workers 4
 
-To run the entire *NBAR* ARD workflow using luigi's local scheduler, set the --model parameter to *NBAR*:
-
-.. code-block:: bash
-
-   $ luigi --module wagl.multifile_workflow ARD --level1-list datasets.txt --model NBAR --outdir /some/path --workers 4
-
-To run the entire *SBT* ARD workflow using luigi's local scheduler, set the --model parameter to *SBT*:
+To run the entire *NBAR* ARD workflow using luigi's local scheduler, set the --workflow parameter to *NBAR*:
 
 .. code-block:: bash
 
-   $ luigi --module wagl.multifile_workflow ARD --level1-list datasets.txt --model SBT --outdir /some/path --workers 4 --local-scheduler
+   $ luigi --module wagl.multifile_workflow ARD --level1-list datasets.txt --workflow NBAR --outdir /some/path --workers 4
+
+To run the entire *SBT* ARD workflow using luigi's local scheduler, set the --workflow parameter to *SBT*:
+
+.. code-block:: bash
+
+   $ luigi --module wagl.multifile_workflow ARD --level1-list datasets.txt --workflow SBT --outdir /some/path --workers 4 --local-scheduler
 
 
 Central scheduler
@@ -42,13 +42,13 @@ To run using luigi's `central scheduler <http://luigi.readthedocs.io/en/stable/c
 
    $ luigid --background --pidfile <PATH_TO_PIDFILE> --logdir <PATH_TO_LOGDIR> --state-path <PATH_TO_STATEFILE>
 
-   $ luigi --module wagl.multifile_workflow ARD --level1-list datasets.txt --model STANDARD --outdir /some/path --workers 4
+   $ luigi --module wagl.multifile_workflow ARD --level1-list datasets.txt --workflow STANDARD --outdir /some/path --workers 4
 
 To include the pixel quality workflow as part of the main workflow, you need to set the pixel-quality switch as such:
 
 .. code-block:: bash
 
-   $ luigi --module wagl.multifile_workflow ARD --level1-list datasets.txt --model STANDARD --pixel-quality --outdir /some/path --workers 4
+   $ luigi --module wagl.multifile_workflow ARD --level1-list datasets.txt --workflow STANDARD --pixel-quality --outdir /some/path --workers 4
 
 Luigi will then execute, and manage, the entire ARD (Analysis Ready Data) workflow for every Level-1 dataset listed in *datasets.txt*.
 
@@ -64,7 +64,7 @@ specify the following arguments:
 --granule        granule id name; Default is None; and can be ignored for Landsat
 --vertices       the number of points atmospherical calculations will run across the dataset; Default is 25
 --base-dir       the base directory to contain the atmospheric calculations; Default is _atmospherics
---model          the ARD (Analysis Ready Data) workflow to produce *STANDARD*, *NBAR* or *SBT*
+--workflow          the ARD (Analysis Ready Data) workflow to produce *STANDARD*, *NBAR* or *SBT*
 --compression    the compression filter used when writing the outputs to disk; Default is lzf
 --separate       if set, then issue separate atmospheric calculation tasks for each albedo effect. The default is to combine multiple albedo calculations into a single task, with the advantage of having less files on disk.
 
@@ -161,7 +161,7 @@ The arguments for *wagl_pbs* are:
 
 --level1-list        The input level1 dataset list.
 --vertices           Number of vertices to evaluate the radiative transfer at. JSON styled string is required, eg '(3, 3)'.
---model              The type of ARD workflow to invoke, eg STANDARD, NBAR, SBT.
+--workflow              The type of ARD workflow to invoke, eg STANDARD, NBAR, SBT.
 --method             The interpolation method to invoke, eg BILINEAR, SHEAR, RBF.
 --pixel-quality      Whether to run the pixel quality workflow, if applicable, or not.
 --buffer-distance    The distance in units by which to buffer an image's extents by.
@@ -180,7 +180,7 @@ The arguments for *wagl_pbs* are:
 
 An example of submitting individual jobs to the PBS queue using the following specifications:
 
-  * Run using the *NBAR* model.
+  * Run using the *NBAR* workflow.
   * The *BILINEAR* interpolation function.
   * Specify a 3x3 point grid location to calculate the radiative transfer at.
   * 10 nodes.
@@ -190,13 +190,13 @@ An example of submitting individual jobs to the PBS queue using the following sp
 
 .. code-block:: bash
 
-   $ wagl_pbs --level1-list /path/to/level1-datasets.txt --vertices '(3, 3)' --model NBAR --method BILINEAR --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project nx200 --queue express --hours 2 --email your.name@something.com
+   $ wagl_pbs --level1-list /path/to/level1-datasets.txt --vertices '(3, 3)' --workflow NBAR --method BILINEAR --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project nx200 --queue express --hours 2 --email your.name@something.com
 
 The same job resources, but use PBSDSH instead of individual jobs being submitted to the PBS queue.
 
 .. code-block:: bash
 
-   $ wagl_pbs --level1-list /path/to/level1-datasets.txt --vertices '(3, 3)' --model NBAR --method BILINEAR --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh
+   $ wagl_pbs --level1-list /path/to/level1-datasets.txt --vertices '(3, 3)' --workflow NBAR --method BILINEAR --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh
 
 Each call to *wagl_pbs* will generate a new batch id, and each node will be assigned a job id. In this way each node will have its logs and output data contained in its own directory structure.  For example:
 
@@ -236,7 +236,7 @@ The example below is using the *wagl_pbs* command line utility:
 
    $ wagl_pbs --level1-list /path/to/level1-datasets.txt --outdir /path/to/the/output/directory --logdir /path/to/the/logs/directory --env /path/to/the/environment/script --nodes 10 --project v10 --queue express --hours 2 --email your.name@something.com --dsh --task CalculateCoefficients
 
-You might notice that no arguments such as *--model*, *--vertices* or *--method* are present. This is because in order for the CallTask to be generic, it's easier to let any parameters that need parsing, and specify them using the *luigi.cfg* file and have luigi do all the work of parsing additional parameters.
+You might notice that no arguments such as *--workflow*, *--vertices* or *--method* are present. This is because in order for the CallTask to be generic, it's easier to let any parameters that need parsing, and specify them using the *luigi.cfg* file and have luigi do all the work of parsing additional parameters.
 
 An example configuration for executing the *CalculateCoefficients* task and its dependencies, for a list of datasets is given by:
 
@@ -244,9 +244,9 @@ An example configuration for executing the *CalculateCoefficients* task and its 
 
    [CalculateCoefficients]
    vertices = (15, 15)
-   model = NBAR
+   workflow = NBAR
 
-This will parse in a 15x15 point grid at which to evaluate the radiative transfer, and only for the *NBAR* model.
+This will parse in a 15x15 point grid at which to evaluate the radiative transfer, and only for the *NBAR* workflow.
 
 The *CallTask* luigi task will work for any task in the *wagl.multifile_workflow* if the first 3 arguments of a task are:
 [level1 (file pathname), work_root (directory pathname), granule]
