@@ -627,7 +627,7 @@ def get_elevation_data(lonlat, dem_path):
     try:
         data = get_pixel(datafile, lonlat) * 0.001  # scale to correct units
     except IndexError:
-        raise AncillaryError("No Elevation data")
+        raise AncillaryError("No Elevation data for %s", str(lonlat))
 
     metadata = {'data_source': 'Elevation',
                 'url': url}
