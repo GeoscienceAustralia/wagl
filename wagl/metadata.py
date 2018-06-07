@@ -5,7 +5,7 @@ Various metadata extraction and creation, and writing tools.
 """
 
 from __future__ import absolute_import, print_function
-from datetime import datetime as dtime
+from datetime import datetime as dtime, timezone as dtz
 import os
 from os.path import dirname
 import pwd
@@ -49,11 +49,15 @@ def extract_ancillary_metadata(fname):
         A `dictionary` with keys `ctime`, `mtime`, `atime`,
         and `owner`.
     """
+
+    def _get_utc_datetime(timestamp):
+        return dtime.utcfromtimestamp(timestamp).replace(tzinfo=dtz.utc)
+
     res = {}
     fstat = os.stat(fname)
-    res['ctime'] = dtime.utcfromtimestamp(fstat.st_ctime)
-    res['mtime'] = dtime.utcfromtimestamp(fstat.st_mtime)
-    res['atime'] = dtime.utcfromtimestamp(fstat.st_atime)
+    res['ctime'] = _get_utc_datetime(fstat.st_ctime)
+    res['mtime'] = _get_utc_datetime(fstat.st_mtime)
+    res['atime'] = _get_utc_datetime(fstat.st_atime)
     res['owner'] = pwd.getpwuid(fstat.st_uid).pw_gecos
     return res
 
@@ -210,7 +214,11 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, sbt=False):
 
     acquisition = acquisitions[0]
     level1_path = acquisition.pathname
-    acq_datetime = acquisition.acquisition_datetime.isoformat()
+    acq_datetime = (
+        acquisition.acquisition_datetime
+        .replace(tzinfo=dtz.utc)
+        .isoformat()
+    )
     source_info = {'source_level1': level1_path,
                    'acquisition_datetime': acq_datetime,
                    'platform_id': acquisition.platform_id,
@@ -283,10 +291,11 @@ def create_pq_yaml(acquisition, ancillary, tests_run, out_group):
     :return:
         None; The yaml document is written to the HDF5 file.
     """
+    utc_now = dtime.utcnow().replace(tzinfo=dtz.utc).isoformat()
     system_info = {'uname': ' '.join(os.uname()),
                    'hostname': socket.getfqdn(),
                    'runtime_id': str(uuid.uuid1()),
-                   'time_processed': dtime.utcnow().isoformat()}
+                   'time_processed': utc_now}
 
     source_info = {'source_l1t': dirname(acquisition.dir_name),
                    'source_reflectance': 'NBAR'}
