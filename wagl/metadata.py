@@ -62,6 +62,14 @@ def extract_ancillary_metadata(fname):
     return res
 
 
+def get_system_information():
+    utc_now = dtime.utcnow().replace(tzinfo=dtz.utc).isoformat()
+    system_info = {'uname': ' '.join(os.uname()),
+                   'hostname': socket.getfqdn(),
+                   'runtime_id': str(uuid.uuid1()),
+                   'time_processed': utc_now}
+
+
 def read_meatadata_tags(fname, bands):
     """
     Retrieves the metadata tags for a list of bands from a `GDAL`
@@ -254,12 +262,7 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, sbt=False):
         algorithm['nbar_doi'] = 'http://dx.doi.org/10.1109/JSTARS.2010.2042281'
         algorithm['nbar_terrain_corrected_doi'] = 'http://dx.doi.org/10.1016/j.rse.2012.06.018' # pylint: disable=line-too-long
 
-    system_info = {'uname': ' '.join(os.uname()),
-                   'hostname': socket.getfqdn(),
-                   'runtime_id': str(uuid.uuid1()),
-                   'time_processed': dtime.utcnow().isoformat()}
-
-    metadata = {'system_information': system_info,
+    metadata = {'system_information': get_system_information(),
                 'source_datasets': source_info,
                 'ancillary': ancillary,
                 'algorithm_information': algorithm,
@@ -291,11 +294,6 @@ def create_pq_yaml(acquisition, ancillary, tests_run, out_group):
     :return:
         None; The yaml document is written to the HDF5 file.
     """
-    utc_now = dtime.utcnow().replace(tzinfo=dtz.utc).isoformat()
-    system_info = {'uname': ' '.join(os.uname()),
-                   'hostname': socket.getfqdn(),
-                   'runtime_id': str(uuid.uuid1()),
-                   'time_processed': utc_now}
 
     source_info = {'source_l1t': dirname(acquisition.dir_name),
                    'source_reflectance': 'NBAR'}
@@ -304,7 +302,7 @@ def create_pq_yaml(acquisition, ancillary, tests_run, out_group):
                  'software_repository': 'https://github.com/GeoscienceAustralia/wagl.git', # pylint: disable=line-too-long
                  'pq_doi': 'http://dx.doi.org/10.1109/IGARSS.2013.6723746'}
     
-    metadata = {'system_information': system_info,
+    metadata = {'system_information': get_system_information(),
                 'source_data': source_info,
                 'algorithm_information': algorithm,
                 'ancillary': ancillary,
