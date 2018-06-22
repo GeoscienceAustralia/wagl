@@ -12,6 +12,7 @@ from functools import partial
 
 from posixpath import join as ppjoin
 from posixpath import basename as pbasename
+import json
 import numpy
 import h5py
 import pandas
@@ -561,8 +562,14 @@ def _parser():
     parser.add_argument("--out-filename", required=True,
                         help=("The filename of the file to contain the "
                               "results."))
-    parser.add_argument("--compression", default="lzf",
+    parser.add_argument("--compression", default="LZF",
+                        choices=list(H5CompressionFilter),
+                        type=lambda compression: H5CompressionFilter[compression],
                         help="The comression filter to use.")
+    parser.add_argument("--filter-opts", default=None, type=json.loads,
+                        help=("A JSON styled dict of key value pairs "
+                              "detailing filter options for the given "
+                              "compression filter."))
     parser.add_argument("--save-inputs", action='store_true',
                         help=("Save the reference and test datasets "
                               "alongside the residual/difference datasets."))
