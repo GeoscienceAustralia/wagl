@@ -21,6 +21,7 @@ before_install:
 
 install:
   - pip install wheel numpy
+  - pip install GDAL==$(gdal-config --version) --global-option=build_ext
   - pip install --process-dependency-links .
   - pip install --upgrade pip setuptools pytest pytest-runner
   - pip install --pre --upgrade rasterio>0.9

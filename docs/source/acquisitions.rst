@@ -30,8 +30,8 @@ The following picture describes the rough layout of an *AcquisitionsContainer*.
 
 .. image:: diagrams/acquisitions_container.png
 
-* *AcquisitionContainer.granules* Returns the *Granule* names associated with the dataset.
-* *AcquisitionContainer.groups* Returns the *Group* names associated with the dataset.
+* *AcquisitionsContainer.granules* Returns the *Granule* names associated with the dataset.
+* *AcquisitionsContainer.groups* Returns the *Group* names associated with the dataset.
 
 * *AcquisitionsContainer.get_acquisitions* Given a *Granule* and *Group*, return a list of *Acquisition* objects.
 * *AcquisitionsContainer.get_granule* Returns a *dictionary* containing lists of *Acquisition* objects for each *Group* associated with the given *Granule*.
