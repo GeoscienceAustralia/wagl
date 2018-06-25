@@ -387,9 +387,6 @@ def get_brdf_dirs_modis(brdf_root, scene_date, pattern='%Y.%m.%d'):
     :type pattern:
         :py:class:`str`
 
-    :type pattern:
-        :py:class:`str`
-
     :return:
        A string containing the closest matching BRDF directory.
 
