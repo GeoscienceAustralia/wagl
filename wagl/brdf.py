@@ -406,11 +406,6 @@ def get_brdf_dirs_modis(brdf_root, scene_date, pattern='%Y.%m.%d'):
         except:
             pass  # Ignore directories that don't match specified pattern
 
-    # NEED TO CHECK THIS COMPARATOR (specifically on sign)
-    if scene_date < dirs[0]:
-        raise BRDFLookupError('scene date precedes first MODIS date (%s)' \
-                              % dirs[0].strftime(pattern))
-
     return min(dirs, key=_date_proximity(_offset_scene_date)).strftime(pattern)
 
 
