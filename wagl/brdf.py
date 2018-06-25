@@ -403,7 +403,7 @@ def get_brdf_dirs_modis(brdf_root, scene_date, pattern='%Y.%m.%d'):
     for dname in sorted(os.listdir(brdf_root)):
         try:
             dirs.append(datetime.datetime.strptime(dname, pattern).date())
-        except:
+        except ValueError:
             pass  # Ignore directories that don't match specified pattern
 
     return min(dirs, key=_date_proximity(_offset_scene_date)).strftime(pattern)
