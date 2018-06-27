@@ -229,8 +229,8 @@ def acquisitions_via_mtl(pathname):
     res_groups = create_resolution_groups(acqs)
 
     # close if dealing with a tarball
-    if tarball is not None
-        taball.close()
+    if tarball is not None:
+        tarball.close()
 
     return AcquisitionsContainer(label=basename(pathname),
                                  granules={granule_id: res_groups})
