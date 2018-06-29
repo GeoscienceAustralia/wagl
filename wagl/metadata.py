@@ -68,6 +68,7 @@ def get_system_information():
                    'hostname': socket.getfqdn(),
                    'runtime_id': str(uuid.uuid1()),
                    'time_processed': utc_now}
+    return system_info
 
 
 def read_meatadata_tags(fname, bands):
