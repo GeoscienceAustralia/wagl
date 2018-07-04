@@ -438,7 +438,9 @@ def acquisitions_via_safe(pathname):
         granule_root = ElementTree.XML(granule_xml)
 
         # handling different metadata versions for image paths
-        img_data_path = ''.join(['zip:', pathname, '!', archive.namelist()[0]])
+        # files retrieved from archive.namelist are not prepended with a '/'
+        # Rasterio 1.0b1 requires archive paths start with a /
+        img_data_path = ''.join(['zip:', pathname, '!/', archive.namelist()[0]])
         if basename(images[0]) == images[0]:
             img_data_path = ''.join([img_data_path,
                                      pjoin('GRANULE', granule_id, 'IMG_DATA')])
