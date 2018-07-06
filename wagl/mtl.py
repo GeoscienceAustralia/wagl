@@ -63,7 +63,13 @@ def load_mtl(filename, root='L1_METADATA_FILE', pairs=r'(\w+)\s=\s(.*)'):
                     tree[key.lower()] = parse_type(value)
 
     tree = {}
-    with open(filename, 'r') as fo:
-        parse(fo.readlines(), tree)
+    if isinstance(filename, str):
+        with open(filename, 'r') as fo:
+            data = fo.readlines()
+    else:
+        # individual member within a tar opened for extraction
+        data = [l.strip().decode() for l in filename.readlines()]
+
+    parse(data, tree)
 
     return tree[root]
