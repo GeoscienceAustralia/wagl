@@ -14,6 +14,7 @@ class LandsatAcquisition(Acquisition):
         self.max_radiance = 1
         self.min_quantize = 0
         self.max_quantize = 1
+        self.__data = {}  # Imagery data cache
 
         super(LandsatAcquisition, self).__init__(pathname, uri,
                                                  acquisition_datetime,
@@ -39,6 +40,26 @@ class LandsatAcquisition(Acquisition):
         """
         return self._bias
 
+    def data(self, out=None, window=None, masked=False):
+        """
+        Retrieves data from source imagery or internal cache if tar
+        """
+        file_suffix = self.uri.split('!')[0].split('.', 1)
+        
+        # Check if source imagery directly accessible
+        if len(file_suffix) == 1 or 'tar' not in file_suffix[1]:
+            return super().data(out, window, masked)
+
+        # Check if source imagery is cached
+        if not self.__data.get((masked, )):
+            self.__data[(masked, )] = super().data(masked=masked)
+
+        # Retrieve data from cache
+        out = self.__data[(masked, )][
+           window[0][0]:window[0][1], window[1][0]:window[1][1]].copy()
+
+        return out
+
     def radiance_data(self, window=None, out_no_data=-999):
         """
         Return the data as radiance in watts/(m^2*micrometre).
@@ -56,6 +77,11 @@ class LandsatAcquisition(Acquisition):
         radiance[nulls] = out_no_data
 
         return radiance
+
+    def close(self):
+        """ Clears acquisition level cache """
+        self.__data = {}
+        super().close()
 
 
 class Landsat5Acquisition(LandsatAcquisition):

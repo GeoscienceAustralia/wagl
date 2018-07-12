@@ -463,3 +463,9 @@ class Acquisition(object):
         """
         ysize, xsize = self.tile_size
         return generate_tiles(self.samples, self.lines, xsize, ysize)
+
+    def close(self):
+        """
+        A method used by child classes to clear cached datasets
+        """
+        pass
