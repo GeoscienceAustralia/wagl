@@ -88,12 +88,12 @@ subroutine set_times(ymin,ymax,ntpoints,spheroid,orb_elements, &
     delta_t = (t_max-t_min)/dble(ntpoints-1)
     do j=1,ntpoints
         tin(j) = dble(j-1)*delta_t+t_min
-    enddo
-
-    print*,'Track starting time(sec)=',t_min
-    print*,'Track ending time(sec)=',t_max
-    print*,'Number of track points=',ntpoints
-    print*,'Track time step(sec)=',delta_t
+   enddo
+!
+!    print*,'Track starting time(sec)=',t_min
+!    print*,'Track ending time(sec)=',t_max
+!    print*,'Number of track points=',ntpoints
+!    print*,'Track time step(sec)=',delta_t
 
     call cal_track(ntpoints,tin,orb_elements,spheroid,smodel, &
            track,istat)

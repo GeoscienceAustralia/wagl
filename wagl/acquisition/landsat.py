@@ -51,7 +51,7 @@ class LandsatAcquisition(Acquisition):
             return super().data(out, window, masked)
 
         # Check if source imagery is cached
-        if not self.__data.get((masked, )):
+        if self.__data.get((masked, )) is None:
             self.__data[(masked, )] = super().data(masked=masked)
 
         # Retrieve data from cache
@@ -59,6 +59,9 @@ class LandsatAcquisition(Acquisition):
            window[0][0]:window[0][1], window[1][0]:window[1][1]].copy()
 
         return out
+
+    def data2(self, out=None, window=None, masked=False):
+        return super().data(out, window, masked)
 
     def radiance_data(self, window=None, out_no_data=-999):
         """
