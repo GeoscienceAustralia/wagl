@@ -71,7 +71,7 @@ def get_system_information():
     return system_info
 
 
-def read_meatadata_tags(fname, bands):
+def read_metadata_tags(fname, bands):
     """
     Retrieves the metadata tags for a list of bands from a `GDAL`
     compliant dataset.

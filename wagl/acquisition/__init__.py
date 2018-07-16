@@ -117,25 +117,24 @@ def acquisitions_via_mtl(pathname):
     for in the directory and its children.
     Returns an instance of `AcquisitionsContainer`.
     """
-    tarball = None
-    if isdir(pathname):
-        filename = find_in(pathname, 'MTL')
-    elif isfile(pathname) and tarfile.is_tarfile(pathname):
-        tarball = tarfile.open(pathname, 'r')
-        filename = [n for n in tarball.getnames() if 'MTL' in n][0]
+    if isfile(pathname) and tarfile.is_tarfile(pathname):
+        with tarfile.open(pathname, 'r') as tarball:
+            try:
+                member = next(filter(lambda mm: 'MTL' in mm.name, tarball.getmembers()))
+                with tarball.extractfile(member) as fmem:
+                     data = load_mtl(fmem)
+                prefix_name = 'tar://{}!'.format(os.path.abspath(pathname))
+            except StopIteration:
+                raise OSError("Cannot find MTL file in %s" % pathname)
     else:
-        filename = pathname
-
-    if filename is None:
-        raise OSError("Cannot find MTL file in %s" % pathname)
-
-    if tarball is None:
-        data = load_mtl(filename)
-        prefix_name = os.path.dirname(os.path.abspath(filename))
-    else:
-        prefix_name = 'tar:{}!'.format(pathname)
-        with tarball.extractfile(filename) as fmem:
-            data = load_mtl(fmem)
+        if isdir(pathname):
+            filename = find_in(pathname, 'MTL')                                           
+        else:
+            filename = pathname
+        if filename is None:                                                          
+            raise OSError("Cannot find MTL file in %s" % pathname)                    
+        data = load_mtl(filename)                                                     
+        prefix_name = os.path.dirname(os.path.abspath(filename))    
 
     bandfiles = [k for k in data['PRODUCT_METADATA'].keys() if 'band' in k
                  and 'file_name' in k]
@@ -227,10 +226,6 @@ def acquisitions_via_mtl(pathname):
 
     # resolution groups dict
     res_groups = create_resolution_groups(acqs)
-
-    # close if dealing with a tarball
-    if tarball is not None:
-        tarball.close()
 
     return AcquisitionsContainer(label=basename(pathname),
                                  granules={granule_id: res_groups})
