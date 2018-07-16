@@ -60,9 +60,6 @@ class LandsatAcquisition(Acquisition):
 
         return out
 
-    def data2(self, out=None, window=None, masked=False):
-        return super().data(out, window, masked)
-
     def radiance_data(self, window=None, out_no_data=-999):
         """
         Return the data as radiance in watts/(m^2*micrometre).
