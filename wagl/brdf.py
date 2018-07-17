@@ -344,7 +344,30 @@ class BRDFLoader(object):
         return xbar
 
 
-def get_brdf_dirs_modis(brdf_root, scene_date, pattern=r'\d{4}.\d{2}.\d{2}$'):
+def _date_proximity(cmp_date, date_interpreter=lambda x: x):
+    """_date_proximity providers a comparator for an interable
+    with an interpreter function. Used to find the closest item
+    in a list.
+
+    If two dates are equidistant return the most recent.
+
+    :param cmp_date: date to compare list against
+    :param date_interprater: function applied to the list to
+        transform items into dates
+    """
+    def _proximity_comparator(date):
+        _date = date_interpreter(date)
+        return (
+            abs(_date - cmp_date), 
+            -1 * _date.year, 
+            -1 * _date.month, 
+            -1 * _date.day
+        )
+
+    return _proximity_comparator
+
+
+def get_brdf_dirs_modis(brdf_root, scene_date, pattern='%Y.%m.%d'):
     """
     Get list of MODIS BRDF directories for the dataset.
 
@@ -359,10 +382,8 @@ def get_brdf_dirs_modis(brdf_root, scene_date, pattern=r'\d{4}.\d{2}.\d{2}$'):
         :py:class:`datetime.date`
 
     :param pattern:
-        A string containing the pattern upon which directories should
-        be matched to. Default is '.' to match any charachter.
-        Regular expression (re module) will be used for string
-        matching.
+        A string handed to strptime to interpret directory names into
+        observation dates for the brdf ancillary.
     :type pattern:
         :py:class:`str`
 
@@ -373,32 +394,16 @@ def get_brdf_dirs_modis(brdf_root, scene_date, pattern=r'\d{4}.\d{2}.\d{2}$'):
 
     # MCD43A1.005 db interval half-width (days).
     offset = datetime.timedelta(8)
+    _offset_scene_date = scene_date - offset
 
-    def parsedate(s, sep='.'):
-        """
-        Returns interval midpoint date of a MCD43A1.005/YYYY.MM.DD directory.
-        """
-        return datetime.date(*[int(x) for x in s.split(sep)]) + offset
+    dirs = []
+    for dname in sorted(os.listdir(brdf_root)):
+        try:
+            dirs.append(datetime.datetime.strptime(dname, pattern).date())
+        except ValueError:
+            pass  # Ignore directories that don't match specified pattern
 
-    # Compile the search pattern
-    brdf_dir_pattern = re.compile(pattern)
-
-    # List only directories that match 'YYYY.MM.DD' format.
-    dirs = sorted([d for d in os.listdir(brdf_root)
-                   if brdf_dir_pattern.match(d)])
-
-    # Find the N (n_dirs) BRDF directories with midpoints closest to the
-    # scene date.
-    delta_map = {abs(parsedate(x) - scene_date): x for x in dirs}
-
-    if scene_date < (parsedate(dirs[0]) - offset):
-        raise BRDFLookupError('scene date precedes first MODIS date (%s)' \
-                              % dirs[0])
-
-    # Return the closest match (the zeroth index)
-    result = delta_map[sorted(delta_map)[0]]
-
-    return result
+    return min(dirs, key=_date_proximity(_offset_scene_date)).strftime(pattern)
 
 
 def get_brdf_dirs_pre_modis(brdf_root, scene_date):
@@ -420,7 +425,7 @@ def get_brdf_dirs_pre_modis(brdf_root, scene_date):
 
     """
     # Pre-MODIS db interval half-width (days).
-    offset = 8
+    offset = datetime.timedelta(8)
 
     # Find the N (=n_dirs) BRDF directories with midpoints closest to the
     # scene date.
@@ -429,19 +434,25 @@ def get_brdf_dirs_pre_modis(brdf_root, scene_date):
     # the NBAR code, even though we know that the nearest day-of-year
     # database dir will contain usable data.
 
-    dirs = sorted(os.listdir(brdf_root))
-    scene_doy = scene_date.strftime('%j')
-    i = int(scene_doy)
-    db_doy_max = max(range(1, 365, 8))
-    delta_map = {
-        min(abs(int(x) + offset - i),
-            abs(db_doy_max - abs(int(x) + offset - i))): x for x in dirs
-    }
+    _offset_scene_date = scene_date - offset
 
-    # Return the closest match (the zeroth index)
-    result = delta_map[sorted(delta_map)[0]]
+    # Build list of dates for comparison
+    dir_dates = []
 
-    return result
+    # Standardise names be prepended with leading zeros
+    for doy in sorted(os.listdir(brdf_root), key=lambda x: x.zfill(3)):
+        dir_dates.append((str(_offset_scene_date.year), doy))
+
+    # Add boundary entry for previous year
+    dir_dates.insert(0, (str(_offset_scene_date.year - 1), dir_dates[-1][1]))
+    # Add boundary entry for next year accounting for inserted entry
+    dir_dates.append((str(_offset_scene_date.year + 1), dir_dates[1][1]))
+
+    # Interpreter function
+    doy_intpr = lambda x: datetime.datetime.strptime(' '.join(x), '%Y %j').date()
+
+    # return directory name without year
+    return min(dir_dates, key=_date_proximity(_offset_scene_date, doy_intpr))[1]
 
 
 def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
@@ -466,7 +477,7 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :filter_opts:
         A dict of key value pairs available to the given configuration
