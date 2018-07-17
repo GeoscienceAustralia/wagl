@@ -265,11 +265,38 @@ class Acquisition(object):
         A private method for opening the dataset and
         retrieving the dimensional information.
         """
-        with rasterio.open(self.uri) as ds:
+        try:
+            ds = rasterio.open(self.uri)
+        except raseterio.errors.RasterioIOError:
+            # a work around for filename mismatch in MTL
+            # with those on disk
+
+            # *****************************************************************
+            # *****************************************************************
+            # *****************************************************************
+            # THIS IS PURELY A WORKAROUND TO READ THE L2 DATA
+            # FOR THE PROTOTYPE MEXICAN DATACUBE
+            # IN TIME USGS WILL HAVE A PROPER SPECIFICATION FOR THEIR
+            # L2 DATA, AND THE ACQUISITIONS CLASS WILL THEN SIMPLY WORK
+            # *****************************************************************
+            # *****************************************************************
+            # *****************************************************************
+
+            import glob
+            from os.path import dirname
+
+            # force to read band4
+            # and therefore do not rely on the acquisitions class
+            # to read the correct data
+            search = pjoin(dirname(self.uri), '*band4.tif')
+            fname = glob.glob(search)[0]
+            ds = rasterio.open(fname)
+        finally:
             self._samples = ds.width
             self._lines = ds.height
             self._tile_size = ds.block_shapes[0]
             self._resolution = ds.res
+            ds.close()
 
     @property
     def pathname(self):
