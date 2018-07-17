@@ -81,7 +81,7 @@ class DataStandardisation(luigi.Task):
                                       default=H5CompressionFilter.LZF,
                                       significant=False)
     filter_opts = luigi.DictParameter(default=None, significant=False)
-    acq_parser_hint = luigi.Parameter(default=None)
+    acq_parser_hint = luigi.OptionalParameter(default='')
     buffer_distance = luigi.FloatParameter(default=8000, significant=False)
     h5_driver = luigi.Parameter(default=None, significant=False)
 

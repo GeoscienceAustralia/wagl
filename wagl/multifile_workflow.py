@@ -80,7 +80,7 @@ class WorkRoot(luigi.Task):
 
     level1 = luigi.Parameter()
     work_root = luigi.Parameter(significant=False)
-    acq_parser_hint = luigi.Parameter(default=None)
+    acq_parser_hint = luigi.OptionalParameter(default='')
     reflectance_dir = '_standardised'
     shadow_dir = '_shadow'
     interpolation_dir = '_interpolation'
@@ -109,12 +109,11 @@ class CalculateLonLatGrids(luigi.Task):
     work_root = luigi.Parameter(significant=False)
     granule = luigi.Parameter(default=None)
     group = luigi.Parameter()
-    acq_parser_hint = luigi.Parameter(default=None)
+    acq_parser_hint = luigi.OptionalParameter(default='')
     compression = luigi.EnumParameter(enum=H5CompressionFilter,
                                       default=H5CompressionFilter.LZF,
                                       significant=False)
     filter_opts = luigi.DictParameter(default=None, significant=False)
-    acq_parser_hint = luigi.Parameter(default=None)
     buffer_distance = luigi.FloatParameter(default=8000, significant=False)
 
     def requires(self):
@@ -171,7 +170,7 @@ class AncillaryData(luigi.Task):
     granule = luigi.Parameter(default=None)
     vertices = luigi.TupleParameter()
     workflow = luigi.EnumParameter(enum=Workflow)
-    acq_parser_hint = luigi.Parameter(default=None)
+    acq_parser_hint = luigi.OptionalParameter(default='')
     aerosol = luigi.DictParameter({'user': 0.05}, significant=False)
     brdf_path = luigi.Parameter(significant=False)
     brdf_premodis_path = luigi.Parameter(significant=False)
@@ -222,7 +221,7 @@ class WriteTp5(luigi.Task):
     work_root = luigi.Parameter(significant=False)
     granule = luigi.Parameter(default=None)
     vertices = luigi.TupleParameter()
-    acq_parser_hint = luigi.Parameter(default=None)
+    acq_parser_hint = luigi.OptionalParameter(default='')
     workflow = luigi.EnumParameter(enum=Workflow)
     base_dir = luigi.Parameter(default='_atmospherics', significant=False)
     compression = luigi.EnumParameter(enum=H5CompressionFilter,
@@ -871,12 +870,11 @@ class LinkwaglOutputs(luigi.Task):
     level1 = luigi.Parameter()
     work_root = luigi.Parameter()
     granule = luigi.Parameter(default=None)
-    acq_parser_hint = luigi.Parameter(default=None)
+    acq_parser_hint = luigi.OptionalParameter(default='')
     workflow = luigi.EnumParameter(enum=Workflow)
     vertices = luigi.TupleParameter(default=(5, 5))
     pixel_quality = luigi.BoolParameter()
     method = luigi.EnumParameter(enum=Method, default=Method.SHEAR)
-    acq_parser_hint = luigi.Parameter(default=None)
     dsm_fname = luigi.Parameter(significant=False)
     buffer_distance = luigi.FloatParameter(default=8000, significant=False)
 
@@ -930,7 +928,7 @@ class ARD(luigi.WrapperTask):
     pixel_quality = luigi.BoolParameter()
     method = luigi.EnumParameter(enum=Method, default=Method.SHEAR)
     dsm_fname = luigi.Parameter(significant=False)
-    acq_parser_hint = luigi.Parameter(default=None)
+    acq_parser_hint = luigi.OptionalParameter(default='')
     buffer_distance = luigi.FloatParameter(default=8000, significant=False)
 
     def requires(self):
@@ -962,7 +960,7 @@ class CallTask(luigi.WrapperTask):
     """
 
     level1_list = luigi.Parameter()
-    acq_parser_hint = luigi.Parameter(default=None)
+    acq_parser_hint = luigi.OptionalParameter(default='')
     outdir = luigi.Parameter()
     task = luigi.TaskParameter()
 
