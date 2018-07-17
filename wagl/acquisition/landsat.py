@@ -55,8 +55,11 @@ class LandsatAcquisition(Acquisition):
             self.__data[(masked, )] = super().data(masked=masked)
 
         # Retrieve data from cache
-        out = self.__data[(masked, )][
-           window[0][0]:window[0][1], window[1][0]:window[1][1]].copy()
+        if window:
+           out = self.__data[(masked, )][
+              window[0][0]:window[0][1], window[1][0]:window[1][1]].copy()
+        else:
+           out = self.__data[(masked, )].copy()
 
         return out
 
