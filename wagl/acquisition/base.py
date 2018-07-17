@@ -271,7 +271,7 @@ class Acquisition(object):
                 self._lines = ds.height
                 self._tile_size = ds.block_shapes[0]
                 self._resolution = ds.res
-        except raseterio.errors.RasterioIOError:
+        except rasterio.errors.RasterioIOError:
 
             # *****************************************************************
             # *****************************************************************
@@ -292,6 +292,7 @@ class Acquisition(object):
             # to read the correct data
             search = pjoin(dirname(self.uri), '*band4.tif')
             fname = glob.glob(search)[0]
+            self._uri = uri
             with rasterio.open(fname) as ds:
                 self._samples = ds.width
                 self._lines = ds.height
