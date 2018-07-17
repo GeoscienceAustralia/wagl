@@ -292,7 +292,7 @@ class Acquisition(object):
             # to read the correct data
             search = pjoin(dirname(self.uri), '*band4.tif')
             fname = glob.glob(search)[0]
-            self._uri = uri
+            self._uri = fname
             with rasterio.open(fname) as ds:
                 self._samples = ds.width
                 self._lines = ds.height
