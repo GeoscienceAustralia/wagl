@@ -266,10 +266,12 @@ class Acquisition(object):
         retrieving the dimensional information.
         """
         try:
-            ds = rasterio.open(self.uri)
+            with rasterio.open(self.uri) as ds:
+                self._samples = ds.width
+                self._lines = ds.height
+                self._tile_size = ds.block_shapes[0]
+                self._resolution = ds.res
         except raseterio.errors.RasterioIOError:
-            # a work around for filename mismatch in MTL
-            # with those on disk
 
             # *****************************************************************
             # *****************************************************************
@@ -290,13 +292,11 @@ class Acquisition(object):
             # to read the correct data
             search = pjoin(dirname(self.uri), '*band4.tif')
             fname = glob.glob(search)[0]
-            ds = rasterio.open(fname)
-        finally:
-            self._samples = ds.width
-            self._lines = ds.height
-            self._tile_size = ds.block_shapes[0]
-            self._resolution = ds.res
-            ds.close()
+            with rasterio.open(fname) as ds:
+                self._samples = ds.width
+                self._lines = ds.height
+                self._tile_size = ds.block_shapes[0]
+                self._resolution = ds.res
 
     @property
     def pathname(self):
