@@ -355,7 +355,7 @@ class Acquisition(object):
         Return the no_data value for this acquisition.
         Assumes that the acquisition is a single band file.
         """
-        return self.no_data_val
+        return self._no_data_val
 
     @property
     def gps_file(self):
