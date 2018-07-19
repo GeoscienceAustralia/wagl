@@ -5,6 +5,7 @@ Manages access methods to test data files
 from os.path import join as pjoin, abspath, dirname
 
 DATA_DIR = pjoin(dirname(abspath(__file__)), 'data')
+TLE_DIR = pjoin(dirname(abspath(__file__)), 'data')
 
 LS5_SCENE1 = pjoin(DATA_DIR, 'LANDSAT5', 'LS5_TM_OTH_P51_GALPGS01-002_090_081_20090407')
 LS7_SCENE1 = pjoin(DATA_DIR, 'LANDSAT7', 'LS7_ETM_OTH_P51_GALPGS01-002_090_081_20090415')
