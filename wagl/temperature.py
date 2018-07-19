@@ -176,6 +176,7 @@ def surface_brightness_temperature(acquisition, interpolation_group,
         brightness_temp[mask] = kwargs['fillvalue']
 
         out_dset[idx] = brightness_temp
+    acq.close()  # If dataset is cached; clear it
 
     if out_group is None:
         return fid

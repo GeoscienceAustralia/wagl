@@ -8,6 +8,7 @@ This compiles all the Fortran extensions.
 
 from __future__ import absolute_import
 
+
 def configuration(parent_package='', top_path=None):
     # pylint: disable=expression-not-assigned
 
