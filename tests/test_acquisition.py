@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-from os.path import join as pjoin, abspath, dirname
 import unittest
 import datetime
 import rasterio
@@ -9,11 +8,7 @@ from wagl.acquisition.landsat import Landsat8Acquisition, LandsatAcquisition
 from wagl.constants import BandType
 from wagl.temperature import temperature_at_sensor
 
-DATA_DIR = pjoin(dirname(abspath(__file__)), 'data')
-
-LS5_SCENE1 = pjoin(DATA_DIR, 'LANDSAT5', 'LS5_TM_OTH_P51_GALPGS01-002_090_081_20090407')
-LS7_SCENE1 = pjoin(DATA_DIR, 'LANDSAT7', 'LS7_ETM_OTH_P51_GALPGS01-002_090_081_20090415')
-LS8_SCENE1 = pjoin(DATA_DIR, 'LANDSAT8', 'LS8_OLITIRS_OTH_P51_GALPGS01-032_090_084_20131011')
+from .data import DATA_DIR, LS5_SCENE1, LS7_SCENE1, LS8_SCENE1
 
 
 class AcquisitionLoadMtlTest(unittest.TestCase):
