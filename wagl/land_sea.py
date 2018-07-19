@@ -5,11 +5,13 @@
 from __future__ import absolute_import, print_function
 import rasterio as rio
 import osr
-from wagl.geobox import GriddedGeoBox
-from wagl.data import write_img
 import numpy
 
+from wagl.geobox import GriddedGeoBox
+from wagl.data import write_img
+
 # pylint: disable=invalid-name
+
 
 def get_utm_zone(pos_longlat):
     """
@@ -27,6 +29,7 @@ def get_utm_zone(pos_longlat):
     if lat < 0:
         z = -z
     return z
+
 
 def get_land_sea_mask(gridded_geo_box, \
         ancillary_path='/g/data/v10/eoancillarydata/Land_Sea_Rasters'):
