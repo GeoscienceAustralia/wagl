@@ -14,7 +14,7 @@ tests_require = [
 ]
 
 install_requires = [
-    'luigi>=2.4.0',
+    'luigi>=2.7.3',
     'numpy>=1.8',
     'scipy>=0.14',
     'numexpr>=2.4.6',
