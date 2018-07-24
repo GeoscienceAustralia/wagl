@@ -19,6 +19,9 @@ from wagl.geobox import GriddedGeoBox
 from wagl.tiling import generate_tiles
 
 
+_LOG = logging.getLogger(__name__)
+
+
 def get_pixel(filename, lonlat, band=1):
     """Return a pixel from `filename` at the longitude and latitude given
     by the tuple `lonlat`. Optionally, the `band` can be specified."""
@@ -169,7 +172,7 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
         lines = dims[1]
         bands = dims[0]
     else:
-        logging.error('Input array is not of 2 or 3 dimensions!!!')
+        _LOG.error('Input array is not of 2 or 3 dimensions!!!')
         err = 'Array dimensions: {dims}'.format(dims=ndims)
         raise IndexError(err)
 

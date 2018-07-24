@@ -17,6 +17,7 @@ import numpy
 
 from scipy import ndimage
 
+_LOG = logging.getLogger(__name__)
 NAN = numpy.float32(numpy.NaN)
 
 
@@ -208,7 +209,7 @@ def acca_2nd_pass(cloud_mask, ambiguous_array, thermal_array,
     """
 
     aux_data = aux_data or {}  # initialise aux_data to a dictionary
-    logging.info('ACCA Pass Two Engaged')
+    _LOG.info('ACCA Pass Two Engaged')
     aux_data['acca_pass_2'] = 'engaged'
 
     cloud_stddev = numpy.std(thermal_array[cloud_mask], dtype='float64',
@@ -229,7 +230,7 @@ def acca_2nd_pass(cloud_mask, ambiguous_array, thermal_array,
     # Test for negative skewness
     skew = skewness(thermal_array[cloud_mask], mean_temp=mean_cloud_temp,
                     stdv_temp=cloud_stddev, count=cloud_count)
-    logging.debug('skew: %s', skew)
+    _LOG.debug('skew: %s', skew)
 
     aux_data['acca_pass_2_skewness'] = skew
 
@@ -535,15 +536,15 @@ def acca(reflectance_stack, thermal_array, potential_cloud_array, pq_const,
        snow_percent > pq_const.acca_snow_threshold:
         cloud = cold_cloud
         ambiguous_array[warm_cloud] = 1
-        logging.debug('cold cloud only: %s', cloud.sum())
+        _LOG.debug('cold cloud only: %s', cloud.sum())
     else:
         cloud = cold_cloud | warm_cloud
-        logging.debug('combined cloud: %s', cloud.sum())
+        _LOG.debug('combined cloud: %s', cloud.sum())
 
     if cloud.sum() > 0:
-        logging.debug('cold_cloud_pop: %s', cold_cloud_pop)
-        logging.debug('desert_index: %s', desert_index)
-        logging.debug('Mean temperature: %s', numpy.mean(
+        _LOG.debug('cold_cloud_pop: %s', cold_cloud_pop)
+        _LOG.debug('desert_index: %s', desert_index)
+        _LOG.debug('Mean temperature: %s', numpy.mean(
             thermal_array[cloud], dtype='float'))
         if ((cold_cloud_pop > pq_const.acca_cold_cloud_pop) and \
             (desert_index > pq_const.acca_desert_index) and \
