@@ -30,6 +30,10 @@ from skimage import morphology
 from skimage import measure
 from skimage import segmentation
 
+
+_LOG = logging.getLogger(__name__)
+
+
 # pylint: disable=invalid-name
 
 
@@ -89,7 +93,7 @@ def match_file(dir_path, pattern):
 
     # No match -- complain loudly (or bail out??)
 
-    logging.error('ERROR: %s.match_file("%s", "%s") found no match',
+    _LOG.error('ERROR: %s.match_file("%s", "%s") found no match',
                   __file__.strip('.py'), dir_path, pattern
                  )
     return None
@@ -154,7 +158,7 @@ def imfill(img, ts):
 
     # Have to transfer via a file for now... (until PyBuffer WrapITK extension
     # is fixed)
-    logging.debug("serializing")
+    _LOG.debug("serializing")
     scale_min = img.min()
     scale_max = img.max()
     c = gdal.GetDriverByName('GTiff').Create(
@@ -162,28 +166,28 @@ def imfill(img, ts):
     c.GetRasterBand(1).WriteArray(
         (((img - img.min()) / (img.max() - img.min())) * 32767.0).astype('int16'))
     c = None
-    logging.debug("deserializing")
+    _LOG.debug("deserializing")
     c = itk.ImageFileReader[image_type].New()
     c.SetFileName("img_%s.tif" % ts)
     inp = c.GetOutput()
     #inp = itk.PyBuffer[image_type].GetImageFromArray(img)
 
     # Run grayscale connected closing filter
-    logging.debug("processing")
+    _LOG.debug("processing")
     #fltr = itk.GrayscaleConnectedClosingImageFilter[image_type, image_type].New()
     fltr = itk.GrayscaleFillholeImageFilter[image_type, image_type].New()
     fltr.SetInput(inp)
     fltr.Update()
 
     # Save debug image (using ITK)
-    logging.debug("serializing")
+    _LOG.debug("serializing")
     test = itk.ImageFileWriter[image_type].New()
     test.SetFileName("holes_%s.tif" % ts)
     test.SetInput(fltr.GetOutput())
     test.Update()
     test = None
 
-    logging.debug("deserializing")
+    _LOG.debug("deserializing")
     output_array = imread("holes_%s.tif" % ts)
     output_array = scale_min + \
         (output_array.astype('float32') / 32767.0) * (scale_max - scale_min)
@@ -1010,8 +1014,8 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, shadow_prob=False
     idwt = numexpr.evaluate("idclr & (WT == True)")  # &data(:,:,6)<=300;
     lndptm = 100 * idlnd.sum() / mask.sum()
 
-    logging.debug('idlnd.sum(): %s', idlnd.sum())
-    logging.debug('lndptm: %s', lndptm)
+    _LOG.debug('idlnd.sum(): %s', idlnd.sum())
+    _LOG.debug('lndptm: %s', lndptm)
     sys.stdout.flush()
 
     if ptm <= 0.1:  # no thermal test => meanless for snow detection (0~1)
@@ -1101,7 +1105,7 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, shadow_prob=False
                 numpy.maximum(numpy.absolute(NDSI), numpy.absolute(NDVI)), whiteness)
 
         # release memory
-        logging.debug("FMASK releasing memory")
+        _LOG.debug("FMASK releasing memory")
         del satu_B2
         del satu_B3
         del NDSI
@@ -1119,9 +1123,9 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, shadow_prob=False
         del Temp_prob
         del Thin_prob
 
-        logging.debug('cldprob: %s', cldprob)
-        logging.debug('clr_max: %s', clr_max)
-        logging.debug('t_templ: %s', t_templ)
+        _LOG.debug('cldprob: %s', cldprob)
+        _LOG.debug('clr_max: %s', clr_max)
+        _LOG.debug('t_templ: %s', t_templ)
         sys.stdout.flush()
 
         # fprintf('pcloud probability threshold (land) = .2f#\n',clr_max)
@@ -1214,11 +1218,11 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, shadow_prob=False
     if ptm > 0.1:
         cloud_temp = Temp[cloud_mask]
 
-        logging.debug("FMASK snow percent: %f",
+        _LOG.debug("FMASK snow percent: %f",
                       ((float(Snow[mask].sum()) / float(mask.sum())) * 100.0))
         aux_data['fmask_snow_percent'] = float(
             Snow[mask].sum()) * 100.0 / float(mask.sum())
-        logging.debug("FMASK cloud mean: %f C",
+        _LOG.debug("FMASK cloud mean: %f C",
                       (numpy.mean(cloud_temp) / 100.0))
         aux_data['fmask_cloud_mean_temp_deg_C'] = numpy.mean(
             cloud_temp) / 100.0
@@ -1230,13 +1234,13 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, shadow_prob=False
             pct_lower = numpy.percentile(cloud_temp, 83.5) / 100.0
             pct_upper_max = numpy.percentile(cloud_temp, 98.75) / 100.0
 
-            logging.debug("FMASK Standard Deviation: %f C", cloud_stddev)
+            _LOG.debug("FMASK Standard Deviation: %f C", cloud_stddev)
             aux_data['FMASK_std_dev_degC'] = cloud_stddev
-            logging.debug("FMASK 97.5 percentile: %f C", pct_upper)
+            _LOG.debug("FMASK 97.5 percentile: %f C", pct_upper)
             aux_data['FMASK_97.5_percentile'] = pct_upper
-            logging.debug("FMASK 83.5 percentile: %f C", pct_lower)
+            _LOG.debug("FMASK 83.5 percentile: %f C", pct_lower)
             aux_data['FMASK_83.5_percentile'] = pct_lower
-            logging.debug("FMASK 98.75 percentile: %f C", pct_upper_max)
+            _LOG.debug("FMASK 98.75 percentile: %f C", pct_upper_max)
             aux_data['FMASK_98.75_percentile'] = pct_upper_max
 
     cloud_skew = 0.0  # TODO
@@ -1246,7 +1250,7 @@ def plcloud(filename, cldprob=22.5, num_Lst=None, images=None, shadow_prob=False
     except ZeroDivisionError:
         cloud_percent = 0.0
 
-    logging.debug("FMASK Final Cloud Layer Percent: %f", cloud_percent)
+    _LOG.debug("FMASK Final Cloud Layer Percent: %f", cloud_percent)
     aux_data['FMASK_cloud_layer_percent'] = cloud_percent
     aux_data['FMASK_processing_time'] = processing_time
 

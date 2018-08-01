@@ -15,6 +15,9 @@ from idl_functions import histogram
 from wagl.acca_cloud_masking import majority_filter
 
 
+_LOG = logging.getLogger(__name__)
+
+
 def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
                  swir1_dataset, swir2_dataset, kelvin_array, cloud_mask,
                  geo_box, sun_az_deg, sun_elev_deg, pq_const,
@@ -393,7 +396,7 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
     # Return mask with all true there is no cloud
     if len(cindex[0]) == 0:
         aux_data['%s_cloud_shadow_percent' % (cloud_algorithm, )] = 0.0
-        logging.info('Cloud Shadow Percent: 0.0')
+        _LOG.info('Cloud Shadow Percent: 0.0')
         cshadow = np.ones(cloud_mask.shape, dtype='bool')
         end_time = datetime.datetime.now()
         time = (end_time - start_time).total_seconds()
@@ -724,8 +727,8 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
 
     shadow_percent = (float(cshadow.sum()) / cshadow.size) * 100
     aux_data['%s_cloud_shadow_percent' % (cloud_algorithm, )] = shadow_percent
-    logging.info('%s_cloud_shadow_percent: %f',
-                 cloud_algorithm, shadow_percent)
+    _LOG.info('%s_cloud_shadow_percent: %f',
+              cloud_algorithm, shadow_percent)
 
     end_time = datetime.datetime.now()
     time = (end_time - start_time).total_seconds()

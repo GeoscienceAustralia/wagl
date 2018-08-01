@@ -30,19 +30,21 @@ from os.path import join as pjoin, basename
 import tempfile
 import re
 from urllib.parse import urlparse
-import numpy as np
 
+import numpy as np
 from osgeo import gdal
 from osgeo import gdalconst
 from osgeo import osr
 from shapely.geometry import Polygon
 from shapely import wkt
+
 from wagl.constants import BrdfParameters
 from wagl.geobox import GriddedGeoBox
 from wagl.hdf5 import H5CompressionFilter, write_h5_image
 from wagl.metadata import extract_ancillary_metadata
 
-log = logging.getLogger('root.' + __name__)
+
+_LOG = logging.getLogger(__name__)
 
 
 class BRDFLoaderError(Exception):
@@ -95,7 +97,7 @@ class BRDFLoader(object):
         self.filename = filename
         self.roi = {'UL': ul, 'LR': lr}
 
-        log.debug('%s: filename=%s, roi=%s', self.__class__.__name__,
+        _LOG.debug('%s: filename=%s, roi=%s', self.__class__.__name__,
                   self.filename, str(self.roi))
 
         if ul is None or lr is None:
@@ -170,7 +172,7 @@ class BRDFLoader(object):
             self.data[k] = fd.GetRasterBand(1).ReadAsArray()
             _type = type(self.data[k][0, 0])
 
-            log.debug('%s: loaded sds=%d, type=%s, shape=%s',
+            _LOG.debug('%s: loaded sds=%d, type=%s, shape=%s',
                       self.__class__.__name__, k, str(_type),
                       str(self.data[k].shape))
 
@@ -193,7 +195,7 @@ class BRDFLoader(object):
 
             fd = None
 
-        log.debug('%s: fill_value=%s, scale_factor=%s, add_offset=%s',
+        _LOG.debug('%s: fill_value=%s, scale_factor=%s, add_offset=%s',
                   self.__class__.__name__, str(self.fill_value),
                   str(self.scale_factor), str(self.add_offset))
 
@@ -282,7 +284,7 @@ class BRDFLoader(object):
 
         result = self.scale_factor * (dmean - self.add_offset)
 
-        log.debug('%s: ROI=%s, imin=%d, imax=%d, xmin=%f, xmax=%f, '
+        _LOG.debug('%s: ROI=%s, imin=%d, imax=%d, xmin=%f, xmax=%f, '
                   'jmin=%d, jmax=%d, ymin=%f, ymax=%f, dmean=%.12f, '
                   'result=%.12f',
                   self.__class__.__name__, str(self.roi), imin, imax, xmin,
@@ -538,6 +540,8 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
         brdf_base_dir = brdf_primary_path
         brdf_dirs = get_brdf_dirs_modis(brdf_base_dir, dt)
 
+    _LOG.debug('Using brdf dirs %s', str(brdf_dirs))
+
     # The following hdflist code was resurrected from the old SVN repo. JS
     # get all HDF files in the input dir
     dbDir = pjoin(brdf_base_dir, brdf_dirs)
@@ -562,17 +566,20 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
             with open(hdfFile, 'rb') as f:
                 pass
         except IOError:
-            print("Unable to open file %s" % hdfFile)
+            _LOG.error("Unable to open file %s", hdfFile)
+            raise
 
         with tempfile.TemporaryDirectory() as tmpdir:
             # Unzip if we need to
             if hdfFile.endswith(".hdf.gz"):
+                _LOG.debug('Uncompressing hdf file: %s', hdfFile)
                 hdf_file = pjoin(tmpdir, re.sub(".hdf.gz", ".hdf",
                                                 basename(hdfFile)))
                 cmd = "gunzip -c %s > %s" % (hdfFile, hdf_file)
                 subprocess.check_call(cmd, shell=True)
             else:
                 hdf_file = hdfFile
+            _LOG.debug('Using hdf file: %s', hdf_file)
 
             # Load the file
             brdf_object = BRDFLoader(hdf_file, ul=geobox.ul_lonlat,
@@ -581,7 +588,7 @@ def get_brdf_data(acquisition, brdf_primary_path, brdf_secondary_path,
             # guard against roi's that don't intersect
             if not brdf_object.intersects:
                 msg = "ROI is outside the BRDF extents!"
-                log.error(msg)
+                _LOG.error(msg)
                 raise Exception(msg)
 
             # calculate the mean value

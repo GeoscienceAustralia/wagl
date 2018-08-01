@@ -5,6 +5,8 @@ Ancillary dataset retrieval and storage
 """
 
 from __future__ import absolute_import, print_function
+
+import logging
 from os.path import join as pjoin, basename, splitext
 import datetime
 import glob
@@ -29,6 +31,7 @@ from wagl.constants import DatasetName, POINT_FMT, GroupName, BandType
 from wagl.satellite_solar_angles import create_vertices
 
 
+_LOG = logging.getLogger(__name__)
 ECWMF_LEVELS = [1, 2, 3, 5, 7, 10, 20, 30, 50, 70, 100, 125, 150, 175, 200,
                 225, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750,
                 775, 800, 825, 850, 875, 900, 925, 950, 975, 1000]
@@ -62,7 +65,7 @@ def kelvin_2_celcius(kelvin):
     return kelvin - 273.15
 
 
-def relative_humdity(surface_temp, dewpoint_temp, kelvin=True):
+def relative_humidity(surface_temp, dewpoint_temp, kelvin=True):
     """
     Calculates relative humidity given a surface temperature and
     dewpoint temperature.
@@ -270,7 +273,7 @@ def collect_sbt_ancillary(acquisition, lonlats, ancillary_path,
         t2m = ecwmf_temperature_2metre(ancillary_path, lonlat, dt)
         sfc_prs = ecwmf_surface_pressure(ancillary_path, lonlat, dt)
         sfc_hgt = ecwmf_elevation(invariant_fname, lonlat)
-        sfc_rh = relative_humdity(t2m[0], dew[0])
+        sfc_rh = relative_humidity(t2m[0], dew[0])
 
         # output the scalar data along with the attrs
         dname = ppjoin(pnt, DatasetName.DEWPOINT_TEMPERATURE.value)
@@ -624,6 +627,7 @@ def get_elevation_data(lonlat, dem_path):
     datafile = pjoin(dem_path, "DEM_one_deg.tif")
     url = urlparse(datafile, scheme='file').geturl()
 
+    _LOG.debug('Reading Elevation from %s', str(f))
     try:
         data = get_pixel(datafile, lonlat) * 0.001  # scale to correct units
     except IndexError:
@@ -646,6 +650,7 @@ def get_ozone_data(ozone_path, lonlat, time):
     the scene.
     """
     filename = time.strftime('%b').lower() + '.tif'
+    _LOG.debug('Reading Ozone from %s', str(f))
     datafile = pjoin(ozone_path, filename)
     url = urlparse(datafile, scheme='file').geturl()
 
@@ -696,6 +701,8 @@ def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1):
     if band == 0 and doy == 1:
         band = 1
 
+
+    _LOG.debug('Reading Water Vapour from %s', str(f))
     # Get the number of bands
     with rasterio.open(datafile) as src:
         n_bands = src.count
@@ -733,6 +740,7 @@ def ecwmf_elevation(datafile, lonlat):
     2 metres is added to the result before returning.
     """
     try:
+        _LOG.debug('Reading ECWMF Invariant Geo-Potential from %s', str(datafile))
         data = get_pixel(datafile, lonlat) / 9.80665 / 1000.0 + 0.002
     except IndexError:
         raise AncillaryError("No Invariant Geo-Potential data")
@@ -765,6 +773,7 @@ def ecwmf_temperature_2metre(input_path, lonlat, time):
         ymd = splitext(basename(f))[0].split('_')[1]
         ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
         if ancillary_ymd == required_ymd:
+            _LOG.debug('Reading ECWMF 2 metre Temperature from %s', str(f))
             data = get_pixel(f, lonlat)
 
             metadata = {'data_source': 'ECWMF 2 metre Temperature',
@@ -797,6 +806,7 @@ def ecwmf_dewpoint_temperature(input_path, lonlat, time):
         ymd = splitext(basename(f))[0].split('_')[1]
         ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
         if ancillary_ymd == required_ymd:
+            _LOG.debug('Reading dewpoint temperature from %s', str(f))
             data = get_pixel(f, lonlat)
 
             metadata = {'data_source': 'ECWMF 2 metre Dewpoint Temperature ',
@@ -830,6 +840,7 @@ def ecwmf_surface_pressure(input_path, lonlat, time):
         ymd = splitext(basename(f))[0].split('_')[1]
         ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
         if ancillary_ymd == required_ymd:
+            _LOG.debug('Reading ECWMF Surface Pressure from %s', str(f))
             data = get_pixel(f, lonlat) / 100.0
 
             metadata = {'data_source': 'ECWMF Surface Pressure',
@@ -898,6 +909,7 @@ def ecwmf_temperature(input_path, lonlat, time):
         ymd = splitext(basename(f))[0].split('_')[1]
         ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
         if ancillary_ymd == required_ymd:
+            _LOG.debug('Reading ECWMF Temperature from %s', str(f))
             bands = list(range(1, 38))
             data = get_pixel(f, lonlat, bands)[::-1]
 
@@ -940,6 +952,7 @@ def ecwmf_geo_potential(input_path, lonlat, time):
         ymd = splitext(basename(f))[0].split('_')[1]
         ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
         if ancillary_ymd == required_ymd:
+            _LOG.debug('Reading ECWMF Geo-Potential from %s', str(f))
             bands = list(range(1, 38))
             data = get_pixel(f, lonlat, bands)[::-1]
             scaled_data = data / 9.80665 / 1000.0
@@ -983,6 +996,7 @@ def ecwmf_relative_humidity(input_path, lonlat, time):
         ymd = splitext(basename(f))[0].split('_')[1]
         ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
         if ancillary_ymd == required_ymd:
+            _LOG.debug('Reading ECWMF Relative Humidity from %s', str(f))
             bands = list(range(1, 38))
             data = get_pixel(f, lonlat, bands)[::-1]
 

@@ -16,6 +16,7 @@ from wagl.constants import AtmosphericCoefficients as AC
 from wagl.hdf5 import H5CompressionFilter, attach_image_attributes
 from wagl.metadata import create_ard_yaml
 
+_LOG = logging.getLogger(__name__)
 NO_DATA_VALUE = -999
 
 
@@ -202,7 +203,7 @@ def radiance_conversion(band_array, gain, bias):
         watts/(meter squared * ster * um) as a 2D Numpy array.
     """
 
-    logging.debug('gain = %f, bias = %f', gain, bias)
+    _LOG.debug('gain = %f, bias = %f', gain, bias)
 
     return numexpr.evaluate('gain * band_array + bias')
 
@@ -226,7 +227,7 @@ def temperature_conversion(band_array, k1, k2):
         degrees Kelvin.
     """
 
-    logging.debug('k1 = %f, k2 = %f', k1, k2)
+    _LOG.debug('k1 = %f, k2 = %f', k1, k2)
 
     return k2 / (numpy.log(k1 / band_array + 1))
 

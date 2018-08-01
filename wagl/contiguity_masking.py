@@ -12,6 +12,9 @@ from wagl.data import stack_data
 from wagl.tiling import generate_tiles
 
 
+_LOG = logging.getLogger(__name__)
+
+
 def calc_contiguity_mask(acquisitions, platform_id):
     """
     Determines locations of null values.
@@ -37,7 +40,7 @@ def calc_contiguity_mask(acquisitions, platform_id):
     rows = acquisitions[0].lines
     tiles = list(generate_tiles(cols, rows, cols))
 
-    logging.debug('Determining pixel contiguity')
+    _LOG.debug('Determining pixel contiguity')
     # Create mask array with True for all pixels which are non-zero in all
     # bands
     mask = numpy.zeros((rows, cols), dtype='bool')
@@ -48,9 +51,9 @@ def calc_contiguity_mask(acquisitions, platform_id):
         mask[idx] = stack.all(0)
 
     # The following is only valid for Landsat 5 images
-    logging.debug('calc_contiguity_mask: platform_id=%s', platform_id)
+    _LOG.debug('calc_contiguity_mask: platform_id=%s', platform_id)
     if platform_id == 'LANDSAT_5':
-        logging.debug('Finding thermal edge anomalies')
+        _LOG.debug('Finding thermal edge anomalies')
         # Apply thermal edge anomalies
         struct = numpy.ones((7, 7), dtype='bool')
         erode = ndimage.binary_erosion(mask, structure=struct)
