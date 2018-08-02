@@ -1,11 +1,11 @@
 ! subroutine set_satmod
-subroutine set_satmod(lon0,lat0,spheroid,orb_elements,smodel,istat)
+SUBROUTINE set_satmod(lon0,lat0,spheroid,orb_elements,psx,psy,smodel,istat)
 
 !   lon0,lat0 are the (geo) coordinates of a point on the track
 !   orb_elements 1,2,3 are orb_i,orb_R,nodal_p
-!   spheroid 1,2 are asph,finv^M
+!   spheroid 1,2 are asph,finv
 
-!   * Re-written as an indepentent subroutine by JS, Aug 2014
+!   * Re-written as an independent subroutine by JS, Aug 2014
 
 !   Inputs:
 !       lon0
@@ -32,6 +32,10 @@ subroutine set_satmod(lon0,lat0,spheroid,orb_elements,smodel,istat)
 !           10. N0
 !           11. H0
 !           12. th_ratio0
+!       psx
+!           Approximate pixel size (in degrees longitude)
+!       psy
+!           Approximate pixel size (in degrees latitude)
 !
 !   Outputs:
 !       smodel
@@ -41,24 +45,20 @@ subroutine set_satmod(lon0,lat0,spheroid,orb_elements,smodel,istat)
 
     implicit none
 
-    double precision lon0,lat0,spheroid(4),orb_elements(3)
+    double precision, dimension(4), intent(in) :: spheroid
+    double precision, dimension(3), intent(in) :: orb_elements
+    double precision, intent(in) :: lon0,lat0
+    double precision, intent(in) :: psx,psy
     double precision oi,orad,ws
     double precision asph,finv,e2,we
 
 !   smodel(phi0,phi0_p,rho0,t0,lam0,gamm0,beta0,rotn0,hxy0,N0,H0,th_ratio0)
-    double precision smodel(12)
+    double precision, dimension(12), intent(out) :: smodel
     double precision phi0,phi0_p,rho0,t0,lam0,gamm0,beta0,rotn0,hxy0
     double precision N0,H0,th_ratio0
-    double precision rn0,temp,psx,psy,psx_out,psy_out,lonin,latin
+    double precision rn0,temp,psx_out,psy_out,lonin,latin
 
-    integer istat
-
-
-!f2py intent(in) lon0, lat0
-!f2py intent(in) spheroid, orb_elements
-!f2py intent(out) smodel
-!f2py intent(out) istat
-
+    integer, intent(out) :: istat
 
 !   Initialise the return status
     istat = 0
@@ -96,8 +96,6 @@ subroutine set_satmod(lon0,lat0,spheroid,orb_elements,smodel,istat)
     N0 = asph/sqrt(1.0d0-e2*sin(phi0)**2)
     H0 = orad-N0
     th_ratio0 = N0/H0
-    psx = 1.0d0/3600.0d0
-    psy = 1.0d0/3600.0d0
     lonin = lon0
     latin = lat0
     call geo2metres_pixel_size(latin,psx,psy,spheroid,psx_out,&
@@ -120,4 +118,4 @@ subroutine set_satmod(lon0,lat0,spheroid,orb_elements,smodel,istat)
 
     return
 
-end subroutine set_satmod
+END SUBROUTINE set_satmod
