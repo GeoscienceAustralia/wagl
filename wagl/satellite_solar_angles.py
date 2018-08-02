@@ -753,7 +753,7 @@ def _store_parameter_settings(fid, spheriod, orbital_elements,
 
 def _calculate_angles(acquisition, lon_lat_fname, out_fname=None,
                       compression=H5CompressionFilter.LZF, filter_opts=None,
-                      tle_path=None):
+                      tle_path=None, trackpoints=12):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -762,12 +762,12 @@ def _calculate_angles(acquisition, lon_lat_fname, out_fname=None,
         h5py.File(out_fname, 'w') as fid:
         lon_lat_grp = lon_lat_fid[GroupName.LON_LAT_GROUP.value]
         calculate_angles(acquisition, lon_lat_grp, fid, compression,
-                         filter_opts, tle_path)
+                         filter_opts, tle_path, trackpoints)
 
 
 def calculate_angles(acquisition, lon_lat_group, out_group=None,
                      compression=H5CompressionFilter.LZF, filter_opts=None,
-                     tle_path=None):
+                     tle_path=None, trackpoints=12):
     """
     Calculate the satellite view, satellite azimuth, solar zenith,
     solar azimuth, and relative aziumth angle grids, as well as the
@@ -805,6 +805,10 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
         * DatasetName.ORBITAL_ELEMENTS
         * DatasetName.SATELLITE_MODEL
         * DatasetName.SATELLITE_TRACK
+
+    :param trackpoints:
+        Number of trackpoints to use when calculating solar angles
+        Default is 12
 
     :param compression:
         The compression filter to use.
@@ -864,7 +868,9 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
 
     # Get the times and satellite track information
     track = setup_times(min_lat, max_lat, spheroid[0], orbital_elements[0],
-                        smodel[0])
+                        smodel[0], trackpoints)
+    print('TRACK')
+    print(track)
 
     # Initialise the output files
     if out_group is None:
@@ -998,7 +1004,7 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
             row_id = idx[0].start + i + 1 # FORTRAN 1 based index
             stat = angle(dims[1], acquisition.lines, row_id, col_offset, lat_data[i],
                          lon_data[i], spheroid[0], orbital_elements[0],
-                         acquisition.decimal_hour(), century, 12, smodel[0], track[0],
+                         acquisition.decimal_hour(), century, trackpoints, smodel[0], track[0],
                          view[i], azi[i], asol[i], soazi[i], rela_angle[i],
                          time[i], x_cent, n_cent)
                          # x_cent[idx[0]], n_cent[idx[0]])

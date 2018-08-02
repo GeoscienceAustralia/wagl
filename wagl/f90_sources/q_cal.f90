@@ -1,11 +1,11 @@
 ! subroutine q_cal
-subroutine q_cal(phip,orb_elements,spheroid,smodel,rhocal,tcal, &
+SUBROUTINE q_cal(phip,orb_elements,spheroid,smodel,rhocal,tcal, &
              lamcal,betacal,istat)
 
 !   base subroutine to calculate base track information
 !   relative to a given geocentric latitude
 
-!   * Re-written as an indepentent subroutine by JS, Aug 2014
+!   * Re-written as an independent subroutine by JS, Aug 2014
 
 !   Inputs:
 !       phip
@@ -80,4 +80,4 @@ subroutine q_cal(phip,orb_elements,spheroid,smodel,rhocal,tcal, &
 
     return
 
-end subroutine q_cal
+END SUBROUTINE q_cal

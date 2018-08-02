@@ -1,10 +1,10 @@
 ! subroutine set_times
-subroutine set_times(ymin,ymax,ntpoints,spheroid,orb_elements, &
+SUBROUTINE set_times(ymin,ymax,ntpoints,spheroid,orb_elements, &
              smodel,track,istat)
 
 !   Calculate satellite track times and other info
 
-!   Re-written an indepentent subroutine by JS, Aug 2014
+!   Re-written an independent subroutine by JS, Aug 2014
 
 !   Inputs:
 !       ymin
@@ -50,36 +50,34 @@ subroutine set_times(ymin,ymax,ntpoints,spheroid,orb_elements, &
 
     implicit none
 
-    double precision ymin, ymax
-    integer ntpoints
+    double precision, intent(in) :: ymin, ymax
+    integer, intent(in) :: ntpoints
+    integer, intent(out) :: istat
 
-    double precision spheroid(4), orb_elements(3)
+    double precision, dimension(4), intent(in) :: spheroid
+    double precision, dimension(3), intent(in) :: orb_elements
+    double precision, dimension(ntpoints,8), intent(out) :: track
+    double precision, dimension(ntpoints) :: tin
 
-    double precision smodel(12)
-    double precision track(12,8)
+!f2py depend(ntpoints), tin, track
+
+    double precision, dimension(12), intent(in) :: smodel
     double precision t_min, t_max, phip_max, phip_min, rhocal, tcal
-    double precision lamcal, betacal, delta_t, tin(12)
-    integer istat,j
-
-
-!f2py intent(in) ymin, ymax, ntpoints
-!f2py intent(in) spheroid, orb_elements
-!f2py intent(in) smodel
-!f2py intent(out) track
-!f2py intent(out) istat
+    double precision lamcal, betacal, delta_t
+    integer j
 
     istat = 0
 
 !   set up the time range to use for the satellite track
-   call geod2geo(ymax,orb_elements,spheroid,phip_max,istat)
-   call q_cal(phip_max,orb_elements,spheroid,smodel,rhocal,tcal, &
-                 lamcal,betacal,istat)
-   t_min = tcal-5.0d0
+    call geod2geo(ymax,orb_elements,spheroid,phip_max,istat)
+    call q_cal(phip_max,orb_elements,spheroid,smodel,rhocal,tcal, &
+                  lamcal,betacal,istat)
+    t_min = tcal-5.0d0
 
-   call geod2geo(ymin,orb_elements,spheroid,phip_min,istat)
-   call q_cal(phip_min,orb_elements,spheroid,smodel,rhocal,tcal, &
-                 lamcal,betacal,istat)
-   t_max = tcal+5.0d0
+    call geod2geo(ymin,orb_elements,spheroid,phip_min,istat)
+    call q_cal(phip_min,orb_elements,spheroid,smodel,rhocal,tcal, &
+                  lamcal,betacal,istat)
+    t_max = tcal+5.0d0
 
 !   The track has 12 points about 4 sec apart in this case
 !   More could be used if accuracy questioned - but it is
@@ -88,8 +86,8 @@ subroutine set_times(ymin,ymax,ntpoints,spheroid,orb_elements, &
     delta_t = (t_max-t_min)/dble(ntpoints-1)
     do j=1,ntpoints
         tin(j) = dble(j-1)*delta_t+t_min
-   enddo
-!
+    enddo
+
 !    print*,'Track starting time(sec)=',t_min
 !    print*,'Track ending time(sec)=',t_max
 !    print*,'Number of track points=',ntpoints
@@ -100,4 +98,4 @@ subroutine set_times(ymin,ymax,ntpoints,spheroid,orb_elements, &
 
     return
 
-end subroutine set_times
+END SUBROUTINE set_times

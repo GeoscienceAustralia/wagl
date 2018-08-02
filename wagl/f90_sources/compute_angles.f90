@@ -1,5 +1,5 @@
 ! subroutine cal_angles
-subroutine cal_angles(lam_p,phip_p,tol_lam,orb_elements,spheroid, &
+SUBROUTINE cal_angles(lam_p,phip_p,tol_lam,orb_elements,spheroid, &
              smodel,track,num_tpts,timet,theta_p,azimuth,istat)
 
 !     Cal_Angles is the main routine in the set
@@ -14,7 +14,7 @@ subroutine cal_angles(lam_p,phip_p,tol_lam,orb_elements,spheroid, &
 !          azimuth (azimuth from track point to given point) radians
 !          (The azimuth uses the BRDF convention)
 
-!   * Re-written as an indepentent subroutine by JS, Aug 2014
+!   * Re-written as an independent subroutine by JS, Aug 2014
 
 !   Inputs:
 !       lam_p
@@ -61,22 +61,26 @@ subroutine cal_angles(lam_p,phip_p,tol_lam,orb_elements,spheroid, &
 
     implicit none
 
-    double precision lam_p, phip_p, tol_lam
-    double precision orb_elements(3), spheroid(4)
+    double precision, intent(in) :: lam_p, phip_p, tol_lam
+    double precision, dimension(4), intent(in) :: spheroid
+    double precision, dimension(3), intent(in) :: orb_elements
+!   smodel(phi0,phi0_p,rho0,t0,lam0,gamm0,beta0,rotn0,hxy0,N0,H0,th_ratio0)
+    double precision, dimension(12), intent(in) :: smodel
+
+    integer, intent(in) :: num_tpts
+!   track(t,rho,phi_p,lam,beta,hxy,mj,skew)
+    double precision, dimension(num_tpts,8), intent(in) :: track
+    double precision, dimension(num_tpts) :: phi_p, lam, beta
+    double precision, dimension(num_tpts) :: hxy, mj
+
+!f2py depend(num_tpts), track, phi_p, lam, beta, hxy, mj
+
     double precision orad
     double precision asph, e2
-
-!   smodel(phi0,phi0_p,rho0,t0,lam0,gamm0,beta0,rotn0,hxy0,N0,H0,th_ratio0)
-    double precision smodel(12)
     double precision t0, hxy0
 
-!   track(t,rho,phi_p,lam,beta,hxy,mj,skew)
-!   eg track(:,1) yields t
-    double precision track(12,8)
-    double precision phi_p(12), lam(12), beta(12), hxy(12), mj(12)
-    integer num_tpts
-    double precision timet, theta_p, azimuth
-    integer istat
+    double precision, intent(out) :: timet, theta_p, azimuth
+    integer, intent(out) :: istat
 
     integer west, neg, hit, j, negp
     integer left, right
@@ -96,11 +100,11 @@ subroutine cal_angles(lam_p,phip_p,tol_lam,orb_elements,spheroid, &
     hxy(:) = track(:,6)
     mj(:) = track(:,7)
 
-!   Satellite orbital paramaters
+!   Satellite orbital parameters
 !   semi_major radius (m)
     orad = orb_elements(2)
 
-!   Spheroid paramaters
+!   Spheroid parameters
 !   Spheroid major axis
 !   Eccentricity squared
     asph = spheroid(1) !6378137d0
@@ -206,7 +210,7 @@ subroutine cal_angles(lam_p,phip_p,tol_lam,orb_elements,spheroid, &
            lamt,betacal,istat)
 
 !   calculate the return results
-!   theta_e is angle at earth centre
+!   theta_e is angle at Earth centre
 !   theta_p is the look angle
     phi_pt = phip_test
     theta_e = acos(sin(phip_p)*sin(phi_pt)+ &
@@ -214,7 +218,6 @@ subroutine cal_angles(lam_p,phip_p,tol_lam,orb_elements,spheroid, &
 
     RN_p = dble(asph)/sqrt(1.0d0-dble(e2)*sin(phi_pt)**2)
     ratio = (RN_p*cos(theta_e))/(orad-RN_p*cos(theta_e))
-!    print*,'ratio=',ratio
     theta_p = atan(ratio*tan(theta_e))
     if (west.gt.0) then
         azimuth = betacal+(dble(pi)/2.0d0)
@@ -227,4 +230,4 @@ subroutine cal_angles(lam_p,phip_p,tol_lam,orb_elements,spheroid, &
 99  continue
     return
 
-end subroutine cal_angles
+END SUBROUTINE cal_angles

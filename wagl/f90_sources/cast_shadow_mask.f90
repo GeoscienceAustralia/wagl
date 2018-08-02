@@ -1,4 +1,4 @@
-subroutine get_proj_shadows(hx, hy, ns, nl, &
+SUBROUTINE get_proj_shadows(hx, hy, ns, nl, &
     htol, phi_sun, sun_zen, zmax, zmin, a, mask, h_offset, &
     n_inc, m_inc, aoff_x, aoff_y, nsA, nlA, k_setting, &
     dem_nr, dem_nc, nlA_ori, nsA_ori, ierr)
@@ -156,4 +156,4 @@ subroutine get_proj_shadows(hx, hy, ns, nl, &
 
 99  continue
     return
-    end
+END SUBROUTINE get_proj_shadows

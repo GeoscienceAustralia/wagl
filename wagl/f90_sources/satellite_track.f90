@@ -1,12 +1,12 @@
 ! subroutine cal_track
-subroutine cal_track(num,tin,orb_elements,spheroid,smodel, &
+SUBROUTINE cal_track(num,tin,orb_elements,spheroid,smodel, &
              track,istat)
 
 !   Cal_Track calculates information at num points in time
 !   along the satellite track. The times are in tin.
 !   Results are put into the track common block
 
-!   Re-written as an indepentent subroutine by JS, Aug 2014
+!   Re-written as an independent subroutine by JS, Aug 2014
 
 !   Inputs:
 !       num
@@ -51,22 +51,25 @@ subroutine cal_track(num,tin,orb_elements,spheroid,smodel, &
 
     implicit none
 
-    integer num, istat
-    double precision tin(num)
+    integer, intent(in) :: num
+    integer, intent(inout) :: istat
+    double precision, dimension(num), intent(in) :: tin
+    double precision, dimension(4), intent(in) :: spheroid
+    double precision, dimension(3), intent(in) :: orb_elements
+!   track(t,rho,phi_p,lam,beta,hxy,mj,skew)
+    double precision, dimension(num,8), intent(out) :: track
+    double precision, dimension(num) :: t, rho, phi_p, lam, beta
+    double precision, dimension(num) :: hxy, mj, skew
 
-    double precision spheroid(4), orb_elements(3)
+!f2py depend(num), tin, track
+!f2py depend(num), t, rho, phi_p, lam, beta, hxy, mj, skew
+
     double precision oi, ws
     double precision we
 
 !   smodel(phi0,phi0_p,rho0,t0,lam0,gamm0,beta0,rotn0,hxy0,N0,H0,th_ratio0)
-    double precision smodel(12)
+    double precision, dimension(12) :: smodel
     double precision rho0, t0, gamm0
-
-!   track(t,rho,phi_p,lam,beta,hxy,mj,skew)
-!   eg track(:,1) yields t
-    double precision track(12,8)
-    double precision t(12), rho(12), phi_p(12), lam(12), beta(12)
-    double precision hxy(12), mj(12), skew(12)
 
     double precision psx, psy, psx_out, psy_out
     integer j
@@ -83,7 +86,7 @@ subroutine cal_track(num,tin,orb_elements,spheroid,smodel, &
     t0 = smodel(4)
     gamm0 = smodel(6)
 
-!   Satellite orbital paramaters
+!   Satellite orbital parameters
 !   orbital inclination (degrees)
 !   angular velocity (rad sec-1)
     oi = orb_elements(1)*d2r
@@ -103,6 +106,12 @@ subroutine cal_track(num,tin,orb_elements,spheroid,smodel, &
           cos(phi_p(j))*sin(beta(j))))
         call geo2metres_pixel_size(phi_p(j)*r2d,psx,psy,spheroid,&
                psx_out,psy_out,istat)
+!        print*, 'psx_out,psy_out'
+!        print*,psx_out,'|',psy_out
+!        print*,'phi_p(j),r2d,psx,psy,spheroid,num,j'
+!        print*,phi_p(j),'|',r2d,'|',psx,'|',psy,'|',spheroid,'|',num,'|',j
+!        print*,'istat'
+!        print*,istat
         hxy(j) = psx_out/psy_out
         if (j.gt.1) then
             mj(j-1) = (phi_p(j)-phi_p(j-1))/(lam(j)-lam(j-1))
@@ -121,4 +130,4 @@ subroutine cal_track(num,tin,orb_elements,spheroid,smodel, &
 
     return
 
-end subroutine cal_track
+END SUBROUTINE cal_track
