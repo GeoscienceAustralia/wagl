@@ -83,8 +83,7 @@ def calc_land_sea_mask(geo_box, \
     md = extract_ancillary_metadata(rasfile)
     md['data_source'] = 'Rasterised Land/Sea Mask'
     md['data_file'] = rasfile
-    metadata = {}
-    metadata['land_sea_mask'] = md
+    metadata = {'land_sea_mask': md}
 
     geoTransform = geo_box.transform.to_gdal()
     if geoTransform is None:
@@ -110,7 +109,9 @@ def calc_land_sea_mask(geo_box, \
 
     # Read in the land/sea array
     ls_arr = lsobj.ReadAsArray(xoff, yoff, xsize, ysize)
+
     return (ls_arr.astype('bool'), metadata)
+
 
 def set_land_sea_bit(gridded_geo_box, pq_const, pqaResult,
                      ancillary_path='/g/data/v10/eoancillarydata/Land_Sea_Rasters'):
@@ -118,4 +119,5 @@ def set_land_sea_bit(gridded_geo_box, pq_const, pqaResult,
     mask, md = calc_land_sea_mask(gridded_geo_box, ancillary_path)
     bit_index = pq_const.land_sea
     pqaResult.set_mask(mask, bit_index)
+
     return md

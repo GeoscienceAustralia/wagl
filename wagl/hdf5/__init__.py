@@ -125,7 +125,7 @@ def create_image_dataset(fid, dataset_name, shape, dtype,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :attrs:
         A `dict` by which the keys will be the attribute name, and the
@@ -174,7 +174,7 @@ def write_h5_image(data, dset_name, group, compression=H5CompressionFilter.LZF,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :param attrs:
         A `dict` of key, value items to be attached as attributes
@@ -227,7 +227,7 @@ def write_h5_table(data, dset_name, group, compression=H5CompressionFilter.LZF,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :param title:
         A `str` containing the title name of the `Table` dataset.
@@ -272,7 +272,7 @@ def write_dataframe(df, dset_name, group, compression=H5CompressionFilter.LZF,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :param title:
         A `str` containing the title name of the `Table` dataset.

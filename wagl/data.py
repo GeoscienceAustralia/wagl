@@ -84,7 +84,6 @@ def stack_data(acqs_list, fn=(lambda acq: True), window=None, masked=False):
         # can't use this statement because it will cause data to be
         # resampled. But we want an exception thrown if the user
         # tries to stack irreqular aquisitions
-        # acqs[i].data(out=stack[i])
         stack[i] = acqs[i].data(window=window, masked=masked)
 
     return stack, geo_box

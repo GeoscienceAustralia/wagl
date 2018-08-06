@@ -1,0 +1,15 @@
+[run]
+branch = False
+omit =
+    wagl/_version.py
+    wagl/modtran.py
+    wagl/modtran_profiles.py
+    wagl/scripts/*
+    wagl/__init__.py
+    wagl/setup.py
+    wagl/unittesting_tools.py
+
+[report]
+exclude_lines =
+    if __name__ == .__main__.:
+    pragma: no cover

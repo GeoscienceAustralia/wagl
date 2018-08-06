@@ -204,17 +204,17 @@ SUBROUTINE cast_shadow_main( &
                 sazi(i, j) = sazi_data((k-1)*nlA_ori+i, j)
             enddo
         enddo
+            
+        ii=nlA/2
 
         if(.not.is_utm) then
 !           calculate latitude for each line
             do i=1,nlA
                 alat(i)=alat1-((k-1)*nlA_ori+i-1)*dresy
             enddo
-            ii=nlA/2
             call geo2metres_pixel_size(alat(ii), dresx, dresy, &
                                        spheroid, hx, hy, istat)
         endif
-
 
 !       divide seveal sub_matrix according to columns
 !write(*,*)"about to start cols: kkx = ",kkx
@@ -398,16 +398,14 @@ SUBROUTINE cast_shadow_main( &
             enddo
         enddo
 
+        ii=nlA/2
+
         if(.not.is_utm) then
 !           calculate latitude and longitude for sub_matrix
             do i=1,nlA
                 alat(i)=alat1-(kky*nlA_ori+i-1)*dresy
             enddo
-        endif
 
-        ii=nlA/2
-
-        if(.not.is_utm) then
             call geo2metres_pixel_size(alat(ii), dresx, dresy, &
                                        spheroid, hx, hy, istat)
         endif

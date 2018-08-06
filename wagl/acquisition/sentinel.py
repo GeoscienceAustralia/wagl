@@ -223,6 +223,7 @@ class Sentinel2Acquisition(Acquisition):
         Set self._solar_zenith back to None to reclaim memory.
         """
         self._solar_zenith = None
+        super().close()
 
 
 class Sentinel2aAcquisition(Sentinel2Acquisition):

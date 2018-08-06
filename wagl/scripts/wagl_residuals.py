@@ -73,7 +73,7 @@ def image_residual(ref_fid, test_fid, pathname, out_fid,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :param save_inputs:
         A `bool` indicating whether or not to save the input datasets
@@ -118,7 +118,7 @@ def image_residual(ref_fid, test_fid, pathname, out_fid,
     pct_difference = (residual != 0).sum() / residual.size * 100
 
     if filter_opts is None:
-        filter_opts = {}
+        fopts = {}
     else:
         fopts = filter_opts.copy()
     fopts['chunks'] = ref_dset.chunks
@@ -156,7 +156,7 @@ def image_residual(ref_fid, test_fid, pathname, out_fid,
     table['residuals_distribution'] = hist
 
     # output
-    fopts.drop('chunks')
+    del fopts['chunks']
     dname = ppjoin('RESULTS', class_name, 'FREQUENCY-DISTRIBUTIONS',
                    group_name, base_dname)
     write_h5_table(table, dname, out_fid, compression, attrs=attrs,
@@ -287,7 +287,7 @@ def table_residual(ref_fid, test_fid, pathname, out_fid,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :param save_inputs:
         A `bool` indicating whether or not to save the input datasets
@@ -369,7 +369,7 @@ def residuals(ref_fid, test_fid, out_fid, compression=H5CompressionFilter.LZF,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :param save_inputs:
         A `bool` indicating whether or not to save the input datasets
@@ -389,6 +389,7 @@ def residuals(ref_fid, test_fid, out_fid, compression=H5CompressionFilter.LZF,
         this is essential for the HDF5 visit routine.
     """
     pathname = pathname.decode('utf-8')
+
     if pathname in test_fid:
         obj = ref_fid[pathname]
         if isinstance(obj, h5py.Group):
@@ -531,21 +532,30 @@ def run(reference_fname, test_fname, out_fname, compression, save_inputs,
             with h5py.File(out_fname, 'w') as out_fid:
                 root = h5py.h5g.open(ref_fid.id, b'/')
                 root.links.visit(partial(residuals, ref_fid, test_fid,
-                                         out_fid, compression, save_inputs))
+                                         out_fid, compression, save_inputs, filter_opts))
 
                 # create singular TABLES for each Dataset CLASS
 
                 # IMAGE
-                grp = out_fid[ppjoin('RESULTS', 'IMAGE')]
-                image_results(grp, compression, filter_opts)
+                try:
+                    grp = out_fid[ppjoin('RESULTS', 'IMAGE')]
+                    image_results(grp, compression, filter_opts)
+                except KeyError:
+                    pass
 
                 # SCALAR
-                grp = out_fid[ppjoin('RESULTS', 'SCALAR')]
-                scalar_results(grp)
+                try:
+                    grp = out_fid[ppjoin('RESULTS', 'SCALAR')]
+                    scalar_results(grp)
+                except KeyError:
+                    pass
 
                 # TABLE
-                grp = out_fid[ppjoin('RESULTS', 'TABLE')]
-                table_results(grp)
+                try:
+                    grp = out_fid[ppjoin('RESULTS', 'TABLE')]
+                    table_results(grp)
+                except KeyError:
+                    pass
 
 
 def _parser():
