@@ -142,6 +142,7 @@ def interpolate_block(origin=DEFAULT_ORIGIN, shape=DEFAULT_SHAPE,
 
     grid[i0:i1 + 1, j0:j1 + 1] = bilinear(shape, fUL, fUR, fLR, fLL)
 
+
 def interpolate_grid(grid, eval_func, depth=0, origin=DEFAULT_ORIGIN, shape=DEFAULT_SHAPE):
     """
     Entry function for recursive inplace grid interpolation
@@ -172,7 +173,8 @@ def interpolate_grid(grid, eval_func, depth=0, origin=DEFAULT_ORIGIN, shape=DEFA
         :py:class:`tuple` of length 2 ``(nrows, ncols)``.
     """
 
-    # bilinear requires a 2 by 2 grid at a minimum; depth can be derived by bit length
+    # bilinear requires a 2 by 2 grid at a minimum;
+    #  depth can be derived by bit length
     max_depth = min(shape[0].bit_length(), shape[1].bit_length()) - 2
     if max_depth < 0:
        raise ValueError('Unable to interpolate grid of %s', str(shape))

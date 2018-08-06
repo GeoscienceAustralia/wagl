@@ -55,7 +55,7 @@ def convert_to_lonlat(geobox, col_index, row_index):
         lat[i] = lonlat[1]
 
     return lon, lat
-    
+
 
 def create_centreline_dataset(geobox, x, n, out_group):
     """
@@ -261,7 +261,7 @@ def create_boxline(acquisition, view_angle_dataset, centreline_dataset,
     """
     geobox = acquisition.gridded_geo_box()
     rows, _ = view_angle_dataset.shape
-    
+
     # calculate the column start and end indices
     # (for filtering out pixels of the ortho' array where no observations
     # are expected because the sensor look-angle would be too peripheral.)
@@ -587,7 +587,7 @@ def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements,
             * Index 2 contains the angular velocity in radians/sec^1.
 
     :param psx:
-        Approximate pixel size (in degrees longitude) 
+        Approximate pixel size (in degrees longitude)
 
     :param psy:
         Approximate pixel size (in degrees latitude)
@@ -676,7 +676,7 @@ def setup_times(ymin, ymax, spheroid, orbital_elements, smodel,
             * Index 11 contains th_ratio0.
 
     :param psx:
-        Approximate pixel size (in degrees longitude) 
+        Approximate pixel size (in degrees longitude)
 
     :param psy:
         Approximate pixel size (in degrees latitude)
@@ -827,7 +827,7 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :filter_opts:
         A dict of key value pairs available to the given configuration
@@ -859,7 +859,6 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
 
     # Min and Max lat extents
     # This method should handle northern and southern hemispheres
-    # include a 1 degree buffer
     min_lat = min(min(geobox.ul_lonlat[1], geobox.ur_lonlat[1]),
                   min(geobox.ll_lonlat[1], geobox.lr_lonlat[1]))
     max_lat = max(max(geobox.ul_lonlat[1], geobox.ur_lonlat[1]),
@@ -884,12 +883,13 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     orbital_elements = setup_orbital_elements(acquisition, tle_path)
 
     # Get the satellite model paramaters
-    
+
     smodel = setup_smodel(centre_xy[0], centre_xy[1], spheroid[0],
                           orbital_elements[0], psx, psy)
 
     # Get the times and satellite track information
-                        smodel[0], trackpoints, psx, psy)
+    track = setup_times(min_lat, max_lat, spheroid[0], orbital_elements[0],
+                        smodel[0], psx, psy, trackpoints)
 
     # Initialise the output files
     if out_group is None:
@@ -1021,7 +1021,7 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
         # loop each row within each tile (which itself could be a single row)
         for i in range(lon_data.shape[0]):
             row_id = idx[0].start + i + 1 # FORTRAN 1 based index
-            
+
             stat = angle(dims[1], acquisition.lines, row_id, col_offset, lat_data[i],
                          lon_data[i], spheroid[0], orbital_elements[0],
                          acquisition.decimal_hour(), century, trackpoints, smodel[0], track[0],
