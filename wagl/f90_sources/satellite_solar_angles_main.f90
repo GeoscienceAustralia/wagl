@@ -1,5 +1,5 @@
 ! subroutine angle
-subroutine angle(ncol,nrow,row_num,col_offset,alat,alon,spheroid,orb_elements, &
+SUBROUTINE angle(ncol,nrow,row_num,col_offset,alat,alon,spheroid,orb_elements, &
              hours,century,ntpoints,smodel,track, &
              view,azi,asol,soazi,rela_angle,tim,X_cent,N_cent,istat)
 
@@ -81,10 +81,10 @@ subroutine angle(ncol,nrow,row_num,col_offset,alat,alon,spheroid,orb_elements, &
     double precision, dimension(3), intent(in) :: orb_elements
     double precision, intent(in) :: hours, century
     integer, intent(in) :: ntpoints
-    double precision, dimension(12), intent(in) :: smodel(12)
-    double precision, dimension(12,8), intent(in) :: track(12,8)
+    double precision, dimension(12), intent(in) :: smodel
+    double precision, dimension(ntpoints,8), intent(in) :: track
     real, dimension(ncol), intent(inout) :: view, azi, asol, soazi, rela_angle, tim
-    real, dimension(nrow), intent(inout) ::  X_cent, N_cent
+    real, dimension(nrow), intent(inout) :: X_cent, N_cent
     integer, intent(out) :: istat
     double precision delxx, tol_lam
     double precision xout, yout
@@ -94,6 +94,7 @@ subroutine angle(ncol,nrow,row_num,col_offset,alat,alon,spheroid,orb_elements, &
 
 !f2py depend(ncol), alat, alon, view, azi, asol, soazi, rela_angle, tim
 !f2py depend(nrow), X_cent, N_cent
+!f2py depend(ntpoints), track
 
     do j=1,ncol
         xout = alon(j)
@@ -143,4 +144,4 @@ subroutine angle(ncol,nrow,row_num,col_offset,alat,alon,spheroid,orb_elements, &
 99  continue
     return
 
-end subroutine angle
+END SUBROUTINE angle

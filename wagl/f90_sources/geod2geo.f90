@@ -1,9 +1,9 @@
 ! subroutine geod2geo
-subroutine geod2geo(yin,orb_elements,spheroid,phip,istat)
+SUBROUTINE geod2geo(yin,orb_elements,spheroid,phip,istat)
 !   This routine converts a scalar from geodetic latitude
 !   in degrees to geocentric in radians
 
-!   * Re-written as an indepentent subroutine by JS, Aug 2014
+!   * Re-written as an independent subroutine by JS, Aug 2014
 
 !   Inputs:
 !       yin
@@ -42,7 +42,7 @@ subroutine geod2geo(yin,orb_elements,spheroid,phip,istat)
     asph = spheroid(1)
     e2 = spheroid(3)
 
-!   Initialiase the return status
+!   Initialise the return status
     istat = 0
 
     temp = dble(yin)*d2r
@@ -51,4 +51,4 @@ subroutine geod2geo(yin,orb_elements,spheroid,phip,istat)
 
     return
 
-end subroutine geod2geo
+END SUBROUTINE geod2geo

@@ -1,5 +1,5 @@
 ! subroutine geo2metres_pixel_size
-subroutine geo2metres_pixel_size(ycent,hx,hy,spheroid, &
+SUBROUTINE geo2metres_pixel_size(ycent,hx,hy,spheroid, &
              hx_out,hy_out,istat)
 
 !   integer subroutine to get pixel size for geographic coordinates
@@ -68,4 +68,4 @@ subroutine geo2metres_pixel_size(ycent,hx,hy,spheroid, &
 
     return
 
-end subroutine geo2metres_pixel_size
+END SUBROUTINE geo2metres_pixel_size

@@ -9,6 +9,7 @@ import math
 import ephem
 import numpy as np
 import h5py
+import logging
 
 from osgeo import osr
 from wagl.constants import DatasetName, GroupName, TrackIntersection
@@ -54,7 +55,7 @@ def convert_to_lonlat(geobox, col_index, row_index):
         lat[i] = lonlat[1]
 
     return lon, lat
-    
+
 
 def create_centreline_dataset(geobox, x, n, out_group):
     """
@@ -260,7 +261,7 @@ def create_boxline(acquisition, view_angle_dataset, centreline_dataset,
     """
     geobox = acquisition.gridded_geo_box()
     rows, _ = view_angle_dataset.shape
-    
+
     # calculate the column start and end indices
     # (for filtering out pixels of the ortho' array where no observations
     # are expected because the sensor look-angle would be too peripheral.)
@@ -554,7 +555,8 @@ def setup_orbital_elements(acquisition, tle_path):
     return np.array(dset.tolist()).squeeze(), dset
 
 
-def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements):
+def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements,
+                 psx, psy):
     """
     Setup the satellite model.
     A wrapper routine for the `set_satmod` Fortran module built via
@@ -584,6 +586,12 @@ def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements):
             * Index 1 contains the semi major raidus in metres.
             * Index 2 contains the angular velocity in radians/sec^1.
 
+    :param psx:
+        Approximate pixel size (in degrees longitude)
+
+    :param psy:
+        Approximate pixel size (in degrees latitude)
+
     :return:
         A floating point np array of 12 elements containing the
         satellite model paramaters.
@@ -608,7 +616,7 @@ def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements):
                        ('beta0', 'f8'), ('rotn0', 'f8'), ('hxy0', 'f8'),
                        ('N0', 'f8'), ('H0', 'f8'), ('th_ratio0', 'f8')]
     """
-    smodel, _ = set_satmod(centre_lon, centre_lat, spheroid, orbital_elements)
+    smodel, _ = set_satmod(centre_lon, centre_lat, spheroid, orbital_elements, psx, psy)
 
     columns = ['phi0', 'phi0_p', 'rho0', 't0', 'lam0', 'gamm0', 'beta0',
                'rotn0', 'hxy0', 'N0', 'H0', 'th_ratio0']
@@ -619,7 +627,8 @@ def setup_smodel(centre_lon, centre_lat, spheroid, orbital_elements):
     return smodel, smodel_dset
 
 
-def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, ntpoints=12):
+def setup_times(ymin, ymax, spheroid, orbital_elements, smodel,
+                psx, psy, ntpoints=12):
     """
     Setup the satellite track times.
     A wrapper routine for the ``set_times`` Fortran module built via
@@ -666,6 +675,12 @@ def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, ntpoints=12):
             * Index 10 contains H0.
             * Index 11 contains th_ratio0.
 
+    :param psx:
+        Approximate pixel size (in degrees longitude)
+
+    :param psy:
+        Approximate pixel size (in degrees latitude)
+
     :param ntpoints:
         The number of time sample points to be calculated along the
         satellite track. Default is 12.
@@ -690,7 +705,7 @@ def setup_times(ymin, ymax, spheroid, orbital_elements, smodel, ntpoints=12):
                        ('mj', 'f8'), ('skew', 'f8')]
     """
     track, _ = set_times(ymin, ymax, ntpoints, spheroid, orbital_elements,
-                         smodel)
+                         smodel, psx, psy)
 
     columns = ['t', 'rho', 'phi_p', 'lam', 'beta', 'hxy', 'mj', 'skew']
     dtype = np.dtype([(col, 'float64') for col in columns])
@@ -753,7 +768,7 @@ def _store_parameter_settings(fid, spheriod, orbital_elements,
 
 def _calculate_angles(acquisition, lon_lat_fname, out_fname=None,
                       compression=H5CompressionFilter.LZF, filter_opts=None,
-                      tle_path=None):
+                      tle_path=None, trackpoints=12):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -762,12 +777,12 @@ def _calculate_angles(acquisition, lon_lat_fname, out_fname=None,
         h5py.File(out_fname, 'w') as fid:
         lon_lat_grp = lon_lat_fid[GroupName.LON_LAT_GROUP.value]
         calculate_angles(acquisition, lon_lat_grp, fid, compression,
-                         filter_opts, tle_path)
+                         filter_opts, tle_path, trackpoints)
 
 
 def calculate_angles(acquisition, lon_lat_group, out_group=None,
                      compression=H5CompressionFilter.LZF, filter_opts=None,
-                     tle_path=None):
+                     tle_path=None, trackpoints=12):
     """
     Calculate the satellite view, satellite azimuth, solar zenith,
     solar azimuth, and relative aziumth angle grids, as well as the
@@ -806,9 +821,13 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
         * DatasetName.SATELLITE_MODEL
         * DatasetName.SATELLITE_TRACK
 
+    :param trackpoints:
+        Number of trackpoints to use when calculating solar angles
+        Default is 12
+
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :filter_opts:
         A dict of key value pairs available to the given configuration
@@ -832,13 +851,18 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     longitude = lon_lat_group[DatasetName.LON.value]
     latitude = lon_lat_group[DatasetName.LAT.value]
 
+    # Determine approximate pixel size
+    lat_data = latitude[0:2, 0]
+    psy = abs(lat_data[1] - lat_data[0])
+    lon_data = longitude[0, 0:2]
+    psx = abs(lon_data[1] - lon_data[0])
+
     # Min and Max lat extents
     # This method should handle northern and southern hemispheres
-    # include a 1 degree buffer
     min_lat = min(min(geobox.ul_lonlat[1], geobox.ur_lonlat[1]),
-                  min(geobox.ll_lonlat[1], geobox.lr_lonlat[1])) - 1
+                  min(geobox.ll_lonlat[1], geobox.lr_lonlat[1]))
     max_lat = max(max(geobox.ul_lonlat[1], geobox.ur_lonlat[1]),
-                  max(geobox.ll_lonlat[1], geobox.lr_lonlat[1])) + 1
+                  max(geobox.ll_lonlat[1], geobox.lr_lonlat[1]))
 
     # Get the lat/lon of the scene centre
     # check if we have a file with GPS satellite track points
@@ -859,12 +883,13 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     orbital_elements = setup_orbital_elements(acquisition, tle_path)
 
     # Get the satellite model paramaters
+
     smodel = setup_smodel(centre_xy[0], centre_xy[1], spheroid[0],
-                          orbital_elements[0])
+                          orbital_elements[0], psx, psy)
 
     # Get the times and satellite track information
     track = setup_times(min_lat, max_lat, spheroid[0], orbital_elements[0],
-                        smodel[0])
+                        smodel[0], psx, psy, trackpoints)
 
     # Initialise the output files
     if out_group is None:
@@ -996,9 +1021,10 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
         # loop each row within each tile (which itself could be a single row)
         for i in range(lon_data.shape[0]):
             row_id = idx[0].start + i + 1 # FORTRAN 1 based index
+
             stat = angle(dims[1], acquisition.lines, row_id, col_offset, lat_data[i],
                          lon_data[i], spheroid[0], orbital_elements[0],
-                         acquisition.decimal_hour(), century, 12, smodel[0], track[0],
+                         acquisition.decimal_hour(), century, trackpoints, smodel[0], track[0],
                          view[i], azi[i], asol[i], soazi[i], rela_angle[i],
                          time[i], x_cent, n_cent)
                          # x_cent[idx[0]], n_cent[idx[0]])
