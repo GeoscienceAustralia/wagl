@@ -1,6 +1,6 @@
 ! subroutine cal_track
 SUBROUTINE cal_track(num,tin,orb_elements,spheroid,smodel, &
-             track,istat)
+             psx,psy,track,istat)
 
 !   Cal_Track calculates information at num points in time
 !   along the satellite track. The times are in tin.
@@ -42,6 +42,10 @@ SUBROUTINE cal_track(num,tin,orb_elements,spheroid,smodel, &
 !           6. hxy
 !           7. mj
 !           8. skew
+!       psx
+!           Approximate pixel size (in degrees longitude)
+!       psy
+!           Approximate pixel size (in degrees latitude)
 !
 !   Outputs:
 !       track
@@ -56,6 +60,9 @@ SUBROUTINE cal_track(num,tin,orb_elements,spheroid,smodel, &
     double precision, dimension(num), intent(in) :: tin
     double precision, dimension(4), intent(in) :: spheroid
     double precision, dimension(3), intent(in) :: orb_elements
+!   smodel(phi0,phi0_p,rho0,t0,lam0,gamm0,beta0,rotn0,hxy0,N0,H0,th_ratio0)
+    double precision, dimension(12), intent(in) :: smodel
+    double precision, intent(in) :: psx, psy
 !   track(t,rho,phi_p,lam,beta,hxy,mj,skew)
     double precision, dimension(num,8), intent(out) :: track
     double precision, dimension(num) :: t, rho, phi_p, lam, beta
@@ -66,9 +73,6 @@ SUBROUTINE cal_track(num,tin,orb_elements,spheroid,smodel, &
 
     double precision oi, ws
     double precision we
-
-!   smodel(phi0,phi0_p,rho0,t0,lam0,gamm0,beta0,rotn0,hxy0,N0,H0,th_ratio0)
-    double precision, dimension(12) :: smodel
     double precision rho0, t0, gamm0
 
     double precision psx, psy, psx_out, psy_out
@@ -77,9 +81,6 @@ SUBROUTINE cal_track(num,tin,orb_elements,spheroid,smodel, &
 !   Initialise the return status
 !   It will be overwritten by other routine calls
     istat = 0
-
-    psx = 1.0d0/3600.0d0
-    psy = 1.0d0/3600.0d0
 
 !   smodel parameters
     rho0 = smodel(3)
@@ -106,12 +107,6 @@ SUBROUTINE cal_track(num,tin,orb_elements,spheroid,smodel, &
           cos(phi_p(j))*sin(beta(j))))
         call geo2metres_pixel_size(phi_p(j)*r2d,psx,psy,spheroid,&
                psx_out,psy_out,istat)
-!        print*, 'psx_out,psy_out'
-!        print*,psx_out,'|',psy_out
-!        print*,'phi_p(j),r2d,psx,psy,spheroid,num,j'
-!        print*,phi_p(j),'|',r2d,'|',psx,'|',psy,'|',spheroid,'|',num,'|',j
-!        print*,'istat'
-!        print*,istat
         hxy(j) = psx_out/psy_out
         if (j.gt.1) then
             mj(j-1) = (phi_p(j)-phi_p(j-1))/(lam(j)-lam(j-1))

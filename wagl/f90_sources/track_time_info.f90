@@ -1,6 +1,6 @@
 ! subroutine set_times
 SUBROUTINE set_times(ymin,ymax,ntpoints,spheroid,orb_elements, &
-             smodel,track,istat)
+             smodel,psx,psy,track,istat)
 
 !   Calculate satellite track times and other info
 
@@ -41,6 +41,10 @@ SUBROUTINE set_times(ymin,ymax,ntpoints,spheroid,orb_elements, &
 !           6. hxy
 !           7. mj
 !           8. skew
+!       psx
+!           Approximate pixel size (in degrees longitude)
+!       psy
+!           Approximate pixel size (in degrees latitude)
 !
 !   Outputs:
 !       track
@@ -58,6 +62,7 @@ SUBROUTINE set_times(ymin,ymax,ntpoints,spheroid,orb_elements, &
     double precision, dimension(3), intent(in) :: orb_elements
     double precision, dimension(ntpoints,8), intent(out) :: track
     double precision, dimension(ntpoints) :: tin
+    double precision, intent(in) :: psx, psy
 
 !f2py depend(ntpoints), tin, track
 
@@ -94,7 +99,7 @@ SUBROUTINE set_times(ymin,ymax,ntpoints,spheroid,orb_elements, &
 !    print*,'Track time step(sec)=',delta_t
 
     call cal_track(ntpoints,tin,orb_elements,spheroid,smodel, &
-           track,istat)
+           psx,psy,track,istat)
 
     return
 
