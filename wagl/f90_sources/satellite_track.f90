@@ -75,7 +75,7 @@ SUBROUTINE cal_track(num,tin,orb_elements,spheroid,smodel, &
     double precision we
     double precision rho0, t0, gamm0
 
-    double precision psx, psy, psx_out, psy_out
+    double precision psx_out, psy_out
     integer j
 
 !   Initialise the return status
