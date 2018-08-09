@@ -859,10 +859,11 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
 
     # Min and Max lat extents
     # This method should handle northern and southern hemispheres
+    # TODO: Put in a conditional over the 1 degree buffer
     min_lat = min(min(geobox.ul_lonlat[1], geobox.ur_lonlat[1]),
-                  min(geobox.ll_lonlat[1], geobox.lr_lonlat[1]))
+                  min(geobox.ll_lonlat[1], geobox.lr_lonlat[1])) - 1
     max_lat = max(max(geobox.ul_lonlat[1], geobox.ur_lonlat[1]),
-                  max(geobox.ll_lonlat[1], geobox.lr_lonlat[1]))
+                  max(geobox.ll_lonlat[1], geobox.lr_lonlat[1])) + 1
 
     # Get the lat/lon of the scene centre
     # check if we have a file with GPS satellite track points
