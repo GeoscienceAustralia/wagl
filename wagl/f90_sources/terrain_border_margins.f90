@@ -1,4 +1,4 @@
-subroutine set_borderf(set_border,phi_sun, zmax, zmin, sun_zen, hx, hy, &
+SUBROUTINE set_borderf(set_border,phi_sun, zmax, zmin, sun_zen, hx, hy, &
     az_case, d, d0, k_max, h_offset, n_inc, m_inc, n_add, m_add, &
     k_setting, add_max, ierr)
 
@@ -108,5 +108,5 @@ subroutine set_borderf(set_border,phi_sun, zmax, zmin, sun_zen, hx, hy, &
     return
 99  set_border=.false.
     return
-end subroutine set_borderf
+END SUBROUTINE set_borderf
 

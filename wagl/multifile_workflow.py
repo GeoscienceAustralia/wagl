@@ -107,7 +107,7 @@ class CalculateLonLatGrids(luigi.Task):
 
     level1 = luigi.Parameter()
     work_root = luigi.Parameter(significant=False)
-    granule = luigi.Parameter(default=None)
+    granule = luigi.OptionalParameter(default='')
     group = luigi.Parameter()
     acq_parser_hint = luigi.OptionalParameter(default='')
     compression = luigi.EnumParameter(enum=H5CompressionFilter,
@@ -167,7 +167,7 @@ class AncillaryData(luigi.Task):
 
     level1 = luigi.Parameter()
     work_root = luigi.Parameter(significant=False)
-    granule = luigi.Parameter(default=None)
+    granule = luigi.OptionalParameter(default='')
     vertices = luigi.TupleParameter()
     workflow = luigi.EnumParameter(enum=Workflow)
     acq_parser_hint = luigi.OptionalParameter(default='')
@@ -219,7 +219,7 @@ class WriteTp5(luigi.Task):
 
     level1 = luigi.Parameter()
     work_root = luigi.Parameter(significant=False)
-    granule = luigi.Parameter(default=None)
+    granule = luigi.OptionalParameter(default='')
     vertices = luigi.TupleParameter()
     acq_parser_hint = luigi.OptionalParameter(default='')
     workflow = luigi.EnumParameter(enum=Workflow)
@@ -869,7 +869,7 @@ class LinkwaglOutputs(luigi.Task):
 
     level1 = luigi.Parameter()
     work_root = luigi.Parameter()
-    granule = luigi.Parameter(default=None)
+    granule = luigi.OptionalParameter(default='')
     acq_parser_hint = luigi.OptionalParameter(default='')
     workflow = luigi.EnumParameter(enum=Workflow)
     vertices = luigi.TupleParameter(default=(5, 5))

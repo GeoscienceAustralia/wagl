@@ -154,8 +154,7 @@ def create_lon_lat_grids(acquisition, out_group=None,
 
     # Initialise the array to contain the result
     result = numpy.zeros(shape, dtype='float64')
-    interpolate_grid(depth=depth, origin=(0, 0), shape=shape,
-                     eval_func=lon_func, grid=result)
+    interpolate_grid(result, lon_func, depth=depth, origin=(0, 0), shape=shape)
 
     # Initialise the output files
     if out_group is None:
@@ -183,8 +182,7 @@ def create_lon_lat_grids(acquisition, out_group=None,
     attach_image_attributes(lon_dset, attrs)
 
     result = numpy.zeros(shape, dtype='float64')
-    interpolate_grid(depth=depth, origin=(0, 0), shape=shape,
-                     eval_func=lat_func, grid=result)
+    interpolate_grid(result, lat_func, depth=depth, origin=(0, 0), shape=shape)
 
     attrs['description'] = LAT_DESC
     lat_dset = grp.create_dataset(DatasetName.LAT.value, data=result, **kwargs)
@@ -215,8 +213,7 @@ def create_grid(geobox, coord_fn, depth=7):
 
     # Initialise the array to contain the result
     arr = numpy.zeros(shape, dtype='float64')
-    interpolate_grid(depth=depth, origin=(0, 0), shape=shape,
-                     eval_func=func, grid=arr)
+    interpolate_grid(arr, func, depth=depth, origin=(0, 0), shape=shape)
 
     return arr
 

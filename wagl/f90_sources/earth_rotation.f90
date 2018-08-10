@@ -47,4 +47,4 @@ SUBROUTINE cal_pole(theta, phi, theta_p, phi_p, thp, php)
     tden=(cos(d2r*theta)*sin(d2r*theta_p)-sin(d2r*theta)*cos(d2r*theta_p)*cos(pdiff))
     php=(atan2(tnum,tden)-offset)/d2r
     return
-end SUBROUTINE cal_pole
+END SUBROUTINE cal_pole
