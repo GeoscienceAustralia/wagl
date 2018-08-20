@@ -1,6 +1,6 @@
 ! subroutine solar
 !subroutine solar(alat,along,iyear,imonth,iday,tt,solar_zen,sazi)
-subroutine solar(alat,along,centry,tt,solar_zen,sazi)
+SUBROUTINE solar(alat,along,century,tt,solar_zen,sazi)
 !   program used to calculate solar angle using NOAA method
 !   it is more accurate and using julian day
 !   the program is written by Fuqin Li in 2010
@@ -10,10 +10,8 @@ subroutine solar(alat,along,centry,tt,solar_zen,sazi)
 !   Inputs:
 !       alat
 !       along
-!       centry
+!       century
 !       tt
-!       solar_zen
-!       sazi
 
 !   Outputs:
 !       solar_zen
@@ -23,9 +21,9 @@ subroutine solar(alat,along,centry,tt,solar_zen,sazi)
 
     implicit none
 
-    double precision alat, along
-    double precision centry, tt
-    real solar_zen, sazi
+    double precision, intent(in) :: alat, along
+    double precision, intent(in) :: century, tt
+    real, intent(out) :: solar_zen, sazi
     double precision geom_ss
     double precision sun_long, sun_anom, eccent, sun_eqc
     double precision sun_truelong, sun_trueanom
@@ -35,14 +33,14 @@ subroutine solar(alat,along,centry,tt,solar_zen,sazi)
     double precision solar_zen1, solar_ele1, atmo
     double precision solar_ele, sss, ss_time
 
-    geom_ss = 280.46646d0+centry*(36000.76983d0+centry*0.0003032d0)
+    geom_ss = 280.46646d0+century*(36000.76983d0+century*0.0003032d0)
     sun_long = dmod(geom_ss,360d0)
-    sun_anom = 357.52911d0+centry*(35999.05029d0-0.0001537d0*centry)
-    eccent = 0.016708634d0-centry*(0.000042037d0+0.0001537d0*centry)
+    sun_anom = 357.52911d0+century*(35999.05029d0-0.0001537d0*century)
+    eccent = 0.016708634d0-century*(0.000042037d0+0.0001537d0*century)
 
-    sun_eqc = sin(sun_anom*d2r)*(1.914602d0-centry*(0.004817d0+ &
-      0.000014d0*centry))+sin(2*sun_anom*d2r)*(0.019993d0-0.000101d0* &
-      centry)+sin(3*sun_anom*d2r)*0.000289d0
+    sun_eqc = sin(sun_anom*d2r)*(1.914602d0-century*(0.004817d0+ &
+      0.000014d0*century))+sin(2*sun_anom*d2r)*(0.019993d0-0.000101d0* &
+      century)+sin(3*sun_anom*d2r)*0.000289d0
 
     sun_truelong = sun_long+sun_eqc
     sun_trueanom = sun_anom+sun_eqc
@@ -51,12 +49,12 @@ subroutine solar(alat,along,centry,tt,solar_zen,sazi)
       cos(sun_trueanom*d2r))
 
     sun_app = sun_truelong-0.00569d0-0.00478d0*sin(d2r*(125.04- &
-      1937.136d0*centry))
+      1937.136d0*century))
 
-    ecliptic_mean = 23.0+(26.0+((21.448-centry*(46.815+centry* &
-      (0.00059d0-centry*0.001813d0))))/60.0)/60.0
+    ecliptic_mean = 23.0+(26.0+((21.448-century*(46.815+century* &
+      (0.00059d0-century*0.001813d0))))/60.0)/60.0
 
-    obliq_corr = ecliptic_mean+0.00256*cos((125.04-1934.136*centry)* &
+    obliq_corr = ecliptic_mean+0.00256*cos((125.04-1934.136*century)* &
       d2r)
 
     sun_asc = r2d*(atan2(cos(sun_app*d2r),cos(obliq_corr*d2r)* &
@@ -112,4 +110,4 @@ subroutine solar(alat,along,centry,tt,solar_zen,sazi)
 
     return
 
-end subroutine solar
+END SUBROUTINE solar

@@ -23,7 +23,7 @@ SUBROUTINE bilinear_interpolation(nrow, ncol, coordinator, s1, s2, s3, s4, &
 !       The program was originally written by Fuqin Li,
 !       and now converted to a python module via f2py
 
-!       cof is bilinear coefficionts
+!       cof is bilinear coefficients
 !       boxline (line, istart, iend); now replaced by cstart, cend.
 
 !       program is used to interpolate modtran output from four coordinators
@@ -187,7 +187,7 @@ END SUBROUTINE bilinear_interpolation
 
 !------------------------------------------------------
 
-      subroutine gauss(a,m,n,b,x,solut)
+SUBROUTINE gauss(a,m,n,b,x,solut)
 !     gauss elimination solve ax=b with row and column pivotion
         real a(m,n),b(m)
         double precision x(m)
@@ -229,11 +229,11 @@ END SUBROUTINE bilinear_interpolation
           x(i)=sum
 60      continue
         return
-      end subroutine gauss
+END SUBROUTINE gauss
 
 !------------------------------------------------------
 
-      subroutine spiv(a,m,n,b,k,solut)
+SUBROUTINE spiv(a,m,n,b,k,solut)
         real a(m,n),b(m)
         logical solut
         integer k
@@ -263,4 +263,4 @@ END SUBROUTINE bilinear_interpolation
           endif
         endif
         return
-      end subroutine spiv
+END SUBROUTINE spiv

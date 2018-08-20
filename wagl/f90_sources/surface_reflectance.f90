@@ -237,7 +237,7 @@ SUBROUTINE reflectance( &
 !               Note the account taken of threshold
 
                 edir_t = edir_h(i, j) * cos(it) / cos(solar)
-!               calcualte adjacent irradiance for anisotropical surface
+!               calculate adjacent irradiance for anisotropical surface
 !               see Iqbal, 1983 "an introduction to solar
 !               radiation"
                 eadj = (edir_h(i, j) + edif_h(i, j)) * vt * ref_adj * &

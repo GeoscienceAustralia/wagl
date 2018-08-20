@@ -58,7 +58,7 @@ class DataStandardisation(luigi.Task):
     """
     level1 = luigi.Parameter()
     outdir = luigi.Parameter()
-    granule = luigi.Parameter(default=None)
+    granule = luigi.OptionalParameter(default='')
     workflow = luigi.EnumParameter(enum=Workflow, default=Workflow.STANDARD)
     vertices = luigi.TupleParameter(default=(5, 5))
     method = luigi.EnumParameter(enum=Method, default=Method.SHEAR)
@@ -83,7 +83,7 @@ class DataStandardisation(luigi.Task):
     filter_opts = luigi.DictParameter(default=None, significant=False)
     acq_parser_hint = luigi.OptionalParameter(default='')
     buffer_distance = luigi.FloatParameter(default=8000, significant=False)
-    h5_driver = luigi.Parameter(default=None, significant=False)
+    h5_driver = luigi.OptionalParameter(default='', significant=False)
 
     def output(self):
         fmt = '{label}.wagl.h5'
@@ -117,7 +117,7 @@ class ARD(luigi.WrapperTask):
     level1_list = luigi.Parameter()
 
     # override here so it's not required at the command line or config
-    level1 = luigi.Parameter(default=None, significant=False)
+    level1 = luigi.OptionalParameter(default='', significant=False)
 
     def requires(self):
         with open(self.level1_list) as src:

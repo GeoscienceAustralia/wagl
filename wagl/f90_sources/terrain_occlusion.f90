@@ -1,4 +1,4 @@
-subroutine proj_terrain(n_max, m_max, n, m, z, mask, n_off, m_off, k_max, &
+SUBROUTINE proj_terrain(n_max, m_max, n, m, z, mask, n_off, m_off, k_max, &
      n_inc, m_inc, h_offset, zmax, htol, dem_nr, dem_nc, nlA_ori, nsA_ori)
 
     implicit none
@@ -71,4 +71,4 @@ subroutine proj_terrain(n_max, m_max, n, m, z, mask, n_off, m_off, k_max, &
 110 continue
 100 continue
     return
-end subroutine proj_terrain
+END SUBROUTINE proj_terrain
