@@ -72,7 +72,8 @@ class Tp5Test(unittest.TestCase):
 
         with open(FNAME2, 'r') as src:
             data = ''.join(src.readlines())
-
+        
+      
         self.assertTrue(test == data)
 
     def test_midlat_summer_trans(self):

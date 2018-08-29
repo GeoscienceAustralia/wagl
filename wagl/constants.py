@@ -109,6 +109,8 @@ class DatasetName(Enum):
     SATELLITE_VIEW = 'SATELLITE-VIEW'
     SATELLITE_AZIMUTH = 'SATELLITE-AZIMUTH'
     SOLAR_ZENITH = 'SOLAR-ZENITH'
+    SOLAR_ZENITH_CHANNEL = 'SOLAR-ZENITH-CHANNEL'
+    #SOLAR_ZENITH_TOA = 'SOLAR-ZENITH-TOA'
     SOLAR_AZIMUTH = 'SOLAR-AZIMUTH'
     RELATIVE_AZIMUTH = 'RELATIVE-AZIMUTH'
     TIME = 'TIMEDELTA'
@@ -150,7 +152,7 @@ class DatasetName(Enum):
     INTERPOLATION_FMT = '{coefficient}/{band_name}'
 
     # wagl.modtran
-    TP5 = 'TP5-DATA'
+    JSON = 'JSON-DATA'
     FLUX = 'FLUX'
     ALTITUDES = 'ALTITUDES'
     SOLAR_IRRADIANCE = 'SOLAR-IRRADIANCE'
@@ -232,8 +234,8 @@ class Albedos(Enum):
     """
 
     ALBEDO_0 = '0'
-    ALBEDO_1 = '1'
-    ALBEDO_T = 'T'
+    #ALBEDO_1 = '1'
+    #ALBEDO_T = 'T'
     ALBEDO_TH = 'TH'
 
 

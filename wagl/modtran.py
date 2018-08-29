@@ -11,28 +11,46 @@ import os
 from os.path import join as pjoin, exists, dirname
 import subprocess
 import glob
-
 from posixpath import join as ppjoin
 import numpy
-from scipy.io import FortranFile
 import h5py
 import pandas as pd
-
+import json
+import fnmatch
 from wagl.constants import Workflow, BandType, DatasetName, GroupName, Albedos
 from wagl.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
 from wagl.constants import AtmosphericCoefficients as AC
 from wagl.hdf5 import write_dataframe, read_h5_table, create_external_link
 from wagl.hdf5 import VLEN_STRING, write_scalar, H5CompressionFilter
-from wagl.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
-from wagl.modtran_profiles import MIDLAT_SUMMER_TRANSMITTANCE, SBT_FORMAT
-from wagl.modtran_profiles import TROPICAL_TRANSMITTANCE, THERMAL_TRANSMITTANCE
+import wagl.modtran_profile_json as mpjson
 
+
+
+class JsonEncoder(json.JSONEncoder):
+    """
+    A wrapper class to address the issue of json encoding error
+    This class handles  the json serializing error for numpy 
+    datatype: 'float32' and numpy arrays
+    """
+    def default(self, obj):
+        if isinstance(obj, numpy.integer):
+            return int(obj)
+        elif isinstance(obj, numpy.floating):
+            return float(obj)
+        elif isinstance(obj, numpy.ndarray):
+            return obj.tolist()
+        else:
+            return super(MyEncoder, self).default(obj)
 
 def prepare_modtran(acquisitions, coordinate, albedos, basedir, modtran_exe):
     """
     Prepares the working directory for a MODTRAN execution.
     """
-    data_dir = pjoin(dirname(modtran_exe), 'DATA')
+    
+    print('this is modtran exe dir' + dirname(modtran_exe))
+    
+    data_dir = pjoin('/g/data1a/u46/users/pd1813/test-run/','DATA')  # need to change this to right DATA dir
+    
     if not exists(data_dir):
         raise OSError('Cannot find MODTRAN')
 
@@ -50,24 +68,22 @@ def prepare_modtran(acquisitions, coordinate, albedos, basedir, modtran_exe):
         if not exists(modtran_work):
             os.makedirs(modtran_work)
 
-        out_fname = pjoin(modtran_work, 'mod5root.in')
-        with open(out_fname, 'w') as src:
-            src.write(POINT_ALBEDO_FMT.format(p=coordinate,
-                                              a=albedo.value) + '\n')
-
         symlink_dir = pjoin(modtran_work, 'DATA')
+
         if exists(symlink_dir):
             os.unlink(symlink_dir)
 
         os.symlink(data_dir, symlink_dir)
 
-        out_fname = pjoin(modtran_work, acq.spectral_filter_file)
+        out_fname = pjoin(modtran_work, acq.spectral_filter_file)  # filter file name needs to be put in DATA directory
+
         response = acq.spectral_response(as_list=True)
+
         with open(out_fname, 'wb') as src:
             src.writelines(response)
 
 
-def _format_tp5(acquisitions, satellite_solar_angles_fname,
+def _format_json(acquisitions, satellite_solar_angles_fname,
                 longitude_latitude_fname, ancillary_fname, out_fname, workflow):
     """
     A private wrapper for dealing with the internal custom workings of the
@@ -81,15 +97,15 @@ def _format_tp5(acquisitions, satellite_solar_angles_fname,
         grp1 = anc_fid[GroupName.ANCILLARY_GROUP.value]
         grp2 = sat_sol_fid[GroupName.SAT_SOL_GROUP.value]
         grp3 = lon_lat_fid[GroupName.LON_LAT_GROUP.value]
-        tp5_data, _ = format_tp5(acquisitions, grp1, grp2, grp3, workflow, fid)
+        json_data, _ = format_json(acquisitions, grp1, grp2, grp3, workflow, fid)
 
-    return tp5_data
+    return json_data
 
 
-def format_tp5(acquisitions, ancillary_group, satellite_solar_group,
+def format_json(acquisitions, ancillary_group, satellite_solar_group,
                lon_lat_group, workflow, out_group):
     """
-    Creates str formatted tp5 files for the albedo (0, 1) and
+    Creates json files for the albedo (0, 1) and
     transmittance (t).
     """
     # angles data
@@ -141,12 +157,6 @@ def format_tp5(acquisitions, ancillary_group, satellite_solar_group,
 
     # get the modtran profiles to use based on the centre latitude
     _, centre_lat = acquisitions[0].gridded_geo_box().centre_lonlat
-    if centre_lat < -23.0:
-        albedo_profile = MIDLAT_SUMMER_ALBEDO
-        trans_profile = MIDLAT_SUMMER_TRANSMITTANCE
-    else:
-        albedo_profile = TROPICAL_ALBEDO
-        trans_profile = TROPICAL_TRANSMITTANCE
 
     if out_group is None:
         out_group = h5py.File('atmospheric-inputs.h5', 'w')
@@ -158,76 +168,111 @@ def format_tp5(acquisitions, ancillary_group, satellite_solar_group,
     iso_time = acquisitions[0].acquisition_datetime.isoformat()
     group.attrs['acquisition-datetime'] = iso_time
 
-    tp5_data = {}
-
-    # setup the tp5 files required by MODTRAN
+    json_data = {}
+    # setup the json files required by MODTRAN
     if workflow == Workflow.STANDARD or workflow == Workflow.NBAR:
         acqs = [a for a in acquisitions if a.band_type == BandType.REFLECTIVE]
 
         for p in range(npoints):
+            print('this is point...' + str(p))
+            print(npoints)
             for alb in Workflow.NBAR.albedos:
-                input_data = {'water': water_vapour,
-                              'ozone': ozone,
-                              'filter_function': acqs[0].spectral_filter_file,
-                              'visibility': -aerosol,
+                print(alb)
+                name = 'POINT-%i-ALBEDO-%s' %(p,str(alb.value))
+                water = water_vapour
+                ozone = ozone
+                filter_function = acqs[0].spectral_filter_file
+                visibility = -aerosol
+                elevation = elevation
+                sat_height = acquisitions[0].altitude / 1000.0
+                sat_view = view_corrected[p]
+                doy =  acquisitions[0].julian_day()
+                binary = False
+                input_data = {'water':water,
+                              'ozone':ozone,
+                              'filter_function':filter_function,
+                              'visibility':visibility,
                               'elevation': elevation,
-                              'sat_height': acquisitions[0].altitude / 1000.0,
-                              'sat_view': view_corrected[p],
-                              'doy': acquisitions[0].julian_day(),
-                              'binary': 'T'}
-                if alb == Albedos.ALBEDO_T:
-                    input_data['albedo'] = 0.0
-                    input_data['sat_view_offset'] = 180.0-view_corrected[p]
-                    data = trans_profile.format(**input_data)
-                else:
-                    input_data['albedo'] = float(alb.value)
-                    input_data['lat'] = lat[p]
-                    input_data['lon'] = rlon[p]
-                    input_data['time'] = acquisitions[0].decimal_hour()
-                    input_data['sat_azimuth'] = azi_corrected[p]
-                    data = albedo_profile.format(**input_data)
+                              'sat_height':sat_height,
+                              'sat_view':sat_view,
+                              'doy':doy,
+                              'binary':binary}
+                
+                albedo = float(alb.value)
+                lats = lat[p]
+                lons = rlon[p]
+                time = acquisitions[0].decimal_hour()
+                sat_azimuth = azi_corrected[p]
 
-                tp5_data[(p, alb)] = data
+                input_data['albedo'] = albedo
+                input_data['lat'] = lats
+                input_data['lon'] = lons
+                input_data['time'] = time
+                input_data['sat_azimuth'] = sat_azimuth
+               
+                if centre_lat < -23.0:
+                    data = mpjson.midlat_summer_albedo(name,water,ozone,visibility,doy,lats,lons,time,sat_azimuth,\
+                                                       elevation,sat_height,sat_view,albedo,filter_function,binary)
+                else:
+                    data = mpjson.tropical_albedo(name,water,ozone,visibility,doy,lats,lons,time,sat_azimuth,\
+                                                  sat_height,elevation,sat_view,albedo,filter_function,binary)
+
+                json_data[(p, alb)] = data
 
                 dname = ppjoin(POINT_FMT.format(p=p),
                                ALBEDO_FMT.format(a=alb.value),
-                               DatasetName.TP5.value)
+                               DatasetName.JSON.value)
                 write_scalar(numpy.string_(data), dname, group, input_data)
 
-    # create tp5 for sbt if it has been collected
+    # create json for sbt if it has been collected
     if ancillary_group.attrs.get('sbt-ancillary'):
         dname = ppjoin(POINT_FMT, DatasetName.ATMOSPHERIC_PROFILE.value)
         acqs = [a for a in acquisitions if a.band_type == BandType.THERMAL]
 
         for p in range(npoints):
-            atmospheric_profile = []
+            name = 'POINT-%i-ALBEDO-TH' %(p)
+            #atmospheric_profile = []
             atmos_profile = read_h5_table(ancillary_group, dname.format(p=p))
             n_layers = atmos_profile.shape[0] + 6
             elevation = atmos_profile.iloc[0]['GeoPotential_Height']
-
+            
+            prof_alt,prof_pres,prof_temp,prof_water = [],[],[],[]
+            
             for i, row in atmos_profile.iterrows():
-                input_data = {'gpheight': row['GeoPotential_Height'],
-                              'pressure': row['Pressure'],
-                              'airtemp': row['Temperature'],
-                              'humidity': row['Relative_Humidity'],
-                              'zero': 0.0}
-                atmospheric_profile.append(SBT_FORMAT.format(**input_data))
+                prof_alt.append(row['GeoPotential_Height'])
+                prof_pres.append(row['Pressure'])
+                prof_temp.append(row['Temperature'])
+                prof_water.append(row['Relative_Humidity'])
+                
+                
+            ozone = ozone
+            filter_function = acqs[0].spectral_filter_file
+            visibility = -aerosol
+            gpheight= elevation
+            n =  n_layers
+            sat_height = acquisitions[0].altitude / 1000.0
+            sat_view = view_corrected[p]
+            binary = False
+            input_data = {'ozone':ozone,
+                          'filter_function':filter_function,
+                          'visibility':visibility,
+                          'gpheight':elevation,
+                          'n': n,
+                          'sat_height':sat_height,
+                          'sat_view':sat_view,
+                          'binary':binary,
+                          'prof_alt':prof_alt,
+                          'prof_pres':prof_pres,
+                          'prof_temp':prof_temp,
+                          'prof_water':prof_water}
 
-            input_data = {'ozone': ozone,
-                          'filter_function': acqs[0].spectral_filter_file,
-                          'visibility': -aerosol,
-                          'gpheight': elevation,
-                          'n': n_layers,
-                          'sat_height': acquisitions[0].altitude / 1000.0,
-                          'sat_view': view_corrected[p],
-                          'binary': 'T',
-                          'atmospheric_profile': ''.join(atmospheric_profile)}
+            data = mpjson.thermal_transmittance(name,ozone,n,prof_alt,prof_pres,prof_temp,prof_water,visibility,sat_height,gpheight,\
+                                                sat_view,filter_function,binary)
 
-            data = THERMAL_TRANSMITTANCE.format(**input_data)
-            tp5_data[(p, Albedos.ALBEDO_TH)] = data
+            json_data[(p, Albedos.ALBEDO_TH)] = data
             out_dname = ppjoin(POINT_FMT.format(p=p),
                                ALBEDO_FMT.format(a=Albedos.ALBEDO_TH.value),
-                               DatasetName.TP5.value)
+                               DatasetName.JSON.value)
             write_scalar(numpy.string_(data), out_dname, group, input_data)
 
     # attach location info to each point Group
@@ -235,7 +280,7 @@ def format_tp5(acquisitions, ancillary_group, satellite_solar_group,
         lonlat = (coordinator['longitude'][p], coordinator['latitude'][p])
         group[POINT_FMT.format(p=p)].attrs['lonlat'] = lonlat
 
-    return tp5_data, out_group
+    return json_data, out_group
 
 
 def _run_modtran(acquisitions, modtran_exe, basedir, point, albedos, workflow,
@@ -289,19 +334,29 @@ def run_modtran(acquisitions, atmospherics_group, workflow, npoints, point,
 
     acqs = acquisitions
     for albedo in albedos:
+        print(albedo)
         base_attrs['Albedo'] = albedo.value
         workpath = pjoin(basedir, POINT_FMT.format(p=point),
                          ALBEDO_FMT.format(a=albedo.value))
+        
+        json_mod_infile  = pjoin(workpath, ''.join([POINT_ALBEDO_FMT.format(p=point,a=albedo.value), '.json']))
+        
+        data_dir = pjoin(workpath, 'DATA')
+
         group_path = ppjoin(base_path, ALBEDO_FMT.format(a=albedo.value))
 
-        subprocess.check_call([modtran_exe], cwd=workpath)
-        chn_fname = glob.glob(pjoin(workpath, '*.chn'))[0]
+        subprocess.check_call([modtran_exe, json_mod_infile, data_dir],cwd=workpath)
 
+
+        chn_fname = glob.glob(pjoin(workpath, '*.chn'))[0]    # need to change how .chn file is read
+        tp6_fname = glob.glob(pjoin(workpath,'*.tp6'))[0]
+
+        
         if albedo == Albedos.ALBEDO_TH:
             acq = [acq for acq in acqs if acq.band_type == BandType.THERMAL][0]
-            channel_data = read_modtran_channel(chn_fname, acq, albedo)
+            
+            channel_data = read_modtran_channel(chn_fname,tp6_fname, acq, albedo) #read modtran .chn file needs to change to json read
 
-            # upward radiation
             attrs = base_attrs.copy()
             dataset_name = DatasetName.UPWARD_RADIATION_CHANNEL.value
             attrs['description'] = ('Upward radiation channel output from '
@@ -321,48 +376,26 @@ def run_modtran(acquisitions, atmospherics_group, workflow, npoints, point,
         else:
             acq = [acq for acq in acqs if
                    acq.band_type == BandType.REFLECTIVE][0]
-            flux_fname = glob.glob(pjoin(workpath, '*_b.flx'))[0]
-            flux_data, altitudes = read_modtran_flux(flux_fname)
-            channel_data = read_modtran_channel(chn_fname, acq, albedo)
 
-            # ouput the flux data
-            attrs = base_attrs.copy()
-            dset_name = ppjoin(group_path, DatasetName.FLUX.value)
-            attrs['description'] = 'Flux output from MODTRAN'
-            write_dataframe(flux_data, dset_name, fid, compression,
-                            attrs=attrs, filter_opts=filter_opts)
-
-            # output the altitude data
-            attrs = base_attrs.copy()
-            attrs['description'] = 'Altitudes output from MODTRAN'
-            attrs['altitude_levels'] = altitudes.shape[0]
-            attrs['units'] = 'km'
-            dset_name = ppjoin(group_path, DatasetName.ALTITUDES.value)
-            write_dataframe(altitudes, dset_name, fid, compression,
-                            attrs=attrs, filter_opts=filter_opts)
-
-            # accumulate the solar irradiance
-            transmittance = True if albedo == Albedos.ALBEDO_T else False
-            response = acq.spectral_response()
-            accumulated = calculate_solar_radiation(flux_data, response,
-                                                    altitudes.shape[0],
-                                                    transmittance)
-
-            attrs = base_attrs.copy()
-            dset_name = ppjoin(group_path, DatasetName.SOLAR_IRRADIANCE.value)
-            description = ("Accumulated solar irradiation for point {} "
-                           "and albedo {}.")
-            attrs['description'] = description.format(point, albedo.value)
-            write_dataframe(accumulated, dset_name, fid, compression,
-                            attrs=attrs, filter_opts=filter_opts)
+            channel_data = read_modtran_channel(chn_fname,tp6_fname, acq, albedo) # needs changing to read json
 
             attrs = base_attrs.copy()
             dataset_name = DatasetName.CHANNEL.value
             attrs['description'] = 'Channel output from MODTRAN'
             dset_name = ppjoin(group_path, dataset_name)
-            write_dataframe(channel_data, dset_name, fid, compression,
+            write_dataframe(channel_data[0], dset_name, fid, compression,
                             attrs=attrs, filter_opts=filter_opts)
 
+            # solar zenith angle at surface
+            attrs = base_attrs.copy()
+            dataset_name = DatasetName.SOLAR_ZENITH_CHANNEL.value
+            print('dataset_name is ..' + dataset_name)
+            attrs['description'] = 'Solar zenigth angle at different atmosphere levels' 
+            dset_name = ppjoin(group_path,dataset_name)
+            write_dataframe(channel_data[1],dset_name,fid,compression,attrs=attrs,filter_opts=filter_opts)
+            
+
+            
     # metadata for a given point
     alb_vals = [alb.value for alb in workflow.albedos]
     fid[base_path].attrs['lonlat'] = lonlat
@@ -430,8 +463,7 @@ def calculate_coefficients(atmospheric_results_group, out_group,
     """
     nbar_coefficients = pd.DataFrame()
     sbt_coefficients = pd.DataFrame()
-    accumulation_albedo_0 = accumulation_albedo_1 = None
-    accumulation_albedo_t = None
+
     channel_data = upward = downward = None
 
     # Initialise the output group/file
@@ -451,33 +483,33 @@ def calculate_coefficients(atmospheric_results_group, out_group,
         lonlat = point_grp.attrs['lonlat']
         timestamp = pd.to_datetime(point_grp.attrs['datetime'])
         grp_path = ppjoin(POINT_FMT.format(p=point), ALBEDO_FMT)
+        
         if nbar_atmos:
-            dataset_name = DatasetName.SOLAR_IRRADIANCE.value
-            albedo_0_path = ppjoin(grp_path.format(a=Albedos.ALBEDO_0.value),
-                                   dataset_name)
-            albedo_1_path = ppjoin(grp_path.format(a=Albedos.ALBEDO_1.value),
-                                   dataset_name)
-            albedo_t_path = ppjoin(grp_path.format(a=Albedos.ALBEDO_T.value),
-                                   dataset_name)
+
             channel_path = ppjoin(grp_path.format(a=Albedos.ALBEDO_0.value),
                                   DatasetName.CHANNEL.value)
-
-            accumulation_albedo_0 = read_h5_table(res, albedo_0_path)
-            accumulation_albedo_1 = read_h5_table(res, albedo_1_path)
-            accumulation_albedo_t = read_h5_table(res, albedo_t_path)
             channel_data = read_h5_table(res, channel_path)
+            
+            
+            channel_solar_angle_path = ppjoin(grp_path.format(a=Albedos.ALBEDO_0.value),
+                                  DatasetName.SOLAR_ZENITH_CHANNEL.value)
+            
+            channel_solar_angle = read_h5_table(res, channel_solar_angle_path)
+
+            
         if sbt_atmos:
             dname = ppjoin(grp_path.format(a=Albedos.ALBEDO_TH.value),
                            DatasetName.UPWARD_RADIATION_CHANNEL.value)
+            
             upward = read_h5_table(res, dname)
+            
             dname = ppjoin(grp_path.format(a=Albedos.ALBEDO_TH.value),
                            DatasetName.DOWNWARD_RADIATION_CHANNEL.value)
             downward = read_h5_table(res, dname)
 
-        kwargs = {'accumulation_albedo_0': accumulation_albedo_0,
-                  'accumulation_albedo_1': accumulation_albedo_1,
-                  'accumulation_albedo_t': accumulation_albedo_t,
-                  'channel_data': channel_data,
+        
+        kwargs = {'channel_data': channel_data,
+                  'solar_zenith_angle':channel_solar_angle,
                   'upward_radiation': upward,
                   'downward_radiation': downward}
 
@@ -498,11 +530,6 @@ def calculate_coefficients(atmospheric_results_group, out_group,
             result[1].insert(3, 'DATETIME', pd.to_datetime(timestamp))
             sbt_coefficients = sbt_coefficients.append(result[1])
 
-        # TODO: check if number of records > (some chunksize)
-        #       and write that portion of the table to disk
-        # TODO: implement an append write_dataframe
-        #       which will aid in reducing memory consumption
-
     nbar_coefficients.reset_index(inplace=True)
     sbt_coefficients.reset_index(inplace=True)
 
@@ -515,6 +542,7 @@ def calculate_coefficients(atmospheric_results_group, out_group,
         fid.create_group(GroupName.COEFFICIENTS_GROUP.value)
 
     group = fid[GroupName.COEFFICIENTS_GROUP.value]
+    
     if nbar_atmos:
         write_dataframe(nbar_coefficients, dname, group, compression,
                         attrs=attrs, filter_opts=filter_opts)
@@ -531,9 +559,7 @@ def calculate_coefficients(atmospheric_results_group, out_group,
         return fid
 
 
-def coefficients(accumulation_albedo_0=None, accumulation_albedo_1=None,
-                 accumulation_albedo_t=None, channel_data=None,
-                 upward_radiation=None, downward_radiation=None):
+def coefficients(channel_data=None,solar_zenith_angle=None,upward_radiation=None,downward_radiation=None):
     """
     Calculate the coefficients for a given point.
     Calculate the atmospheric coefficients from the MODTRAN output
@@ -542,30 +568,17 @@ def coefficients(accumulation_albedo_0=None, accumulation_albedo_1=None,
     The atmospheric coefficients can be found in
     `Workflow.STANDARD.atmos_coefficients`.
 
-    :param accumulation_albedo_0:
-        A `pandas.DataFrame` containing the solar accumulated
-        irradiance (for albedo 0) and structured as returned by the
-        `calculate_solar_radiation` function.
-        Only used for NBAR calculations.
-
-    :param accumulation_albedo_1:
-        A `pandas.DataFrame` containing the solar accumulated
-        irradiance (for albedo 1) and structured as returned by the
-        `calculate_solar_radiation` function.
-        Only used for NBAR calculations.
-
-    :param accumulation_albedo_t:
-        A `pandas.DataFrame` containing the solar accumulated
-        irradiance (for albed0 t; transmittance) and structured as
-        returned by the `calculate_solar_radiation` function.
-        Only used for NBAR calculations.
 
     :param channel_data:
         A `pandas.DataFrame` containing the channel data for that
         point, and structured as returned by the
         `read_modtran_channel` function.
         Only used for NBAR calculations.
-
+        
+    :param solar_zenith_angle:
+        A 'pandas.DataFrame' containing the value for solar zenith angle 
+        for atmosphere layers(altitudes)
+   
     :param upward_radiation:
         A `pandas.DataFrame` containing the upward radiation data for
         that point, and structured as returned by the
@@ -587,46 +600,45 @@ def coefficients(accumulation_albedo_0=None, accumulation_albedo_1=None,
         If `upward_radiation` is None, then the second item in the
         returned `tuple` will be None.
     """
-    nbar = sbt = None
-    if accumulation_albedo_0 is not None:
-        diff_0 = accumulation_albedo_0['diffuse'] * 10000000.0
-        diff_1 = accumulation_albedo_1['diffuse'] * 10000000.0
-        dir_0 = accumulation_albedo_0['direct'] * 10000000.0
-        dir_1 = accumulation_albedo_1['direct'] * 10000000.0
-        dir_t = accumulation_albedo_t['direct']
-        dir0_top = accumulation_albedo_0['direct_top'] * 10000000.0
-        dirt_top = accumulation_albedo_t['direct_top']
-        tv_total = accumulation_albedo_t['transmittance']
-        ts_total = (diff_0 + dir_0) / dir0_top
-        ts_dir = dir_0 / dir0_top
-        tv_dir = dir_t / dirt_top
+    
 
+    nbar = sbt = None
+    
+    if channel_data is not None:
+       
         columns = [v.value for v in Workflow.NBAR.atmos_coefficients]
         nbar = pd.DataFrame(columns=columns, index=channel_data.index)
+        cszen0 = numpy.cos(numpy.radians(float(solar_zenith_angle['solar_zenith'][-1:])))
+        csnsrf = numpy.cos(numpy.radians(float(solar_zenith_angle['solar_zenith'][0])))
+        tv = channel_data['24']
+        ts = ((channel_data['19']/channel_data['18'])*csnsrf/numpy.pi)/tv
+        Ts = channel_data['21']/tv
+        Tv = tv + channel_data['22']/Ts
+        E0_cozen = (channel_data['18']*numpy.pi/channel_data['8'])*(cszen0/csnsrf)
+        A_prime = E0_cozen * Ts * Tv/numpy.pi
 
-        nbar[AC.FS.value] = ts_dir / ts_total
-        nbar[AC.FV.value] = tv_dir / tv_total
-        nbar[AC.A.value] = (diff_0 + dir_0) / numpy.pi * tv_total
-        nbar[AC.B.value] = channel_data['3'] * 10000000
-        nbar[AC.S.value] = 1 - (diff_0 + dir_0) / (diff_1 + dir_1)
-        nbar[AC.DIR.value] = dir_0
-        nbar[AC.DIF.value] = diff_0
-        nbar[AC.TS.value] = ts_dir
-
+        nbar[AC.FS.value] = ts / Ts
+        nbar[AC.FV.value] = tv / Tv
+        nbar[AC.A.value] = A_prime * 10000000
+        nbar[AC.B.value] = channel_data['4'] * 10000000
+        nbar[AC.S.value] = channel_data['23']
+        nbar[AC.DIR.value] = E0_cozen * ts * 10000000
+        nbar[AC.DIF.value] = (Ts - ts) * E0_cozen * 10000000
+        nbar[AC.TS.value] = ts
+        
     if upward_radiation is not None:
         columns = [v.value for v in Workflow.SBT.atmos_coefficients]
         columns.extend(['TRANSMITTANCE-DOWN']) # Currently not required
         sbt = pd.DataFrame(columns=columns, index=upward_radiation.index)
 
-        sbt[AC.PATH_UP.value] = upward_radiation['3'] * 10000000
-        sbt[AC.TRANSMITTANCE_UP.value] = upward_radiation['14']
-        sbt[AC.PATH_DOWN.value] = downward_radiation['3'] * 10000000
-        sbt['TRANSMITTANCE-DOWN'] = downward_radiation['14']
-
-    return nbar, sbt
+        sbt[AC.PATH_UP.value] = upward_radiation['4'] * 10000000
+        sbt[AC.TRANSMITTANCE_UP.value] = upward_radiation['15']
+        sbt[AC.PATH_DOWN.value] = downward_radiation['4'] * 10000000
+        sbt['TRANSMITTANCE-DOWN'] = downward_radiation['15']
 
 
 def read_spectral_response(fname, as_list=False, spectral_range=None):
+    
     """
     Read the spectral response function text file used during
     MODTRAN processing.
@@ -704,85 +716,53 @@ def read_spectral_response(fname, as_list=False, spectral_range=None):
 
     return spectral_response
 
-
-def read_modtran_flux(fname):
+def _get_solar_angles(tp6_fname):
     """
-    Read a MODTRAN output `*_b.flx` binary file.
-
-    :param fname:
-        A `str` containing the full file pathname of the flux
-        data file.
-
-    :return:
-        Two `pandas.DataFrame's`. The first contains the spectral flux
-        table data, and the second is contains the atmospheric height
-        levels in km.
+    Read a MODTRAN output '*.tp6' ascii file.
+    
+    :param tp6_fname:
+        A 'str' containing the full file pathname of the tp6 
+        data file 
+        
+    :return: 
+        solar zenith angle at surface and top of atmosphere 
+    
     """
-    # define a datatype for the hdr info
-    hdr_dtype = numpy.dtype([('record_length', 'int32'),
-                             ('spectral_unit', 'S1'),
-                             ('relabs', 'S1'),
-                             ('linefeed', 'S1'),
-                             ('mlflx', 'int32'),
-                             ('iv1', 'float32'),
-                             ('band_width', 'float32'),
-                             ('fwhm', 'float32'),
-                             ('ifwhm', 'float32')])
+    
+    f = open(tp6_fname,'r')
+    cnt = 0
+    cnt_start = 0
 
-    # datatype for the dataframe containing the flux data
-    flux_dtype = numpy.dtype([('upward_diffuse', 'float64'),
-                              ('downward_diffuse', 'float64'),
-                              ('direct_solar', 'float64')])
+    for line in f.readlines(): 
+        cnt +=1 
+        if fnmatch.fnmatch(line,'*SINGLE SCATTER SOLAR PATH GEOMETRY TABLE FOR MULTIPLE SCATTERING*'):
+            cnt_start = cnt
+            continue
 
-    with open(fname, 'rb') as src:
-        # read the hdr record
-        hdr_data = numpy.fromfile(src, hdr_dtype, count=1)
+    f.close()
+    f = open(tp6_fname,'r')
+    
+    lines = list(f.readlines()[cnt_start+4: cnt_start + 40])  # this constant is (40-4 = num of atm 
+                                                              # layer)
+    data = numpy.vstack([ln.rstrip().split() for ln in lines]).T
+      
+    solar_zenith = data[3] # solar zenith angle at all atmosphere layers
+    
+    return solar_zenith
 
-        # maximum flux levels at a spectral grid point
-        levels = hdr_data['mlflx'][0] + 1
-
-        # define a datatype to read a record containing flux data
-        dtype = numpy.dtype([('wavelength', 'float64'),
-                             ('flux_data', 'float64', (levels, 3))])
-
-        # read the rest of the hdr which contains the altitude data
-        altitude = numpy.fromfile(src, dtype='float32', count=levels)
-
-        # read the record length end value
-        _ = numpy.fromfile(src, 'int32', count=1)
-
-        # initialise the FORTRAN read
-        ffile = FortranFile(src)
-
-        # read data from 2600 down to 350
-        flux = {}
-        wavelength_steps = range(2600, 349, -1)
-        for wv in wavelength_steps:
-            data = ffile.read_record(dtype)
-            df = pd.DataFrame(numpy.zeros(levels, dtype=flux_dtype))
-            #df['wavelength'] = data['wavelength'][0]
-            df['upward_diffuse'] = data['flux_data'].squeeze()[:, 0]
-            df['downward_diffuse'] = data['flux_data'].squeeze()[:, 1]
-            df['direct_solar'] = data['flux_data'].squeeze()[:, 2]
-            flux[wv] = df
-
-    # concatenate into a single table
-    flux_data = pd.concat(flux, names=['wavelength', 'level'])
-
-    # setup a dataframe for the altitude
-    altitude = pd.DataFrame({'altitude': altitude})
-    altitude.index.name = 'layer'
-
-    return flux_data, altitude
-
-
-def read_modtran_channel(fname, acquisition, albedo):
+    
+def read_modtran_channel(fname,tp6_fname,acquisition, albedo):
     """
     Read a MODTRAN output `*.chn` ascii file.
-
+    
     :param fname:
         A `str` containing the full file pathname of the channel
         data file.
+    
+    :param tp6_fname:
+        A 'str' containing the full file pathname of the tp6 
+        data file 
+
 
     :param acquisition:
         An instance of an acquisition object.
@@ -797,154 +777,49 @@ def read_modtran_channel(fname, acquisition, albedo):
     """
     response = acquisition.spectral_response()
     nbands = response.index.get_level_values('band_name').unique().shape[0]
+
+   
     if albedo == Albedos.ALBEDO_TH:
+        
         upward_radiation = pd.read_csv(fname, skiprows=5, header=None,
                                        delim_whitespace=True, nrows=nbands)
+        
         downward_radiation = pd.read_csv(fname, skiprows=10+nbands,
                                          header=None, delim_whitespace=True,
                                          nrows=nbands)
-        upward_radiation['band_name'] = upward_radiation[16]
-        downward_radiation['band_name'] = downward_radiation[16]
-        upward_radiation.drop(16, inplace=True, axis=1)
-        downward_radiation.drop(16, inplace=True, axis=1)
+        
+        upward_radiation['band_name'] = upward_radiation[17]
+        downward_radiation['band_name'] = downward_radiation[17]
+        upward_radiation.drop(17, inplace=True, axis=1)
+        downward_radiation.drop(17, inplace=True, axis=1)
         upward_radiation.set_index('band_name', inplace=True)
         downward_radiation.set_index('band_name', inplace=True)
         upward_radiation.columns = upward_radiation.columns.astype(str)
         downward_radiation.columns = downward_radiation.columns.astype(str)
 
         return upward_radiation, downward_radiation
-
+    
+    
+    #get solar zenith angle at all layers from *.tp6 file 
+    solar_zenith = _get_solar_angles(tp6_fname)
+   
+    df_sz_angle = pd.DataFrame()
+   
+    df_sz_angle['solar_zenith'] = solar_zenith
+    
+    
     chn_data = pd.read_csv(fname, skiprows=5, header=None, nrows=nbands,
                            delim_whitespace=True)
-    chn_data['band_name'] = chn_data[20]
-    chn_data.drop(20, inplace=True, axis=1)
-    chn_data.set_index('band_name', inplace=True)
+    print(chn_data)
+    
+    chn_data['band_name'] = chn_data[26] 
+    chn_data.drop(26,inplace=True,axis=1)
+    
+    chn_data.set_index('band_name',inplace=True)
     chn_data.columns = chn_data.columns.astype(str)
+    print(chn_data)
 
-    return chn_data
-
-
-def calculate_solar_radiation(flux_data, spectral_response, levels=36,
-                              transmittance=False):
-    """
-    Retreive the flux data from the MODTRAN output `*.flx`, and
-    calculate the solar radiation.
-
-    The solar radiation will be calculated for each of the bands
-    contained within the spectral response dataset.
-
-    :param flux_data:
-        A `pandas.DataFrame` structured as if read from the
-        `read_modtran_flux` function.
-
-    :param spectral_response:
-        A `pandas.DataFrame` containing the spectral response
-        and structured as if read from the `read_spectral_response`
-        function.
-
-    :param levels:
-        The number of atmospheric levels. Default is 36.
-
-    :param transmittance:
-        If set to `True`, then calculate the solar radiation in
-        transmittance mode. Default is to calculate from albedo.
-
-    :return:
-        A `pandas.DataFrame` containing the solar radiation
-        accumulation.
-    """
-    # index location of the top atmospheric level
-    idx = levels - 1
-
-    # group via the available bands
-    band_name = spectral_response.index.get_level_values('band_name')
-    groups = spectral_response.groupby(band_name)
-
-    # output dataframe
-    # later on the process can be refined to only evaluate the bands
-    # we wish to process
-    if transmittance:
-        columns = ['diffuse',
-                   'direct',
-                   'diffuse_top',
-                   'direct_top',
-                   'transmittance']
-    else:
-        columns = ['diffuse', 'direct', 'direct_top']
-    df = pd.DataFrame(columns=columns, index=groups.groups.keys(),
-                      dtype='float64')
-
-    # start wavelength and end wavelength, eg 2600 & 350 respectively
-    st_wl = spectral_response.index[0][1]
-    ed_wl = spectral_response.index[-1][1]
-
-    # indices for flux at bottom and top of atmosphere layers
-    wv_idx = range(st_wl - 1, ed_wl - 1, -1)
-    wv_idx2 = [(i, 0) for i in wv_idx]
-    wv_idx3 = [(i, idx) for i in wv_idx]
-
-    # loop over each band and get the solar radiation
-    for band, grp in groups:
-
-        # downward diffuse at bottom of atmospheric levels
-        diffuse_bottom = (grp.ix[band, st_wl]['response'] *
-                          flux_data.ix[st_wl, 'downward_diffuse'][0] +
-                          grp.ix[band, ed_wl]['response'] *
-                          flux_data.ix[ed_wl, 'downward_diffuse'][0]) / 2
-
-        # direct solar at bottom of atmospheric levels
-        direct_bottom = (grp.ix[band, st_wl]['response'] *
-                         flux_data.ix[st_wl, 'direct_solar'][0] +
-                         grp.ix[band, ed_wl]['response'] *
-                         flux_data.ix[ed_wl, 'direct_solar'][0]) / 2
-
-        # direct solar at top of atmospheric levels
-        direct_top = (grp.ix[band, st_wl]['response'] *
-                      flux_data.ix[st_wl, 'direct_solar'][idx] +
-                      grp.ix[band, ed_wl]['response'] *
-                      flux_data.ix[ed_wl, 'direct_solar'][idx]) / 2
-
-        response_sum = (grp.ix[band, st_wl]['response'] +
-                        grp.ix[band, ed_wl]['response']) / 2
-
-        # Fuqin's code now loops over each wavelength, in -1 decrements
-        # we'll use indices rather than a loop
-        response_subs = grp.ix[band].ix[wv_idx]['response'].values
-        flux_data_subs = flux_data.ix[wv_idx2]
-
-        response_sum = response_sum + response_subs.sum()
-
-        df.ix[band, 'diffuse'] = (((flux_data_subs['downward_diffuse'].values *
-                                    response_subs).sum() + diffuse_bottom) /
-                                  response_sum)
-        df.ix[band, 'direct'] = (((flux_data_subs['direct_solar'].values *
-                                   response_subs).sum() + direct_bottom) /
-                                 response_sum)
-
-        # direct solar at top of atmospheric levels
-        flux_data_subs = flux_data.ix[wv_idx3]
-        df.ix[band, 'direct_top'] = (((flux_data_subs['direct_solar'].values *
-                                       response_subs).sum() + direct_top) /
-                                     response_sum)
-
-        if transmittance:
-            # downward diffuse at top of atmospheric levels
-            diffuse_top = (grp.ix[band, st_wl]['response'] *
-                           flux_data.ix[st_wl, 'downward_diffuse'][idx] +
-                           grp.ix[band, ed_wl]['response'] *
-                           flux_data.ix[ed_wl, 'downward_diffuse'][idx]) / 2
-
-            edo_top = flux_data_subs['downward_diffuse'].values
-            df.ix[band, 'diffuse_top'] = ((edo_top * response_subs).sum() +
-                                          diffuse_top) / response_sum
-            t_result = ((df.ix[band, 'diffuse'] + df.ix[band, 'direct']) /
-                        (df.ix[band, 'diffuse_top'] +
-                         df.ix[band, 'direct_top']))
-            df.ix[band, 'transmittance'] = t_result
-
-    df.sort_index(inplace=True)
-
-    return df
+    return chn_data,df_sz_angle
 
 
 def link_atmospheric_results(input_targets, out_fname, npoints, workflow):
