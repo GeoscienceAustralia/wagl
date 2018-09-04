@@ -392,6 +392,7 @@ def read_h5_table(fid, dataset_name, dataframe=True):
         Either a `pandas.DataFrame` (Default) or a NumPy structured
         array.
     """
+
     dset = fid[dataset_name]
     idx_names = None
 

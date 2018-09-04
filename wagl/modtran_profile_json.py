@@ -24,8 +24,8 @@ Parameters to be inserted are:
     * satellite view offset; (180 - angle); units: degrees
 """
 
-def midlat_summer_albedo(name,water,ozone,visibility,doy,lats,lons,time,sat_azimuth,\
-                         elevation,sat_height,sat_view,albedo,filter_function,binary):
+def midlat_summer_albedo(name, water, ozone, visibility, doy, lats, lons, time, sat_azimuth,\
+                         elevation, sat_height, sat_view, albedo, filter_function, binary):
     lat = lats
     lon = lons
     MIDLAT_SUMMER_ALBEDO = {
@@ -122,7 +122,7 @@ def midlat_summer_albedo(name,water,ozone,visibility,doy,lats,lons,time,sat_azim
       "MLFLX":1, 
       "VRFRAC":0.0000000000e+00, 
       "SFWHM":0.0000000000e+00, 
-      "LSUNFL":" ", 
+      "LSUNFL":"4",
       "LBMNAM":" ", 
       "FILTNM":filter_function
     },
@@ -141,8 +141,8 @@ def midlat_summer_albedo(name,water,ozone,visibility,doy,lats,lons,time,sat_azim
 
 
 
-def tropical_albedo(name,water,ozone,visibility,doy,lats,lons,time,sat_azimuth,sat_height,elevation,\
-                    sat_view,albedo,filter_function,binary): 
+def tropical_albedo(name, water, ozone, visibility, doy, lats, lons, time, sat_azimuth, sat_height, elevation,\
+                    sat_view, albedo, filter_function, binary):
     lat = lats
     lon = lons
     TROPICAL_ALBEDO ={
@@ -239,7 +239,7 @@ def tropical_albedo(name,water,ozone,visibility,doy,lats,lons,time,sat_azimuth,s
       "MLFLX":1, 
       "VRFRAC":0.0000000000e+00, 
       "SFWHM":0.0000000000e+00, 
-      "LSUNFL":" ", 
+      "LSUNFL":"4",
       "LBMNAM":" ", 
       "FILTNM":filter_function
     },
@@ -256,8 +256,8 @@ def tropical_albedo(name,water,ozone,visibility,doy,lats,lons,time,sat_azimuth,s
     return TROPICAL_ALBEDO
 
 
-def thermal_transmittance(name,ozone,n,prof_alt,prof_pres,prof_temp,prof_water,visibility,sat_height,gpheight,\
-                          sat_view,filter_function,binary): 
+def thermal_transmittance(name, ozone, n, prof_alt, prof_pres, prof_temp, prof_water, visibility, sat_height, gpheight,\
+                          sat_view, filter_function, binary):
     
     prof_altitude = prof_alt  + [5.0000000000e+01, 5.5000000000e+01, 6.0000000000e+01, 7.0000000000e+01, 8.0000000000e+01, 1.0000000000e+02 ]
     prof_pressure = prof_pres + [9.5099997520e-01, 5.1499998569e-01, 2.7200001478e-01, 6.7000001669e-02, 1.2000000104e-02, 9.9999997474e-05 ]

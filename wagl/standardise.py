@@ -13,7 +13,7 @@ import h5py
 from wagl.acquisition import acquisitions
 from wagl.ancillary import collect_ancillary
 from wagl.constants import ArdProducts as AP, GroupName, Workflow, BandType
-from wagl.constants import ALBEDO_FMT, POINT_FMT, POINT_ALBEDO_FMT
+from wagl.constants import ALBEDO_FMT, POINT_FMT, POINT_ALBEDO_FMT,Albedos
 from wagl.dsm import get_dsm
 from wagl.hdf5 import H5CompressionFilter
 from wagl.incident_exiting_angles import incident_angles, exiting_angles
@@ -292,23 +292,34 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
 
         # atmospheric inputs group
         inputs_grp = root[GroupName.ATMOSPHERIC_INPUTS_GRP.value]
-        
 
         # radiative transfer for each point and albedo
         for key in json_data:
             point, albedo = key
 
-
             log.info('Radiative-Transfer', point=point, albedo=albedo.value)
+
             with tempfile.TemporaryDirectory() as tmpdir:
 
                 prepare_modtran(acqs, point, [albedo], tmpdir, modtran_exe)
 
-                #json data
+                point_dir = pjoin(tmpdir, POINT_FMT.format(p=point))
+                workdir = pjoin(point_dir, ALBEDO_FMT.format(a=albedo.value))
+                # json data
                 json_mod_infile = pjoin(tmpdir,json_fmt.format(p=point, a=albedo.value))
-                
+
                 with open(json_mod_infile,'w') as src:
+
                     json_string = json_data[key]
+
+                    if albedo == Albedos.ALBEDO_TH:
+
+                        json_string["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = "%s/%s" % (workdir, json_string["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
+                        json_string["MODTRAN"][1]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = "%s/%s" % (workdir, json_string["MODTRAN"][1]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
+
+                    else:
+
+                        json_string["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = "%s/%s" % (workdir, json_string["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
 
                     d = json.dumps(json_string,cls = JsonEncoder,indent=4)
 
@@ -316,8 +327,6 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
 
                 run_modtran(acqs, inputs_grp, workflow, nvertices, point,[albedo], modtran_exe,tmpdir, root, compression,filter_opts)
 
-              
-                
         # atmospheric coefficients
         log.info('Coefficients')
         results_group = root[GroupName.ATMOSPHERIC_RESULTS_GRP.value]

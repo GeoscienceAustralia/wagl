@@ -46,15 +46,16 @@ def prepare_modtran(acquisitions, coordinate, albedos, basedir, modtran_exe):
     """
     Prepares the working directory for a MODTRAN execution.
     """
+
     
-    print('this is modtran exe dir' + dirname(modtran_exe))
-    
-    data_dir = pjoin('/g/data1a/u46/users/pd1813/test-run/','DATA')  # need to change this to right DATA dir
-    
+    data_dir = pjoin('/g/data/v10/private/modules/MODTRAN/MODTRAN-6.0.1/MODTRAN6.0','DATA')
+
+    print(data_dir)
     if not exists(data_dir):
         raise OSError('Cannot find MODTRAN')
 
     point_dir = pjoin(basedir, POINT_FMT.format(p=coordinate))
+
     for albedo in albedos:
         if albedo == Albedos.ALBEDO_TH:
             band_type = BandType.THERMAL
@@ -76,7 +77,7 @@ def prepare_modtran(acquisitions, coordinate, albedos, basedir, modtran_exe):
         os.symlink(data_dir, symlink_dir)
 
         out_fname = pjoin(modtran_work, acq.spectral_filter_file)  # filter file name needs to be put in DATA directory
-
+        print(out_fname)
         response = acq.spectral_response(as_list=True)
 
         with open(out_fname, 'wb') as src:
@@ -105,8 +106,7 @@ def _format_json(acquisitions, satellite_solar_angles_fname,
 def format_json(acquisitions, ancillary_group, satellite_solar_group,
                lon_lat_group, workflow, out_group):
     """
-    Creates json files for the albedo (0, 1) and
-    transmittance (t).
+    Creates json files for the albedo (0) and thermal
     """
     # angles data
     sat_view = satellite_solar_group[DatasetName.SATELLITE_VIEW.value]
@@ -174,10 +174,8 @@ def format_json(acquisitions, ancillary_group, satellite_solar_group,
         acqs = [a for a in acquisitions if a.band_type == BandType.REFLECTIVE]
 
         for p in range(npoints):
-            print('this is point...' + str(p))
-            print(npoints)
+
             for alb in Workflow.NBAR.albedos:
-                print(alb)
                 name = 'POINT-%i-ALBEDO-%s' %(p,str(alb.value))
                 water = water_vapour
                 ozone = ozone
@@ -219,9 +217,12 @@ def format_json(acquisitions, ancillary_group, satellite_solar_group,
 
                 json_data[(p, alb)] = data
 
+                data = json.dumps(data, cls=JsonEncoder, indent=4)
+
                 dname = ppjoin(POINT_FMT.format(p=p),
                                ALBEDO_FMT.format(a=alb.value),
                                DatasetName.JSON.value)
+
                 write_scalar(numpy.string_(data), dname, group, input_data)
 
     # create json for sbt if it has been collected
@@ -268,8 +269,10 @@ def format_json(acquisitions, ancillary_group, satellite_solar_group,
 
             data = mpjson.thermal_transmittance(name,ozone,n,prof_alt,prof_pres,prof_temp,prof_water,visibility,sat_height,gpheight,\
                                                 sat_view,filter_function,binary)
-
             json_data[(p, Albedos.ALBEDO_TH)] = data
+
+            data = json.dumps(data, cls=JsonEncoder, indent=4)
+
             out_dname = ppjoin(POINT_FMT.format(p=p),
                                ALBEDO_FMT.format(a=Albedos.ALBEDO_TH.value),
                                DatasetName.JSON.value)
@@ -334,7 +337,6 @@ def run_modtran(acquisitions, atmospherics_group, workflow, npoints, point,
 
     acqs = acquisitions
     for albedo in albedos:
-        print(albedo)
         base_attrs['Albedo'] = albedo.value
         workpath = pjoin(basedir, POINT_FMT.format(p=point),
                          ALBEDO_FMT.format(a=albedo.value))
@@ -389,13 +391,11 @@ def run_modtran(acquisitions, atmospherics_group, workflow, npoints, point,
             # solar zenith angle at surface
             attrs = base_attrs.copy()
             dataset_name = DatasetName.SOLAR_ZENITH_CHANNEL.value
-            print('dataset_name is ..' + dataset_name)
-            attrs['description'] = 'Solar zenigth angle at different atmosphere levels' 
+            attrs['description'] = 'Solar zenith angle at different atmosphere levels'
             dset_name = ppjoin(group_path,dataset_name)
             write_dataframe(channel_data[1],dset_name,fid,compression,attrs=attrs,filter_opts=filter_opts)
             
 
-            
     # metadata for a given point
     alb_vals = [alb.value for alb in workflow.albedos]
     fid[base_path].attrs['lonlat'] = lonlat
@@ -605,18 +605,20 @@ def coefficients(channel_data=None,solar_zenith_angle=None,upward_radiation=None
     nbar = sbt = None
     
     if channel_data is not None:
-       
+
+        # calculate transmittance using channel data
         columns = [v.value for v in Workflow.NBAR.atmos_coefficients]
         nbar = pd.DataFrame(columns=columns, index=channel_data.index)
         cszen0 = numpy.cos(numpy.radians(float(solar_zenith_angle['solar_zenith'][-1:])))
         csnsrf = numpy.cos(numpy.radians(float(solar_zenith_angle['solar_zenith'][0])))
         tv = channel_data['24']
-        ts = ((channel_data['19']/channel_data['18'])*csnsrf/numpy.pi)/tv
-        Ts = channel_data['21']/tv
+        ts = ((channel_data['19'] / channel_data['18']) * csnsrf/numpy.pi) / tv
+        Ts = channel_data['21'] / tv
         Tv = tv + channel_data['22']/Ts
-        E0_cozen = (channel_data['18']*numpy.pi/channel_data['8'])*(cszen0/csnsrf)
+        E0_cozen = (channel_data['18'] * numpy.pi/channel_data['8']) * (cszen0/csnsrf)
         A_prime = E0_cozen * Ts * Tv/numpy.pi
 
+        # nbar coefficients
         nbar[AC.FS.value] = ts / Ts
         nbar[AC.FV.value] = tv / Tv
         nbar[AC.A.value] = A_prime * 10000000
@@ -631,14 +633,16 @@ def coefficients(channel_data=None,solar_zenith_angle=None,upward_radiation=None
         columns.extend(['TRANSMITTANCE-DOWN']) # Currently not required
         sbt = pd.DataFrame(columns=columns, index=upward_radiation.index)
 
+        # sbt coefficients
         sbt[AC.PATH_UP.value] = upward_radiation['4'] * 10000000
         sbt[AC.TRANSMITTANCE_UP.value] = upward_radiation['15']
         sbt[AC.PATH_DOWN.value] = downward_radiation['4'] * 10000000
         sbt['TRANSMITTANCE-DOWN'] = downward_radiation['15']
 
+    return nbar, sbt
 
 def read_spectral_response(fname, as_list=False, spectral_range=None):
-    
+
     """
     Read the spectral response function text file used during
     MODTRAN processing.
@@ -718,7 +722,8 @@ def read_spectral_response(fname, as_list=False, spectral_range=None):
 
 def _get_solar_angles(tp6_fname):
     """
-    Read a MODTRAN output '*.tp6' ascii file.
+    Read a MODTRAN output '*.tp6' ascii file to extract
+    solar zenith angles
     
     :param tp6_fname:
         A 'str' containing the full file pathname of the tp6 
@@ -751,7 +756,7 @@ def _get_solar_angles(tp6_fname):
     return solar_zenith
 
     
-def read_modtran_channel(fname,tp6_fname,acquisition, albedo):
+def read_modtran_channel(fname, tp6_fname, acquisition, albedo):
     """
     Read a MODTRAN output `*.chn` ascii file.
     
@@ -810,14 +815,12 @@ def read_modtran_channel(fname,tp6_fname,acquisition, albedo):
     
     chn_data = pd.read_csv(fname, skiprows=5, header=None, nrows=nbands,
                            delim_whitespace=True)
-    print(chn_data)
-    
+
     chn_data['band_name'] = chn_data[26] 
     chn_data.drop(26,inplace=True,axis=1)
     
     chn_data.set_index('band_name',inplace=True)
     chn_data.columns = chn_data.columns.astype(str)
-    print(chn_data)
 
     return chn_data,df_sz_angle
 
@@ -869,10 +872,8 @@ def link_atmospheric_results(input_targets, out_fname, npoints, workflow):
                                 DatasetName.DOWNWARD_RADIATION_CHANNEL.value]
                     sbt_atmospherics = True
                 else:
-                    datasets = [DatasetName.FLUX.value,
-                                DatasetName.ALTITUDES.value,
-                                DatasetName.SOLAR_IRRADIANCE.value,
-                                DatasetName.CHANNEL.value]
+                    datasets = [DatasetName.CHANNEL.value,
+                                DatasetName.SOLAR_ZENITH_CHANNEL.value]
                     nbar_atmospherics = True
 
                 grp_path = ppjoin(base_group_name, point,

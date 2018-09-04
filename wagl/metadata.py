@@ -248,7 +248,7 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, sbt=False):
 
     software_versions = {'wagl': {'version': wagl.__version__,
                                   'repo_url': 'https://github.com/GeoscienceAustralia/wagl.git'}, # pylint: disable=line-too-long
-                         'modtran': {'version': '5.2.1',
+                         'modtran': {'version': '6.0.1',
                                      'repo_url': 'http://www.ontar.com/software/productdetails.aspx?item=modtran'} # pylint: disable=line-too-long
                         }
 
