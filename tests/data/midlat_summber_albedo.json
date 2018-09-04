@@ -92,7 +92,7 @@
                     "MLFLX": 1,
                     "VRFRAC": 0.0,
                     "SFWHM": 0.0,
-                    "LSUNFL": " ",
+                    "LSUNFL": "4",
                     "LBMNAM": " ",
                     "FILTNM": "landsat5_vsir.flt"
                 },
