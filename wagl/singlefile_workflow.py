@@ -35,10 +35,7 @@ from wagl.constants import Workflow, Method
 from wagl.hdf5 import H5CompressionFilter
 from wagl.standardise import card4l
 
-
-ERROR_LOGGER = wrap_logger(logging.getLogger('errors'),
-                           processors=[JSONRenderer(indent=1, sort_keys=True)])
-INTERFACE_LOGGER = logging.getLogger('luigi-interface')
+from wagl.logger import ERROR_LOGGER, INTERFACE_LOGGER
 
 
 @luigi.Task.event_handler(luigi.Event.FAILURE)
