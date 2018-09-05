@@ -55,10 +55,7 @@ from wagl.interpolation import _interpolate, link_interpolated_data
 from wagl.temperature import _surface_brightness_temperature
 from wagl.pq import can_pq, _run_pq
 from wagl.hdf5 import create_external_link, H5CompressionFilter
-
-
-ERROR_LOGGER = wrap_logger(logging.getLogger('errors'),
-                           processors=[JSONRenderer(indent=1, sort_keys=True)])
+from wagl.logging import ERROR_LOGGER
 
 
 @luigi.Task.event_handler(luigi.Event.FAILURE)

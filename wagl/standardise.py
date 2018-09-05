@@ -30,8 +30,7 @@ from wagl.slope_aspect import slope_aspect_arrays
 from wagl.temperature import surface_brightness_temperature
 from wagl.pq import can_pq, run_pq
 
-LOG = wrap_logger(logging.getLogger('status'),
-                  processors=[JSONRenderer(indent=1, sort_keys=True)])
+from wagl.logging import ERROR_LOGGER, STATUS_LOGGER
 
 
 # pylint disable=too-many-arguments
@@ -173,8 +172,8 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
         fid.attrs['level1_uri'] = level1
 
         for grp_name in container.supported_groups:
-            log = LOG.bind(level1=container.label, granule=granule,
-                           granule_group=grp_name)
+            log = STATUS_LOGGER.bind(level1=container.label, granule=granule,
+                                     granule_group=grp_name)
 
             # root group for a given granule and resolution group
             root = fid.create_group(ppjoin(granule, grp_name))
@@ -252,8 +251,8 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
                                      root, compression, filter_opts)
 
         # nbar and sbt ancillary
-        log = LOG.bind(level1=container.label, granule=granule,
-                       granule_group=None)
+        log = STATUS_LOGGER.bind(level1=container.label, granule=granule,
+                                 granule_group=None)
 
         # granule root group
         root = fid[granule]
@@ -318,8 +317,8 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
 
         # interpolate coefficients
         for grp_name in container.supported_groups:
-            log = LOG.bind(level1=container.label, granule=granule,
-                           granule_group=grp_name)
+            log = STATUS_LOGGER.bind(level1=container.label, granule=granule,
+                                     granule_group=grp_name)
             log.info('Interpolation')
 
             # acquisitions and available bands for the current group level
