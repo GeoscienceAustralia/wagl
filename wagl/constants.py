@@ -151,7 +151,7 @@ class DatasetName(Enum):
     INTERPOLATION_FMT = '{coefficient}/{band_name}'
 
     # wagl.modtran
-    JSON = 'JSON-DATA'
+    MODTRAN_INPUT = 'MODTRAN-INPUT-DATA'
     FLUX = 'FLUX'
     ALTITUDES = 'ALTITUDES'
     SOLAR_IRRADIANCE = 'SOLAR-IRRADIANCE'

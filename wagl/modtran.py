@@ -25,7 +25,6 @@ from wagl.hdf5 import VLEN_STRING, write_scalar, H5CompressionFilter
 import wagl.modtran_profile_json as mpjson
 
 
-
 class JsonEncoder(json.JSONEncoder):
     """
     A wrapper class to address the issue of json encoding error
@@ -40,7 +39,7 @@ class JsonEncoder(json.JSONEncoder):
         elif isinstance(obj, numpy.ndarray):
             return obj.tolist()
         else:
-            return super(MyEncoder, self).default(obj)
+            raise OSError('Json Encoding Error')
 
 def prepare_modtran(acquisitions, coordinate, albedos, basedir, modtran_exe):
     """
@@ -50,7 +49,6 @@ def prepare_modtran(acquisitions, coordinate, albedos, basedir, modtran_exe):
     
     data_dir = pjoin('/g/data/v10/private/modules/MODTRAN/MODTRAN-6.0.1/MODTRAN6.0','DATA')
 
-    print(data_dir)
     if not exists(data_dir):
         raise OSError('Cannot find MODTRAN')
 
@@ -194,34 +192,34 @@ def format_json(acquisitions, ancillary_group, satellite_solar_group,
                               'sat_height':sat_height,
                               'sat_view':sat_view,
                               'doy':doy,
-                              'binary':binary}
+                              'description':'Input file for MODTRAN',
+                              'file_format':'json'}
                 
                 albedo = float(alb.value)
                 lats = lat[p]
                 lons = rlon[p]
                 time = acquisitions[0].decimal_hour()
                 sat_azimuth = azi_corrected[p]
-
                 input_data['albedo'] = albedo
                 input_data['lat'] = lats
                 input_data['lon'] = lons
                 input_data['time'] = time
                 input_data['sat_azimuth'] = sat_azimuth
-               
+
                 if centre_lat < -23.0:
-                    data = mpjson.midlat_summer_albedo(name,water,ozone,visibility,doy,lats,lons,time,sat_azimuth,\
-                                                       elevation,sat_height,sat_view,albedo,filter_function,binary)
+                    data = mpjson.midlat_summer_albedo(name, water, ozone, visibility, doy, lats, lons, time,
+                                                       sat_azimuth, elevation, sat_height, sat_view, albedo,
+                                                       filter_function,binary)
                 else:
-                    data = mpjson.tropical_albedo(name,water,ozone,visibility,doy,lats,lons,time,sat_azimuth,\
-                                                  sat_height,elevation,sat_view,albedo,filter_function,binary)
+                    data = mpjson.tropical_albedo(name, water, ozone, visibility, doy, lats, lons, time, sat_azimuth,
+                                                  sat_height, elevation, sat_view, albedo, filter_function, binary)
 
                 json_data[(p, alb)] = data
 
                 data = json.dumps(data, cls=JsonEncoder, indent=4)
-
                 dname = ppjoin(POINT_FMT.format(p=p),
                                ALBEDO_FMT.format(a=alb.value),
-                               DatasetName.JSON.value)
+                               DatasetName.MODTRAN_INPUT.value)
 
                 write_scalar(numpy.string_(data), dname, group, input_data)
 
@@ -231,7 +229,7 @@ def format_json(acquisitions, ancillary_group, satellite_solar_group,
         acqs = [a for a in acquisitions if a.band_type == BandType.THERMAL]
 
         for p in range(npoints):
-            name = 'POINT-%i-ALBEDO-TH' %(p)
+            name = 'POINT-%i-ALBEDO-TH' %p
             #atmospheric_profile = []
             atmos_profile = read_h5_table(ancillary_group, dname.format(p=p))
             n_layers = atmos_profile.shape[0] + 6
@@ -261,21 +259,22 @@ def format_json(acquisitions, ancillary_group, satellite_solar_group,
                           'n': n,
                           'sat_height':sat_height,
                           'sat_view':sat_view,
-                          'binary':binary,
                           'prof_alt':prof_alt,
                           'prof_pres':prof_pres,
                           'prof_temp':prof_temp,
-                          'prof_water':prof_water}
+                          'prof_water':prof_water,
+                          'description':'Input File for MODTRAN',
+                          'file_format':'json'}
 
-            data = mpjson.thermal_transmittance(name,ozone,n,prof_alt,prof_pres,prof_temp,prof_water,visibility,sat_height,gpheight,\
-                                                sat_view,filter_function,binary)
+
+            data = mpjson.thermal_transmittance(name, ozone, n, prof_alt, prof_pres, prof_temp, prof_water,
+                                                visibility, sat_height, gpheight, sat_view, filter_function, binary)
             json_data[(p, Albedos.ALBEDO_TH)] = data
 
             data = json.dumps(data, cls=JsonEncoder, indent=4)
-
             out_dname = ppjoin(POINT_FMT.format(p=p),
                                ALBEDO_FMT.format(a=Albedos.ALBEDO_TH.value),
-                               DatasetName.JSON.value)
+                               DatasetName.MODTRAN_INPUT.value)
             write_scalar(numpy.string_(data), out_dname, group, input_data)
 
     # attach location info to each point Group
@@ -305,7 +304,7 @@ def run_modtran(acquisitions, atmospherics_group, workflow, npoints, point,
                 albedos, modtran_exe, basedir, out_group,
                 compression=H5CompressionFilter.LZF, filter_opts=None):
     """
-    Run MODTRAN and return the flux and channel results.
+    Run MODTRAN and channel results.
     """
     lonlat = atmospherics_group[POINT_FMT.format(p=point)].attrs['lonlat']
 
@@ -357,7 +356,7 @@ def run_modtran(acquisitions, atmospherics_group, workflow, npoints, point,
         if albedo == Albedos.ALBEDO_TH:
             acq = [acq for acq in acqs if acq.band_type == BandType.THERMAL][0]
             
-            channel_data = read_modtran_channel(chn_fname,tp6_fname, acq, albedo) #read modtran .chn file needs to change to json read
+            channel_data = read_modtran_channel(chn_fname,tp6_fname, acq, albedo)
 
             attrs = base_attrs.copy()
             dataset_name = DatasetName.UPWARD_RADIATION_CHANNEL.value
@@ -404,7 +403,6 @@ def run_modtran(acquisitions, atmospherics_group, workflow, npoints, point,
 
     if out_group is None:
         return fid
-
 
 def _calculate_coefficients(atmosheric_results_fname, out_fname,
                             compression=H5CompressionFilter.LZF,

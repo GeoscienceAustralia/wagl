@@ -306,9 +306,9 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
                 point_dir = pjoin(tmpdir, POINT_FMT.format(p=point))
                 workdir = pjoin(point_dir, ALBEDO_FMT.format(a=albedo.value))
                 # json data
-                json_mod_infile = pjoin(tmpdir,json_fmt.format(p=point, a=albedo.value))
+                json_mod_infile = pjoin(tmpdir, json_fmt.format(p=point, a=albedo.value))
 
-                with open(json_mod_infile,'w') as src:
+                with open(json_mod_infile, 'w') as src:
 
                     json_string = json_data[key]
 
@@ -321,11 +321,12 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
 
                         json_string["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = "%s/%s" % (workdir, json_string["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
 
-                    d = json.dumps(json_string,cls = JsonEncoder,indent=4)
+                    d = json.dumps(json_string, cls=JsonEncoder, indent=4)
 
                     src.writelines(d)
 
                 run_modtran(acqs, inputs_grp, workflow, nvertices, point,[albedo], modtran_exe,tmpdir, root, compression,filter_opts)
+
 
         # atmospheric coefficients
         log.info('Coefficients')

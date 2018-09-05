@@ -28,6 +28,7 @@ DEFAULT_TABLE_CLASS = {'CLASS': 'TABLE',
 DEFAULT_SCALAR_CLASS = {'CLASS': 'SCALAR',
                         'VERSION': '0.1'}
 
+
 VLEN_STRING = h5py.special_dtype(vlen=str)
 
 def _fixed_str_size(data):

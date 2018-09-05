@@ -34,7 +34,7 @@ yaml.add_representer(numpy.float, Representer.represent_float)
 yaml.add_representer(numpy.float32, Representer.represent_float)
 yaml.add_representer(numpy.float64, Representer.represent_float)
 yaml.add_representer(numpy.ndarray, Representer.represent_list)
-
+yaml.add_representer(numpy.bool, Representer.represent_bool)
 
 def extract_ancillary_metadata(fname):
     """
