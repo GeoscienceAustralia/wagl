@@ -17,7 +17,9 @@ FNAME1 = pjoin(DATA_DIR, 'midlat_summber_albedo.json')
 FNAME2 = pjoin(DATA_DIR, 'tropical_albedo.json')
 FNAME3 = pjoin(DATA_DIR, 'thermal_channel.json')
 
+
 class JsonTest(unittest.TestCase):
+
     """
     Test different configurations of the json file format,
     and that the input/output round trips.
@@ -28,7 +30,6 @@ class JsonTest(unittest.TestCase):
         """
         Test the mid latitude summer albedo configuration.
         """
-
         test = mpjson.midlat_summer_albedo(name="POINT-0-ALBEDO-0",
                                            water=1.85,
                                            ozone=0.025,
@@ -87,6 +88,7 @@ class JsonTest(unittest.TestCase):
         Test surface brightness  configuration.
         """
         pass
+
 
 if __name__ == '__main__':
 

@@ -301,32 +301,35 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
 
             with tempfile.TemporaryDirectory() as tmpdir:
 
-                prepare_modtran(acqs, point, [albedo], tmpdir, modtran_exe)
+                prepare_modtran(acqs, point, [albedo], tmpdir)
 
                 point_dir = pjoin(tmpdir, POINT_FMT.format(p=point))
                 workdir = pjoin(point_dir, ALBEDO_FMT.format(a=albedo.value))
-                # json data
+
                 json_mod_infile = pjoin(tmpdir, json_fmt.format(p=point, a=albedo.value))
 
                 with open(json_mod_infile, 'w') as src:
 
-                    json_string = json_data[key]
+                    json_dict = json_data[key]
 
                     if albedo == Albedos.ALBEDO_TH:
 
-                        json_string["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = "%s/%s" % (workdir, json_string["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
-                        json_string["MODTRAN"][1]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = "%s/%s" % (workdir, json_string["MODTRAN"][1]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
+                        json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = \
+                            "%s/%s" % (workdir, json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
+                        json_dict["MODTRAN"][1]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = \
+                            "%s/%s" % (workdir, json_dict["MODTRAN"][1]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
 
                     else:
 
-                        json_string["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = "%s/%s" % (workdir, json_string["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
+                        json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = \
+                            "%s/%s" % (workdir, json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
 
-                    d = json.dumps(json_string, cls=JsonEncoder, indent=4)
+                    json_string = json.dumps(json_dict, cls=JsonEncoder, indent=4)
 
-                    src.writelines(d)
+                    src.writelines(json_string)
 
-                run_modtran(acqs, inputs_grp, workflow, nvertices, point,[albedo], modtran_exe,tmpdir, root, compression,filter_opts)
-
+                run_modtran(acqs, inputs_grp, workflow, nvertices, point, [albedo],
+                            modtran_exe, tmpdir, root, compression, filter_opts)
 
         # atmospheric coefficients
         log.info('Coefficients')

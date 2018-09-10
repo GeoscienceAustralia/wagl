@@ -4,7 +4,7 @@ Multifile workflow for producing NBAR and SBT
 ---------------------------------------------
 
 This workflow is geared around a Multiple Independent File workflow, thus
-allowing to form a parallelism. HDF5 Linking via a post task then allows
+allowing a form of parallelism. HDF5 Linking via a post task then allows
 the workflow to appear as if the IO is through a single file.
 
 The multifile workflow approach does allow more freedom of control in
@@ -277,29 +277,31 @@ class WriteJson(luigi.Task):
 
                 target = pjoin(dirname(out_fname), self.base_dir, json_fname)
 
-                workdir = pjoin(dirname(out_fname), self.base_dir, POINT_FMT.format(p=point), ALBEDO_FMT.format(a=albedo.value))
+                workdir = pjoin(dirname(out_fname), self.base_dir, POINT_FMT.format(p=point),
+                                ALBEDO_FMT.format(a=albedo.value))
 
                 with luigi.LocalTarget(target).open('w') as src:
 
-                    json_string = json_data[key]
+                    json_dict = json_data[key]
 
                     if albedo == Albedos.ALBEDO_TH:
 
-                        json_string["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = "%s/%s" % (workdir, json_string["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
-                        json_string["MODTRAN"][1]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = "%s/%s" % (workdir, json_string["MODTRAN"][1]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
+                        json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = \
+                            "%s/%s" % (workdir, json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
+                        json_dict["MODTRAN"][1]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = \
+                            "%s/%s" % (workdir, json_dict["MODTRAN"][1]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
 
                     else:
 
-                        json_string["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = "%s/%s" % (workdir, json_string["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
+                        json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = \
+                            "%s/%s" % (workdir, json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
 
-                    d = json.dumps(json_string, cls=JsonEncoder, indent=4)
-
-                    src.writelines(d)
+                    json_string = json.dumps(json_dict, cls=JsonEncoder, indent=4)
+                    src.writelines(json_string)
 
 
 @requires(WriteJson)
 class AtmosphericsCase(luigi.Task):
-
     """
     Run MODTRAN for a specific point (vertex) and albedo.
     This task is parameterised this wat to allow parallel instances
@@ -325,7 +327,7 @@ class AtmosphericsCase(luigi.Task):
         base_dir = pjoin(self.work_root, self.base_dir)
         albedos = [Albedos(a) for a in self.albedos]
 
-        prepare_modtran(acqs, self.point, albedos, base_dir, self.modtran_exe)
+        prepare_modtran(acqs, self.point, albedos, base_dir)
 
         with self.output().temporary_path() as out_fname:
             nvertices = self.vertices[0] * self.vertices[1]
@@ -440,7 +442,6 @@ class InterpolateCoefficients(luigi.Task):
     vertices = luigi.TupleParameter()
     workflow = luigi.EnumParameter(enum=Workflow)
     method = luigi.EnumParameter(enum=Method, default=Method.SHEAR)
-
 
     def requires(self):
         container = acquisitions(self.level1, self.acq_parser_hint)

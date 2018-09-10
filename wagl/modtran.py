@@ -8,7 +8,7 @@ MODTRAN drivers
 
 from __future__ import absolute_import, print_function
 import os
-from os.path import join as pjoin, exists, dirname
+from os.path import join as pjoin, exists
 import subprocess
 import glob
 from posixpath import join as ppjoin
@@ -41,16 +41,11 @@ class JsonEncoder(json.JSONEncoder):
         else:
             raise OSError('Json Encoding Error')
 
-def prepare_modtran(acquisitions, coordinate, albedos, basedir, modtran_exe):
+
+def prepare_modtran(acquisitions, coordinate, albedos, basedir):
     """
     Prepares the working directory for a MODTRAN execution.
     """
-
-    
-    data_dir = pjoin('/g/data/v10/private/modules/MODTRAN/MODTRAN-6.0.1/MODTRAN6.0','DATA')
-
-    if not exists(data_dir):
-        raise OSError('Cannot find MODTRAN')
 
     point_dir = pjoin(basedir, POINT_FMT.format(p=coordinate))
 
@@ -67,15 +62,8 @@ def prepare_modtran(acquisitions, coordinate, albedos, basedir, modtran_exe):
         if not exists(modtran_work):
             os.makedirs(modtran_work)
 
-        symlink_dir = pjoin(modtran_work, 'DATA')
+        out_fname = pjoin(modtran_work, acq.spectral_filter_file)
 
-        if exists(symlink_dir):
-            os.unlink(symlink_dir)
-
-        os.symlink(data_dir, symlink_dir)
-
-        out_fname = pjoin(modtran_work, acq.spectral_filter_file)  # filter file name needs to be put in DATA directory
-        print(out_fname)
         response = acq.spectral_response(as_list=True)
 
         with open(out_fname, 'wb') as src:
@@ -174,45 +162,32 @@ def format_json(acquisitions, ancillary_group, satellite_solar_group,
         for p in range(npoints):
 
             for alb in Workflow.NBAR.albedos:
-                name = 'POINT-%i-ALBEDO-%s' %(p,str(alb.value))
-                water = water_vapour
-                ozone = ozone
-                filter_function = acqs[0].spectral_filter_file
-                visibility = -aerosol
-                elevation = elevation
-                sat_height = acquisitions[0].altitude / 1000.0
-                sat_view = view_corrected[p]
-                doy =  acquisitions[0].julian_day()
-                binary = False
-                input_data = {'water':water,
-                              'ozone':ozone,
-                              'filter_function':filter_function,
-                              'visibility':visibility,
+
+                input_data = {'name': POINT_ALBEDO_FMT.format(p=p, a=str(alb.value)),
+                              'water': water_vapour,
+                              'ozone': ozone,
+                              'doy': acquisitions[0].julian_day(),
+                              'visibility': -aerosol,
+                              'lat': lat[p],
+                              'lon': rlon[p],
+                              'time': acquisitions[0].decimal_hour(),
+                              'sat_azimuth': azi_corrected[p],
+                              'sat_height': acquisitions[0].altitude / 1000.0,
                               'elevation': elevation,
-                              'sat_height':sat_height,
-                              'sat_view':sat_view,
-                              'doy':doy,
-                              'description':'Input file for MODTRAN',
-                              'file_format':'json'}
-                
-                albedo = float(alb.value)
-                lats = lat[p]
-                lons = rlon[p]
-                time = acquisitions[0].decimal_hour()
-                sat_azimuth = azi_corrected[p]
-                input_data['albedo'] = albedo
-                input_data['lat'] = lats
-                input_data['lon'] = lons
-                input_data['time'] = time
-                input_data['sat_azimuth'] = sat_azimuth
+                              'sat_view': view_corrected[p],
+                              'albedo': float(alb.value),
+                              'filter_function': acqs[0].spectral_filter_file,
+                              'binary': False
+                              }
 
                 if centre_lat < -23.0:
-                    data = mpjson.midlat_summer_albedo(name, water, ozone, visibility, doy, lats, lons, time,
-                                                       sat_azimuth, elevation, sat_height, sat_view, albedo,
-                                                       filter_function,binary)
+                    data = mpjson.midlat_summer_albedo(**input_data)
                 else:
-                    data = mpjson.tropical_albedo(name, water, ozone, visibility, doy, lats, lons, time, sat_azimuth,
-                                                  sat_height, elevation, sat_view, albedo, filter_function, binary)
+                    data = mpjson.tropical_albedo(**input_data)
+
+                input_data['description'] = 'Input file for MODTRAN'
+                input_data['file_format'] = 'json'
+                input_data.pop('binary')
 
                 json_data[(p, alb)] = data
 
@@ -221,7 +196,7 @@ def format_json(acquisitions, ancillary_group, satellite_solar_group,
                                ALBEDO_FMT.format(a=alb.value),
                                DatasetName.MODTRAN_INPUT.value)
 
-                write_scalar(numpy.string_(data), dname, group, input_data)
+                write_scalar(data, dname, group, input_data)
 
     # create json for sbt if it has been collected
     if ancillary_group.attrs.get('sbt-ancillary'):
@@ -229,53 +204,40 @@ def format_json(acquisitions, ancillary_group, satellite_solar_group,
         acqs = [a for a in acquisitions if a.band_type == BandType.THERMAL]
 
         for p in range(npoints):
-            name = 'POINT-%i-ALBEDO-TH' %p
-            #atmospheric_profile = []
+
             atmos_profile = read_h5_table(ancillary_group, dname.format(p=p))
+
             n_layers = atmos_profile.shape[0] + 6
             elevation = atmos_profile.iloc[0]['GeoPotential_Height']
-            
-            prof_alt,prof_pres,prof_temp,prof_water = [],[],[],[]
-            
-            for i, row in atmos_profile.iterrows():
-                prof_alt.append(row['GeoPotential_Height'])
-                prof_pres.append(row['Pressure'])
-                prof_temp.append(row['Temperature'])
-                prof_water.append(row['Relative_Humidity'])
-                
-                
-            ozone = ozone
-            filter_function = acqs[0].spectral_filter_file
-            visibility = -aerosol
-            gpheight= elevation
-            n =  n_layers
-            sat_height = acquisitions[0].altitude / 1000.0
-            sat_view = view_corrected[p]
-            binary = False
-            input_data = {'ozone':ozone,
-                          'filter_function':filter_function,
-                          'visibility':visibility,
-                          'gpheight':elevation,
-                          'n': n,
-                          'sat_height':sat_height,
-                          'sat_view':sat_view,
-                          'prof_alt':prof_alt,
-                          'prof_pres':prof_pres,
-                          'prof_temp':prof_temp,
-                          'prof_water':prof_water,
-                          'description':'Input File for MODTRAN',
-                          'file_format':'json'}
 
+            input_data = {'name': POINT_ALBEDO_FMT.format(p=p, a='TH'),
+                          'ozone': ozone,
+                          'n': n_layers,
+                          'prof_alt': list(atmos_profile['GeoPotential_Height']),
+                          'prof_pres': list(atmos_profile['Pressure']),
+                          'prof_temp': list(atmos_profile['Temperature']),
+                          'prof_water': list(atmos_profile['Relative_Humidity']),
+                          'visibility': -aerosol,
+                          'sat_height': acquisitions[0].altitude / 1000.0,
+                          'gpheight': elevation,
+                          'sat_view': view_corrected[p],
+                          'filter_function': acqs[0].spectral_filter_file,
+                          'binary': False
+                          }
 
-            data = mpjson.thermal_transmittance(name, ozone, n, prof_alt, prof_pres, prof_temp, prof_water,
-                                                visibility, sat_height, gpheight, sat_view, filter_function, binary)
+            data = mpjson.thermal_transmittance(**input_data)
+
+            input_data['description'] = 'Input File for MODTRAN'
+            input_data['file_format'] = 'json'
+            input_data.pop('binary')
+
             json_data[(p, Albedos.ALBEDO_TH)] = data
 
             data = json.dumps(data, cls=JsonEncoder, indent=4)
             out_dname = ppjoin(POINT_FMT.format(p=p),
                                ALBEDO_FMT.format(a=Albedos.ALBEDO_TH.value),
                                DatasetName.MODTRAN_INPUT.value)
-            write_scalar(numpy.string_(data), out_dname, group, input_data)
+            write_scalar(data, out_dname, group, input_data)
 
     # attach location info to each point Group
     for p in range(npoints):
@@ -341,22 +303,19 @@ def run_modtran(acquisitions, atmospherics_group, workflow, npoints, point,
                          ALBEDO_FMT.format(a=albedo.value))
         
         json_mod_infile  = pjoin(workpath, ''.join([POINT_ALBEDO_FMT.format(p=point,a=albedo.value), '.json']))
-        
-        data_dir = pjoin(workpath, 'DATA')
 
         group_path = ppjoin(base_path, ALBEDO_FMT.format(a=albedo.value))
 
-        subprocess.check_call([modtran_exe, json_mod_infile, data_dir],cwd=workpath)
+        subprocess.check_call([modtran_exe, json_mod_infile],cwd=workpath)
 
-
-        chn_fname = glob.glob(pjoin(workpath, '*.chn'))[0]    # need to change how .chn file is read
+        chn_fname = glob.glob(pjoin(workpath, '*.chn'))[0]
         tp6_fname = glob.glob(pjoin(workpath,'*.tp6'))[0]
 
         
         if albedo == Albedos.ALBEDO_TH:
             acq = [acq for acq in acqs if acq.band_type == BandType.THERMAL][0]
             
-            channel_data = read_modtran_channel(chn_fname,tp6_fname, acq, albedo)
+            channel_data = read_modtran_channel(chn_fname, tp6_fname, acq, albedo)
 
             attrs = base_attrs.copy()
             dataset_name = DatasetName.UPWARD_RADIATION_CHANNEL.value
@@ -378,7 +337,7 @@ def run_modtran(acquisitions, atmospherics_group, workflow, npoints, point,
             acq = [acq for acq in acqs if
                    acq.band_type == BandType.REFLECTIVE][0]
 
-            channel_data = read_modtran_channel(chn_fname,tp6_fname, acq, albedo) # needs changing to read json
+            channel_data = read_modtran_channel(chn_fname, tp6_fname, acq, albedo) # needs changing to read json
 
             attrs = base_attrs.copy()
             dataset_name = DatasetName.CHANNEL.value
@@ -391,9 +350,8 @@ def run_modtran(acquisitions, atmospherics_group, workflow, npoints, point,
             attrs = base_attrs.copy()
             dataset_name = DatasetName.SOLAR_ZENITH_CHANNEL.value
             attrs['description'] = 'Solar zenith angle at different atmosphere levels'
-            dset_name = ppjoin(group_path,dataset_name)
-            write_dataframe(channel_data[1],dset_name,fid,compression,attrs=attrs,filter_opts=filter_opts)
-            
+            dset_name = ppjoin(group_path, dataset_name)
+            write_dataframe(channel_data[1], dset_name, fid, compression, attrs=attrs, filter_opts=filter_opts)
 
     # metadata for a given point
     alb_vals = [alb.value for alb in workflow.albedos]
@@ -459,6 +417,7 @@ def calculate_coefficients(atmospheric_results_group, out_group,
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
     """
+
     nbar_coefficients = pd.DataFrame()
     sbt_coefficients = pd.DataFrame()
 
@@ -483,31 +442,25 @@ def calculate_coefficients(atmospheric_results_group, out_group,
         grp_path = ppjoin(POINT_FMT.format(p=point), ALBEDO_FMT)
         
         if nbar_atmos:
-
             channel_path = ppjoin(grp_path.format(a=Albedos.ALBEDO_0.value),
                                   DatasetName.CHANNEL.value)
             channel_data = read_h5_table(res, channel_path)
             
-            
             channel_solar_angle_path = ppjoin(grp_path.format(a=Albedos.ALBEDO_0.value),
                                   DatasetName.SOLAR_ZENITH_CHANNEL.value)
-            
             channel_solar_angle = read_h5_table(res, channel_solar_angle_path)
-
             
         if sbt_atmos:
             dname = ppjoin(grp_path.format(a=Albedos.ALBEDO_TH.value),
                            DatasetName.UPWARD_RADIATION_CHANNEL.value)
-            
             upward = read_h5_table(res, dname)
             
             dname = ppjoin(grp_path.format(a=Albedos.ALBEDO_TH.value),
                            DatasetName.DOWNWARD_RADIATION_CHANNEL.value)
             downward = read_h5_table(res, dname)
-
         
         kwargs = {'channel_data': channel_data,
-                  'solar_zenith_angle':channel_solar_angle,
+                  'solar_zenith_angle': channel_solar_angle,
                   'upward_radiation': upward,
                   'downward_radiation': downward}
 
@@ -557,7 +510,7 @@ def calculate_coefficients(atmospheric_results_group, out_group,
         return fid
 
 
-def coefficients(channel_data=None,solar_zenith_angle=None,upward_radiation=None,downward_radiation=None):
+def coefficients(channel_data=None, solar_zenith_angle=None, upward_radiation=None, downward_radiation=None):
     """
     Calculate the coefficients for a given point.
     Calculate the atmospheric coefficients from the MODTRAN output
@@ -565,7 +518,6 @@ def coefficients(channel_data=None,solar_zenith_angle=None,upward_radiation=None
     Coefficients are computed for each band.
     The atmospheric coefficients can be found in
     `Workflow.STANDARD.atmos_coefficients`.
-
 
     :param channel_data:
         A `pandas.DataFrame` containing the channel data for that
@@ -598,7 +550,6 @@ def coefficients(channel_data=None,solar_zenith_angle=None,upward_radiation=None
         If `upward_radiation` is None, then the second item in the
         returned `tuple` will be None.
     """
-    
 
     nbar = sbt = None
     
@@ -606,15 +557,17 @@ def coefficients(channel_data=None,solar_zenith_angle=None,upward_radiation=None
 
         # calculate transmittance using channel data
         columns = [v.value for v in Workflow.NBAR.atmos_coefficients]
+
         nbar = pd.DataFrame(columns=columns, index=channel_data.index)
+
         cszen0 = numpy.cos(numpy.radians(float(solar_zenith_angle['solar_zenith'][-1:])))
         csnsrf = numpy.cos(numpy.radians(float(solar_zenith_angle['solar_zenith'][0])))
         tv = channel_data['24']
         ts = ((channel_data['19'] / channel_data['18']) * csnsrf/numpy.pi) / tv
         Ts = channel_data['21'] / tv
-        Tv = tv + channel_data['22']/Ts
+        Tv = tv + channel_data['22'] / Ts
         E0_cozen = (channel_data['18'] * numpy.pi/channel_data['8']) * (cszen0/csnsrf)
-        A_prime = E0_cozen * Ts * Tv/numpy.pi
+        A_prime = E0_cozen * Ts * Tv / numpy.pi
 
         # nbar coefficients
         nbar[AC.FS.value] = ts / Ts
@@ -640,7 +593,6 @@ def coefficients(channel_data=None,solar_zenith_angle=None,upward_radiation=None
     return nbar, sbt
 
 def read_spectral_response(fname, as_list=False, spectral_range=None):
-
     """
     Read the spectral response function text file used during
     MODTRAN processing.
@@ -731,26 +683,27 @@ def _get_solar_angles(tp6_fname):
         solar zenith angle at surface and top of atmosphere 
     
     """
-    
-    f = open(tp6_fname,'r')
     cnt = 0
-    cnt_start = 0
+    solar_zenith_raw = []
 
-    for line in f.readlines(): 
-        cnt +=1 
-        if fnmatch.fnmatch(line,'*SINGLE SCATTER SOLAR PATH GEOMETRY TABLE FOR MULTIPLE SCATTERING*'):
-            cnt_start = cnt
-            continue
+    with open(tp6_fname, 'r') as f:
+        lines = f.readlines()
 
-    f.close()
-    f = open(tp6_fname,'r')
+        for line in lines:
+            cnt +=1
+            if fnmatch.fnmatch(line, '*SINGLE SCATTER SOLAR PATH GEOMETRY TABLE FOR MULTIPLE SCATTERING*'):
+                break
+        else:
+            raise ValueError('Not able to locate solar zenith angles in tp6 file:%s' % tp6_fname)
+
     
-    lines = list(f.readlines()[cnt_start+4: cnt_start + 40])  # this constant is (40-4 = num of atm 
-                                                              # layer)
-    data = numpy.vstack([ln.rstrip().split() for ln in lines]).T
+        solar_zenith_raw = lines[cnt + 4: cnt + 40]  # this constant is (40-4 = num of atmos. layer)
+
+    # Reader will throw an error if zenith is not found
+    data = numpy.vstack([ln.rstrip().split() for ln in solar_zenith_raw]).T
       
     solar_zenith = data[3] # solar zenith angle at all atmosphere layers
-    
+
     return solar_zenith
 
     
@@ -766,7 +719,6 @@ def read_modtran_channel(fname, tp6_fname, acquisition, albedo):
         A 'str' containing the full file pathname of the tp6 
         data file 
 
-
     :param acquisition:
         An instance of an acquisition object.
 
@@ -781,7 +733,6 @@ def read_modtran_channel(fname, tp6_fname, acquisition, albedo):
     response = acquisition.spectral_response()
     nbands = response.index.get_level_values('band_name').unique().shape[0]
 
-   
     if albedo == Albedos.ALBEDO_TH:
         
         upward_radiation = pd.read_csv(fname, skiprows=5, header=None,
@@ -801,19 +752,15 @@ def read_modtran_channel(fname, tp6_fname, acquisition, albedo):
         downward_radiation.columns = downward_radiation.columns.astype(str)
 
         return upward_radiation, downward_radiation
-    
-    
+
     #get solar zenith angle at all layers from *.tp6 file 
     solar_zenith = _get_solar_angles(tp6_fname)
-   
     df_sz_angle = pd.DataFrame()
-   
     df_sz_angle['solar_zenith'] = solar_zenith
     
     
     chn_data = pd.read_csv(fname, skiprows=5, header=None, nrows=nbands,
                            delim_whitespace=True)
-
     chn_data['band_name'] = chn_data[26] 
     chn_data.drop(26,inplace=True,axis=1)
     
