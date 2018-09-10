@@ -22,7 +22,7 @@ import tarfile
 from dateutil import parser
 from nested_lookup import nested_lookup
 
-import pathlib
+from pathlib import Path
 
 
 from .base import Acquisition, AcquisitionsContainer
