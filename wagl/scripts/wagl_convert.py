@@ -40,6 +40,7 @@ yaml.add_representer(numpy.float64, Representer.represent_float)
 yaml.add_representer(numpy.ndarray, Representer.represent_list)
 yaml.add_representer(numpy.bool, Representer.represent_bool)
 
+
 def convert_image(dataset, output_directory):
     """
     Converts a HDF5 `IMAGE` Class dataset to a compressed GeoTiff,
