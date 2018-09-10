@@ -83,6 +83,7 @@ def slope_aspect_arrays(acquisition, dsm_group, buffer_distance,
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
     """
+
     # Setup the geobox
     geobox = acquisition.gridded_geo_box()
 
@@ -105,14 +106,16 @@ def slope_aspect_arrays(acquisition, dsm_group, buffer_distance,
     ncol = cols + 2
     nrow = rows + 2
 
-    # TODO: check that the index is correct
-    # Define the index to read the DEM subset
-    ystart, ystop = (margins.top - 1, -(margins.bottom - 1))
-    xstart, xstop = (margins.left - 1, -(margins.right - 1))
-    idx = (slice(ystart, ystop), slice(xstart, xstop))
-
     # elevation dataset
     elevation = dsm_group[DatasetName.DSM_SMOOTHED.value]
+    ele_cols, ele_rows  = elevation.shape
+
+    # TODO: check that the index is correct
+    # Define the index to read the DEM subset
+    ystart, ystop = (margins.top - 1, ele_rows - (margins.bottom - 1))
+    xstart, xstop = (margins.left - 1, ele_cols - (margins.right - 1))
+    idx = (slice(ystart, ystop), slice(xstart, xstop))
+
     subset = as_array(elevation[idx], dtype=numpy.float32, transpose=True)
 
     # Define an array of latitudes
