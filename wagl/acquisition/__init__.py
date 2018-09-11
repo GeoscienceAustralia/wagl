@@ -136,7 +136,7 @@ def acquisitions_via_mtl(pathname):
         if filename is None:
             raise OSError("Cannot find MTL file in %s" % pathname)
         data = load_mtl(filename)
-        prefix_name = os.path.dirname(filename)
+        prefix_name = os.path.dirname(os.path.abspath(filename))
 
     bandfiles = [k for k in data['PRODUCT_METADATA'].keys() if 'band' in k
                  and 'file_name' in k]
