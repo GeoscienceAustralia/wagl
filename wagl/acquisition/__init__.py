@@ -22,8 +22,6 @@ import tarfile
 from dateutil import parser
 from nested_lookup import nested_lookup
 
-from pathlib import Path
-
 
 from .base import Acquisition, AcquisitionsContainer
 from .sentinel import Sentinel2aAcquisition, Sentinel2bAcquisition, s2_index_to_band_id
@@ -39,18 +37,6 @@ RESG_FMT = "RES-GROUP-{}"
 
 with open(pjoin(dirname(__file__), 'sensors.json')) as fo:
     SENSORS = json.load(fo)
-
-
-def _resolve_pathname(pathname):
-    """ Resolves a pathname to the absolute pathname removing symbolic links """
-
-    _path = Path(pathname)
-
-    if _path.is_file() or _path.is_dir():
-        # TODO: replace os.* with pathlib
-        return str(_path.resolve())
-
-    return pathname
 
 
 def fixname(s):
@@ -133,25 +119,22 @@ def acquisitions_via_mtl(pathname):
     Returns an instance of `AcquisitionsContainer`.
     """
 
-    # Removes symlinks if included in path
-    _pathname = _resolve_pathname(pathname)
-
-    if isfile(_pathname) and tarfile.is_tarfile(_pathname):
-        with tarfile.open(_pathname, 'r') as tarball:
+    if isfile(pathname) and tarfile.is_tarfile(pathname):
+        with tarfile.open(pathname, 'r') as tarball:
             try:
                 member = next(filter(lambda mm: 'MTL' in mm.name, tarball.getmembers()))
                 with tarball.extractfile(member) as fmem:
                      data = load_mtl(fmem)
-                prefix_name = 'tar://{}!'.format(_pathname)
+                prefix_name = 'tar://{}!'.format(os.path.abspath(pathname))
             except StopIteration:
-                raise OSError("Cannot find MTL file in %s" % _pathname)
+                raise OSError("Cannot find MTL file in %s" % pathname)
     else:
-        if isdir(_pathname):
-            filename = find_in(_pathname, 'MTL')
+        if isdir(pathname):
+            filename = find_in(pathname, 'MTL')
         else:
-            filename = _pathname
+            filename = pathname
         if filename is None:
-            raise OSError("Cannot find MTL file in %s" % _pathname)
+            raise OSError("Cannot find MTL file in %s" % pathname)
         data = load_mtl(filename)
         prefix_name = os.path.dirname(filename)
 
@@ -162,7 +145,7 @@ def acquisitions_via_mtl(pathname):
     # create an acquisition object for each band and attach
     # some appropriate metadata/attributes
 
-    # shortcuts to the requried levels
+    # shortcuts to the required levels
     prod_md = data['PRODUCT_METADATA']
     rad_md = data['MIN_MAX_RADIANCE']
     quant_md = data['MIN_MAX_PIXEL_VALUE']
@@ -240,13 +223,13 @@ def acquisitions_via_mtl(pathname):
         # band_name is an internal property of acquisitions class
         band_name = attrs.pop('band_name', band_id)
 
-        acqs.append(acqtype(_pathname, fname, acq_datetime, band_name, band_id,
+        acqs.append(acqtype(pathname, fname, acq_datetime, band_name, band_id,
                             attrs))
 
     # resolution groups dict
     res_groups = create_resolution_groups(acqs)
 
-    return AcquisitionsContainer(label=basename(_pathname),
+    return AcquisitionsContainer(label=basename(pathname),
                                  granules={granule_id: res_groups})
 
 
@@ -262,8 +245,7 @@ def acquisitions_s2_sinergise(pathname):
     sitting in a subfolder
     """
 
-    _pathname = _resolve_pathname(pathname)
-    granule_xml = _pathname + '/metadata.xml'
+    granule_xml = pathname + '/metadata.xml'
 
     search_paths = {
         'datastrip/metadata.xml': [
@@ -312,7 +294,7 @@ def acquisitions_s2_sinergise(pathname):
     acquisition_data = {}
     for fn, terms in search_paths.items():
         xml_root = None
-        with open(_pathname + '/' + fn, 'rb') as fd:
+        with open(pathname + '/' + fn, 'rb') as fd:
             xml_root = ElementTree.XML(fd.read())
         for term in terms:
             acquisition_data[term['key']] = term['parse'](xml_root.findall(term['search_path']))
@@ -334,7 +316,7 @@ def acquisitions_s2_sinergise(pathname):
         if re.match('[0-9].?', band_id):
             band_name = 'B{}'.format(band_id.zfill(2))
 
-        img_fname = _pathname + '/' + band_name + '.jp2'
+        img_fname = pathname + '/' + band_name + '.jp2'
 
         if not os.path.isfile(img_fname):
             continue
@@ -357,7 +339,7 @@ def acquisitions_s2_sinergise(pathname):
         acq_time = acquisition_data['acq_time']
 
 
-        acqs.append(acqtype(_pathname, img_fname, acq_time, band_name, band_id,
+        acqs.append(acqtype(pathname, img_fname, acq_time, band_name, band_id,
                             attrs))
 
     granule_id = acquisition_data['granule_id']
@@ -366,7 +348,7 @@ def acquisitions_s2_sinergise(pathname):
     granule_groups = {}
     granule_groups[granule_id] = create_resolution_groups(acqs)
 
-    return AcquisitionsContainer(label=basename(_pathname),
+    return AcquisitionsContainer(label=basename(pathname),
                                  granules=granule_groups)
 
 
@@ -388,12 +370,11 @@ def acquisitions_via_safe(pathname):
                 return band_id
         return None
 
-    _pathname = _resolve_pathname(pathname)
-    archive = zipfile.ZipFile(_pathname)
+    archive = zipfile.ZipFile(pathname)
     xmlfiles = [s for s in archive.namelist() if "MTD_MSIL1C.xml" in s]
 
     if not xmlfiles:
-        pattern = basename(_pathname.replace('PRD_MSIL1C', 'MTD_SAFL1C'))
+        pattern = basename(pathname.replace('PRD_MSIL1C', 'MTD_SAFL1C'))
         pattern = pattern.replace('.zip', '.xml')
         xmlfiles = [s for s in archive.namelist() if pattern in s]
 
@@ -411,7 +392,7 @@ def acquisitions_via_safe(pathname):
     # supported bands for this sensor
     band_configurations = SENSORS[platform_id]['MSI']['band_ids']
 
-    if basename(_pathname)[0:3] == 'S2A':
+    if basename(pathname)[0:3] == 'S2A':
         acqtype = Sentinel2aAcquisition
     else:
         # assume it is S2B
@@ -468,7 +449,7 @@ def acquisitions_via_safe(pathname):
         # handling different metadata versions for image paths
         # files retrieved from archive.namelist are not prepended with a '/'
         # Rasterio 1.0b1 requires archive paths start with a /
-        img_data_path = ''.join(['zip:', _pathname, '!/', archive.namelist()[0]])
+        img_data_path = ''.join(['zip://', pathname, '!/', archive.namelist()[0]])
         if basename(images[0]) == images[0]:
             img_data_path = ''.join([img_data_path,
                                      pjoin('GRANULE', granule_id, 'IMG_DATA')])
@@ -501,11 +482,11 @@ def acquisitions_via_safe(pathname):
             # band_name is an internal property of acquisitions class
             band_name = attrs.pop('band_name', band_id)
 
-            acqs.append(acqtype(_pathname, img_fname, acq_time, band_name,
+            acqs.append(acqtype(pathname, img_fname, acq_time, band_name,
                                 band_id, attrs))
 
         # resolution groups dict
         granule_groups[granule_id] = create_resolution_groups(acqs)
 
-    return AcquisitionsContainer(label=basename(_pathname),
+    return AcquisitionsContainer(label=basename(pathname),
                                  granules=granule_groups)
