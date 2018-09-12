@@ -23,7 +23,6 @@ Workflow settings can be configured in `luigi.cfg` file.
 # pylint: disable=protected-access
 
 from os.path import join as pjoin, basename
-import logging
 import traceback
 from structlog import wrap_logger
 from structlog.processors import JSONRenderer

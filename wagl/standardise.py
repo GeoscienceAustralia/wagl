@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 from os.path import join as pjoin
-import logging
 import tempfile
 
 from posixpath import join as ppjoin
@@ -30,7 +29,7 @@ from wagl.slope_aspect import slope_aspect_arrays
 from wagl.temperature import surface_brightness_temperature
 from wagl.pq import can_pq, run_pq
 
-from wagl.logging import ERROR_LOGGER, STATUS_LOGGER
+from wagl.logging import STATUS_LOGGER
 
 
 # pylint disable=too-many-arguments
