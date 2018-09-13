@@ -306,7 +306,7 @@ def run_modtran(acquisitions, atmospherics_group, workflow, npoints, point,
 
         group_path = ppjoin(base_path, ALBEDO_FMT.format(a=albedo.value))
 
-        subprocess.check_call([modtran_exe, json_mod_infile],cwd=workpath)
+        subprocess.check_call([modtran_exe, json_mod_infile], cwd=workpath)
 
         chn_fname = glob.glob(pjoin(workpath, '*.chn'))[0]
         tp6_fname = glob.glob(pjoin(workpath,'*.tp6'))[0]
@@ -417,11 +417,10 @@ def calculate_coefficients(atmospheric_results_group, out_group,
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
     """
-
     nbar_coefficients = pd.DataFrame()
     sbt_coefficients = pd.DataFrame()
 
-    channel_data = upward = downward = None
+    channel_data = channel_solar_angle = upward = downward = None
 
     # Initialise the output group/file
     if out_group is None:
@@ -550,7 +549,6 @@ def coefficients(channel_data=None, solar_zenith_angle=None, upward_radiation=No
         If `upward_radiation` is None, then the second item in the
         returned `tuple` will be None.
     """
-
     nbar = sbt = None
     
     if channel_data is not None:
@@ -566,7 +564,7 @@ def coefficients(channel_data=None, solar_zenith_angle=None, upward_radiation=No
         ts = ((channel_data['19'] / channel_data['18']) * csnsrf/numpy.pi) / tv
         Ts = channel_data['21'] / tv
         Tv = tv + channel_data['22'] / Ts
-        E0_cozen = (channel_data['18'] * numpy.pi/channel_data['8']) * (cszen0/csnsrf)
+        E0_cozen = (channel_data['18'] * numpy.pi / channel_data['8']) * (cszen0 / csnsrf)
         A_prime = E0_cozen * Ts * Tv / numpy.pi
 
         # nbar coefficients
@@ -680,8 +678,7 @@ def _get_solar_angles(tp6_fname):
         data file 
         
     :return: 
-        solar zenith angle at surface and top of atmosphere 
-    
+        A 'list' with solar zenith angles at all atmospheric layers
     """
     cnt = 0
     solar_zenith_raw = []
@@ -696,8 +693,8 @@ def _get_solar_angles(tp6_fname):
         else:
             raise ValueError('Not able to locate solar zenith angles in tp6 file:%s' % tp6_fname)
 
-    
-        solar_zenith_raw = lines[cnt + 4: cnt + 40]  # this constant is (40-4 = num of atmos. layer)
+        #TODO dynamically configure the number of atmospheric layers
+        solar_zenith_raw = lines[cnt + 4: cnt + 40]  # this constant is (40-4 = num of atmospheric layer)
 
     # Reader will throw an error if zenith is not found
     data = numpy.vstack([ln.rstrip().split() for ln in solar_zenith_raw]).T
@@ -707,17 +704,17 @@ def _get_solar_angles(tp6_fname):
     return solar_zenith
 
     
-def read_modtran_channel(fname, tp6_fname, acquisition, albedo):
+def read_modtran_channel(chn_fname, tp6_fname, acquisition, albedo):
     """
-    Read a MODTRAN output `*.chn` ascii file.
+    Read a MODTRAN output `*.chn` and '*.tp6' ascii file.
     
-    :param fname:
+    :param chn_fname:
         A `str` containing the full file pathname of the channel
         data file.
     
     :param tp6_fname:
-        A 'str' containing the full file pathname of the tp6 
-        data file 
+        A 'str' containing the full file pathname of the tp6
+        data file.
 
     :param acquisition:
         An instance of an acquisition object.
@@ -729,16 +726,17 @@ def read_modtran_channel(fname, tp6_fname, acquisition, albedo):
     :return:
         A `pandas.DataFrame` containing the channel data, and index
         by the `band_name`.
+        A 'pandas.DataFrame' containing the solar zenith angles.
     """
     response = acquisition.spectral_response()
     nbands = response.index.get_level_values('band_name').unique().shape[0]
 
     if albedo == Albedos.ALBEDO_TH:
         
-        upward_radiation = pd.read_csv(fname, skiprows=5, header=None,
+        upward_radiation = pd.read_csv(chn_fname, skiprows=5, header=None,
                                        delim_whitespace=True, nrows=nbands)
         
-        downward_radiation = pd.read_csv(fname, skiprows=10+nbands,
+        downward_radiation = pd.read_csv(chn_fname, skiprows=10+nbands,
                                          header=None, delim_whitespace=True,
                                          nrows=nbands)
         
@@ -757,17 +755,16 @@ def read_modtran_channel(fname, tp6_fname, acquisition, albedo):
     solar_zenith = _get_solar_angles(tp6_fname)
     df_sz_angle = pd.DataFrame()
     df_sz_angle['solar_zenith'] = solar_zenith
-    
-    
-    chn_data = pd.read_csv(fname, skiprows=5, header=None, nrows=nbands,
+
+    chn_data = pd.read_csv(chn_fname, skiprows=5, header=None, nrows=nbands,
                            delim_whitespace=True)
     chn_data['band_name'] = chn_data[26] 
-    chn_data.drop(26,inplace=True,axis=1)
+    chn_data.drop(26, inplace=True, axis=1)
     
-    chn_data.set_index('band_name',inplace=True)
+    chn_data.set_index('band_name', inplace=True)
     chn_data.columns = chn_data.columns.astype(str)
 
-    return chn_data,df_sz_angle
+    return chn_data, df_sz_angle
 
 
 def link_atmospheric_results(input_targets, out_fname, npoints, workflow):

@@ -18,10 +18,11 @@ import numpy
 import h5py
 import yaml
 from yaml.representer import Representer
-
+import json
 from wagl.data import write_img
 from wagl.geobox import GriddedGeoBox
 from wagl.hdf5 import read_h5_table
+from wagl.modtran import JsonEncoder
 
 IGNORE = ['crs_wkt', 'geotransform']
 
@@ -160,7 +161,7 @@ def convert_scalar(dataset, output_directory):
             os.makedirs(dirname(out_fname_json))
 
         with open(out_fname_json, 'w') as src:
-            src.writelines(data)
+            json.dump(json.loads(data), src, cls=JsonEncoder, indent=4)
     else:
         tags = {k: v for k, v in dataset.attrs.items()}
         data = dataset[()]

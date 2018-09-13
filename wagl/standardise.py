@@ -309,7 +309,6 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
                 json_mod_infile = pjoin(tmpdir, json_fmt.format(p=point, a=albedo.value))
 
                 with open(json_mod_infile, 'w') as src:
-
                     json_dict = json_data[key]
 
                     if albedo == Albedos.ALBEDO_TH:
@@ -324,9 +323,7 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
                         json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = \
                             "%s/%s" % (workdir, json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
 
-                    json_string = json.dumps(json_dict, cls=JsonEncoder, indent=4)
-
-                    src.writelines(json_string)
+                    json.dump(json_dict, src, cls=JsonEncoder, indent=4)
 
                 run_modtran(acqs, inputs_grp, workflow, nvertices, point, [albedo],
                             modtran_exe, tmpdir, root, compression, filter_opts)

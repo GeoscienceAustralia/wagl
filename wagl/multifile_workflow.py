@@ -258,7 +258,6 @@ class WriteJson(luigi.Task):
         # output filename format
         json_fmt = pjoin(POINT_FMT, ALBEDO_FMT, ''.join([POINT_ALBEDO_FMT, '.json']))
 
-
         # input filenames
         ancillary_fname = self.input()['ancillary'].path
         sat_sol_fname = self.input()[group]['sat_sol'].path
@@ -266,7 +265,7 @@ class WriteJson(luigi.Task):
 
         with self.output().temporary_path() as out_fname:
             json_data = _format_json(acqs, sat_sol_fname, lon_lat_fname,
-                                   ancillary_fname, out_fname, self.workflow)
+                                     ancillary_fname, out_fname, self.workflow)
 
             # keep this as an indented block, that way the target will remain
             # atomic and be moved upon closing
@@ -296,8 +295,7 @@ class WriteJson(luigi.Task):
                         json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = \
                             "%s/%s" % (workdir, json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
 
-                    json_string = json.dumps(json_dict, cls=JsonEncoder, indent=4)
-                    src.writelines(json_string)
+                    json.dump(json_dict, src, cls=JsonEncoder, indent=4)
 
 
 @requires(WriteJson)
