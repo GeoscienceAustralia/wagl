@@ -2,6 +2,7 @@
 Defining and buffering image extents/margins.
 """
 from __future__ import absolute_import, print_function
+from math import ceil
 
 
 class ImageMargins(object):
@@ -51,8 +52,8 @@ def pixel_buffer(acquisition, distance=8000):
     distance.
     If the acquistion's pixel units are in metres, then a distance
     of 8000 would equate to 8000 metres.
-    The result of the number of pixels to buffer is rounded to
-    the nearest whole integer.
+    The result of the number of pixels to buffer is rounded up to
+    the next whole integer.
     For determining the approproate distance to use as a buffer
     within your region of interest. You need to take into account 
     not just the highest elevation, but also steepest solar angle.
@@ -79,6 +80,6 @@ def pixel_buffer(acquisition, distance=8000):
         set to buffer in pixel units equivalent to that given by
         distance.
     """
-    pixels = [round(distance / i) for i in acquisition.resolution]
+    pixels = [ceil(distance / i) for i in acquisition.resolution]
     margins = ImageMargins(pixels[0], pixels[0], pixels[1], pixels[1])
     return margins
