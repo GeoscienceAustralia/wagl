@@ -180,6 +180,7 @@ class AncillaryData(luigi.Task):
                                       default=H5CompressionFilter.LZF,
                                       significant=False)
     filter_opts = luigi.DictParameter(default=None, significant=False)
+    normalization_angle = luigi.OptionalParameter(default=45.0, significant=False)
 
     def requires(self):
         group = acquisitions(self.level1, self.acq_parser_hint).supported_groups[0]
@@ -768,7 +769,8 @@ class SurfaceReflectance(luigi.Task):
                                    relative_slope_fname, incident_fname,
                                    exiting_fname, shadow_fname,
                                    ancillary_fname, self.rori, out_fname,
-                                   self.compression, self.filter_opts)
+                                   self.compression, self.filter_opts,
+                                   self.normalization_angle)
 
 
 @inherits(SurfaceReflectance)
