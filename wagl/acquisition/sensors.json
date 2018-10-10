@@ -167,7 +167,7 @@
                     "band_type": "REFLECTIVE",
                     "band_name": "BAND-7",
                     "wavelength": [2.08, 2.35],
-                    "spectral_filter_file": "landsat5_vsir.flt",
+                    "spectral_filter_file": "landsat7_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.1648,
                     "brdf_wavelength": "2105_2155nm",
@@ -255,6 +255,14 @@
                     "reflectance_adjustment": 0.1648,
                     "brdf_wavelength": "2105_2155nm",
                     "supported_band": true
+                },
+                "9": {
+                    "alias": "CIRRUS",
+                    "band_type": "REFLECTIVE",
+                    "band_name": "BAND-9",
+                    "wavelength": [1.363, 1.384],
+                    "spectral_filter_file": null,
+                    "supported_band": false
                 }
             }
         },
@@ -358,6 +366,14 @@
                     "reflectance_adjustment": 0.1648,
                     "brdf_wavelength": "2105_2155nm",
                     "supported_band": true
+                },
+                "9": {
+                    "alias": "CIRRUS",
+                    "band_type": "REFLECTIVE",
+                    "band_name": "BAND-9",
+                    "wavelength": [1.363, 1.384],
+                    "spectral_filter_file": null,
+                    "supported_band": false
                 }
             }
         }
