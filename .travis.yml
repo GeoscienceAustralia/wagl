@@ -1,32 +1,39 @@
----
 dist: xenial
 language: python
 python:
-  - '3.6'
+- '3.6'
 sudo: true
-
 cache:
   apt: true
   pip: true
-
 env:
   global:
-    - C_INCLUDE_PATH=/usr/include/gdal
-    - CPLUS_INCLUDE_PATH=/usr/include/gdal
-
+  - C_INCLUDE_PATH=/usr/include/gdal
+  - CPLUS_INCLUDE_PATH=/usr/include/gdal
 before_install:
-  - sudo add-apt-repository ppa:ubuntugis/ubuntugis-unstable -yu
-  - sudo apt-get update -qq
-  - sudo apt-get install gdal-bin python3-gdal libgdal-dev python3-dev gcc g++ -y -qq
-
+- sudo add-apt-repository ppa:ubuntugis/ubuntugis-unstable -yu
+- sudo apt-get update -qq
+- sudo apt-get install gdal-bin python3-gdal libgdal-dev python3-dev gcc g++ -y -qq
 install:
-  - pip install wheel numpy
-  - pip install GDAL==$(gdal-config --version) --global-option=build_ext
-  - pip install --process-dependency-links .
-  - pip install --upgrade pip setuptools pytest pytest-runner
-  - pip install --pre --upgrade rasterio>0.9
-  - python setup.py build_ext -i
-  - python3 -m pip freeze
-
+- pip install --upgrade pip setuptools pytest pytest-runner
+- pip install wheel numpy
+- pip install GDAL==$(gdal-config --version) --global-option=build_ext
+- pip install --process-dependency-links .
+- pip install --pre --upgrade rasterio>0.9
+- python setup.py build_ext -i
+- python -m pip freeze  # record what versions are used
 script:
-  - python setup.py test
+- python setup.py test
+before_deploy:
+- python setup.py sdist
+deploy:
+  provider: releases
+  file_glob: true
+  file: dist/*
+  skip_cleanup: true
+  on:
+    tags: true
+    condition: "$TRAVIS_TAG =~ wagl-[0-9]+\\.[0-9]+\\.[0-9]+$"
+    repo: GeoscienceAustralia/wagl
+  api-key:
+    secure: kHXyHOUGXe3x2oq0FyM090JbiUxc7gg+Mw9Vk8EpXnxwU7qSxjcemkmt0JzRReL0d4jJPtNLIVkNuoc+Qd8gJBpIdZ2e3G96IWeCNHcaCp2ctTRXV2SfVNfUt+rRFFH8AQC911O6OE2ig/tBi0v7tmS44G++AGdwhsyMfemdwy0JtEoqPhp1CT3wdnky0odMhibvZkojZkOqdfRlkbeoXXiRktMyLFIpsD2RtRQ+qg4Bs+DcA279XNuSnTlW7ZmpLsIZVFFcEJd289LZCW/FRt+wN6rIbKIreS9TnQ1o4C0vnqF1R862ZqAzhKkomDfgLIun11tC3NiqqHHTEzpAzfwpmdIAkaKk5VVjQNdoYDJLV9b8pTFo9hXeQUVZV0ZY/5fxybWlj6Uw1rKQfij+kqnP6Z3+02sVbzdeQMpMfCWMM5FyxOhvVPNdKZYwijjxKcNtUKY+LGztsYkCqpnoFSLQEmMgYyY/2pgX+vxBQXTWaH2Q1efeprlNljBf+/PQ89Hu5QEhwafOTYNo10BliySOjIdLPG5MQ8Q+O1TfSHescYSPiyrGXRnB3h234mQiiYr1RZsAwYIeKnb/sQ33F4JV2q/rAJ12WIZm9CE14ixAMG9tEntapoRKYtqrc7xJeyikSdlXjrrURfpjTggPCIeg/UgQ0Ohrerhv6yIqNp0=
