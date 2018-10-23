@@ -89,7 +89,7 @@ class AcquisitionsContainer(object):
         if only_supported_bands:
             return list(
                 filter(lambda acq: getattr(acq, 'supported_band', False) is True,
-                acqs)
+                       acqs)
             )
         else:
             return acqs

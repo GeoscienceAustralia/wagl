@@ -302,7 +302,7 @@ def run_modtran(acquisitions, atmospherics_group, workflow, npoints, point,
         workpath = pjoin(basedir, POINT_FMT.format(p=point),
                          ALBEDO_FMT.format(a=albedo.value))
         
-        json_mod_infile  = pjoin(workpath, ''.join([POINT_ALBEDO_FMT.format(p=point,a=albedo.value), '.json']))
+        json_mod_infile = pjoin(workpath, ''.join([POINT_ALBEDO_FMT.format(p=point,a=albedo.value), '.json']))
 
         group_path = ppjoin(base_path, ALBEDO_FMT.format(a=albedo.value))
 
