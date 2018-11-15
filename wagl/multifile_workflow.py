@@ -180,7 +180,7 @@ class AncillaryData(luigi.Task):
                                       default=H5CompressionFilter.LZF,
                                       significant=False)
     filter_opts = luigi.DictParameter(default=None, significant=False)
-    normalization_angle = luigi.OptionalParameter(default=45.0, significant=False)
+    normalized_solar_zenith = luigi.OptionalParameter(default=45.0, significant=False)
 
     def requires(self):
         group = acquisitions(self.level1, self.acq_parser_hint).supported_groups[0]
@@ -770,7 +770,7 @@ class SurfaceReflectance(luigi.Task):
                                    exiting_fname, shadow_fname,
                                    ancillary_fname, self.rori, out_fname,
                                    self.compression, self.filter_opts,
-                                   self.normalization_angle)
+                                   self.normalized_solar_zenith)
 
 
 @inherits(SurfaceReflectance)
@@ -799,7 +799,7 @@ class SurfaceTemperature(luigi.Task):
             interpolation_fname = self.input()['interpolation'].path
             ancillary_fname = self.input()['ancillary'].path
             _surface_brightness_temperature(acq, acqs, interpolation_fname,
-                                            ancillary_fname, out_fname, self.normalization_angle,
+                                            ancillary_fname, out_fname, self.normalized_solar_zenith,
                                             self.compression, self.filter_opts)
 
 

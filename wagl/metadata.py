@@ -97,7 +97,7 @@ def read_metadata_tags(fname, bands):
     return pandas.DataFrame(tag_data)
 
 
-def create_ard_yaml(acquisitions, ancillary_group, out_group, normalization_angle, sbt=False):
+def create_ard_yaml(acquisitions, ancillary_group, out_group, normalized_solar_zenith, sbt=False):
     """
     Write the NBAR metadata captured during the entire workflow to a
     HDF5 SCALAR dataset using the yaml document format.
@@ -199,7 +199,7 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, normalization_angl
                      'water_vapour': water_vapour_data,
                      'ozone': ozone_data,
                      'elevation': elevation_data,
-                     'normalization_angle': normalization_angle}
+                     'normalized_solar_zenith': {'value': normalized_solar_zenith}}
 
         if sbt:
             sbt_ancillary = load_sbt_ancillary(fid)

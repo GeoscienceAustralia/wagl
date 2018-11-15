@@ -29,7 +29,7 @@ def _calculate_reflectance(acquisition, acquisitions, interpolation_fname,
                            relative_slope_fname, incident_angles_fname,
                            exiting_angles_fname, shadow_masks_fname,
                            ancillary_fname, rori, out_fname, compression,
-                           filter_opts, normalization_angle):
+                           filter_opts, normalized_solar_zenith):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -54,9 +54,9 @@ def _calculate_reflectance(acquisition, acquisitions, interpolation_fname,
         grp8 = fid_anc[GroupName.ANCILLARY_GROUP.value]
         calculate_reflectance(acquisition, grp1, grp2, grp3, grp4, grp5, grp6,
                               grp7, grp8, rori, fid, compression, filter_opts,
-                              normalization_angle)
+                              normalized_solar_zenith)
 
-        create_ard_yaml(acquisitions, grp8, fid, normalization_angle)
+        create_ard_yaml(acquisitions, grp8, fid, normalized_solar_zenith)
 
 
 def calculate_reflectance(acquisition, interpolation_group,
@@ -65,7 +65,7 @@ def calculate_reflectance(acquisition, interpolation_group,
                           exiting_angles_group, shadow_masks_group,
                           ancillary_group, rori, out_group=None,
                           compression=H5CompressionFilter.LZF,
-                          filter_opts=None, normalization_angle=45.0):
+                          filter_opts=None, normalized_solar_zenith=45.0):
     """
     Calculates Lambertian, BRDF corrected and BRDF + terrain
     illumination corrected surface reflectance.
@@ -315,7 +315,7 @@ def calculate_reflectance(acquisition, interpolation_group,
                     incident_angle, exiting_angle, relative_slope, a_mod,
                     b_mod, s_mod, fs, fv, ts, direct, diffuse, ref_lm_work,
                     ref_brdf_work, ref_terrain_work, ref_lm.transpose(),
-                    ref_brdf.transpose(), ref_terrain.transpose(), normalization_angle)
+                    ref_brdf.transpose(), ref_terrain.transpose(), normalized_solar_zenith)
 
 
         # Write the current tile to disk
