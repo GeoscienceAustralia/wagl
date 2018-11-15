@@ -799,7 +799,7 @@ class SurfaceTemperature(luigi.Task):
             interpolation_fname = self.input()['interpolation'].path
             ancillary_fname = self.input()['ancillary'].path
             _surface_brightness_temperature(acq, acqs, interpolation_fname,
-                                            ancillary_fname, out_fname,
+                                            ancillary_fname, out_fname, self.normalization_angle,
                                             self.compression, self.filter_opts)
 
 

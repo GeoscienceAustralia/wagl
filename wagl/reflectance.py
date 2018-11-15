@@ -56,7 +56,7 @@ def _calculate_reflectance(acquisition, acquisitions, interpolation_fname,
                               grp7, grp8, rori, fid, compression, filter_opts,
                               normalization_angle)
 
-        create_ard_yaml(acquisitions, grp8, fid)
+        create_ard_yaml(acquisitions, grp8, fid, normalization_angle)
 
 
 def calculate_reflectance(acquisition, interpolation_group,

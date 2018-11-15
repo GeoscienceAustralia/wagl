@@ -379,10 +379,10 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
 
             # metadata yaml's
             if workflow == Workflow.STANDARD or workflow == Workflow.NBAR:
-                create_ard_yaml(band_acqs, ancillary_group, res_group)
+                create_ard_yaml(band_acqs, ancillary_group, res_group, normalization_angle)
 
             if workflow == Workflow.STANDARD or workflow == Workflow.SBT:
-                create_ard_yaml(band_acqs, ancillary_group, res_group, True)
+                create_ard_yaml(band_acqs, ancillary_group, res_group, normalization_angle, True)
 
             # pixel quality
             sbt_only = workflow == Workflow.SBT
