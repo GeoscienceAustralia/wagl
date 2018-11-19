@@ -38,7 +38,7 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
            water_vapour, dem_path, dsm_fname, invariant_fname, modtran_exe,
            out_fname, ecmwf_path=None, rori=0.52, buffer_distance=8000,
            compression=H5CompressionFilter.LZF, filter_opts=None,
-           h5_driver=None, acq_parser_hint=None):
+           h5_driver=None, acq_parser_hint=None, normalized_solar_zenith=45.):
     """
     CEOS Analysis Ready Data for Land.
     A workflow for producing standardised products that meet the
@@ -160,6 +160,9 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
     :param acq_parser_hint:
         A string containing any hints to provide the acquisitions
         loader with.
+
+    :param normalized_solar_zenith:
+        Solar zenith angle to normalize for (in degrees). Default is 45 degrees.
     """
     tp5_fmt = pjoin(POINT_FMT, ALBEDO_FMT, ''.join([POINT_ALBEDO_FMT, '.tp5']))
     nvertices = vertices[0] * vertices[1]
@@ -372,14 +375,14 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
                                           incident_grp, exiting_grp,
                                           shadow_grp, ancillary_group,
                                           rori, res_group, compression,
-                                          filter_opts)
+                                          filter_opts, normalized_solar_zenith)
 
             # metadata yaml's
             if workflow == Workflow.STANDARD or workflow == Workflow.NBAR:
-                create_ard_yaml(band_acqs, ancillary_group, res_group)
+                create_ard_yaml(band_acqs, ancillary_group, res_group, normalized_solar_zenith)
 
             if workflow == Workflow.STANDARD or workflow == Workflow.SBT:
-                create_ard_yaml(band_acqs, ancillary_group, res_group, True)
+                create_ard_yaml(band_acqs, ancillary_group, res_group, normalized_solar_zenith, True)
 
             # pixel quality
             sbt_only = workflow == Workflow.SBT
