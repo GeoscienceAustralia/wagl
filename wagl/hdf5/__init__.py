@@ -28,6 +28,7 @@ DEFAULT_TABLE_CLASS = {'CLASS': 'TABLE',
 DEFAULT_SCALAR_CLASS = {'CLASS': 'SCALAR',
                         'VERSION': '0.1'}
 
+
 VLEN_STRING = h5py.special_dtype(vlen=str)
 
 def _fixed_str_size(data):
@@ -392,6 +393,7 @@ def read_h5_table(fid, dataset_name, dataframe=True):
         Either a `pandas.DataFrame` (Default) or a NumPy structured
         array.
     """
+
     dset = fid[dataset_name]
     idx_names = None
 
