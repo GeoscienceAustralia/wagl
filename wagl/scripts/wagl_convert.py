@@ -12,17 +12,17 @@ import os
 from os.path import join as pjoin, normpath, dirname, exists, basename
 from functools import partial
 import argparse
-
 from posixpath import basename as pbasename
 from posixpath import join as ppjoin
 import numpy
 import h5py
 import yaml
 from yaml.representer import Representer
-
+import json
 from wagl.data import write_img
 from wagl.geobox import GriddedGeoBox
 from wagl.hdf5 import read_h5_table
+from wagl.modtran import JsonEncoder
 
 IGNORE = ['crs_wkt', 'geotransform']
 
@@ -39,6 +39,7 @@ yaml.add_representer(numpy.float, Representer.represent_float)
 yaml.add_representer(numpy.float32, Representer.represent_float)
 yaml.add_representer(numpy.float64, Representer.represent_float)
 yaml.add_representer(numpy.ndarray, Representer.represent_list)
+yaml.add_representer(numpy.bool, Representer.represent_bool)
 
 
 def convert_image(dataset, output_directory):
@@ -121,13 +122,14 @@ def convert_table(group, dataset_name, output_directory):
     df.to_csv(out_fname)
 
     out_fname = ''.join([base_fname, '.yaml'])
+
     with open(out_fname, 'w') as src:
         yaml.dump(tags, src, default_flow_style=False, indent=4)
 
 
 def convert_scalar(dataset, output_directory):
     """
-    Converts a HDF5 scalar dataset to a yaml file.
+    Converts a HDF5 scalar dataset to a yaml and/or json file.
     All attributes will be included in the yaml file.
 
     :param dataset:
@@ -140,8 +142,26 @@ def convert_scalar(dataset, output_directory):
     :return:
         None, outputs are written directly to disk.
     """
+
+    base_fname = pjoin(output_directory, normpath(dataset.name.strip('/')))
+
     if dataset.attrs.get('file_format') == 'yaml':
         tags = yaml.load(dataset[()])
+
+    elif dataset.attrs.get('file_format') == 'json':
+        tags = {k: v for k, v in dataset.attrs.items()}
+        data = dataset[()]
+
+        if isinstance(data, numpy.bytes_):
+            data = data.decode('utf-8')
+
+        out_fname_json = ''.join([base_fname, '.json'])
+
+        if not exists(dirname(out_fname_json)):
+            os.makedirs(dirname(out_fname_json))
+
+        with open(out_fname_json, 'w') as src:
+            json.dump(json.loads(data), src, cls=JsonEncoder, indent=4)
     else:
         tags = {k: v for k, v in dataset.attrs.items()}
         data = dataset[()]
@@ -149,13 +169,12 @@ def convert_scalar(dataset, output_directory):
             data = data.decode('utf-8')
         tags[basename(dataset.name)] = data
 
-    base_fname = pjoin(output_directory, normpath(dataset.name.strip('/')))
-    out_fname = ''.join([base_fname, '.yaml'])
+    out_fname_yaml = ''.join([base_fname, '.yaml'])
 
-    if not exists(dirname(out_fname)):
-        os.makedirs(dirname(out_fname))
+    if not exists(dirname(out_fname_yaml)):
+        os.makedirs(dirname(out_fname_yaml))
 
-    with open(out_fname, 'w') as src:
+    with open(out_fname_yaml, 'w') as src:
         yaml.dump(tags, src, default_flow_style=False, indent=4)
 
 
@@ -165,6 +184,7 @@ def extract(output_directory, group, name):
     extraction utility.
     """
     dataset_name = ppjoin(group.name, name.decode('utf-8'))
+
     obj = group[dataset_name]
     obj_class = obj.attrs.get('CLASS')
 
@@ -174,6 +194,7 @@ def extract(output_directory, group, name):
         convert_table(group, dataset_name, output_directory)
     elif obj_class == 'SCALAR':
         convert_scalar(obj, output_directory)
+
     else:
         return None
 
