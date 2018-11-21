@@ -65,7 +65,7 @@ setup(
     author='The wagl authors',
     author_email='earth.observation@ga.gov.au',
     maintainer='wagl developers',
-    packages=setuptools.find_packages(exclude=("tests", )),
+    packages=setuptools.find_packages(exclude=("tests", "env_tests")),
     scripts=['utils/test_satellite_solar_angles',
              'utils/test_dsm',
              'utils/test_exiting_angles',
