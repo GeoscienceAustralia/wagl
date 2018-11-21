@@ -283,17 +283,10 @@ class WriteJson(luigi.Task):
 
                     json_dict = json_data[key]
 
-                    if albedo == Albedos.ALBEDO_TH:
-
-                        json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = \
-                            "%s/%s" % (workdir, json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
-                        json_dict["MODTRAN"][1]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = \
-                            "%s/%s" % (workdir, json_dict["MODTRAN"][1]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
-
-                    else:
-
-                        json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = \
-                            "%s/%s" % (workdir, json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
+                    # Thermal processing has two input configurations
+                    for modtran_input in json_data[key]["MODTRAN"]:
+                        modtran_input["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = \
+                                pjoin(workdir, modtran_input["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
 
                     json.dump(json_dict, src, cls=JsonEncoder, indent=4)
 
