@@ -38,6 +38,7 @@ RESG_FMT = "RES-GROUP-{}"
 with open(pjoin(dirname(__file__), 'sensors.json')) as fo:
     SENSORS = json.load(fo)
 
+
 def fixname(s):
     """Fix satellite name.
        Performs 'Landsat7' to 'LANDSAT_7', 'LANDSAT8' to 'LANDSAT_8',
@@ -117,6 +118,7 @@ def acquisitions_via_mtl(pathname):
     for in the directory and its children.
     Returns an instance of `AcquisitionsContainer`.
     """
+
     if isfile(pathname) and tarfile.is_tarfile(pathname):
         with tarfile.open(pathname, 'r') as tarball:
             try:
@@ -128,13 +130,13 @@ def acquisitions_via_mtl(pathname):
                 raise OSError("Cannot find MTL file in %s" % pathname)
     else:
         if isdir(pathname):
-            filename = find_in(pathname, 'MTL')                                           
+            filename = find_in(pathname, 'MTL')
         else:
             filename = pathname
-        if filename is None:                                                          
-            raise OSError("Cannot find MTL file in %s" % pathname)                    
-        data = load_mtl(filename)                                                     
-        prefix_name = os.path.dirname(os.path.abspath(filename))    
+        if filename is None:
+            raise OSError("Cannot find MTL file in %s" % pathname)
+        data = load_mtl(filename)
+        prefix_name = os.path.dirname(os.path.abspath(filename))
 
     bandfiles = [k for k in data['PRODUCT_METADATA'].keys() if 'band' in k
                  and 'file_name' in k]
@@ -143,7 +145,7 @@ def acquisitions_via_mtl(pathname):
     # create an acquisition object for each band and attach
     # some appropriate metadata/attributes
 
-    # shortcuts to the requried levels
+    # shortcuts to the required levels
     prod_md = data['PRODUCT_METADATA']
     rad_md = data['MIN_MAX_RADIANCE']
     quant_md = data['MIN_MAX_PIXEL_VALUE']
@@ -447,7 +449,7 @@ def acquisitions_via_safe(pathname):
         # handling different metadata versions for image paths
         # files retrieved from archive.namelist are not prepended with a '/'
         # Rasterio 1.0b1 requires archive paths start with a /
-        img_data_path = ''.join(['zip:', pathname, '!/', archive.namelist()[0]])
+        img_data_path = ''.join(['zip://', pathname, '!/', archive.namelist()[0]])
         if basename(images[0]) == images[0]:
             img_data_path = ''.join([img_data_path,
                                      pjoin('GRANULE', granule_id, 'IMG_DATA')])

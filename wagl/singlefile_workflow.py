@@ -23,7 +23,6 @@ Workflow settings can be configured in `luigi.cfg` file.
 # pylint: disable=protected-access
 
 from os.path import join as pjoin, basename
-import logging
 import traceback
 from structlog import wrap_logger
 from structlog.processors import JSONRenderer
@@ -35,10 +34,7 @@ from wagl.constants import Workflow, Method
 from wagl.hdf5 import H5CompressionFilter
 from wagl.standardise import card4l
 
-
-ERROR_LOGGER = wrap_logger(logging.getLogger('errors'),
-                           processors=[JSONRenderer(indent=1, sort_keys=True)])
-INTERFACE_LOGGER = logging.getLogger('luigi-interface')
+from wagl.logging import ERROR_LOGGER, INTERFACE_LOGGER
 
 
 @luigi.Task.event_handler(luigi.Event.FAILURE)
@@ -84,6 +80,7 @@ class DataStandardisation(luigi.Task):
     acq_parser_hint = luigi.OptionalParameter(default='')
     buffer_distance = luigi.FloatParameter(default=8000, significant=False)
     h5_driver = luigi.OptionalParameter(default='', significant=False)
+    normalized_solar_zenith = luigi.OptionalParameter(default=45.0, significant=False)
 
     def output(self):
         fmt = '{label}.wagl.h5'
@@ -106,7 +103,7 @@ class DataStandardisation(luigi.Task):
                    self.dem_path, self.dsm_fname, self.invariant_height_fname,
                    self.modtran_exe, out_fname, ecmwf_path, self.rori,
                    self.buffer_distance, self.compression, self.filter_opts,
-                   self.h5_driver, self.acq_parser_hint)
+                   self.h5_driver, self.acq_parser_hint, self.normalized_solar_zenith)
 
 
 @inherits(DataStandardisation)

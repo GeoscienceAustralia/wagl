@@ -59,7 +59,7 @@ def extract_ancillary_metadata(fname):
     res['ctime'] = _get_utc_datetime(fstat.st_ctime)
     res['mtime'] = _get_utc_datetime(fstat.st_mtime)
     res['atime'] = _get_utc_datetime(fstat.st_atime)
-    res['owner'] = pwd.getpwuid(fstat.st_uid).pw_gecos
+    res['owner_id'] = str(fstat.st_uid)
     return res
 
 
@@ -98,7 +98,7 @@ def read_metadata_tags(fname, bands):
     return pandas.DataFrame(tag_data)
 
 
-def create_ard_yaml(acquisitions, ancillary_group, out_group, sbt=False):
+def create_ard_yaml(acquisitions, ancillary_group, out_group, normalized_solar_zenith, sbt=False):
     """
     Write the NBAR metadata captured during the entire workflow to a
     HDF5 SCALAR dataset using the yaml document format.
@@ -199,7 +199,8 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, sbt=False):
         ancillary = {'aerosol': aerosol_data,
                      'water_vapour': water_vapour_data,
                      'ozone': ozone_data,
-                     'elevation': elevation_data}
+                     'elevation': elevation_data,
+                     'normalized_solar_zenith': {'value': normalized_solar_zenith}}
 
         if sbt:
             sbt_ancillary = load_sbt_ancillary(fid)

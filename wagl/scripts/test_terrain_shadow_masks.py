@@ -93,10 +93,10 @@ def _parser():
                    
     parser = argparse.ArgumentParser(description=description,
                                      formatter_class=RawTextHelpFormatter)
-    parser.add_argument('--reference_fname', requried=True,
+    parser.add_argument('--reference_fname', required=True,
                         help=('The filename containing the reference datasets '
                               'to be used as a baseline.'))
-    parser.add_argument('--test_fname', require=True,
+    parser.add_argument('--test_fname', required=True,
                         help=('The filename containing the test datasets '
                               'to be used in comparing against the '
                               'base/reference datasets.'))
