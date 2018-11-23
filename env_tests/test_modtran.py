@@ -4,75 +4,124 @@
 Test several different configurations of the json input  file format.
 
 """
+import os
+import shutil
+import json
 from os.path import join as pjoin, abspath, dirname
+from posixpath import join as ppjoin
 import unittest
 import subprocess
 import tempfile
 import glob
-from wagl.modtran import coefficients
-from wagl.modtran import _get_solar_angles
+from datetime import datetime
+import pkg_resources
+from functools import partial
+
 import pandas as pd
 
+
+from wagl.modtran import coefficients, _get_solar_angles, run_modtran, read_spectral_response
+
+from wagl.hdf5 import read_h5_table
+
+from wagl.constants import (
+    Albedos, BandType, GroupName, DatasetName, Workflow, POINT_FMT,
+    ALBEDO_FMT, POINT_ALBEDO_FMT
+)
+
+import mock
+
+
 DATA_DIR = pjoin(dirname(abspath(__file__)), 'data')
-input_json = pjoin(DATA_DIR, 'TL_alb_0.json')
-trans_file = pjoin(DATA_DIR, 'TL_alb.txt')
-modtran_exe = 'mod6c_cons'
+INPUT_JSON = pjoin(DATA_DIR, 'TL_alb_0.json')
+EXPECTED_CSV = pjoin(DATA_DIR, 'TL_alb_0.expected.csv')
+MODTRAN_EXE = 'mod6c_cons'
+SPECTRAL_RESPONSE_LS8 = pkg_resources.resource_filename(
+    'wagl',
+    'spectral_response/landsat8_vsir.flt'
+)
+
+
+def mock_spectral_response():
+    with pkg_resources.resource_stream(
+            'wagl', 'spectral_response/landsat8_vsir.flt') as rsc_stream:
+        return read_spectral_response(
+            SPECTRAL_RESPONSE_LS8,
+            False,
+            range(2600, 349, -1)
+        )
 
 
 class ModtranTest(unittest.TestCase):
 
-    """
-    Test the modtran 6.0.1 program to see if runs completes
-    successfully and outputs the expected '.chn' file and
-    generates required atmospheric correction parameters
+    def test_modtran_run_2(self):
+        band_names = [
+            'BAND-1', 'BAND-2', 'BAND-3', 'BAND-4', 
+            'BAND-5', 'BAND-6', 'BAND-7', 'BAND-8'
+        ]
+        point = 0
+        albedo = Albedos.ALBEDO_0
 
-    """
-    def test_modtran_run(self):
+        # setup mock acquistions object
+        acquisitions = []
+        for bandn in band_names:
+            acq = mock.MagicMock()
+            acq.acquisition_datetime = datetime(2001, 1, 1)
+            acq.band_type = BandType.REFLECTIVE
+            acq.spectral_response = mock_spectral_response
+            acquisitions.append(acq)
 
-        """
-        Test to run MODTRAN 6.0.1 and check if the transmittance
-        result generated is as expected as in the 'trans_file'
-        """
-        with tempfile.TemporaryDirectory() as tmpdir:
+        # setup mock atmospherics group
+        attrs = { 'lonlat': 'TEST' }
+        atmospherics = mock.MagicMock()
+        atmospherics.attrs = attrs
+        atmospherics_group = {
+            POINT_FMT.format(p=point): atmospherics
+        }
 
-            nbands = 8
+        # Compute base path -- prefix for hdf5 file
+        base_path = ppjoin(GroupName.ATMOSPHERIC_RESULTS_GRP.value,
+                           POINT_FMT.format(p=point))
 
-            data = pd.read_csv(trans_file, nrows=nbands, header=None, delim_whitespace=True)
+        with tempfile.TemporaryDirectory() as workdir:
+            run_dir = pjoin(workdir, POINT_FMT.format(p=point), ALBEDO_FMT.format(a=albedo.value))
+            os.makedirs(run_dir)
 
-            columns = ['FS', 'FV', 'A', 'B', 'S', 'DIR', 'DIF', 'TS']
-            df = pd.DataFrame(columns=columns, index=data.index)
-            df['band_name'] = ['BAND-1', 'BAND-2', 'BAND-3', 'BAND-4', 'BAND-5', 'BAND-6', 'BAND-7', 'BAND-8']
-            df['FS'] = data[1]
-            df['FV'] = data[2]
-            df['A'] = data[3]
-            df['B'] = data[4]
-            df['S'] = data[5]
-            df['DIR'] = data[6]
-            df['DIF'] = data[7]
-            df['TS'] = data[8]
-            df.set_index('band_name', inplace=True)
+            # TODO replace json_input copy with json input generation
+            with open(INPUT_JSON, 'r') as fd:
+                json_data = json.load(fd)
+                for mod_input in json_data['MODTRAN']:
+                    mod_input['MODTRANINPUT']['SPECTRAL']['FILTNM'] = SPECTRAL_RESPONSE_LS8
 
-            subprocess.check_call([modtran_exe, input_json], cwd=tmpdir)
+            with open(pjoin(run_dir, POINT_ALBEDO_FMT.format(p=point, a=albedo.value)) + ".json", 'w') as fd:
+                json.dump(json_data, fd)
 
-            chn_fname = glob.glob(pjoin(tmpdir, '*.chn'))[0]
-            tp6_fname = glob.glob(pjoin(tmpdir, '*.tp6'))[0]
+            fid = run_modtran(
+                acquisitions,
+                atmospherics_group,
+                Workflow.STANDARD,
+                npoints=12,  # number of track points
+                point=point,
+                albedos=[albedo],
+                modtran_exe=MODTRAN_EXE,
+                basedir=workdir,
+                out_group=None
+            )
+            assert fid
 
-            solar_zenith = _get_solar_angles(tp6_fname)
+            # Test base attrs
+            assert fid[base_path].attrs['lonlat'] == 'TEST'
+            assert fid[base_path].attrs['datetime'] == datetime(2001, 1, 1).isoformat()
+            # test albedo headers?
+            # Summarise modtran results to surface reflectance coefficients
+            test_grp = fid[base_path][ALBEDO_FMT.format(a=albedo.value)]
+            nbar_coefficients, _ = coefficients(
+                read_h5_table(fid, pjoin(base_path, ALBEDO_FMT.format(a=albedo.value), DatasetName.CHANNEL.value)),
+                read_h5_table(fid, pjoin(base_path, ALBEDO_FMT.format(a=albedo.value), DatasetName.SOLAR_ZENITH_CHANNEL.value))
+            )
 
-            df_sz_angle = pd.DataFrame()
-            df_sz_angle['solar_zenith'] = solar_zenith
-
-            chn_data = pd.read_csv(chn_fname, skiprows=5, header=None, nrows=nbands,
-                                   delim_whitespace=True)
-            chn_data['band_name'] = chn_data[26]
-            chn_data.drop(26, inplace=True, axis=1)
-
-            chn_data.set_index('band_name', inplace=True)
-            chn_data.columns = chn_data.columns.astype(str)
-
-            nbar, _ = coefficients(chn_data, df_sz_angle, upward_radiation=None, downward_radiation=None)
-
-            pd.testing.assert_frame_equal(df, nbar, check_less_precise=True)
+            expected = pd.read_csv(EXPECTED_CSV, index_col='band_name')
+            pd.testing.assert_frame_equal(nbar_coefficients, expected, check_less_precise=True)
 
 
 if __name__ == '__main__':

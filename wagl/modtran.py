@@ -365,6 +365,7 @@ def run_modtran(acquisitions, atmospherics_group, workflow, npoints, point,
     if out_group is None:
         return fid
 
+
 def _calculate_coefficients(atmosheric_results_fname, out_fname,
                             compression=H5CompressionFilter.LZF,
                             filter_opts=None):
@@ -597,6 +598,7 @@ def coefficients(channel_data=None, solar_zenith_angle=None,
 
     return nbar, sbt
 
+
 def read_spectral_response(fname, as_list=False, spectral_range=None):
     """
     Read the spectral response function text file used during
@@ -621,15 +623,15 @@ def read_spectral_response(fname, as_list=False, spectral_range=None):
         function.
     """
     if isinstance(fname, str):
-        with open(fname, 'r') as src:
+        with open(fname, 'rb') as src:
             lines = src.readlines()
     else:
         lines = fname.readlines()
 
+    lines = [line.strip().decode('utf-8') for line in lines]
+
     if as_list:
         return lines
-
-    lines = [line.strip().decode('utf-8') for line in lines]
 
     # find the starting locations of each band description label
     ids = []
