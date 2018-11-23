@@ -91,7 +91,7 @@ def stack_data(acqs_list, fn=(lambda acq: True), window=None, masked=False):
 
 def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
               tags=None, options=None, cogtif=False, levels=None,
-              resampling=Resampling.nearest):
+              resampling=Resampling.nearest, config_options=None):
     """
     Writes a 2D/3D image to disk using rasterio.
 
@@ -132,6 +132,10 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
         If cogtif is set to True, build overviews/pyramids using
         a resampling method from `rasterio.enums.Resampling`.
         Default is `Resampling.nearest`.
+
+    :param config_options:
+        A dictionary containing the options to configure GDAL's
+        environment's default configurations
 
     :notes:
         If array is an instance of a `h5py.Dataset`, then the output
@@ -228,7 +232,7 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
             kwargs[key] = options[key]
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        out_fname = pjoin(tmpdir, basename(filename)) if cogtif else filename
+        out_fname = pjoin(tmpdir, basename(filename))
 
         with rasterio.open(out_fname, 'w', **kwargs) as outds:
             if bands == 1:
@@ -255,25 +259,28 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
 
             # overviews/pyramids
             if cogtif:
+
                 if levels is None:
                     levels = [2, 4, 8, 16, 32]
                 outds.build_overviews(levels, resampling)
 
-        if cogtif:
-            cmd = ['gdal_translate',
-                   '-co',
-                   'TILED=YES',
-                   '-co',
-                   'COPY_SRC_OVERVIEWS=YES',
-                   '-co',
-                   '{}={}'.format('PREDICTOR', predictor[dtype])]
+        cmd = ['gdal_translate',
+               '-co',
+               'TILED=YES',
+               '-co',
+               'COPY_SRC_OVERVIEWS=YES',
+               '-co',
+               '{}={}'.format('PREDICTOR', predictor[dtype])]
 
-            for key, value in options.items():
-                cmd.extend(['-co', '{}={}'.format(key, value)])
+        for key, value in options.items():
+            cmd.extend(['-co', '{}={}'.format(key, value)])
 
-            cmd.extend([out_fname, filename])
+        if config_options:
+            for key, value in config_options.items():
+                cmd.extend(['--config', '{}'.format(key), '{}'.format(value)])
 
-            subprocess.check_call(cmd, cwd=dirname(filename))
+        cmd.extend([out_fname, filename])
+        subprocess.check_call(cmd, cwd=dirname(filename))
 
 
 def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, bands=1):
