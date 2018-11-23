@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Test several different configurations of the json input  file format.
+Test several different configurations of the json input file format.
 
 """
 import os
@@ -43,6 +43,7 @@ SPECTRAL_RESPONSE_LS8 = pkg_resources.resource_filename(
 
 
 def mock_spectral_response():
+    """ Quick callable to return the spectral response from the repository """
     with pkg_resources.resource_stream(
             'wagl', 'spectral_response/landsat8_vsir.flt') as rsc_stream:
         return read_spectral_response(
@@ -54,7 +55,13 @@ def mock_spectral_response():
 
 class ModtranTest(unittest.TestCase):
 
-    def test_modtran_run_2(self):
+    def test_modtran_run(self):
+        """
+        Tests that the interface to modtran (run_modtran)
+        works for known inputs.
+        Used to validate environment configuration/setup
+        """
+
         band_names = [
             'BAND-1', 'BAND-2', 'BAND-3', 'BAND-4', 
             'BAND-5', 'BAND-6', 'BAND-7', 'BAND-8'

@@ -28,7 +28,7 @@ import wagl.modtran_profile_json as mpjson
 class JsonEncoder(json.JSONEncoder):
     """
     A wrapper class to address the issue of json encoding error
-    This class handles  the json serializing error for numpy
+    This class handles the json serializing error for numpy
     datatype: 'float32' and numpy arrays
     """
     def default(self, obj):
