@@ -227,9 +227,10 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
             kwargs['blockysize'] = y_tile
 
     # the user can override any derived blocksizes by supplying `options`
-    if options is not None:
-        for key in options:
-            kwargs[key] = options[key]
+    # handle case where no options are provided
+    options = options or {}
+    for key in options:
+        kwargs[key] = options[key]
 
     with tempfile.TemporaryDirectory() as tmpdir:
         out_fname = pjoin(tmpdir, basename(filename))
