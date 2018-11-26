@@ -23,7 +23,7 @@ install:
 - python setup.py build_ext -i
 - python -m pip freeze  # record what versions are used
 script:
-- python setup.py test
+- pytest -v tests
 before_deploy:
 - python setup.py sdist
 deploy:

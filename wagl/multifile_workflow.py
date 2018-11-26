@@ -49,18 +49,15 @@ from wagl.slope_aspect import _slope_aspect_arrays
 from wagl.constants import Workflow, BandType, Method, AtmosphericCoefficients
 from wagl.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT, Albedos
 from wagl.dsm import _get_dsm
-from wagl.modtran import _format_json, _run_modtran
+from wagl.modtran import _format_json, _run_modtran, JsonEncoder
 from wagl.modtran import _calculate_coefficients, prepare_modtran
 from wagl.modtran import link_atmospheric_results
 from wagl.interpolation import _interpolate, link_interpolated_data
 from wagl.temperature import _surface_brightness_temperature
 from wagl.pq import can_pq, _run_pq
 from wagl.hdf5 import create_external_link, H5CompressionFilter
-from wagl.modtran import JsonEncoder
+from wagl.logging import ERROR_LOGGER
 
-
-ERROR_LOGGER = wrap_logger(logging.getLogger('errors'),
-                           processors=[JSONRenderer(indent=1, sort_keys=True)])
 
 @luigi.Task.event_handler(luigi.Event.FAILURE)
 def on_failure(task, exception):
@@ -281,21 +278,12 @@ class WriteJson(luigi.Task):
 
                 with luigi.LocalTarget(target).open('w') as src:
 
-                    json_dict = json_data[key]
+                    # Thermal processing has two input configurations
+                    for modtran_input in json_data[key]["MODTRAN"]:
+                        modtran_input["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = \
+                                pjoin(workdir, modtran_input["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
 
-                    if albedo == Albedos.ALBEDO_TH:
-
-                        json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = \
-                            "%s/%s" % (workdir, json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
-                        json_dict["MODTRAN"][1]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = \
-                            "%s/%s" % (workdir, json_dict["MODTRAN"][1]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
-
-                    else:
-
-                        json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = \
-                            "%s/%s" % (workdir, json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
-
-                    json.dump(json_dict, src, cls=JsonEncoder, indent=4)
+                    json.dump(json_data[key], src, cls=JsonEncoder, indent=4)
 
 
 @requires(WriteJson)
