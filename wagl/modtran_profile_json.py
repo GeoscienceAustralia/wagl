@@ -520,29 +520,3 @@ def thermal_transmittance(name, ozone, n, prof_alt, prof_pres, prof_temp, prof_w
 }
 
     return THERMAL_TRANSMITTANCE
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
