@@ -17,6 +17,7 @@ from wagl.tiling import scatter
 
 PBS_RESOURCES = ("""#!/bin/bash
 #PBS -P {project}
+#PBS -W umask=017
 #PBS -q {queue}
 #PBS -l walltime={hours}:00:00,mem={memory}GB,ncpus={ncpus},jobfs=50GB,other=pernodejobfs
 #PBS -l wd
