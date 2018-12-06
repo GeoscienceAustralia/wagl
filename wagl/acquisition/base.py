@@ -3,7 +3,7 @@ Contains the base implementations for the acquisition and AcquisitionsContainer 
 """
 from os.path import join as pjoin
 from functools import total_ordering
-from pkg_resources import resource_stream
+from pkg_resources import resource_filename
 
 import numpy
 import rasterio
@@ -435,14 +435,20 @@ class Acquisition(object):
         """
         return int(self.acquisition_datetime.strftime('%j'))
 
+    @property
+    def spectral_filter_filepath(self):
+        """
+        Returns the filepath to the spectral filter file
+        """
+        return resource_filename('wagl', 'spectral_response/' + self.spectral_filter_name)
+
     def spectral_response(self, as_list=False):
         """
         Reads the spectral response for the sensor.
         """
         spectral_range = range(*self.spectral_range)
-        with resource_stream('wagl', 'spectral_response/' + self.spectral_filter_file):
-            df = read_spectral_response(src, as_list, spectral_range)
-        return df
+        with open(self.spectral_filter_filepath, 'r') as fd:
+            return read_spectral_response(fd, spectral_range)
 
     def close(self):
         """
