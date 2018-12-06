@@ -112,7 +112,7 @@ class BLRBTest(unittest.TestCase):
         b = interpolate_block(origin, shape, f, grid=None)
         # print '\n', b
 
-        self.assert_(numpy.max(b - a) < 0.000001)
+        self.assertTrue(numpy.max(b - a) < 0.000001)
 
     def test_interpolate_block_3(self):
 
@@ -138,7 +138,7 @@ class BLRBTest(unittest.TestCase):
         b = interpolate_block(origin, shape, f, grid=None)
         # print '\n', b
 
-        self.assert_(numpy.max(b - a) < 0.000001)
+        self.assertTrue(numpy.max(b - a) < 0.000001)
 
 
 def the_suite():
