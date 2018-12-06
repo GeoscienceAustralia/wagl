@@ -68,7 +68,7 @@ def preliminary_acquisitions_data(path, hint=None):
 
     elif splitext(path)[1] == '.zip':
         archive = zipfile.ZipFile(path)
-        xml_root = mtl_xml_via_safe(archive, path)
+        xml_root = xml_via_safe(archive, path)
         granules = get_granules_via_safe(archive, xml_root)
         return [{'id': granule_id,
                  'datetime': acquisition_time_via_safe(granule_data['xml_root'])}
@@ -404,7 +404,7 @@ def acquisitions_s2_sinergise(pathname):
                                  granules=granule_groups)
 
 
-def mtl_xml_via_safe(archive, pathname):
+def xml_via_safe(archive, pathname):
     """
     Preliminary data for zip archives.
 
@@ -499,7 +499,7 @@ def acquisitions_via_safe(pathname):
         return None
 
     archive = zipfile.ZipFile(pathname)
-    xml_root = mtl_xml_via_safe(archive, pathname)
+    xml_root = xml_via_safe(archive, pathname)
 
     # platform id, TODO: sensor name
     search_term = './*/Product_Info/*/SPACECRAFT_NAME'
