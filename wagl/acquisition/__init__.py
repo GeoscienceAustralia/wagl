@@ -58,6 +58,31 @@ def find_in(path, s, suffix='txt'):
     return None
 
 
+def preliminary_acquisitions_data(path, hint=None):
+    """
+    Just enough acquisition data to build luigi task graph.
+    """
+    if hint == 's2_sinergise':
+        data = preliminary_acquisitions_data_s2_sinergise(path)
+        return [{'id': data['granule_id'], 'datetime': data['acq_time']}]
+
+    elif splitext(path)[1] == '.zip':
+        archive = zipfile.ZipFile(path)
+        xml_root = mtl_xml_via_safe(archive, path)
+        granules = get_granules_via_safe(archive, xml_root)
+        return [{'id': granule_id,
+                 'datetime': acquisition_time_via_safe(granule_data['xml_root'])}
+                for granule_id, granule_data in granules.items()]
+
+    else:
+        try:
+            _, data = preliminary_acquisitions_data_via_mtl(path)
+            return [{'id': nested_lookup('landsat_scene_id', data)[0],
+                     'datetime': get_acquisition_datetime_via_mtl(data)}]
+        except OSError:
+            raise IOError("No acquisitions found in: {}".format(path))
+
+
 def acquisitions(path, hint=None):
     """
     Return an instance of `AcquisitionsContainer` containing the
@@ -110,13 +135,9 @@ def create_resolution_groups(acqs):
     return res_groups
 
 
-def acquisitions_via_mtl(pathname):
+def preliminary_acquisitions_data_via_mtl(pathname):
     """
-    Obtain a list of Acquisition objects from `pathname`.
-    The argument `pathname` can be a MTL file or a directory name.
-    If `pathname` is a directory then the MTL file will be search
-    for in the directory and its children.
-    Returns an instance of `AcquisitionsContainer`.
+    Preliminary data for MTL.
     """
 
     if isfile(pathname) and tarfile.is_tarfile(pathname):
@@ -138,6 +159,30 @@ def acquisitions_via_mtl(pathname):
         data = load_mtl(filename)
         prefix_name = os.path.dirname(os.path.abspath(filename))
 
+    return prefix_name, data
+
+
+def get_acquisition_datetime_via_mtl(data):
+    prod_md = data['PRODUCT_METADATA']
+
+    acq_date = prod_md.get('acquisition_date', prod_md['date_acquired'])
+    centre_time = prod_md.get('scene_center_scan_time',
+                              prod_md['scene_center_time'])
+    acq_datetime = datetime.datetime.combine(acq_date, centre_time)
+
+    return acq_datetime
+
+
+def acquisitions_via_mtl(pathname):
+    """
+    Obtain a list of Acquisition objects from `pathname`.
+    The argument `pathname` can be a MTL file or a directory name.
+    If `pathname` is a directory then the MTL file will be search
+    for in the directory and its children.
+    Returns an instance of `AcquisitionsContainer`.
+    """
+    prefix_name, data = preliminary_acquisitions_data_via_mtl(pathname)
+
     bandfiles = [k for k in data['PRODUCT_METADATA'].keys() if 'band' in k
                  and 'file_name' in k]
     bands_ = [b.replace('file_name', '').strip('_') for b in bandfiles]
@@ -151,10 +196,7 @@ def acquisitions_via_mtl(pathname):
     quant_md = data['MIN_MAX_PIXEL_VALUE']
 
     # acquisition datetime
-    acq_date = prod_md.get('acquisition_date', prod_md['date_acquired'])
-    centre_time = prod_md.get('scene_center_scan_time',
-                              prod_md['scene_center_time'])
-    acq_datetime = datetime.datetime.combine(acq_date, centre_time)
+    acq_datetime = get_acquisition_datetime_via_mtl(data)
 
     # platform and sensor id's
     platform_id = fixname(prod_md['spacecraft_id'])
@@ -233,19 +275,10 @@ def acquisitions_via_mtl(pathname):
                                  granules={granule_id: res_groups})
 
 
-def acquisitions_s2_sinergise(pathname):
+def preliminary_acquisitions_data_s2_sinergise(pathname):
     """
-    Collect the TOA Radiance images for each granule within a scene.
-    Multi-granule & multi-resolution hierarchy format.
-    Returns an instance of `AcquisitionsContainer`.
-
-    it is assumed that the pathname points to a directory containing
-    information pulled from AWS S3 granules (s3://sentinel-s2-l1c)
-    with additional information retrieved from the productInfo.json
-    sitting in a subfolder
+    Preliminary data for Sinergise Sentinel-2.
     """
-
-    granule_xml = pathname + '/metadata.xml'
 
     search_paths = {
         'datastrip/metadata.xml': [
@@ -298,6 +331,25 @@ def acquisitions_s2_sinergise(pathname):
             xml_root = ElementTree.XML(fd.read())
         for term in terms:
             acquisition_data[term['key']] = term['parse'](xml_root.findall(term['search_path']))
+
+    return acquisition_data
+
+
+def acquisitions_s2_sinergise(pathname):
+    """
+    Collect the TOA Radiance images for each granule within a scene.
+    Multi-granule & multi-resolution hierarchy format.
+    Returns an instance of `AcquisitionsContainer`.
+
+    it is assumed that the pathname points to a directory containing
+    information pulled from AWS S3 granules (s3://sentinel-s2-l1c)
+    with additional information retrieved from the productInfo.json
+    sitting in a subfolder
+    """
+
+    granule_xml = pathname + '/metadata.xml'
+
+    acquisition_data = preliminary_acquisitions_data_s2_sinergise(pathname)
 
     band_configurations = SENSORS[acquisition_data['platform_id']]['MSI']['band_ids']
     esa_ids = ['B02', 'B03', 'B04', 'B08', 'B05', 'B06', 'B07', 'B11',
@@ -352,6 +404,82 @@ def acquisitions_s2_sinergise(pathname):
                                  granules=granule_groups)
 
 
+def mtl_xml_via_safe(archive, pathname):
+    """
+    Preliminary data for zip archives.
+
+    Returns an `ElementTree.XML` object.
+    """
+    xmlfiles = [s for s in archive.namelist() if "MTD_MSIL1C.xml" in s]
+
+    if not xmlfiles:
+        pattern = basename(pathname.replace('PRD_MSIL1C', 'MTD_SAFL1C'))
+        pattern = pattern.replace('.zip', '.xml')
+        xmlfiles = [s for s in archive.namelist() if pattern in s]
+
+    mtd_xml = archive.read(xmlfiles[0])
+    xml_root = ElementTree.XML(mtd_xml)
+
+    return xml_root
+
+
+def get_granules_via_safe(archive, xml_root):
+    search_term = './*/Product_Info/Product_Organisation/Granule_List/Granules'
+    grn_elements = xml_root.findall(search_term)
+
+    # handling multi vs single granules + variants of each type
+    if not grn_elements:
+        grn_elements = xml_root.findall(search_term[:-1])
+
+    # alternate lookup for different granule versions
+    search_term = './*/Product_Info/PROCESSING_BASELINE'
+    processing_baseline = xml_root.findall(search_term)[0].text
+
+    def granule_id(granule):
+        return granule.get('granuleIdentifier')
+
+    def granule_images(granule):
+        if granule.findtext('IMAGE_ID'):
+            search_term = 'IMAGE_ID'
+        else:
+            search_term = 'IMAGE_FILE'
+
+        return [imid.text for imid in granule.findall(search_term)]
+
+    def granule_xml_path(granule):
+        granule_xmls = [s for s in archive.namelist() if 'MTD_TL.xml' in s]
+
+        if not granule_xmls:
+            pattern = granule_id(granule).replace('MSI', 'MTD')
+            pattern = pattern.replace(''.join(['_N', processing_baseline]),
+                                      '.xml')
+
+            granule_xmls = [s for s in archive.namelist() if pattern in s]
+
+        return granule_xmls[0]
+
+    def granule_root(xml_path):
+        return ElementTree.XML(archive.read(xml_path))
+
+    def granule_data(granule):
+        xml_path = granule_xml_path(granule)
+
+        return dict(images=granule_images(granule),
+                    xml_path=xml_path,
+                    xml_root=granule_root(xml_path))
+
+    granules = {granule_id(granule): granule_data(granule)
+                for granule in grn_elements}
+
+    return granules
+
+
+def acquisition_time_via_safe(granule_root):
+    search_term = './*/SENSING_TIME'
+    acq_time = parser.parse(granule_root.findall(search_term)[0].text)
+    return acq_time
+
+
 def acquisitions_via_safe(pathname):
     """
     Collect the TOA Radiance images for each granule within a scene.
@@ -371,23 +499,11 @@ def acquisitions_via_safe(pathname):
         return None
 
     archive = zipfile.ZipFile(pathname)
-    xmlfiles = [s for s in archive.namelist() if "MTD_MSIL1C.xml" in s]
-
-    if not xmlfiles:
-        pattern = basename(pathname.replace('PRD_MSIL1C', 'MTD_SAFL1C'))
-        pattern = pattern.replace('.zip', '.xml')
-        xmlfiles = [s for s in archive.namelist() if pattern in s]
-
-    mtd_xml = archive.read(xmlfiles[0])
-    xml_root = ElementTree.XML(mtd_xml)
+    xml_root = mtl_xml_via_safe(archive, pathname)
 
     # platform id, TODO: sensor name
     search_term = './*/Product_Info/*/SPACECRAFT_NAME'
     platform_id = fixname(xml_root.findall(search_term)[0].text)
-
-    # alternate lookup for different granule versions
-    search_term = './*/Product_Info/PROCESSING_BASELINE'
-    processing_baseline = xml_root.findall(search_term)[0].text
 
     # supported bands for this sensor
     band_configurations = SENSORS[platform_id]['MSI']['band_ids']
@@ -412,39 +528,17 @@ def acquisitions_via_safe(pathname):
         band_id = s2_index_to_band_id(irradiance.attrib['bandId'])
         solar_irradiance[band_id] = float(irradiance.text)
 
-    search_term = './*/Product_Info/Product_Organisation/Granule_List/Granules'
-    grn_elements = xml_root.findall(search_term)
-
-    # handling multi vs single granules + variants of each type
-    if not grn_elements:
-        grn_elements = xml_root.findall(search_term[:-1])
-
-    if grn_elements[0].findtext('IMAGE_ID'):
-        search_term = 'IMAGE_ID'
-    else:
-        search_term = 'IMAGE_FILE'
-
-    granules = {granule.get('granuleIdentifier'):
-                    [imid.text for imid in granule.findall(search_term)]
-                for granule in grn_elements}
+    granules = get_granules_via_safe(archive, xml_root)
 
     # ESA image ids
     esa_ids = ['B02', 'B03', 'B04', 'B08', 'TCI', 'B05', 'B06', 'B07', 'B11',
                'B12', 'B8A', 'B01', 'B09', 'B10']
 
     granule_groups = {}
-    for granule_id, images in granules.items():
-
-        granule_xmls = [s for s in archive.namelist() if 'MTD_TL.xml' in s]
-        if not granule_xmls:
-            pattern = granule_id.replace('MSI', 'MTD')
-            pattern = pattern.replace(''.join(['_N', processing_baseline]),
-                                      '.xml')
-
-            granule_xmls = [s for s in archive.namelist() if pattern in s]
-
-        granule_xml = archive.read(granule_xmls[0])
-        granule_root = ElementTree.XML(granule_xml)
+    for granule_id, granule_data in granules.items():
+        images = granule_data['images']
+        granule_root = granule_data['xml_root']
+        granule_xml = granule_data['xml_path']
 
         # handling different metadata versions for image paths
         # files retrieved from archive.namelist are not prepended with a '/'
@@ -455,8 +549,7 @@ def acquisitions_via_safe(pathname):
                                      pjoin('GRANULE', granule_id, 'IMG_DATA')])
 
         # acquisition centre datetime
-        search_term = './*/SENSING_TIME'
-        acq_time = parser.parse(granule_root.findall(search_term)[0].text)
+        acq_time = acquisition_time_via_safe(granule_root)
 
         acqs = []
         for image in images:
@@ -477,7 +570,7 @@ def acquisitions_via_safe(pathname):
                 attrs['qv'] = qv
 
             # Required attribute for packaging
-            attrs['granule_xml'] = granule_xmls[0]
+            attrs['granule_xml'] = granule_xml
 
             # band_name is an internal property of acquisitions class
             band_name = attrs.pop('band_name', band_id)
