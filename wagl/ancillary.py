@@ -127,8 +127,7 @@ def collect_ancillary(container, satellite_solar_group, nbar_paths,
         * water_vapour_data
         * ozone_path
         * dem_path
-        * brdf_path
-        * brdf_premodis_path
+        * brdf_dict
 
     :param sbt_path:
         A `str` containing the base directory pointing to the
@@ -342,8 +341,8 @@ def collect_sbt_ancillary(acquisition, lonlats, ancillary_path,
 
 def collect_nbar_ancillary(container, aerosol_dict=None,
                            water_vapour_dict=None, ozone_path=None,
-                           dem_path=None, brdf_path=None,
-                           brdf_premodis_path=None, out_group=None,
+                           dem_path=None, brdf_dict=None,
+                           out_group=None,
                            compression=H5CompressionFilter.LZF,
                            filter_opts=None):
     """
@@ -372,13 +371,11 @@ def collect_nbar_ancillary(container, aerosol_dict=None,
         A `str` containing the full file pathname to the directory
         containing the digital elevation model data.
 
-    :param brdf_path:
-        A `str` containing the full file pathname to the directory
-        containing the BRDF image mosaics.
+    :param brdf_dict:
+        A `dict` defined as either of the following:
 
-    :param brdf_premodis_path:
-        A `str` containing the full file pathname to the directory
-        containing the premodis BRDF image mosaics.
+        * {'user': {<band-alias>: {'iso': <value>, 'vol': <value>, 'geo': <value>}, ...}}
+        * {'brdf_path': <path-to-BRDF>, 'brdf_premodis_path': <path-to-average-BRDF>}
 
     :param out_group:
         If set to None (default) then the results will be returned
@@ -436,7 +433,7 @@ def collect_nbar_ancillary(container, aerosol_dict=None,
         for acq in container.get_acquisitions(group=group):
             if acq.band_type is not BandType.REFLECTIVE:
                 continue
-            data = get_brdf_data(acq, brdf_path, brdf_premodis_path,
+            data = get_brdf_data(acq, brdf_dict,
                                  compression)
 
             # output

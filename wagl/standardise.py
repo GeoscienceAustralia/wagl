@@ -36,7 +36,7 @@ from wagl.logging import STATUS_LOGGER
 
 # pylint disable=too-many-arguments
 def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
-           tle_path, aerosol, brdf_path, brdf_premodis_path, ozone_path,
+           tle_path, aerosol, brdf, ozone_path,
            water_vapour, dem_path, dsm_fname, invariant_fname, modtran_exe,
            out_fname, ecmwf_path=None, rori=0.52, buffer_distance=8000,
            compression=H5CompressionFilter.LZF, filter_opts=None,
@@ -82,15 +82,11 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
         A string containing the full file pathname to the HDF5 file
         containing the aerosol data.
 
-    :param brdf_path:
-        A string containing the full file pathname to the directory
-        containing the BRDF data.
-
-    :param brdf_premodis_path:
-        A string containing the full file pathname to the directory
-        containing the decadal averaged BRDF data used for acquisitions
-        prior to TERRA/AQUA satellite operations, or for near real time
-        applications.
+    :param brdf:
+        A dict containing either user-supplied BRDF values, or the
+        full file pathname to the directory containing the BRDF data
+        and the decadal averaged BRDF data used for acquisitions
+        prior to TERRA/AQUA satellite operations.
 
     :param ozone_path:
         A string containing the full file pathname to the directory
@@ -272,8 +268,7 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
                       'water_vapour_dict': water_vapour,
                       'ozone_path': ozone_path,
                       'dem_path': dem_path,
-                      'brdf_path': brdf_path,
-                      'brdf_premodis_path': brdf_premodis_path}
+                      'brdf_dict': brdf}
         collect_ancillary(grn_con, res_group[GroupName.SAT_SOL_GROUP.value],
                           nbar_paths, ecmwf_path, invariant_fname,
                           vertices, root, compression, filter_opts)
