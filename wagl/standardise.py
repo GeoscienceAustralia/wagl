@@ -35,7 +35,7 @@ from wagl.logging import STATUS_LOGGER
 # pylint disable=too-many-arguments
 def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
            tle_path, aerosol, brdf_path, brdf_premodis_path, ozone_path,
-           water_vapour, dem_path, dsm_fname, invariant_fname, modtran_exe,
+           water_vapour, dsm_fname, invariant_fname, modtran_exe,
            out_fname, ecmwf_path=None, rori=0.52, buffer_distance=8000,
            compression=H5CompressionFilter.LZF, filter_opts=None,
            h5_driver=None, acq_parser_hint=None):
@@ -97,10 +97,6 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
     :param water_vapour:
         A string containing the full file pathname to the directory
         containing the water vapour datasets.
-
-    :param dem_path:
-        A string containing the full file pathname to the directory
-        containing the reduced resolution DEM.
 
     :param dsm_path:
         A string containing the full file pathname to the directory
@@ -266,7 +262,7 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
         nbar_paths = {'aerosol_dict': aerosol,
                       'water_vapour_dict': water_vapour,
                       'ozone_path': ozone_path,
-                      'dem_path': dem_path,
+                      'dem_path': dsm_path,
                       'brdf_path': brdf_path,
                       'brdf_premodis_path': brdf_premodis_path}
         collect_ancillary(grn_con, res_group[GroupName.SAT_SOL_GROUP.value],

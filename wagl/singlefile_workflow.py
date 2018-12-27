@@ -66,7 +66,6 @@ class DataStandardisation(luigi.Task):
     ozone_path = luigi.Parameter(significant=False)
     water_vapour = luigi.DictParameter(default={'user': 1.5},
                                        significant=False)
-    dem_path = luigi.Parameter(significant=False)
     ecmwf_path = luigi.Parameter(significant=False)
     invariant_height_fname = luigi.Parameter(significant=False)
     dsm_fname = luigi.Parameter(significant=False)
@@ -99,7 +98,7 @@ class DataStandardisation(luigi.Task):
                    self.method, self.pixel_quality, self.land_sea_path,
                    self.tle_path, self.aerosol, self.brdf_path,
                    self.brdf_premodis_path, self.ozone_path, self.water_vapour,
-                   self.dem_path, self.dsm_fname, self.invariant_height_fname,
+                   self.dsm_fname, self.invariant_height_fname,
                    self.modtran_exe, out_fname, ecmwf_path, self.rori,
                    self.buffer_distance, self.compression, self.filter_opts,
                    self.h5_driver, self.acq_parser_hint)
@@ -137,7 +136,6 @@ class ARD(luigi.WrapperTask):
                           'brdf_premodis_path': self.brdf_premodis_path,
                           'ozone_path': self.ozone_path,
                           'water_vapour': self.water_vapour,
-                          'dem_path': self.dem_path,
                           'ecmwf_path': self.ecmwf_path,
                           'invariant_height_fname': self.invariant_height_fname,
                           'dsm_fname': self.dsm_fname,

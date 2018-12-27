@@ -173,7 +173,7 @@ class AncillaryData(luigi.Task):
     brdf_premodis_path = luigi.Parameter(significant=False)
     ozone_path = luigi.Parameter(significant=False)
     water_vapour = luigi.DictParameter({'user': 1.5}, significant=False)
-    dem_path = luigi.Parameter(significant=False)
+    dsm_fname = luigi.Parameter(significant=False)
     ecmwf_path = luigi.Parameter(significant=False)
     invariant_height_fname = luigi.Parameter(significant=False)
     compression = luigi.EnumParameter(enum=H5CompressionFilter,
@@ -197,7 +197,7 @@ class AncillaryData(luigi.Task):
         nbar_paths = {'aerosol_dict': self.aerosol,
                       'water_vapour_dict': self.water_vapour,
                       'ozone_path': self.ozone_path,
-                      'dem_path': self.dem_path,
+                      'dsm_fname': self.dsm_fname,
                       'brdf_path': self.brdf_path,
                       'brdf_premodis_path': self.brdf_premodis_path}
 
