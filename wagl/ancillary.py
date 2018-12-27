@@ -621,11 +621,12 @@ def get_elevation_data(lonlat, dem_path):
     :type dem_dir:
         str
     """
-    datafile = pjoin(dem_path, "DEM_one_deg.tif")
-    url = urlparse(datafile, scheme='file').geturl()
+    # filename, dataset name
+    fname, dname = dem_path.split(':')
+    url = urlparse(fname, scheme='file').geturl()
 
     try:
-        data = get_pixel(datafile, lonlat) * 0.001  # scale to correct units
+        data = get_pixel(fname, dname, lonlat) * 0.001  # scale to correct units
     except IndexError:
         raise AncillaryError("No Elevation data")
 
@@ -633,24 +634,23 @@ def get_elevation_data(lonlat, dem_path):
                 'url': url}
 
     # ancillary metadata tracking
-    md = extract_ancillary_metadata(datafile)
-    for key in md:
-        metadata[key] = md[key]
+    # md = extract_ancillary_metadata(datafile)
+    # for key in md:
+    #     metadata[key] = md[key]
 
     return data, metadata
 
 
-def get_ozone_data(ozone_path, lonlat, time):
+def get_ozone_data(ozone_fname, lonlat, time):
     """
     Get ozone data for a scene. `lonlat` should be the (x,y) for the centre
     the scene.
     """
-    filename = time.strftime('%b').lower() + '.tif'
-    datafile = pjoin(ozone_path, filename)
-    url = urlparse(datafile, scheme='file').geturl()
+    dname = time.strftime('%b').lower()
+    url = urlparse(ozone_fname, scheme='file').geturl()
 
     try:
-        data = get_pixel(datafile, lonlat)
+        data = get_pixel(ozone_fname, dname, lonlat)
     except IndexError:
         raise AncillaryError("No Ozone data")
 
@@ -659,14 +659,15 @@ def get_ozone_data(ozone_path, lonlat, time):
                 'query_date': time}
 
     # ancillary metadata tracking
-    md = extract_ancillary_metadata(datafile)
-    for key in md:
-        metadata[key] = md[key]
+    # md = extract_ancillary_metadata(datafile)
+    # for key in md:
+    #     metadata[key] = md[key]
 
     return data, metadata
 
 
-def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1):
+def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1,
+                     tolerance=7):
     """
     Retrieve the water vapour value for an `acquisition` and the
     path for the water vapour ancillary data.
@@ -675,7 +676,7 @@ def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1):
     geobox = acquisition.gridded_geo_box()
 
     year = dt.strftime('%Y')
-    filename = "pr_wtr.eatm.{year}.tif".format(year=year)
+    filename = "pr_wtr.eatm.{year}.h5".format(year=year)
 
     if 'user' in water_vapour_dict:
         metadata = {'data_source': 'User defined value'}
@@ -688,39 +689,52 @@ def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1):
 
     # calculate the water vapour band number based on the datetime
 
-    doy = dt.timetuple().tm_yday
-    hour = dt.timetuple().tm_hour
-    band = (int(doy) - 1) * 4 + int((hour + 3) / 6)
+    # read the index
+    with h5py.File(datafile, 'r') as fid:
+        index = read_h5_table(fid, 'INDEX')
 
-    # Check for boundary condition: 1 Jan, 0-3 hours
-    if band == 0 and doy == 1:
-        band = 1
+    # set the tolerance in days to search back in time
+    day_zero = dt - dt
+    max_tolerance = day_zero - datetime.timedelta(days=tolerance)
 
-    # Get the number of bands
-    with rasterio.open(datafile) as src:
-        n_bands = src.count
-
-    # Enable NBAR Near Real Time (NRT) processing
-    if band > (n_bands + 1):
-        rasterdoy = (((n_bands) - (int((hour + 3) / 6))) / 4) + 1
-        if (doy - rasterdoy) < 7:
-            band = (int(rasterdoy) - 1) * 4 + int((hour + 3) / 6)
-
-    try:
-        data = get_pixel(datafile, geobox.centre_lonlat, band=band)
-    except IndexError:
+    # only look for observations that have occured in the past
+    time_delta = index.timestamp - dt
+    result = time_delta[(time_delta < day_zero) & (time_delta > max_tolerance)]
+    if result.shape[0] == 0:
+        # no records
         raise AncillaryError("No Water Vapour data")
 
+    # get the index of the closest water vapour observation
+    # which would be the maximum timedelta
+    # as we're only dealing with negative timedelta's here
+    idx = result.argmax()
+    record = index.iloc[idx]
+    dataset_name = record.band_name
+
+    try:
+        data = get_pixel(datafile, dataset_name, geobox.centre_lonlat)
+    except ValueError:
+        # h5py raises a ValueError not an IndexError for out of bounds
+        raise AncillaryError("No Water Vapour data")
+
+    # TODO make use of a scale factor attribute on the HDF5 file
+    # TODO check we have the correct units documented (g/cm^2)
+    # the metadata from the original file says (Kg/m^2)
     data = data * scale_factor
 
-    metadata = {'data_source': 'Water Vapour',
-                'url': url,
-                'query_date': dt}
+    # TODO include dataset name and the corresponding datetime from INDEX
+    metadata = {
+        'data_source': 'Water Vapour',
+        'url': url,
+        'query_date': dt,
+        'dataset_name': dataset_name,
+        'water_vapour_date': record.timestamp
+    }
 
     # ancillary metadata tracking
-    md = extract_ancillary_metadata(datafile)
-    for key in md:
-        metadata[key] = md[key]
+    # md = extract_ancillary_metadata(datafile)
+    # for key in md:
+    #     metadata[key] = md[key]
 
     return data, metadata
 
