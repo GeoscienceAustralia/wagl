@@ -99,7 +99,7 @@ class DatasetName(Enum):
     OZONE = 'OZONE'
     ELEVATION = 'ELEVATION'
     BRDF_FMT = "BRDF-{parameter}-{band_name}"
-    ECMWF_PATH_FMT = pjoin('{product}', '{year}', 'tif', '{product}_*.tif')
+    ECMWF_PATH_FMT = pjoin('{product}', '{year}', '{product}_{ymd}.h5')
 
     # wagl.longitude_latitude_arrays
     LON = 'LONGITUDE'
