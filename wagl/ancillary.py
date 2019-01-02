@@ -770,10 +770,14 @@ def ecwmf_temperature_2metre(input_path, lonlat, time):
     collection.
     """
     product = DatasetName.TEMPERATURE_2M.value.lower()
-    search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
-    files = glob.glob(search.format(product=product, year=time.year))
+    # search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
+    # files = glob.glob(search.format(product=product, year=time.year))
     data = None
-    required_ymd = datetime.datetime(time.year, time.month, time.day)
+    # required_ymd = datetime.datetime(time.year, time.month, time.day)
+    required_ymd = time.strftime('%Y-%m-%d')
+    fmt = DatasetName.ECMWF_PATH_FMT.value
+    base_fname = fmt.format(product=product, year=time.year, ymd=required_ymd)
+    fname = pjoin(input_path, base_fname)
     for f in files:
         url = urlparse(f, scheme='file').geturl()
         ymd = splitext(basename(f))[0].split('_')[1]
@@ -807,10 +811,14 @@ def ecwmf_dewpoint_temperature(input_path, lonlat, time):
     Temperature collection.
     """
     product = DatasetName.DEWPOINT_TEMPERATURE.value.lower()
-    search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
-    files = glob.glob(search.format(product=product, year=time.year))
+    # search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
+    # files = glob.glob(search.format(product=product, year=time.year))
     data = None
-    required_ymd = datetime.datetime(time.year, time.month, time.day)
+    # required_ymd = datetime.datetime(time.year, time.month, time.day)
+    required_ymd = time.strftime('%Y-%m-%d')
+    fmt = DatasetName.ECMWF_PATH_FMT.value
+    base_fname = fmt.format(product=product, year=time.year, ymd=required_ymd)
+    fname = pjoin(input_path, base_fname)
     for f in files:
         url = urlparse(f, scheme='file').geturl()
         ymd = splitext(basename(f))[0].split('_')[1]
@@ -845,10 +853,14 @@ def ecwmf_surface_pressure(input_path, lonlat, time):
     Scales the result by 100 before returning.
     """
     product = DatasetName.SURFACE_PRESSURE.value.lower()
-    search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
-    files = glob.glob(search.format(product=product, year=time.year))
+    # search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
+    # files = glob.glob(search.format(product=product, year=time.year))
     data = None
-    required_ymd = datetime.datetime(time.year, time.month, time.day)
+    # required_ymd = datetime.datetime(time.year, time.month, time.day)
+    required_ymd = time.strftime('%Y-%m-%d')
+    fmt = DatasetName.ECMWF_PATH_FMT.value
+    base_fname = fmt.format(product=product, year=time.year, ymd=required_ymd)
+    fname = pjoin(input_path, base_fname)
     for f in files:
         url = urlparse(f, scheme='file').geturl()
         ymd = splitext(basename(f))[0].split('_')[1]
@@ -882,10 +894,14 @@ def ecwmf_water_vapour(input_path, lonlat, time):
     collection.
     """
     product = DatasetName.WATER_VAPOUR.value.lower()
-    search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
-    files = glob.glob(search.format(product=product, year=time.year))
+    # search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
+    # files = glob.glob(search.format(product=product, year=time.year))
     data = None
-    required_ymd = datetime.datetime(time.year, time.month, time.day)
+    # required_ymd = datetime.datetime(time.year, time.month, time.day)
+    required_ymd = time.strftime('%Y-%m-%d')
+    fmt = DatasetName.ECMWF_PATH_FMT.value
+    base_fname = fmt.format(product=product, year=time.year, ymd=required_ymd)
+    fname = pjoin(input_path, base_fname)
     for f in files:
         url = urlparse(f, scheme='file').geturl()
         ymd = splitext(basename(f))[0].split('_')[1]
@@ -922,10 +938,14 @@ def ecwmf_temperature(input_path, lonlat, time):
     (1000 -> 1 mb, rather than 1 -> 1000 mb) before returning.
     """
     product = DatasetName.TEMPERATURE.value.lower()
-    search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
-    files = glob.glob(search.format(product=product, year=time.year))
+    # search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
+    # files = glob.glob(search.format(product=product, year=time.year))
     data = None
-    required_ymd = datetime.datetime(time.year, time.month, time.day)
+    # required_ymd = datetime.datetime(time.year, time.month, time.day)
+    required_ymd = time.strftime('%Y-%m-%d')
+    fmt = DatasetName.ECMWF_PATH_FMT.value
+    base_fname = fmt.format(product=product, year=time.year, ymd=required_ymd)
+    fname = pjoin(input_path, base_fname)
     for f in files:
         url = urlparse(f, scheme='file').geturl()
         ymd = splitext(basename(f))[0].split('_')[1]
@@ -967,10 +987,14 @@ def ecwmf_geo_potential(input_path, lonlat, time):
     returning.
     """
     product = DatasetName.GEOPOTENTIAL.value.lower()
-    search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
-    files = glob.glob(search.format(product=product, year=time.year))
+    # search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
+    # files = glob.glob(search.format(product=product, year=time.year))
     data = None
-    required_ymd = datetime.datetime(time.year, time.month, time.day)
+    # required_ymd = datetime.datetime(time.year, time.month, time.day)
+    required_ymd = time.strftime('%Y-%m-%d')
+    fmt = DatasetName.ECMWF_PATH_FMT.value
+    base_fname = fmt.format(product=product, year=time.year, ymd=required_ymd)
+    fname = pjoin(input_path, base_fname)
     for f in files:
         url = urlparse(f, scheme='file').geturl()
         ymd = splitext(basename(f))[0].split('_')[1]
@@ -1013,11 +1037,16 @@ def ecwmf_relative_humidity(input_path, lonlat, time):
     (1000 -> 1 mb, rather than 1 -> 1000 mb) before returning.
     """
     product = DatasetName.RELATIVE_HUMIDITY.value.lower()
-    search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
-    files = glob.glob(search.format(product=product, year=time.year))
+    # search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
+    # files = glob.glob(search.format(product=product, year=time.year))
     data = None
-    required_ymd = datetime.datetime(time.year, time.month, time.day)
+    # required_ymd = datetime.datetime(time.year, time.month, time.day)
+    required_ymd = time.strftime('%Y-%m-%d')
+    fmt = DatasetName.ECMWF_PATH_FMT.value
+    base_fname = fmt.format(product=product, year=time.year, ymd=required_ymd)
+    fname = pjoin(input_path, base_fname)
     for f in files:
+        # TODO cater for both file and cloud distributed (via h5pyd)
         url = urlparse(f, scheme='file').geturl()
         ymd = splitext(basename(f))[0].split('_')[1]
         ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
