@@ -27,10 +27,13 @@ def get_pixel(filename, dataset_name, lonlat):
         geobox = GriddedGeoBox.from_h5_dataset(ds)
         x, y = [int(v) for v in ~geobox.transform * lonlat]
 
-        if ds.ndim > 2:
+        if ds.ndim == 3:
             data = ds[:, y, x]
-        else:
+        elif ds.ndim == 2:
             data = ds[y, x]
+        else:
+            # for 4D [day, level, y, x] we need another input param `day`
+            # data = ds[day, :, y, x]
 
         return data
 
