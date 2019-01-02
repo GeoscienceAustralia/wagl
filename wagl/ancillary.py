@@ -779,16 +779,21 @@ def ecwmf_temperature_2metre(input_path, lonlat, time):
         ymd = splitext(basename(f))[0].split('_')[1]
         ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
         if ancillary_ymd == required_ymd:
-            data = get_pixel(f, lonlat)
+            data = get_pixel(f, product, lonlat)
 
             metadata = {'data_source': 'ECWMF 2 metre Temperature',
                         'url': url,
                         'query_date': time}
 
             # ancillary metadata tracking
-            md = extract_ancillary_metadata(f)
-            for key in md:
-                metadata[key] = md[key]
+            # md = extract_ancillary_metadata(f)
+            # for key in md:
+            #     metadata[key] = md[key]
+
+            with h5py.File(f, 'r') as fid:
+                df = read_h5_table(fid, 'METADATA')
+
+            metadata['source_date'] = df.timestamp.iloc[0].to_pydatetime()
 
             return data, metadata
 
@@ -811,16 +816,21 @@ def ecwmf_dewpoint_temperature(input_path, lonlat, time):
         ymd = splitext(basename(f))[0].split('_')[1]
         ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
         if ancillary_ymd == required_ymd:
-            data = get_pixel(f, lonlat)
+            data = get_pixel(f, product, lonlat)
 
             metadata = {'data_source': 'ECWMF 2 metre Dewpoint Temperature ',
                         'url': url,
                         'query_date': time}
 
             # ancillary metadata tracking
-            md = extract_ancillary_metadata(f)
-            for key in md:
-                metadata[key] = md[key]
+            # md = extract_ancillary_metadata(f)
+            # for key in md:
+            #     metadata[key] = md[key]
+
+            with h5py.File(f, 'r') as fid:
+                df = read_h5_table(fid, 'METADATA')
+
+            metadata['source_date'] = df.timestamp.iloc[0].to_pydatetime()
 
             return data, metadata
 
@@ -844,16 +854,21 @@ def ecwmf_surface_pressure(input_path, lonlat, time):
         ymd = splitext(basename(f))[0].split('_')[1]
         ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
         if ancillary_ymd == required_ymd:
-            data = get_pixel(f, lonlat) / 100.0
+            data = get_pixel(f, product, lonlat) / 100.0
 
             metadata = {'data_source': 'ECWMF Surface Pressure',
                         'url': url,
                         'query_date': time}
 
             # ancillary metadata tracking
-            md = extract_ancillary_metadata(f)
-            for key in md:
-                metadata[key] = md[key]
+            # md = extract_ancillary_metadata(f)
+            # for key in md:
+            #     metadata[key] = md[key]
+
+            with h5py.File(f, 'r') as fid:
+                df = read_h5_table(fid, 'METADATA')
+
+            metadata['source_date'] = df.timestamp.iloc[0].to_pydatetime()
 
             return data, metadata
 
@@ -876,16 +891,20 @@ def ecwmf_water_vapour(input_path, lonlat, time):
         ymd = splitext(basename(f))[0].split('_')[1]
         ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
         if ancillary_ymd == required_ymd:
-            data = get_pixel(f, lonlat)
+            data = get_pixel(f, product, lonlat)
 
             metadata = {'data_source': 'ECWMF Total Column Water Vapour',
                         'url': url,
                         'query_date': time}
 
             # ancillary metadata tracking
-            md = extract_ancillary_metadata(f)
-            for key in md:
-                metadata[key] = md[key]
+            # md = extract_ancillary_metadata(f)
+            # for key in md:
+            #     metadata[key] = md[key]
+            with h5py.File(f, 'r') as fid:
+                df = read_h5_table(fid, 'METADATA')
+
+            metadata['source_date'] = df.timestamp.iloc[0].to_pydatetime()
 
             return data, metadata
 
@@ -912,21 +931,24 @@ def ecwmf_temperature(input_path, lonlat, time):
         ymd = splitext(basename(f))[0].split('_')[1]
         ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
         if ancillary_ymd == required_ymd:
-            bands = list(range(1, 38))
-            data = get_pixel(f, lonlat, bands)[::-1]
+            data = get_pixel(f, product, lonlat)[::-1]
 
             metadata = {'data_source': 'ECWMF Temperature',
                         'url': url,
                         'query_date': time}
 
             # ancillary metadata tracking
-            md = extract_ancillary_metadata(f)
-            for key in md:
-                metadata[key] = md[key]
+            # md = extract_ancillary_metadata(f)
+            # for key in md:
+            #     metadata[key] = md[key]
 
             # internal file metadata (and reverse the ordering)
-            df = read_metadata_tags(f, bands).iloc[::-1]
+            # df = read_metadata_tags(f, bands).iloc[::-1]
+            with h5py.File(f, 'r') as fid:
+                df = read_h5_table(fid, 'METADATA').iloc[::-1]
             df.insert(0, 'Temperature', data)
+
+            metadata['source_date'] = df.timestamp.iloc[0].to_pydatetime()
 
             return df, metadata
 
@@ -954,8 +976,7 @@ def ecwmf_geo_potential(input_path, lonlat, time):
         ymd = splitext(basename(f))[0].split('_')[1]
         ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
         if ancillary_ymd == required_ymd:
-            bands = list(range(1, 38))
-            data = get_pixel(f, lonlat, bands)[::-1]
+            data = get_pixel(f, product, lonlat)[::-1]
             scaled_data = data / 9.80665 / 1000.0
 
             metadata = {'data_source': 'ECWMF Geo-Potential',
@@ -963,16 +984,20 @@ def ecwmf_geo_potential(input_path, lonlat, time):
                         'query_date': time}
 
             # ancillary metadata tracking
-            md = extract_ancillary_metadata(f)
-            for key in md:
-                metadata[key] = md[key]
+            # md = extract_ancillary_metadata(f)
+            # for key in md:
+            #     metadata[key] = md[key]
 
             # internal file metadata (and reverse the ordering)
-            df = read_metadata_tags(f, bands).iloc[::-1]
+            # df = read_metadata_tags(f, bands).iloc[::-1]
+            with h5py.File(f, 'r') as fid:
+                df = read_h5_table(fid, 'METADATA').iloc[::-1]
             df.insert(0, 'GeoPotential', data)
             df.insert(1, 'GeoPotential_Height', scaled_data)
 
-            return df, md
+            metadata['source_date'] = df.timestamp.iloc[0].to_pydatetime()
+
+            return df, metadata
 
     if data is None:
         raise AncillaryError("No ECWMF Geo-Potential profile data")
@@ -997,21 +1022,24 @@ def ecwmf_relative_humidity(input_path, lonlat, time):
         ymd = splitext(basename(f))[0].split('_')[1]
         ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
         if ancillary_ymd == required_ymd:
-            bands = list(range(1, 38))
-            data = get_pixel(f, lonlat, bands)[::-1]
+            data = get_pixel(f, product, lonlat)[::-1]
 
             metadata = {'data_source': 'ECWMF Relative Humidity',
                         'url': url,
                         'query_date': time}
 
             # file level metadata
-            md = extract_ancillary_metadata(f)
-            for key in md:
-                metadata[key] = md[key]
+            # md = extract_ancillary_metadata(f)
+            # for key in md:
+            #     metadata[key] = md[key]
 
             # internal file metadata (and reverse the ordering)
-            df = read_metadata_tags(f, bands).iloc[::-1]
+            # df = read_metadata_tags(f, bands).iloc[::-1]
+            with h5py.File(f, 'r') as fid:
+                df = read_h5_table(fid, 'METADATA').iloc[::-1]
             df.insert(0, 'Relative_Humidity', data)
+
+            metadata['source_date'] = df.timestamp.iloc[0].to_pydatetime()
 
             return df, metadata
 
