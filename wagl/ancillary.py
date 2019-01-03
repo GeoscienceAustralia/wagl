@@ -633,6 +633,8 @@ def get_elevation_data(lonlat, dem_path):
     metadata = {'data_source': 'Elevation',
                 'url': url}
 
+    # NOTE For cloud version, os.stat metadata probably won't suit
+    # so comment out for the time being, and we'll investigate metadata needs later
     # ancillary metadata tracking
     # md = extract_ancillary_metadata(datafile)
     # for key in md:
@@ -658,6 +660,8 @@ def get_ozone_data(ozone_fname, lonlat, time):
                 'url': url,
                 'query_date': time}
 
+    # NOTE For cloud version, os.stat metadata probably won't suit
+    # so comment out for the time being, and we'll investigate metadata needs later
     # ancillary metadata tracking
     # md = extract_ancillary_metadata(datafile)
     # for key in md:
@@ -731,6 +735,8 @@ def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1,
         'water_vapour_date': record.timestamp
     }
 
+    # NOTE For cloud version, os.stat metadata probably won't suit
+    # so comment out for the time being, and we'll investigate metadata needs later
     # ancillary metadata tracking
     # md = extract_ancillary_metadata(datafile)
     # for key in md:
@@ -789,6 +795,8 @@ def ecwmf_temperature_2metre(input_path, lonlat, time):
                         'url': url,
                         'query_date': time}
 
+            # NOTE For cloud version, os.stat metadata probably won't suit
+            # so comment out for the time being, and we'll investigate metadata needs later
             # ancillary metadata tracking
             # md = extract_ancillary_metadata(f)
             # for key in md:
@@ -830,6 +838,8 @@ def ecwmf_dewpoint_temperature(input_path, lonlat, time):
                         'url': url,
                         'query_date': time}
 
+            # NOTE For cloud version, os.stat metadata probably won't suit
+            # so comment out for the time being, and we'll investigate metadata needs later
             # ancillary metadata tracking
             # md = extract_ancillary_metadata(f)
             # for key in md:
@@ -872,6 +882,8 @@ def ecwmf_surface_pressure(input_path, lonlat, time):
                         'url': url,
                         'query_date': time}
 
+            # NOTE For cloud version, os.stat metadata probably won't suit
+            # so comment out for the time being, and we'll investigate metadata needs later
             # ancillary metadata tracking
             # md = extract_ancillary_metadata(f)
             # for key in md:
@@ -913,6 +925,8 @@ def ecwmf_water_vapour(input_path, lonlat, time):
                         'url': url,
                         'query_date': time}
 
+            # NOTE For cloud version, os.stat metadata probably won't suit
+            # so comment out for the time being, and we'll investigate metadata needs later
             # ancillary metadata tracking
             # md = extract_ancillary_metadata(f)
             # for key in md:
@@ -957,6 +971,8 @@ def ecwmf_temperature(input_path, lonlat, time):
                         'url': url,
                         'query_date': time}
 
+            # NOTE For cloud version, os.stat metadata probably won't suit
+            # so comment out for the time being, and we'll investigate metadata needs later
             # ancillary metadata tracking
             # md = extract_ancillary_metadata(f)
             # for key in md:
@@ -1007,6 +1023,8 @@ def ecwmf_geo_potential(input_path, lonlat, time):
                         'url': url,
                         'query_date': time}
 
+            # NOTE For cloud version, os.stat metadata probably won't suit
+            # so comment out for the time being, and we'll investigate metadata needs later
             # ancillary metadata tracking
             # md = extract_ancillary_metadata(f)
             # for key in md:
@@ -1057,6 +1075,8 @@ def ecwmf_relative_humidity(input_path, lonlat, time):
                         'url': url,
                         'query_date': time}
 
+            # NOTE For cloud version, os.stat metadata probably won't suit
+            # so comment out for the time being, and we'll investigate metadata needs later
             # file level metadata
             # md = extract_ancillary_metadata(f)
             # for key in md:
