@@ -656,6 +656,7 @@ def get_ozone_data(ozone_fname, lonlat, time):
     except IndexError:
         raise AncillaryError("No Ozone data")
 
+    # TODO include a source_date of the ancillary data used.
     metadata = {'data_source': 'Ozone',
                 'url': url,
                 'query_date': time}
@@ -732,7 +733,7 @@ def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1,
         'url': url,
         'query_date': dt,
         'dataset_name': dataset_name,
-        'water_vapour_date': record.timestamp
+        'water_vapour_date': record.timestamp # TODO have a standard metadata name, eg 'source_date', open to ideas though
     }
 
     # NOTE For cloud version, os.stat metadata probably won't suit
@@ -805,6 +806,8 @@ def ecwmf_temperature_2metre(input_path, lonlat, time):
             with h5py.File(f, 'r') as fid:
                 df = read_h5_table(fid, 'METADATA')
 
+            # the date of the source data; essentially the acquisition date
+            # (or modelled date) for the auxiliary source
             metadata['source_date'] = df.timestamp.iloc[0].to_pydatetime()
 
             return data, metadata
@@ -848,6 +851,8 @@ def ecwmf_dewpoint_temperature(input_path, lonlat, time):
             with h5py.File(f, 'r') as fid:
                 df = read_h5_table(fid, 'METADATA')
 
+            # the date of the source data; essentially the acquisition date
+            # (or modelled date) for the auxiliary source
             metadata['source_date'] = df.timestamp.iloc[0].to_pydatetime()
 
             return data, metadata
@@ -892,6 +897,8 @@ def ecwmf_surface_pressure(input_path, lonlat, time):
             with h5py.File(f, 'r') as fid:
                 df = read_h5_table(fid, 'METADATA')
 
+            # the date of the source data; essentially the acquisition date
+            # (or modelled date) for the auxiliary source
             metadata['source_date'] = df.timestamp.iloc[0].to_pydatetime()
 
             return data, metadata
@@ -934,6 +941,8 @@ def ecwmf_water_vapour(input_path, lonlat, time):
             with h5py.File(f, 'r') as fid:
                 df = read_h5_table(fid, 'METADATA')
 
+            # the date of the source data; essentially the acquisition date
+            # (or modelled date) for the auxiliary source
             metadata['source_date'] = df.timestamp.iloc[0].to_pydatetime()
 
             return data, metadata
@@ -984,6 +993,8 @@ def ecwmf_temperature(input_path, lonlat, time):
                 df = read_h5_table(fid, 'METADATA').iloc[::-1]
             df.insert(0, 'Temperature', data)
 
+            # the date of the source data; essentially the acquisition date
+            # (or modelled date) for the auxiliary source
             metadata['source_date'] = df.timestamp.iloc[0].to_pydatetime()
 
             return df, metadata
@@ -1037,6 +1048,8 @@ def ecwmf_geo_potential(input_path, lonlat, time):
             df.insert(0, 'GeoPotential', data)
             df.insert(1, 'GeoPotential_Height', scaled_data)
 
+            # the date of the source data; essentially the acquisition date
+            # (or modelled date) for the auxiliary source
             metadata['source_date'] = df.timestamp.iloc[0].to_pydatetime()
 
             return df, metadata
@@ -1088,6 +1101,8 @@ def ecwmf_relative_humidity(input_path, lonlat, time):
                 df = read_h5_table(fid, 'METADATA').iloc[::-1]
             df.insert(0, 'Relative_Humidity', data)
 
+            # the date of the source data; essentially the acquisition date
+            # (or modelled date) for the auxiliary source
             metadata['source_date'] = df.timestamp.iloc[0].to_pydatetime()
 
             return df, metadata
