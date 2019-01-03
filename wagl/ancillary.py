@@ -733,7 +733,7 @@ def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1,
         'url': url,
         'query_date': dt,
         'dataset_name': dataset_name,
-        'water_vapour_date': record.timestamp # TODO have a standard metadata name, eg 'source_date', open to ideas though
+        'soure_date': record.timestamp
     }
 
     # NOTE For cloud version, os.stat metadata probably won't suit
