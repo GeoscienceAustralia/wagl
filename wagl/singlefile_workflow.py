@@ -60,9 +60,8 @@ class DataStandardisation(luigi.Task):
     method = luigi.EnumParameter(enum=Method, default=Method.SHEAR)
     pixel_quality = luigi.BoolParameter()
     land_sea_path = luigi.Parameter()
-    aerosol = luigi.DictParameter(default={'user': 0.05}, significant=False)
-    brdf_path = luigi.Parameter(significant=False)
-    brdf_premodis_path = luigi.Parameter(significant=False)
+    aerosol = luigi.DictParameter(default={'user': 0.05})
+    brdf = luigi.DictParameter()
     ozone_path = luigi.Parameter(significant=False)
     water_vapour = luigi.DictParameter(default={'user': 1.5},
                                        significant=False)
@@ -80,7 +79,7 @@ class DataStandardisation(luigi.Task):
     acq_parser_hint = luigi.OptionalParameter(default='')
     buffer_distance = luigi.FloatParameter(default=8000, significant=False)
     h5_driver = luigi.OptionalParameter(default='', significant=False)
-    normalized_solar_zenith = luigi.OptionalParameter(default=45.0, significant=False)
+    normalized_solar_zenith = luigi.FloatParameter(default=45.0)
 
     def output(self):
         fmt = '{label}.wagl.h5'
@@ -98,8 +97,8 @@ class DataStandardisation(luigi.Task):
         with self.output().temporary_path() as out_fname:
             card4l(self.level1, self.granule, self.workflow, self.vertices,
                    self.method, self.pixel_quality, self.land_sea_path,
-                   self.tle_path, self.aerosol, self.brdf_path,
-                   self.brdf_premodis_path, self.ozone_path, self.water_vapour,
+                   self.tle_path, self.aerosol, self.brdf,
+                   self.ozone_path, self.water_vapour,
                    self.dem_path, self.dsm_fname, self.invariant_height_fname,
                    self.modtran_exe, out_fname, ecmwf_path, self.rori,
                    self.buffer_distance, self.compression, self.filter_opts,
