@@ -722,7 +722,7 @@ def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1):
             # and an acquisition hour of 1700 will use the 1200 observation
             observations = numpy.array([0, 6, 12, 18])
             hr = observations[numpy.argmin(numpy.abs(hour - observations))]
-            dname = 'AVERAGE/{}/{:02d}'.format(month, hr)
+            dname = 'AVERAGE/{}/{:02d}00'.format(month, hr)
 
             with h5py.File(water_vapour_dict['fallback_data'], 'r') as fid:
                 ds = fid[dname]
