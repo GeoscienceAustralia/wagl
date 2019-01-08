@@ -716,7 +716,7 @@ def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1):
             raise AncillaryError("No actual or fallback water vapour data.")
         else:
             # maybe a seperate func, but here will do for the time being
-            month = dt.strftime('%B-%d')
+            month = dt.strftime('%B-%d').upper()
             # closest previous observation
             # i.e. observations are at 0000, 0600, 1200, 1800
             # and an acquisition hour of 1700 will use the 1200 observation
