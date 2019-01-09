@@ -697,19 +697,19 @@ def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1):
     if band == 0 and doy == 1:
         band = 1
 
-    # Get the number of bands
-    with rasterio.open(datafile) as src:
-        n_bands = src.count
-
-    # Enable NBAR Near Real Time (NRT) processing
-    if band > (n_bands + 1):
-        rasterdoy = (((n_bands) - (int((hour + 3) / 6))) / 4) + 1
-        if (doy - rasterdoy) < 7:
-            band = (int(rasterdoy) - 1) * 4 + int((hour + 3) / 6)
-
     try:
+        # Get the number of bands
+        with rasterio.open(datafile) as src:
+            n_bands = src.count
+
+        # Enable NBAR Near Real Time (NRT) processing (7 day window)
+        if band > (n_bands + 1):
+            rasterdoy = (((n_bands) - (int((hour + 3) / 6))) / 4) + 1
+            if (doy - rasterdoy) < 7:
+                band = (int(rasterdoy) - 1) * 4 + int((hour + 3) / 6)
+
         data = get_pixel(datafile, geobox.centre_lonlat, band=band)
-    except IndexError:
+    except (IndexError, rasterio.errors.RasterioIOError):
         # Fallback for NRT or whenever we have no real data
         # key name 'fallback_data' can change. Quickest name i could think of
         if 'fallback_data' not in water_vapour_dict:
@@ -717,6 +717,7 @@ def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1):
         else:
             # maybe a seperate func, but here will do for the time being
             month = dt.strftime('%B-%d').upper()
+
             # closest previous observation
             # i.e. observations are at 0000, 0600, 1200, 1800
             # and an acquisition hour of 1700 will use the 1200 observation
