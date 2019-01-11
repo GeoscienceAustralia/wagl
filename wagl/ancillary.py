@@ -732,6 +732,7 @@ def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1):
                 data = ds[y, x]
                 url = urlparse(water_vapour_dict['fallback_data'],
                                scheme='file').geturl()
+                datafile = water_vapour_dict['fallback_data']
 
     data = data * scale_factor
 
