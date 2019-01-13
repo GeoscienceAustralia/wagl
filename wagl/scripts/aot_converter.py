@@ -30,6 +30,8 @@ def read_pix(filename):
                           count=recs[2] * 3).reshape(3, recs[2])
     time = numpy.fromfile(src, dtype='int16',
                           count=recs[2] * 3).reshape(3, recs[2])
+    lat = numpy.fromfile(src, dtype='float32', count=recs[2])
+    lon = numpy.fromfile(src, dtype='float32', count=recs[2])
     aot = numpy.fromfile(src, dtype='float32', count=recs[2])
     src.close()
 
