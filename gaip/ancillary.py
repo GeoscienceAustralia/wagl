@@ -13,7 +13,9 @@ from datetime import timedelta
 import pandas
 from geopandas import GeoSeries
 import numpy
+from affine import Affine
 import rasterio
+import h5py
 from shapely.geometry import Point
 from shapely.geometry import Polygon
 import gaip
@@ -322,28 +324,46 @@ def get_water_vapour(acquisition, vapour_path, scale_factor=0.1):
     if band == 0 and doy == 1:
         band = 1
 
-    # Get the number of bands
-    with rasterio.open(datafile) as src:
-        n_bands = src.count
-
-    # Enable NBAR Near Real Time (NRT) processing
-    if band > (n_bands + 1):
-        rasterdoy = (((n_bands) - (int((hour + 3) / 6))) / 4) + 1
-        if (doy - rasterdoy) < 7:
-            band = (int(rasterdoy) - 1) * 4 + int((hour + 3) / 6)
-
     try:
-        value = gaip.get_pixel(datafile, geobox.centre_lonlat, band=band)
-    except IndexError:
-        msg = "Invalid water vapour band number: {band}".format(band=band)
-        raise IndexError(msg)
+        # Get the number of bands
+        with rasterio.open(datafile) as src:
+            n_bands = src.count
 
-    value = value * scale_factor
+        # Enable NBAR Near Real Time (NRT) processing (7 day window)
+        if band > (n_bands + 1):
+            rasterdoy = (((n_bands) - (int((hour + 3) / 6))) / 4) + 1
+            if (doy - rasterdoy) < 7:
+                band = (int(rasterdoy) - 1) * 4 + int((hour + 3) / 6)
+
+        data = gaip.get_pixel(datafile, geobox.centre_lonlat, band=band)
+    except (IndexError, IOError):
+        # Fallback for NRT or whenever we have no real data
+        datafile = pjoin(vapour_path, 'pr_wtr_average.h5')
+        if not exists(datafile):
+            raise OSError("No actual or fallback water vapour data.")
+        else:
+            # maybe a seperate func, but here will do for the time being
+            month = dt.strftime('%B-%d').upper()
+
+            # closest previous observation
+            # i.e. observations are at 0000, 0600, 1200, 1800
+            # and an acquisition hour of 1700 will use the 1200 observation
+            observations = numpy.array([0, 6, 12, 18])
+            hr = observations[numpy.argmin(numpy.abs(hour - observations))]
+            dname = 'AVERAGE/{}/{:02d}00'.format(month, hr)
+
+            with h5py.File(datafile, 'r') as fid:
+                ds = fid[dname]
+                transform = Affine.from_gdal(*ds.attrs['geotransform'])
+                x, y = [int(v) for v in ~transform * geobox.centre_lonlat]
+                data = ds[y, x]
+
+    data = data * scale_factor
 
     water_vapour_data = {
         'data_source': 'Water Vapour',
         'data_file': datafile,
-        'value': value
+        'value': data
     }
 
     # ancillary metadata tracking
