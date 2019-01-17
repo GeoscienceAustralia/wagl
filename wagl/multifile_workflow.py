@@ -170,8 +170,7 @@ class AncillaryData(luigi.Task):
     workflow = luigi.EnumParameter(enum=Workflow)
     acq_parser_hint = luigi.OptionalParameter(default='')
     aerosol = luigi.DictParameter({'user': 0.05}, significant=False)
-    brdf_path = luigi.Parameter(significant=False)
-    brdf_premodis_path = luigi.Parameter(significant=False)
+    brdf = luigi.DictParameter()
     ozone_path = luigi.Parameter(significant=False)
     water_vapour = luigi.DictParameter({'user': 1.5}, significant=False)
     dem_path = luigi.Parameter(significant=False)
@@ -200,8 +199,8 @@ class AncillaryData(luigi.Task):
                       'water_vapour_dict': self.water_vapour,
                       'ozone_path': self.ozone_path,
                       'dem_path': self.dem_path,
-                      'brdf_path': self.brdf_path,
-                      'brdf_premodis_path': self.brdf_premodis_path}
+                      'brdf_path': self.brdf['brdf_path'],
+                      'brdf_premodis_path': self.brdf['brdf_premodis_path']}
 
         if self.workflow == Workflow.STANDARD or self.workflow == Workflow.SBT:
             sbt_path = self.ecmwf_path
