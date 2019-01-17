@@ -61,11 +61,11 @@ If you're a user that would like to intersect any part of the dependency tree, t
    aerosol = {"user": 0.5}
    aerosol = {"pathname": "/path/to/data"}
 
-   # File path name to the directory containing the MODIS BRDF data
-   brdf_path = 
-
-   # File path name to the directory containing the Pre-MODIS BRDF data
-   brdf_premodis_path = 
+   # A dict containing the name to the directory containing the MODIS BRDF data
+   # and the same for the Pre-MODIS BRDF data
+   # or user defined values
+   brdf = {"brdf_path": "<path-to-BRDF>", "brdf_premodis_path": "<path-to-average-BRDF>"}
+   brdf = {"user": {<band-alias>: {"iso": <value>, "vol": <value>, "geo": <value>}, ...}}
 
    # File path name to the directory containing the ozone data
    ozone_path = 
