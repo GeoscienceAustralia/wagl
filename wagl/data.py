@@ -267,10 +267,6 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
 
         cmd = ['gdal_translate',
                '-co',
-               'TILED=YES',
-               '-co',
-               'COPY_SRC_OVERVIEWS=YES',
-               '-co',
                '{}={}'.format('PREDICTOR', predictor[dtype])]
 
         for key, value in options.items():
