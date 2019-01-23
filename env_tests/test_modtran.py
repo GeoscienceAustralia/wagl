@@ -63,7 +63,7 @@ class ModtranTest(unittest.TestCase):
         """
 
         band_names = [
-            'BAND-1', 'BAND-2', 'BAND-3', 'BAND-4', 
+            'BAND-1', 'BAND-2', 'BAND-3', 'BAND-4',
             'BAND-5', 'BAND-6', 'BAND-7', 'BAND-8'
         ]
         point = 0
