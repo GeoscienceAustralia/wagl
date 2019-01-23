@@ -30,7 +30,7 @@ SUBROUTINE reflectance( &
     iref_lm, &
     iref_brdf, &
     iref_terrain, &
-    norm_angle)
+    norm_solar_zenith)
 
 !   Calculates lambertian, brdf corrected and terrain corrected surface
 !   reflectance.
@@ -63,7 +63,7 @@ SUBROUTINE reflectance( &
     integer*2 iref_lm(nrow, ncol) ! atmospheric corrected lambertial reflectance
     integer*2 iref_brdf(nrow, ncol) ! atmospheric and brdf corrected reflectance
     integer*2 iref_terrain(nrow, ncol) ! atmospheric and brdf and terrain corrected reflectance
-    real norm_angle ! normalized solar angle
+    real norm_solar_zenith ! solar zenith to normalize surface reflectance to
 
 !internal parameters passed as arrays.
     real*4 ref_lm(nrow)
@@ -118,7 +118,7 @@ SUBROUTINE reflectance( &
 !   calculate white sky albedo
     aa_white = white_sky(1.0, norm_1, norm_2)
 !   calcualte BRDF at 45 solar angle and 0 view angle
-    fnn = RL_brdf(norm_angle * pib, 0.0, 0.0, hb, br, 1.0, norm_1, norm_2)
+    fnn = RL_brdf(norm_solar_zenith * pib, 0.0, 0.0, hb, br, 1.0, norm_1, norm_2)
 !    print*,fnn
 
 !   Now loop over the cols of the images
