@@ -12,7 +12,7 @@ import h5py
 from wagl.acquisition import acquisitions
 from wagl.ancillary import collect_ancillary
 from wagl.constants import ArdProducts as AP, GroupName, Workflow, BandType
-from wagl.constants import ALBEDO_FMT, POINT_FMT, POINT_ALBEDO_FMT,Albedos
+from wagl.constants import ALBEDO_FMT, POINT_FMT, POINT_ALBEDO_FMT, Albedos
 from wagl.dsm import get_dsm
 from wagl.hdf5 import H5CompressionFilter
 from wagl.incident_exiting_angles import incident_angles, exiting_angles
