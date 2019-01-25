@@ -90,7 +90,7 @@ def stack_data(acqs_list, fn=(lambda acq: True), window=None, masked=False):
 
 
 def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
-              tags=None, options=None, cogtif=False, levels=None,
+              tags=None, options=None, levels=None,
               resampling=Resampling.nearest, config_options=None):
     """
     Writes a 2D/3D image to disk using rasterio.
@@ -118,19 +118,12 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
         A dictionary containing other dataset creation options.
         See creation options for the respective GDAL formats.
 
-    :param cogtif:
-        If set to True, override the `driver` keyword with `GTiff`
-        and create a Cloud Optimised GeoTiff. Default is False.
-        See:
-        https://trac.osgeo.org/gdal/wiki/CloudOptimizedGeoTIFF
-
     :param levels:
-        If cogtif is set to True, build overviews/pyramids
-        according to levels. Default levels are [2, 4, 8, 16, 32].
+        build overviews/pyramids according to levels
 
     :param resampling:
-        If cogtif is set to True, build overviews/pyramids using
-        a resampling method from `rasterio.enums.Resampling`.
+        If levels is set, build overviews using a resampling method
+        from `rasterio.enums.Resampling`
         Default is `Resampling.nearest`.
 
     :param config_options:
@@ -141,9 +134,6 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
         If array is an instance of a `h5py.Dataset`, then the output
         file will include blocksizes based on the `h5py.Dataset's`
         chunks. To override the blocksizes, specify them using the
-        `options` keyword. Eg {'blockxsize': 512, 'blockysize': 512}.
-        If `cogtif` is set to True, the default blocksizes will be
-        256x256. To override this behaviour, specify them using the
         `options` keyword. Eg {'blockxsize': 512, 'blockysize': 512}.
     """
     # Get the datatype of the array
@@ -185,10 +175,6 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
         transform = None
         projection = None
 
-    # override the driver if we are creating a cogtif
-    if cogtif:
-        driver = 'GTiff'
-
     # compression predictor choices
     predictor = {'int8': 2,
                  'uint8': 2,
@@ -221,10 +207,9 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
             y_tile, x_tile = array.chunks
             tiles = generate_tiles(samples, lines, x_tile, y_tile)
 
-            # add blocksizes to the creation keywords
-            kwargs['tiled'] = 'yes'
-            kwargs['blockxsize'] = x_tile
-            kwargs['blockysize'] = y_tile
+            if 'tiled' in options:
+                kwargs['blockxsize'] = options.pop('blockxsize', x_tile)
+                kwargs['blockysize'] = options.pop('blockysize', y_tile)
 
     # the user can override any derived blocksizes by supplying `options`
     # handle case where no options are provided
@@ -259,10 +244,7 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
                 outds.update_tags(**tags)
 
             # overviews/pyramids
-            if cogtif:
-
-                if levels is None:
-                    levels = [2, 4, 8, 16, 32]
+            if levels:
                 outds.build_overviews(levels, resampling)
 
         cmd = ['gdal_translate',
