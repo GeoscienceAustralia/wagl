@@ -199,8 +199,7 @@ class AncillaryData(luigi.Task):
                       'water_vapour_dict': self.water_vapour,
                       'ozone_path': self.ozone_path,
                       'dem_path': self.dem_path,
-                      'brdf_path': self.brdf['brdf_path'],
-                      'brdf_premodis_path': self.brdf['brdf_premodis_path']}
+                      'brdf_dict': self.brdf}
 
         if self.workflow == Workflow.STANDARD or self.workflow == Workflow.SBT:
             sbt_path = self.ecmwf_path
