@@ -306,6 +306,151 @@ def load_brdf_tile(src_poly, src_crs, ds, uri):
                            [uri])
 
 
+def coord_transformer(src_crs, dst_crs):
+    """
+    Coordinate transformation function between CRSs.
+
+    :param src_crs:
+        Source CRS.
+    :type src_crs:
+        :py:class:`rasterio.crs.CRS`
+
+    :param dst_crs:
+        Destination CRS.
+    :type dst_crs:
+        :py:class:`rasterio.crs.CRS`
+
+    :return:
+        A function that takes a point in the source CRS and returns the same
+        point expressed in the destination CRS.
+    """
+    def crs_to_proj(crs):
+        return pyproj.Proj(**crs.to_dict())
+
+    def result(*args, **kwargs):
+        return pyproj.transform(crs_to_proj(src_crs), crs_to_proj(dst_crs), *args, **kwargs)
+
+    return result
+
+
+class BrdfTileSummary:
+    """
+    A lightweight class to represent the BRDF information gathered from a tile.
+    """
+    def __init__(self, valid_pixels, brdf_sums, source_files):
+        self.valid_pixels = valid_pixels
+        self.brdf_sums = brdf_sums
+        self.source_files = source_files
+
+    @staticmethod
+    def empty():
+        """ When the tile is not inside the ROI. """
+        return BrdfTileSummary(0, {key: 0.0 for key in BrdfParameters}, [])
+
+    def __add__(self, other):
+        """ Accumulate information from different tiles. """
+        return BrdfTileSummary(self.valid_pixels + other.valid_pixels,
+                               {key: self.brdf_sums[key] + other.brdf_sums[key]
+                                for key in BrdfParameters},
+                               self.source_files + other.source_files)
+
+    def mean(self):
+        """ Calculate the mean BRDF parameters. """
+        if self.valid_pixels == 0 or self.brdf_sums[BrdfParameters.ISO] == 0.0:
+            # not enough information to be useful
+            # so return Lambertian BRDF parameters
+            return {key: dict(value=(1 if key == BrdfParameters.ISO else 0))
+                    for key in BrdfParameters}
+
+        return {key: dict(data_source='BRDF',
+                          url=", ".join(self.source_files),
+                          value=(self.brdf_sums[key] / self.valid_pixels))
+                for key in BrdfParameters}
+
+
+def valid_region(fname, mask_value=None):
+    """
+    Return valid data region for input images based on mask value and input image path
+    """
+    log.info("Valid regions for %s", fname)
+
+    # ensure formats match
+    with rasterio.open(str(fname), 'r') as dataset:
+        transform = dataset.transform.to_gdal()
+        crs = dataset.crs.to_dict()
+        img = dataset.read(1)
+
+        if mask_value is not None:
+            mask = img & mask_value == mask_value
+        else:
+            mask = img != 0
+
+    shapes = rasterio.features.shapes(mask.astype('uint8'), mask=mask)
+    shape = ops.unary_union([shapely.geometry.shape(shape) for shape, val in shapes if val == 1])
+
+    # convex hull
+    geom = shape.convex_hull
+
+    # buffer by 1 pixel
+    geom = geom.buffer(1, join_style=3, cap_style=3)
+
+    # simplify with 1 pixel radius
+    geom = geom.simplify(1)
+
+    # intersect with image bounding box
+    geom = geom.intersection(shapely.geometry.box(0, 0, mask.shape[1], mask.shape[0]))
+
+    # transform from pixel space into CRS space
+    geom = shapely.affinity.affine_transform(
+        geom, (transform[1], transform[2], transform[4],
+               transform[5], transform[0], transform[3])
+    )
+
+    return geom, crs
+
+
+def load_brdf_tile(src_poly, src_crs, ds, uri):
+    """
+    Summarize BRDF data from a single tile.
+    """
+    def segmentize_src_poly(length_scale):
+        src_poly_geom = ogr.CreateGeometryFromWkt(src_poly.wkt)
+        src_poly_geom.Segmentize(length_scale)
+        return wkt.loads(src_poly_geom.ExportToWkt())
+
+    _, ds_width, ds_height = ds.shape
+
+    dst_geotransform = rasterio.transform.Affine.from_gdal(*ds.attrs['geotransform'])
+    dst_crs = CRS.from_wkt(ds.attrs['crs_wkt'])
+
+    # assumes the length scales are the same (m)
+    dst_poly = ops.transform(coord_transformer(src_crs, dst_crs),
+                             segmentize_src_poly(np.sqrt(np.abs(dst_geotransform.determinant))))
+
+    bound_poly = ops.transform(lambda x, y: dst_geotransform * (x, y), box(0., 0., ds_width, ds_height))
+    if not bound_poly.intersects(dst_poly):
+        return BrdfTileSummary.empty()
+
+    mask = rasterize([(dst_poly, 1)], fill=0, out_shape=(ds_width, ds_height), transform=dst_geotransform)
+    valid_pixels = np.sum(mask)
+    mask = mask.astype(bool)
+
+    def layer_sum(i):
+        layer = ds[i, :, :]
+        fill_value_mask = (layer != float(ds.attrs['_FillValue']))
+        layer = layer.astype('float32')
+        layer[~mask] = np.nan
+        layer[~fill_value_mask] = np.nan
+        # TODO should add_offset be subtracted instead?
+        layer = float(ds.attrs['scale_factor']) * layer + float(ds.attrs['add_offset'])
+        return np.nansum(layer)
+
+    return BrdfTileSummary(valid_pixels,
+                           {key: layer_sum(index)
+                            for index, key in enumerate(BrdfParameters)},
+                           [uri])
+
+
 def get_brdf_data(acquisition, brdf,
                   compression=H5CompressionFilter.LZF, filter_opts=None):
     """
