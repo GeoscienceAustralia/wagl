@@ -108,10 +108,6 @@ def get_brdf_dirs_modis(brdf_root, scene_date, pattern='%Y.%m.%d'):
 
     """
 
-    # MCD43A1.005 db interval half-width (days).
-    offset = datetime.timedelta(8)
-    _offset_scene_date = scene_date - offset
-
     dirs = []
     for dname in sorted(os.listdir(brdf_root)):
         try:
@@ -119,7 +115,7 @@ def get_brdf_dirs_modis(brdf_root, scene_date, pattern='%Y.%m.%d'):
         except ValueError:
             pass  # Ignore directories that don't match specified pattern
 
-    return min(dirs, key=_date_proximity(_offset_scene_date)).strftime(pattern)
+    return min(dirs, key=_date_proximity(scene_date)).strftime(pattern)
 
 
 def get_brdf_dirs_pre_modis(brdf_root, scene_date):
@@ -140,35 +136,29 @@ def get_brdf_dirs_pre_modis(brdf_root, scene_date):
        A string containing the closest matching BRDF directory.
 
     """
-    # Pre-MODIS db interval half-width (days).
-    offset = datetime.timedelta(8)
-
     # Find the N (=n_dirs) BRDF directories with midpoints closest to the
     # scene date.
     # Pre-MODIS BRDF directories are named 'XXX' (day-of-year).
     # Return a list of n_dirs directories to maintain compatibility with
     # the NBAR code, even though we know that the nearest day-of-year
     # database dir will contain usable data.
-
-    _offset_scene_date = scene_date - offset
-
     # Build list of dates for comparison
     dir_dates = []
 
     # Standardise names be prepended with leading zeros
     for doy in sorted(os.listdir(brdf_root), key=lambda x: x.zfill(3)):
-        dir_dates.append((str(_offset_scene_date.year), doy))
+        dir_dates.append((str(scene_date.year), doy))
 
     # Add boundary entry for previous year
-    dir_dates.insert(0, (str(_offset_scene_date.year - 1), dir_dates[-1][1]))
+    dir_dates.insert(0, (str(scene_date.year - 1), dir_dates[-1][1]))
     # Add boundary entry for next year accounting for inserted entry
-    dir_dates.append((str(_offset_scene_date.year + 1), dir_dates[1][1]))
+    dir_dates.append((str(scene_date.year + 1), dir_dates[1][1]))
 
     # Interpreter function
     doy_intpr = lambda x: datetime.datetime.strptime(' '.join(x), '%Y %j').date()
 
     # return directory name without year
-    return min(dir_dates, key=_date_proximity(_offset_scene_date, doy_intpr))[1]
+    return min(dir_dates, key=_date_proximity(scene_date, doy_intpr))[1]
 
 
 def coord_transformer(src_crs, dst_crs):
