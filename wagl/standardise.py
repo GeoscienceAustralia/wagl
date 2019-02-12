@@ -2,6 +2,7 @@
 
 from os.path import join as pjoin
 import tempfile
+import json
 
 from posixpath import join as ppjoin
 from structlog import wrap_logger
@@ -11,7 +12,7 @@ import h5py
 from wagl.acquisition import acquisitions
 from wagl.ancillary import collect_ancillary
 from wagl.constants import ArdProducts as AP, GroupName, Workflow, BandType
-from wagl.constants import ALBEDO_FMT, POINT_FMT, POINT_ALBEDO_FMT
+from wagl.constants import ALBEDO_FMT, POINT_FMT, POINT_ALBEDO_FMT, Albedos
 from wagl.dsm import get_dsm
 from wagl.hdf5 import H5CompressionFilter
 from wagl.incident_exiting_angles import incident_angles, exiting_angles
@@ -19,7 +20,7 @@ from wagl.incident_exiting_angles import relative_azimuth_slope
 from wagl.interpolation import interpolate
 from wagl.longitude_latitude_arrays import create_lon_lat_grids
 from wagl.metadata import create_ard_yaml
-from wagl.modtran import format_tp5, prepare_modtran, run_modtran
+from wagl.modtran import format_json, prepare_modtran, run_modtran
 from wagl.modtran import calculate_coefficients
 from wagl.reflectance import calculate_reflectance
 from wagl.satellite_solar_angles import calculate_angles
@@ -28,17 +29,18 @@ from wagl.terrain_shadow_masks import combine_shadow_masks
 from wagl.slope_aspect import slope_aspect_arrays
 from wagl.temperature import surface_brightness_temperature
 from wagl.pq import can_pq, run_pq
+from wagl.modtran import JsonEncoder
 
 from wagl.logging import STATUS_LOGGER
 
 
 # pylint disable=too-many-arguments
 def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
-           tle_path, aerosol, brdf_path, brdf_premodis_path, ozone_path,
+           tle_path, aerosol, brdf, ozone_path,
            water_vapour, dem_path, dsm_fname, invariant_fname, modtran_exe,
            out_fname, ecmwf_path=None, rori=0.52, buffer_distance=8000,
            compression=H5CompressionFilter.LZF, filter_opts=None,
-           h5_driver=None, acq_parser_hint=None):
+           h5_driver=None, acq_parser_hint=None, normalized_solar_zenith=45.):
     """
     CEOS Analysis Ready Data for Land.
     A workflow for producing standardised products that meet the
@@ -80,15 +82,11 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
         A string containing the full file pathname to the HDF5 file
         containing the aerosol data.
 
-    :param brdf_path:
-        A string containing the full file pathname to the directory
-        containing the BRDF data.
-
-    :param brdf_premodis_path:
-        A string containing the full file pathname to the directory
-        containing the decadal averaged BRDF data used for acquisitions
-        prior to TERRA/AQUA satellite operations, or for near real time
-        applications.
+    :param brdf:
+        A dict containing either user-supplied BRDF values, or the
+        full file pathname to the directory containing the BRDF data
+        and the decadal averaged BRDF data used for acquisitions
+        prior to TERRA/AQUA satellite operations.
 
     :param ozone_path:
         A string containing the full file pathname to the directory
@@ -160,8 +158,11 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
     :param acq_parser_hint:
         A string containing any hints to provide the acquisitions
         loader with.
+
+    :param normalized_solar_zenith:
+        Solar zenith angle to normalize for (in degrees). Default is 45 degrees.
     """
-    tp5_fmt = pjoin(POINT_FMT, ALBEDO_FMT, ''.join([POINT_ALBEDO_FMT, '.tp5']))
+    json_fmt = pjoin(POINT_FMT, ALBEDO_FMT, ''.join([POINT_ALBEDO_FMT, '.json']))
     nvertices = vertices[0] * vertices[1]
 
     container = acquisitions(level1, hint=acq_parser_hint)
@@ -256,7 +257,7 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
         # granule root group
         root = fid[granule]
 
-        # get the highest resoltion group cotaining supported bands
+        # get the highest resolution group containing supported bands
         acqs, grp_name = container.get_highest_resolution(granule=granule)
 
         grn_con = container.get_granule(granule=granule, container=True)
@@ -267,8 +268,7 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
                       'water_vapour_dict': water_vapour,
                       'ozone_path': ozone_path,
                       'dem_path': dem_path,
-                      'brdf_path': brdf_path,
-                      'brdf_premodis_path': brdf_premodis_path}
+                      'brdf_dict': brdf}
         collect_ancillary(grn_con, res_group[GroupName.SAT_SOL_GROUP.value],
                           nbar_paths, ecmwf_path, invariant_fname,
                           vertices, root, compression, filter_opts)
@@ -283,31 +283,46 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
         lon_lat_grp = res_group[GroupName.LON_LAT_GROUP.value]
 
         # TODO: supported acqs in different groups pointing to different response funcs
-        # tp5 files
-        tp5_data, _ = format_tp5(acqs, ancillary_group, sat_sol_grp,
+        json_data, _ = format_json(acqs, ancillary_group, sat_sol_grp,
                                  lon_lat_grp, workflow, root)
 
         # atmospheric inputs group
         inputs_grp = root[GroupName.ATMOSPHERIC_INPUTS_GRP.value]
 
         # radiative transfer for each point and albedo
-        for key in tp5_data:
+        for key in json_data:
             point, albedo = key
 
             log.info('Radiative-Transfer', point=point, albedo=albedo.value)
+
             with tempfile.TemporaryDirectory() as tmpdir:
 
-                prepare_modtran(acqs, point, [albedo], tmpdir, modtran_exe)
+                prepare_modtran(acqs, point, [albedo], tmpdir)
 
-                # tp5 data
-                fname = pjoin(tmpdir,
-                              tp5_fmt.format(p=point, a=albedo.value))
-                with open(fname, 'w') as src:
-                    src.writelines(tp5_data[key])
+                point_dir = pjoin(tmpdir, POINT_FMT.format(p=point))
+                workdir = pjoin(point_dir, ALBEDO_FMT.format(a=albedo.value))
 
-                run_modtran(acqs, inputs_grp, workflow, nvertices, point,
-                            [albedo], modtran_exe, tmpdir, root, compression,
-                            filter_opts)
+                json_mod_infile = pjoin(tmpdir, json_fmt.format(p=point, a=albedo.value))
+
+                with open(json_mod_infile, 'w') as src:
+                    json_dict = json_data[key]
+
+                    if albedo == Albedos.ALBEDO_TH:
+
+                        json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = \
+                            "%s/%s" % (workdir, json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
+                        json_dict["MODTRAN"][1]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = \
+                            "%s/%s" % (workdir, json_dict["MODTRAN"][1]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
+
+                    else:
+
+                        json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = \
+                            "%s/%s" % (workdir, json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
+
+                    json.dump(json_dict, src, cls=JsonEncoder, indent=4)
+
+                run_modtran(acqs, inputs_grp, workflow, nvertices, point, [albedo],
+                            modtran_exe, tmpdir, root, compression, filter_opts)
 
         # atmospheric coefficients
         log.info('Coefficients')
@@ -372,14 +387,14 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
                                           incident_grp, exiting_grp,
                                           shadow_grp, ancillary_group,
                                           rori, res_group, compression,
-                                          filter_opts)
+                                          filter_opts, normalized_solar_zenith)
 
             # metadata yaml's
             if workflow == Workflow.STANDARD or workflow == Workflow.NBAR:
-                create_ard_yaml(band_acqs, ancillary_group, res_group)
+                create_ard_yaml(band_acqs, ancillary_group, res_group, normalized_solar_zenith)
 
             if workflow == Workflow.STANDARD or workflow == Workflow.SBT:
-                create_ard_yaml(band_acqs, ancillary_group, res_group, True)
+                create_ard_yaml(band_acqs, ancillary_group, res_group, normalized_solar_zenith, True)
 
             # pixel quality
             sbt_only = workflow == Workflow.SBT

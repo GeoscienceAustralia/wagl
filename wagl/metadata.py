@@ -34,6 +34,7 @@ yaml.add_representer(numpy.float, Representer.represent_float)
 yaml.add_representer(numpy.float32, Representer.represent_float)
 yaml.add_representer(numpy.float64, Representer.represent_float)
 yaml.add_representer(numpy.ndarray, Representer.represent_list)
+yaml.add_representer(numpy.bool, Representer.represent_bool)
 
 
 def extract_ancillary_metadata(fname):
@@ -97,7 +98,7 @@ def read_metadata_tags(fname, bands):
     return pandas.DataFrame(tag_data)
 
 
-def create_ard_yaml(acquisitions, ancillary_group, out_group, sbt=False):
+def create_ard_yaml(acquisitions, ancillary_group, out_group, normalized_solar_zenith, sbt=False):
     """
     Write the NBAR metadata captured during the entire workflow to a
     HDF5 SCALAR dataset using the yaml document format.
@@ -198,7 +199,8 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, sbt=False):
         ancillary = {'aerosol': aerosol_data,
                      'water_vapour': water_vapour_data,
                      'ozone': ozone_data,
-                     'elevation': elevation_data}
+                     'elevation': elevation_data,
+                     'normalized_solar_zenith': {'value': normalized_solar_zenith}}
 
         if sbt:
             sbt_ancillary = load_sbt_ancillary(fid)
@@ -248,7 +250,7 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, sbt=False):
 
     software_versions = {'wagl': {'version': wagl.__version__,
                                   'repo_url': 'https://github.com/GeoscienceAustralia/wagl.git'}, # pylint: disable=line-too-long
-                         'modtran': {'version': '5.2.1',
+                         'modtran': {'version': '6.0.1',
                                      'repo_url': 'http://www.ontar.com/software/productdetails.aspx?item=modtran'} # pylint: disable=line-too-long
                         }
 

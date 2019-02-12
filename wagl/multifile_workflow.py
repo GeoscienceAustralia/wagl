@@ -4,7 +4,7 @@ Multifile workflow for producing NBAR and SBT
 ---------------------------------------------
 
 This workflow is geared around a Multiple Independent File workflow, thus
-allowing a form a parallelism. HDF5 Linking via a post task then allows
+allowing a form of parallelism. HDF5 Linking via a post task then allows
 the workflow to appear as if the IO is through a single file.
 
 The multifile workflow approach does allow more freedom of control in
@@ -28,6 +28,7 @@ from os.path import join as pjoin, basename, dirname, splitext
 from posixpath import join as ppjoin
 import logging
 import traceback
+import json
 
 from structlog import wrap_logger
 from structlog.processors import JSONRenderer
@@ -48,7 +49,7 @@ from wagl.slope_aspect import _slope_aspect_arrays
 from wagl.constants import Workflow, BandType, Method, AtmosphericCoefficients
 from wagl.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT, Albedos
 from wagl.dsm import _get_dsm
-from wagl.modtran import _format_tp5, _run_modtran
+from wagl.modtran import _format_json, _run_modtran, JsonEncoder
 from wagl.modtran import _calculate_coefficients, prepare_modtran
 from wagl.modtran import link_atmospheric_results
 from wagl.interpolation import _interpolate, link_interpolated_data
@@ -169,8 +170,7 @@ class AncillaryData(luigi.Task):
     workflow = luigi.EnumParameter(enum=Workflow)
     acq_parser_hint = luigi.OptionalParameter(default='')
     aerosol = luigi.DictParameter({'user': 0.05}, significant=False)
-    brdf_path = luigi.Parameter(significant=False)
-    brdf_premodis_path = luigi.Parameter(significant=False)
+    brdf = luigi.DictParameter()
     ozone_path = luigi.Parameter(significant=False)
     water_vapour = luigi.DictParameter({'user': 1.5}, significant=False)
     dem_path = luigi.Parameter(significant=False)
@@ -180,6 +180,7 @@ class AncillaryData(luigi.Task):
                                       default=H5CompressionFilter.LZF,
                                       significant=False)
     filter_opts = luigi.DictParameter(default=None, significant=False)
+    normalized_solar_zenith = luigi.OptionalParameter(default=45.0, significant=False)
 
     def requires(self):
         group = acquisitions(self.level1, self.acq_parser_hint).supported_groups[0]
@@ -198,8 +199,7 @@ class AncillaryData(luigi.Task):
                       'water_vapour_dict': self.water_vapour,
                       'ozone_path': self.ozone_path,
                       'dem_path': self.dem_path,
-                      'brdf_path': self.brdf_path,
-                      'brdf_premodis_path': self.brdf_premodis_path}
+                      'brdf_dict': self.brdf}
 
         if self.workflow == Workflow.STANDARD or self.workflow == Workflow.SBT:
             sbt_path = self.ecmwf_path
@@ -210,9 +210,9 @@ class AncillaryData(luigi.Task):
                                out_fname, self.compression, self.filter_opts)
 
 
-class WriteTp5(luigi.Task):
+class WriteJson(luigi.Task):
 
-    """Output the `tp5` formatted files."""
+    """Output the `json` formatted files."""
 
     level1 = luigi.Parameter()
     work_root = luigi.Parameter(significant=False)
@@ -251,8 +251,7 @@ class WriteTp5(luigi.Task):
         acqs, group = container.get_highest_resolution(granule=self.granule)
 
         # output filename format
-        output_fmt = pjoin(POINT_FMT, ALBEDO_FMT,
-                           ''.join([POINT_ALBEDO_FMT, '.tp5']))
+        json_fmt = pjoin(POINT_FMT, ALBEDO_FMT, ''.join([POINT_ALBEDO_FMT, '.json']))
 
         # input filenames
         ancillary_fname = self.input()['ancillary'].path
@@ -260,22 +259,33 @@ class WriteTp5(luigi.Task):
         lon_lat_fname = self.input()[group]['lon_lat'].path
 
         with self.output().temporary_path() as out_fname:
-            tp5_data = _format_tp5(acqs, sat_sol_fname, lon_lat_fname,
-                                   ancillary_fname, out_fname, self.workflow)
+            json_data = _format_json(acqs, sat_sol_fname, lon_lat_fname,
+                                     ancillary_fname, out_fname, self.workflow)
 
             # keep this as an indented block, that way the target will remain
             # atomic and be moved upon closing
-            for key in tp5_data:
+            for key in json_data:
                 point, albedo = key
-                tp5_fname = output_fmt.format(p=point, a=albedo.value)
-                target = pjoin(dirname(out_fname), self.base_dir, tp5_fname)
+
+                json_fname = json_fmt.format(p=point, a=albedo.value)
+
+                target = pjoin(dirname(out_fname), self.base_dir, json_fname)
+
+                workdir = pjoin(dirname(out_fname), self.base_dir, POINT_FMT.format(p=point),
+                                ALBEDO_FMT.format(a=albedo.value))
+
                 with luigi.LocalTarget(target).open('w') as src:
-                    src.writelines(tp5_data[key])
+
+                    # Thermal processing has two input configurations
+                    for modtran_input in json_data[key]["MODTRAN"]:
+                        modtran_input["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = \
+                                pjoin(workdir, modtran_input["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
+
+                    json.dump(json_data[key], src, cls=JsonEncoder, indent=4)
 
 
-@requires(WriteTp5)
+@requires(WriteJson)
 class AtmosphericsCase(luigi.Task):
-
     """
     Run MODTRAN for a specific point (vertex) and albedo.
     This task is parameterised this wat to allow parallel instances
@@ -301,7 +311,7 @@ class AtmosphericsCase(luigi.Task):
         base_dir = pjoin(self.work_root, self.base_dir)
         albedos = [Albedos(a) for a in self.albedos]
 
-        prepare_modtran(acqs, self.point, albedos, base_dir, self.modtran_exe)
+        prepare_modtran(acqs, self.point, albedos, base_dir)
 
         with self.output().temporary_path() as out_fname:
             nvertices = self.vertices[0] * self.vertices[1]
@@ -310,7 +320,7 @@ class AtmosphericsCase(luigi.Task):
                          out_fname, self.compression, self.filter_opts)
 
 
-@inherits(WriteTp5)
+@inherits(WriteJson)
 class Atmospherics(luigi.Task):
 
     """
@@ -768,7 +778,8 @@ class SurfaceReflectance(luigi.Task):
                                    relative_slope_fname, incident_fname,
                                    exiting_fname, shadow_fname,
                                    ancillary_fname, self.rori, out_fname,
-                                   self.compression, self.filter_opts)
+                                   self.compression, self.filter_opts,
+                                   self.normalized_solar_zenith)
 
 
 @inherits(SurfaceReflectance)
@@ -797,7 +808,7 @@ class SurfaceTemperature(luigi.Task):
             interpolation_fname = self.input()['interpolation'].path
             ancillary_fname = self.input()['ancillary'].path
             _surface_brightness_temperature(acq, acqs, interpolation_fname,
-                                            ancillary_fname, out_fname,
+                                            ancillary_fname, out_fname, self.normalized_solar_zenith,
                                             self.compression, self.filter_opts)
 
 
