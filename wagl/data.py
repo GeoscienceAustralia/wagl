@@ -217,10 +217,13 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
     for key in options:
         kwargs[key] = options[key]
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        out_fname = pjoin(tmpdir, basename(filename))
-
-        with rasterio.open(out_fname, 'w', **kwargs) as outds:
+    def _rasterio_write_raster(filename):
+        """
+        This is a wrapper around rasterio writing tiles to
+        enable writing to a temporary location before rearranging
+        the overviews within the file by gdal when required
+        """
+        with rasterio.open(filename, 'w', **kwargs) as outds:
             if bands == 1:
                 if isinstance(array, h5py.Dataset):
                     for tile in tiles:
@@ -243,13 +246,22 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
             if tags is not None:
                 outds.update_tags(**tags)
 
-            # overviews/pyramids
+            # overviews/pyramids to disk
             if levels:
                 outds.build_overviews(levels, resampling)
 
-        if levels:
-            # This segment of code rewrites a tiff to place the overviews at the
-            # beginning of the file
+
+    if not levels:
+        # write directly to disk without rewriting with gdal
+        _rasterio_write_raster(filename)
+    else:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            out_fname = pjoin(tmpdir, basename(filename))
+
+            # first write to a temporary location
+            _rasterio_write_raster(out_fname)
+            # Creates the file at filename with the configured options
+            # Will also move the overviews to the start of the file
             cmd = ['gdal_translate',
                    '-co',
                    '{}={}'.format('PREDICTOR', predictor[dtype])]
