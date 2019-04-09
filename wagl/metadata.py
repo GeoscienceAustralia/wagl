@@ -8,17 +8,17 @@ from __future__ import absolute_import, print_function
 from datetime import datetime as dtime, timezone as dtz
 import os
 from os.path import dirname
-import pwd
 import socket
 import uuid
 import numpy
 import pandas
 import rasterio
 import yaml
+import h5py
 from yaml.representer import Representer
 import wagl
 from wagl.constants import BrdfParameters, DatasetName, POINT_FMT, GroupName
-from wagl.constants import BandType
+from wagl.constants import BandType, Workflow
 from wagl.hdf5 import write_scalar, read_h5_table, read_scalar
 
 yaml.add_representer(numpy.int8, Representer.represent_int)
@@ -98,13 +98,13 @@ def read_metadata_tags(fname, bands):
     return pandas.DataFrame(tag_data)
 
 
-def create_ard_yaml(acquisitions, ancillary_group, out_group, normalized_solar_zenith, sbt=False):
+def create_ard_yaml(res_group_bands, ancillary_group, out_group, normalized_solar_zenith, workflow):
     """
     Write the NBAR metadata captured during the entire workflow to a
     HDF5 SCALAR dataset using the yaml document format.
 
-    :param acquisitions:
-        A `list` of `Acquisition` instances.
+    :param res_group_bands:
+        A `dict` mapping resolution group names to lists of `Acquisition` instances.
 
     :param ancillary_group:
         The root HDF5 `Group` that contains the ancillary data
@@ -113,14 +113,15 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, normalized_solar_z
     :param out_group:
         A `h5py.Group` object opened for write access.
 
-    :param sbt:
-        A `bool` indicating whether to create the
-        Surface Brightness Temperature yaml dataset.
-        Default is False.
+    :param workflow:
+        Which workflow to run (from the `wagl.constants.Workflow` enumeration).
 
     :return:
         None; The yaml document is written to the HDF5 file.
     """
+    sbt = workflow in [Workflow.STANDARD, Workflow.SBT]
+    nbar = workflow in [Workflow.STANDARD, Workflow.NBAR]
+
     def load_sbt_ancillary(group):
         """
         Load the sbt ancillary data retrieved during the worlflow.
@@ -167,7 +168,7 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, normalized_solar_z
             for column in df.columns:
                 attrs[column] = df[column].values
             point_data[dname][lonlat] = attrs
-            
+
             dname = DatasetName.TEMPERATURE.value
             dset = pnt_grp[dname]
             attrs = {k: v for k, v in dset.attrs.items()}
@@ -178,10 +179,57 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, normalized_solar_z
 
         return point_data
 
-    def load_ancillary(acquisitions, fid, sbt=False):
+    def load_nbar_ancillary(acquisitions, fid):
         """
         Load the ancillary data retrieved during the workflow.
         """
+        result = {}
+        for acq in acquisitions:
+            if acq.band_type == BandType.THERMAL:
+                continue
+
+            bn = acq.band_name
+            for param in BrdfParameters:
+                fmt = DatasetName.BRDF_FMT.value
+                dname = fmt.format(band_name=bn, parameter=param.value)
+                dset = fid[dname]
+                key = dname.lower().replace('-', '_')
+                result[key] = {k: v for k, v in dset.attrs.items()}
+                result[key]['value'] = dset[()]
+                result[key]['type'] = key
+
+        return result
+
+    def pick_acquisition():
+        # pick any acquisition
+        band_group = next(iter(res_group_bands))
+        return res_group_bands[band_group][0]
+
+    acquisition = pick_acquisition()
+    level1_path = acquisition.pathname
+    acq_datetime = (
+        acquisition.acquisition_datetime
+        .replace(tzinfo=dtz.utc)
+        .isoformat()
+    )
+
+    def source_info():
+        result = {'source_level1': level1_path,
+                  'acquisition_datetime': acq_datetime,
+                  'platform_id': acquisition.platform_id,
+                  'sensor_id': acquisition.sensor_id}
+
+        # ancillary metadata tracking
+        for key, value in extract_ancillary_metadata(level1_path).items():
+            if isinstance(value, dtime):
+                result[key] = value.isoformat()
+            else:
+                result[key] = value
+
+        return result
+
+    def ancillary(fid):
+        # load the ancillary and remove fields not of use to ODC
         # retrieve the averaged ancillary if available
         anc_grp = fid.get(GroupName.ANCILLARY_AVG_GROUP.value)
         if anc_grp is None:
@@ -196,84 +244,57 @@ def create_ard_yaml(acquisitions, ancillary_group, out_group, normalized_solar_z
         dname = DatasetName.ELEVATION.value
         elevation_data = read_scalar(anc_grp, dname)
 
-        ancillary = {'aerosol': aerosol_data,
-                     'water_vapour': water_vapour_data,
-                     'ozone': ozone_data,
-                     'elevation': elevation_data,
-                     'normalized_solar_zenith': {'value': normalized_solar_zenith}}
+        result = {'aerosol': aerosol_data,
+                  'water_vapour': water_vapour_data,
+                  'ozone': ozone_data,
+                  'elevation': elevation_data,
+                  'normalized_solar_zenith': {'value': normalized_solar_zenith}}
 
         if sbt:
-            sbt_ancillary = load_sbt_ancillary(fid)
-            for key in sbt_ancillary:
-                ancillary[key] = sbt_ancillary[key]
-        else:
-            for acq in acquisitions:
-                if acq.band_type == BandType.THERMAL:
-                    continue
+            result.update(load_sbt_ancillary(fid))
 
-                bn = acq.band_name
-                for param in BrdfParameters:
-                    fmt = DatasetName.BRDF_FMT.value
-                    dname = fmt.format(band_name=bn, parameter=param.value)
-                    dset = fid[dname]
-                    key = dname.lower().replace('-', '_')
-                    ancillary[key] = {k: v for k, v in dset.attrs.items()}
-                    ancillary[key]['value'] = dset[()]
-                    ancillary[key]['type'] = key
+        if nbar:
+            for grp_name in res_group_bands:
+                grp_ancillary = load_nbar_ancillary(res_group_bands[grp_name], fid)
+                for item in grp_ancillary:
+                    for remove in ['CLASS', 'VERSION', 'query_date', 'data_source']:
+                        grp_ancillary[item].pop(remove, None)
+                result.update(grp_ancillary)
 
-        return ancillary
+        return result
 
-    acquisition = acquisitions[0]
-    level1_path = acquisition.pathname
-    acq_datetime = (
-        acquisition.acquisition_datetime
-        .replace(tzinfo=dtz.utc)
-        .isoformat()
-    )
-    source_info = {'source_level1': level1_path,
-                   'acquisition_datetime': acq_datetime,
-                   'platform_id': acquisition.platform_id,
-                   'sensor_id': acquisition.sensor_id}
+    def software_versions():
+        return {'wagl': {'version': wagl.__version__,
+                         'repo_url': 'https://github.com/GeoscienceAustralia/wagl.git'},
+                'modtran': {'version': '6.0.1',
+                            'repo_url': 'http://www.ontar.com/software/productdetails.aspx?item=modtran'}}
 
-    # ancillary metadata tracking
-    for key, value in extract_ancillary_metadata(level1_path).items():
-        if isinstance(value, dtime):
-            source_info[key] = value.isoformat()
-        else:
-            source_info[key] = value
+    def algorithm():
+        result = {}
 
-    # load the ancillary and remove fields not of use to ODC
-    ancillary = load_ancillary(acquisitions, ancillary_group, sbt)
-    for item in ancillary:
-        for remove in ['CLASS', 'VERSION', 'query_date', 'data_source']:
-            ancillary[item].pop(remove, None)
+        if sbt:
+            result['sbt_doi'] = 'TODO'
 
-    software_versions = {'wagl': {'version': wagl.__version__,
-                                  'repo_url': 'https://github.com/GeoscienceAustralia/wagl.git'}, # pylint: disable=line-too-long
-                         'modtran': {'version': '6.0.1',
-                                     'repo_url': 'http://www.ontar.com/software/productdetails.aspx?item=modtran'} # pylint: disable=line-too-long
-                        }
+        if nbar:
+            result['algorithm_version'] = 2.0
+            result['arg25_doi'] = 'http://dx.doi.org/10.4225/25/5487CC0D4F40B'
+            result['nbar_doi'] = 'http://dx.doi.org/10.1109/JSTARS.2010.2042281'
+            result['nbar_terrain_corrected_doi'] = 'http://dx.doi.org/10.1016/j.rse.2012.06.018'
 
-    algorithm = {}
-    if sbt:
-        dname = DatasetName.SBT_YAML.value
-        algorithm['sbt_doi'] = 'TODO'
-    else:
-        dname = DatasetName.NBAR_YAML.value
-        algorithm['algorithm_version'] = 2.0
-        algorithm['arg25_doi'] = 'http://dx.doi.org/10.4225/25/5487CC0D4F40B'
-        algorithm['nbar_doi'] = 'http://dx.doi.org/10.1109/JSTARS.2010.2042281'
-        algorithm['nbar_terrain_corrected_doi'] = 'http://dx.doi.org/10.1016/j.rse.2012.06.018' # pylint: disable=line-too-long
+        return result
 
     metadata = {'system_information': get_system_information(),
-                'source_datasets': source_info,
-                'ancillary': ancillary,
-                'algorithm_information': algorithm,
-                'software_versions': software_versions}
-    
+                'source_datasets': source_info(),
+                'ancillary': ancillary(ancillary_group),
+                'algorithm_information': algorithm(),
+                'software_versions': software_versions(),
+                'id': str(uuid.uuid1())}
+
     # output
     yml_data = yaml.dump(metadata, default_flow_style=False)
-    write_scalar(yml_data, dname, out_group, attrs={'file_format': 'yaml'})
+    write_scalar(yml_data, metadata['id'],
+                 out_group, attrs={'file_format': 'yaml'})
+    out_group[DatasetName.CURRENT_METADATA.value] = h5py.SoftLink('{}/{}'.format(out_group.name, metadata['id']))
 
 
 def create_pq_yaml(acquisition, ancillary, tests_run, out_group):
@@ -302,9 +323,9 @@ def create_pq_yaml(acquisition, ancillary, tests_run, out_group):
                    'source_reflectance': 'NBAR'}
 
     algorithm = {'software_version': wagl.__version__,
-                 'software_repository': 'https://github.com/GeoscienceAustralia/wagl.git', # pylint: disable=line-too-long
+                 'software_repository': 'https://github.com/GeoscienceAustralia/wagl.git',
                  'pq_doi': 'http://dx.doi.org/10.1109/IGARSS.2013.6723746'}
-    
+
     metadata = {'system_information': get_system_information(),
                 'source_data': source_info,
                 'algorithm_information': algorithm,
