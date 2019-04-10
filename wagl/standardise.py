@@ -411,7 +411,14 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
 
             return band_acqs
 
+        # wagl parameters
+        parameters = {'vertices': list(vertices),
+                      'method': method.value,
+                      'rori': rori,
+                      'buffer_distance': buffer_distance,
+                      'normalized_solar_zenith': normalized_solar_zenith}
+
         # metadata yaml's
         metadata = root.create_group(DatasetName.METADATA.value)
         create_ard_yaml({grp_name: get_band_acqs(grp_name) for grp_name in container.supported_groups},
-                        ancillary_group, metadata, normalized_solar_zenith, workflow)
+                        ancillary_group, metadata, parameters, workflow)

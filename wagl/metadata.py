@@ -98,7 +98,7 @@ def read_metadata_tags(fname, bands):
     return pandas.DataFrame(tag_data)
 
 
-def create_ard_yaml(res_group_bands, ancillary_group, out_group, normalized_solar_zenith, workflow):
+def create_ard_yaml(res_group_bands, ancillary_group, out_group, parameters, workflow):
     """
     Write the NBAR metadata captured during the entire workflow to a
     HDF5 SCALAR dataset using the yaml document format.
@@ -112,6 +112,9 @@ def create_ard_yaml(res_group_bands, ancillary_group, out_group, normalized_sola
 
     :param out_group:
         A `h5py.Group` object opened for write access.
+
+    :param parameters:
+        A `dict` containing `DataStandardisation` parameters
 
     :param workflow:
         Which workflow to run (from the `wagl.constants.Workflow` enumeration).
@@ -247,8 +250,7 @@ def create_ard_yaml(res_group_bands, ancillary_group, out_group, normalized_sola
         result = {'aerosol': aerosol_data,
                   'water_vapour': water_vapour_data,
                   'ozone': ozone_data,
-                  'elevation': elevation_data,
-                  'normalized_solar_zenith': {'value': normalized_solar_zenith}}
+                  'elevation': elevation_data}
 
         if sbt:
             result.update(load_sbt_ancillary(fid))
@@ -288,7 +290,8 @@ def create_ard_yaml(res_group_bands, ancillary_group, out_group, normalized_sola
                 'ancillary': ancillary(ancillary_group),
                 'algorithm_information': algorithm(),
                 'software_versions': software_versions(),
-                'id': str(uuid.uuid1())}
+                'id': str(uuid.uuid1()),
+                'parameters': parameters}
 
     # output
     yml_data = yaml.dump(metadata, default_flow_style=False)
