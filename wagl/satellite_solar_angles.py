@@ -927,7 +927,7 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
                               smodel[1], track[1], params)
 
     out_dtype = 'float32'
-    no_data = -999
+    no_data = np.nan
     kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
     kwargs['shape'] = (acquisition.lines, acquisition.samples)
     kwargs['fillvalue'] = no_data
