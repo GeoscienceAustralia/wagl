@@ -279,7 +279,6 @@ def create_ard_yaml(res_group_bands, ancillary_group, out_group, parameters, wor
 
         if nbar:
             result['algorithm_version'] = 2.0
-            result['arg25_doi'] = 'http://dx.doi.org/10.4225/25/5487CC0D4F40B'
             result['nbar_doi'] = 'http://dx.doi.org/10.1109/JSTARS.2010.2042281'
             result['nbar_terrain_corrected_doi'] = 'http://dx.doi.org/10.1016/j.rse.2012.06.018'
 
