@@ -289,7 +289,7 @@ def create_ard_yaml(res_group_bands, ancillary_group, out_group, parameters, wor
                 'ancillary': ancillary(ancillary_group),
                 'algorithm_information': algorithm(),
                 'software_versions': software_versions(),
-                'id': str(uuid.uuid1()),
+                'id': str(uuid.uuid4()),
                 'parameters': parameters}
 
     # output
