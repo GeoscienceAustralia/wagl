@@ -297,7 +297,7 @@ def load_brdf_tile(src_poly, src_crs, ds, uri):
         layer[~mask] = np.nan
         layer[~fill_value_mask] = np.nan
         # TODO should add_offset be subtracted instead?
-        layer = float(ds.attrs['scale_factor']) * layer + float(ds.attrs['add_offset'])
+        layer = float(ds.attrs['scale_factor']) * (layer - float(ds.attrs['add_offset']))
         return np.nansum(layer)
 
     return BrdfTileSummary(valid_pixels,
