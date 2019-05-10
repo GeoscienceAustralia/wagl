@@ -448,7 +448,6 @@ def interpolate(acq, coefficient, ancillary_group, satellite_solar_group,
         raise ValueError(msg.format(Workflow.STANDARD.atmos_coefficients))
 
     coefficients = read_h5_table(coefficients_group, dataset_name)
-
     coord = np.zeros((coordinator.shape[0], 2), dtype='int')
     map_x = coordinator.map_x.values
     map_y = coordinator.map_y.values
