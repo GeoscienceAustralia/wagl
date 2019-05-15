@@ -10,8 +10,7 @@
                     "spectral_filter_name": "landsat5_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
-                    "brdf_wavelength": "0459_0479nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band3",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
                     "supported_band": true
                 },
                 "2": {
@@ -22,8 +21,7 @@
                     "spectral_filter_name": "landsat5_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0667,
-                    "brdf_wavelength": "0545_0565nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band4",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band4"],
                     "supported_band": true
                 },
                 "3": {
@@ -34,8 +32,7 @@
                     "spectral_filter_name": "landsat5_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0880,
-                    "brdf_wavelength": "0620_0670nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band1",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
                     "supported_band": true
                 },
                 "4": {
@@ -46,8 +43,7 @@
                     "spectral_filter_name": "landsat5_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2231,
-                    "brdf_wavelength": "0841_0876nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band2",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
                     "supported_band": true
                 },
                 "5": {
@@ -58,8 +54,7 @@
                     "spectral_filter_name": "landsat5_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2512,
-                    "brdf_wavelength": "1628_1652nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band6",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band6"],
                     "supported_band": true
                 },
                 "6": {
@@ -81,8 +76,7 @@
                     "spectral_filter_name": "landsat5_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.1648,
-                    "brdf_wavelength": "2105_2155nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band7",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band7"],
                     "supported_band": true
                 }
             }
@@ -99,8 +93,7 @@
                     "spectral_filter_name": "landsat7_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
-                    "brdf_wavelength": "0459_0479nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band3",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
                     "supported_band": true
                 },
                 "2": {
@@ -111,8 +104,7 @@
                     "spectral_filter_name": "landsat7_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0667,
-                    "brdf_wavelength": "0545_0565nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band4",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band4"],
                     "supported_band": true
                 },
                 "3": {
@@ -123,8 +115,7 @@
                     "spectral_filter_name": "landsat7_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0880,
-                    "brdf_wavelength": "0620_0670nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band1",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
                     "supported_band": true
                 },
                 "4": {
@@ -135,8 +126,7 @@
                     "spectral_filter_name": "landsat7_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2231,
-                    "brdf_wavelength": "0841_0876nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band2",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
                     "supported_band": true
                 },
                 "5": {
@@ -147,8 +137,7 @@
                     "spectral_filter_name": "landsat7_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2512,
-                    "brdf_wavelength": "1628_1652nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band6",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band6"],
                     "supported_band": true
                 },
                 "61": {
@@ -181,8 +170,18 @@
                     "spectral_filter_name": "landsat7_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.1648,
-                    "brdf_wavelength": "2105_2155nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band7",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band7"],
+                    "supported_band": true
+                },
+                "8": {
+                    "alias": "PANCHROMATIC",
+                    "band_type": "PANCHROMATIC",
+                    "band_name": "BAND-8",
+                    "wavelength": [0.52, 0.90],
+                    "spectral_filter_name": "landsat7_vsir.flt",
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.088,
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band4", "BRDF_Albedo_Parameters_Band1", "BRDF_Albedo_Parameters_Band2"],
                     "supported_band": true
                 }
             }
@@ -199,8 +198,7 @@
                     "spectral_filter_name": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
-                    "brdf_wavelength": "0459_0479nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band3",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
                     "supported_band": true
                 },
                 "2": {
@@ -211,8 +209,7 @@
                     "spectral_filter_name": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
-                    "brdf_wavelength": "0459_0479nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band3",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
                     "supported_band": true
                 },
                 "3": {
@@ -223,8 +220,7 @@
                     "spectral_filter_name": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0667,
-                    "brdf_wavelength": "0545_0565nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band4",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band4"],
                     "supported_band": true
                 },
                 "4": {
@@ -235,8 +231,7 @@
                     "spectral_filter_name": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0880,
-                    "brdf_wavelength": "0620_0670nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band1",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
                     "supported_band": true
                 },
                 "5": {
@@ -247,8 +242,7 @@
                     "spectral_filter_name": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2231,
-                    "brdf_wavelength": "0841_0876nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band2",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
                     "supported_band": true
                 },
                 "6": {
@@ -259,8 +253,7 @@
                     "spectral_filter_name": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2512,
-                    "brdf_wavelength": "1628_1652nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band6",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band6"],
                     "supported_band": true
                 },
                 "7": {
@@ -271,8 +264,18 @@
                     "spectral_filter_name": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.1648,
-                    "brdf_wavelength": "2105_2155nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band7",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band7"],
+                    "supported_band": true
+                },
+                "8": {
+                    "alias": "PANCHROMATIC",
+                    "band_type": "PANCHROMATIC",
+                    "band_name": "BAND-8",
+                    "wavelength": [0.503, 0.676],
+                    "spectral_filter_name": "landsat8_vsir.flt",
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.088,
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band4", "BRDF_Albedo_Parameters_Band1"],
                     "supported_band": true
                 },
                 "9": {
@@ -295,8 +298,7 @@
                     "spectral_filter_name": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
-                    "brdf_wavelength": "0459_0479nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band3",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
                     "supported_band": true
                 },
                 "10": {
@@ -329,8 +331,7 @@
                     "spectral_filter_name": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
-                    "brdf_wavelength": "0459_0479nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band3",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
                     "supported_band": true
                 },
                 "3": {
@@ -341,8 +342,7 @@
                     "spectral_filter_name": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0667,
-                    "brdf_wavelength": "0545_0565nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band4",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band4"],
                     "supported_band": true
                 },
                 "4": {
@@ -353,8 +353,7 @@
                     "spectral_filter_name": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0880,
-                    "brdf_wavelength": "0620_0670nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band1",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
                     "supported_band": true
                 },
                 "5": {
@@ -365,8 +364,7 @@
                     "spectral_filter_name": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2231,
-                    "brdf_wavelength": "0841_0876nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band2",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
                     "supported_band": true
                 },
                 "6": {
@@ -377,8 +375,7 @@
                     "spectral_filter_name": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2512,
-                    "brdf_wavelength": "1628_1652nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band6",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band6"],
                     "supported_band": true
                 },
                 "7": {
@@ -389,8 +386,18 @@
                     "spectral_filter_name": "landsat8_vsir.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.1648,
-                    "brdf_wavelength": "2105_2155nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band7",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band7"],
+                    "supported_band": true
+                },
+                "8": {
+                    "alias": "PANCHROMATIC",
+                    "band_type": "PANCHROMATIC",
+                    "band_name": "BAND-8",
+                    "wavelength": [0.503, 0.676],
+                    "spectral_filter_name": "landsat8_vsir.flt",
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.088,
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band4", "BRDF_Albedo_Parameters_Band1"],
                     "supported_band": true
                 },
                 "9": {
@@ -415,8 +422,7 @@
                    "spectral_filter_name": "sentinel2a_all.flt",
                    "spectral_range": [2600, 349, -1],
                    "reflectance_adjustment": 0.0365,
-                   "brdf_wavelength": "0459_0479nm",
-                   "brdf_dataset": "BRDF_Albedo_Parameters_Band3",
+                   "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
                    "c1": 0.001,
                    "radiance_scale_factor": 0.01,
                    "supported_band": true
@@ -429,8 +435,7 @@
                    "spectral_filter_name": "sentinel2a_all.flt",
                    "spectral_range": [2600, 349, -1],
                    "reflectance_adjustment": 0.0365,
-                   "brdf_wavelength": "0459_0479nm",
-                   "brdf_dataset": "BRDF_Albedo_Parameters_Band3",
+                   "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
                    "c1": 0.001,
                    "radiance_scale_factor": 0.01,
                    "supported_band": true
@@ -443,8 +448,7 @@
                    "spectral_filter_name": "sentinel2a_all.flt",
                    "spectral_range": [2600, 349, -1],
                    "reflectance_adjustment": 0.0365,
-                   "brdf_wavelength": "0545_0565nm",
-                   "brdf_dataset": "BRDF_Albedo_Parameters_Band4",
+                   "brdf_datasets": ["BRDF_Albedo_Parameters_Band4"],
                    "c1": 0.001,
                    "radiance_scale_factor": 0.01,
                    "supported_band": true
@@ -457,8 +461,7 @@
                    "spectral_filter_name": "sentinel2a_all.flt",
                    "spectral_range": [2600, 349, -1],
                    "reflectance_adjustment": 0.088,
-                   "brdf_wavelength": "0620_0670nm",
-                   "brdf_dataset": "BRDF_Albedo_Parameters_Band1",
+                   "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
                    "c1": 0.001,
                    "radiance_scale_factor": 0.01,
                    "supported_band": true
@@ -471,8 +474,7 @@
                    "spectral_filter_name": "sentinel2a_all.flt",
                    "spectral_range": [2600, 349, -1],
                    "reflectance_adjustment": 0.088,
-                   "brdf_wavelength": "0620_0670nm",
-                   "brdf_dataset": "BRDF_Albedo_Parameters_Band1",
+                   "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
                    "c1": 0.001,
                    "radiance_scale_factor": 0.01,
                    "supported_band": true
@@ -485,8 +487,7 @@
                    "spectral_filter_name": "sentinel2a_all.flt",
                    "spectral_range": [2600, 349, -1],
                    "reflectance_adjustment": 0.088,
-                   "brdf_wavelength": "0620_0670nm",
-                   "brdf_dataset": "BRDF_Albedo_Parameters_Band1",
+                   "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
                    "c1": 0.001,
                    "radiance_scale_factor": 0.01,
                    "supported_band": true
@@ -499,8 +500,7 @@
                    "spectral_filter_name": "sentinel2a_all.flt",
                    "spectral_range": [2600, 349, -1],
                    "reflectance_adjustment": 0.2231,
-                   "brdf_wavelength": "0841_0876nm",
-                   "brdf_dataset": "BRDF_Albedo_Parameters_Band2",
+                   "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
                    "c1": 0.001,
                    "radiance_scale_factor": 0.01,
                    "supported_band": true
@@ -513,8 +513,7 @@
                    "spectral_filter_name": "sentinel2a_all.flt",
                    "spectral_range": [2600, 349, -1],
                    "reflectance_adjustment": 0.2231,
-                   "brdf_wavelength": "0841_0876nm",
-                   "brdf_dataset": "BRDF_Albedo_Parameters_Band2",
+                   "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
                    "c1": 0.001,
                    "radiance_scale_factor": 0.01,
                    "supported_band": true
@@ -527,8 +526,7 @@
                    "spectral_filter_name": "sentinel2a_all.flt",
                    "spectral_range": [2600, 349, -1],
                    "reflectance_adjustment": 0.2231,
-                   "brdf_wavelength": "0841_0876nm",
-                   "brdf_dataset": "BRDF_Albedo_Parameters_Band2",
+                   "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
                    "c1": 0.001,
                    "radiance_scale_factor": 0.01,
                    "supported_band": true
@@ -541,8 +539,7 @@
                    "spectral_filter_name": "sentinel2a_all.flt",
                    "spectral_range": [2600, 349, -1],
                    "reflectance_adjustment": 0.2231,
-                   "brdf_wavelength": "0841_0876nm",
-                   "brdf_dataset": "BRDF_Albedo_Parameters_Band2",
+                   "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
                    "c1": 0.001,
                    "radiance_scale_factor": 0.01,
                    "supported_band": false
@@ -561,8 +558,7 @@
                    "spectral_filter_name": "sentinel2a_all.flt",
                    "spectral_range": [2600, 349, -1],
                    "reflectance_adjustment": 0.2512,
-                   "brdf_wavelength": "1628_1652nm",
-                   "brdf_dataset": "BRDF_Albedo_Parameters_Band6",
+                   "brdf_datasets": ["BRDF_Albedo_Parameters_Band6"],
                    "c1": 0.0002,
                    "radiance_scale_factor": 0.002,
                    "supported_band": true
@@ -575,8 +571,7 @@
                    "spectral_filter_name": "sentinel2a_all.flt",
                    "spectral_range": [2600, 349, -1],
                    "reflectance_adjustment": 0.1648,
-                   "brdf_wavelength": "2105_2155nm",
-                   "brdf_dataset": "BRDF_Albedo_Parameters_Band7",
+                   "brdf_datasets": ["BRDF_Albedo_Parameters_Band7"],
                    "c1": 0.00005,
                    "radiance_scale_factor": 0.0005,
                    "supported_band": true
@@ -598,8 +593,7 @@
                     "spectral_filter_name": "sentinel2b_all.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
-                    "brdf_wavelength": "0459_0479nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band3",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
                     "c1": 0.001,
                     "radiance_scale_factor": 0.01,
                     "supported_band": true
@@ -612,8 +606,7 @@
                     "spectral_filter_name": "sentinel2b_all.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
-                    "brdf_wavelength": "0459_0479nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band3",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
                     "c1": 0.001,
                     "radiance_scale_factor": 0.01,
                     "supported_band": true
@@ -626,8 +619,7 @@
                     "spectral_filter_name": "sentinel2b_all.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
-                    "brdf_wavelength": "0545_0565nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band4",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band4"],
                     "c1": 0.001,
                     "radiance_scale_factor": 0.01,
                     "supported_band": true
@@ -640,8 +632,7 @@
                     "spectral_filter_name": "sentinel2b_all.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.088,
-                    "brdf_wavelength": "0620_0670nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band1",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
                     "c1": 0.001,
                     "radiance_scale_factor": 0.01,
                     "supported_band": true
@@ -654,8 +645,7 @@
                     "spectral_filter_name": "sentinel2b_all.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.088,
-                    "brdf_wavelength": "0620_0670nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band1",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
                     "c1": 0.001,
                     "radiance_scale_factor": 0.01,
                     "supported_band": true
@@ -668,8 +658,7 @@
                     "spectral_filter_name": "sentinel2b_all.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.088,
-                    "brdf_wavelength": "0620_0670nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band1",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
                     "c1": 0.001,
                     "radiance_scale_factor": 0.01,
                     "supported_band": true
@@ -682,8 +671,7 @@
                     "spectral_filter_name": "sentinel2b_all.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2231,
-                    "brdf_wavelength": "0841_0876nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band2",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
                     "c1": 0.001,
                     "radiance_scale_factor": 0.01,
                     "supported_band": true
@@ -696,8 +684,7 @@
                     "spectral_filter_name": "sentinel2b_all.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2231,
-                    "brdf_wavelength": "0841_0876nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band2",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
                     "c1": 0.001,
                     "radiance_scale_factor": 0.01,
                     "supported_band": true
@@ -710,8 +697,7 @@
                     "spectral_filter_name": "sentinel2b_all.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2231,
-                    "brdf_wavelength": "0841_0876nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band2",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
                     "c1": 0.001,
                     "radiance_scale_factor": 0.01,
                     "supported_band": true
@@ -724,8 +710,7 @@
                     "spectral_filter_name": "sentinel2b_all.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2231,
-                    "brdf_wavelength": "0841_0876nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band2",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
                     "c1": 0.001,
                     "radiance_scale_factor": 0.01,
                     "supported_band": false
@@ -745,8 +730,7 @@
                     "spectral_filter_name": "sentinel2b_all.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2512,
-                    "brdf_wavelength": "1628_1652nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band6",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band6"],
                     "c1": 0.0002,
                     "radiance_scale_factor": 0.002,
                     "supported_band": true
@@ -759,8 +743,7 @@
                     "spectral_filter_name": "sentinel2b_all.flt",
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.1648,
-                    "brdf_wavelength": "2105_2155nm",
-                    "brdf_dataset": "BRDF_Albedo_Parameters_Band7",
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band7"],
                     "c1": 0.00005,
                     "radiance_scale_factor": 0.0005,
                     "supported_band": true
