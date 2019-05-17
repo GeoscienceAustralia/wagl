@@ -25,7 +25,11 @@ class AcquisitionLoadMtlTest(unittest.TestCase):
 
     def test_highest_resolution_ls7_scene1(self):
         acq_cont = acquisitions(LS7_SCENE1)
-        self.assertEqual(len(acq_cont.get_highest_resolution()[0]), 8)
+        self.assertEqual(len(acq_cont.get_highest_resolution()[0]), 1)
+
+    def test_res_group_1_ls7_scene1(self):
+        acq_cont = acquisitions(LS7_SCENE1)
+        self.assertEqual(len(acq_cont.get_acquisitions(group='RES-GROUP-1')), 8)
 
     def test_load_acquisitions_ls8_scene1(self):
         acq_cont = acquisitions(LS8_SCENE1)
@@ -34,7 +38,11 @@ class AcquisitionLoadMtlTest(unittest.TestCase):
 
     def test_highest_resolution_ls8_scene1(self):
         acq_cont = acquisitions(LS8_SCENE1)
-        self.assertEqual(len(acq_cont.get_highest_resolution()[0]), 9)
+        self.assertEqual(len(acq_cont.get_highest_resolution()[0]), 1)
+
+    def test_res_group_1_ls8_scene1(self):
+        acq_cont = acquisitions(LS8_SCENE1)
+        self.assertEqual(len(acq_cont.get_acquisitions(group='RES-GROUP-1')), 9)
 
 
 class AcquisitionsContainerTest(unittest.TestCase):
@@ -226,6 +234,19 @@ class Landsat7Mtl1AcquisitionTest(unittest.TestCase):
         self.assertAlmostEqual(result[0, 0], 293.990413299)
 
 
+class Landsat7PanAcquisitionTest(unittest.TestCase):
+
+    def setUp(self):
+        self.acqs = acquisitions(LS7_SCENE1).get_acquisitions(group='RES-GROUP-0')
+
+    def test_type(self):
+        for acq in self.acqs:
+            self.assertTrue(isinstance(acq, LandsatAcquisition))
+
+    def test_band_type(self):
+        self.assertEqual(self.acqs[0].band_type, BandType.PANCHROMATIC)
+
+
 class Landsat8Mtl1AcquisitionTest(unittest.TestCase):
 
     def setUp(self):
@@ -310,6 +331,19 @@ class Landsat8Mtl1AcquisitionTest(unittest.TestCase):
         result = temperature_at_sensor(self.acqs[2],
                                        window=((41, 42), (41, 42)))
         self.assertAlmostEqual(result[0, 0], 298.049253923)
+
+
+class Landsat8PanAcquisitionTest(unittest.TestCase):
+
+    def setUp(self):
+        self.acqs = acquisitions(LS8_SCENE1).get_acquisitions(group='RES-GROUP-0')
+
+    def test_type(self):
+        for acq in self.acqs:
+            self.assertTrue(isinstance(acq, LandsatAcquisition))
+
+    def test_band_type(self):
+        self.assertEqual(self.acqs[0].band_type, BandType.PANCHROMATIC)
 
 
 if __name__ == '__main__':
