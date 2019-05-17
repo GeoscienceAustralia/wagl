@@ -192,12 +192,9 @@ class Landsat8Acquisition(LandsatAcquisition):
         no_data = self.no_data if self.no_data is not None else 0
         nulls = data == no_data
 
-        print(data)
-
         gain = self.reflectance_mult
         bias = self.reflectance_add
 
-        print(gain, bias, esun)
         toa_reflectance = gain * data + bias
 
         radiance = toa_reflectance * esun / math.pi

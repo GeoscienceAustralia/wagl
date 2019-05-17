@@ -407,8 +407,6 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
                 run_pq(level1, res_group, landsea, res_group, compression, filter_opts, AP.NBAR, acq_parser_hint)
                 run_pq(level1, res_group, landsea, res_group, compression, filter_opts, AP.NBART, acq_parser_hint)
 
-        print(esun_values)
-
         def get_band_acqs(grp_name):
             acqs = container.get_acquisitions(granule=granule, group=grp_name)
             nbar_acqs = [acq for acq in acqs if acq.band_type == BandType.REFLECTIVE]

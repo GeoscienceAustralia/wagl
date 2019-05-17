@@ -10,7 +10,7 @@ for handling scenes consisting of multiple Granules/Tiles,
 and of differing resolutions.
 """
 from __future__ import absolute_import, print_function
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 import os
 from os.path import isdir, join as pjoin, dirname, basename, splitext, isfile
 import re
