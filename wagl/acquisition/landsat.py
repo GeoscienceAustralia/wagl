@@ -1,8 +1,10 @@
 """
 Defines the acquisition classes for the landsat satellite program for wagl
 """
+import math
 
 from .base import Acquisition
+
 
 class LandsatAcquisition(Acquisition):
 
@@ -63,7 +65,7 @@ class LandsatAcquisition(Acquisition):
 
         return out
 
-    def radiance_data(self, window=None, out_no_data=-999):
+    def radiance_data(self, window=None, out_no_data=-999, esun=None):
         """
         Return the data as radiance in watts/(m^2*micrometre).
         """
@@ -169,6 +171,39 @@ class Landsat8Acquisition(LandsatAcquisition):
         self._norad_id = 39084
         self._classification_type = 'U'
         self._international_designator = '13008A'
+
+    def radiance_data(self, window=None, out_no_data=-999, esun=None):
+        """
+        This method overwrites the parent's method 'radiance_data' for Landsat8
+        acquistions to compute radiance by first calculating top of the
+        atmosphere reflectance and then converting to radiance using 'esun" value
+        if it is not None. If esun is None, parents (LandsatAcquisition)'s
+        radiance_data computation is used.
+
+        Return the data as radiance in watts/(m^2*micrometre).
+        """
+
+        if not esun:
+            return super(Landsat8Acquisition, self).radiance_data(window, out_no_data, esun)
+
+        data = self.data(window=window)
+
+        # check for no data
+        no_data = self.no_data if self.no_data is not None else 0
+        nulls = data == no_data
+
+        gain = self.reflectance_mult
+        bias = self.reflectance_add
+
+        toa_reflectance = gain * data + bias
+
+        radiance = toa_reflectance * esun / math.pi
+
+        # set the out_no_data value inplace of the input no data value
+        radiance[nulls] = out_no_data
+
+        return radiance
+
 
 ACQUISITION_TYPE = {
     'Landsat5_TM': Landsat5Acquisition,
