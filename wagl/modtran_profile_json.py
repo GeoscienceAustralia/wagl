@@ -47,7 +47,7 @@ def midlat_summer_albedo(name, water, ozone, visibility, doy, lat, lon, time, sa
                     "IMULT": "RT_DISORT",
                     "DISALB": True,
                     "NSTR": 8,
-                    "SOLCON": 0.0
+                    "SOLCON": -0.98799997568
                 },
                 "ATMOSPHERE": {
                     "MODEL": "ATM_MIDLAT_SUMMER",
@@ -127,7 +127,7 @@ def midlat_summer_albedo(name, water, ozone, visibility, doy, lat, lon, time, sa
                     "MLFLX": 1,
                     "VRFRAC": 0.0,
                     "SFWHM": 0.0,
-                    "LSUNFL": "4",
+                    "LSUNFL": "1",
                     "LBMNAM": " ",
                     "FILTNM": filter_function
                 },
@@ -165,7 +165,7 @@ def tropical_albedo(name, water, ozone, visibility, doy, lat, lon, time, sat_azi
                     "IMULT": "RT_DISORT",
                     "DISALB": True,
                     "NSTR": 8,
-                    "SOLCON": 0.0
+                    "SOLCON": -0.98799997568
                 },
                 "ATMOSPHERE": {
                     "MODEL": "ATM_TROPICAL",
@@ -245,7 +245,7 @@ def tropical_albedo(name, water, ozone, visibility, doy, lat, lon, time, sat_azi
                     "MLFLX": 1,
                     "VRFRAC": 0.0,
                     "SFWHM": 0.0,
-                    "LSUNFL": "4",
+                    "LSUNFL": "1",
                     "LBMNAM": " ",
                     "FILTNM": filter_function
                 },
@@ -294,7 +294,7 @@ def thermal_transmittance(name, ozone, n, prof_alt, prof_pres, prof_temp, prof_w
                     "IMULT": "RT_NO_MULTIPLE_SCATTER",
                     "DISALB": False,
                     "NSTR": 0,
-                    "SOLCON": 0.0
+                    "SOLCON": -0.98799997568
                 },
                 "ATMOSPHERE": {
                     "MODEL": "ATM_USER_ALT_PROFILE",
@@ -388,7 +388,7 @@ def thermal_transmittance(name, ozone, n, prof_alt, prof_pres, prof_temp, prof_w
                     "MLFLX": 0,
                     "VRFRAC": 0.0,
                     "SFWHM": 0.0,
-                    "LSUNFL": "4",
+                    "LSUNFL": "1",
                     "LBMNAM": " ",
                     "FILTNM": filter_function
                 },
@@ -411,7 +411,7 @@ def thermal_transmittance(name, ozone, n, prof_alt, prof_pres, prof_temp, prof_w
                     "IMULT": "RT_NO_MULTIPLE_SCATTER",
                     "DISALB": False,
                     "NSTR": 0,
-                    "SOLCON": 0.0
+                    "SOLCON": -0.98799997568
                 },
                 "ATMOSPHERE": {
                     "MODEL": "ATM_USER_ALT_PROFILE",
@@ -505,7 +505,7 @@ def thermal_transmittance(name, ozone, n, prof_alt, prof_pres, prof_temp, prof_w
                     "MLFLX": 0,
                     "VRFRAC": 0.0,
                     "SFWHM": 0.0,
-                    "LSUNFL": "4",
+                    "LSUNFL": "1",
                     "LBMNAM": " ",
                     "FILTNM": filter_function
                 },

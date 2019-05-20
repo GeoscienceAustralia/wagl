@@ -12,7 +12,7 @@
                     "IMULT": "RT_DISORT",
                     "DISALB": true,
                     "NSTR": 8,
-                    "SOLCON": 0.0
+                    "SOLCON": -0.98799997568
                 },
                 "ATMOSPHERE": {
                     "MODEL": "ATM_MIDLAT_SUMMER",
@@ -92,7 +92,7 @@
                     "MLFLX": 1,
                     "VRFRAC": 0.0,
                     "SFWHM": 0.0,
-                    "LSUNFL": "4",
+                    "LSUNFL": "1",
                     "LBMNAM": " ",
                     "FILTNM": "landsat5_vsir.flt"
                 },

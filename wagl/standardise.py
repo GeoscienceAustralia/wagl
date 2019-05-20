@@ -14,8 +14,9 @@ from wagl.ancillary import collect_ancillary
 from wagl.constants import ArdProducts as AP, GroupName, Workflow, BandType
 from wagl.constants import ALBEDO_FMT, POINT_FMT, POINT_ALBEDO_FMT, Albedos
 from wagl.constants import DatasetName
+from wagl.constants import AtmosphericCoefficients
 from wagl.dsm import get_dsm
-from wagl.hdf5 import H5CompressionFilter
+from wagl.hdf5 import H5CompressionFilter, read_h5_table
 from wagl.incident_exiting_angles import incident_angles, exiting_angles
 from wagl.incident_exiting_angles import relative_azimuth_slope
 from wagl.interpolation import interpolate
@@ -329,7 +330,7 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
         log.info('Coefficients')
         results_group = root[GroupName.ATMOSPHERIC_RESULTS_GRP.value]
         calculate_coefficients(results_group, root, compression, filter_opts)
-
+        esun_values = {}
         # interpolate coefficients
         for grp_name in container.supported_groups:
             log = STATUS_LOGGER.bind(level1=container.label, granule=granule,
@@ -348,6 +349,8 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
             comp_grp = root[GroupName.COEFFICIENTS_GROUP.value]
 
             for coefficient in workflow.atmos_coefficients:
+                if coefficient is AtmosphericCoefficients.ESUN:
+                    continue
                 if coefficient in Workflow.NBAR.atmos_coefficients:
                     band_acqs = nbar_acqs
                 else:
@@ -362,6 +365,7 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
 
             # standardised products
             band_acqs = []
+
             if workflow == Workflow.STANDARD or workflow == Workflow.NBAR:
                 band_acqs.extend(nbar_acqs)
 
@@ -376,6 +380,12 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
                     surface_brightness_temperature(acq, interp_grp, res_group,
                                                    compression, filter_opts)
                 else:
+                    atmos_coefs = read_h5_table(comp_grp, DatasetName.NBAR_COEFFICIENTS.value)
+                    esun_values[acq.band_name] = (
+                        atmos_coefs[atmos_coefs.band_name == acq.band_name]
+                                   [AtmosphericCoefficients.ESUN.value]
+                    ).values[0]
+
                     slp_asp_grp = res_group[GroupName.SLP_ASP_GROUP.value]
                     rel_slp_asp = res_group[GroupName.REL_SLP_GROUP.value]
                     incident_grp = res_group[GroupName.INCIDENT_GROUP.value]
@@ -388,14 +398,14 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
                                           incident_grp, exiting_grp,
                                           shadow_grp, ancillary_group,
                                           rori, res_group, compression,
-                                          filter_opts, normalized_solar_zenith)
+                                          filter_opts, normalized_solar_zenith,
+                                          esun_values[acq.band_name])
 
             # pixel quality
             sbt_only = workflow == Workflow.SBT
             if pixel_quality and can_pq(level1, acq_parser_hint) and not sbt_only:
                 run_pq(level1, res_group, landsea, res_group, compression, filter_opts, AP.NBAR, acq_parser_hint)
                 run_pq(level1, res_group, landsea, res_group, compression, filter_opts, AP.NBART, acq_parser_hint)
-
 
         def get_band_acqs(grp_name):
             acqs = container.get_acquisitions(granule=granule, group=grp_name)
@@ -416,7 +426,8 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
                       'method': method.value,
                       'rori': rori,
                       'buffer_distance': buffer_distance,
-                      'normalized_solar_zenith': normalized_solar_zenith}
+                      'normalized_solar_zenith': normalized_solar_zenith,
+                      'esun': esun_values}
 
         # metadata yaml's
         metadata = root.create_group(DatasetName.METADATA.value)
