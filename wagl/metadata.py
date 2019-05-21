@@ -17,7 +17,7 @@ import yaml
 import h5py
 from yaml.representer import Representer
 import wagl
-from wagl.constants import BrdfParameters, DatasetName, POINT_FMT, GroupName
+from wagl.constants import BrdfDirectionalParameters, DatasetName, POINT_FMT, GroupName
 from wagl.constants import BandType, Workflow
 from wagl.hdf5 import write_scalar, read_h5_table, read_scalar
 
@@ -192,14 +192,13 @@ def create_ard_yaml(res_group_bands, ancillary_group, out_group, parameters, wor
                 continue
 
             bn = acq.band_name
-            for param in BrdfParameters:
+            for param in BrdfDirectionalParameters:
                 fmt = DatasetName.BRDF_FMT.value
                 dname = fmt.format(band_name=bn, parameter=param.value)
                 dset = fid[dname]
                 key = dname.lower().replace('-', '_')
                 result[key] = {k: v for k, v in dset.attrs.items()}
                 result[key]['value'] = dset[()]
-                result[key]['type'] = key
 
         return result
 
@@ -338,3 +337,11 @@ def create_pq_yaml(acquisition, ancillary, tests_run, out_group):
     dname = DatasetName.PQ_YAML.value
     yml_data = yaml.dump(metadata, default_flow_style=False)
     write_scalar(yml_data, dname, out_group, attrs={'file_format': 'yaml'})
+
+
+def current_h5_metadata(fid):
+    """
+    Read current metadata from a file.
+    """
+    metadata = fid[DatasetName.METADATA.value][DatasetName.CURRENT_METADATA.value][()].item()
+    return yaml.load(metadata)

@@ -38,26 +38,24 @@ import shapely.affinity
 import shapely.geometry
 from shapely.geometry import box
 from shapely import wkt, ops
-from wagl.constants import BrdfParameters
+from wagl.constants import BrdfDirectionalParameters, BrdfModelParameters
 from wagl.hdf5 import H5CompressionFilter
+from wagl.metadata import current_h5_metadata
+
 
 log = logging.getLogger('root.' + __name__)
 
 
 class BRDFLoaderError(Exception):
-
     """
     BRDF Loader Error
     """
-    pass
 
 
 class BRDFLookupError(Exception):
-
     """
     BRDF Lookup Error
     """
-    pass
 
 
 def _date_proximity(cmp_date, date_interpreter=lambda x: x):
@@ -188,39 +186,64 @@ def coord_transformer(src_crs, dst_crs):
     return result
 
 
+def _param_enum(is_fallback):
+    """
+    Which parameter set to use (depending on whether we are using the definitive datasets
+    or the fallback datasets).
+    """
+    if is_fallback:
+        return BrdfDirectionalParameters
+    return BrdfModelParameters
+
+
 class BrdfTileSummary:
     """
     A lightweight class to represent the BRDF information gathered from a tile.
     """
-    def __init__(self, valid_pixels, brdf_sums, source_files):
+    def __init__(self, valid_pixels, brdf_sums, source_files, is_fallback):
         self.valid_pixels = valid_pixels
         self.brdf_sums = brdf_sums
         self.source_files = source_files
+        self.is_fallback = is_fallback
 
     @staticmethod
-    def empty():
+    def empty(is_fallback):
         """ When the tile is not inside the ROI. """
-        return BrdfTileSummary(0, {key: 0.0 for key in BrdfParameters}, [])
+        return BrdfTileSummary(0, {key: 0.0 for key in _param_enum(is_fallback)}, [], is_fallback)
 
     def __add__(self, other):
         """ Accumulate information from different tiles. """
+        assert self.is_fallback == other.is_fallback
+        is_fallback = self.is_fallback
+
         return BrdfTileSummary(self.valid_pixels + other.valid_pixels,
                                {key: self.brdf_sums[key] + other.brdf_sums[key]
-                                for key in BrdfParameters},
-                               self.source_files + other.source_files)
+                                for key in _param_enum(is_fallback)},
+                               self.source_files + other.source_files,
+                               is_fallback)
 
     def mean(self):
         """ Calculate the mean BRDF parameters. """
-        if self.valid_pixels == 0 or self.brdf_sums[BrdfParameters.ISO] == 0.0:
-            # not enough information to be useful
-            # so return Lambertian BRDF parameters
-            return {key: dict(value=(1 if key == BrdfParameters.ISO else 0))
-                    for key in BrdfParameters}
+        if self.valid_pixels == 0:
+            raise BRDFLookupError("no brdf datasets found for the ROI")
 
-        return {key: dict(data_source='BRDF',
-                          url=", ".join(self.source_files),
-                          value=(self.brdf_sums[key] / self.valid_pixels))
-                for key in BrdfParameters}
+        if self.is_fallback:
+            # spatial average of the bands
+            return {key: dict(data_source='BRDF', dataset_ids=", ".join(self.source_files),
+                              value=self.brdf_sums[key] / self.valid_pixels, model='fallback')
+                    for key in BrdfDirectionalParameters}
+
+        # ratio of spatial averages
+        averages = {key: self.brdf_sums[key] / self.valid_pixels
+                    for key in BrdfModelParameters}
+
+        bands = {BrdfDirectionalParameters.ALPHA_1: BrdfModelParameters.VOL,
+                 BrdfDirectionalParameters.ALPHA_2: BrdfModelParameters.GEO}
+
+        return {key: dict(data_source='BRDF', dataset_ids=", ".join(self.source_files),
+                          value=averages[bands[key]] / averages[BrdfModelParameters.ISO],
+                          model='definitive')
+                for key in BrdfDirectionalParameters}
 
 
 def valid_region(fname, mask_value=None):
@@ -264,10 +287,12 @@ def valid_region(fname, mask_value=None):
     return geom, crs
 
 
-def load_brdf_tile(src_poly, src_crs, ds, uri):
+def load_brdf_tile(src_poly, src_crs, fid, dataset_name, is_fallback):
     """
     Summarize BRDF data from a single tile.
     """
+    ds = fid[dataset_name]
+
     def segmentize_src_poly(length_scale):
         src_poly_geom = ogr.CreateGeometryFromWkt(src_poly.wkt)
         src_poly_geom.Segmentize(length_scale)
@@ -284,7 +309,7 @@ def load_brdf_tile(src_poly, src_crs, ds, uri):
 
     bound_poly = ops.transform(lambda x, y: dst_geotransform * (x, y), box(0., 0., ds_width, ds_height))
     if not bound_poly.intersects(dst_poly):
-        return BrdfTileSummary.empty()
+        return BrdfTileSummary.empty(is_fallback)
 
     mask = rasterize([(dst_poly, 1)], fill=0, out_shape=(ds_width, ds_height), transform=dst_geotransform)
     valid_pixels = np.sum(mask)
@@ -292,18 +317,18 @@ def load_brdf_tile(src_poly, src_crs, ds, uri):
 
     def layer_sum(i):
         layer = ds[i, :, :]
-        fill_value_mask = (layer != float(ds.attrs['_FillValue']))
+        fill_value_mask = (layer != ds.attrs['_FillValue'])
         layer = layer.astype('float32')
         layer[~mask] = np.nan
         layer[~fill_value_mask] = np.nan
-        # TODO should add_offset be subtracted instead?
-        layer = float(ds.attrs['scale_factor']) * (layer - float(ds.attrs['add_offset']))
+        layer = ds.attrs['scale_factor'] * (layer - ds.attrs['add_offset'])
         return np.nansum(layer)
 
     return BrdfTileSummary(valid_pixels,
                            {key: layer_sum(index)
-                            for index, key in enumerate(BrdfParameters)},
-                           [uri])
+                            for index, key in enumerate(_param_enum(is_fallback))},
+                           [current_h5_metadata(fid)['id']],
+                           is_fallback)
 
 
 def get_brdf_data(acquisition, brdf,
@@ -345,9 +370,8 @@ def get_brdf_data(acquisition, brdf,
     :return:
         A `dict` with the keys:
 
-            * BrdfParameters.ISO
-            * BrdfParameters.VOL
-            * BrdfParameters.GEO
+            * BrdfDirectionalParameters.ALPHA_1
+            * BrdfDirectionalParameters.ALPHA_2
 
         Values for each BRDF Parameter are accessed via the key named
         `value`.
@@ -361,9 +385,9 @@ def get_brdf_data(acquisition, brdf,
 
     if 'user' in brdf:
         # user-specified override
-        return {param: dict(data_source='BRDF', source='user',
+        return {param: dict(data_source='BRDF', model='user',
                             value=brdf['user'][acquisition.alias][param.value.lower()])
-                for param in BrdfParameters}
+                for param in BrdfDirectionalParameters}
 
     brdf_primary_path = brdf['brdf_path']
     brdf_secondary_path = brdf['brdf_premodis_path']
@@ -401,16 +425,16 @@ def get_brdf_data(acquisition, brdf,
     src_poly, src_crs = valid_region(acquisition.uri, acquisition.no_data)
     src_crs = rasterio.crs.CRS(**src_crs)
 
-    tally = BrdfTileSummary.empty()
+    tally = BrdfTileSummary.empty(use_JuppLi_brdf)
     for tile in tile_list:
         with h5py.File(tile, 'r') as fid:
-            tally += load_brdf_tile(src_poly, src_crs, fid[acquisition.brdf_dataset], tile)
+            tally += load_brdf_tile(src_poly, src_crs, fid, acquisition.brdf_dataset, use_JuppLi_brdf)
 
     results = tally.mean()
 
     # add very basic brdf description metadata and the roi polygon
-    for param in BrdfParameters:
-        results[param]['extents'] = wkt.dumps(src_poly)
-        results[param]['brdf_dataset'] = acquisition.brdf_dataset
+    # for param in BrdfParameters:
+    #     results[param]['extents'] = wkt.dumps(src_poly)
+    #     results[param]['brdf_dataset'] = acquisition.brdf_dataset
 
     return results
