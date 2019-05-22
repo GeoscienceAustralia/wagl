@@ -12,7 +12,7 @@ from __future__ import absolute_import, print_function
 import numpy
 import h5py
 
-from wagl.constants import DatasetName, GroupName, BrdfParameters
+from wagl.constants import DatasetName, GroupName, BrdfDirectionalParameters
 from wagl.constants import AtmosphericCoefficients as AC
 from wagl.constants import ArdProducts as AP
 from wagl.data import as_array
@@ -204,14 +204,11 @@ def calculate_reflectance(acquisition, interpolation_group,
     shadow_dataset = shadow_masks_group[DatasetName.COMBINED_SHADOW.value]
 
     dname_fmt = DatasetName.BRDF_FMT.value
-    dname = dname_fmt.format(band_name=bn, parameter=BrdfParameters.ISO.value)
-    brdf_iso = ancillary_group[dname][()]
+    dname = dname_fmt.format(band_name=bn, parameter=BrdfDirectionalParameters.ALPHA_1.value)
+    brdf_alpha1 = ancillary_group[dname][()]
 
-    dname = dname_fmt.format(band_name=bn, parameter=BrdfParameters.VOL.value)
-    brdf_vol = ancillary_group[dname][()]
-
-    dname = dname_fmt.format(band_name=bn, parameter=BrdfParameters.GEO.value)
-    brdf_geo = ancillary_group[dname][()]
+    dname = dname_fmt.format(band_name=bn, parameter=BrdfDirectionalParameters.ALPHA_2.value)
+    brdf_alpha2 = ancillary_group[dname][()]
 
     # Initialise the output file
     if out_group is None:
@@ -316,7 +313,7 @@ def calculate_reflectance(acquisition, interpolation_group,
         ref_terrain_work = numpy.zeros(xsize, dtype='float32')
 
         # Run terrain correction
-        reflectance(xsize, ysize, rori, brdf_iso, brdf_vol, brdf_geo,
+        reflectance(xsize, ysize, rori, brdf_alpha1, brdf_alpha2,
                     acquisition.reflectance_adjustment, kwargs['fillvalue'],
                     band_data, shadow, solar_zenith, solar_azimuth,
                     satellite_view, relative_angle, slope, aspect,

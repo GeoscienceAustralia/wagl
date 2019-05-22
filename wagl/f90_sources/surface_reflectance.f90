@@ -2,7 +2,7 @@
 SUBROUTINE reflectance( &
     nrow, ncol, &
     rori, &
-    brdf0, brdf1, brdf2, &
+    norm_1, norm_2, &
     ref_adj, &
     no_data, &
     radiance, &
@@ -38,7 +38,6 @@ SUBROUTINE reflectance( &
 !   input parameters
     integer nrow, ncol ! we should be passing in transposed arrays cols = rows and vice versa
     real*4 rori ! threshold for terrain correction
-    real*4 brdf0, brdf1, brdf2 ! BRDF parameters
     real*4 ref_adj ! average reflectance for terrain correction
     real*4 no_data ! input & output no data value
     real*4 radiance(nrow, ncol) ! at sensor radiance image
@@ -77,7 +76,7 @@ SUBROUTINE reflectance( &
 !f2py depend(nrow, ncol), rela_slope, a_mod, b_mod, s_mod, fv, fs, ts
 !f2py depend(nrow, ncol), edir_h, edif_h
 !f2py depend(nrow, ncol), iref_lm, iref_brdf, iref_terrain
-!f2py intent(in) rori, brdf0, brdf1, brdf2, ref_adj, no_data
+!f2py intent(in) rori, norm_1, norm_2, ref_adj, no_data
 !f2py intent(in) dn_1, shadow_mask, solar_angle,
 !f2py intent(in) sazi_angle, view_angle, rela_angle, slope_angle, aspect_angle
 !f2py intent(in) it_angle, et_angle, rela_slope, a_mod, b_mod, s_mod, fv, fs, ts, edir_h, edif_h
@@ -108,9 +107,6 @@ SUBROUTINE reflectance( &
     br = 1.0
     pi = 4 * atan(1.0)
     pib = pi / 180.0
-
-    norm_1 = brdf1 / brdf0
-    norm_2 = brdf2 / brdf0
 
 !   integer version of the no_data value
     i_no_data = int(no_data)
