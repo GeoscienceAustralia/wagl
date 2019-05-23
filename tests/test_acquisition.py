@@ -20,8 +20,7 @@ class AcquisitionLoadMtlTest(unittest.TestCase):
 
     def test_load_acquisitions_ls7_scene1(self):
         acq_cont = acquisitions(LS7_SCENE1)
-        self.assertEqual(len(acq_cont.get_acquisitions()), 0)
-        self.assertEqual(len(acq_cont.get_acquisitions(only_supported_bands=False)), 1)
+        self.assertEqual(len(acq_cont.get_acquisitions()), 1)
 
     def test_highest_resolution_ls7_scene1(self):
         acq_cont = acquisitions(LS7_SCENE1)
@@ -33,8 +32,7 @@ class AcquisitionLoadMtlTest(unittest.TestCase):
 
     def test_load_acquisitions_ls8_scene1(self):
         acq_cont = acquisitions(LS8_SCENE1)
-        self.assertEqual(len(acq_cont.get_acquisitions()), 0)
-        self.assertEqual(len(acq_cont.get_acquisitions(only_supported_bands=False)), 1)
+        self.assertEqual(len(acq_cont.get_acquisitions()), 1)
 
     def test_highest_resolution_ls8_scene1(self):
         acq_cont = acquisitions(LS8_SCENE1)
