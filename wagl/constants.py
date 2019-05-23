@@ -165,6 +165,8 @@ class DatasetName(Enum):
     PQ_FMT = 'PIXEL-QUALITY/{produt}/PIXEL-QUALITY'
 
     # metadata
+    METADATA = 'METADATA'
+    CURRENT_METADATA = 'CURRENT'
     NBAR_YAML = 'METADATA/NBAR-METADATA'
     PQ_YAML = 'METADATA/PQ-METADATA'
     SBT_YAML = 'METADATA/SBT-METADATA'
@@ -252,6 +254,7 @@ class AtmosphericCoefficients(Enum):# param, coeff, vari... what to use
     PATH_UP = 'PATH-UP'
     PATH_DOWN = 'PATH-DOWN'
     TRANSMITTANCE_UP = 'TRANSMITTANCE-UP'
+    ESUN = 'ESUN'
 
 
 class TrackIntersection(Enum):

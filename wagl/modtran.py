@@ -302,16 +302,15 @@ def run_modtran(acquisitions, atmospherics_group, workflow, npoints, point,
         workpath = pjoin(basedir, POINT_FMT.format(p=point),
                          ALBEDO_FMT.format(a=albedo.value))
 
-        json_mod_infile  = pjoin(workpath, ''.join(
-                [POINT_ALBEDO_FMT.format(p=point,a=albedo.value), '.json']))
+        json_mod_infile = pjoin(workpath, ''.join(
+                [POINT_ALBEDO_FMT.format(p=point, a=albedo.value), '.json']))
 
         group_path = ppjoin(base_path, ALBEDO_FMT.format(a=albedo.value))
 
         subprocess.check_call([modtran_exe, json_mod_infile], cwd=workpath)
 
         chn_fname = glob.glob(pjoin(workpath, '*.chn'))[0]
-        tp6_fname = glob.glob(pjoin(workpath,'*.tp6'))[0]
-
+        tp6_fname = glob.glob(pjoin(workpath, '*.tp6'))[0]
 
         if albedo == Albedos.ALBEDO_TH:
             acq = [acq for acq in acqs if acq.band_type == BandType.THERMAL][0]
@@ -409,7 +408,7 @@ def calculate_coefficients(atmospheric_results_group, out_group,
         The compression filter to use.
         Default is H5CompressionFilter.LZF
 
-    :filter_opts:
+    :param filter_opts:
         A dict of key value pairs available to the given configuration
         instance of H5CompressionFilter. For example
         H5CompressionFilter.LZF has the keywords *chunks* and *shuffle*
@@ -584,6 +583,7 @@ def coefficients(channel_data=None, solar_zenith_angle=None,
         nbar[AC.DIR.value] = E0_cozen * ts * 10000000
         nbar[AC.DIF.value] = (Ts - ts) * E0_cozen * 10000000
         nbar[AC.TS.value] = ts
+        nbar[AC.ESUN.value] = (E0_cozen / cszen0) * 10000000
 
     if upward_radiation is not None:
         columns = [v.value for v in Workflow.SBT.atmos_coefficients]
