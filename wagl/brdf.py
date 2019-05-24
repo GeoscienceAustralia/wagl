@@ -56,6 +56,7 @@ class BRDFLookupError(Exception):
     """
     BRDF Lookup Error
     """
+    pass
 
 
 def _date_proximity(cmp_date, date_interpreter=lambda x: x):
