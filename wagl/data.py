@@ -17,18 +17,30 @@ from rasterio.warp import reproject
 from rasterio.enums import Resampling
 from wagl.geobox import GriddedGeoBox
 from wagl.tiling import generate_tiles
+from wagl.metadata import current_h5_metadata
 
 
-def get_pixel(filename, lonlat, band=1):
+def get_pixel(filename, dataset_name, lonlat):
     """Return a pixel from `filename` at the longitude and latitude given
     by the tuple `lonlat`. Optionally, the `band` can be specified."""
-    with rasterio.open(filename) as src:
-        x, y = [int(v) for v in ~src.transform * lonlat]
-        if isinstance(band, list):
-            data = src.read(band, window=((y, y + 1), (x, x + 1))).ravel()
-        else:
-            data = src.read(band, window=((y, y + 1), (x, x + 1))).flat[0]
-        return data
+    with h5py.File(filename, 'r') as fid:
+        ds = fid[dataset_name]
+        geobox = GriddedGeoBox.from_h5_dataset(ds)
+        x, y = [int(v) for v in ~geobox.transform * lonlat]
+
+        # TODO; read metadata yaml for uuid
+
+        if ds.ndim == 3:
+            data = ds[:, y, x]
+        elif ds.ndim == 2:
+            data = ds[y, x]
+        # else: TODO; cater for the 4D data we pulled from ECMWF
+            # for 4D [day, level, y, x] we need another input param `day`
+            # data = ds[day, :, y, x]
+
+        metadata = current_h5_metadata(fid)
+
+    return data, metadata['id']
 
 
 def select_acquisitions(acqs_list, fn=(lambda acq: True)):
