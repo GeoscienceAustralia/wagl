@@ -180,7 +180,6 @@ class AncillaryData(luigi.Task):
                                       default=H5CompressionFilter.LZF,
                                       significant=False)
     filter_opts = luigi.DictParameter(default=None, significant=False)
-    normalized_solar_zenith = luigi.OptionalParameter(default=45.0, significant=False)
 
     def requires(self):
         group = acquisitions(self.level1, self.acq_parser_hint).supported_groups[0]
@@ -736,6 +735,7 @@ class SurfaceReflectance(luigi.Task):
     base_dir = luigi.Parameter(default='_standardised', significant=False)
     dsm_fname = luigi.Parameter(significant=False)
     buffer_distance = luigi.FloatParameter(default=8000, significant=False)
+    normalized_solar_zenith = luigi.FloatParameter(default=45.0)
 
     def requires(self):
         reqs = {'interpolation': self.clone(InterpolateCoefficients),

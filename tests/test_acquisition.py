@@ -242,7 +242,7 @@ class Landsat7PanAcquisitionTest(unittest.TestCase):
             self.assertTrue(isinstance(acq, LandsatAcquisition))
 
     def test_band_type(self):
-        self.assertEqual(self.acqs[0].band_type, BandType.PANCHROMATIC)
+        self.assertEqual(self.acqs[0].band_type, BandType.REFLECTIVE)
 
 
 class Landsat8Mtl1AcquisitionTest(unittest.TestCase):
@@ -341,7 +341,7 @@ class Landsat8PanAcquisitionTest(unittest.TestCase):
             self.assertTrue(isinstance(acq, LandsatAcquisition))
 
     def test_band_type(self):
-        self.assertEqual(self.acqs[0].band_type, BandType.PANCHROMATIC)
+        self.assertEqual(self.acqs[0].band_type, BandType.REFLECTIVE)
 
 
 if __name__ == '__main__':
