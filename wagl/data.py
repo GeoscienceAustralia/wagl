@@ -17,7 +17,8 @@ from rasterio.warp import reproject
 from rasterio.enums import Resampling
 from wagl.geobox import GriddedGeoBox
 from wagl.tiling import generate_tiles
-from wagl.metadata import current_h5_metadata
+# comment till available
+# from wagl.metadata import current_h5_metadata
 
 
 def get_pixel(filename, dataset_name, lonlat):
