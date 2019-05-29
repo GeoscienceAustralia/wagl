@@ -425,7 +425,7 @@ class GriddedGeoBox(object):
             An instance of a defined osr.SpatialReference object.
 
         :return:
-            A tuple containing (min_x, min_y, max_x, max_y).
+            A numpy.ndarray containing (min_x, min_y, max_x, max_y).
         """
         # max column and row indices
         column_ur_idx = self.x_size() + 1
