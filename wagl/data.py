@@ -442,8 +442,8 @@ def reproject_file_to_array(src_filename, src_band=1, dst_geobox=None,
     return dst_arr
 
 
-def reproject_img_to_img(src_img, src_geobox, dst_geobox,
-                         resampling=Resampling.nearest):
+def reproject_array_to_array(src_img, src_geobox, dst_geobox,
+                             resampling=Resampling.nearest):
     """
     Reprojects an image/array to the desired co-ordinate reference system.
 
