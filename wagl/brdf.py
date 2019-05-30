@@ -186,52 +186,30 @@ def coord_transformer(src_crs, dst_crs):
     return result
 
 
-def _param_enum(is_fallback):
-    """
-    Which parameter set to use (depending on whether we are using the definitive datasets
-    or the fallback datasets).
-    """
-    if is_fallback:
-        return BrdfDirectionalParameters
-    return BrdfModelParameters
-
-
 class BrdfTileSummary:
     """
     A lightweight class to represent the BRDF information gathered from a tile.
     """
-    def __init__(self, valid_pixels, brdf_sums, source_files, is_fallback):
+    def __init__(self, valid_pixels, brdf_sums, source_files):
         self.valid_pixels = valid_pixels
         self.brdf_sums = brdf_sums
         self.source_files = source_files
-        self.is_fallback = is_fallback
 
     @staticmethod
-    def empty(is_fallback):
+    def empty():
         """ When the tile is not inside the ROI. """
-        return BrdfTileSummary(0, {key: 0.0 for key in _param_enum(is_fallback)}, [], is_fallback)
+        return BrdfTileSummary(0, {key: 0.0 for key in BrdfModelParameters}, [])
 
     def __add__(self, other):
         """ Accumulate information from different tiles. """
-        assert self.is_fallback == other.is_fallback
-        is_fallback = self.is_fallback
-
         return BrdfTileSummary(self.valid_pixels + other.valid_pixels,
-                               {key: self.brdf_sums[key] + other.brdf_sums[key]
-                                for key in _param_enum(is_fallback)},
-                               self.source_files + other.source_files,
-                               is_fallback)
+                               {key: self.brdf_sums[key] + other.brdf_sums[key] for key in BrdfModelParameters},
+                               self.source_files + other.source_files)
 
     def mean(self):
         """ Calculate the mean BRDF parameters. """
         if self.valid_pixels == 0:
             raise BRDFLookupError("no brdf datasets found for the ROI")
-
-        if self.is_fallback:
-            # spatial average of the bands
-            return {key: dict(dataset_ids=self.source_files,
-                              value=self.brdf_sums[key] / self.valid_pixels)
-                    for key in BrdfDirectionalParameters}
 
         # ratio of spatial averages
         averages = {key: self.brdf_sums[key] / self.valid_pixels
@@ -286,7 +264,7 @@ def valid_region(fname, mask_value=None):
     return geom, crs
 
 
-def load_brdf_tile(src_poly, src_crs, fid, dataset_name, is_fallback):
+def load_brdf_tile(src_poly, src_crs, fid, dataset_name):
     """
     Summarize BRDF data from a single tile.
     """
@@ -308,11 +286,12 @@ def load_brdf_tile(src_poly, src_crs, fid, dataset_name, is_fallback):
 
     bound_poly = ops.transform(lambda x, y: dst_geotransform * (x, y), box(0., 0., ds_width, ds_height))
     if not bound_poly.intersects(dst_poly):
-        return BrdfTileSummary.empty(is_fallback)
+        return BrdfTileSummary.empty()
 
     mask = rasterize([(dst_poly, 1)], fill=0, out_shape=(ds_width, ds_height), transform=dst_geotransform)
     valid_pixels = np.sum(mask)
     mask = mask.astype(bool)
+    assert mask.shape == ds.shape[:-2]
 
     def layer_sum(i):
         layer = ds[i, :, :]
@@ -324,10 +303,8 @@ def load_brdf_tile(src_poly, src_crs, fid, dataset_name, is_fallback):
         return np.nansum(layer)
 
     return BrdfTileSummary(valid_pixels,
-                           {key: layer_sum(index)
-                            for index, key in enumerate(_param_enum(is_fallback))},
-                           [current_h5_metadata(fid)['id']],
-                           is_fallback)
+                           {key: layer_sum(index) for index, key in enumerate(BrdfModelParameters)},
+                           [current_h5_metadata(fid)['id']])
 
 
 def get_brdf_data(acquisition, brdf,
@@ -427,10 +404,10 @@ def get_brdf_data(acquisition, brdf,
     tally = {}
 
     for ds in acquisition.brdf_datasets:
-        tally[ds] = BrdfTileSummary.empty(fallback_brdf)
+        tally[ds] = BrdfTileSummary.empty()
         for tile in tile_list:
             with h5py.File(tile, 'r') as fid:
-                tally[ds] += load_brdf_tile(src_poly, src_crs, fid, ds, fallback_brdf)
+                tally[ds] += load_brdf_tile(src_poly, src_crs, fid, ds)
         tally[ds] = tally[ds].mean()
 
     results = {param: dict(data_source='BRDF',
@@ -440,10 +417,5 @@ def get_brdf_data(acquisition, brdf,
                            value=np.mean([tally[ds][param]['value'] for ds in acquisition.brdf_datasets]).item(),
                            model='fallback' if fallback_brdf else 'definitive')
                for param in BrdfDirectionalParameters}
-
-    # add very basic brdf description metadata and the roi polygon
-    # for param in BrdfParameters:
-    #     results[param]['extents'] = wkt.dumps(src_poly)
-    #     results[param]['brdf_dataset'] = acquisition.brdf_dataset
 
     return results
