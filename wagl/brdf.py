@@ -229,8 +229,8 @@ class BrdfTileSummary:
 
         if self.is_fallback:
             # spatial average of the bands
-            return {key: dict(data_source='BRDF', dataset_ids=", ".join(self.source_files),
-                              value=self.brdf_sums[key] / self.valid_pixels, model='fallback')
+            return {key: dict(dataset_ids=self.source_files,
+                              value=self.brdf_sums[key] / self.valid_pixels)
                     for key in BrdfDirectionalParameters}
 
         # ratio of spatial averages
@@ -240,9 +240,8 @@ class BrdfTileSummary:
         bands = {BrdfDirectionalParameters.ALPHA_1: BrdfModelParameters.VOL,
                  BrdfDirectionalParameters.ALPHA_2: BrdfModelParameters.GEO}
 
-        return {key: dict(data_source='BRDF', dataset_ids=", ".join(self.source_files),
-                          value=averages[bands[key]] / averages[BrdfModelParameters.ISO],
-                          model='definitive')
+        return {key: dict(dataset_ids=self.source_files,
+                          value=averages[bands[key]] / averages[BrdfModelParameters.ISO])
                 for key in BrdfDirectionalParameters}
 
 
@@ -425,12 +424,22 @@ def get_brdf_data(acquisition, brdf,
     src_poly, src_crs = valid_region(acquisition.uri, acquisition.no_data)
     src_crs = rasterio.crs.CRS(**src_crs)
 
-    tally = BrdfTileSummary.empty(use_JuppLi_brdf)
-    for tile in tile_list:
-        with h5py.File(tile, 'r') as fid:
-            tally += load_brdf_tile(src_poly, src_crs, fid, acquisition.brdf_dataset, use_JuppLi_brdf)
+    tally = {}
 
-    results = tally.mean()
+    for ds in acquisition.brdf_datasets:
+        tally[ds] = BrdfTileSummary.empty(use_JuppLi_brdf)
+        for tile in tile_list:
+            with h5py.File(tile, 'r') as fid:
+                tally[ds] += load_brdf_tile(src_poly, src_crs, fid, ds, use_JuppLi_brdf)
+        tally[ds] = tally[ds].mean()
+
+    results = {param: dict(data_source='BRDF',
+                           dataset_ids=",".join({ds_id
+                                                 for ds in acquisition.brdf_datasets
+                                                 for ds_id in tally[ds][param]['dataset_ids']}),
+                           value=np.mean([tally[ds][param]['value'] for ds in acquisition.brdf_datasets]).item(),
+                           model='fallback' if use_JuppLi_brdf else 'definitive')
+               for param in BrdfDirectionalParameters}
 
     # add very basic brdf description metadata and the roi polygon
     # for param in BrdfParameters:
