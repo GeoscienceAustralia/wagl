@@ -180,14 +180,21 @@ SUBROUTINE reflectance( &
                         (lt - b_mod(i, j)))
             iref_lm(i, j) = ref_lm(i) * 10000 + 0.5
 
-!           set as small number if atmospheric corrected reflectance
-!           below 0.001
+!           this is to ensure that lambartian corrected reflectance to not
+!           exceed above limit of 1.0 
+            if (ref_lm(i) .ge. 1) then
+                ref_lm(i) = 1.0 
+                iref_lm(i, j) = ref_lm(i) * 10000
+            endif
 
-            if (ref_lm(i).lt. 0.001) then
-                ref_lm(i) = 0.001
-                ref_brdf(i) = 0.001
-                iref_lm(i, j) = 10
-                iref_brdf(i, j) = 10
+!           set as small number if atmospheric corrected reflectance
+!           below 0.0001
+
+            if (ref_lm(i).lt. 0.0001) then
+                ref_lm(i) = 0.0001
+                ref_brdf(i) = 0.0001
+                iref_lm(i, j) = 1
+                iref_brdf(i, j) = 1
             else
 !               calculate normalized BRDF shape function
                 ann_f = RL_brdf(solar, view, ra_lm, hb, br, 1.0, norm_1, norm_2)
@@ -308,6 +315,12 @@ SUBROUTINE reflectance( &
                     ref_terrain(i) = 1.0
                     iref_terrain(i, j) = int(ref_terrain(i) * 10000.0 + 0.5)
                 endif
+
+!               set terrain corrected reflectance less than 0.0001 to 0.0001
+                if (ref_terrain(i) .lt. 0.0001) then 
+                    ref_terrain(i) = 0.0001
+                    iref_terrain(i, j) = 1 
+                endif 
 
 !               Should test for these cases in initial tests! (ie must be lt these)
 !               presently comments as test for ge 90 in initial one
