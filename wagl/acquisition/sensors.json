@@ -175,7 +175,7 @@
                 },
                 "8": {
                     "alias": "PANCHROMATIC",
-                    "band_type": "PANCHROMATIC",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-8",
                     "wavelength": [0.52, 0.90],
                     "spectral_filter_name": "landsat7_vsir.flt",
@@ -269,7 +269,7 @@
                 },
                 "8": {
                     "alias": "PANCHROMATIC",
-                    "band_type": "PANCHROMATIC",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-8",
                     "wavelength": [0.503, 0.676],
                     "spectral_filter_name": "landsat8_vsir.flt",
@@ -391,7 +391,7 @@
                 },
                 "8": {
                     "alias": "PANCHROMATIC",
-                    "band_type": "PANCHROMATIC",
+                    "band_type": "REFLECTIVE",
                     "band_name": "BAND-8",
                     "wavelength": [0.503, 0.676],
                     "spectral_filter_name": "landsat8_vsir.flt",
