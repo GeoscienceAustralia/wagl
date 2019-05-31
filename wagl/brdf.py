@@ -297,7 +297,9 @@ def load_brdf_tile(src_poly, src_crs, fid, dataset_name, is_fallback, fid_mask):
         return BrdfTileSummary.empty()
 
     mask = rasterize([(dst_poly, 1)], fill=0, out_shape=(ds_width, ds_height), transform=dst_geotransform)
-    assert ocean_mask.shape == mask.shape    # shape should be same 
+    
+    # both ocean_data and mask shape should be same
+    assert ocean_data.shape == mask.shape 
     
     # if both ocean_data (1=land, 0=ocean) and dst_poly (1=valid, 0=invalid)
     # then multiplying two masks would result in 1 being if both masks are true
@@ -309,7 +311,6 @@ def load_brdf_tile(src_poly, src_crs, fid, dataset_name, is_fallback, fid_mask):
 
     def layer_sum(i):
         #TODO Discuss with Imam: should we compute individual number of valid pixels for each BRDF parameter? 
-
         layer = ds[i, :, :]
         fill_value_mask = (layer != ds.attrs['_FillValue'])
         layer = layer.astype('float32')
@@ -335,21 +336,21 @@ def get_brdf_data(acquisition, brdf,
 
     :param brdf:
         A `dict` defined as either of the following:
-
         * {'user': {<band-alias>: {'iso': <value>, 'vol': <value>, 'geo': <value>}, ...}}
-        * {'brdf_path': <path-to-BRDF>, 'brdf_premodis_path': <path-to-average-BRDF>, 'ocean_mask_path': <path-to-ocean-mask>}
+        * {'brdf_path': <path-to-BRDF>, 'brdf_premodis_path': <path-to-average-BRDF>, 
+           'ocean_mask_path': <path-to-ocean-mask>}
         
         Here <path-to-BRDF> is a string containing the full file system
         path to your directory containing the ource BRDF files
         The BRDF directories are assumed to be yyyy.mm.dd naming convention.
 
-        And <path-to-average-BRDF> is a string containing the full file system
+        <path-to-average-BRDF> is a string containing the full file system
         path to your directory containing the Jupp-Li backup BRDF data.
         To be used for pre-MODIS and potentially post-MODIS acquisitions.
 
         And <path-to-ocean-mask> is a string containing the full file system path
         to your ocean mask file. To be used for masking ocean pixels from  BRDF data 
-        from pre-MODIS and post-MODIS acquisitions. 
+        all acquisitions. 
   
     :param compression:
         The compression filter to use.
