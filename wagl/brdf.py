@@ -405,11 +405,11 @@ def get_brdf_data(acquisition, brdf,
         brdf_range = [datetime.date(*[int(x) for x in y.split('.')])
                       for y in brdf_dir_range]
 
-        use_JuppLi_brdf = (dt < brdf_range[0] or dt > brdf_range[1])
+        fallback_brdf = (dt < brdf_range[0] or dt > brdf_range[1])
     except IndexError:
-        use_JuppLi_brdf = True  # use JuppLi if no primary data available
+        fallback_brdf = True  # use JuppLi if no primary data available
 
-    if use_JuppLi_brdf:
+    if fallback_brdf:
         brdf_base_dir = brdf_secondary_path
         brdf_dirs = get_brdf_dirs_pre_modis(brdf_base_dir, dt)
     else:
@@ -427,10 +427,10 @@ def get_brdf_data(acquisition, brdf,
     tally = {}
 
     for ds in acquisition.brdf_datasets:
-        tally[ds] = BrdfTileSummary.empty(use_JuppLi_brdf)
+        tally[ds] = BrdfTileSummary.empty(fallback_brdf)
         for tile in tile_list:
             with h5py.File(tile, 'r') as fid:
-                tally[ds] += load_brdf_tile(src_poly, src_crs, fid, ds, use_JuppLi_brdf)
+                tally[ds] += load_brdf_tile(src_poly, src_crs, fid, ds, fallback_brdf)
         tally[ds] = tally[ds].mean()
 
     results = {param: dict(data_source='BRDF',
@@ -438,7 +438,7 @@ def get_brdf_data(acquisition, brdf,
                                                  for ds in acquisition.brdf_datasets
                                                  for ds_id in tally[ds][param]['dataset_ids']}),
                            value=np.mean([tally[ds][param]['value'] for ds in acquisition.brdf_datasets]).item(),
-                           model='fallback' if use_JuppLi_brdf else 'definitive')
+                           model='fallback' if fallback_brdf else 'definitive')
                for param in BrdfDirectionalParameters}
 
     # add very basic brdf description metadata and the roi polygon
