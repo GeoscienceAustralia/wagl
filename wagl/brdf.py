@@ -264,7 +264,7 @@ def valid_region(fname, mask_value=None):
     return geom, crs
 
 
-def load_brdf_tile(src_poly, src_crs, fid, dataset_name):
+def load_brdf_tile(src_poly, src_crs, fid, dataset_name, is_fallback, fid_mask):
     """
     Summarize BRDF data from a single tile.
     """
@@ -280,6 +280,14 @@ def load_brdf_tile(src_poly, src_crs, fid, dataset_name):
     dst_geotransform = rasterio.transform.Affine.from_gdal(*ds.attrs['geotransform'])
     dst_crs = CRS.from_wkt(ds.attrs['crs_wkt'])
 
+    # get bounds of BRDF modis tile from h5 dataset 
+    left, bottom, right, top = rasterio.transform.array_bounds(ds_height, ds_width, dst_geotransform)
+    
+    # get a tile window to read from continental coastal mask 
+    window = rasterio.windows.from_bounds(left, bottom, right, top, transform=fid_mask.transform)
+    
+    # read ocean mask file for correspoing tile window
+    ocean_data = fid_mask.read(1, window=window)
     # assumes the length scales are the same (m)
     dst_poly = ops.transform(coord_transformer(src_crs, dst_crs),
                              segmentize_src_poly(np.sqrt(np.abs(dst_geotransform.determinant))))
@@ -289,11 +297,19 @@ def load_brdf_tile(src_poly, src_crs, fid, dataset_name):
         return BrdfTileSummary.empty()
 
     mask = rasterize([(dst_poly, 1)], fill=0, out_shape=(ds_width, ds_height), transform=dst_geotransform)
+    assert ocean_mask.shape == mask.shape    # shape should be same 
+    
+    # if both ocean_data (1=land, 0=ocean) and dst_poly (1=valid, 0=invalid)
+    # then multiplying two masks would result in 1 being if both masks are true
+    mask = mask * ocean_data
+    
     valid_pixels = np.sum(mask)
     mask = mask.astype(bool)
     assert mask.shape == ds.shape[:-2]
 
     def layer_sum(i):
+        #TODO Discuss with Imam: should we compute individual number of valid pixels for each BRDF parameter? 
+
         layer = ds[i, :, :]
         fill_value_mask = (layer != ds.attrs['_FillValue'])
         layer = layer.astype('float32')
@@ -323,14 +339,19 @@ def get_brdf_data(acquisition, brdf,
         * {'user': {<band-alias>: {'iso': <value>, 'vol': <value>, 'geo': <value>}, ...}}
         * {'brdf_path': <path-to-BRDF>, 'brdf_premodis_path': <path-to-average-BRDF>}
 
+        * {'brdf_path': <path-to-BRDF>, 'brdf_premodis_path': <path-to-average-BRDF>, 'ocean_mask_path': <path-to-ocean-mask>}
         Here <path-to-BRDF> is a string containing the full file system
-        path to your directory containing the source BRDF files
+        path to your directory containing the ource BRDF files
         The BRDF directories are assumed to be yyyy.mm.dd naming convention.
 
         And <path-to-average-BRDF> is a string containing the full file system
         path to your directory containing the Jupp-Li backup BRDF data.
         To be used for pre-MODIS and potentially post-MODIS acquisitions.
 
+        And <path-to-ocean-mask> is a string containing the full file system path
+        to your ocean mask file. To be used for masking ocean pixels from  BRDF data 
+        from pre-MODIS and post-MODIS acquisitions. 
+  
     :param compression:
         The compression filter to use.
         Default is H5CompressionFilter.LZF
@@ -367,7 +388,8 @@ def get_brdf_data(acquisition, brdf,
 
     brdf_primary_path = brdf['brdf_path']
     brdf_secondary_path = brdf['brdf_premodis_path']
-
+    brdf_ocean_mask_path = brdf['ocean_mask_path']
+    
     # Get the date of acquisition
     dt = acquisition.acquisition_datetime.date()
 
@@ -402,13 +424,13 @@ def get_brdf_data(acquisition, brdf,
     src_crs = rasterio.crs.CRS(**src_crs)
 
     tally = {}
-
-    for ds in acquisition.brdf_datasets:
-        tally[ds] = BrdfTileSummary.empty()
-        for tile in tile_list:
-            with h5py.File(tile, 'r') as fid:
-                tally[ds] += load_brdf_tile(src_poly, src_crs, fid, ds)
-        tally[ds] = tally[ds].mean()
+    with rasterio.open(brdf_ocean_mask_path, 'r') as fid_mask:
+        for ds in acquisition.brdf_datasets:
+            tally[ds] = BrdfTileSummary.empty(fallback_brdf)
+            for tile in tile_list:
+                with h5py.File(tile, 'r') as fid:
+                    tally[ds] += load_brdf_tile(src_poly, src_crs, fid, ds, fallback_brdf, fid_mask)
+            tally[ds] = tally[ds].mean()
 
     results = {param: dict(data_source='BRDF',
                            dataset_ids=",".join({ds_id
