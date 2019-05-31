@@ -21,7 +21,7 @@ def test_h5_metadata_single(tmpdir):
         )
         f.create_dataset(dataset_path, (1,), dtype=VLEN_STRING)
         f[dataset_path][()] = yaml.dump(test_doc, default_flow_style=False)
-        
+
         retrieve = current_h5_metadata(f)
         assert retrieve == test_doc
 
@@ -42,7 +42,7 @@ def test_h5_metadata_collection(tmpdir):
         )
         f.create_dataset(dataset_path, (1,), dtype=VLEN_STRING)
         f[dataset_path][()] = yaml.dump(test_doc, default_flow_style=False)
-        
+
         retrieve = current_h5_metadata(f, dataset_path=h5_dataset)
         assert retrieve == test_doc
 
