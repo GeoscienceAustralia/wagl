@@ -337,9 +337,8 @@ def get_brdf_data(acquisition, brdf,
         A `dict` defined as either of the following:
 
         * {'user': {<band-alias>: {'iso': <value>, 'vol': <value>, 'geo': <value>}, ...}}
-        * {'brdf_path': <path-to-BRDF>, 'brdf_premodis_path': <path-to-average-BRDF>}
-
         * {'brdf_path': <path-to-BRDF>, 'brdf_premodis_path': <path-to-average-BRDF>, 'ocean_mask_path': <path-to-ocean-mask>}
+        
         Here <path-to-BRDF> is a string containing the full file system
         path to your directory containing the ource BRDF files
         The BRDF directories are assumed to be yyyy.mm.dd naming convention.
