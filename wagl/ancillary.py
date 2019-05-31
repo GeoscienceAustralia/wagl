@@ -39,7 +39,6 @@ class AncillaryError(Exception):
     """
     Specific error handle for ancillary retrieval
     """
-    pass
 
 
 def get_4d_idx(day):
@@ -93,8 +92,6 @@ def _collect_ancillary(container, satellite_solar_fname, nbar_paths,
         sat_sol_grp = fid[GroupName.SAT_SOL_GROUP.value]
         collect_ancillary(container, sat_sol_grp, nbar_paths, sbt_path,
                           invariant_fname, vertices, out_fid, compression)
-
-    return
 
 
 def collect_ancillary(container, satellite_solar_group, nbar_paths,
@@ -582,7 +579,7 @@ def get_aerosol_data(acquisition, aerosol_dict):
 
                 if numpy.isfinite(data):
                     # ancillary metadata tracking
-                    md = current_h5_metadata(fid)
+                    md = current_h5_metadata(fid, dataset_path=pathname)
                     metadata = {
                         'id': [md['id']],
                         'tier': tier
