@@ -21,327 +21,41 @@ estimates is required.
 """
 
 from __future__ import absolute_import, print_function
-import subprocess
 import datetime
 import logging
-import math
 import os
-from os.path import join as pjoin, basename
-import tempfile
-import re
-from urllib.parse import urlparse
-import numpy as np
+from os.path import join as pjoin
 
-from osgeo import gdal
-from osgeo import gdalconst
-from osgeo import osr
-from shapely.geometry import Polygon
-from shapely import wkt
-from wagl.constants import BrdfParameters
-from wagl.geobox import GriddedGeoBox
-from wagl.hdf5 import H5CompressionFilter, write_h5_image
-from wagl.metadata import extract_ancillary_metadata
+import numpy as np
+import rasterio
+from rasterio.features import rasterize
+from rasterio.crs import CRS
+import pyproj
+import h5py
+from osgeo import ogr
+import shapely
+import shapely.affinity
+import shapely.geometry
+from shapely.geometry import box
+from shapely import wkt, ops
+from wagl.constants import BrdfDirectionalParameters, BrdfModelParameters
+from wagl.hdf5 import H5CompressionFilter
+from wagl.metadata import current_h5_metadata
+
 
 log = logging.getLogger('root.' + __name__)
 
 
 class BRDFLoaderError(Exception):
-
     """
     BRDF Loader Error
     """
-    pass
 
 
 class BRDFLookupError(Exception):
-
     """
     BRDF Lookup Error
     """
-    pass
-
-
-class BRDFLoader(object):
-
-    """
-    Data loader for MCD43A1.005 mosaics.
-
-    This class is used internally to load BRDF values from a file.
-    """
-
-    # MCD43A1.005 HDF files contain 3 subdatasets.
-    SDS_MAP = {0: 'brdf', 1: 'lat', 2: 'lon'}
-
-    # Format for accessing a SDS using GDAL.
-    SDS_FORMAT = 'HDF4_SDS:UNKNOWN:"%s":%d'
-
-    # Hardwired settings for first version of pre-MODIS BRDF database.
-    DEFAULTS = {
-        'fill_value': -32768,
-        'scale_factor': 0.001,
-        'add_offset': 0.0,
-    }
-
-    def __init__(self, filename, ul=None, lr=None):
-        """Initialise a BRDFLoader instance.
-
-        Arguments:
-            filename: data file name
-            ul: (lon, lat) of ROI upper left corner [2-tuple, floats]
-            lr: (lon, lat) of ROI lower right corner [2-tuple, floats]
-
-        """
-
-        self.filename = filename
-        self.roi = {'UL': ul, 'LR': lr}
-
-        log.debug('%s: filename=%s, roi=%s', self.__class__.__name__,
-                  self.filename, str(self.roi))
-
-        if ul is None or lr is None:
-            raise BRDFLoaderError('%s: UL and/or LR not defined'
-                                  % (self.__class__.__name__,))
-
-        # Initialise data array container.
-
-        self.data = {}
-
-        # Initialise metadata values.
-
-        self.fill_value = self.DEFAULTS['fill_value']
-        self.scale_factor = self.DEFAULTS['scale_factor']
-        self.scale_factor_err = self.DEFAULTS['scale_factor']
-        self.add_offset = self.DEFAULTS['add_offset']
-        self.add_offset_err = self.DEFAULTS['add_offset']
-
-        # Load data from HDF file.
-
-        self.load()
-
-        # The region-of-interest (scene) should lie within the HDF extents.
-
-        # New feature: Polygon intersection
-        coords = [self.ul, (self.lr[0], self.ul[1]),
-                  self.lr, (self.ul[0], self.lr[1])]
-        brdf_poly = Polygon(coords)
-        coords = [self.roi['UL'], (self.roi['LR'][0], self.roi['UL'][1]),
-                  self.roi['LR'], (self.roi['UL'][0], self.roi['LR'][1])]
-        roi_poly = Polygon(coords)
-
-        intersection = brdf_poly.intersection(roi_poly)
-
-        if not intersection.bounds:
-            self.intersects = False
-            raise BRDFLoaderError(('%s: Region of interest %s extends beyond '
-                                   'HDF domain {UL: %s, LR: %s}')
-                                  % (self.__class__.__name__, str(self.roi),
-                                     str(self.ul), str(self.lr)))
-        else:
-            self.intersects = True
-            i_ul = (intersection.bounds[0], intersection.bounds[-1])
-            i_lr = (intersection.bounds[2], intersection.bounds[1])
-            self.roi = {'UL': i_ul, 'LR': i_lr}
-            self.roi_polygon = roi_poly
-
-    def load(self):
-        """
-        Open file and load data arrays and required metadata.
-
-        The following SDS structure is assumed in the HDF file:
-            SDS 0: BRDF data array (2d)
-            SDS 1: Latitude array (1d)
-            SDS 2: Longitude array (1d)
-
-        Latitude and longitude values are centre-of-pixel.
-
-        Fill value, scale factor and offset are obtained from the HDF
-        metadata.
-
-        """
-        # Load sub-datasets.
-        for k in self.SDS_MAP:
-            sds_file_spec = self.SDS_FORMAT % (self.filename, k)
-            fd = gdal.Open(sds_file_spec, gdalconst.GA_ReadOnly)
-            if fd is None:
-                raise BRDFLoaderError('%s: gdal.Open failed [%s]'
-                                      % (self.__class__.__name__,
-                                         sds_file_spec))
-
-            self.data[k] = fd.GetRasterBand(1).ReadAsArray()
-            _type = type(self.data[k][0, 0])
-
-            log.debug('%s: loaded sds=%d, type=%s, shape=%s',
-                      self.__class__.__name__, k, str(_type),
-                      str(self.data[k].shape))
-
-            # Populate metadata entries after reading the BRDF data
-            # array (SDS 0).
-
-            if k == 0:
-                m = fd.GetMetadata_Dict()
-                if m:
-                    # cast string to dtype
-                    self.fill_value = _type(m['_FillValue'])
-                    # floats...
-                    self.scale_factor = float(m['scale_factor'])
-                    self.scale_factor_err = float(m['scale_factor_err'])
-                    self.add_offset = float(m['add_offset'])
-                    self.add_offset_err = float(m['add_offset_err'])
-                else:
-                    # cast default fill value to dtype
-                    self.fill_value = _type(self.fill_value)
-
-            fd = None
-
-        log.debug('%s: fill_value=%s, scale_factor=%s, add_offset=%s',
-                  self.__class__.__name__, str(self.fill_value),
-                  str(self.scale_factor), str(self.add_offset))
-
-    @property
-    def delta_lon(self):
-        """
-        Get the longitude grid increment (cell size).
-
-        :return:
-            Longitude grid increment (decimal degrees).
-
-        """
-
-        return (self.data[2][0, 1] - self.data[2][0, 0])
-
-    @property
-    def delta_lat(self):
-        """
-        Get the latitude grid increment (cell size).
-
-        :return:
-            Latitude grid increment (decimal degrees).
-
-        """
-
-        return (self.data[1][0, 1] - self.data[1][0, 0])
-
-    @property
-    def ul(self):
-        """
-        Get the upper-left (NW) corner-of-pixel coordinates of the data.
-
-        :return:
-            Upper-left coordinate tuple: ``(lon, lat)`` (decimal degrees).
-
-        """
-
-        return (self.data[2][0, 0] - self.delta_lon / 2,
-                self.data[1][0, 0] - self.delta_lat / 2)
-
-    @property
-    def lr(self):
-        """
-        Get the lower-right (SE) corner-of-pixel coordinates of the data.
-
-        :return:
-            Lower-right coordinate tuple: ``(lon, lat)`` (decimal degrees).
-
-        """
-
-        return (self.data[2][0, -1] + self.delta_lon / 2,
-                self.data[1][0, -1] + self.delta_lat / 2)
-
-    def mean_data_value(self):
-        """
-        Calculate the mean numeric BRDF value over the region of interest.
-
-        :return:
-            Mean data value (float) with scale and offset applied.
-
-        """
-
-        # Index calculation matches what happens in hdf_extractor.c.
-        # TODO: verify correctness
-
-        xmin = (self.roi['UL'][0] - self.ul[0]) / self.delta_lon
-        xmax = (self.roi['LR'][0] - self.ul[0]) / self.delta_lon
-
-        imin = max([0, int(math.ceil(xmin))])
-        imax = min([self.data[0].shape[1], int(math.ceil(xmax))])
-
-        ymin = (self.roi['UL'][1] - self.ul[1]) / self.delta_lat
-        ymax = (self.roi['LR'][1] - self.ul[1]) / self.delta_lat
-
-        jmin = max([0, int(math.ceil(ymin))])
-        jmax = min([self.data[0].shape[0], int(math.ceil(ymax))])
-
-        data = np.ma.masked_values(self.data[0][jmin:jmax + 1, imin:imax + 1],
-                                   self.fill_value).compressed()
-
-        try:
-            # Float the data sum (int16) to calculate the mean.
-            dmean = float(np.sum(data)) / data.size
-        except ZeroDivisionError:
-            dmean = 0.0
-
-        result = self.scale_factor * (dmean - self.add_offset)
-
-        log.debug('%s: ROI=%s, imin=%d, imax=%d, xmin=%f, xmax=%f, '
-                  'jmin=%d, jmax=%d, ymin=%f, ymax=%f, dmean=%.12f, '
-                  'result=%.12f',
-                  self.__class__.__name__, str(self.roi), imin, imax, xmin,
-                  xmax, jmin, jmax, ymin, ymax, dmean, result)
-
-        return result
-
-    def convert_format(self, dataset_name, group, attrs=None,
-                       compression=H5CompressionFilter.LZF, filter_opts=None):
-        """
-        Convert the HDF file to a HDF5 dataset.
-        """
-        if attrs is None:
-            attrs = {}
-
-        # Get the UL corner of the UL pixel co-ordinate
-        ul_lon = self.ul[0]
-        ul_lat = self.ul[1]
-
-        # pixel size x & y
-        pixsz_x = self.delta_lon
-        pixsz_y = self.delta_lat
-
-        # Setup the projection; assuming Geographics WGS84
-        # (Tests have shown that this appears to be the case)
-        # (unfortunately it is not expicitly defined in the HDF file)
-        sr = osr.SpatialReference()
-        sr.SetWellKnownGeogCS("WGS84")
-        prj = sr.ExportToWkt()
-
-        # Setup the geobox
-        dims = self.data[0].shape
-        res = (abs(pixsz_x), abs(pixsz_y))
-        geobox = GriddedGeoBox(shape=dims, origin=(ul_lon, ul_lat),
-                               pixelsize=res, crs=prj)
-
-        # Write the dataset
-        attrs['description'] = 'Converted BRDF data from H4 to H5.'
-        attrs['crs_wkt'] = prj
-        attrs['geotransform'] = geobox.transform.to_gdal()
-        write_h5_image(self.data[0], dataset_name, group, compression, attrs,
-                       filter_opts)
-
-    def get_mean(self, array):
-        """
-        This mechanism will be used to calculate the mean in place in
-        place of mean_data_value, which will still be kept until
-        the results have been successfully validated.
-        """
-
-        valid = array != self.fill_value
-        xbar = np.mean(array[valid])
-
-        if not np.isfinite(xbar):
-            xbar = 0.0
-        else:
-            xbar = self.scale_factor * (xbar - self.add_offset)
-
-        return xbar
 
 
 def _date_proximity(cmp_date, date_interpreter=lambda x: x):
@@ -358,9 +72,9 @@ def _date_proximity(cmp_date, date_interpreter=lambda x: x):
     def _proximity_comparator(date):
         _date = date_interpreter(date)
         return (
-            abs(_date - cmp_date), 
-            -1 * _date.year, 
-            -1 * _date.month, 
+            abs(_date - cmp_date),
+            -1 * _date.year,
+            -1 * _date.month,
             -1 * _date.day
         )
 
@@ -392,10 +106,6 @@ def get_brdf_dirs_modis(brdf_root, scene_date, pattern='%Y.%m.%d'):
 
     """
 
-    # MCD43A1.005 db interval half-width (days).
-    offset = datetime.timedelta(8)
-    _offset_scene_date = scene_date - offset
-
     dirs = []
     for dname in sorted(os.listdir(brdf_root)):
         try:
@@ -403,7 +113,7 @@ def get_brdf_dirs_modis(brdf_root, scene_date, pattern='%Y.%m.%d'):
         except ValueError:
             pass  # Ignore directories that don't match specified pattern
 
-    return min(dirs, key=_date_proximity(_offset_scene_date)).strftime(pattern)
+    return min(dirs, key=_date_proximity(scene_date)).strftime(pattern)
 
 
 def get_brdf_dirs_pre_modis(brdf_root, scene_date):
@@ -424,35 +134,200 @@ def get_brdf_dirs_pre_modis(brdf_root, scene_date):
        A string containing the closest matching BRDF directory.
 
     """
-    # Pre-MODIS db interval half-width (days).
-    offset = datetime.timedelta(8)
-
     # Find the N (=n_dirs) BRDF directories with midpoints closest to the
     # scene date.
     # Pre-MODIS BRDF directories are named 'XXX' (day-of-year).
     # Return a list of n_dirs directories to maintain compatibility with
     # the NBAR code, even though we know that the nearest day-of-year
     # database dir will contain usable data.
-
-    _offset_scene_date = scene_date - offset
-
     # Build list of dates for comparison
     dir_dates = []
 
     # Standardise names be prepended with leading zeros
     for doy in sorted(os.listdir(brdf_root), key=lambda x: x.zfill(3)):
-        dir_dates.append((str(_offset_scene_date.year), doy))
+        dir_dates.append((str(scene_date.year), doy))
 
     # Add boundary entry for previous year
-    dir_dates.insert(0, (str(_offset_scene_date.year - 1), dir_dates[-1][1]))
+    dir_dates.insert(0, (str(scene_date.year - 1), dir_dates[-1][1]))
     # Add boundary entry for next year accounting for inserted entry
-    dir_dates.append((str(_offset_scene_date.year + 1), dir_dates[1][1]))
+    dir_dates.append((str(scene_date.year + 1), dir_dates[1][1]))
 
     # Interpreter function
     doy_intpr = lambda x: datetime.datetime.strptime(' '.join(x), '%Y %j').date()
 
     # return directory name without year
-    return min(dir_dates, key=_date_proximity(_offset_scene_date, doy_intpr))[1]
+    return min(dir_dates, key=_date_proximity(scene_date, doy_intpr))[1]
+
+
+def coord_transformer(src_crs, dst_crs):
+    """
+    Coordinate transformation function between CRSs.
+
+    :param src_crs:
+        Source CRS.
+    :type src_crs:
+        :py:class:`rasterio.crs.CRS`
+
+    :param dst_crs:
+        Destination CRS.
+    :type dst_crs:
+        :py:class:`rasterio.crs.CRS`
+
+    :return:
+        A function that takes a point in the source CRS and returns the same
+        point expressed in the destination CRS.
+    """
+    def crs_to_proj(crs):
+        return pyproj.Proj(**crs.to_dict())
+
+    def result(*args, **kwargs):
+        return pyproj.transform(crs_to_proj(src_crs), crs_to_proj(dst_crs), *args, **kwargs)
+
+    return result
+
+
+def _param_enum(is_fallback):
+    """
+    Which parameter set to use (depending on whether we are using the definitive datasets
+    or the fallback datasets).
+    """
+    if is_fallback:
+        return BrdfDirectionalParameters
+    return BrdfModelParameters
+
+
+class BrdfTileSummary:
+    """
+    A lightweight class to represent the BRDF information gathered from a tile.
+    """
+    def __init__(self, valid_pixels, brdf_sums, source_files, is_fallback):
+        self.valid_pixels = valid_pixels
+        self.brdf_sums = brdf_sums
+        self.source_files = source_files
+        self.is_fallback = is_fallback
+
+    @staticmethod
+    def empty(is_fallback):
+        """ When the tile is not inside the ROI. """
+        return BrdfTileSummary(0, {key: 0.0 for key in _param_enum(is_fallback)}, [], is_fallback)
+
+    def __add__(self, other):
+        """ Accumulate information from different tiles. """
+        assert self.is_fallback == other.is_fallback
+        is_fallback = self.is_fallback
+
+        return BrdfTileSummary(self.valid_pixels + other.valid_pixels,
+                               {key: self.brdf_sums[key] + other.brdf_sums[key]
+                                for key in _param_enum(is_fallback)},
+                               self.source_files + other.source_files,
+                               is_fallback)
+
+    def mean(self):
+        """ Calculate the mean BRDF parameters. """
+        if self.valid_pixels == 0:
+            raise BRDFLookupError("no brdf datasets found for the ROI")
+
+        if self.is_fallback:
+            # spatial average of the bands
+            return {key: dict(dataset_ids=self.source_files,
+                              value=self.brdf_sums[key] / self.valid_pixels)
+                    for key in BrdfDirectionalParameters}
+
+        # ratio of spatial averages
+        averages = {key: self.brdf_sums[key] / self.valid_pixels
+                    for key in BrdfModelParameters}
+
+        bands = {BrdfDirectionalParameters.ALPHA_1: BrdfModelParameters.VOL,
+                 BrdfDirectionalParameters.ALPHA_2: BrdfModelParameters.GEO}
+
+        return {key: dict(dataset_ids=self.source_files,
+                          value=averages[bands[key]] / averages[BrdfModelParameters.ISO])
+                for key in BrdfDirectionalParameters}
+
+
+def valid_region(fname, mask_value=None):
+    """
+    Return valid data region for input images based on mask value and input image path
+    """
+    log.info("Valid regions for %s", fname)
+
+    # ensure formats match
+    with rasterio.open(str(fname), 'r') as dataset:
+        transform = dataset.transform.to_gdal()
+        crs = dataset.crs.to_dict()
+        img = dataset.read(1)
+
+        if mask_value is not None:
+            mask = img & mask_value == mask_value
+        else:
+            mask = img != 0
+
+    shapes = rasterio.features.shapes(mask.astype('uint8'), mask=mask)
+    shape = ops.unary_union([shapely.geometry.shape(shape) for shape, val in shapes if val == 1])
+
+    # convex hull
+    geom = shape.convex_hull
+
+    # buffer by 1 pixel
+    geom = geom.buffer(1, join_style=3, cap_style=3)
+
+    # simplify with 1 pixel radius
+    geom = geom.simplify(1)
+
+    # intersect with image bounding box
+    geom = geom.intersection(shapely.geometry.box(0, 0, mask.shape[1], mask.shape[0]))
+
+    # transform from pixel space into CRS space
+    geom = shapely.affinity.affine_transform(
+        geom, (transform[1], transform[2], transform[4],
+               transform[5], transform[0], transform[3])
+    )
+
+    return geom, crs
+
+
+def load_brdf_tile(src_poly, src_crs, fid, dataset_name, is_fallback):
+    """
+    Summarize BRDF data from a single tile.
+    """
+    ds = fid[dataset_name]
+
+    def segmentize_src_poly(length_scale):
+        src_poly_geom = ogr.CreateGeometryFromWkt(src_poly.wkt)
+        src_poly_geom.Segmentize(length_scale)
+        return wkt.loads(src_poly_geom.ExportToWkt())
+
+    _, ds_width, ds_height = ds.shape
+
+    dst_geotransform = rasterio.transform.Affine.from_gdal(*ds.attrs['geotransform'])
+    dst_crs = CRS.from_wkt(ds.attrs['crs_wkt'])
+
+    # assumes the length scales are the same (m)
+    dst_poly = ops.transform(coord_transformer(src_crs, dst_crs),
+                             segmentize_src_poly(np.sqrt(np.abs(dst_geotransform.determinant))))
+
+    bound_poly = ops.transform(lambda x, y: dst_geotransform * (x, y), box(0., 0., ds_width, ds_height))
+    if not bound_poly.intersects(dst_poly):
+        return BrdfTileSummary.empty(is_fallback)
+
+    mask = rasterize([(dst_poly, 1)], fill=0, out_shape=(ds_width, ds_height), transform=dst_geotransform)
+    valid_pixels = np.sum(mask)
+    mask = mask.astype(bool)
+
+    def layer_sum(i):
+        layer = ds[i, :, :]
+        fill_value_mask = (layer != ds.attrs['_FillValue'])
+        layer = layer.astype('float32')
+        layer[~mask] = np.nan
+        layer[~fill_value_mask] = np.nan
+        layer = ds.attrs['scale_factor'] * (layer - ds.attrs['add_offset'])
+        return np.nansum(layer)
+
+    return BrdfTileSummary(valid_pixels,
+                           {key: layer_sum(index)
+                            for index, key in enumerate(_param_enum(is_fallback))},
+                           [current_h5_metadata(fid)['id']],
+                           is_fallback)
 
 
 def get_brdf_data(acquisition, brdf,
@@ -494,9 +369,8 @@ def get_brdf_data(acquisition, brdf,
     :return:
         A `dict` with the keys:
 
-            * BrdfParameters.ISO
-            * BrdfParameters.VOL
-            * BrdfParameters.GEO
+            * BrdfDirectionalParameters.ALPHA_1
+            * BrdfDirectionalParameters.ALPHA_2
 
         Values for each BRDF Parameter are accessed via the key named
         `value`.
@@ -510,22 +384,12 @@ def get_brdf_data(acquisition, brdf,
 
     if 'user' in brdf:
         # user-specified override
-        return {param: dict(data_source='BRDF', source='user',
+        return {param: dict(data_source='BRDF', model='user',
                             value=brdf['user'][acquisition.alias][param.value.lower()])
-                for param in BrdfParameters}
+                for param in BrdfDirectionalParameters}
 
     brdf_primary_path = brdf['brdf_path']
     brdf_secondary_path = brdf['brdf_premodis_path']
-
-    def find_file(files, brdf_wl, parameter):
-        """Find file with a specific name."""
-        for f in files:
-            if f.find(brdf_wl) != -1 and f.find(parameter) != -1:
-                return f
-        return None
-
-    # Compute the geobox
-    geobox = acquisition.gridded_geo_box()
 
     # Get the date of acquisition
     dt = acquisition.acquisition_datetime.date()
@@ -541,88 +405,45 @@ def get_brdf_data(acquisition, brdf,
         brdf_range = [datetime.date(*[int(x) for x in y.split('.')])
                       for y in brdf_dir_range]
 
-        use_JuppLi_brdf = (dt < brdf_range[0] or dt > brdf_range[1])
+        fallback_brdf = (dt < brdf_range[0] or dt > brdf_range[1])
     except IndexError:
-        use_JuppLi_brdf = True  # use JuppLi if no primary data available
+        fallback_brdf = True  # use JuppLi if no primary data available
 
-    if use_JuppLi_brdf:
+    if fallback_brdf:
         brdf_base_dir = brdf_secondary_path
         brdf_dirs = get_brdf_dirs_pre_modis(brdf_base_dir, dt)
     else:
         brdf_base_dir = brdf_primary_path
         brdf_dirs = get_brdf_dirs_modis(brdf_base_dir, dt)
 
-    # The following hdflist code was resurrected from the old SVN repo. JS
     # get all HDF files in the input dir
     dbDir = pjoin(brdf_base_dir, brdf_dirs)
-    three_tup = os.walk(dbDir)
-    hdflist = []
-    hdfhome = None
+    tile_list = [pjoin(folder, f)
+                 for (folder, _, filelist) in os.walk(dbDir) for f in filelist if f.endswith(".h5")]
 
-    for (hdfhome, _, filelist) in three_tup:
-        for f in filelist:
-            if f.endswith(".hdf.gz") or f.endswith(".hdf"):
-                hdflist.append(f)
+    src_poly, src_crs = valid_region(acquisition.uri, acquisition.no_data)
+    src_crs = rasterio.crs.CRS(**src_crs)
 
-    results = {}
-    for param in BrdfParameters:
-        hdf_fname = find_file(hdflist, acquisition.brdf_wavelength,
-                              param.name.lower())
+    tally = {}
 
-        hdfFile = pjoin(hdfhome, hdf_fname)
+    for ds in acquisition.brdf_datasets:
+        tally[ds] = BrdfTileSummary.empty(fallback_brdf)
+        for tile in tile_list:
+            with h5py.File(tile, 'r') as fid:
+                tally[ds] += load_brdf_tile(src_poly, src_crs, fid, ds, fallback_brdf)
+        tally[ds] = tally[ds].mean()
 
-        # Test if the file exists and has correct permissions
-        try:
-            with open(hdfFile, 'rb') as f:
-                pass
-        except IOError:
-            print("Unable to open file %s" % hdfFile)
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Unzip if we need to
-            if hdfFile.endswith(".hdf.gz"):
-                hdf_file = pjoin(tmpdir, re.sub(".hdf.gz", ".hdf",
-                                                basename(hdfFile)))
-                cmd = "gunzip -c %s > %s" % (hdfFile, hdf_file)
-                subprocess.check_call(cmd, shell=True)
-            else:
-                hdf_file = hdfFile
-
-            # Load the file
-            brdf_object = BRDFLoader(hdf_file, ul=geobox.ul_lonlat,
-                                     lr=geobox.lr_lonlat)
-
-            # guard against roi's that don't intersect
-            if not brdf_object.intersects:
-                msg = "ROI is outside the BRDF extents!"
-                log.error(msg)
-                raise Exception(msg)
-
-            # calculate the mean value
-            brdf_mean_value = brdf_object.mean_data_value()
-
-        # Add the brdf filename and mean value to brdf_dict
-        url = urlparse(hdfFile, scheme='file').geturl()
-        res = {'data_source': 'BRDF',
-               'url': url,
-               'value': brdf_mean_value}
-
-        # ancillary metadata tracking
-        md = extract_ancillary_metadata(hdfFile)
-        for key in md:
-            res[key] = md[key]
-
-        results[param] = res
-
-    # check for no brdf (iso, vol, geo) (0, 0, 0) and convert to (1, 0, 0)
-    # and strip any file level metadata
-    if all([v['value'] == 0 for _, v in results.items()]):
-        results[BrdfParameters.ISO] = {'value': 1.0}
-        results[BrdfParameters.VOL] = {'value': 0.0}
-        results[BrdfParameters.GEO] = {'value': 0.0}
+    results = {param: dict(data_source='BRDF',
+                           dataset_ids=",".join({ds_id
+                                                 for ds in acquisition.brdf_datasets
+                                                 for ds_id in tally[ds][param]['dataset_ids']}),
+                           value=np.mean([tally[ds][param]['value'] for ds in acquisition.brdf_datasets]).item(),
+                           model='fallback' if fallback_brdf else 'definitive')
+               for param in BrdfDirectionalParameters}
 
     # add very basic brdf description metadata and the roi polygon
-    for param in BrdfParameters:
-        results[param]['extents'] = wkt.dumps(brdf_object.roi_polygon)
+    # for param in BrdfParameters:
+    #     results[param]['extents'] = wkt.dumps(src_poly)
+    #     results[param]['brdf_dataset'] = acquisition.brdf_dataset
 
     return results

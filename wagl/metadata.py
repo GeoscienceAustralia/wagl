@@ -14,11 +14,13 @@ import numpy
 import pandas
 import rasterio
 import yaml
-import h5py
 from yaml.representer import Representer
+import h5py
 import wagl
-from wagl.constants import BrdfParameters, DatasetName, POINT_FMT, GroupName
-from wagl.constants import BandType, Workflow
+from wagl.constants import (
+    BrdfDirectionalParameters, DatasetName, POINT_FMT, GroupName,
+    BandType, Workflow
+)
 from wagl.hdf5 import write_scalar, read_h5_table, read_scalar
 
 yaml.add_representer(numpy.int8, Representer.represent_int)
@@ -35,6 +37,12 @@ yaml.add_representer(numpy.float32, Representer.represent_float)
 yaml.add_representer(numpy.float64, Representer.represent_float)
 yaml.add_representer(numpy.ndarray, Representer.represent_list)
 yaml.add_representer(numpy.bool, Representer.represent_bool)
+
+
+class MetadataError(Exception):
+    """
+    Generic error when handling metadata operations
+    """
 
 
 def extract_ancillary_metadata(fname):
@@ -192,14 +200,13 @@ def create_ard_yaml(res_group_bands, ancillary_group, out_group, parameters, wor
                 continue
 
             bn = acq.band_name
-            for param in BrdfParameters:
+            for param in BrdfDirectionalParameters:
                 fmt = DatasetName.BRDF_FMT.value
                 dname = fmt.format(band_name=bn, parameter=param.value)
                 dset = fid[dname]
                 key = dname.lower().replace('-', '_')
                 result[key] = {k: v for k, v in dset.attrs.items()}
                 result[key]['value'] = dset[()]
-                result[key]['type'] = key
 
         return result
 
@@ -338,3 +345,41 @@ def create_pq_yaml(acquisition, ancillary, tests_run, out_group):
     dname = DatasetName.PQ_YAML.value
     yml_data = yaml.dump(metadata, default_flow_style=False)
     write_scalar(yml_data, dname, out_group, attrs={'file_format': 'yaml'})
+
+
+def current_h5_metadata(fid: h5py.Group, dataset_path: str = ""):
+    """
+    Read metadata entrypoint from h5 collection
+
+    :param fid:
+        A h5py.Group that includes the dataset metadata
+
+    :param dataset_path:
+        An optional reference (string) to the dataset location
+
+    :raises:
+        :MetadataError: Returned when a metadata document couldn't be found for
+            dataset provided
+
+    :return:
+        A dictionary representation of the dataset metadata
+    """
+
+    metadata = fid.get('/{}{}/{}'.format(
+        DatasetName.METADATA.value,
+        dataset_path,
+        DatasetName.CURRENT_METADATA.value
+    ))
+
+    if not metadata:  # assume h5 collection represents 1 dataset
+        metadata = fid.get('/{}/{}'.format(
+            DatasetName.METADATA.value,
+            DatasetName.CURRENT_METADATA.value
+        ))
+        if not metadata:
+            raise MetadataError(
+                "Unable to find metadata entry for dataset: {}:{}".format(
+                    fid.filename,
+                    dataset_path))
+
+    return yaml.load(metadata[()].item())

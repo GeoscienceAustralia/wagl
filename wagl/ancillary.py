@@ -375,7 +375,7 @@ def collect_nbar_ancillary(container, aerosol_dict=None,
     :param brdf_dict:
         A `dict` defined as either of the following:
 
-        * {'user': {<band-alias>: {'iso': <value>, 'vol': <value>, 'geo': <value>}, ...}}
+        * {'user': {<band-alias>: {'alpha_1': <value>, 'alpha_2': <value>}, ...}}
         * {'brdf_path': <path-to-BRDF>, 'brdf_premodis_path': <path-to-average-BRDF>}
 
     :param out_group:
