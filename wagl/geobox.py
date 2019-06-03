@@ -4,12 +4,15 @@ Gridded Data
 from __future__ import absolute_import, print_function
 import math
 from math import radians
+import numpy
 import gdal
 import h5py
 import rasterio as rio
 import osr
 import affine
 from affine import Affine
+from shapely.geometry import Polygon
+import geopandas
 from wagl.satellite_solar_angles import setup_spheroid
 from wagl.vincenty import vinc_dist
 
@@ -409,6 +412,55 @@ class GriddedGeoBox(object):
         for y_val in range(0, self.shape[1]):
             result.append(self.get_pixelsize_metres(xy=(0, y_val)))
         return result
+
+    def project_extents(self, to_crs):
+        """
+        Project the geobox extents to another CRS.
+        This method will convert the pixelx along the top, right,
+        bottom and left edges of the geobox, and return the bounds
+        as [min_x, min_y, max_x, max_y]. This method will be more
+        accurate than simply projecting the corners.
+
+        :param to_crs:
+            An instance of a defined osr.SpatialReference object.
+
+        :return:
+            A numpy.ndarray containing (min_x, min_y, max_x, max_y).
+        """
+        # max column and row indices
+        column_ur_idx = self.x_size() + 1
+        row_ll_idx = self.y_size() + 1
+
+        # full column indices for the entire row and vice versa
+        column_ids = numpy.arange(column_ur_idx)
+        row_ids = numpy.arange(row_ll_idx)
+
+        # index coords of every pixel along geobox extents
+        top = (column_ids, numpy.array([0] * column_ur_idx))
+        right = (numpy.array([column_ur_idx] * row_ll_idx), row_ids)
+        bottom = (column_ids[::-1], numpy.array([row_ll_idx] * column_ur_idx))
+        left = (numpy.array([0] * row_ll_idx), row_ids[::-1])
+
+        # convert to indices to geobox native map units
+        top_map = top * self.transform
+        right_map = right * self.transform
+        bottom_map = bottom * self.transform
+        left_map = left * self.transform
+
+        # form a polygon
+        coords = []
+        coords.extend(zip(*top_map))
+        coords.extend(zip(*right_map))
+        coords.extend(zip(*bottom_map))
+        coords.extend(zip(*left_map))
+        poly = Polygon(coords)
+
+        # project/transform to the 'to_crs'
+        gdf = geopandas.GeoDataFrame({'geometry': [poly]},
+                                     crs=self.crs.ExportToProj4())
+        prj_gdf = gdf.to_crs(to_crs.ExportToProj4())
+
+        return prj_gdf.total_bounds
 
     @property
     def ul(self):

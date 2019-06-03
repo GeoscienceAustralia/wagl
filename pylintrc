@@ -55,7 +55,7 @@ generated-members=REQUEST,acl_users,aq_parent
 [FORMAT]
 max-line-length=120
 ignore-long-lines=^\s*(# )?<?https?://\S+>?$
-max-module-lines=1000
+max-module-lines=1200
 indent-string='    '
 
 [IMPORTS]

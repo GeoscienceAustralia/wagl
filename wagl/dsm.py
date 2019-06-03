@@ -11,7 +11,7 @@ from rasterio.warp import Resampling
 from wagl.constants import DatasetName, GroupName
 from wagl.margins import pixel_buffer
 from wagl.geobox import GriddedGeoBox
-from wagl.data import reproject_file_to_array
+from wagl.data import reproject_array_to_array, read_subset
 from wagl.hdf5 import H5CompressionFilter, attach_image_attributes
 
 
@@ -45,7 +45,7 @@ def _get_dsm(acquisition, national_dsm, buffer_distance, out_fname,
                 filter_opts)
 
 
-def get_dsm(acquisition, national_dsm, buffer_distance=8000, out_group=None,
+def get_dsm(acquisition, pathname, buffer_distance=8000, out_group=None,
             compression=H5CompressionFilter.LZF, filter_opts=None):
     """
     Given an acquisition and a national Digitial Surface Model,
@@ -57,9 +57,9 @@ def get_dsm(acquisition, national_dsm, buffer_distance=8000, out_group=None,
     :param acquisition:
         An instance of an acquisition object.
 
-    :param national_dsm:
-        A string containing the full filepath name to an image on
-        disk containing national digital surface model.
+    :param pathname:
+        A string pathname of the DSM with a ':' to seperate the
+        filename from the import HDF5 dataset name.
 
     :param buffer_distance:
         A number representing the desired distance (in the same
@@ -78,7 +78,7 @@ def get_dsm(acquisition, national_dsm, buffer_distance=8000, out_group=None,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :filter_opts:
         A dict of key value pairs available to the given configuration
@@ -109,9 +109,29 @@ def get_dsm(acquisition, national_dsm, buffer_distance=8000, out_group=None,
                                pixelsize=geobox.pixelsize,
                                crs=geobox.crs.ExportToWkt())
 
+    # split the DSM filename, dataset name, and load
+    fname, dname = pathname.split(':')
+    with h5py.File(fname, 'r') as dsm_fid:
+        dsm_ds = dsm_fid[dname]
+        dsm_geobox = GriddedGeoBox.from_dataset(dsm_ds)
+
+        # calculate full border extents into CRS of DSM
+        extents = dem_geobox.project_extents(dsm_geobox.crs)
+        ul_xy = (extents[0], extents[3])
+        ur_xy = (extents[2], extents[3])
+        lr_xy = (extents[2], extents[1])
+        ll_xy = (extents[0], extents[1])
+
+        # load the subset and corresponding geobox
+        subs, subs_geobox = read_subset(dsm_ds, ul_xy, ur_xy, lr_xy, ll_xy,
+                                        edge_buffer=1)
+
     # Retrive the DSM data
-    dsm_data = reproject_file_to_array(national_dsm, dst_geobox=dem_geobox,
-                                       resampling=Resampling.bilinear)
+    dsm_data = reproject_array_to_array(subs, subs_geobox, dem_geobox,
+                                        resampling=Resampling.bilinear)
+
+    # free memory
+    subs = None
 
     # Output the reprojected result
     # Initialise the output files

@@ -5,18 +5,16 @@ Ancillary dataset retrieval and storage
 """
 
 from __future__ import absolute_import, print_function
-from os.path import join as pjoin, basename, splitext
+from os.path import join as pjoin
 import datetime
-import glob
-from urllib.parse import urlparse
+# import glob
+# from urllib.parse import urlparse
 
 from posixpath import join as ppjoin
 import numpy
 import h5py
 import pandas
 from geopandas import GeoSeries
-from affine import Affine
-import rasterio
 from shapely.geometry import Point
 from shapely.geometry import Polygon
 from shapely import wkt
@@ -25,8 +23,9 @@ from wagl.data import get_pixel
 from wagl.hdf5 import attach_attributes, write_scalar, write_dataframe
 from wagl.hdf5 import read_h5_table, H5CompressionFilter
 from wagl.hdf5 import attach_table_attributes
-from wagl.metadata import extract_ancillary_metadata, read_metadata_tags
+from wagl.metadata import current_h5_metadata
 from wagl.constants import DatasetName, POINT_FMT, GroupName, BandType
+from wagl.constants import AerosolTier, WaterVapourTier, OzoneTier
 from wagl.satellite_solar_angles import create_vertices
 
 
@@ -40,7 +39,6 @@ class AncillaryError(Exception):
     """
     Specific error handle for ancillary retrieval
     """
-    pass
 
 
 def get_4d_idx(day):
@@ -75,7 +73,7 @@ def relative_humdity(surface_temp, dewpoint_temp, kelvin=True):
         surf_t = surface_temp
         dew_t = dewpoint_temp
 
-    rh = 100 * ((112.0 - 0.1 * surf_t + dew_t) / (112.0 + 0.9 * surf_t)) **8
+    rh = 100 * ((112.0 - 0.1 * surf_t + dew_t) / (112.0 + 0.9 * surf_t)) ** 8
 
     return rh
 
@@ -94,8 +92,6 @@ def _collect_ancillary(container, satellite_solar_fname, nbar_paths,
         sat_sol_grp = fid[GroupName.SAT_SOL_GROUP.value]
         collect_ancillary(container, sat_sol_grp, nbar_paths, sbt_path,
                           invariant_fname, vertices, out_fid, compression)
-
-    return
 
 
 def collect_ancillary(container, satellite_solar_group, nbar_paths,
@@ -151,7 +147,7 @@ def collect_ancillary(container, satellite_solar_group, nbar_paths,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :filter_opts:
         A dict of key value pairs available to the given configuration
@@ -190,7 +186,6 @@ def collect_ancillary(container, satellite_solar_group, nbar_paths,
     dset_name = DatasetName.COORDINATOR.value
     coord_dset = group.create_dataset(dset_name, data=coordinator, **kwargs)
     attach_table_attributes(coord_dset, title='Coordinator', attrs=attrs)
-
 
     if sbt_path:
         collect_sbt_ancillary(acquisition, lonlats, sbt_path, invariant_fname,
@@ -234,7 +229,7 @@ def collect_sbt_ancillary(acquisition, lonlats, ancillary_path,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :filter_opts:
         A dict of key value pairs available to the given configuration
@@ -385,7 +380,7 @@ def collect_nbar_ancillary(container, aerosol_dict=None,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :filter_opts:
         A dict of key value pairs available to the given configuration
@@ -546,66 +541,61 @@ def get_aerosol_data(acquisition, aerosol_dict):
     # temporary until we sort out a better default mechanism
     # how do we want to support default values, whilst still support provenance
     if 'user' in aerosol_dict:
-        metadata = {'data_source': 'User defined value'}
+        tier = AerosolTier.USER
+        metadata = {
+            'id': [],
+            'tier': tier
+        }
+
         return aerosol_dict['user'], metadata
-    else:
-        aerosol_fname = aerosol_dict['pathname']
 
-    fid = h5py.File(aerosol_fname, 'r')
-    url = urlparse(aerosol_fname, scheme='file').geturl()
-
-    delta_tolerance = datetime.timedelta(days=0.5)
+    aerosol_fname = aerosol_dict['pathname']
 
     data = None
-    for pathname, description in zip(pathnames, descr):
-        if pathname in fid:
-            df = read_h5_table(fid, pathname)
-            aerosol_poly = wkt.loads(fid[pathname].attrs['extents'])
+    delta_tolerance = datetime.timedelta(days=0.5)
+    with h5py.File(aerosol_fname, 'r') as fid:
+        for pathname, description in zip(pathnames, descr):
+            tier = AerosolTier[description]
+            if pathname in fid:
+                df = read_h5_table(fid, pathname)
+                aerosol_poly = wkt.loads(fid[pathname].attrs['extents'])
 
-            if aerosol_poly.intersects(roi_poly):
-                if description == 'AATSR_PIX':
-                    abs_diff = (df['timestamp'] - dt).abs()
-                    df = df[abs_diff < delta_tolerance]
-                    df.reset_index(inplace=True, drop=True)
+                if aerosol_poly.intersects(roi_poly):
+                    if description == 'AATSR_PIX':
+                        abs_diff = (df['timestamp'] - dt).abs()
+                        df = df[abs_diff < delta_tolerance]
+                        df.reset_index(inplace=True, drop=True)
 
-                if df.shape[0] == 0:
-                    continue
+                    if df.shape[0] == 0:
+                        continue
 
-                intersection = aerosol_poly.intersection(roi_poly)
-                pts = GeoSeries([Point(x, y) for x, y in
-                                 zip(df['lon'], df['lat'])])
-                idx = pts.within(intersection)
-                data = df[idx]['aerosol'].mean()
+                    intersection = aerosol_poly.intersection(roi_poly)
+                    pts = GeoSeries([Point(x, y) for x, y in
+                                     zip(df['lon'], df['lat'])])
+                    idx = pts.within(intersection)
+                    data = df[idx]['aerosol'].mean()
 
-                if numpy.isfinite(data):
-                    metadata = {'data_source': description,
-                                'dataset_pathname': pathname,
-                                'query_date': dt,
-                                'url': url,
-                                'extents': wkt.dumps(intersection)}
+                    if numpy.isfinite(data):
+                        # ancillary metadata tracking
+                        md = current_h5_metadata(fid, dataset_path=pathname)
+                        metadata = {
+                            'id': [md['id']],
+                            'tier': tier
+                        }
 
-                    # ancillary metadata tracking
-                    md = extract_ancillary_metadata(aerosol_fname)
-                    for key in md:
-                        metadata[key] = md[key]
-
-                    fid.close()
-                    return data, metadata
-
-    # now we officially support a default value of 0.05 which
-    # should make the following redundant ....
+                        return data, metadata
 
     # default aerosol value
-    # assumes we are only processing Australia in which case it it should
-    # be a coastal scene
     data = 0.06
-    metadata = {'data_source': 'Default value used; Assumed a coastal scene'}
+    metadata = {
+        'id': [],
+        'tier': AerosolTier.FALLBACK_DEFAULT
+    }
 
-    fid.close()
     return data, metadata
 
 
-def get_elevation_data(lonlat, dem_path):
+def get_elevation_data(lonlat, pathname):
     """
     Get elevation data for a scene.
 
@@ -614,57 +604,44 @@ def get_elevation_data(lonlat, dem_path):
     :type lon_lat:
         float (2-tuple)
 
-    :dem_dir:
-        The directory in which the DEM can be found.
+    :pathname:
+        The pathname of the DEM with a ':' to seperate the
+        dataset name.
     :type dem_dir:
         str
     """
-    datafile = pjoin(dem_path, "DEM_one_deg.tif")
-    url = urlparse(datafile, scheme='file').geturl()
+    fname, dname = pathname.split(':')
 
     try:
-        data = get_pixel(datafile, lonlat) * 0.001  # scale to correct units
-    except IndexError:
+        data, md_uuid = get_pixel(fname, dname, lonlat) * 0.001  # scale to correct units
+    except ValueError:
         raise AncillaryError("No Elevation data")
 
-    metadata = {'data_source': 'Elevation',
-                'url': url}
-
-    # ancillary metadata tracking
-    md = extract_ancillary_metadata(datafile)
-    for key in md:
-        metadata[key] = md[key]
-
-    return data, metadata
+    return data, md_uuid
 
 
-def get_ozone_data(ozone_path, lonlat, time):
+def get_ozone_data(ozone_fname, lonlat, time):
     """
     Get ozone data for a scene. `lonlat` should be the (x,y) for the centre
     the scene.
     """
-    filename = time.strftime('%b').lower() + '.tif'
-    datafile = pjoin(ozone_path, filename)
-    url = urlparse(datafile, scheme='file').geturl()
+    dname = time.strftime('%b').lower()
 
     try:
-        data = get_pixel(datafile, lonlat)
-    except IndexError:
+        data, md_uuid = get_pixel(ozone_fname, dname, lonlat)
+    except ValueError:
         raise AncillaryError("No Ozone data")
 
-    metadata = {'data_source': 'Ozone',
-                'url': url,
-                'query_date': time}
-
-    # ancillary metadata tracking
-    md = extract_ancillary_metadata(datafile)
-    for key in md:
-        metadata[key] = md[key]
+    metadata = {
+        'id': [md_uuid],
+        'tier': OzoneTier.DEFINITIVE
+    }
 
     return data, metadata
 
 
-def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1):
+def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1,
+                     tolerance=1):
     """
     Retrieve the water vapour value for an `acquisition` and the
     path for the water vapour ancillary data.
@@ -673,74 +650,65 @@ def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1):
     geobox = acquisition.gridded_geo_box()
 
     year = dt.strftime('%Y')
-    filename = "pr_wtr.eatm.{year}.tif".format(year=year)
+    hour = dt.timetuple().tm_hour
+    filename = "pr_wtr.eatm.{year}.h5".format(year=year)
 
     if 'user' in water_vapour_dict:
-        metadata = {'data_source': 'User defined value'}
+        metadata = {
+            'id': [],
+            'tier': WaterVapourTier.USER
+        }
         return water_vapour_dict['user'], metadata
-    else:
-        water_vapour_path = water_vapour_dict['pathname']
+
+    water_vapour_path = water_vapour_dict['pathname']
 
     datafile = pjoin(water_vapour_path, filename)
-    url = urlparse(datafile, scheme='file').geturl()
 
-    # calculate the water vapour band number based on the datetime
+    with h5py.File(datafile, 'r') as fid:
+        index = read_h5_table(fid, 'INDEX')
 
-    doy = dt.timetuple().tm_yday
-    hour = dt.timetuple().tm_hour
-    band = (int(doy) - 1) * 4 + int((hour + 3) / 6)
+    # set the tolerance in days to search back in time
+    max_tolerance = (- datetime.timedelta(days=tolerance))
 
-    # Check for boundary condition: 1 Jan, 0-3 hours
-    if band == 0 and doy == 1:
-        band = 1
+    # only look for observations that have occured in the past
+    time_delta = index.timestamp - dt
+    result = time_delta[(time_delta < day_zero) & (time_delta > max_tolerance)]
+    if result.shape[0] == 0:
+        if 'fallback_dataset' not in water_vapour_dict:
+            raise AncillaryError("No actual or fallback water vapour data.")
+
+        tier = WaterVapourTier.FALLBACK_DATASET
+        month = dt.strftime('%B-%d').upper()
+
+        # closest previous observation
+        # i.e. observations are at 0000, 0600, 1200, 1800
+        # and an acquisition hour of 1700 will use the 1200 observation
+        observations = numpy.array([0, 6, 12, 18])
+        hr = observations[numpy.argmin(numpy.abs(hour - observations))]
+        dataset_name = 'AVERAGE/{}/{:02d}00'.format(month, hr)
+        datafile = water_vapour_dict['fallback_data']
+    else:
+        tier = WaterVapourTier.DEFINITIVE
+        # get the index of the closest water vapour observation
+        # which would be the maximum timedelta
+        # as we're only dealing with negative timedelta's here
+        idx = result.argmax()
+        record = index.iloc[idx]
+        dataset_name = record.band_name
 
     try:
-        # Get the number of bands
-        with rasterio.open(datafile) as src:
-            n_bands = src.count
+        data, md_uuid = get_pixel(datafile, dataset_name, geobox.centre_lonlat)
+    except ValueError:
+        # h5py raises a ValueError not an IndexError for out of bounds
+        raise AncillaryError("No Water Vapour data")
 
-        # Enable NBAR Near Real Time (NRT) processing (7 day window)
-        if band > (n_bands + 1):
-            rasterdoy = (((n_bands) - (int((hour + 3) / 6))) / 4) + 1
-            if (doy - rasterdoy) < 7:
-                band = (int(rasterdoy) - 1) * 4 + int((hour + 3) / 6)
-
-        data = get_pixel(datafile, geobox.centre_lonlat, band=band)
-    except (IndexError, rasterio.errors.RasterioIOError):
-        # Fallback for NRT or whenever we have no real data
-        # key name 'fallback_data' can change. Quickest name i could think of
-        if 'fallback_data' not in water_vapour_dict:
-            raise AncillaryError("No actual or fallback water vapour data.")
-        else:
-            # maybe a seperate func, but here will do for the time being
-            month = dt.strftime('%B-%d').upper()
-
-            # closest previous observation
-            # i.e. observations are at 0000, 0600, 1200, 1800
-            # and an acquisition hour of 1700 will use the 1200 observation
-            observations = numpy.array([0, 6, 12, 18])
-            hr = observations[numpy.argmin(numpy.abs(hour - observations))]
-            dname = 'AVERAGE/{}/{:02d}00'.format(month, hr)
-
-            with h5py.File(water_vapour_dict['fallback_data'], 'r') as fid:
-                ds = fid[dname]
-                transform = Affine.from_gdal(*ds.attrs['geotransform'])
-                x, y = [int(v) for v in ~transform * geobox.centre_lonlat]
-                data = ds[y, x]
-                url = urlparse(water_vapour_dict['fallback_data'],
-                               scheme='file').geturl()
-                datafile = water_vapour_dict['fallback_data']
-
+    # the metadata from the original file says (Kg/m^2)
+    # so multiply by 0.1 to get (g/cm^2)
     data = data * scale_factor
-
-    metadata = {'data_source': 'Water Vapour',
-                'url': url,
-                'query_date': dt}
-
-    # ancillary metadata tracking
-    md = extract_ancillary_metadata(datafile)
-    for key in md:
-        metadata[key] = md[key]
+    metadata = {
+        'id': [md_uuid],
+        'tier': tier
+    }
 
     return data, metadata
 
@@ -752,22 +720,24 @@ def ecwmf_elevation(datafile, lonlat):
     Converts to Geo-Potential height in KM.
     2 metres is added to the result before returning.
     """
-    try:
-        data = get_pixel(datafile, lonlat) / 9.80665 / 1000.0 + 0.002
-    except IndexError:
-        raise AncillaryError("No Invariant Geo-Potential data")
+    # TODO; have swfo convert the files to HDF5
+    raise AncillaryError("No Invariant Geo-Potential data")
+    # try:
+    #     data = get_pixel(datafile, lonlat) / 9.80665 / 1000.0 + 0.002
+    # except IndexError:
+    #     raise AncillaryError("No Invariant Geo-Potential data")
 
-    url = urlparse(datafile, scheme='file').geturl()
+    # url = urlparse(datafile, scheme='file').geturl()
 
-    metadata = {'data_source': 'ECWMF Invariant Geo-Potential',
-                'url': url}
+    # metadata = {'data_source': 'ECWMF Invariant Geo-Potential',
+    #             'url': url}
 
-    # ancillary metadata tracking
-    md = extract_ancillary_metadata(datafile)
-    for key in md:
-        metadata[key] = md[key]
+    # # ancillary metadata tracking
+    # md = extract_ancillary_metadata(datafile)
+    # for key in md:
+    #     metadata[key] = md[key]
 
-    return data, metadata
+    # return data, metadata
 
 
 def ecwmf_temperature_2metre(input_path, lonlat, time):
@@ -775,31 +745,33 @@ def ecwmf_temperature_2metre(input_path, lonlat, time):
     Retrieve a pixel value from the ECWMF 2 metre Temperature
     collection.
     """
-    product = DatasetName.TEMPERATURE_2M.value.lower()
-    search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
-    files = glob.glob(search.format(product=product, year=time.year))
-    data = None
-    required_ymd = datetime.datetime(time.year, time.month, time.day)
-    for f in files:
-        url = urlparse(f, scheme='file').geturl()
-        ymd = splitext(basename(f))[0].split('_')[1]
-        ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
-        if ancillary_ymd == required_ymd:
-            data = get_pixel(f, lonlat)
+    # TODO; have swfo convert the files to HDF5
+    raise AncillaryError("No ECWMF 2 metre Temperature data")
+    # product = DatasetName.TEMPERATURE_2M.value.lower()
+    # search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
+    # files = glob.glob(search.format(product=product, year=time.year))
+    # data = None
+    # required_ymd = datetime.datetime(time.year, time.month, time.day)
+    # for f in files:
+    #     url = urlparse(f, scheme='file').geturl()
+    #     ymd = splitext(basename(f))[0].split('_')[1]
+    #     ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
+    #     if ancillary_ymd == required_ymd:
+    #         data = get_pixel(f, lonlat)
 
-            metadata = {'data_source': 'ECWMF 2 metre Temperature',
-                        'url': url,
-                        'query_date': time}
+    #         metadata = {'data_source': 'ECWMF 2 metre Temperature',
+    #                     'url': url,
+    #                     'query_date': time}
 
-            # ancillary metadata tracking
-            md = extract_ancillary_metadata(f)
-            for key in md:
-                metadata[key] = md[key]
+    #         # ancillary metadata tracking
+    #         md = extract_ancillary_metadata(f)
+    #         for key in md:
+    #             metadata[key] = md[key]
 
-            return data, metadata
+    #         return data, metadata
 
-    if data is None:
-        raise AncillaryError("No ECWMF 2 metre Temperature data")
+    # if data is None:
+    #     raise AncillaryError("No ECWMF 2 metre Temperature data")
 
 
 def ecwmf_dewpoint_temperature(input_path, lonlat, time):
@@ -807,31 +779,33 @@ def ecwmf_dewpoint_temperature(input_path, lonlat, time):
     Retrieve a pixel value from the ECWMF 2 metre Dewpoint
     Temperature collection.
     """
-    product = DatasetName.DEWPOINT_TEMPERATURE.value.lower()
-    search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
-    files = glob.glob(search.format(product=product, year=time.year))
-    data = None
-    required_ymd = datetime.datetime(time.year, time.month, time.day)
-    for f in files:
-        url = urlparse(f, scheme='file').geturl()
-        ymd = splitext(basename(f))[0].split('_')[1]
-        ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
-        if ancillary_ymd == required_ymd:
-            data = get_pixel(f, lonlat)
+    # TODO; have swfo convert the files to HDF5
+    raise AncillaryError("No ECWMF 2 metre Dewpoint Temperature data")
+    # product = DatasetName.DEWPOINT_TEMPERATURE.value.lower()
+    # search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
+    # files = glob.glob(search.format(product=product, year=time.year))
+    # data = None
+    # required_ymd = datetime.datetime(time.year, time.month, time.day)
+    # for f in files:
+    #     url = urlparse(f, scheme='file').geturl()
+    #     ymd = splitext(basename(f))[0].split('_')[1]
+    #     ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
+    #     if ancillary_ymd == required_ymd:
+    #         data = get_pixel(f, lonlat)
 
-            metadata = {'data_source': 'ECWMF 2 metre Dewpoint Temperature ',
-                        'url': url,
-                        'query_date': time}
+    #         metadata = {'data_source': 'ECWMF 2 metre Dewpoint Temperature ',
+    #                     'url': url,
+    #                     'query_date': time}
 
-            # ancillary metadata tracking
-            md = extract_ancillary_metadata(f)
-            for key in md:
-                metadata[key] = md[key]
+    #         # ancillary metadata tracking
+    #         md = extract_ancillary_metadata(f)
+    #         for key in md:
+    #             metadata[key] = md[key]
 
-            return data, metadata
+    #         return data, metadata
 
-    if data is None:
-        raise AncillaryError("No ECWMF 2 metre Dewpoint Temperature data")
+    # if data is None:
+    #     raise AncillaryError("No ECWMF 2 metre Dewpoint Temperature data")
 
 
 def ecwmf_surface_pressure(input_path, lonlat, time):
@@ -840,31 +814,33 @@ def ecwmf_surface_pressure(input_path, lonlat, time):
     collection.
     Scales the result by 100 before returning.
     """
-    product = DatasetName.SURFACE_PRESSURE.value.lower()
-    search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
-    files = glob.glob(search.format(product=product, year=time.year))
-    data = None
-    required_ymd = datetime.datetime(time.year, time.month, time.day)
-    for f in files:
-        url = urlparse(f, scheme='file').geturl()
-        ymd = splitext(basename(f))[0].split('_')[1]
-        ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
-        if ancillary_ymd == required_ymd:
-            data = get_pixel(f, lonlat) / 100.0
+    # TODO; have swfo convert the files to HDF5
+    raise AncillaryError("No ECWMF Surface Pressure data")
+    # product = DatasetName.SURFACE_PRESSURE.value.lower()
+    # search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
+    # files = glob.glob(search.format(product=product, year=time.year))
+    # data = None
+    # required_ymd = datetime.datetime(time.year, time.month, time.day)
+    # for f in files:
+    #     url = urlparse(f, scheme='file').geturl()
+    #     ymd = splitext(basename(f))[0].split('_')[1]
+    #     ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
+    #     if ancillary_ymd == required_ymd:
+    #         data = get_pixel(f, lonlat) / 100.0
 
-            metadata = {'data_source': 'ECWMF Surface Pressure',
-                        'url': url,
-                        'query_date': time}
+    #         metadata = {'data_source': 'ECWMF Surface Pressure',
+    #                     'url': url,
+    #                     'query_date': time}
 
-            # ancillary metadata tracking
-            md = extract_ancillary_metadata(f)
-            for key in md:
-                metadata[key] = md[key]
+    #         # ancillary metadata tracking
+    #         md = extract_ancillary_metadata(f)
+    #         for key in md:
+    #             metadata[key] = md[key]
 
-            return data, metadata
+    #         return data, metadata
 
-    if data is None:
-        raise AncillaryError("No ECWMF Surface Pressure data")
+    # if data is None:
+    #     raise AncillaryError("No ECWMF Surface Pressure data")
 
 
 def ecwmf_water_vapour(input_path, lonlat, time):
@@ -872,31 +848,33 @@ def ecwmf_water_vapour(input_path, lonlat, time):
     Retrieve a pixel value from the ECWMF Total Column Water Vapour
     collection.
     """
-    product = DatasetName.WATER_VAPOUR.value.lower()
-    search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
-    files = glob.glob(search.format(product=product, year=time.year))
-    data = None
-    required_ymd = datetime.datetime(time.year, time.month, time.day)
-    for f in files:
-        url = urlparse(f, scheme='file').geturl()
-        ymd = splitext(basename(f))[0].split('_')[1]
-        ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
-        if ancillary_ymd == required_ymd:
-            data = get_pixel(f, lonlat)
+    # TODO; have swfo convert the files to HDF5
+    raise AncillaryError("No ECWMF Total Column Water Vapour data")
+    # product = DatasetName.WATER_VAPOUR.value.lower()
+    # search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
+    # files = glob.glob(search.format(product=product, year=time.year))
+    # data = None
+    # required_ymd = datetime.datetime(time.year, time.month, time.day)
+    # for f in files:
+    #     url = urlparse(f, scheme='file').geturl()
+    #     ymd = splitext(basename(f))[0].split('_')[1]
+    #     ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
+    #     if ancillary_ymd == required_ymd:
+    #         data = get_pixel(f, lonlat)
 
-            metadata = {'data_source': 'ECWMF Total Column Water Vapour',
-                        'url': url,
-                        'query_date': time}
+    #         metadata = {'data_source': 'ECWMF Total Column Water Vapour',
+    #                     'url': url,
+    #                     'query_date': time}
 
-            # ancillary metadata tracking
-            md = extract_ancillary_metadata(f)
-            for key in md:
-                metadata[key] = md[key]
+    #         # ancillary metadata tracking
+    #         md = extract_ancillary_metadata(f)
+    #         for key in md:
+    #             metadata[key] = md[key]
 
-            return data, metadata
+    #         return data, metadata
 
-    if data is None:
-        raise AncillaryError("No ECWMF Total Column Water Vapour data")
+    # if data is None:
+    #     raise AncillaryError("No ECWMF Total Column Water Vapour data")
 
 
 def ecwmf_temperature(input_path, lonlat, time):
@@ -908,36 +886,38 @@ def ecwmf_temperature(input_path, lonlat, time):
     Reverses the order of elements
     (1000 -> 1 mb, rather than 1 -> 1000 mb) before returning.
     """
-    product = DatasetName.TEMPERATURE.value.lower()
-    search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
-    files = glob.glob(search.format(product=product, year=time.year))
-    data = None
-    required_ymd = datetime.datetime(time.year, time.month, time.day)
-    for f in files:
-        url = urlparse(f, scheme='file').geturl()
-        ymd = splitext(basename(f))[0].split('_')[1]
-        ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
-        if ancillary_ymd == required_ymd:
-            bands = list(range(1, 38))
-            data = get_pixel(f, lonlat, bands)[::-1]
+    # TODO; have swfo convert the files to HDF5
+    raise AncillaryError("No ECWMF Temperature profile data")
+    # product = DatasetName.TEMPERATURE.value.lower()
+    # search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
+    # files = glob.glob(search.format(product=product, year=time.year))
+    # data = None
+    # required_ymd = datetime.datetime(time.year, time.month, time.day)
+    # for f in files:
+    #     url = urlparse(f, scheme='file').geturl()
+    #     ymd = splitext(basename(f))[0].split('_')[1]
+    #     ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
+    #     if ancillary_ymd == required_ymd:
+    #         bands = list(range(1, 38))
+    #         data = get_pixel(f, lonlat, bands)[::-1]
 
-            metadata = {'data_source': 'ECWMF Temperature',
-                        'url': url,
-                        'query_date': time}
+    #         metadata = {'data_source': 'ECWMF Temperature',
+    #                     'url': url,
+    #                     'query_date': time}
 
-            # ancillary metadata tracking
-            md = extract_ancillary_metadata(f)
-            for key in md:
-                metadata[key] = md[key]
+    #         # ancillary metadata tracking
+    #         md = extract_ancillary_metadata(f)
+    #         for key in md:
+    #             metadata[key] = md[key]
 
-            # internal file metadata (and reverse the ordering)
-            df = read_metadata_tags(f, bands).iloc[::-1]
-            df.insert(0, 'Temperature', data)
+    #         # internal file metadata (and reverse the ordering)
+    #         df = read_metadata_tags(f, bands).iloc[::-1]
+    #         df.insert(0, 'Temperature', data)
 
-            return df, metadata
+    #         return df, metadata
 
-    if data is None:
-        raise AncillaryError("No ECWMF Temperature profile data")
+    # if data is None:
+    #     raise AncillaryError("No ECWMF Temperature profile data")
 
 
 def ecwmf_geo_potential(input_path, lonlat, time):
@@ -950,38 +930,40 @@ def ecwmf_geo_potential(input_path, lonlat, time):
     the elements (1000 -> 1 mb, rather than 1 -> 1000 mb) before
     returning.
     """
-    product = DatasetName.GEOPOTENTIAL.value.lower()
-    search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
-    files = glob.glob(search.format(product=product, year=time.year))
-    data = None
-    required_ymd = datetime.datetime(time.year, time.month, time.day)
-    for f in files:
-        url = urlparse(f, scheme='file').geturl()
-        ymd = splitext(basename(f))[0].split('_')[1]
-        ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
-        if ancillary_ymd == required_ymd:
-            bands = list(range(1, 38))
-            data = get_pixel(f, lonlat, bands)[::-1]
-            scaled_data = data / 9.80665 / 1000.0
+    # TODO; have swfo convert the files to HDF5
+    raise AncillaryError("No ECWMF Geo-Potential profile data")
+    # product = DatasetName.GEOPOTENTIAL.value.lower()
+    # search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
+    # files = glob.glob(search.format(product=product, year=time.year))
+    # data = None
+    # required_ymd = datetime.datetime(time.year, time.month, time.day)
+    # for f in files:
+    #     url = urlparse(f, scheme='file').geturl()
+    #     ymd = splitext(basename(f))[0].split('_')[1]
+    #     ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
+    #     if ancillary_ymd == required_ymd:
+    #         bands = list(range(1, 38))
+    #         data = get_pixel(f, lonlat, bands)[::-1]
+    #         scaled_data = data / 9.80665 / 1000.0
 
-            metadata = {'data_source': 'ECWMF Geo-Potential',
-                        'url': url,
-                        'query_date': time}
+    #         metadata = {'data_source': 'ECWMF Geo-Potential',
+    #                     'url': url,
+    #                     'query_date': time}
 
-            # ancillary metadata tracking
-            md = extract_ancillary_metadata(f)
-            for key in md:
-                metadata[key] = md[key]
+    #         # ancillary metadata tracking
+    #         md = extract_ancillary_metadata(f)
+    #         for key in md:
+    #             metadata[key] = md[key]
 
-            # internal file metadata (and reverse the ordering)
-            df = read_metadata_tags(f, bands).iloc[::-1]
-            df.insert(0, 'GeoPotential', data)
-            df.insert(1, 'GeoPotential_Height', scaled_data)
+    #         # internal file metadata (and reverse the ordering)
+    #         df = read_metadata_tags(f, bands).iloc[::-1]
+    #         df.insert(0, 'GeoPotential', data)
+    #         df.insert(1, 'GeoPotential_Height', scaled_data)
 
-            return df, md
+    #         return df, md
 
-    if data is None:
-        raise AncillaryError("No ECWMF Geo-Potential profile data")
+    # if data is None:
+    #     raise AncillaryError("No ECWMF Geo-Potential profile data")
 
 
 def ecwmf_relative_humidity(input_path, lonlat, time):
@@ -993,33 +975,35 @@ def ecwmf_relative_humidity(input_path, lonlat, time):
     Reverses the order of elements
     (1000 -> 1 mb, rather than 1 -> 1000 mb) before returning.
     """
-    product = DatasetName.RELATIVE_HUMIDITY.value.lower()
-    search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
-    files = glob.glob(search.format(product=product, year=time.year))
-    data = None
-    required_ymd = datetime.datetime(time.year, time.month, time.day)
-    for f in files:
-        url = urlparse(f, scheme='file').geturl()
-        ymd = splitext(basename(f))[0].split('_')[1]
-        ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
-        if ancillary_ymd == required_ymd:
-            bands = list(range(1, 38))
-            data = get_pixel(f, lonlat, bands)[::-1]
+    # TODO; have swfo convert the files to HDF5
+    raise AncillaryError("No ECWMF Relative Humidity profile data")
+    # product = DatasetName.RELATIVE_HUMIDITY.value.lower()
+    # search = pjoin(input_path, DatasetName.ECMWF_PATH_FMT.value)
+    # files = glob.glob(search.format(product=product, year=time.year))
+    # data = None
+    # required_ymd = datetime.datetime(time.year, time.month, time.day)
+    # for f in files:
+    #     url = urlparse(f, scheme='file').geturl()
+    #     ymd = splitext(basename(f))[0].split('_')[1]
+    #     ancillary_ymd = datetime.datetime.strptime(ymd, '%Y-%m-%d')
+    #     if ancillary_ymd == required_ymd:
+    #         bands = list(range(1, 38))
+    #         data = get_pixel(f, lonlat, bands)[::-1]
 
-            metadata = {'data_source': 'ECWMF Relative Humidity',
-                        'url': url,
-                        'query_date': time}
+    #         metadata = {'data_source': 'ECWMF Relative Humidity',
+    #                     'url': url,
+    #                     'query_date': time}
 
-            # file level metadata
-            md = extract_ancillary_metadata(f)
-            for key in md:
-                metadata[key] = md[key]
+    #         # file level metadata
+    #         md = extract_ancillary_metadata(f)
+    #         for key in md:
+    #             metadata[key] = md[key]
 
-            # internal file metadata (and reverse the ordering)
-            df = read_metadata_tags(f, bands).iloc[::-1]
-            df.insert(0, 'Relative_Humidity', data)
+    #         # internal file metadata (and reverse the ordering)
+    #         df = read_metadata_tags(f, bands).iloc[::-1]
+    #         df.insert(0, 'Relative_Humidity', data)
 
-            return df, metadata
+    #         return df, metadata
 
-    if data is None:
-        raise AncillaryError("No ECWMF Relative Humidity profile data")
+    # if data is None:
+    #     raise AncillaryError("No ECWMF Relative Humidity profile data")

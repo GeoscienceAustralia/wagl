@@ -17,18 +17,32 @@ from rasterio.warp import reproject
 from rasterio.enums import Resampling
 from wagl.geobox import GriddedGeoBox
 from wagl.tiling import generate_tiles
+from wagl.metadata import current_h5_metadata
 
 
-def get_pixel(filename, lonlat, band=1):
+def get_pixel(filename, dataset_name, lonlat):
     """Return a pixel from `filename` at the longitude and latitude given
     by the tuple `lonlat`. Optionally, the `band` can be specified."""
-    with rasterio.open(filename) as src:
-        x, y = [int(v) for v in ~src.transform * lonlat]
-        if isinstance(band, list):
-            data = src.read(band, window=((y, y + 1), (x, x + 1))).ravel()
+    with h5py.File(filename, 'r') as fid:
+        ds = fid[dataset_name]
+        geobox = GriddedGeoBox.from_h5_dataset(ds)
+        x, y = [int(v) for v in ~geobox.transform * lonlat]
+
+        # TODO; read metadata yaml for uuid
+
+        if ds.ndim == 3:
+            data = ds[:, y, x]
+        elif ds.ndim == 2:
+            data = ds[y, x]
         else:
-            data = src.read(band, window=((y, y + 1), (x, x + 1))).flat[0]
-        return data
+            raise NotImplementedError("Only 2 and 3 dimensional data is supported")
+        # else: TODO; cater for the 4D data we pulled from ECMWF
+            # for 4D [day, level, y, x] we need another input param `day`
+            # data = ds[day, :, y, x]
+
+        metadata = current_h5_metadata(fid, dataset_path=dataset_name)
+
+    return data, metadata['id']
 
 
 def select_acquisitions(acqs_list, fn=(lambda acq: True)):
@@ -277,14 +291,14 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
             subprocess.check_call(cmd, cwd=dirname(filename))
 
 
-def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, bands=1):
+def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=0, bands=1):
     """
     Return a 2D or 3D NumPy array subsetted to the given bounding
     extents.
 
     :param fname:
         A string containing the full file pathname to an image on
-        disk.
+        disk. OR an HDF5 Dataset (h5py.Dataset).
 
     :param ul_xy:
         A tuple containing the Upper Left (x,y) co-ordinate pair
@@ -309,6 +323,12 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, bands=1):
         in real world (map) co-ordinates.  Co-ordinate pairs can be
         (longitude, latitude) or (eastings, northings), but they must
         be of the same reference as the image of interest.
+
+    :param edge_buffer:
+        An integer indicating the additional number of pixels to read
+        along each edge of the subset. Useful for when additional data
+        might be required, such as for reprojection.
+        Default is 0 pixels on each edge.
 
     :param bands:
         Can be an integer of list of integers representing the band(s)
@@ -349,12 +369,10 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, bands=1):
     img_ll_x, img_ll_y = [int(v) for v in inv * ll_xy]
 
     # Calculate the min and max array extents
-    # The ending array extents have +1 to account for Python's
-    # [inclusive, exclusive) index notation.
-    xstart = min(img_ul_x, img_ll_x)
-    ystart = min(img_ul_y, img_ur_y)
-    xend = max(img_ur_x, img_lr_x) + 1
-    yend = max(img_ll_y, img_lr_y) + 1
+    xstart = min(img_ul_x, img_ll_x) - edge_buffer
+    ystart = min(img_ul_y, img_ur_y) - edge_buffer
+    xend = max(img_ur_x, img_lr_x) + edge_buffer
+    yend = max(img_ll_y, img_lr_y) + edge_buffer
 
     # Check for out of bounds
     if (((xstart < 0) or (ystart < 0)) or
@@ -429,8 +447,8 @@ def reproject_file_to_array(src_filename, src_band=1, dst_geobox=None,
     return dst_arr
 
 
-def reproject_img_to_img(src_img, src_geobox, dst_geobox,
-                         resampling=Resampling.nearest):
+def reproject_array_to_array(src_img, src_geobox, dst_geobox,
+                             resampling=Resampling.nearest):
     """
     Reprojects an image/array to the desired co-ordinate reference system.
 
