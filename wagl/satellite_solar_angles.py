@@ -23,7 +23,7 @@ from wagl.__track_time_info import set_times
 CRS = "EPSG:4326"
 
 
-def convert_to_lonlat(geobox, col_index, row_index):
+def convert_to_lonlat(geobox, col_index, row_index, centre=True):
     """
     Converts arrays of row and column indices into latitude and
     longitude (WGS84 datum).
@@ -49,7 +49,7 @@ def convert_to_lonlat(geobox, col_index, row_index):
     lat = np.zeros(row_index.shape, dtype='float64')
 
     for i, coord in enumerate(zip(col_index, row_index)):
-        map_xy = geobox.convert_coordinates(coord)
+        map_xy = geobox.convert_coordinates(coord, centre=centre)
         lonlat = geobox.transform_coordinates(map_xy, to_crs=sr)
         lon[i] = lonlat[0]
         lat[i] = lonlat[1]
@@ -397,7 +397,8 @@ def create_vertices(acquisition, boxline_dataset, vertices=(3, 3)):
     coordinator['row_index'] = locations[:, 0]
     coordinator['col_index'] = locations[:, 1]
 
-    map_xy = (locations[:, 1], locations[:, 0]) * geobox.transform
+    # adding half to get center-pixel-aligned coordinates
+    map_xy = (locations[:, 1] + 0.5, locations[:, 0] + 0.5) * geobox.transform
     coordinator['map_y'] = map_xy[1]
     coordinator['map_x'] = map_xy[0]
 
