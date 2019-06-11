@@ -336,21 +336,21 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=0, bands=1):
         subset will be 3D, otherwise the subset will be strictly 2D.
 
     :return:
-        A tuple of 3 elements:
+        A tuple of 2 elements:
 
-            * 1. 2D or 3D NumPy array containing the image subset.
-            * 2. A list of length 6 containing the GDAL geotransform.
-            * 3. A WKT formatted string representing the co-ordinate
-                 reference system (projection).
+            * 1. 2D or 3D NumPy array containing the requested region
+            * 2. An instance of a GriddedGeoBox covering the requested region
 
     :additional notes:
-        The ending array co-ordinates are increased by +1,
-        i.e. xend = 270 + 1
-        to account for Python's [inclusive, exclusive) index notation.
+        The array dimensions are determined via the supplied ROI. As such,
+        the returned array will use a fill value for the pixels falling
+        outside of the dataset we're reading from.
     """
     if isinstance(fname, h5py.Dataset):
         geobox = GriddedGeoBox.from_dataset(fname)
         prj = fname.attrs['crs_wkt']
+        dtype = fname.dtype
+        fillv = fname.attrs.get('fillvalue')
     else:
         # Open the file
         with rasterio.open(fname) as src:
@@ -358,9 +358,14 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=0, bands=1):
             # Get the inverse transform of the affine co-ordinate reference
             geobox = GriddedGeoBox.from_dataset(src)
             prj = src.crs.wkt  # rasterio returns a unicode
+            dtype = src.dtypes[0]
+            fillv = src.nodata
 
     inv = ~geobox.transform
     rows, cols = geobox.shape
+
+    # fillvalue will default to zero if None
+    fillv = 0 if fillv is None else fillv
 
     # Convert each map co-ordinate to image/array co-ordinates
     img_ul_x, img_ul_y = [int(v) for v in inv * ul_xy]
@@ -374,26 +379,35 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=0, bands=1):
     xend = max(img_ur_x, img_lr_x) + edge_buffer
     yend = max(img_ll_y, img_lr_y) + edge_buffer
 
-    # Check for out of bounds
-    if (((xstart < 0) or (ystart < 0)) or
-            ((xend -1 > cols) or (yend -1 > rows))):
-
-        msg = ("Error! Attempt to read a subset that is outside of the"
-               "image domain. Index: ({ys}, {ye}), ({xs}, {xe}))")
-        msg = msg.format(ys=ystart, ye=yend, xs=xstart, xe=xend)
-        raise IndexError(msg)
-
-    if isinstance(fname, h5py.Dataset):
-        subs = fname[ystart:yend, xstart:xend]
-    else:
-        with rasterio.open(fname) as src:
-            subs = src.read(bands, window=((ystart, yend), (xstart, xend)))
+    # intialise the output array
+    subs = np.fill((rows, cols), fillv, dtype=dtype)
 
     # Get the new UL co-ordinates of the array
     ul_x, ul_y = geobox.transform * (xstart, ystart)
 
     geobox_subs = GriddedGeoBox(shape=subs.shape, origin=(ul_x, ul_y),
                                 pixelsize=geobox.pixelsize, crs=prj)
+
+    # intersected region (source index xy start and end coords)
+    source_xs = max(0, xstart)
+    source_ys = max(0, ystart)
+    source_xe = min(cols, xend)
+    source_ye = min(rows, yend)
+    source_idx = np.s_[source_ys:source_ye, source_xs, source_xe]
+
+    # destination index coords
+    dest_xs = max(0, abs(xstart))
+    dest_ys = max(0, abs(ystart))
+    dest_xe = min(cols, xend)
+    dest_ye = min(rows, yend)
+    dest_idx = np.s_[dest_ys:dest_ye, dest_xs: dest_xe]
+
+    if isinstance(fname, h5py.Dataset):
+        fname.read_direct(subs, source_idx, dest_idx)
+    else:
+        with rasterio.open(fname) as src:
+            window = ((source_ys, source_ye), (source_xs, source_xe))
+            src.read(bands, window=window, out=subs[dest_idx])
 
     return (subs, geobox_subs)
 
