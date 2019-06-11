@@ -380,7 +380,8 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=0, bands=1):
     yend = max(img_ll_y, img_lr_y) + edge_buffer
 
     # intialise the output array
-    subs = np.fill((rows, cols), fillv, dtype=dtype)
+    dims = (yend - ystart, xend - xstart)
+    subs = np.full(dims, fillv, dtype=dtype)
 
     # Get the new UL co-ordinates of the array
     ul_x, ul_y = geobox.transform * (xstart, ystart)
@@ -393,14 +394,15 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=0, bands=1):
     source_ys = max(0, ystart)
     source_xe = min(cols, xend)
     source_ye = min(rows, yend)
-    source_idx = np.s_[source_ys:source_ye, source_xs, source_xe]
+    intersect_shape = (source_ye - source_ys, source_xe - source_xs)
+    source_idx = np.s_[source_ys:source_ye, source_xs:source_xe]
 
     # destination index coords
-    dest_xs = max(0, abs(xstart))
-    dest_ys = max(0, abs(ystart))
-    dest_xe = min(cols, xend)
-    dest_ye = min(rows, yend)
-    dest_idx = np.s_[dest_ys:dest_ye, dest_xs: dest_xe]
+    dest_xs = abs(min(0, xstart))
+    dest_ys = abs(min(0, ystart))
+    dest_xe = min(dims[1], intersect_shape[1])
+    dest_ye = min(dims[0], intersect_shape[0])
+    dest_idx = np.s_[dest_ys:dest_ye, dest_xs:dest_xe]
 
     if isinstance(fname, h5py.Dataset):
         fname.read_direct(subs, source_idx, dest_idx)
