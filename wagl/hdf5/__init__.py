@@ -199,13 +199,21 @@ def write_h5_image(data, dset_name, group, compression=H5CompressionFilter.LZF,
     kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
     dset = group.create_dataset(dset_name, data=data, **kwargs)
 
-    minv = data.min()
-    maxv = data.max()
-
     # make a copy so as not to modify the users data
     attributes = {} if attrs is None else attrs.copy()
 
-    attributes['IMAGE_MINMAXRANGE'] = [minv, maxv]
+    if data.dtype.names:
+        for band_name in data.dtype.names:
+            attributes['{}_MINMAXRANGE'.format(band_name)] = [
+                data[band_name].min(),
+                data[band_name].max()
+            ]
+    else:
+        attributes['IMAGE_MINMAXRANGE'] = [
+            data.min(),
+            data.max()
+        ]
+
     attach_image_attributes(dset, attributes)
 
 
