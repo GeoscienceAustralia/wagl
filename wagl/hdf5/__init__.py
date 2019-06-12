@@ -205,13 +205,13 @@ def write_h5_image(data, dset_name, group, compression=H5CompressionFilter.LZF,
     if data.dtype.names:
         for band_name in data.dtype.names:
             attributes['{}_MINMAXRANGE'.format(band_name)] = [
-                data[band_name].min(),
-                data[band_name].max()
+                numpy.nanmin(data[band_name]),
+                numpy.nanmax(data[band_name])
             ]
     else:
         attributes['IMAGE_MINMAXRANGE'] = [
-            data.min(),
-            data.max()
+            numpy.nanmin(data),
+            numpy.nanmax(data)
         ]
 
     attach_image_attributes(dset, attributes)
