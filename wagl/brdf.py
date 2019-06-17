@@ -305,11 +305,12 @@ def load_brdf_tile(src_poly, src_crs, fid, dataset_name, fid_mask):
     roi_mask = roi_mask.astype(bool)
 
     # both ocean_mask and mask shape should be same
-    assert ocean_mask.shape == roi_mask.shape
+    if ocean_mask.shape != roi_mask.shape:
+        raise ValueError('ocean mask and ROI mask do not have the same shape')
+    if roi_mask.shape != ds.shape[-2:]:
+        raise ValueError('BRDF dataset and ROI mask do not have the same shape')
 
     roi_mask = roi_mask & ocean_mask
-
-    assert roi_mask.shape == ds.shape[-2:]
 
     def layer_sum(i):
         layer = ds[i, :, :]
