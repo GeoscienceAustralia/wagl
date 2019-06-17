@@ -278,7 +278,7 @@ def load_brdf_tile(src_poly, src_crs, fid, dataset_name, fid_mask):
         src_poly_geom.Segmentize(length_scale)
         return wkt.loads(src_poly_geom.ExportToWkt())
 
-    _, ds_width, ds_height = ds.shape
+    ds_width, ds_height = ds.shape
 
     dst_geotransform = rasterio.transform.Affine.from_gdal(*ds.attrs['geotransform'])
     dst_crs = CRS.from_wkt(ds.attrs['crs_wkt'])
@@ -307,20 +307,20 @@ def load_brdf_tile(src_poly, src_crs, fid, dataset_name, fid_mask):
     # both ocean_mask and mask shape should be same
     if ocean_mask.shape != roi_mask.shape:
         raise ValueError('ocean mask and ROI mask do not have the same shape')
-    if roi_mask.shape != ds.shape[-2:]:
+    if roi_mask.shape != ds.shape:
         raise ValueError('BRDF dataset and ROI mask do not have the same shape')
 
     roi_mask = roi_mask & ocean_mask
 
-    def layer_sum(i):
-        layer = ds[i, :, :]
+    def layer_sum(param):
+        layer = ds[param][:, :]
         common_mask = roi_mask & (layer != ds.attrs['_FillValue'])
         layer = layer.astype('float32')
         layer[~common_mask] = np.nan
         layer = ds.attrs['scale_factor'] * (layer - ds.attrs['add_offset'])
         return {'sum': np.nansum(layer), 'count': np.sum(common_mask)}
 
-    return BrdfTileSummary({key: layer_sum(index) for index, key in enumerate(BrdfModelParameters)},
+    return BrdfTileSummary({param: layer_sum(param.value) for param in BrdfModelParameters},
                            [current_h5_metadata(fid)['id']])
 
 
