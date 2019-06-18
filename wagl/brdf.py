@@ -30,7 +30,6 @@ import numpy as np
 import rasterio
 from rasterio.features import rasterize
 from rasterio.crs import CRS
-from rasterio.windows import Window
 import pyproj
 import h5py
 from osgeo import ogr
@@ -42,6 +41,7 @@ from shapely import wkt, ops
 from wagl.constants import BrdfDirectionalParameters, BrdfModelParameters, BrdfTier
 from wagl.hdf5 import H5CompressionFilter, VLEN_STRING
 from wagl.metadata import current_h5_metadata
+from wagl.data import read_subset
 
 
 log = logging.getLogger('root.' + __name__)
@@ -213,7 +213,7 @@ class BrdfTileSummary:
     def mean(self):
         """ Calculate the mean BRDF parameters. """
         if all(self.brdf_summaries[key]['count'] == 0 for key in BrdfModelParameters):
-            # possible over the ocean, so lambertian
+            # possibly over the ocean, so lambertian
             return {key: dict(id=self.source_files, value=0.0)
                     for key in BrdfDirectionalParameters}
 
@@ -281,32 +281,31 @@ def load_brdf_tile(src_poly, src_crs, fid, dataset_name, fid_mask):
         src_poly_geom.Segmentize(length_scale)
         return wkt.loads(src_poly_geom.ExportToWkt())
 
-    ds_width, ds_height = ds.shape
+    ds_height, ds_width = ds.shape
 
     dst_geotransform = rasterio.transform.Affine.from_gdal(*ds.attrs['geotransform'])
     dst_crs = CRS.from_wkt(ds.attrs['crs_wkt'])
 
-    # get bounds of BRDF modis tile from h5 dataset
-    left, bottom, right, top = rasterio.transform.array_bounds(ds_height, ds_width, dst_geotransform)
-
-    # get a tile window to read from continental coastal mask
-    window = rasterio.windows.from_bounds(left, bottom, right, top, transform=fid_mask.transform)
-    window = Window(col_off=round(window.col_off), row_off=round(window.row_off),
-                    width=round(window.width), height=round(window.height))
-
-    # read ocean mask file for correspoing tile window
-    # land=1, ocean=0
-    ocean_mask = fid_mask.read(1, window=window).astype(bool)
     # assumes the length scales are the same (m)
     dst_poly = ops.transform(coord_transformer(src_crs, dst_crs),
                              segmentize_src_poly(np.sqrt(np.abs(dst_geotransform.determinant))))
 
-    bound_poly = ops.transform(lambda x, y: dst_geotransform * (x, y), box(0., 0., ds_width, ds_height))
+    bound_poly = ops.transform(lambda x, y: dst_geotransform * (x, y), box(0., 0., ds_width, ds_height, ccw=False))
     if not bound_poly.intersects(dst_poly):
         return BrdfTileSummary.empty()
 
+    ocean_poly = ops.transform(lambda x, y: fid_mask.transform * (x, y), box(0., 0., fid_mask.width, fid_mask.height))
+    if not ocean_poly.intersects(dst_poly):
+        return BrdfTileSummary.empty()
+
+    # read ocean mask file for correspoing tile window
+    # land=1, ocean=0
+    bound_poly_coords = list(bound_poly.exterior.coords)[:4]
+    ocean_mask, _ = read_subset(fid_mask, *bound_poly_coords)
+    ocean_mask = ocean_mask.astype(bool)
+
     # inside=1, outside=0
-    roi_mask = rasterize([(dst_poly, 1)], fill=0, out_shape=(ds_width, ds_height), transform=dst_geotransform)
+    roi_mask = rasterize([(dst_poly, 1)], fill=0, out_shape=(ds_height, ds_width), transform=dst_geotransform)
     roi_mask = roi_mask.astype(bool)
 
     # both ocean_mask and mask shape should be same

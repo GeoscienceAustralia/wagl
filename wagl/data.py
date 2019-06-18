@@ -351,15 +351,25 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=0, bands=1):
         prj = fname.attrs['crs_wkt']
         dtype = fname.dtype
         fillv = fname.attrs.get('fillvalue')
-    else:
+
+    elif isinstance(fname, rasterio.io.DatasetReader):
+        # Get the inverse transform of the affine co-ordinate reference
+        geobox = GriddedGeoBox.from_dataset(fname)
+        prj = fname.crs.wkt  # rasterio returns a unicode
+        dtype = fname.dtypes[0]
+        fillv = fname.nodata
+
+    elif isinstance(fname, str):
         # Open the file
         with rasterio.open(fname) as src:
-
             # Get the inverse transform of the affine co-ordinate reference
             geobox = GriddedGeoBox.from_dataset(src)
             prj = src.crs.wkt  # rasterio returns a unicode
             dtype = src.dtypes[0]
             fillv = src.nodata
+
+    else:
+        raise ValueError('Unexpected file description of type {}'.format(type(fname)))
 
     inv = ~geobox.transform
     rows, cols = geobox.shape
@@ -406,10 +416,18 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=0, bands=1):
 
     if isinstance(fname, h5py.Dataset):
         fname.read_direct(subs, source_idx, dest_idx)
-    else:
+
+    elif isinstance(fname, rasterio.io.DatasetReader):
+        window = ((source_ys, source_ye), (source_xs, source_xe))
+        fname.read(bands, window=window, out=subs[dest_idx])
+
+    elif isinstance(fname, str):
         with rasterio.open(fname) as src:
             window = ((source_ys, source_ye), (source_xs, source_xe))
             src.read(bands, window=window, out=subs[dest_idx])
+
+    else:
+        raise ValueError('Unexpected file description of type {}'.format(type(fname)))
 
     return (subs, geobox_subs)
 
