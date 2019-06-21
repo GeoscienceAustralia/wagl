@@ -283,10 +283,10 @@ class WaterVapourTier(Enum):
     The higher the value, the higher the precedence.
     """
 
-    FALLBACK_DEFAULT = 0
-    FALLBACK_DATASET = 1
-    DEFINITIVE = 2
-    USER = 3
+    FALLBACK_DEFAULT = 0 # default value if everything fails
+    FALLBACK_DATASET = 1 # averages for each hourly period in the archive
+    DEFINITIVE = 2 # value taken from date of acquisition
+    USER = 3 # user specified
 
 
 class BrdfTier(Enum):
@@ -295,10 +295,10 @@ class BrdfTier(Enum):
     The higher the value, the higher the precedence.
     """
 
-    FALLBACK_DEFAULT = 0
-    FALLBACK_DATASET = 1
-    DEFINITIVE = 2
-    USER = 3
+    FALLBACK_DEFAULT = 0 # default value if everything fails
+    FALLBACK_DATASET = 1 # averages for each day of year over the entire archive
+    DEFINITIVE = 2 # value taken from date of acquisition
+    USER = 3 # user specified
 
 
 class AerosolTier(Enum):
@@ -307,11 +307,11 @@ class AerosolTier(Enum):
     The higher the value, the higher the precedence.
     """
 
-    FALLBACK_DEFAULT = 0
-    AATSR_CMP_MONTH = 1
-    AATSR_CMP_YEAR_MONTH = 2
-    AATSR_PIX = 3
-    USER = 4
+    FALLBACK_DEFAULT = 0 # default value is everything fails
+    AATSR_CMP_MONTH = 1 # monthly composites for all years i.e. jun 2002, jun 2003
+    AATSR_CMP_YEAR_MONTH = 2 # composite for all data within a given month and year
+    AATSR_PIX = 3 # value taken from date of acquisition
+    USER = 4 # user specified
 
 
 class OzoneTier(Enum):
@@ -320,8 +320,8 @@ class OzoneTier(Enum):
     The higher the value, the higher the precedence.
     """
 
-    DEFINITIVE = 0
-    USER = 1
+    DEFINITIVE = 0 # value taken from dataset
+    USER = 1 # user specified
 
 
 class PQbits(Enum):
