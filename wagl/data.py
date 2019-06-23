@@ -383,7 +383,7 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=0, bands=1):
     img_lr_x, img_lr_y = [int(v) for v in inv * lr_xy]
     img_ll_x, img_ll_y = [int(v) for v in inv * ll_xy]
 
-    # Calculate the min and max array extents
+    # Calculate the min and max array extents including edge_buffer
     xstart = min(img_ul_x, img_ll_x) - edge_buffer
     ystart = min(img_ul_y, img_ur_y) - edge_buffer
     xend = max(img_ur_x, img_lr_x) + edge_buffer
@@ -404,14 +404,19 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=0, bands=1):
     source_ys = max(0, ystart)
     source_xe = min(cols, xend)
     source_ye = min(rows, yend)
-    intersect_shape = (source_ye - source_ys, source_xe - source_xs)
+
+    # source indices/slice
     source_idx = np.s_[source_ys:source_ye, source_xs:source_xe]
 
-    # destination index coords
+    # destination origin/start index (UL) coords -> abs(min(0, ul))
     dest_xs = abs(min(0, xstart))
     dest_ys = abs(min(0, ystart))
-    dest_xe = min(dims[1], intersect_shape[1])
-    dest_ye = min(dims[0], intersect_shape[0])
+
+    # destination end (LR) -> (source_end - source_start) + dest_start
+    dest_xe = (source_xe - source_xs) + dest_xs
+    dest_ye = (source_ye - source_ys) + dest_ys
+
+    # destination indices/slice
     dest_idx = np.s_[dest_ys:dest_ye, dest_xs:dest_xe]
 
     if isinstance(fname, h5py.Dataset):
