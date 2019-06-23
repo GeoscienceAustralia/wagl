@@ -7,6 +7,7 @@ import tempfile
 import unittest
 
 import numpy
+import h5py
 
 from wagl.data import read_subset
 from wagl.data import write_img
@@ -14,6 +15,17 @@ from wagl import unittesting_tools as ut
 
 
 class TestReadSubset(unittest.TestCase):
+
+    img, geobox = ut.create_test_image((1200, 1500))
+    img[:] = 1
+
+    fid = h5py.File('test-subset.h5', backing_store=False, driver='core')
+    ds = fid.create_dataset('data', data=img)
+    ds.attrs['geotransform'] = geobox.transform.to_gdal()
+    ds.attrs['crs_wkt'] = geobox.crs.ExportToWkt()
+    ds.attrs['fillvalue'] = 0
+
+    subs_shape = (200, 300)
 
     @unittest.skip("Refactor DSM subsetting logic; TODO update test")
     def testWestBounds(self):
@@ -190,6 +202,299 @@ class TestReadSubset(unittest.TestCase):
         # Cleanup
         shutil.rmtree(temp_dir)
 
+    def test_case_a(self):
+        """
+        Origin = (-150, -50)
+
+            +----+
+            -    -
+            -  +-----------+
+            -  - -         -
+            +----+         -
+               -           -
+               -           -
+               -           -
+               -           -
+               +-----------+
+        """
+        # indices based on full array
+        ul = (-150, -50)
+        ur = (ul[0], ul[1] + self.subs_shape[1])
+        lr = (ul[0] + self.subs_shape[0], ul[1] + self.subs_shape[1])
+        ll = (ul[0] + self.subs_shape[0], ul[1])
+
+        # real world coords (note reversing (y, x) to (x, y)
+        ul_xy_map = ul[::-1] * self.geobox.transform
+        ur_xy_map = ur[::-1] * self.geobox.transform
+        lr_xy_map = lr[::-1] * self.geobox.transform
+        ll_xy_map = ll[::-1] * self.geobox.transform
+
+        # read subset
+        data, gb = read_subset(self.ds, ul_xy_map, ur_xy_map, lr_xy_map, ll_xy_map)
+
+        count = 
+        self.assertTrue(data.sum() == count)
+
+    def test_case_b(self):
+        """
+        Origin = (-150, 600)
+
+            +---+
+            -   -
+        +----   ----+
+        -   -   -   -
+        -   +---+   -
+        -           -
+        -           -
+        -           -
+        -           -
+        +-----------+
+        """
+        # indices based on full array
+        ul = (-150, 600)
+        ur = (ul[0], ul[1] + self.subs_shape[1])
+        lr = (ul[0] + self.subs_shape[0], ul[1] + self.subs_shape[1])
+        ll = (ul[0] + self.subs_shape[0], ul[1])
+
+        # real world coords (note reversing (y, x) to (x, y)
+        ul_xy_map = ul[::-1] * self.geobox.transform
+        ur_xy_map = ur[::-1] * self.geobox.transform
+        lr_xy_map = lr[::-1] * self.geobox.transform
+        ll_xy_map = ll[::-1] * self.geobox.transform
+
+        # read subset
+        data, gb = read_subset(self.ds, ul_xy_map, ur_xy_map, lr_xy_map, ll_xy_map)
+
+        count = 
+        self.assertTrue(data.sum() == count)
+
+    def test_case_c(self):
+        """
+        Origin = (-150, 1400)
+
+                   +---+
+                   -   -
+        +------------+ -
+        -          - - -
+        -          +---+
+        -            -
+        -            -
+        -            -
+        -            -
+        +------------+
+        """
+        # indices based on full array
+        ul = (-150, 1400)
+        ur = (ul[0], ul[1] + self.subs_shape[1])
+        lr = (ul[0] + self.subs_shape[0], ul[1] + self.subs_shape[1])
+        ll = (ul[0] + self.subs_shape[0], ul[1])
+
+        # real world coords (note reversing (y, x) to (x, y)
+        ul_xy_map = ul[::-1] * self.geobox.transform
+        ur_xy_map = ur[::-1] * self.geobox.transform
+        lr_xy_map = lr[::-1] * self.geobox.transform
+        ll_xy_map = ll[::-1] * self.geobox.transform
+
+        # read subset
+        data, gb = read_subset(self.ds, ul_xy_map, ur_xy_map, lr_xy_map, ll_xy_map)
+
+        count = 
+        self.assertTrue(data.sum() == count)
+
+    def test_case_d(self):
+        """
+        Origin = (600, -50)
+
+              +-----------+
+              -           -
+           +-----+        -
+           -  -  -        -
+           -  -  -        -
+           +-----+        -
+              -           -
+              +-----------+
+        """
+        # indices based on full array
+        ul = (600, -50)
+        ur = (ul[0], ul[1] + self.subs_shape[1])
+        lr = (ul[0] + self.subs_shape[0], ul[1] + self.subs_shape[1])
+        ll = (ul[0] + self.subs_shape[0], ul[1])
+
+        # real world coords (note reversing (y, x) to (x, y)
+        ul_xy_map = ul[::-1] * self.geobox.transform
+        ur_xy_map = ur[::-1] * self.geobox.transform
+        lr_xy_map = lr[::-1] * self.geobox.transform
+        ll_xy_map = ll[::-1] * self.geobox.transform
+
+        # read subset
+        data, gb = read_subset(self.ds, ul_xy_map, ur_xy_map, lr_xy_map, ll_xy_map)
+
+        count = 
+        self.assertTrue(data.sum() == count)
+
+    def test_case_e(self):
+        """
+        Origin = (600, 600)
+
+        +-----------+
+        -           -
+        -   +---+   -
+        -   -   -   -
+        -   -   -   -
+        -   +---+   -
+        -           -
+        +-----------+
+        """
+        # indices based on full array
+        ul = (600, 600)
+        ur = (ul[0], ul[1] + self.subs_shape[1])
+        lr = (ul[0] + self.subs_shape[0], ul[1] + self.subs_shape[1])
+        ll = (ul[0] + self.subs_shape[0], ul[1])
+
+        # real world coords (note reversing (y, x) to (x, y)
+        ul_xy_map = ul[::-1] * self.geobox.transform
+        ur_xy_map = ur[::-1] * self.geobox.transform
+        lr_xy_map = lr[::-1] * self.geobox.transform
+        ll_xy_map = ll[::-1] * self.geobox.transform
+
+        # read subset
+        data, gb = read_subset(self.ds, ul_xy_map, ur_xy_map, lr_xy_map, ll_xy_map)
+
+        count = self.subs_shape[0] * self.subs_shape[1]
+        self.assertTrue(data.sum() == count)
+
+    def test_case_f(self):
+        """
+        Origin = (600, 1400)
+
+        +-----------+
+        -           -
+        -        +-----+
+        -        -  -  -
+        -        -  -  -
+        -        +-----+
+        -           -
+        +-----------+
+        """
+        # indices based on full array
+        ul = (600, 1400)
+        ur = (ul[0], ul[1] + self.subs_shape[1])
+        lr = (ul[0] + self.subs_shape[0], ul[1] + self.subs_shape[1])
+        ll = (ul[0] + self.subs_shape[0], ul[1])
+
+        # real world coords (note reversing (y, x) to (x, y)
+        ul_xy_map = ul[::-1] * self.geobox.transform
+        ur_xy_map = ur[::-1] * self.geobox.transform
+        lr_xy_map = lr[::-1] * self.geobox.transform
+        ll_xy_map = ll[::-1] * self.geobox.transform
+
+        # read subset
+        data, gb = read_subset(self.ds, ul_xy_map, ur_xy_map, lr_xy_map, ll_xy_map)
+
+        count = 
+        self.assertTrue(data.sum() == count)
+
+    def test_case_g(self):
+        """
+        Origin = (1100, -50)
+
+              +-----------+
+              -           -
+              -           -
+              -           -
+              -           -
+           +-----+        -
+           -  -  -        -
+           -  +-----------+
+           -     -
+           -     -
+           +-----+
+        """
+        # indices based on full array
+        ul = (1100, -50)
+        ur = (ul[0], ul[1] + self.subs_shape[1])
+        lr = (ul[0] + self.subs_shape[0], ul[1] + self.subs_shape[1])
+        ll = (ul[0] + self.subs_shape[0], ul[1])
+
+        # real world coords (note reversing (y, x) to (x, y)
+        ul_xy_map = ul[::-1] * self.geobox.transform
+        ur_xy_map = ur[::-1] * self.geobox.transform
+        lr_xy_map = lr[::-1] * self.geobox.transform
+        ll_xy_map = ll[::-1] * self.geobox.transform
+
+        # read subset
+        data, gb = read_subset(self.ds, ul_xy_map, ur_xy_map, lr_xy_map, ll_xy_map)
+
+        count = 
+        self.assertTrue(data.sum() == count)
+
+    def test_case_h(self):
+        """
+        Origin = (1100, 600)
+
+        +-----------+
+        -           -
+        -           -
+        -           -
+        -           -
+        -   +----+  -
+        -   -    -  -
+        +-----------+
+            -    -
+            -    -
+            +----+
+        """
+        # indices based on full array
+        ul = (1100, 600)
+        ur = (ul[0], ul[1] + self.subs_shape[1])
+        lr = (ul[0] + self.subs_shape[0], ul[1] + self.subs_shape[1])
+        ll = (ul[0] + self.subs_shape[0], ul[1])
+
+        # real world coords (note reversing (y, x) to (x, y)
+        ul_xy_map = ul[::-1] * self.geobox.transform
+        ur_xy_map = ur[::-1] * self.geobox.transform
+        lr_xy_map = lr[::-1] * self.geobox.transform
+        ll_xy_map = ll[::-1] * self.geobox.transform
+
+        # read subset
+        data, gb = read_subset(self.ds, ul_xy_map, ur_xy_map, lr_xy_map, ll_xy_map)
+
+        count = 
+        self.assertTrue(data.sum() == count)
+
+    def test_case_i(self):
+        """
+        Origin = (1100, 1400)
+
+        +-----------+
+        -           -
+        -           -
+        -           -
+        -           -
+        -        +-----+
+        -        -     -
+        +-----------+---
+                 -     -
+                 -     -
+                 +-----+
+        """
+        # indices based on full array
+        ul = (1100, 1400)
+        ur = (ul[0], ul[1] + self.subs_shape[1])
+        lr = (ul[0] + self.subs_shape[0], ul[1] + self.subs_shape[1])
+        ll = (ul[0] + self.subs_shape[0], ul[1])
+
+        # real world coords (note reversing (y, x) to (x, y)
+        ul_xy_map = ul[::-1] * self.geobox.transform
+        ur_xy_map = ur[::-1] * self.geobox.transform
+        lr_xy_map = lr[::-1] * self.geobox.transform
+        ll_xy_map = ll[::-1] * self.geobox.transform
+
+        # read subset
+        data, gb = read_subset(self.ds, ul_xy_map, ur_xy_map, lr_xy_map, ll_xy_map)
+
+        count = 
+        self.assertTrue(data.sum() == count)
 
 if __name__ == '__main__':
     unittest.main()
