@@ -204,9 +204,9 @@ class TestReadSubset(unittest.TestCase):
 
     def test_case_a(self):
         """
-        Origin = (-150, -50)
+        Origin = (-150, -50); `O`
 
-            +----+
+           O+----+
             -    -
             -  +-----------+
             -  - -         -
@@ -232,14 +232,14 @@ class TestReadSubset(unittest.TestCase):
         # read subset
         data, gb = read_subset(self.ds, ul_xy_map, ur_xy_map, lr_xy_map, ll_xy_map)
 
-        count = 
+        count = 50 * 250
         self.assertTrue(data.sum() == count)
 
     def test_case_b(self):
         """
-        Origin = (-150, 600)
+        Origin = (-150, 600); `O`
 
-            +---+
+           O+---+
             -   -
         +----   ----+
         -   -   -   -
@@ -265,14 +265,14 @@ class TestReadSubset(unittest.TestCase):
         # read subset
         data, gb = read_subset(self.ds, ul_xy_map, ur_xy_map, lr_xy_map, ll_xy_map)
 
-        count = 
+        count = 50 * 300
         self.assertTrue(data.sum() == count)
 
     def test_case_c(self):
         """
-        Origin = (-150, 1400)
+        Origin = (-150, 1400); `O`
 
-                   +---+
+                  O+---+
                    -   -
         +------------+ -
         -          - - -
@@ -298,16 +298,16 @@ class TestReadSubset(unittest.TestCase):
         # read subset
         data, gb = read_subset(self.ds, ul_xy_map, ur_xy_map, lr_xy_map, ll_xy_map)
 
-        count = 
+        count = 50 * 100
         self.assertTrue(data.sum() == count)
 
     def test_case_d(self):
         """
-        Origin = (600, -50)
+        Origin = (600, -50); `O`
 
               +-----------+
               -           -
-           +-----+        -
+          O+-----+        -
            -  -  -        -
            -  -  -        -
            +-----+        -
@@ -329,16 +329,16 @@ class TestReadSubset(unittest.TestCase):
         # read subset
         data, gb = read_subset(self.ds, ul_xy_map, ur_xy_map, lr_xy_map, ll_xy_map)
 
-        count = 
+        count = 200 * 250
         self.assertTrue(data.sum() == count)
 
     def test_case_e(self):
         """
-        Origin = (600, 600)
+        Origin = (600, 600); `O`
 
         +-----------+
         -           -
-        -   +---+   -
+        -  O+---+   -
         -   -   -   -
         -   -   -   -
         -   +---+   -
@@ -360,16 +360,16 @@ class TestReadSubset(unittest.TestCase):
         # read subset
         data, gb = read_subset(self.ds, ul_xy_map, ur_xy_map, lr_xy_map, ll_xy_map)
 
-        count = self.subs_shape[0] * self.subs_shape[1]
+        count = 200 * 300
         self.assertTrue(data.sum() == count)
 
     def test_case_f(self):
         """
-        Origin = (600, 1400)
+        Origin = (600, 1400); `O`
 
         +-----------+
         -           -
-        -        +-----+
+        -       O+-----+
         -        -  -  -
         -        -  -  -
         -        +-----+
@@ -391,19 +391,19 @@ class TestReadSubset(unittest.TestCase):
         # read subset
         data, gb = read_subset(self.ds, ul_xy_map, ur_xy_map, lr_xy_map, ll_xy_map)
 
-        count = 
+        count = 200 * 100
         self.assertTrue(data.sum() == count)
 
     def test_case_g(self):
         """
-        Origin = (1100, -50)
+        Origin = (1100, -50); `O`
 
               +-----------+
               -           -
               -           -
               -           -
               -           -
-           +-----+        -
+          O+-----+        -
            -  -  -        -
            -  +-----------+
            -     -
@@ -425,19 +425,19 @@ class TestReadSubset(unittest.TestCase):
         # read subset
         data, gb = read_subset(self.ds, ul_xy_map, ur_xy_map, lr_xy_map, ll_xy_map)
 
-        count = 
+        count = 100 * 250
         self.assertTrue(data.sum() == count)
 
     def test_case_h(self):
         """
-        Origin = (1100, 600)
+        Origin = (1100, 600); `O`
 
         +-----------+
         -           -
         -           -
         -           -
         -           -
-        -   +----+  -
+        -  O+----+  -
         -   -    -  -
         +-----------+
             -    -
@@ -459,19 +459,19 @@ class TestReadSubset(unittest.TestCase):
         # read subset
         data, gb = read_subset(self.ds, ul_xy_map, ur_xy_map, lr_xy_map, ll_xy_map)
 
-        count = 
+        count = 100 * 300
         self.assertTrue(data.sum() == count)
 
     def test_case_i(self):
         """
-        Origin = (1100, 1400)
+        Origin = (1100, 1400); `O`
 
         +-----------+
         -           -
         -           -
         -           -
         -           -
-        -        +-----+
+        -       O+-----+
         -        -     -
         +-----------+---
                  -     -
@@ -493,7 +493,7 @@ class TestReadSubset(unittest.TestCase):
         # read subset
         data, gb = read_subset(self.ds, ul_xy_map, ur_xy_map, lr_xy_map, ll_xy_map)
 
-        count = 
+        count = 100 * 100
         self.assertTrue(data.sum() == count)
 
 if __name__ == '__main__':
