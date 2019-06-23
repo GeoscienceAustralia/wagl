@@ -295,6 +295,10 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=0, bands=1):
     """
     Return a 2D or 3D NumPy array subsetted to the given bounding
     extents.
+    The function will allow a user to ask for a region outside of the
+    requested domain. Those elements that fall outside of the
+    requested domain will be populated with the datasets' fillvalue
+    or 0 if the fillvalue is None.
 
     :param fname:
         A string containing the full file pathname to an image on
