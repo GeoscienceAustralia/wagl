@@ -32,7 +32,7 @@ from wagl.constants import Workflow, Method
 from wagl.hdf5 import H5CompressionFilter
 from wagl.standardise import card4l
 
-from wagl.logs import ERROR_LOGGER, INTERFACE_LOGGER
+from wagl.logs import ERROR_LOGGER
 
 
 @luigi.Task.event_handler(luigi.Event.FAILURE)

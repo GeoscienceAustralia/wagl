@@ -1,3 +1,12 @@
+"""
+Logging configuration for wagl logs
+
+Defines structured logging for:
+    * Errors            -- qualname error
+    * Status messages   -- qualname status
+    * Luigi interface   -- qualname luigi-interface
+"""
+
 import logging
 
 import structlog
@@ -24,7 +33,7 @@ def get_wrapped_logger(logger_name: str = 'root', **kwargs):
 
 class FormatJSONL(logging.Formatter):
     """ Prevents printing of the stack trace to enable JSON lines output """
-    def formatException(self, *args):
+    def formatException(self, ei):
         """ Disables printing separate stack traces """
         return
 
