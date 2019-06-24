@@ -9,7 +9,6 @@ import math
 import ephem
 import numpy as np
 import h5py
-import logging
 
 from osgeo import osr
 from wagl.constants import DatasetName, GroupName, TrackIntersection

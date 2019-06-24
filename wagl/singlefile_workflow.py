@@ -24,8 +24,6 @@ Workflow settings can be configured in `luigi.cfg` file.
 
 from os.path import join as pjoin, basename
 import traceback
-from structlog import wrap_logger
-from structlog.processors import JSONRenderer
 import luigi
 from luigi.util import inherits
 
@@ -34,17 +32,17 @@ from wagl.constants import Workflow, Method
 from wagl.hdf5 import H5CompressionFilter
 from wagl.standardise import card4l
 
-from wagl.logging import ERROR_LOGGER, INTERFACE_LOGGER
+from wagl.logs import ERROR_LOGGER, INTERFACE_LOGGER
 
 
 @luigi.Task.event_handler(luigi.Event.FAILURE)
 def on_failure(task, exception):
     """Capture any Task Failure here."""
-    ERROR_LOGGER.error(task=task.get_task_family(),
-                       params=task.to_str_params(),
-                       level1=getattr(task, 'level1', ''),
-                       exception=exception.__str__(),
-                       traceback=traceback.format_exc().splitlines())
+    ERROR_LOGGER.exception(task=task.get_task_family(),
+                           params=task.to_str_params(),
+                           level1=getattr(task, 'level1', ''),
+                           exception=exception.__str__(),
+                           traceback=traceback.format_exc().splitlines())
 
 
 class DataStandardisation(luigi.Task):

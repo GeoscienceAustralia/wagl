@@ -5,8 +5,6 @@ import tempfile
 import json
 
 from posixpath import join as ppjoin
-from structlog import wrap_logger
-from structlog.processors import JSONRenderer
 import h5py
 
 from wagl.acquisition import acquisitions
@@ -33,7 +31,7 @@ from wagl.temperature import surface_brightness_temperature
 from wagl.pq import can_pq, run_pq
 from wagl.modtran import JsonEncoder
 
-from wagl.logging import STATUS_LOGGER
+from wagl.logs import STATUS_LOGGER
 
 
 # pylint disable=too-many-arguments

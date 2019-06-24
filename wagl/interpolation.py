@@ -17,6 +17,7 @@ from wagl.constants import DatasetName, Workflow, GroupName, Method
 from wagl.hdf5 import H5CompressionFilter, find, create_external_link
 from wagl.hdf5 import write_h5_image, read_h5_table
 
+
 DEFAULT_ORIGIN = (0, 0)
 DEFAULT_SHAPE = (8, 8)
 
@@ -181,8 +182,8 @@ def interpolate_grid(grid, eval_func, depth=0, origin=DEFAULT_ORIGIN, shape=DEFA
     if max_depth < 0:
        raise ValueError('Unable to interpolate grid of %s', str(shape))
     elif max_depth < depth:
-       _LOG.warning("Requested depth of %s but maximum interpolated depth is %s; using %s"
-                    " for shape %s", depth, max_depth, max_depth, str(shape))
+       _LOG.warning("Requested depth of {} but maximum interpolated depth is {}; using {}"
+                    " for shape {}".format(depth, max_depth, max_depth, str(shape)))
        depth = max_depth
     return __interpolate_grid_inner(grid, eval_func, depth, origin, shape)
 
