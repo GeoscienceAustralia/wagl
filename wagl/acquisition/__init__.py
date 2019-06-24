@@ -145,7 +145,7 @@ def preliminary_acquisitions_data_via_mtl(pathname):
             try:
                 member = next(filter(lambda mm: 'MTL' in mm.name, tarball.getmembers()))
                 with tarball.extractfile(member) as fmem:
-                     data = load_mtl(fmem)
+                    data = load_mtl(fmem)
                 prefix_name = 'tar://{}!'.format(os.path.abspath(pathname))
             except StopIteration:
                 raise OSError("Cannot find MTL file in %s" % pathname)

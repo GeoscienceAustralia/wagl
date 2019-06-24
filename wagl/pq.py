@@ -45,7 +45,7 @@ def can_pq(level1, acq_parser_hint=None):
     return acq.platform_id in supported
 
 
-class PQAResult(object):
+class PQAResult:
     """
     Represents the PQA result
     """

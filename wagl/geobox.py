@@ -28,7 +28,7 @@ affine.EPSILON2 = 1e-18
 CRS = "EPSG:4326"
 
 
-class GriddedGeoBox(object):
+class GriddedGeoBox:
 
     """
     Represents a north up rectangular region on the Earth's surface which

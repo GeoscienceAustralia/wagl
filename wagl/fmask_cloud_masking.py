@@ -1,14 +1,17 @@
 #!/usr/bin/env python
 
 # coding=utf-8
-# A near literal port of the FMask matlab code to python using numpy/scipy and itk.
-# - As a result of the literal port, original comments should still be intact - as is the original code structure.
+# pylint: skip-file
+"""
+ A near literal port of the FMask matlab code to python using numpy/scipy and itk.
+ - As a result of the literal port, original comments should still be intact - as is the original code structure.
 
-# Transcription History
-# 1.6.3 transcription Mitchell Wheeler
-# 3.0 transcription Josh Sixsmith
-#     + added skimage library
-#     + better handling for imagery of different resolutions
+ Transcription History
+ 1.6.3 transcription Mitchell Wheeler
+ 3.0 transcription Josh Sixsmith
+     + added skimage library
+     + better handling for imagery of different resolutions
+"""
 
 from __future__ import absolute_import, print_function
 import sys

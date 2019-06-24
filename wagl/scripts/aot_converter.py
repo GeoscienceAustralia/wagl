@@ -20,6 +20,7 @@ def read_pix(filename):
     The pix files are sparse 3D arrays.
     Will store as a Table and remove invalid data.
     """
+    # pylint: disable=unused-variable
     src = open(filename, 'rb')
     recs = numpy.fromfile(src, dtype='int32', count=3)
     xgrid = numpy.fromfile(src, dtype='float32', count=recs[0])
@@ -30,6 +31,8 @@ def read_pix(filename):
                           count=recs[2] * 3).reshape(3, recs[2])
     time = numpy.fromfile(src, dtype='int16',
                           count=recs[2] * 3).reshape(3, recs[2])
+
+    # lat, lon variables are read to move the buffer pointer
     lat = numpy.fromfile(src, dtype='float32', count=recs[2])
     lon = numpy.fromfile(src, dtype='float32', count=recs[2])
     aot = numpy.fromfile(src, dtype='float32', count=recs[2])

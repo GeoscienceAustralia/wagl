@@ -341,7 +341,7 @@ class PQbits(Enum):
 
 
 # TODO: get rid or redo this class
-class PQAConstants(object):
+class PQAConstants:
 
     """
     A class object that contains the majority of constants used throughout

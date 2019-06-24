@@ -188,7 +188,7 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
             calculate_angles(acqs[0], root[GroupName.LON_LAT_GROUP.value],
                              root, compression, filter_opts, tle_path)
 
-            if workflow == Workflow.STANDARD or workflow == Workflow.NBAR:
+            if workflow in (Workflow.STANDARD, Workflow.NBAR):
 
                 # DEM
                 log.info('DEM-retriveal')
@@ -364,10 +364,10 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
             # standardised products
             band_acqs = []
 
-            if workflow == Workflow.STANDARD or workflow == Workflow.NBAR:
+            if workflow in (Workflow.STANDARD, Workflow.NBAR):
                 band_acqs.extend(nbar_acqs)
 
-            if workflow == Workflow.STANDARD or workflow == Workflow.SBT:
+            if workflow in (Workflow.STANDARD, Workflow.SBT):
                 band_acqs.extend(sbt_acqs)
 
             for acq in band_acqs:
@@ -380,8 +380,9 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
                 else:
                     atmos_coefs = read_h5_table(comp_grp, DatasetName.NBAR_COEFFICIENTS.value)
                     esun_values[acq.band_name] = (
-                        atmos_coefs[atmos_coefs.band_name == acq.band_name]
-                                   [AtmosphericCoefficients.ESUN.value]
+                        atmos_coefs
+                        [atmos_coefs.band_name == acq.band_name]
+                        [AtmosphericCoefficients.ESUN.value]
                     ).values[0]
 
                     slp_asp_grp = res_group[GroupName.SLP_ASP_GROUP.value]
@@ -411,10 +412,10 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
             sbt_acqs = [acq for acq in acqs if acq.band_type == BandType.THERMAL]
 
             band_acqs = []
-            if workflow == Workflow.STANDARD or workflow == Workflow.NBAR:
+            if workflow in (Workflow.STANDARD, Workflow.NBAR):
                 band_acqs.extend(nbar_acqs)
 
-            if workflow == Workflow.STANDARD or workflow == Workflow.SBT:
+            if workflow in (Workflow.STANDARD, Workflow.SBT):
                 band_acqs.extend(sbt_acqs)
 
             return band_acqs

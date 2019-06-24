@@ -57,7 +57,7 @@ __version__ = '1.0.1'
 # pylint: disable=invalid-name
 
 
-class GreatCircle(object):
+class GreatCircle:
 
     """
     formula for perfect sphere from Ed Williams' 'Aviation Formulary'

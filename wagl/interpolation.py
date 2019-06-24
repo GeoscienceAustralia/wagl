@@ -180,11 +180,14 @@ def interpolate_grid(grid, eval_func, depth=0, origin=DEFAULT_ORIGIN, shape=DEFA
     #  depth can be derived by bit length
     max_depth = min(shape[0].bit_length(), shape[1].bit_length()) - 2
     if max_depth < 0:
-       raise ValueError('Unable to interpolate grid of %s', str(shape))
+        raise ValueError('Unable to interpolate grid of %s' % str(shape))
     elif max_depth < depth:
-       _LOG.warning("Requested depth of {} but maximum interpolated depth is {}; using {}"
-                    " for shape {}".format(depth, max_depth, max_depth, str(shape)))
-       depth = max_depth
+        _LOG.warning("Requested depth of {depth} but maximum interpolated depth is {max_depth};"
+                     " using {max_depth} for shape {shape}".format(
+                         depth=depth,
+                         max_depth=max_depth,
+                         shape=str(shape)))
+        depth = max_depth
     return __interpolate_grid_inner(grid, eval_func, depth, origin, shape)
 
 
@@ -308,6 +311,7 @@ def sheared_bilinear_interpolate(cols, rows, locations, samples,
     Optimised to reduce memory footprint (no large rasters are
     temporarily allocated).
     """
+    # pylint: disable=unused-variable
 
     n = len(samples)
     grid_size = int(math.sqrt(n)) - 1

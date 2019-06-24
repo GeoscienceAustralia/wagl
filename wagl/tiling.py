@@ -94,7 +94,7 @@ def generate_tiles(samples, lines, xtile=None, ytile=None):
     return tiles
 
 
-class TiledOutput(object):
+class TiledOutput:
 
     def __init__(self, out_fname, samples=None, lines=None, bands=1,
                  geobox=None, fmt="ENVI", nodata=None, dtype=gdal.GDT_Byte):
@@ -202,6 +202,7 @@ class TiledOutput(object):
         self.nodata = nodata
         self.geobox = geobox
         self.bands = bands
+        self.out_bands = None
 
         self._set_geobox()
         self._set_bands_lookup()
