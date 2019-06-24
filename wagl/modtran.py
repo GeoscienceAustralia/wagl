@@ -11,13 +11,14 @@ import os
 from os.path import join as pjoin, exists
 import subprocess
 import glob
-from posixpath import join as ppjoin
-import numpy
-import h5py
-import pandas as pd
 import json
 import fnmatch
 import shutil
+from posixpath import join as ppjoin
+
+import numpy
+import h5py
+import pandas as pd
 
 from wagl.constants import Workflow, BandType, DatasetName, GroupName, Albedos
 from wagl.constants import POINT_FMT, ALBEDO_FMT, POINT_ALBEDO_FMT
@@ -71,7 +72,7 @@ def prepare_modtran(acquisitions, coordinate, albedos, basedir):
 
 
 def _format_json(acquisitions, satellite_solar_angles_fname,
-                longitude_latitude_fname, ancillary_fname, out_fname, workflow):
+                 longitude_latitude_fname, ancillary_fname, out_fname, workflow):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
@@ -90,7 +91,7 @@ def _format_json(acquisitions, satellite_solar_angles_fname,
 
 
 def format_json(acquisitions, ancillary_group, satellite_solar_group,
-               lon_lat_group, workflow, out_group):
+                lon_lat_group, workflow, out_group):
     """
     Creates json files for the albedo (0) and thermal
     """
@@ -156,7 +157,7 @@ def format_json(acquisitions, ancillary_group, satellite_solar_group,
 
     json_data = {}
     # setup the json files required by MODTRAN
-    if workflow == Workflow.STANDARD or workflow == Workflow.NBAR:
+    if workflow in (Workflow.STANDARD, Workflow.NBAR):
         acqs = [a for a in acquisitions if a.band_type == BandType.REFLECTIVE]
 
         for p in range(npoints):
@@ -291,9 +292,9 @@ def run_modtran(acquisitions, atmospherics_group, workflow, npoints, point,
         fid.create_group(group_name)
 
     fid[group_name].attrs['npoints'] = npoints
-    applied = workflow == Workflow.STANDARD or workflow == Workflow.NBAR
+    applied = workflow in (Workflow.STANDARD, Workflow.NBAR)
     fid[group_name].attrs['nbar_atmospherics'] = applied
-    applied = workflow == Workflow.STANDARD or workflow == Workflow.SBT
+    applied = workflow in (Workflow.STANDARD, Workflow.SBT)
     fid[group_name].attrs['sbt_atmospherics'] = applied
 
     acqs = acquisitions
@@ -303,7 +304,7 @@ def run_modtran(acquisitions, atmospherics_group, workflow, npoints, point,
                          ALBEDO_FMT.format(a=albedo.value))
 
         json_mod_infile = pjoin(workpath, ''.join(
-                [POINT_ALBEDO_FMT.format(p=point, a=albedo.value), '.json']))
+            [POINT_ALBEDO_FMT.format(p=point, a=albedo.value), '.json']))
 
         group_path = ppjoin(base_path, ALBEDO_FMT.format(a=albedo.value))
 
@@ -689,15 +690,17 @@ def _get_solar_angles(tp6_fname):
         lines = f.readlines()
 
         for line in lines:
-            cnt +=1
-            if fnmatch.fnmatch(line,
+            cnt = cnt + 1
+            if fnmatch.fnmatch(
+                    line,
                     '*SINGLE SCATTER SOLAR PATH GEOMETRY '
                     'TABLE FOR MULTIPLE SCATTERING*'):
+
                 break
         else:
             raise ValueError((
-                    'Not able to locate solar zenith angles '
-                    'in tp6 file:%s') % tp6_fname)
+                'Not able to locate solar zenith angles '
+                'in tp6 file:%s') % tp6_fname)
 
         # TODO dynamically configure the number of atmospheric layers
         # this constant is (40-4 = num of atmospheric layer)

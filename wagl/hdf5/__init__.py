@@ -455,8 +455,6 @@ def attach_attributes(dataset, attrs=None):
                 attrs[key] = attrs[key].isoformat()
             dataset.attrs[key] = attrs[key]
 
-    return
-
 
 def create_external_link(fname, dataset_path, out_fname, new_dataset_path):
     """
@@ -481,8 +479,6 @@ def create_external_link(fname, dataset_path, out_fname, new_dataset_path):
     """
     with h5py.File(out_fname) as fid:
         fid[new_dataset_path] = h5py.ExternalLink(fname, dataset_path)
-
-    return
 
 
 def write_scalar(data, dataset_name, group, attrs=None):
@@ -511,7 +507,6 @@ def write_scalar(data, dataset_name, group, attrs=None):
     dset = group.create_dataset(dataset_name, data=data)
     attach_attributes(dset, attrs=DEFAULT_SCALAR_CLASS)
     attach_attributes(dset, attrs=attrs)
-    return
 
 
 def h5ls(h5_obj, verbose=False):

@@ -5,7 +5,7 @@ from __future__ import absolute_import, print_function
 from math import ceil
 
 
-class ImageMargins(object):
+class ImageMargins:
 
     """
     Holds some value for each side of an image. This was initially

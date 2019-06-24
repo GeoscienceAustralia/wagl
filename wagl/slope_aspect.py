@@ -108,7 +108,7 @@ def slope_aspect_arrays(acquisition, dsm_group, buffer_distance,
 
     # elevation dataset
     elevation = dsm_group[DatasetName.DSM_SMOOTHED.value]
-    ele_rows, ele_cols  = elevation.shape
+    ele_rows, ele_cols = elevation.shape
 
     # TODO: check that the index is correct
     # Define the index to read the DEM subset

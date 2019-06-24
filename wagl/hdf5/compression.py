@@ -23,7 +23,7 @@ such that a different setting will be a different configuration.
 See http://www.attrs.org/en/stable/examples.html#immutability for more details.
 """
 
-from enum import Enum, IntEnum
+from enum import IntEnum
 import attr
 
 
@@ -103,7 +103,7 @@ class BloscShuffle(IntEnum):
 
 
 @attr.s()
-class H5CompressionConfig(object):
+class H5CompressionConfig:
 
     """
     Base class for defining HDF5 compression filters.

@@ -140,7 +140,7 @@ def first_and_last(array):
         (0, 0)
     """
     i, = np.nonzero(array) # assume array only has one dimension to unpack
-    return (i[0], i[-1]) if len(i) else (-1, -1)
+    return (i[0], i[-1]) if i.shape[0] else (-1, -1)
 
 
 def asymetric_linspace(start, stop, num, midpoint):

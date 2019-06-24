@@ -12,11 +12,13 @@ from functools import partial
 import argparse
 from posixpath import basename as pbasename
 from posixpath import join as ppjoin
+import json
+
 import numpy
 import h5py
 import yaml
 from yaml.representer import Representer
-import json
+
 from wagl.data import write_img
 from wagl.geobox import GriddedGeoBox
 from wagl.hdf5 import read_h5_table

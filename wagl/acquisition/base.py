@@ -13,7 +13,7 @@ from ..modtran import read_spectral_response
 from ..tiling import generate_tiles
 from ..constants import BandType
 
-class AcquisitionsContainer(object):
+class AcquisitionsContainer:
 
     """
     A container for dealing with a hierarchial structure
@@ -226,7 +226,7 @@ class AcquisitionsContainer(object):
         """
         acquisitions = []
         for group in self.groups:
-            acqs =  self.get_acquisitions(group, granule)
+            acqs = self.get_acquisitions(group, granule)
             if acqs:
                 acquisitions.extend(acqs)
 
@@ -234,7 +234,7 @@ class AcquisitionsContainer(object):
 
 
 @total_ordering
-class Acquisition(object):
+class Acquisition:
 
     """Acquisition metadata."""
 
@@ -271,7 +271,7 @@ class Acquisition(object):
             self._tile_size = ds.block_shapes[0]
             self._resolution = ds.res
             self._gridded_geo_box = GriddedGeoBox.from_dataset(ds)
-            self._no_data_val =  ds.nodatavals[0]
+            self._no_data_val = ds.nodatavals[0]
 
     @property
     def pathname(self):
@@ -388,7 +388,7 @@ class Acquisition(object):
 
         return data
 
-    def radiance_data(self, window=None, out_no_data=-999):
+    def radiance_data(self, window=None, out_no_data=-999, esun=None):
         """
         Return the data as radiance in watts/(m^2*micrometre).
         Override with a custom version for a specific sensor.
@@ -459,7 +459,6 @@ class Acquisition(object):
         for handling various read methods is resolved.
         Override as needed.
         """
-        pass
 
     def tiles(self):
         """
