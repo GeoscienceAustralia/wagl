@@ -8,16 +8,19 @@ from os.path import join as pjoin, basename, dirname
 import subprocess
 import tempfile
 import logging
+
 import numpy as np
 import h5py
 import rasterio
-
 from rasterio.crs import CRS
 from rasterio.warp import reproject
 from rasterio.enums import Resampling
+
 from wagl.geobox import GriddedGeoBox
 from wagl.tiling import generate_tiles
 from wagl.metadata import current_h5_metadata
+
+_LOG = logging.getLogger(__name__)
 
 
 def get_pixel(filename, dataset_name, lonlat):
@@ -177,7 +180,7 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
         lines = dims[1]
         bands = dims[0]
     else:
-        logging.error('Input array is not of 2 or 3 dimensions!!!')
+        _LOG.error('Input array is not of 2 or 3 dimensions!!!')
         err = 'Array dimensions: {dims}'.format(dims=ndims)
         raise IndexError(err)
 

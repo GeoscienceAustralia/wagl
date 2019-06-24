@@ -26,12 +26,9 @@ from __future__ import absolute_import, print_function
 import os
 from os.path import join as pjoin, basename, dirname, splitext
 from posixpath import join as ppjoin
-import logging
 import traceback
 import json
 
-from structlog import wrap_logger
-from structlog.processors import JSONRenderer
 import h5py
 import luigi
 from luigi.local_target import LocalFileSystem

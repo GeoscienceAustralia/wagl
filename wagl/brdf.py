@@ -38,13 +38,14 @@ import shapely.affinity
 import shapely.geometry
 from shapely.geometry import box
 from shapely import wkt, ops
+
 from wagl.constants import BrdfDirectionalParameters, BrdfModelParameters, BrdfTier
 from wagl.hdf5 import H5CompressionFilter, VLEN_STRING
 from wagl.metadata import current_h5_metadata
 from wagl.data import read_subset
 
 
-log = logging.getLogger('root.' + __name__)
+_LOG = logging.getLogger(__name__)
 
 
 class BRDFLoaderError(Exception):
@@ -233,7 +234,7 @@ def valid_region(fname, mask_value=None):
     """
     Return valid data region for input images based on mask value and input image path
     """
-    log.info("Valid regions for %s", fname)
+    _LOG.info("Valid regions for {}".format(fname))
 
     # ensure formats match
     with rasterio.open(str(fname), 'r') as dataset:
