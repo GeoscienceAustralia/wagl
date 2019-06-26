@@ -179,6 +179,9 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
             root = fid.create_group(ppjoin(granule, grp_name))
             acqs = container.get_acquisitions(granule=granule, group=grp_name)
 
+            # include the resolution as a group attribute
+            root.attrs['resolution'] = acqs[0].resolution
+
             # longitude and latitude
             log.info('Latitude-Longitude')
             create_lon_lat_grids(acqs[0], root, compression, filter_opts)
