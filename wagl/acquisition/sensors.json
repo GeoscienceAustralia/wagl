@@ -1,4 +1,114 @@
 {
+    "WORLDVIEW_2": {
+        "MUL": {
+            "band_ids": {
+                "1": {
+                    "alias": "Coastal-Aerosol",
+                    "band_type": "REFLECTIVE",
+                    "band_name": "BAND-C",
+                    "wavelength": [0.40, 0.45],
+                    "spectral_filter_name": "WorldView-2-visnir.flt",
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.0365,
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
+                    "gain": 1.151,
+                    "offset": -7.478,
+                    "supported_band": true
+                },
+                "2": {
+                    "alias": "Blue",
+                    "band_type": "REFLECTIVE",
+                    "band_name": "BAND-B",
+                    "wavelength": [0.45, 0.51],
+                    "spectral_filter_name": "WorldView-2-visnir.flt",
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.0365,
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
+                    "gain": 0.988,
+                    "offset": -5.736,
+                    "supported_band": true
+                },
+                "3": {
+                    "alias": "Green",
+                    "band_type": "REFLECTIVE",
+                    "band_name": "BAND-G",
+                    "wavelength": [0.51, 0.58],
+                    "spectral_filter_name": "WorldView-2-visnir.flt",
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.0667,
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band4"],
+                    "gain": 0.936,
+                    "offset": -3.546,
+                    "supported_band": true
+                },
+                "4": {
+                    "alias": "Yellow",
+                    "band_type": "REFLECTIVE",
+                    "band_name": "BAND-Y",
+                    "wavelength": [0.585, 0.625],
+                    "spectral_filter_name": "WorldView-2-visnir.flt",
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.0667,
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
+                    "gain": 0.949,
+                    "offset": -3.564,
+                    "supported_band": true
+                },
+                "5": {
+                    "alias": "Red",
+                    "band_type": "REFLECTIVE",
+                    "band_name": "BAND-R",
+                    "wavelength": [0.63, 0.69],
+                    "spectral_filter_name": "WorldView-2-visnir.flt",
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.0880,
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
+                    "gain": 0.952,
+                    "offset": -2.512,
+                    "supported_band": true
+                },
+                "6": {
+                    "alias": "Rededge",
+                    "band_type": "REFLECTIVE",
+                    "band_name": "BAND-RE",
+                    "wavelength": [0.705, 0.745],
+                    "spectral_filter_name": "WorldView-2-visnir.flt",
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.0880,
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
+                    "gain": 0.974,
+                    "offset": -4.120,
+                    "supported_band": true
+                },
+                "7": {
+                    "alias": "NIR-1",
+                    "band_type": "REFLECTIVE",
+                    "band_name": "BAND-N",
+                    "wavelength": [0.77, 0.895],
+                    "spectral_filter_name": "WorldView-2-visnir.flt",
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.2231,
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
+                    "gain": 0.961,
+                    "offset": -3.300,
+                    "supported_band": true
+                },
+                "8": {
+                    "alias": "NIR-2",
+                    "band_type": "REFLECTIVE",
+                    "band_name": "BAND-N2",
+                    "wavelength": [0.86, 1.04],
+                    "spectral_filter_name": "WorldView-2-visnir.flt",
+                    "spectral_range": [2600, 349, -1],
+                    "reflectance_adjustment": 0.2231,
+                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
+                    "gain": 1.002,
+                    "offset": -2.891,
+                    "supported_band": true
+                }
+            }
+        }
+    },
     "LANDSAT_5": {
         "TM": {
             "band_ids": {
