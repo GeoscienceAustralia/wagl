@@ -12,7 +12,8 @@ from wagl.constants import DatasetName, GroupName
 from wagl.margins import pixel_buffer
 from wagl.geobox import GriddedGeoBox
 from wagl.data import reproject_array_to_array, read_subset
-from wagl.hdf5 import H5CompressionFilter, attach_image_attributes
+from wagl.hdf5 import H5CompressionFilter, attach_image_attributes, VLEN_STRING
+from wagl.metadata import current_h5_metadata
 
 
 def filter_dsm(array):
@@ -126,6 +127,9 @@ def get_dsm(acquisition, pathname, buffer_distance=8000, out_group=None,
         subs, subs_geobox = read_subset(dsm_ds, ul_xy, ur_xy, lr_xy, ll_xy,
                                         edge_buffer=1)
 
+        # ancillary metadata tracking
+        metadata = current_h5_metadata(dsm_fid, dataset_path=dname)
+
     # Retrive the DSM data
     dsm_data = reproject_array_to_array(subs, subs_geobox, dem_geobox,
                                         resampling=Resampling.bilinear)
@@ -174,6 +178,7 @@ def get_dsm(acquisition, pathname, buffer_distance=8000, out_group=None,
     desc = ("A subset of a Digital Surface Model smoothed with a gaussian "
             "kernel.")
     attrs['description'] = desc
+    attrs['id'] = numpy.array([metadata['id']], VLEN_STRING)
     attach_image_attributes(out_sm_dset, attrs)
 
     if out_group is None:
