@@ -210,7 +210,7 @@ def create_ard_yaml(res_group_bands, ancillary_group, out_group, parameters, wor
                 fmt = DatasetName.BRDF_FMT.value
                 dname = fmt.format(band_name=bn, parameter=param.value)
                 dset = fid[dname]
-                ids.extend(dset['id'])
+                ids.extend(dset.attrs['id'])
                 tier.append(BrdfTier[dset['tier']].value)
                 alpha_key = param.value.lower().replace('-', '_')
                 bn_key = bn.lower().replace('-', '_')
@@ -264,7 +264,7 @@ def create_ard_yaml(res_group_bands, ancillary_group, out_group, parameters, wor
         # low resolution source
         dname = DatasetName.ELEVATION.value
         dset = anc_grp[dname]
-        ids.extend(dset['id'])
+        ids.extend(dset.attrs['id'])
 
         # high resolution source (res group is adjacent to ancillary group)
         parent_group = anc_grp.parent
@@ -273,7 +273,7 @@ def create_ard_yaml(res_group_bands, ancillary_group, out_group, parameters, wor
                            GroupName.ELEVATION_GROUP.name,
                            DatasetName.DSM_SMOOTHED)
             dset = parent_group[dname]
-            ids.extend(dset['id'])
+            ids.extend(dset.attrs['id'])
 
         # unique listing of ids
         ids = numpy.unique(numpy.array(ids)).tolist()
