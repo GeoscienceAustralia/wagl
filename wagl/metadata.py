@@ -211,7 +211,7 @@ def create_ard_yaml(res_group_bands, ancillary_group, out_group, parameters, wor
                 dname = fmt.format(band_name=bn, parameter=param.value)
                 dset = fid[dname]
                 ids.extend(dset.attrs['id'])
-                tier.append(BrdfTier[dset['tier']].value)
+                tier.append(BrdfTier[dset.attrs['tier']].value)
                 alpha_key = param.value.lower().replace('-', '_')
                 bn_key = bn.lower().replace('-', '_')
                 alphas[alpha_key][bn_key] = dset[()]
