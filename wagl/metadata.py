@@ -311,7 +311,7 @@ def create_ard_yaml(res_group_bands, ancillary_group, out_group, parameters, wor
         if nbar:
             for grp_name in res_group_bands:
                 grp_ancillary = load_nbar_ancillary(res_group_bands[grp_name], fid)
-                result.update(grp_ancillary)
+                result['brdf'] = grp_ancillary
 
         return result
 
