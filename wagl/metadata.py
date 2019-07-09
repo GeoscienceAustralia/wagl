@@ -270,8 +270,8 @@ def create_ard_yaml(res_group_bands, ancillary_group, out_group, parameters, wor
         parent_group = anc_grp.parent
         for res_group in res_group_bands:
             dname = ppjoin(res_group,
-                           GroupName.ELEVATION_GROUP.name,
-                           DatasetName.DSM_SMOOTHED.name)
+                           GroupName.ELEVATION_GROUP.value,
+                           DatasetName.DSM_SMOOTHED.value)
             dset = parent_group[dname]
             ids.extend(dset.attrs['id'])
 
