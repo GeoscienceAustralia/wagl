@@ -48,6 +48,12 @@ from wagl.data import read_subset
 _LOG = logging.getLogger(__name__)
 
 
+# Accurate BRDF requires both Terra and Aqua to be operating
+# Aqua launched 2002-05-04, so we'll add a buffer for determining the start
+# date for using definitive data.
+DEFINITIVE_START_DATE = datetime.datetime(2002, 7, 1).date()
+
+
 class BRDFLoaderError(Exception):
     """
     BRDF Loader Error
@@ -350,7 +356,7 @@ def get_brdf_data(acquisition, brdf,
         The BRDF directories are assumed to be yyyy.mm.dd naming convention.
 
         <path-to-average-BRDF> is a string containing the full file system
-        path to your directory containing the Jupp-Li backup BRDF data.
+        path to your directory containing the fallback BRDF data.
         To be used for pre-MODIS and potentially post-MODIS acquisitions.
 
         And <path-to-ocean-mask> is a string containing the full file system path
@@ -400,8 +406,7 @@ def get_brdf_data(acquisition, brdf,
 
     # Compare the scene date and MODIS BRDF start date to select the
     # BRDF data root directory.
-    # Scene dates outside the range of the CSIRO mosaic data
-    # should use the pre-MODIS, Jupp-Li BRDF.
+    # Scene dates outside this range are to use the fallback data
     brdf_dir_list = sorted(os.listdir(brdf_primary_path))
 
     try:
@@ -409,9 +414,9 @@ def get_brdf_data(acquisition, brdf,
         brdf_range = [datetime.date(*[int(x) for x in y.split('.')])
                       for y in brdf_dir_range]
 
-        fallback_brdf = (dt < brdf_range[0] or dt > brdf_range[1])
+        fallback_brdf = (dt < DEFINITIVE_START_DATE or dt > brdf_range[1])
     except IndexError:
-        fallback_brdf = True  # use JuppLi if no primary data available
+        fallback_brdf = True  # use fallback data if all goes wrong
 
     if fallback_brdf:
         brdf_base_dir = brdf_secondary_path
