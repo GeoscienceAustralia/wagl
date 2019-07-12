@@ -371,7 +371,7 @@ def collect_nbar_ancillary(container, aerosol_dict=None,
         A `dict` defined as either of the following:
 
         * {'user': {<band-alias>: {'alpha_1': <value>, 'alpha_2': <value>}, ...}}
-        * {'brdf_path': <path-to-BRDF>, 'brdf_premodis_path': <path-to-average-BRDF>}
+        * {'brdf_path': <path-to-BRDF>, 'brdf_fallback_path': <path-to-average-BRDF>}
 
     :param out_group:
         If set to None (default) then the results will be returned

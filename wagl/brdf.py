@@ -124,7 +124,7 @@ def get_brdf_dirs_modis(brdf_root, scene_date, pattern='%Y.%m.%d'):
     return min(dirs, key=_date_proximity(scene_date)).strftime(pattern)
 
 
-def get_brdf_dirs_pre_modis(brdf_root, scene_date):
+def get_brdf_dirs_fallback(brdf_root, scene_date):
     """
     Get list of pre-MODIS BRDF directories for the dataset.
 
@@ -348,7 +348,7 @@ def get_brdf_data(acquisition, brdf,
     :param brdf:
         A `dict` defined as either of the following:
         * {'user': {<band-alias>: {'iso': <value>, 'vol': <value>, 'geo': <value>}, ...}}
-        * {'brdf_path': <path-to-BRDF>, 'brdf_premodis_path': <path-to-average-BRDF>,
+        * {'brdf_path': <path-to-BRDF>, 'brdf_fallback_path': <path-to-average-BRDF>,
            'ocean_mask_path': <path-to-ocean-mask>}
 
         Here <path-to-BRDF> is a string containing the full file system
@@ -398,7 +398,7 @@ def get_brdf_data(acquisition, brdf,
                 for param in BrdfDirectionalParameters}
 
     brdf_primary_path = brdf['brdf_path']
-    brdf_secondary_path = brdf['brdf_premodis_path']
+    brdf_secondary_path = brdf['brdf_fallback_path']
     brdf_ocean_mask_path = brdf['ocean_mask_path']
 
     # Get the date of acquisition
@@ -420,7 +420,7 @@ def get_brdf_data(acquisition, brdf,
 
     if fallback_brdf:
         brdf_base_dir = brdf_secondary_path
-        brdf_dirs = get_brdf_dirs_pre_modis(brdf_base_dir, dt)
+        brdf_dirs = get_brdf_dirs_fallback(brdf_base_dir, dt)
     else:
         brdf_base_dir = brdf_primary_path
         brdf_dirs = get_brdf_dirs_modis(brdf_base_dir, dt)
