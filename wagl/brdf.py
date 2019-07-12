@@ -249,7 +249,7 @@ def valid_region(acquisition, mask_value=None):
         mask_value = acquisition.no_data
 
     if mask_value is not None:
-        mask = img & mask_value == mask_value
+        mask = img != mask_value
     else:
         mask = img != 0
 
