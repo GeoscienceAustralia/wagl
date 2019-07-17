@@ -385,10 +385,10 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=0, bands=1):
     fillv = 0 if fillv is None else fillv
 
     # Convert each map co-ordinate to image/array co-ordinates
-    img_ul_x, img_ul_y = [int(v) for v in inv * ul_xy]
-    img_ur_x, img_ur_y = [int(v) for v in inv * ur_xy]
-    img_lr_x, img_lr_y = [int(v) for v in inv * lr_xy]
-    img_ll_x, img_ll_y = [int(v) for v in inv * ll_xy]
+    img_ul_x, img_ul_y = [int(round(v)) for v in inv * ul_xy]
+    img_ur_x, img_ur_y = [int(round(v)) for v in inv * ur_xy]
+    img_lr_x, img_lr_y = [int(round(v)) for v in inv * lr_xy]
+    img_ll_x, img_ll_y = [int(round(v)) for v in inv * ll_xy]
 
     # Calculate the min and max array extents including edge_buffer
     xstart = min(img_ul_x, img_ll_x) - edge_buffer
