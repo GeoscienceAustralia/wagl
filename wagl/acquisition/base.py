@@ -1,6 +1,7 @@
 """
 Contains the base implementations for the acquisition and AcquisitionsContainer objects
 """
+import dateutil
 from os.path import join as pjoin
 from functools import total_ordering
 from pkg_resources import resource_filename
@@ -242,7 +243,7 @@ class Acquisition:
                  band_id='1', metadata=None):
         self._pathname = pathname
         self._uri = uri
-        self._acquisition_datetime = acquisition_datetime
+        self._acquisition_datetime = acquisition_datetime.astimezone(dateutil.tz.UTC).replace(tzinfo=None)
         self._band_name = band_name
         self._band_id = band_id
 

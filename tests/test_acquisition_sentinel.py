@@ -54,8 +54,7 @@ class Sentinel2AScene1AcquisitionTest(unittest.TestCase):
             self.assertEqual(acq.band_type, BandType.REFLECTIVE)
 
     def test_acquisition_datetime(self):
-        test_date = datetime.datetime(2017, 12, 7, 0, 22, 52, 127000, 
-                                      datetime.timezone.utc)
+        test_date = datetime.datetime(2017, 12, 7, 0, 22, 52, 127000)
         for acq in self.container.get_all_acquisitions():
            self.assertEqual(acq.acquisition_datetime, test_date)
 
@@ -79,6 +78,10 @@ class Sentinel2AScene1AcquisitionTest(unittest.TestCase):
     def test_read(self):
         self.assertEqual(self.acq.data()[70, 30], 1083)
 
+    def test_tzinfo(self):
+        for acq in self.container.get_all_acquisitions():
+            self.assertTrue(acq.acquisition_datetime, None)
+
 
 class Sentinel2BScene1AcquisitionTest(unittest.TestCase):
     def setUp(self):
@@ -91,8 +94,7 @@ class Sentinel2BScene1AcquisitionTest(unittest.TestCase):
             self.assertEqual(acq.band_type, BandType.REFLECTIVE)
 
     def test_acquisition_datetime(self):
-        test_date = datetime.datetime(2017, 7, 19, 0, 2, 18, 457000,
-                                      datetime.timezone.utc)
+        test_date = datetime.datetime(2017, 7, 19, 0, 2, 18, 457000)
         for acq in self.container.get_all_acquisitions():
            self.assertEqual(acq.acquisition_datetime, test_date)
 
@@ -115,3 +117,7 @@ class Sentinel2BScene1AcquisitionTest(unittest.TestCase):
                          'sentinel2b_all.flt')
     def test_read(self):
         self.assertEqual(self.acq.data()[100, 100], 2)
+
+    def test_tzinfo(self):
+        for acq in self.container.get_all_acquisitions():
+            self.assertTrue(acq.acquisition_datetime, None)
