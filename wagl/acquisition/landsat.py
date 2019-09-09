@@ -1,7 +1,12 @@
 """
 Defines the acquisition classes for the landsat satellite program for wagl
 """
+import gzip
 import math
+from pathlib import Path
+import tarfile
+import tempfile
+import rasterio
 
 from .base import Acquisition
 
@@ -143,6 +148,76 @@ class Landsat7Acquisition(LandsatAcquisition):
         self._norad_id = 25682
         self._classification_type = 'U'
         self._international_designator = '99020A'
+
+        self._gap_mask = None
+
+    def _extract_gap_mask(self):
+        """
+        Extract the gap mask from within the tar.
+        The gap mask is a TIF that is then pushed through gzip,
+        horrible, and in order to read it, we need to unpack from
+        the tar, decompress using gzip, then write to disk so GDAL
+        can read it.
+        """
+        # mask files are contained in a sub-directory named 'gap-mask'
+        path = Path(self.uri.replace('!', '')[6:])
+        parts = path.name.split('_')
+        parts.insert(-1, 'GM')
+        mask_name = Path('gap_mask', '{}.gz'.format('_'.join(parts)))
+
+        # open tarfile
+        with tarfile.open(str(path.parent)) as tf:
+            mem = tf.getmember(str(mask_name))
+            fobj = tf.extractfile(mem)
+            with gzip.open(fobj) as gz:
+                with tempfile.TemporaryDirectory(suffix='.gap-mask') as tmpd:
+                    out_fname = Path(tmpd.name, 'gap-mask.tif')
+                    with open(out_fname, 'wb') as src:
+                        src.write(gz.read())
+
+                    # read gap mask into memory
+                    with rasterio.open(out_fname) as src:
+                        data = src.read(1)
+
+                    self._gap_mask = data == 0
+
+    def radiance_data(self, window=None, out_no_data=-999, esun=None):
+        """
+        This method overwrites the parent's method to handle a special
+        case for Landsat-7. The data supplied by USGS contains ~2pixel
+        interpolation for the SLC-OFF data. We need to read the
+        gap_mask file in order to mask out the interpolation fill.
+        Return the data as radiance in watts/(m^2*micrometre) with
+        interpolated pixels masked out.
+        """
+        # retrieve the gap mask if we haven't already done so
+        if self._gap_mask is None:
+            self._extract_gap_mask()
+
+        # Python style index
+        if window is None:
+            idx = (slice(None, None), slice(None, None))
+        else:
+            idx = (slice(window[0][0], window[0][1]),
+                   slice(window[1][0], window[1][1]))
+
+        data = self.data(window=window)
+
+        # check for no data
+        no_data = self.no_data if self.no_data is not None else 0
+        nulls = data == no_data
+
+        # read same block for the mask
+        mask = self._gap_mask[idx]
+
+        # gain & offset; y = mx + b
+        radiance = self.gain * data + self.bias
+
+        # set the out_no_data value inplace of the input no data value
+        radiance[nulls] = out_no_data
+        radiance[mask] = out_no_data
+
+        return radiance
 
 
 class Landsat8Acquisition(LandsatAcquisition):
