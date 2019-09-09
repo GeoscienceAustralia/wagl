@@ -162,6 +162,13 @@ class Landsat7Acquisition(LandsatAcquisition):
         # mask files are contained in a sub-directory named 'gap-mask'
         path = Path(self.uri.replace('!', '')[6:])
         parts = path.name.split('_')
+
+        # non-thermal bands are named
+        # LE07_L1TP_092084_20110809_20161206_01_T1_B4.TIF
+        # thermal bands are named
+        # LE07_L1TP_092084_20110809_20161206_01_T1_B6_VCID_1.TIF
+        # so insert before index 7
+        # (not ideal, but USGS could change the whole convention anyway
         parts.insert(7, 'GM')
         mask_name = Path('gap_mask', '{}.gz'.format('_'.join(parts)))
 
