@@ -162,7 +162,7 @@ class Landsat7Acquisition(LandsatAcquisition):
         # mask files are contained in a sub-directory named 'gap-mask'
         path = Path(self.uri.replace('!', '')[6:])
         parts = path.name.split('_')
-        parts.insert(-1, 'GM')
+        parts.insert(7, 'GM')
         mask_name = Path('gap_mask', '{}.gz'.format('_'.join(parts)))
 
         # open tarfile
@@ -171,7 +171,7 @@ class Landsat7Acquisition(LandsatAcquisition):
             fobj = tf.extractfile(mem)
             with gzip.open(fobj) as gz:
                 with tempfile.TemporaryDirectory(suffix='.gap-mask') as tmpd:
-                    out_fname = Path(tmpd.name, 'gap-mask.tif')
+                    out_fname = Path(tmpd, 'gap-mask.tif')
                     with open(out_fname, 'wb') as src:
                         src.write(gz.read())
 
