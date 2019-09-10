@@ -243,7 +243,7 @@ class Acquisition:
                  band_id='1', metadata=None):
         self._pathname = pathname
         self._uri = uri
-        self._acquisition_datetime = acquisition_datetime.astimezone(dateutil.tz.UTC).replace(tzinfo=None)
+        self._acquisition_datetime = acquisition_datetime.replace(tzinfo=None)
         self._band_name = band_name
         self._band_id = band_id
 
