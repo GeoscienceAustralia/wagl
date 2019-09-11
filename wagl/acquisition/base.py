@@ -28,7 +28,7 @@ def set_utc(acq_dt):
     """
     if acq_dt.tzinfo is None:
         # assume UTC
-        return acq_dt.replace(dateutil.tz.UTC)
+        return acq_dt.replace(tzinfo=dateutil.tz.UTC)
     else:
         return acq_dt.astimezone(dateutil.tz.UTC)
 
