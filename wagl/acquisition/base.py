@@ -14,6 +14,25 @@ from ..modtran import read_spectral_response
 from ..tiling import generate_tiles
 from ..constants import BandType
 
+
+def set_utc(acq_dt):
+    """
+    Check the timezone and convert to UTC if either no timezone
+    exists, or if the acquisition datetime is not in UTC.
+
+    :param acq_dt:
+        The acquisition datetime as a Python datetime object.
+
+    :return:
+        The acquisition datetime set to UTC.
+    """
+    if acq_dt.tzinfo is None:
+        # assume UTC
+        return acq_dt.replace(tzinfo=dateutil.tz.UTC)
+    else:
+        return acq_dt.astimezone(dateutil.tz.UTC)
+
+
 class AcquisitionsContainer:
 
     """
@@ -243,7 +262,10 @@ class Acquisition:
                  band_id='1', metadata=None):
         self._pathname = pathname
         self._uri = uri
-        self._acquisition_datetime = acquisition_datetime.astimezone(dateutil.tz.UTC).replace(tzinfo=None)
+
+        # strip the timezone as it been playing havoc with other libs
+        self._acquisition_datetime = set_utc(acquisition_datetime).replace(tzinfo=None)
+
         self._band_name = band_name
         self._band_id = band_id
 
