@@ -202,9 +202,9 @@ class Landsat7Acquisition(LandsatAcquisition):
         if self._gap_mask is None:
             try:
                 self._extract_gap_mask()
-            except FileNotFoundError:
-                # we might not be dealing with an acquisition that has
-                # gap masks, nor a tarfile (legacy)
+            except (FileNotFoundError, KeyError):
+                # we might be dealing with an acquisition that is not
+                # a tarfile (legacy), or an acquisition with no gap masks
                 self._gap_mask = numpy.zeros((self.lines, self.samples),
                                              dtype='bool')
 
