@@ -496,5 +496,33 @@ class TestReadSubset(unittest.TestCase):
         count = 100 * 100
         self.assertTrue(data.sum() == count)
 
+    def test_case_j(self):
+        """
+        Origin = (600, -400)
+                  +-----------+
+                  -           -
+         O+----+  -           -
+          -    -  -           -
+          -    -  -           -
+          +----+  -           -
+                  -           -
+                  +-----------+
+        """
+        # indices based on full array
+        ul = (600, -400)
+        ur = (ul[0], ul[1] + self.subs_shape[1])
+        lr = (ul[0] + self.subs_shape[0], ul[1] + self.subs_shape[1])
+        ll = (ul[0] + self.subs_shape[0], ul[1])
+
+        # real world coords (note reversing (y, x) to (x, y)
+        ul_xy_map = ul[::-1] * self.geobox.transform
+        ur_xy_map = ur[::-1] * self.geobox.transform
+        lr_xy_map = lr[::-1] * self.geobox.transform
+        ll_xy_map = ll[::-1] * self.geobox.transform
+
+        # read subset
+        with self.assertRaises(IndexError):
+            read_subset(self.ds, ul_xy_map, ur_xy_map, lr_xy_map, ll_xy_map)
+
 if __name__ == '__main__':
     unittest.main()
