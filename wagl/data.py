@@ -406,6 +406,10 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=0, bands=1):
     geobox_subs = GriddedGeoBox(shape=subs.shape, origin=(ul_x, ul_y),
                                 pixelsize=geobox.pixelsize, crs=prj)
 
+    # test for intersection
+    if not geobox_subs.intersects(geobox):
+        raise IndexError("Requested Subset Does Not Intersect With Array")
+
     # intersected region (source index xy start and end coords)
     source_xs = max(0, xstart)
     source_ys = max(0, ystart)
