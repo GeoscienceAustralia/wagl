@@ -11,7 +11,7 @@ import rasterio as rio
 import osr
 import affine
 from affine import Affine
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, box
 import geopandas
 from wagl.satellite_solar_angles import setup_spheroid
 from wagl.vincenty import vinc_dist
@@ -461,6 +461,23 @@ class GriddedGeoBox:
         prj_gdf = gdf.to_crs(to_crs.ExportToProj4())
 
         return prj_gdf.total_bounds
+
+    def intersects(self, other_geobox):
+        """
+        Check whether another geobox intersects with the current.
+        The current geobox will be projected into the CRS of the other
+        geobox.
+        An expansion of this utility would be to check if the CRS's are
+        the same, and if not then reproject one to the other.
+        At the moment, this utility is to serve a single purpose for
+        when reading a subset from a DSM.
+        """
+        # create polygons from the bounding box of each geobox
+        current_poly = box(*self.project_extents(other_geobox.crs))
+        other_poly = box(*other_geobox.project_extents(other_geobox.crs))
+
+        intersects = current_poly.intersects(other_poly)
+        return intersects
 
     @property
     def ul(self):
