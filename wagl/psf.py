@@ -1,5 +1,20 @@
 #! /usr/bin/env python3
 
+"""
+Adjacency filter derivation utilities
+-------------------------------------
+
+The marine atmosperic correction requires correction of spatial
+pixel mixing of radiance from nearby(adjacent pixels) caused by
+the atmospheric scattering. This program is written to derive
+the adjacency filter to account for the pixel mixing due to nearby
+pixels and correct for its affects. Inital program was written
+by Dr. Li and Dr. Jubb in Fortran. The derivation of the kernel
+is based on the ATBD written by Dr. David Jubb and Fuqin Li 2018
+for Geosciences Australia's Analysis Ready Data program.
+
+"""
+
 from typing import Optional
 from pathlib import Path
 import numpy as np
@@ -12,7 +27,7 @@ def read_tp7(tp7_file: Path, nbands: int) -> dict:
     of the large text file beginning above the line with str '-9999'.
     The PSF written per row (till nbands) in a text files with
     largest band dataset at the row above the line with '-9999' index.
-    :param tp7_file: a 'Path' to a .tp7 file from modtran output with psf values
+    :param tp7_file: a 'Path' to a .tp7 file from modtran output
     :param nbands: 'int' type, total number of spectral bands
 
     :return
@@ -71,7 +86,7 @@ def compute_filter_matrix(
     xres: int,
     yres: int,
     nlarge: int,
-    hstep: Optional[float] = 10.0,
+    hstep: float,
 ) -> np.ndarray:
     """
     compute the adjacency 2D filter matrix based on the 1D FWHM of the PSF as the radius
@@ -83,10 +98,9 @@ def compute_filter_matrix(
     :param yres: pixel size in y-direction
     :param nlarge: maximum filter size set by the user
     :param hstep: a modtran step size used in computing the psf data
-               a default value is 10.0, unless new step size is configured in
-               future modtran run to compute psf, hstep is a constant value of 10.0.
 
     :return:
+        A np.ndarray containing adjacency kernel
     """
 
     # compute prange
@@ -152,11 +166,32 @@ def compute_filter_matrix(
     return adj_filter
 
 
-if __name__ == "__main__":
-    tp7_file_path = (
-        "/g/data/u46/users/pd1813/water_atcor/point_spread_function/MM_alb_0.tp7"
-    )
-    psf_data_dict = read_tp7(tp7_file_path, 8)
-    for band, _psf_data in psf_data_dict.items():
-        print(band)
-        compute_filter_matrix(_psf_data, 30.0, 30.0, 40.0)
+def get_adjacency_kernel(
+    tp7_file: Path,
+    num_bands:int,
+    xres: float,
+    yres: float,
+    max_filter_size: int,
+    hstep: Optional[float] = 10.0
+) -> dict:
+    """
+    Reads a PSF from a *.tp7 MODTRAN 5.4 output and computes adjacency filter.
+
+    :param tp7_file: A Path to MODTRAN output *.tp7 file
+    :num_bands: total number of bands used in computing Point Spread
+                Function in a MODTRAN program. It is assumed that *.tp7
+                has its PSF data (per row to a band) written with high
+                numbered bands from the bottom of the file.
+    :param xres: pixel size in x-direction
+    :param yres: pixel size in y-direction
+    :param max_filter_size: maximum filter size set by the user
+    :param hstep: a modtran step size used in computing the psf data
+               a default value is 10.0, unless new step size is configured in
+               future modtran run to compute psf, hstep is a constant value of 10.0.
+    return:
+        A dict with acquisition band as a key and kernel (np.ndarray) as a value
+    """
+
+    psf_data_dict = read_tp7(tp7_file, num_bands)
+    return {band: compute_filter_matrix(_psf_data, xres, yres, max_filter_size, hstep) for band,  _psf_data in psf_data_dict.items()}
+
