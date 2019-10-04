@@ -30,11 +30,7 @@ def read_tp7(tp7_file: Path, nbands: int) -> dict:
                 }
 
 
-def compute_fwhm(
-        psf_data: np.ndarray,
-        prange: np.ndarray,
-        hstep: float
-) -> float:
+def compute_fwhm(psf_data: np.ndarray, prange: np.ndarray, hstep: float) -> float:
     """
     calculate Full Width at Half Maximum (FWHM) values for psf data.
     :param psf_data: 1 dimensional numpy array containing the psf values for a band
@@ -54,14 +50,10 @@ def compute_fwhm(
         if val > bigp:
             bigp = val
 
-    return np.sqrt(2.0 * pival * hstep * accum/bigp)
+    return np.sqrt(2.0 * pival * hstep * accum / bigp)
 
 
-def _max_filter_size(
-    xres: float,
-    yres: float,
-    nlarge: int,
-) -> int:
+def _max_filter_size(xres: float, yres: float, nlarge: int) -> int:
     """
     compute the maximum filter filter size
     :param xres: pixel size in x-direction
@@ -79,7 +71,7 @@ def compute_filter_matrix(
     xres: int,
     yres: int,
     nlarge: int,
-    hstep: Optional[float] = 10.0
+    hstep: Optional[float] = 10.0,
 ) -> np.ndarray:
     """
     compute the adjacency 2D filter matrix based on the 1D FWHM of the PSF as the radius
@@ -105,11 +97,13 @@ def compute_filter_matrix(
         if _range < 0.0 or _range > max(prange):
             return -1.0
 
-        idx = np.int(_range/hstep)
+        idx = np.int(_range / hstep)
         if idx == len(psf_data) - 1:
             return psf_data[idx]
-        return (psf_data[idx] * (prange[idx+1] - _range) +
-                psf_data[idx+1] * (_range - prange[idx]))/hstep
+        return (
+            psf_data[idx] * (prange[idx + 1] - _range)
+            + psf_data[idx + 1] * (_range - prange[idx])
+        ) / hstep
 
     # compute max filter size
     max_filter_size = _max_filter_size(xres, yres, nlarge)
@@ -140,20 +134,23 @@ def compute_filter_matrix(
         ycoord = float(y - num_pixel_y) * yres
         for x in range(num_pixel_x * 2 + 1):
             xcoord = float(x - num_pixel_x) * xres
-            val = np.sqrt(xcoord**2 + ycoord**2)
+            val = np.sqrt(xcoord ** 2 + ycoord ** 2)
             if val > fwhm:
                 continue
             if interp_psf:
                 adj_filter[y, x] = _interp(val)
                 continue
 
-            val1 = np.sqrt((xcoord + xres/2.0)**2 + (ycoord + yres/2.0)**2)
-            val2 = np.sqrt((xcoord + xres/2.0)**2 + (ycoord - yres/2.0)**2)
-            val3 = np.sqrt((xcoord - xres/2.0)**2 + (ycoord + yres/2.0)**2)
-            val4 = np.sqrt((xcoord - xres/2.0)**2 + (ycoord - yres/2.0)**2)
-            adj_filter[y, x] = (_interp(val) + (_interp(val1) + _interp(val2)
-                               + _interp(val3) + _interp(val4))/4.0)/2.0
+            val1 = np.sqrt((xcoord + xres / 2.0) ** 2 + (ycoord + yres / 2.0) ** 2)
+            val2 = np.sqrt((xcoord + xres / 2.0) ** 2 + (ycoord - yres / 2.0) ** 2)
+            val3 = np.sqrt((xcoord - xres / 2.0) ** 2 + (ycoord + yres / 2.0) ** 2)
+            val4 = np.sqrt((xcoord - xres / 2.0) ** 2 + (ycoord - yres / 2.0) ** 2)
+            adj_filter[y, x] = (
+                _interp(val)
+                + (_interp(val1) + _interp(val2) + _interp(val3) + _interp(val4)) / 4.0
+            ) / 2.0
     return adj_filter
+
 
 if __name__ == "__main__":
     tp7_file_path = (
