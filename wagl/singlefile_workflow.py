@@ -68,6 +68,7 @@ class DataStandardisation(luigi.Task):
     invariant_height_fname = luigi.Parameter(significant=False)
     dsm_fname = luigi.Parameter(significant=False)
     modtran_exe = luigi.Parameter(significant=False)
+    modtran54_exe = luigi.Parameter(significant=False)
     tle_path = luigi.Parameter(significant=False)
     rori = luigi.FloatParameter(default=0.52, significant=False)
     compression = luigi.EnumParameter(enum=H5CompressionFilter,
@@ -98,7 +99,7 @@ class DataStandardisation(luigi.Task):
                    self.tle_path, self.aerosol, self.brdf,
                    self.ozone_path, self.water_vapour,
                    self.dem_path, self.dsm_fname, self.invariant_height_fname,
-                   self.modtran_exe, out_fname, ecmwf_path, self.rori,
+                   self.modtran_exe, self.modtran54_exe, out_fname, ecmwf_path, self.rori,
                    self.buffer_distance, self.compression, self.filter_opts,
                    self.h5_driver, self.acq_parser_hint, self.normalized_solar_zenith)
 
@@ -128,6 +129,7 @@ class ARD(luigi.WrapperTask):
                           'pixel_quality': self.pixel_quality,
                           'method': self.method,
                           'modtran_exe': self.modtran_exe,
+                          'modtran54_exe': self.modtran54_exe,
                           'outdir': outdir,
                           'land_sea_path': self.land_sea_path,
                           'aerosol': self.aerosol,
