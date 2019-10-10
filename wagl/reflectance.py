@@ -10,7 +10,9 @@ reflectance
 
 from __future__ import absolute_import, print_function
 import numpy
+import numexpr
 import h5py
+from scipy import ndimage
 
 from wagl.constants import DatasetName, GroupName, BrdfDirectionalParameters
 from wagl.constants import AtmosphericCoefficients as AC
@@ -22,6 +24,159 @@ from wagl.metadata import create_ard_yaml
 from wagl.__surface_reflectance import reflectance
 
 NO_DATA_VALUE = -999
+
+
+def _fill_nulls(data, mask):
+    """
+    Calculate run-length averages and insert (inplace) at null pixels.
+    In future this could also be an averaging kernel.
+    """
+    for row in range(data.shape[0]):
+        data[row][mask[row]] = numpy.mean(data[row][~mask[row]])
+
+
+def scale_reflectance(data, clip_range=(1, 10000), clip=True):
+    """
+    Scale reflectance data to the range [1, 10000], with a null
+    value of -999, and a datatype of int16.
+    Scaling follows the formulae used in the original f90 code:
+
+        'data * 10000 + 0.5'
+    
+    The data is also clipped to the range [1, 10000].
+    """
+    expr = "data * 10000 + p5"
+    p5 = numpy.float32(0.5)  # noqa # pylint: disable
+    null_mask = data == NO_DATA_VALUE
+
+    # evaluate
+    result = numexpr.evaluate(expr).astype('int16')
+
+    # clip the data range, if desired
+    if clip:
+        minv, maxv = clip_range
+        numpy.clip(result, minv, maxv, out=result)
+
+    # re-insert the null data pixels
+    result[null_mask] = NO_DATA_VALUE
+
+    return result
+
+
+def lambertian(acquisition, a, b, s, psf, esun=None):
+    """
+    Calculate lambertian reflectance coupled with a correction
+    for atmospheric adjacency.
+
+    :param a:
+        Defined as:
+            (DIR + DIF) / pi * (TV + TDV)
+        Where:
+            DIR = Direct irradiance at the surface
+            DIF = Diffuse irradiance at the surface
+            TV = Dirrect transmittance in the view direction
+            TDV = Diffuse transmittance in the view direction
+
+    :param b:
+        Path radiance due to atmospheric scattering.
+
+    :param s:
+        Atmospheric albedo.
+
+    :param psf:
+        Point Spread Function of the atmosphere to resovle the
+        atmospheric adjacency correction.
+
+    :param esun:
+        Exoatmospheric solar irradiance. Default is None.
+    """
+    expr = "(rad - b) / (a + s * (rad - b))"
+    dims = (acquisition.lines, acquisition.samples)
+    null_mask = numpy.zeros(dims, dtype='bool')
+    result = numpy.zeros(dims, dtype='float32')
+
+    # process by tile
+    for tile in acquisition.tiles():
+        idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
+
+        # read the data corresponding to the current tile for all dataset
+        # the original f90 routine specified single precision
+        rad = acquisition.radiance_data(window=tile, out_no_data=NO_DATA_VALUE,
+                                        esun=esun).astype('float32')
+
+        # update the null mask
+        null_mask[idx] = rad == NO_DATA_VALUE
+
+        # lambertian
+        numexpr.evaluate(expr, out=result[idx])
+
+    # fill nulls with run-length averages
+    _fill_nulls(result, null_mask)
+
+    # apply convolution; insert nulls back into array
+    result = ndimage.convole(rad, psf)
+    result[null_mask] = NO_DATA_VALUE
+
+    return result
+
+
+def sky_glint(satellite_view, refractive_index=1.34):
+    """
+    Calculate sky glint; Fresnel reflectance of a flat water body.
+    Based on Fresnel reflectance at the sensor zenith view angle.
+    Calculations are done in single precision (same as the original
+    FORTRAN code that this was derived from).
+
+    :param satellite_view:
+        The satellite zenith view angle in degrees.
+
+    :param refractive_index:
+        The refractive index of water. Default is 1.34 and internally
+        recast as a float32.
+    """
+    rw = numpy.float32(1.34)  # noqa # pylint: disable
+    theta = numpy.deg2rad(satellite_view, dtype='float32')  # noqa # pylint: disable
+
+    expr = "arcsin(sin(theta) / rw)"
+    theta_prime = numexpr.evaluate(expr)  # noqa # pylint: disable
+
+    p5 = numpy.float32(0.5)  # noqa # pylint: disable
+    expr = ("p5 * ((sin(theta-theta_prime) / sin(theta+theta_prime))**2 "
+            "+ (tan(theta-theta_prime) / tan(theta+theta_prime))**2)")
+
+    # sky glint (taken as fresnel reflectance at theta)
+    result = numexpr.evaluate(expr)
+
+    return result
+
+
+def sky_glint_correction(lambertian, fs, satellite_view,
+                         refractive_index=1.34):
+    """
+    Apply sky glint correction.
+
+    :param lambertian:
+        Lambertian reflectance with atmospheric adjacency correction.
+
+    :param fs:
+        Direct fraction in the sun direction.
+
+    :param satellite_view:
+        The satellite zenith view angle in degrees.
+
+    :param refractive_index:
+        The refractive index of water. Default is 1.34 and internally
+        recast as a float32.
+    """
+    expr = "lambertian - (1 - fs) * sky_g"
+    null_mask = lambertian == NO_DATA_VALUE
+    sky_g = sky_glint(satellite_view, refractive_index)  # noqa # pylint: disable
+
+    # evaluate; insert nulls back into array
+    result = numexpr.evaluate(expr)
+    result[null_mask] = NO_DATA_VALUE
+
+    return result
 
 
 def _calculate_reflectance(acquisition, acquisitions, interpolation_fname,
