@@ -63,13 +63,14 @@ def scale_reflectance(data, clip_range=(1, 10000), clip=True):
     return result
 
 
-def lambertian(acquisition, a, b, s, psf, esun=None):
+def lambertian(acquisition, a, b, s, psf=None, esun=None):
     """
     Calculate lambertian reflectance coupled with a correction
-    for atmospheric adjacency.
+    for atmospheric adjacency (if a psf kernel is supplied).
 
     :param a:
-        Defined as:
+        An atmpsheric coefficient derived from the radiative transfer.
+        Calculated as:
             (DIR + DIF) / pi * (TV + TDV)
         Where:
             DIR = Direct irradiance at the surface
@@ -86,6 +87,7 @@ def lambertian(acquisition, a, b, s, psf, esun=None):
     :param psf:
         Point Spread Function of the atmosphere to resovle the
         atmospheric adjacency correction.
+        Default is None, in which case do nothing.
 
     :param esun:
         Exoatmospheric solar irradiance. Default is None.
@@ -110,11 +112,15 @@ def lambertian(acquisition, a, b, s, psf, esun=None):
         # lambertian
         numexpr.evaluate(expr, out=result[idx])
 
-    # fill nulls with run-length averages
-    _fill_nulls(result, null_mask)
+    # apply psf kernel if available
+    if psf is not None:
+        # fill nulls with run-length averages
+        _fill_nulls(result, null_mask)
 
-    # apply convolution; insert nulls back into array
-    result = ndimage.convole(rad, psf)
+        # apply convolution
+        result = ndimage.convole(rad, psf)
+
+    # insert nulls back into the array
     result[null_mask] = NO_DATA_VALUE
 
     return result
