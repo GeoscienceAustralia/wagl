@@ -16,17 +16,24 @@ for Geosciences Australia's Analysis Ready Data program.
 """
 
 from os.path import join as pjoin
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import enum
+from posixpath import join as ppjoin
 
 import numpy as np
-from wagl.constants import ALBEDO_FMT, Albedos, BandType, POINT_ALBEDO_FMT, POINT_FMT
+import pandas as pd
+import h5py
+from wagl.hdf5 import write_dataframe, write_scalar
+from wagl.constants import (ALBEDO_FMT, Albedos, BandType, DatasetName, GroupName, POINT_ALBEDO_FMT, POINT_FMT)
 from wagl.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
 
+_MAX_FILTER_SIZE = 40
+_HSTEP = 10.0
+_TP5_FMT = pjoin(POINT_FMT, ALBEDO_FMT, "".join([POINT_ALBEDO_FMT, ".tp5"]))
 
 def read_tp7(tp7_file: Path, nbands: Union[int, None]) -> dict:
     """
@@ -50,11 +57,11 @@ def read_tp7(tp7_file: Path, nbands: Union[int, None]) -> dict:
             for idx, line in enumerate(lines):
                 if "Bands=" in line:
                     nbands = int(line.split("=")[1])
-        print(nbands)
+
         for idx, line in enumerate(lines):
             if "-9999." in line:
                 return {
-                    "Band_{}".format(nbands - _band): np.asarray(
+                    "BAND-{}".format(nbands - _band): np.asarray(
                         [float(val) for val in lines[_band + idx + 1].split()]
                     )
                     for _band in range(nbands)
@@ -100,7 +107,7 @@ def _max_filter_size(xres: float, yres: float, nlarge: int) -> int:
 
 
 def compute_filter_matrix(
-    psf_data: np.ndarray, xres: int, yres: int, nlarge: int, hstep: float
+    psf_data: np.ndarray, xres: float, yres: float, nlarge: int, hstep: float
 ) -> np.ndarray:
     """
     compute the adjacency 2D filter matrix based on the 1D FWHM of the PSF as the radius
@@ -143,13 +150,12 @@ def compute_filter_matrix(
     # get the number of pixel from the center of a pixel in x and y direction
     num_pixel_x = np.int(fwhm / xres)
     num_pixel_y = np.int(fwhm / yres)
-
     # check if number of pixels in a filter is greater than maximum pixel allowed in a filter
     # and reset to a maximum allowed
     if 2 * num_pixel_x + 1 > max_filter_size:
-        num_pixel_x = (max_filter_size - 1) / 2
+        num_pixel_x = np.int((max_filter_size - 1) / 2)
     if 2 * num_pixel_y + 1 > max_filter_size:
-        num_pixel_y = (max_filter_size - 1) / 2
+        num_pixel_y = np.int((max_filter_size - 1) / 2)
 
     # check if psf needs interpolation or not
     interp_psf = False
@@ -179,33 +185,6 @@ def compute_filter_matrix(
                 + (_interp(val1) + _interp(val2) + _interp(val3) + _interp(val4)) / 4.0
             ) / 2.0
     return adj_filter
-
-
-def get_adjacency_kernel(
-    psf_data_dict: dict,
-    xres: float,
-    yres: float,
-    max_filter_size: int,
-    hstep: Optional[float] = 10.0,
-) -> dict:
-    """
-    Reads a PSF from a *.tp7 MODTRAN 5.4 output and computes adjacency filter.
-
-    :param psf_data_dict: A dict with Band Number as a key and PSF data as a value
-    :param xres: pixel size in x-direction
-    :param yres: pixel size in y-direction
-    :param max_filter_size: maximum filter size set by the user
-    :param hstep: a MODTRAN step size used in computing the psf data
-               a default value is 10.0, unless new step size is configured in
-               future MODTRAN run to compute psf, hstep is a constant value of 10.0.
-    return:
-        A dict with acquisition band as a key and kernel (np.ndarray) as a value
-    """
-
-    return {
-        band: compute_filter_matrix(_psf_data, xres, yres, max_filter_size, hstep)
-        for band, _psf_data in psf_data_dict.items()
-    }
 
 
 def prepare_modtran54(
@@ -247,7 +226,7 @@ def prepare_modtran54(
     )
 
 
-def format_tp5(json_data: dict) -> str:
+def format_tp5(json_data: dict) -> Tuple[dict, dict]:
     """
     Creates a string formatted tp5 file for albedo (0)
     using the input_data from json dat
@@ -255,12 +234,14 @@ def format_tp5(json_data: dict) -> str:
     :return:
         A 'str' formatted tp5 data
     """
+
     input_data = json_data["MODTRAN"][0]["MODTRANINPUT"]
     kwargs = {
         "albedo": float(Albedos.ALBEDO_0.value),
         "water": input_data["ATMOSPHERE"]["H2OSTR"],
         "ozone": input_data["ATMOSPHERE"]["O3STR"],
         "filter_function": input_data["SPECTRAL"]["FILTNM"],
+        "aerosol_type": json_data["aerosol_type"],
         "visibility": input_data["AEROSOLS"]["VIS"],
         "elevation": input_data["GEOMETRY"]["H2ALT"],
         "sat_height": input_data["GEOMETRY"]["H1ALT"],
@@ -278,37 +259,76 @@ def format_tp5(json_data: dict) -> str:
         data = MIDLAT_SUMMER_ALBEDO.format(**kwargs)
     else:
         raise ValueError(f"{atm_model} is not recognized atmosphere model")
-    return data
+    return data, kwargs
 
 
-def run_modtran54(
-    acqs: list,
+def compute_adjacency_filter(
+    container: object,
+    granule: str,
     json_data: dict,
     nvertices: int,
     modtran54_exe: str,
+    out_group: object,
+    aerosol_type: str,
     num_bands: Optional[int] = None,
 ) -> None:
     """
     Run MODTRAN 5.4 and extract Point Spread Function data from *.tp7 file
-    :param acqs: An 'instance' of list of 'acquisition'
+    :param container: An 'instance' of acquistions
+    :param granule:  A 'str' name of a graunle
     :param json_data: A 'dict' containing all the MODTRAN 6.0 inputs for nvertices
     :param nvertices: An 'int' indicating total number of vertices
     :param modtran54_exe: A 'str' MODTRAN 5.4 executable path
+    :param out_group: A h5py `Group` or `File` object from which to write the
+                      dataset to.
+    :param aerosol_type: A 'instance', AerosolModel to configure MODTRAN *.tp5 input
     :param num_bands: An 'int' indicating total number of spectral bands in PSD data
     :return:
         A 'dict' containing the band number as a key and psf value as a value
     """
-    tp5_fmt = pjoin(POINT_FMT, ALBEDO_FMT, "".join([POINT_ALBEDO_FMT, ".tp5"]))
-    center_point = np.floor(nvertices / 2)
+    # get list of all the acquistions within a container
+    acqs = sum([
+        container.get_acquisitions(granule=granule, group=grp_name)
+        for grp_name in container.supported_groups
+    ], [])
+
+    center_point = int(np.floor(nvertices / 2))
 
     with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_dir = "/g/data/u46/users/pd1813/water_atcor/test_env/output"
         tmp_dir = Path(tmp_dir)
-        tp5_data = format_tp5(json_data[(center_point, Albedos.ALBEDO_0)])
+
+        # subset the json data to select only center point data
+        json_data = json_data[(center_point, Albedos.ALBEDO_0)]
+        json_data["aerosol_type"] = aerosol_type.value
+
+        # generate tp5 data needed for MODTRAN 5.4 execution
+        tp5_data, input_data = format_tp5(json_data)
+
+        # write tp5 data to h5 file object
+        dname = ppjoin(
+            POINT_FMT.format(p=center_point),
+            ALBEDO_FMT.format(a=Albedos.ALBEDO_0.value),
+            DatasetName.TP5.value,
+        )
+
+        if out_group is None:
+            out_group = h5py.File('atmospheric-inputs.h5', 'w')
+
+        if GroupName.ATMOSPHERIC_INPUTS_GRP.value not in out_group:
+            out_group.create_group(GroupName.ATMOSPHERIC_INPUTS_GRP.value)
+
+        group_name = out_group[GroupName.ATMOSPHERIC_INPUTS_GRP.value]
+        iso_time = acqs[0].acquisition_datetime.isoformat()
+        group_name.attrs["acquisition-datetime"]: iso_time
+        write_scalar(np.string_(tp5_data), dname, group_name, input_data)
+
+        # prepare directory and data symlinks for MODTRAN 5.4 execution
         prepare_modtran54(
             acqs, center_point, Albedos.ALBEDO_0, tmp_dir, Path(modtran54_exe)
         )
         tp5_fname = tmp_dir.joinpath(
-            tp5_fmt.format(p=center_point, a=Albedos.ALBEDO_0.value)
+            _TP5_FMT.format(p=center_point, a=Albedos.ALBEDO_0.value)
         )
         with open(tp5_fname, "w") as src:
             src.writelines(tp5_data)
@@ -316,7 +336,53 @@ def run_modtran54(
             POINT_FMT.format(p=center_point),
             ALBEDO_FMT.format(a=Albedos.ALBEDO_0.value),
         )
-        subprocess.check_call([modtran54_exe], cwd=str(work_path))
-        tp7_file = list(work_path.glob("*.tp7"))[0]
 
-        return read_tp7(tp7_file, num_bands)
+        # execute MODTRAN 5.4
+        subprocess.check_call([modtran54_exe], cwd=str(work_path))
+
+        # read tp7 output file from MODTRAN 5.4
+        tp7_file = list(work_path.glob("*.tp7"))[0]
+        psf_data = read_tp7(tp7_file, num_bands)
+
+        # determine the output group/file
+        if out_group is None:
+            out_group = h5py.File('atmospheric-results.h5', driver='core',
+                                  backing_store=False)
+
+        if GroupName.ATMOSPHERIC_RESULTS_GRP.value not in out_group:
+            out_group.create_group(GroupName.ATMOSPHERIC_RESULTS_GRP.value)
+
+        # write psf data into a h5 file object
+        group_name = out_group[GroupName.ATMOSPHERIC_RESULTS_GRP.value]
+        attrs = {
+            "total_bands": len(psf_data),
+            "description": "Point Spread Function data from MODTRAN .tp7 output",
+        }
+        dname = ppjoin(DatasetName.PSF.value, DatasetName.PSF_DATA.value)
+        data = pd.DataFrame.from_dict(psf_data)
+        write_dataframe(data, dname, group_name, attrs=attrs)
+
+        attrs_filter = {'description': 'Adjacency filter derived from Point Spread Function'}
+        for band, _psf_data in psf_data.items():
+            acq = [acq for acq in acqs if acq.band_name == band][0]
+            xres, yres = acq.resolution
+            # this value is for test only, remove
+            xres = yres = 30.
+            filter_matrix = compute_filter_matrix(
+                _psf_data,
+                xres,
+                yres,
+                _MAX_FILTER_SIZE,
+                _HSTEP,
+            )
+            attrs_filter['band_name'] = acq.band_name
+            dname = ppjoin(DatasetName.ADJACENCY_FILTER.value,
+                           DatasetName.ADJACENCY_FILTER_BAND.value.format(band_name=acq.band_name))
+            data = pd.DataFrame(
+                data=filter_matrix[0:, 0:],
+                index=['row {}'.format(i) for i in range(filter_matrix.shape[0])],
+                columns=['column {}'.format(i) for i in range(filter_matrix.shape[1])]
+            )
+            write_dataframe(data, dname, group_name, attrs=attrs_filter)
+
+
