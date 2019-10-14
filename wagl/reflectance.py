@@ -100,64 +100,6 @@ def scale_reflectance(data, clip_range=(1, 10000), clip=True):
     return result
 
 
-def average_lambertian(acquisition, a, b, s, psf_kernel, esun=None,
-                       normalise=True):
-    """
-    Calculate the lambertian reflectance by taking into account the
-    the surrounding pixels.
-    Essentially we convolve the point spread function as a kernel
-    across the lambertian reflectance to get the surrounding
-    contribution.
-    Prior to convolution, the data is first smoothed by filling
-    null values with an average. Currently this null filling process
-    is evaluated by a run length average.
-
-    TODO:
-        * Include an option to run convolution via fourier, to enable
-          faster processing for large kernels.
-        * Incorporate astropy for convolution to enable handling of
-          null data as well as NaN's.
-        * Change to use NaN as fill value for all operations, and
-          convert to -999 at the end.
-
-    :param data:
-        This process was designed to be applied to lambertian
-        reflectance, but in practice it could be any 2D NumPy array.
-        Currently, the process is assuming null data to be -999.
-
-    :param psf_kernel:
-        A 2D kernel/filter representing the point spread function of
-        the atmosphere to resolve the atmospheric adjacency.
-
-    :param normalise:
-        A boolean indicating whether or not to normalise the
-        psf_kernel. Default is True.
-    """
-    # normalise the kernel or not
-    if normalise:
-        psf_kernel = psf_kernel / psf_kernel.sum()
-
-    data = lambertian(acquisition, a, b, s, esun)
-    null_mask = data == NO_DATA_VALUE
-
-    # can we correctly apply row-length averages?
-    _, start_idx, end_idx = _sequential_valid_rows(null_mask)  # ignore all_valid for time being
-
-    # fill nulls with run-length averages
-    # _fill_nulls(data[start_idx:end_idx], null_mask[start_idx:end_idx])
-    _fill_nulls(data, null_mask)
-
-    # apply convolution
-    result = numpy.full(data.shape, fill_value=-999, dtype='float32')
-    ndimage.convolve(data[start_idx:end_idx], psf_kernel,
-                     output=result[start_idx:end_idx])
-
-    # insert nulls back into the array
-    result[null_mask] = NO_DATA_VALUE
-
-    return result
-
-
 def lambertian(acquisition, a, b, s, esun=None):
     """
     Calculate lambertian reflectance coupled with a correction
@@ -218,6 +160,64 @@ def lambertian(acquisition, a, b, s, esun=None):
     # account for original nulls and any evaluated nan's
     result[null_mask] = NO_DATA_VALUE
     result[~numpy.isfinite(result)] = NO_DATA_VALUE
+
+    return result
+
+
+def average_lambertian(acquisition, a, b, s, psf_kernel, esun=None,
+                       normalise=True):
+    """
+    Calculate the lambertian reflectance by taking into account the
+    the surrounding pixels.
+    Essentially we convolve the point spread function as a kernel
+    across the lambertian reflectance to get the surrounding
+    contribution.
+    Prior to convolution, the data is first smoothed by filling
+    null values with an average. Currently this null filling process
+    is evaluated by a run length average.
+
+    TODO:
+        * Include an option to run convolution via fourier, to enable
+          faster processing for large kernels.
+        * Incorporate astropy for convolution to enable handling of
+          null data as well as NaN's.
+        * Change to use NaN as fill value for all operations, and
+          convert to -999 at the end.
+
+    :param data:
+        This process was designed to be applied to lambertian
+        reflectance, but in practice it could be any 2D NumPy array.
+        Currently, the process is assuming null data to be -999.
+
+    :param psf_kernel:
+        A 2D kernel/filter representing the point spread function of
+        the atmosphere to resolve the atmospheric adjacency.
+
+    :param normalise:
+        A boolean indicating whether or not to normalise the
+        psf_kernel. Default is True.
+    """
+    # normalise the kernel or not
+    if normalise:
+        psf_kernel = psf_kernel / psf_kernel.sum()
+
+    data = lambertian(acquisition, a, b, s, esun)
+    null_mask = data == NO_DATA_VALUE
+
+    # can we correctly apply row-length averages?
+    _, start_idx, end_idx = _sequential_valid_rows(null_mask)  # ignore all_valid for time being
+
+    # fill nulls with run-length averages
+    # _fill_nulls(data[start_idx:end_idx], null_mask[start_idx:end_idx])
+    _fill_nulls(data, null_mask)
+
+    # apply convolution
+    result = numpy.full(data.shape, fill_value=-999, dtype='float32')
+    ndimage.convolve(data[start_idx:end_idx], psf_kernel,
+                     output=result[start_idx:end_idx])
+
+    # insert nulls back into the array
+    result[null_mask] = NO_DATA_VALUE
 
     return result
 
