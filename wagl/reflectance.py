@@ -24,6 +24,7 @@ from wagl.metadata import create_ard_yaml
 from wagl.__surface_reflectance import reflectance
 
 NO_DATA_VALUE = -999
+NAN = numpy.nan
 
 
 def _sequential_valid_rows(mask):
@@ -35,7 +36,7 @@ def _sequential_valid_rows(mask):
     nrows = mask.shape[0]
     row_ids = numpy.arange(nrows)
 
-    # check for any rows that are all null
+    # identify any rows that are completely null
     invalid_rows_mask = numpy.all(mask, axis=1)
 
     valid_rows = row_ids[~invalid_rows_mask]
@@ -81,10 +82,19 @@ def scale_reflectance(data, clip_range=(1, 10000), clip=True):
         'data * 10000 + 0.5'
     
     The data is also clipped to the range [1, 10000].
+
+    :param data:
+        A NumPy array to be scaled by 10000 and clipped.
+
+    :param clip_range:
+        A tuple containing the range to clip the data limits to.
+        Default is (1, 10000).
+
+    :return:
     """
     expr = "data * 10000 + p5"
     p5 = numpy.float32(0.5)  # noqa # pylint: disable
-    null_mask = data == NO_DATA_VALUE
+    data_mask = ~numpy.isfinite(data)
 
     # evaluate
     result = numexpr.evaluate(expr).astype('int16')
@@ -95,7 +105,7 @@ def scale_reflectance(data, clip_range=(1, 10000), clip=True):
         numpy.clip(result, minv, maxv, out=result)
 
     # re-insert the null data pixels
-    result[null_mask] = NO_DATA_VALUE
+    result[data_mask] = NO_DATA_VALUE
 
     return result
 
@@ -123,6 +133,9 @@ def lambertian_block(radiance, a, b, s, out):
 
     :param s:
         Atmospheric albedo.
+
+    :return:
+        None. Output is written directly into <out>.
     """
     expr = "(radiance - b) / (a + s * (radiance - b))"
     numexpr.evaluate(expr, out=out)
@@ -153,14 +166,15 @@ def lambertian_tiled(acquisition, a, b, s, esun=None):
         Exoatmospheric solar irradiance. Default is None.
 
     :return:
-        A float32 2D NumPy array.
+        A float32 2D NumPy array of type float32 with NaN's populating
+        invalid elements.
 
     :notes:
         Internally processed as tiles to conserve memory as
         calculating TOARadiance will output float64.
     """
     dims = (acquisition.lines, acquisition.samples)
-    null_mask = numpy.zeros(dims, dtype='bool')
+    data_mask = numpy.zeros(dims, dtype='bool')
     result = numpy.zeros(dims, dtype='float32')
 
     # process by tile
@@ -169,18 +183,17 @@ def lambertian_tiled(acquisition, a, b, s, esun=None):
 
         # read the data corresponding to the current tile for all dataset
         # the original f90 routine specified single precision
-        rad = acquisition.radiance_data(window=tile, out_no_data=NO_DATA_VALUE,
+        rad = acquisition.radiance_data(window=tile, out_no_data=NAN,
                                         esun=esun).astype('float32')
 
-        # update the null mask
-        null_mask[idx] = rad == NO_DATA_VALUE
+        # update the data mask
+        data_mask[idx] = ~numpy.isfinite(rad)
 
         # lambertian
         lambertian_block(rad, a[idx], b[idx], s[idx], result[idx])
 
     # account for original nulls and any evaluated nan's
-    result[null_mask] = NO_DATA_VALUE
-    result[~numpy.isfinite(result)] = NO_DATA_VALUE
+    result[data_mask] = NAN
 
     return result
 
@@ -196,16 +209,16 @@ def average_lambertian(acquisition, a, b, s, psf_kernel, esun=None,
     Prior to convolution, the data is first smoothed by filling
     null values with an average. Currently this null filling process
     is evaluated by a run length average.
+    After convolution and before returning, nulls are re-inserted back
+    into the result.
 
     TODO:
         * Include an option to run convolution via fourier, to enable
           faster processing for large kernels.
         * Incorporate astropy for convolution to enable handling of
           null data as well as NaN's.
-        * Change to use NaN as fill value for all operations, and
-          convert to -999 at the end.
 
-    :param data:
+    :param acquisition:
         This process was designed to be applied to lambertian
         reflectance, but in practice it could be any 2D NumPy array.
         Currently, the process is assuming null data to be -999.
@@ -217,20 +230,24 @@ def average_lambertian(acquisition, a, b, s, psf_kernel, esun=None,
     :param normalise:
         A boolean indicating whether or not to normalise the
         psf_kernel. Default is True.
+
+    :return:
+        A 2D NumPy array of type float32, with NaN's populating
+        invalid elements.
     """
     # normalise the kernel or not
     if normalise:
         psf_kernel = psf_kernel / psf_kernel.sum()
 
     data = lambertian_tiled(acquisition, a, b, s, esun)
-    null_mask = data == NO_DATA_VALUE
+    data_mask = ~numpy.isfinite(data)  # locate NaN's
 
     # can we correctly apply row-length averages?
-    _, start_idx, end_idx = _sequential_valid_rows(null_mask)  # ignore all_valid for time being
+    _, start_idx, end_idx = _sequential_valid_rows(data_mask)  # ignore all_valid for time being
 
     # fill nulls with run-length averages
     # _fill_nulls(data[start_idx:end_idx], null_mask[start_idx:end_idx])
-    _fill_nulls(data, null_mask)
+    _fill_nulls(data, data_mask)
 
     # apply convolution
     result = numpy.full(data.shape, fill_value=-999, dtype='float32')
@@ -238,12 +255,12 @@ def average_lambertian(acquisition, a, b, s, psf_kernel, esun=None,
                      output=result[start_idx:end_idx])
 
     # insert nulls back into the array
-    result[null_mask] = NO_DATA_VALUE
+    result[data_mask] = NAN
 
     return result
 
 
-def adjacency_correction(lambertian, average, fv):
+def adjacency_correction(lambertian, average, fv, out):
     """
     Calculate lambertian reflectance with adjacency correction.
 
@@ -256,12 +273,86 @@ def adjacency_correction(lambertian, average, fv):
 
     :param fv:
         Direct fraction of radiation in the view direction.
+
+    :param out:
+        A NumPy array of same shape as lambertian to contain the
+        result.
+
+    :return:
+        None. Output is written directly into <out>.
     """
     expr = "lambertian + ((1 - fv) / fv) * (lambertian - average)"
+    numexpr.evaluate(expr, out=out)
 
-    null_mask = lambertian == NO_DATA_VALUE
-    result = numexpr.evaluate(expr)
-    result[null_mask] = NO_DATA_VALUE
+
+def lambertian_adjacency(acquisition, a, b, s, fv, psf_kernel, esun=None,
+                         normalise=True):
+    """
+    Workflow to calculate lambertian reflectance with atmospheric
+    adjacency correction.
+
+    :param acquisition:
+        An instance of an acquisition object.
+
+    :param a:
+        An atmpsheric coefficient derived from the radiative transfer.
+        Calculated as:
+            (DIR + DIF) / pi * (TV + TDV)
+        Where:
+            DIR = Direct irradiance at the surface
+            DIF = Diffuse irradiance at the surface
+            TV = Dirrect transmittance in the view direction
+            TDV = Diffuse transmittance in the view direction
+
+    :param b:
+        Path radiance due to atmospheric scattering.
+
+    :param s:
+        Atmospheric albedo.
+
+    :param fv:
+        Direct fraction of radiation in the view direction.
+
+    :param psf_kernel:
+        A 2D kernel/filter representing the point spread function of
+        the atmosphere to resolve the atmospheric adjacency.
+
+    :param esun:
+        Exoatmospheric solar irradiance. Default is None.
+
+    :param normalise:
+        A boolean indicating whether or not to normalise the
+        psf_kernel. Default is True.
+
+    :return:
+        A float32 2D NumPy array of type float32 with NaN's populating
+        invalid elements.
+    """
+    dims = (acquisition.lines, acquisition.samples)
+    result = numpy.zeros(dims, dtype='float32')
+
+    avg_lambt = average_lambertian(acquisition, a, b, s, psf_kernel, esun,
+                                   normalise)
+
+    # process by tile
+    for tile in acquisition.tiles():
+        idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
+
+        # read the data corresponding to the current tile for all dataset
+        # the original f90 routine specified single precision
+        rad = acquisition.radiance_data(window=tile, out_no_data=NAN,
+                                        esun=esun).astype('float32')
+
+        # lambertian
+        lambt = numpy.zeros(rad.shape, dtype='float32')
+        lambertian_block(rad, a[idx], b[idx], s[idx], lambt)
+
+        # correct for atmospheric adjacency
+        adjacency_correction(lambt, avg_lambt[idx], fv[idx], result[idx])
+
+    # account for original nulls and any evaluated nan's
+    data_mask = ~numpy.isfinite(avg_lambt)
+    result[data_mask] = NAN
 
     return result
 
@@ -279,6 +370,9 @@ def sky_glint(satellite_view, refractive_index=1.34):
     :param refractive_index:
         The refractive index of water. Default is 1.34 and internally
         recast as a float32.
+
+    :return:
+        A 2D NumPy array of type float32.
     """
     rw = numpy.float32(refractive_index)  # noqa # pylint: disable
     theta = numpy.deg2rad(satellite_view, dtype='float32')  # noqa # pylint: disable
@@ -323,15 +417,17 @@ def sky_glint_correction(lambertian, fs, satellite_view,
     :param refractive_index:
         The refractive index of water. Default is 1.34 and internally
         recast as a float32.
+
+    :return:
+        A 2D NumPy array of type float32.
     """
     expr = "lambertian - (1 - fs) * sky_g"
-    null_mask = lambertian == NO_DATA_VALUE
+    data_mask = ~numpy.isfinite(lambertian)
     sky_g = sky_glint(satellite_view, refractive_index)  # noqa # pylint: disable
 
-    # evaluate; insert nulls back into array and account for nan's
+    # evaluate; insert nulls back into array
     result = numexpr.evaluate(expr)
-    result[null_mask] = NO_DATA_VALUE
-    result[~numpy.isfinite(result)] = NO_DATA_VALUE
+    result[data_mask] = NAN
 
     return result
 
