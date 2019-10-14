@@ -100,10 +100,14 @@ def scale_reflectance(data, clip_range=(1, 10000), clip=True):
     return result
 
 
-def apply_psf(data, psf_kernel, normalise=True):
+def average_lambertian(acquisition, a, b, s, psf_kernel, esun=None,
+                       normalise=True):
     """
-    Convolve the point spread function as a kernel across the data
-    array.
+    Calculate the lambertian reflectance by taking into account the
+    the surrounding pixels.
+    Essentially we convolve the point spread function as a kernel
+    across the lambertian reflectance to get the surrounding
+    contribution.
     Prior to convolution, the data is first smoothed by filling
     null values with an average. Currently this null filling process
     is evaluated by a run length average.
@@ -133,6 +137,7 @@ def apply_psf(data, psf_kernel, normalise=True):
     if normalise:
         psf_kernel = psf_kernel / psf_kernel.sum()
 
+    data = lambertian(acquisition, a, b, s, esun)
     null_mask = data == NO_DATA_VALUE
 
     # can we correctly apply row-length averages?
@@ -176,6 +181,13 @@ def lambertian(acquisition, a, b, s, esun=None):
 
     :param esun:
         Exoatmospheric solar irradiance. Default is None.
+
+    :return:
+        A float32 2D NumPy array.
+
+    :notes:
+        Internally processed as tiles to conserve memory as
+        calculating TOARadiance will output float64.
     """
     expr = "(rad - b) / (a + s * (rad - b))"
     dims = (acquisition.lines, acquisition.samples)
