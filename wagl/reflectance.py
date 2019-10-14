@@ -100,7 +100,35 @@ def scale_reflectance(data, clip_range=(1, 10000), clip=True):
     return result
 
 
-def lambertian(acquisition, a, b, s, esun=None):
+def lambertian_block(radiance, a, b, s, out):
+    """
+    A convenience function for evaluating lambertian reflectance
+    over a single block of data.
+
+    :param radiance:
+        Top of Atmosphere Radiance.
+
+    :param a:
+        An atmpsheric coefficient derived from the radiative transfer.
+        Calculated as:
+            (DIR + DIF) / pi * (TV + TDV)
+        Where:
+            DIR = Direct irradiance at the surface
+            DIF = Diffuse irradiance at the surface
+            TV = Dirrect transmittance in the view direction
+            TDV = Diffuse transmittance in the view direction
+
+    :param b:
+        Path radiance due to atmospheric scattering.
+
+    :param s:
+        Atmospheric albedo.
+    """
+    expr = "(radiance - b) / (a + s * (radiance - b))"
+    numexpr.evaluate(expr, out=out)
+
+
+def lambertian_tiled(acquisition, a, b, s, esun=None):
     """
     Calculate lambertian reflectance coupled with a correction
     for atmospheric adjacency (if a psf kernel is supplied).
@@ -131,7 +159,6 @@ def lambertian(acquisition, a, b, s, esun=None):
         Internally processed as tiles to conserve memory as
         calculating TOARadiance will output float64.
     """
-    expr = "(rad - b) / (a + s * (rad - b))"
     dims = (acquisition.lines, acquisition.samples)
     null_mask = numpy.zeros(dims, dtype='bool')
     result = numpy.zeros(dims, dtype='float32')
@@ -149,13 +176,7 @@ def lambertian(acquisition, a, b, s, esun=None):
         null_mask[idx] = rad == NO_DATA_VALUE
 
         # lambertian
-        local_dict = {
-            'a': a[idx],
-            'b': b[idx],
-            's': s[idx],
-            'rad': rad
-        }
-        numexpr.evaluate(expr, out=result[idx], local_dict=local_dict)
+        lambertian_block(rad, a[idx], b[idx], s[idx], result[idx])
 
     # account for original nulls and any evaluated nan's
     result[null_mask] = NO_DATA_VALUE
@@ -201,7 +222,7 @@ def average_lambertian(acquisition, a, b, s, psf_kernel, esun=None,
     if normalise:
         psf_kernel = psf_kernel / psf_kernel.sum()
 
-    data = lambertian(acquisition, a, b, s, esun)
+    data = lambertian_tiled(acquisition, a, b, s, esun)
     null_mask = data == NO_DATA_VALUE
 
     # can we correctly apply row-length averages?
