@@ -26,11 +26,48 @@ from wagl.__surface_reflectance import reflectance
 NO_DATA_VALUE = -999
 
 
+def _sequential_valid_rows(mask):
+    """
+    Check that the mask of null data contains sequential rows.
+    i.e. non-sequential means an invalid row is surrounded by valid
+    rows.
+    """
+    nrows = mask.shape[0]
+    row_ids = numpy.arange(nrows)
+
+    # check for any rows that are all null
+    invalid_rows_mask = numpy.all(mask, axis=1)
+
+    valid_rows = row_ids[~invalid_rows_mask]
+    start_idx = valid_rows[0]
+    end_idx = valid_rows[-1] + 1
+
+    # this section is probably not required anymore
+    if (start_idx == 0) and (end_idx == nrows):
+        all_valid = True
+    else:
+        all_valid = False
+
+    # check that we are ascending by 1
+    # i.e. an invalid row has valid rows before and after
+    # TODO;
+    # don't raise, simply return and we use another method to fill nulls
+    sequential = numpy.all(numpy.diff(valid_rows) == 1)
+    if not sequential:
+        msg = "Rows with valid data are non-sequential."
+        raise Exception(msg)
+
+    return all_valid, start_idx, end_idx
+
+
 def _fill_nulls(data, mask):
     """
     Calculate run-length averages and insert (inplace) at null pixels.
     In future this could also be an averaging kernel.
+    We are assuming 2D arrays only (y, x).
     """
+    # TODO: how to account for a row of data that is all null?
+    # potentially use alternate methods if row length average doesn't satisfy
     for row in range(data.shape[0]):
         data[row][mask[row]] = numpy.mean(data[row][~mask[row]])
 
@@ -63,7 +100,60 @@ def scale_reflectance(data, clip_range=(1, 10000), clip=True):
     return result
 
 
-def lambertian(acquisition, a, b, s, psf=None, esun=None):
+def apply_psf(data, psf_kernel, normalise=True):
+    """
+    Convolve the point spread function as a kernel across the data
+    array.
+    Prior to convolution, the data is first smoothed by filling
+    null values with an average. Currently this null filling process
+    is evaluated by a run length average.
+
+    TODO:
+        * Include an option to run convolution via fourier, to enable
+          faster processing for large kernels.
+        * Incorporate astropy for convolution to enable handling of
+          null data as well as NaN's.
+        * Change to use NaN as fill value for all operations, and
+          convert to -999 at the end.
+
+    :param data:
+        This process was designed to be applied to lambertian
+        reflectance, but in practice it could be any 2D NumPy array.
+        Currently, the process is assuming null data to be -999.
+
+    :param psf_kernel:
+        A 2D kernel/filter representing the point spread function of
+        the atmosphere to resolve the atmospheric adjacency.
+
+    :param normalise:
+        A boolean indicating whether or not to normalise the
+        psf_kernel. Default is True.
+    """
+    # normalise the kernel or not
+    if normalise:
+        psf_kernel = psf_kernel / psf_kernel.sum()
+
+    null_mask = data == NO_DATA_VALUE
+
+    # can we correctly apply row-length averages?
+    _, start_idx, end_idx = _sequential_valid_rows(null_mask)  # ignore all_valid for time being
+
+    # fill nulls with run-length averages
+    # _fill_nulls(data[start_idx:end_idx], null_mask[start_idx:end_idx])
+    _fill_nulls(data, null_mask)
+
+    # apply convolution
+    result = numpy.full(data.shape, fill_value=-999, dtype='float32')
+    ndimage.convolve(data[start_idx:end_idx], psf_kernel,
+                     output=result[start_idx:end_idx])
+
+    # insert nulls back into the array
+    result[null_mask] = NO_DATA_VALUE
+
+    return result
+
+
+def lambertian(acquisition, a, b, s, esun=None):
     """
     Calculate lambertian reflectance coupled with a correction
     for atmospheric adjacency (if a psf kernel is supplied).
@@ -83,11 +173,6 @@ def lambertian(acquisition, a, b, s, psf=None, esun=None):
 
     :param s:
         Atmospheric albedo.
-
-    :param psf:
-        Point Spread Function of the atmosphere to resovle the
-        atmospheric adjacency correction.
-        Default is None, in which case do nothing.
 
     :param esun:
         Exoatmospheric solar irradiance. Default is None.
@@ -110,17 +195,39 @@ def lambertian(acquisition, a, b, s, psf=None, esun=None):
         null_mask[idx] = rad == NO_DATA_VALUE
 
         # lambertian
-        numexpr.evaluate(expr, out=result[idx])
+        local_dict = {
+            'a': a[idx],
+            'b': b[idx],
+            's': s[idx],
+            'rad': rad
+        }
+        numexpr.evaluate(expr, out=result[idx], local_dict=local_dict)
 
-    # apply psf kernel if available
-    if psf is not None:
-        # fill nulls with run-length averages
-        _fill_nulls(result, null_mask)
+    # account for original nulls and any evaluated nan's
+    result[null_mask] = NO_DATA_VALUE
+    result[~numpy.isfinite(result)] = NO_DATA_VALUE
 
-        # apply convolution
-        result = ndimage.convole(rad, psf)
+    return result
 
-    # insert nulls back into the array
+
+def adjacency_correction(lambertian, average, fv):
+    """
+    Calculate lambertian reflectance with adjacency correction.
+
+    :param lambertian:
+        The lambertian reflectance.
+
+    :param average:
+        Average reflectance of the surrounding pixels. Essentially
+        derived via apply_psf.
+
+    :param fv:
+        Direct fraction of radiation in the view direction.
+    """
+    expr = "lambertian + ((1 - fv) / fv) * (lambertian - average)"
+
+    null_mask = lambertian == NO_DATA_VALUE
+    result = numexpr.evaluate(expr)
     result[null_mask] = NO_DATA_VALUE
 
     return result
@@ -140,11 +247,15 @@ def sky_glint(satellite_view, refractive_index=1.34):
         The refractive index of water. Default is 1.34 and internally
         recast as a float32.
     """
-    rw = numpy.float32(1.34)  # noqa # pylint: disable
+    rw = numpy.float32(refractive_index)  # noqa # pylint: disable
     theta = numpy.deg2rad(satellite_view, dtype='float32')  # noqa # pylint: disable
 
     expr = "arcsin(sin(theta) / rw)"
     theta_prime = numexpr.evaluate(expr)  # noqa # pylint: disable
+
+    # tolerance mask; suitable for very low angles, and those at nadir
+    expr = "abs(theta + theta_prime) < 1.0e-5"
+    tolerance_mask = numexpr.evaluate(expr)
 
     p5 = numpy.float32(0.5)  # noqa # pylint: disable
     expr = ("p5 * ((sin(theta-theta_prime) / sin(theta+theta_prime))**2 "
@@ -152,6 +263,12 @@ def sky_glint(satellite_view, refractive_index=1.34):
 
     # sky glint (taken as fresnel reflectance at theta)
     result = numexpr.evaluate(expr)
+
+    # account for nan's (0.0 degrees for view angle will produce nan's)
+    # TODO: use (abs(th+thp) .lt. 1.0e-5) as a tolerance test instead
+    val = numpy.abs((rw - 1) / (rw + 1))**2
+    result[tolerance_mask] = val
+    # result[~numpy.isfinite(result)] = val
 
     return result
 
@@ -178,9 +295,10 @@ def sky_glint_correction(lambertian, fs, satellite_view,
     null_mask = lambertian == NO_DATA_VALUE
     sky_g = sky_glint(satellite_view, refractive_index)  # noqa # pylint: disable
 
-    # evaluate; insert nulls back into array
+    # evaluate; insert nulls back into array and account for nan's
     result = numexpr.evaluate(expr)
     result[null_mask] = NO_DATA_VALUE
+    result[~numpy.isfinite(result)] = NO_DATA_VALUE
 
     return result
 
