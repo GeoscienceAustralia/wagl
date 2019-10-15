@@ -250,7 +250,7 @@ def average_lambertian(acquisition, a, b, s, psf_kernel, esun=None,
     _fill_nulls(data, data_mask)
 
     # apply convolution
-    result = numpy.full(data.shape, fill_value=-999, dtype='float32')
+    result = numpy.full(data.shape, fill_value=numpy.nan, dtype='float32')
     ndimage.convolve(data[start_idx:end_idx], psf_kernel,
                      output=result[start_idx:end_idx])
 
