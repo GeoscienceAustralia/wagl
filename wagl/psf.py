@@ -375,6 +375,10 @@ def compute_adjacency_filter(
             filter_matrix = compute_filter_matrix(
                 _psf_data, xres, yres, _MAX_FILTER_SIZE, _HSTEP
             )
+            # check if filter_matrix is symmetric
+            if not np.array_equal(filter_matrix, filter_matrix.T):
+                raise ValueError(f"adjacency kernel is not symmetric for {band}")
+
             attrs_filter["band_name"] = acq.band_name
             dname = ppjoin(
                 DatasetName.ADJACENCY_FILTER.value,

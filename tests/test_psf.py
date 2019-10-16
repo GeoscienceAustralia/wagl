@@ -100,6 +100,7 @@ class TestPointSpreadFunction(unittest.TestCase):
             data = json.load(src)
             data["aerosol_type"] = 3
             data1_tp5, _ = format_tp5(data)
+
         with open(DATA_DIR.joinpath("POINT-4-ALBEDO-0.tp5"), 'r') as src:
             data2_tp5 = ''.join(src.readlines())
 
@@ -116,8 +117,9 @@ class TestPointSpreadFunction(unittest.TestCase):
                     for val in fid.readlines()[9:]
                 ]
             )
-            self.assertEqual(kernel_matrix.shape, data.shape)
-            npt.assert_almost_equal(np.sum(data), np.sum(kernel_matrix), decimal=2)
+            npt.assert_array_almost_equal(kernel_matrix, kernel_matrix.T, decimal=10)
+            npt.assert_array_almost_equal(data, kernel_matrix, decimal=2)
+            npt.assert_array_almost_equal(kernel_matrix, data.T, decimal=2)
 
 
 if __name__ == "__main__":
