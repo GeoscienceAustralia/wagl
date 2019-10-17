@@ -162,11 +162,9 @@ def surface_brightness_temperature(acquisition, interpolation_group,
 
     # process each tile
     for tile in acq.tiles():
-        idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
-
         radiance = acq.radiance_data(window=tile, out_no_data=NO_DATA_VALUE)
-        path_up = upwelling_radiation[idx]
-        trans = transmittance[idx]
+        path_up = upwelling_radiation[tile]
+        trans = transmittance[tile]
         mask = ~numpy.isfinite(trans)
         expr = "(radiance - path_up) / trans"
         corrected_radiance = numexpr.evaluate(expr)
@@ -175,7 +173,7 @@ def surface_brightness_temperature(acquisition, interpolation_group,
         brightness_temp = numexpr.evaluate(expr)
         brightness_temp[mask] = kwargs['fillvalue']
 
-        out_dset[idx] = brightness_temp
+        out_dset[tile] = brightness_temp
     acq.close()  # If dataset is cached; clear it
 
     if out_group is None:

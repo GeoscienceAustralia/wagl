@@ -849,9 +849,6 @@ def calculate_reflectance(acquisition, interpolation_group,
     """
     # process by tile
     for tile in acquisition.tiles():
-        # tile indices
-        idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
-
         # define some static arguments
         acq_args = {'window': tile,
                     'out_no_data': NO_DATA_VALUE,
@@ -862,24 +859,24 @@ def calculate_reflectance(acquisition, interpolation_group,
         # Convert the datatype if required and transpose
         band_data = as_array(acquisition.radiance_data(**acq_args), **f32_args)
         
-        shadow = as_array(shadow_dataset[idx], numpy.int8, transpose=True)
-        solar_zenith = as_array(solar_zenith_dset[idx], **f32_args)
-        solar_azimuth = as_array(solar_azimuth_dset[idx], **f32_args)
-        satellite_view = as_array(satellite_v_dset[idx], **f32_args)
-        relative_angle = as_array(relative_a_dset[idx], **f32_args)
-        slope = as_array(slope_dataset[idx], **f32_args)
-        aspect = as_array(aspect_dataset[idx], **f32_args)
-        incident_angle = as_array(incident_angle_dataset[idx], **f32_args)
-        exiting_angle = as_array(exiting_angle_dataset[idx], **f32_args)
-        relative_slope = as_array(relative_s_dset[idx], **f32_args)
-        a_mod = as_array(a_dataset[idx], **f32_args)
-        b_mod = as_array(b_dataset[idx], **f32_args)
-        s_mod = as_array(s_dataset[idx], **f32_args)
-        fs = as_array(fs_dataset[idx], **f32_args)
-        fv = as_array(fv_dataset[idx], **f32_args)
-        ts = as_array(ts_dataset[idx], **f32_args)
-        direct = as_array(dir_dataset[idx], **f32_args)
-        diffuse = as_array(dif_dataset[idx], **f32_args)
+        shadow = as_array(shadow_dataset[tile], numpy.int8, transpose=True)
+        solar_zenith = as_array(solar_zenith_dset[tile], **f32_args)
+        solar_azimuth = as_array(solar_azimuth_dset[tile], **f32_args)
+        satellite_view = as_array(satellite_v_dset[tile], **f32_args)
+        relative_angle = as_array(relative_a_dset[tile], **f32_args)
+        slope = as_array(slope_dataset[tile], **f32_args)
+        aspect = as_array(aspect_dataset[tile], **f32_args)
+        incident_angle = as_array(incident_angle_dataset[tile], **f32_args)
+        exiting_angle = as_array(exiting_angle_dataset[tile], **f32_args)
+        relative_slope = as_array(relative_s_dset[tile], **f32_args)
+        a_mod = as_array(a_dataset[tile], **f32_args)
+        b_mod = as_array(b_dataset[tile], **f32_args)
+        s_mod = as_array(s_dataset[tile], **f32_args)
+        fs = as_array(fs_dataset[tile], **f32_args)
+        fv = as_array(fv_dataset[tile], **f32_args)
+        ts = as_array(ts_dataset[tile], **f32_args)
+        direct = as_array(dir_dataset[tile], **f32_args)
+        diffuse = as_array(dif_dataset[tile], **f32_args)
 
         # Allocate the output arrays
         xsize, ysize = band_data.shape # band_data has been transposed
@@ -903,9 +900,9 @@ def calculate_reflectance(acquisition, interpolation_group,
                     ref_brdf.transpose(), ref_terrain.transpose(), normalized_solar_zenith)
 
         # Write the current tile to disk
-        lmbrt_dset[idx] = ref_lm
-        nbar_dset[idx] = ref_brdf
-        nbart_dset[idx] = ref_terrain
+        lmbrt_dset[tile] = ref_lm
+        nbar_dset[tile] = ref_brdf
+        nbart_dset[tile] = ref_terrain
 
     """
 
