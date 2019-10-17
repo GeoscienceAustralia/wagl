@@ -78,16 +78,13 @@ class TestGetTile3(unittest.TestCase):
     def check_sizes(self, xtile, ytile, tiles_list):
         """Check that the tiles in tiles_list have appropriate extents."""
         for tile in tiles_list:
-            yse, xse = tile
-            ystart, yend = yse
-            xstart, xend = xse
-            self.assertTrue(0 <= xstart < xend,
+            self.assertTrue(0 <= tile[1].start < tile[1].stop,
                             'Tile empty - xcoord: ' + repr(tile))
-            self.assertTrue(0 <= ystart < yend,
+            self.assertTrue(0 <= tile[0].start < tile[0].stop,
                             'Tile empty - y coord: ' + repr(tile))
-            self.assertLessEqual(xend - xstart, xtile,
+            self.assertLessEqual(tile[1].stop - tile[1].start, xtile,
                                  'Tile too big - x coord: ' + repr(tile))
-            self.assertLessEqual(yend - ystart, ytile,
+            self.assertLessEqual(tile[0].stop - tile[0].start, ytile,
                                  'Tile too big - y coord: ' + repr(tile))
 
     def check_tiling(self, samples, lines, tiles_list):
@@ -143,13 +140,8 @@ def generate_test_array(samples, lines, tiles_list, tag_array):
 
     """
     test_array = numpy.zeros((lines, samples), dtype=numpy.uint32)
-    i = 0
-    for tile in tiles_list:
-        yse, xse = tile
-        ystart, yend = yse
-        xstart, xend = xse
-        test_array[ystart:yend, xstart:xend] += tag_array[i]
-        i += 1
+    for i, tile in enumerate(tiles_list):
+        test_array[tile] += tag_array[i]
     return test_array
 
 
