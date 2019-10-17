@@ -110,7 +110,7 @@ def scale_reflectance(data, clip_range=(1, 10000), clip=True):
     return result
 
 
-def lambertian_block(radiance, a, b, s, out):
+def lambertian_block(radiance, a, b, s):
     """
     A convenience function for evaluating lambertian reflectance
     over a single block of data.
@@ -135,13 +135,15 @@ def lambertian_block(radiance, a, b, s, out):
         Atmospheric albedo.
 
     :return:
-        None. Output is written directly into <out>.
+        An numpy.ndarray.
     """
     expr = "(radiance - b) / (a + s * (radiance - b))"
-    numexpr.evaluate(expr, out=out)
+    result = numexpr.evaluate(expr)
+
+    return result
 
 
-def lambertian_tiled(acquisition, a, b, s, esun=None):
+def lambertian_tiled(acquisition, a, b, s, esun=None, outds=None):
     """
     Calculate lambertian reflectance coupled with a correction
     for atmospheric adjacency (if a psf kernel is supplied).
@@ -165,6 +167,9 @@ def lambertian_tiled(acquisition, a, b, s, esun=None):
     :param esun:
         Exoatmospheric solar irradiance. Default is None.
 
+    :param outds:
+        A HDF5 Dataset to contain the float32 output result.
+
     :return:
         A float32 2D NumPy array of type float32 with NaN's populating
         invalid elements.
@@ -175,27 +180,33 @@ def lambertian_tiled(acquisition, a, b, s, esun=None):
     """
     dims = (acquisition.lines, acquisition.samples)
     data_mask = numpy.zeros(dims, dtype='bool')
-    result = numpy.zeros(dims, dtype='float32')
+
+    # the processing is biased towards receiving a HDF5 Dataset object
+    # as such, if None received we'll be allocating additional memory for
+    # the data subsets which then get copied onto the full dimensional array
+    if outds is None:
+        outds = numpy.zeros(dims, dtype='float32')
 
     # process by tile
     for tile in acquisition.tiles():
-        idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
-
         # read the data corresponding to the current tile for all dataset
         # the original f90 routine specified single precision
         rad = acquisition.radiance_data(window=tile, out_no_data=NAN,
                                         esun=esun).astype('float32')
 
-        # update the data mask
-        data_mask[idx] = ~numpy.isfinite(rad)
+        # define the data mask (identify NaN pixels)
+        data_mask = ~numpy.isfinite(rad)
 
         # lambertian
-        lambertian_block(rad, a[idx], b[idx], s[idx], result[idx])
+        lambt = lambertian_block(rad, a[tile], b[tile], s[tile])
 
-    # account for original nulls and any evaluated nan's
-    result[data_mask] = NAN
+        # account for original nulls and any evaluated nan's
+        lambt[data_mask] = NAN
 
-    return result
+        outds[tile] = lambt
+
+    if isinstance(outds, numpy.ndarrray):
+        return outds
 
 
 def average_lambertian(acquisition, a, b, s, psf_kernel, esun=None,
@@ -251,8 +262,8 @@ def average_lambertian(acquisition, a, b, s, psf_kernel, esun=None,
 
     # apply convolution
     result = numpy.full(data.shape, fill_value=numpy.nan, dtype='float32')
-    ndimage.convolve(data[start_idx:end_idx], psf_kernel,
-                     output=result[start_idx:end_idx])
+    ndimage.convolve(data[start_idx:end_idx].T, psf_kernel,
+                     output=result[start_idx:end_idx].T)
 
     # insert nulls back into the array
     result[data_mask] = NAN
@@ -260,33 +271,33 @@ def average_lambertian(acquisition, a, b, s, psf_kernel, esun=None,
     return result
 
 
-def adjacency_correction(lambertian, average, fv, out):
+def adjacency_correction(lambertian, lambertian_average, fv):
     """
     Calculate lambertian reflectance with adjacency correction.
 
     :param lambertian:
         The lambertian reflectance.
 
-    :param average:
-        Average reflectance of the surrounding pixels. Essentially
-        derived via apply_psf.
+    :param lambertian_average:
+        Average lambertian reflectance of the surrounding pixels.
+        Lambertian reflectance convolved with the point spread
+        function describing the atmospheric adjacency effect.
+        which is computed via the average_lambertian funtion.
 
     :param fv:
         Direct fraction of radiation in the view direction.
 
-    :param out:
-        A NumPy array of same shape as lambertian to contain the
-        result.
-
     :return:
         None. Output is written directly into <out>.
     """
-    expr = "lambertian + ((1 - fv) / fv) * (lambertian - average)"
-    numexpr.evaluate(expr, out=out)
+    expr = "lambertian + ((1 - fv) / fv) * (lambertian - lambertian_average)"
+    result = numexpr.evaluate(expr)
+
+    return result
 
 
 def lambertian_adjacency(acquisition, a, b, s, fv, psf_kernel, esun=None,
-                         normalise=True):
+                         normalise=True, outds=None):
     """
     Workflow to calculate lambertian reflectance with atmospheric
     adjacency correction.
@@ -324,40 +335,48 @@ def lambertian_adjacency(acquisition, a, b, s, fv, psf_kernel, esun=None,
         A boolean indicating whether or not to normalise the
         psf_kernel. Default is True.
 
+    :param outds:
+        A HDF5 Dataset to contain the float32 output result.
+
     :return:
         A float32 2D NumPy array of type float32 with NaN's populating
         invalid elements.
     """
     dims = (acquisition.lines, acquisition.samples)
-    result = numpy.zeros(dims, dtype='float32')
+
+    if outds is None:
+        outds = numpy.zeros(dims, dtype='float32')
 
     avg_lambt = average_lambertian(acquisition, a, b, s, psf_kernel, esun,
                                    normalise)
 
     # process by tile
     for tile in acquisition.tiles():
-        idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
-
         # read the data corresponding to the current tile for all dataset
         # the original f90 routine specified single precision
         rad = acquisition.radiance_data(window=tile, out_no_data=NAN,
                                         esun=esun).astype('float32')
 
+        # define the data mask (identify NaN pixels)
+        data_mask = ~numpy.isfinite(rad)
+
         # lambertian
-        lambt = numpy.zeros(rad.shape, dtype='float32')
-        lambertian_block(rad, a[idx], b[idx], s[idx], lambt)
+        lambt = lambertian_block(rad, a[tile], b[tile], s[tile])
 
         # correct for atmospheric adjacency
-        adjacency_correction(lambt, avg_lambt[idx], fv[idx], result[idx])
+        adj_cor = adjacency_correction(lambt, avg_lambt[tile], fv[tile])
 
-    # account for original nulls and any evaluated nan's
-    data_mask = ~numpy.isfinite(avg_lambt)
-    result[data_mask] = NAN
+        # account for original nulls and any evaluated nan's
+        adj_cor[data_mask] = NAN
 
-    return result
+        # copy to final destination (numpy.ndarray, or h5py.Dataset)
+        outds[tile] = adj_cor
+
+    if isinstance(outds, numpy.ndarrray):
+        return outds
 
 
-def sky_glint(satellite_view, refractive_index=1.34):
+def sky_glint(satellite_view, refractive_index=1.34, outds=None, tiles=None):
     """
     Calculate sky glint; Fresnel reflectance of a flat water body.
     Based on Fresnel reflectance at the sensor zenith view angle.
@@ -371,40 +390,84 @@ def sky_glint(satellite_view, refractive_index=1.34):
         The refractive index of water. Default is 1.34 and internally
         recast as a float32.
 
+    :param outds:
+        A HDF5 Dataset to contain the float32 output result.
+
+    :tiles:
+        Optionally a list of tile or windows of data subsets on which to
+        iterate over. Default is None, in which case the entire array is
+        worked on at once. ((ystart, yend), (xstart, xend))
+
     :return:
         A 2D NumPy array of type float32.
     """
-    # TODO:
-    #    create this dataset using a tiled routine and direct output to a
-    #    HDF5 dataset
+    if outds is None:
+        outds = numpy.zeros(satellite_view.shape, dtype='float32')
+
+    # if no tiles defined, then one big tile covering the entire array
+    if tiles is None:
+        tiles = [(slice(None, None, None), slice(None, None, None))]
+
+    # force constants to float32 (reduce memory for array computations)
     rw = numpy.float32(refractive_index)  # noqa # pylint: disable
-    theta = numpy.deg2rad(satellite_view, dtype='float32')  # noqa # pylint: disable
-
-    expr = "arcsin(sin(theta) / rw)"
-    theta_prime = numexpr.evaluate(expr)  # noqa # pylint: disable
-
-    # tolerance mask; suitable for very low angles, and those at nadir
-    expr = "abs(theta + theta_prime) < 1.0e-5"
-    tolerance_mask = numexpr.evaluate(expr)
-
     p5 = numpy.float32(0.5)  # noqa # pylint: disable
-    expr = ("p5 * ((sin(theta-theta_prime) / sin(theta+theta_prime))**2 "
-            "+ (tan(theta-theta_prime) / tan(theta+theta_prime))**2)")
 
-    # sky glint (taken as fresnel reflectance at theta)
+    # value used for pixels that are flagged by the tolerence test
+    value = numpy.abs((rw - 1) / (rw + 1))**2
+
+    for tile in tiles:
+        theta = numpy.deg2rad(satellite_view[tile], dtype='float32')  # noqa # pylint: disable
+
+        expr = "arcsin(sin(theta) / rw)"
+        theta_prime = numexpr.evaluate(expr)  # noqa # pylint: disable
+
+        # tolerance mask; suitable for very low angles, and those at nadir
+        expr = "abs(theta + theta_prime) < 1.0e-5"
+        tolerance_mask = numexpr.evaluate(expr)
+
+        expr = ("p5 * ((sin(theta-theta_prime) / sin(theta+theta_prime))**2 "
+                "+ (tan(theta-theta_prime) / tan(theta+theta_prime))**2)")
+
+        # sky glint (taken as fresnel reflectance at theta)
+        # this part is now less optimal if dealing with no tiles
+        # as it is now the full array
+        sky_g = numexpr.evaluate(expr)
+
+        # insert value for any pixels that are flagged by the tolerance test
+        sky_g[tolerance_mask] = value
+
+        outds[tile] = sky_g
+
+    if isinstance(outds, numpy.ndarray):
+        return outds
+
+
+def scattering(average_lambertian, s):
+    """
+    Needs documentation;
+    This function is not detailed in the paper, but is defined in the
+    sample code that was provided.
+
+    :param average_lambertian:
+        Average lambertian reflectance of the surrounding pixels.
+        Lambertian reflectance convolved with the point spread
+        function describing the atmospheric adjacency effect.
+        which is computed via the average_lambertian funtion.
+
+    :param s:
+        Atmospheric albedo.
+
+    :return:
+        A 2D NumPy array of type float32.
+    """
+    expr = "s * average_lambertian / (1 - s * average_lambertian)"
     result = numexpr.evaluate(expr)
-
-    # account for nan's (0.0 degrees for view angle will produce nan's)
-    # TODO: use (abs(th+thp) .lt. 1.0e-5) as a tolerance test instead
-    val = numpy.abs((rw - 1) / (rw + 1))**2
-    result[tolerance_mask] = val
-    # result[~numpy.isfinite(result)] = val
 
     return result
 
 
-def sky_glint_correction(lambertian, fs, satellite_view,
-                         refractive_index=1.34):
+def sky_glint_correction(lambertian, fs, s, lambertian_average, satellite_view,
+                         tiles=None, refractive_index=1.34):
     """
     Apply sky glint correction.
 
@@ -414,8 +477,22 @@ def sky_glint_correction(lambertian, fs, satellite_view,
     :param fs:
         Direct fraction in the sun direction.
 
+    :param s:
+        Atmospheric albedo.
+
+    :param average_lambertian:
+        Average lambertian reflectance of the surrounding pixels.
+        Lambertian reflectance convolved with the point spread
+        function describing the atmospheric adjacency effect.
+        which is computed via the average_lambertian funtion.
+
     :param satellite_view:
         The satellite zenith view angle in degrees.
+
+    :tiles:
+        Optionally a list of tile or windows of data subsets on which to
+        iterate over. Default is None, in which case the entire array is
+        worked on at once. ((ystart, yend), (xstart, xend))
 
     :param refractive_index:
         The refractive index of water. Default is 1.34 and internally
@@ -424,13 +501,23 @@ def sky_glint_correction(lambertian, fs, satellite_view,
     :return:
         A 2D NumPy array of type float32.
     """
-    expr = "lambertian - (1 - fs) * sky_g"
-    data_mask = ~numpy.isfinite(lambertian)
-    sky_g = sky_glint(satellite_view, refractive_index)  # noqa # pylint: disable
+    result = numpy.zeros(lambertian.shape, dtype='float32')
 
-    # evaluate; insert nulls back into array
-    result = numexpr.evaluate(expr)
-    result[data_mask] = NAN
+    # if no tiles defined, then one big tile covering the entire array
+    if tiles is None:
+        tiles = [(slice(None, None, None), slice(None, None, None))]
+
+    for tile in tiles:
+        lambt = lambertian[tile]
+        data_mask = ~numpy.isfinite(lambt)
+        scat = scattering(lambertian_average[tile], s[tile])  # noqa # pylint: disable
+
+        expr = "lambt - ((1 - fs) + scat) * sky_g"
+        sky_g = sky_glint(satellite_view[tile], refractive_index)  # noqa # pylint: disable
+
+        # evaluate; insert nulls back into array
+        numexpr.evaluate(expr, out=result[tile])
+        result[tile][data_mask] = NAN
 
     return result
 
@@ -741,15 +828,12 @@ def calculate_reflectance(acquisition, interpolation_group,
     #    sky_glint can be produced using a tiling routine, and output direct
     #    to a HDF5 dataset.
     if psf_kernel is not None:
-        ref_lm = lambertian_adjacency(acquisition, a_dataset, b_dataset,
-                                      s_dataset, fv_dataset, psf_kernel, esun)
-        sky_glint = sky_glint(satellite_v_dset)
-        skyg_dset.write_direct(sky_glint)
+        lambertian_adjacency(acquisition, a_dataset, b_dataset, s_dataset,
+                             fv_dataset, psf_kernel, esun, lmbrt_dset)
+        sky_glint(satellite_v_dset, outds=skyg_dset, tiles=acquisition.tiles())
     else:
-        ref_lm = lambertian_tiled(acquisition, a_dataset, b_dataset,
-                                  s_dataset, esun)
-
-    lmbrt_dset.write_direct(ref_lm)
+        lambertian_tiled(acquisition, a_dataset, b_dataset, s_dataset, esun,
+                         lmbrt_dset)
 
     # NOTES:
     #    for the time being, output the atmospheric adjacency corrected
