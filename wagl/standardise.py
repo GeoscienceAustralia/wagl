@@ -30,17 +30,18 @@ from wagl.slope_aspect import slope_aspect_arrays
 from wagl.temperature import surface_brightness_temperature
 from wagl.pq import can_pq, run_pq
 from wagl.modtran import JsonEncoder
-
+from wagl.psf import compute_adjacency_filter
 from wagl.logs import STATUS_LOGGER
 
 
 # pylint disable=too-many-arguments
 def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
-           tle_path, aerosol, brdf, ozone_path,
-           water_vapour, dem_path, dsm_fname, invariant_fname, modtran_exe,
+           tle_path, aerosol, refractive_index, brdf, ozone_path,
+           water_vapour, dem_path, dsm_fname, invariant_fname, modtran_exe, modtran54_exe,
            out_fname, ecmwf_path=None, rori=0.52, buffer_distance=8000,
            compression=H5CompressionFilter.LZF, filter_opts=None,
-           h5_driver=None, acq_parser_hint=None, normalized_solar_zenith=45.):
+           h5_driver=None, acq_parser_hint=None, normalized_solar_zenith=45.,
+           aerosol_model=None):
     """
     CEOS Analysis Ready Data for Land.
     A workflow for producing standardised products that meet the
@@ -82,6 +83,9 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
         A string containing the full file pathname to the HDF5 file
         containing the aerosol data.
 
+    :param refractive_index:
+        refractive index of water used in sky_glint correction
+
     :param brdf:
         A dict containing either user-supplied BRDF values, or the
         full file pathname to the directory containing the BRDF data
@@ -112,6 +116,10 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
 
     :param modtran_exe:
         A string containing the full file pathname to the MODTRAN
+        executable.
+
+    :param modtran54_exe:
+        A string containing the full file pathname to MODTRAN5.4
         executable.
 
     :param out_fname:
@@ -161,10 +169,14 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
 
     :param normalized_solar_zenith:
         Solar zenith angle to normalize for (in degrees). Default is 45 degrees.
+
+    :param aerosol_model:
+        aerosol model to use for MODTRAN RUN, default is None, which results in
+        "AER_RURAL" type in MODTRAN 6.0 Runs.
+
     """
     json_fmt = pjoin(POINT_FMT, ALBEDO_FMT, ''.join([POINT_ALBEDO_FMT, '.json']))
     nvertices = vertices[0] * vertices[1]
-
     container = acquisitions(level1, hint=acq_parser_hint)
 
     # TODO: pass through an acquisitions container rather than pathname
@@ -287,7 +299,11 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
 
         # TODO: supported acqs in different groups pointing to different response funcs
         json_data, _ = format_json(acqs, ancillary_group, sat_sol_grp,
-                                   lon_lat_grp, workflow, root)
+                                   lon_lat_grp, workflow, root, aerosol_model=aerosol_model)
+
+        #  compute adjacency filter using MODTRAN 5.4 PSF data
+        log.info('Compute-Adjacency-Filter')
+        compute_adjacency_filter(container, granule, json_data, nvertices, modtran54_exe, root, aerosol_model)
 
         # atmospheric inputs group
         inputs_grp = root[GroupName.ATMOSPHERIC_INPUTS_GRP.value]
@@ -330,6 +346,7 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
         # atmospheric coefficients
         log.info('Coefficients')
         results_group = root[GroupName.ATMOSPHERIC_RESULTS_GRP.value]
+
         calculate_coefficients(results_group, root, compression, filter_opts)
         esun_values = {}
         # interpolate coefficients
@@ -429,7 +446,8 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
                       'rori': rori,
                       'buffer_distance': buffer_distance,
                       'normalized_solar_zenith': normalized_solar_zenith,
-                      'esun': esun_values}
+                      'esun': esun_values,
+                      'refractive_index': refractive_index}
 
         # metadata yaml's
         metadata = root.create_group(DatasetName.METADATA.value)

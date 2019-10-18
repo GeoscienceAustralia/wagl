@@ -15,32 +15,53 @@ for Geosciences Australia's Analysis Ready Data program.
 
 """
 
-from typing import Optional
+from os.path import join as pjoin
+from typing import List, Optional, Tuple, Union
 from pathlib import Path
+import shutil
+import subprocess
+import tempfile
+import enum
+from posixpath import join as ppjoin
 
 import numpy as np
+import pandas as pd
+import h5py
+from wagl.hdf5 import write_dataframe, write_scalar
+from wagl.constants import (
+    ALBEDO_FMT,
+    Albedos,
+    BandType,
+    DatasetName,
+    GroupName,
+    POINT_ALBEDO_FMT,
+    POINT_FMT,
+)
+from wagl.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
+
+_MAX_FILTER_SIZE = 40
+_HSTEP = 10.0
+_TP5_FMT = pjoin(POINT_FMT, ALBEDO_FMT, "".join([POINT_ALBEDO_FMT, ".tp5"]))
 
 
-def read_tp7(tp7_file: Path, nbands: int) -> dict:
+def read_tp7(tp7_file: Path, nbands: Union[int, None]) -> dict:
+    """Returns a Point Spread Function (PSF) from a '*.tp7' file.
+
+    :param tp7_file: A full path '*.tp7' file from MODTRAN 5.4 output.
+    :param nbands: Total number of bands used in computing Point Spread.
     """
-    program to read *.tp7 to extract point spread function.
-    Point Spread Function is *.tp7 file are stored at the end
-    of the large text file beginning above the line with str '-9999'.
-    The PSF written per row (till nbands) in a text files with
-    largest band dataset at the row above the line with '-9999' index.
 
-    :param tp7_file: a 'Path' to a .tp7 file from MODTRAN output
-    :param nbands: 'int' type, total number of spectral bands
-
-    :return
-        A dict containing the band number as a key and psf value as a value
-    """
     with open(tp7_file, "r") as fid:
         lines = fid.readlines()[::-1]
+        if nbands is None:
+            for idx, line in enumerate(lines):
+                if "Bands=" in line:
+                    nbands = int(line.split("=")[1])
+
         for idx, line in enumerate(lines):
             if "-9999." in line:
                 return {
-                    "Band_{}".format(nbands - _band): np.asarray(
+                    "BAND-{}".format(nbands - _band): np.asarray(
                         [float(val) for val in lines[_band + idx + 1].split()]
                     )
                     for _band in range(nbands)
@@ -48,17 +69,13 @@ def read_tp7(tp7_file: Path, nbands: int) -> dict:
 
 
 def compute_fwhm(psf_data: np.ndarray, prange: np.ndarray, hstep: float) -> float:
-    """
-    calculate Full Width at Half Maximum (FWHM) values for psf data.
+    """Returns a Full Width at Half Maximum (FWHM) computed from PSF data.
 
-    :param psf_data: 1 dimensional numpy array containing the psf values for a band
-    :param prange: 1 dimentional numpy array containing integer increment of hstep
-    :param hstep: a MODTRAN step size used in computing the psf data
-                   a default value is 10.0, unless new step size is configured in
-                   future MODTRAN run to compute psf, hstep is a constant value of 10.0.
-    :return
-        A 'float' value for FWHM of psf data for a spectral band
+    :param psf_data: A numpy array containing the psf values for a specific band.
+    :param prange: A numpy array containing integer increment of hstep.
+    :param hstep: A MODTRAN 5.4 step size used in computing the psf data (default=10.0).
     """
+
     accum = 0.0
     bigp = 0.0
     pival = 4.0 * np.arctan(1.0)
@@ -72,43 +89,38 @@ def compute_fwhm(psf_data: np.ndarray, prange: np.ndarray, hstep: float) -> floa
 
 
 def _max_filter_size(xres: float, yres: float, nlarge: int) -> int:
-    """
-    compute the maximum filter filter size
+    """Returns a maximum filter filter size.
 
-    :param xres: pixel size in x-direction
-    :param yres: pixel size in y-direction
-    :param nlarge: maximum allowed filter size
-
-    :return
-        A maximum filter size
+    :param xres: pixel size in x-direction.
+    :param yres: pixel size in y-direction.
+    :param nlarge: maximum allowed filter size.
     """
+
     return 2 * np.int(nlarge * 25.0 / max(xres, yres)) + 1
 
 
 def compute_filter_matrix(
-    psf_data: np.ndarray, xres: int, yres: int, nlarge: int, hstep: float
+    psf_data: np.ndarray, xres: float, yres: float, nlarge: int, hstep: float
 ) -> np.ndarray:
-    """
+    """Returns a adjacency kernel derived from Point Spread Function.
+
     compute the adjacency 2D filter matrix based on the 1D FWHM of the PSF as the radius
     of the matrix. If the pixel size is [xres, yres] for the x and y direction, then the
     number of pixels in the matrix away from the center is computed (refer to ATBD for water
     atmospheric correction by David and Fuqin.
 
-    :param psf_data: Point Spread Function data for a spectral band
-    :param xres: pixel size in x-direction
-    :param yres: pixel size in y-direction
-    :param nlarge: maximum filter size set by the user
-    :param hstep: a MODTRAN step size used in computing the psf data
-
-    :return:
-        A np.ndarray containing adjacency kernel
+    :param psf_data: Point Spread Function data for a spectral band.
+    :param xres: Pixel size in x-direction.
+    :param yres: Pixel size in y-direction.
+    :param nlarge: A maximum filter size set by the user.
+    :param hstep: A MODTRAN step size used in computing the psf data.
     """
 
     # compute prange
     prange = np.arange(len(psf_data)) * hstep
 
     def _interp(_range):
-        """ compute psf as _range by linear interpolation of psf_data"""
+        """Returns a linear interpolation of psf_data at _range"""
         if _range < 0.0 or _range > max(prange):
             return -1.0
 
@@ -133,9 +145,9 @@ def compute_filter_matrix(
     # check if number of pixels in a filter is greater than maximum pixel allowed in a filter
     # and reset to a maximum allowed
     if 2 * num_pixel_x + 1 > max_filter_size:
-        num_pixel_x = (max_filter_size - 1) / 2
+        num_pixel_x = np.int((max_filter_size - 1) / 2)
     if 2 * num_pixel_y + 1 > max_filter_size:
-        num_pixel_y = (max_filter_size - 1) / 2
+        num_pixel_y = np.int((max_filter_size - 1) / 2)
 
     # check if psf needs interpolation or not
     interp_psf = False
@@ -167,34 +179,214 @@ def compute_filter_matrix(
     return adj_filter
 
 
-def get_adjacency_kernel(
-    tp7_file: Path,
-    num_bands: int,
-    xres: float,
-    yres: float,
-    max_filter_size: int,
-    hstep: Optional[float] = 10.0,
-) -> dict:
-    """
-    Reads a PSF from a *.tp7 MODTRAN 5.4 output and computes adjacency filter.
+def prepare_modtran54(
+    acquisitions: List[object],
+    coordinate: int,
+    albedo: enum,
+    basedir: Path,
+    modtran_exe: Path,
+) -> None:
+    """Prepares the working directory for a MODTRAN 5.4 execution.
 
-    :param tp7_file: A Path to MODTRAN output *.tp7 file
-    :param num_bands: total number of bands used in computing Point Spread
-                Function in a MODTRAN program. It is assumed that *.tp7
-                has its PSF data (per row to a band) written with high
-                numbered bands from the bottom of the file.
-    :param xres: pixel size in x-direction
-    :param yres: pixel size in y-direction
-    :param max_filter_size: maximum filter size set by the user
-    :param hstep: a MODTRAN step size used in computing the psf data
-               a default value is 10.0, unless new step size is configured in
-               future MODTRAN run to compute psf, hstep is a constant value of 10.0.
-    return:
-        A dict with acquisition band as a key and kernel (np.ndarray) as a value
+    :param acquisitions: A list of 'acquisition' object.
+    :param coordinate: A point to execute MODTRAN run at.
+    :param albedo: A 'instance' of enum 'Albedos'.
+    :param basedir: A full path to a base directory to setup MODTRAN execution.
+    :param modtran_exe: A full path to a MODTRAN 5.4 executable.
     """
 
-    psf_data_dict = read_tp7(tp7_file, num_bands)
-    return {
-        band: compute_filter_matrix(_psf_data, xres, yres, max_filter_size, hstep)
-        for band, _psf_data in psf_data_dict.items()
+    data_dir = modtran_exe.parent.joinpath("DATA")
+    if not data_dir.exists():
+        raise OSError("Cannot find MODTRAN 5.4")
+
+    point_dir = basedir.joinpath(POINT_FMT.format(p=coordinate))
+    acq = [acq for acq in acquisitions if acq.band_type == BandType.REFLECTIVE][0]
+    modtran_work = point_dir.joinpath(ALBEDO_FMT.format(a=albedo.value))
+
+    if not modtran_work.exists():
+        modtran_work.mkdir(parents=True)
+
+    with open(str(modtran_work.joinpath("mod5root.in")), "w") as src:
+        src.write(POINT_ALBEDO_FMT.format(p=coordinate, a=albedo.value) + "\n")
+
+    # create a symbolic link to a MODTRAN data directory
+    symlink_dir = modtran_work.joinpath("DATA")
+    if symlink_dir.exists():
+        symlink_dir.unlink()
+    symlink_dir.symlink_to(data_dir)
+
+    shutil.copy(
+        str(acq.spectral_filter_filepath),
+        str(modtran_work.joinpath(acq.spectral_filter_name)),
+    )
+
+
+def format_tp5(json_data: dict) -> Tuple[dict, dict]:
+    """A utility to format MODTRAN 5.4 '*.tp5' input.
+
+    :param json_data: json data containing the MODTRAN 5.4 input parameters.
+    :return:
+        A 'str' formatted tp5 data at Albedo (0) and dict with input parameters.
+    """
+
+    input_data = json_data["MODTRAN"][0]["MODTRANINPUT"]
+    kwargs = {
+        "albedo": float(Albedos.ALBEDO_0.value),
+        "water": input_data["ATMOSPHERE"]["H2OSTR"],
+        "ozone": input_data["ATMOSPHERE"]["O3STR"],
+        "filter_function": input_data["SPECTRAL"]["FILTNM"],
+        "aerosol_type": json_data["aerosol_type"],
+        "visibility": input_data["AEROSOLS"]["VIS"],
+        "elevation": input_data["GEOMETRY"]["H2ALT"],
+        "sat_height": input_data["GEOMETRY"]["H1ALT"],
+        "sat_view": input_data["GEOMETRY"]["OBSZEN"],
+        "sat_azimuth": input_data["GEOMETRY"]["TRUEAZ"],
+        "doy": input_data["GEOMETRY"]["IDAY"],
+        "lat": input_data["GEOMETRY"]["PARM1"],
+        "lon": input_data["GEOMETRY"]["PARM2"],
+        "time": input_data["GEOMETRY"]["GMTIME"],
     }
+    atm_model = input_data["ATMOSPHERE"]["MODEL"]
+    if atm_model == "ATM_TROPICAL":
+        data = TROPICAL_ALBEDO.format(**kwargs)
+    elif atm_model == "ATM_MIDLAT_SUMMER":
+        data = MIDLAT_SUMMER_ALBEDO.format(**kwargs)
+    else:
+        raise ValueError(f"{atm_model} is not recognized atmosphere model")
+    return data, kwargs
+
+
+def compute_adjacency_filter(
+    container: object,
+    granule: str,
+    json_data: dict,
+    nvertices: int,
+    modtran54_exe: str,
+    out_group: object,
+    aerosol_type: str,
+    num_bands: Optional[int] = None,
+) -> None:
+    """Computes adjacency filter from a MODTRAN 5.4 output.
+
+    This method generates a '*.tp5' input to a MODTRAN 5.4 program
+    at a central point in nvertices. MODTRAN 5.4 is executed to compute
+    a Point Spread Function. The MODTRAN 5.4 output '*.tp7' is read and
+    used in computing adjacency kernel for all the visible and NIR bands
+    available in acquisitions inside a container. The intermediate results,
+    per band PSF data are written to a h5py object along with associated
+    '*.tp5' input data. The adjacency filter (not normalized) are also
+    written to h5py object for bands in PSF data.
+
+    :param container: An instance with acquisitions class
+    :param granule:  A name of a granule.
+    :param json_data: MODTRAN 6.0 inputs from all points in vertices.
+    :param nvertices: The total number of points in vertices (nvertices).
+    :param modtran54_exe: A  full path to a MODTRAN 5.4 executable.
+    :param out_group: A `File` object from which to write the dataset to.
+    :param aerosol_type: An 'instance' of AerosolModel to configure MODTRAN *.tp5 input.
+    :param num_bands: The total number of spectral bands in PSD data.
+    """
+
+    # get list of all the acquistions within a container
+    acqs = sum(
+        [
+            container.get_acquisitions(granule=granule, group=grp_name)
+            for grp_name in container.supported_groups
+        ],
+        [],
+    )
+
+    center_point = int(np.floor(nvertices / 2))
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_dir = Path(tmp_dir)
+
+        # subset the json data to select only center point data
+        json_data = json_data[(center_point, Albedos.ALBEDO_0)]
+        json_data["aerosol_type"] = aerosol_type.value
+
+        # generate tp5 data needed for MODTRAN 5.4 execution
+        tp5_data, input_data = format_tp5(json_data)
+
+        # write tp5 data to h5 file object
+        dname = ppjoin(
+            POINT_FMT.format(p=center_point),
+            ALBEDO_FMT.format(a=Albedos.ALBEDO_0.value),
+            DatasetName.TP5.value,
+        )
+
+        if out_group is None:
+            out_group = h5py.File("atmospheric-inputs.h5", "w")
+
+        if GroupName.ATMOSPHERIC_INPUTS_GRP.value not in out_group:
+            out_group.create_group(GroupName.ATMOSPHERIC_INPUTS_GRP.value)
+
+        group_name = out_group[GroupName.ATMOSPHERIC_INPUTS_GRP.value]
+        iso_time = acqs[0].acquisition_datetime.isoformat()
+        group_name.attrs["acquisition-datetime"]: iso_time
+        write_scalar(np.string_(tp5_data), dname, group_name, input_data)
+
+        # prepare directory and data symlinks for MODTRAN 5.4 execution
+        prepare_modtran54(
+            acqs, center_point, Albedos.ALBEDO_0, tmp_dir, Path(modtran54_exe)
+        )
+        tp5_fname = tmp_dir.joinpath(
+            _TP5_FMT.format(p=center_point, a=Albedos.ALBEDO_0.value)
+        )
+        with open(tp5_fname, "w") as src:
+            src.writelines(tp5_data)
+        work_path = tmp_dir.joinpath(
+            POINT_FMT.format(p=center_point),
+            ALBEDO_FMT.format(a=Albedos.ALBEDO_0.value),
+        )
+
+        # execute MODTRAN 5.4
+        subprocess.check_call([modtran54_exe], cwd=str(work_path))
+
+        # read tp7 output file from MODTRAN 5.4
+        tp7_file = list(work_path.glob("*.tp7"))[0]
+        psf_data = read_tp7(tp7_file, num_bands)
+
+        # determine the output group/file
+        if out_group is None:
+            out_group = h5py.File(
+                "atmospheric-results.h5", driver="core", backing_store=False
+            )
+
+        if GroupName.ATMOSPHERIC_RESULTS_GRP.value not in out_group:
+            out_group.create_group(GroupName.ATMOSPHERIC_RESULTS_GRP.value)
+
+        # write psf data into a h5 file object
+        group_name = out_group[GroupName.ATMOSPHERIC_RESULTS_GRP.value]
+        attrs = {
+            "total_bands": len(psf_data),
+            "description": "Point Spread Function data from MODTRAN .tp7 output",
+        }
+        dname = ppjoin(DatasetName.PSF.value, DatasetName.PSF_DATA.value)
+        data = pd.DataFrame.from_dict(psf_data)
+        write_dataframe(data, dname, group_name, attrs=attrs)
+
+        attrs_filter = {
+            "description": "Adjacency filter derived from Point Spread Function"
+        }
+        for band, _psf_data in psf_data.items():
+            acq = [acq for acq in acqs if acq.band_name == band][0]
+            xres, yres = acq.resolution
+            filter_matrix = compute_filter_matrix(
+                _psf_data, xres, yres, _MAX_FILTER_SIZE, _HSTEP
+            )
+            # check if filter_matrix is symmetric
+            if not np.array_equal(filter_matrix, filter_matrix.T):
+                raise ValueError(f"adjacency kernel is not symmetric for {band}")
+
+            attrs_filter["band_name"] = acq.band_name
+            dname = ppjoin(
+                DatasetName.ADJACENCY_FILTER.value,
+                DatasetName.ADJACENCY_FILTER_BAND.value.format(band_name=acq.band_name),
+            )
+            data = pd.DataFrame(
+                data=filter_matrix[0:, 0:],
+                index=["row {}".format(i) for i in range(filter_matrix.shape[0])],
+                columns=["column {}".format(i) for i in range(filter_matrix.shape[1])],
+            )
+            write_dataframe(data, dname, group_name, attrs=attrs_filter)

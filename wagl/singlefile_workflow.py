@@ -28,7 +28,7 @@ import luigi
 from luigi.util import inherits
 
 from wagl.acquisition import acquisitions
-from wagl.constants import Workflow, Method
+from wagl.constants import Workflow, Method, AerosolModel
 from wagl.hdf5 import H5CompressionFilter
 from wagl.standardise import card4l
 
@@ -68,6 +68,7 @@ class DataStandardisation(luigi.Task):
     invariant_height_fname = luigi.Parameter(significant=False)
     dsm_fname = luigi.Parameter(significant=False)
     modtran_exe = luigi.Parameter(significant=False)
+    modtran54_exe = luigi.Parameter(significant=False)
     tle_path = luigi.Parameter(significant=False)
     rori = luigi.FloatParameter(default=0.52, significant=False)
     compression = luigi.EnumParameter(enum=H5CompressionFilter,
@@ -78,6 +79,8 @@ class DataStandardisation(luigi.Task):
     buffer_distance = luigi.FloatParameter(default=8000, significant=False)
     h5_driver = luigi.OptionalParameter(default='', significant=False)
     normalized_solar_zenith = luigi.FloatParameter(default=45.0)
+    aerosol_model = luigi.Parameter(default=None)
+    refractive_index = luigi.Parameter(default=1.34)
 
     def output(self):
         fmt = '{label}.wagl.h5'
@@ -98,9 +101,10 @@ class DataStandardisation(luigi.Task):
                    self.tle_path, self.aerosol, self.brdf,
                    self.ozone_path, self.water_vapour,
                    self.dem_path, self.dsm_fname, self.invariant_height_fname,
-                   self.modtran_exe, out_fname, ecmwf_path, self.rori,
+                   self.modtran_exe, self.modtran54_exe, out_fname, ecmwf_path, self.rori,
                    self.buffer_distance, self.compression, self.filter_opts,
-                   self.h5_driver, self.acq_parser_hint, self.normalized_solar_zenith)
+                   self.h5_driver, self.acq_parser_hint, self.normalized_solar_zenith,
+                   self.aerosol_model, self.refractive_index)
 
 
 @inherits(DataStandardisation)
@@ -109,11 +113,18 @@ class ARD(luigi.WrapperTask):
     """Kicks off ARD tasks for each level1 entry."""
 
     level1_list = luigi.Parameter()
-
+    water_atcor = luigi.BoolParameter(parsing='explicit', default=False)
     # override here so it's not required at the command line or config
     level1 = luigi.OptionalParameter(default='', significant=False)
 
     def requires(self):
+
+        # overwrites the aerosol model with AER_MARITIME_NAVY if water-atcor is
+        # to be performed. This is just temp method until we sort out a method to
+        # determine which aerosol model to be used based on in-land or coastal water scenes
+        if self.water_atcor:
+            self.aerosol_model = AerosolModel.AER_MARITIME_NAVY
+
         with open(self.level1_list) as src:
             level1_list = [level1.strip() for level1 in src.readlines()]
 
@@ -128,6 +139,7 @@ class ARD(luigi.WrapperTask):
                           'pixel_quality': self.pixel_quality,
                           'method': self.method,
                           'modtran_exe': self.modtran_exe,
+                          'modtran54_exe': self.modtran54_exe,
                           'outdir': outdir,
                           'land_sea_path': self.land_sea_path,
                           'aerosol': self.aerosol,
@@ -143,7 +155,9 @@ class ARD(luigi.WrapperTask):
                           'compression': self.compression,
                           'filter_opts': self.filter_opts,
                           'buffer_distance': self.buffer_distance,
-                          'h5_driver': self.h5_driver}
+                          'h5_driver': self.h5_driver,
+                          'aerosol_model': self.aerosol_model,
+                          'refractive_index': self.refractive_index}
                 yield DataStandardisation(**kwargs)
 
         
