@@ -205,7 +205,7 @@ def lambertian_tiled(acquisition, a, b, s, esun=None, outds=None):
 
         outds[tile] = lambt
 
-    if isinstance(outds, numpy.ndarrray):
+    if isinstance(outds, numpy.ndarray):
         return outds
 
 
@@ -262,8 +262,8 @@ def average_lambertian(acquisition, a, b, s, psf_kernel, esun=None,
 
     # apply convolution
     result = numpy.full(data.shape, fill_value=numpy.nan, dtype='float32')
-    ndimage.convolve(data[start_idx:end_idx].T, psf_kernel,
-                     output=result[start_idx:end_idx].T)
+    ndimage.convolve(data[start_idx:end_idx], psf_kernel,
+                     output=result[start_idx:end_idx])
 
     # insert nulls back into the array
     result[data_mask] = NAN
@@ -288,7 +288,8 @@ def adjacency_correction(lambertian, lambertian_average, fv):
         Direct fraction of radiation in the view direction.
 
     :return:
-        None. Output is written directly into <out>.
+        A numpy.ndarray of lambertian reflectance with atmospheric
+        adjacency correction.
     """
     expr = "lambertian + ((1 - fv) / fv) * (lambertian - lambertian_average)"
     result = numexpr.evaluate(expr)
@@ -372,7 +373,7 @@ def lambertian_adjacency(acquisition, a, b, s, fv, psf_kernel, esun=None,
         # copy to final destination (numpy.ndarray, or h5py.Dataset)
         outds[tile] = adj_cor
 
-    if isinstance(outds, numpy.ndarrray):
+    if isinstance(outds, numpy.ndarray):
         return outds
 
 
