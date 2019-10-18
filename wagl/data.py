@@ -244,17 +244,13 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
             if bands == 1:
                 if isinstance(array, h5py.Dataset):
                     for tile in tiles:
-                        idx = (slice(tile[0][0], tile[0][1]),
-                               slice(tile[1][0], tile[1][1]))
-                        outds.write(array[idx], 1, window=tile)
+                        outds.write(array[tile], 1, window=tile)
                 else:
                     outds.write(array, 1)
             else:
                 if isinstance(array, h5py.Dataset):
                     for tile in tiles:
-                        idx = (slice(tile[0][0], tile[0][1]),
-                               slice(tile[1][0], tile[1][1]))
-                        subs = array[:, idx[0], idx[1]]
+                        subs = array[:, tile[0], tile[1]]
                         for i in range(bands):
                             outds.write(subs[i], i + 1, window=tile)
                 else:
@@ -266,7 +262,6 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
             # overviews/pyramids to disk
             if levels:
                 outds.build_overviews(levels, resampling)
-
 
     if not levels:
         # write directly to disk without rewriting with gdal
