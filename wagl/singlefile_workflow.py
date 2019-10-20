@@ -86,7 +86,6 @@ class DataStandardisation(luigi.Task):
         fmt = '{label}.wagl.h5'
         label = self.granule if self.granule else basename(self.level1)
         out_fname = fmt.format(label=label)
-         
         return luigi.LocalTarget(pjoin(self.outdir, out_fname))
 
     def run(self):
@@ -98,13 +97,13 @@ class DataStandardisation(luigi.Task):
         with self.output().temporary_path() as out_fname:
             card4l(self.level1, self.granule, self.workflow, self.vertices,
                    self.method, self.pixel_quality, self.land_sea_path,
-                   self.tle_path, self.aerosol, self.brdf,
+                   self.tle_path, self.aerosol, self.refractive_index, self.brdf,
                    self.ozone_path, self.water_vapour,
                    self.dem_path, self.dsm_fname, self.invariant_height_fname,
                    self.modtran_exe, self.modtran54_exe, out_fname, ecmwf_path, self.rori,
                    self.buffer_distance, self.compression, self.filter_opts,
                    self.h5_driver, self.acq_parser_hint, self.normalized_solar_zenith,
-                   self.aerosol_model, self.refractive_index)
+                   self.aerosol_model)
 
 
 @inherits(DataStandardisation)
