@@ -405,7 +405,7 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
                         [AtmosphericCoefficients.ESUN.value]
                     ).values[0]
                     psf_dataset_name = ppjoin(DatasetName.ADJACENCY_FILTER.value,
-                                       DatasetName.ADJACENCY_FILTER_BAND.value.format(band_name=acq.band_name))
+                                              DatasetName.ADJACENCY_FILTER_BAND.value.format(band_name=acq.band_name))
                     psf_kernel = read_h5_table(results_group, psf_dataset_name).to_numpy()
                     slp_asp_grp = res_group[GroupName.SLP_ASP_GROUP.value]
                     rel_slp_asp = res_group[GroupName.REL_SLP_GROUP.value]
