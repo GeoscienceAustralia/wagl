@@ -24,7 +24,7 @@ L8_SCENE = Path(__file__).parent.joinpath(
 class TestPointSpreadFunction(unittest.TestCase):
     def setUp(self):
         tp7_file = DATA_DIR.joinpath("MM_alb_0.tp7")
-        self.psf_data = read_tp7(tp7_file, 8)
+        self.psf_data = read_tp7(tp7_file)
 
     def test_readtp7(self):
         npt.assert_almost_equal(np.sum(self.psf_data["BAND-8"]), 13803.3752)
