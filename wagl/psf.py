@@ -23,7 +23,7 @@ import subprocess
 import tempfile
 import enum
 from posixpath import join as ppjoin
-
+import logging
 import numpy as np
 import pandas as pd
 import h5py
@@ -43,29 +43,22 @@ _MAX_FILTER_SIZE = 40
 _HSTEP = 10.0
 _TP5_FMT = pjoin(POINT_FMT, ALBEDO_FMT, "".join([POINT_ALBEDO_FMT, ".tp5"]))
 
+_LOG = logging.getLogger(__name__)
 
-def read_tp7(tp7_file: Path, nbands: Union[int, None]) -> dict:
+
+def read_tp7(tp7_file: Path) -> dict:
     """Returns a Point Spread Function (PSF) from a '*.tp7' file.
 
     :param tp7_file: A full path '*.tp7' file from MODTRAN 5.4 output.
-    :param nbands: Total number of bands used in computing Point Spread.
     """
-
+    psf_dict = dict()
     with open(tp7_file, "r") as fid:
-        lines = fid.readlines()[::-1]
-        if nbands is None:
-            for idx, line in enumerate(lines):
-                if "Bands=" in line:
-                    nbands = int(line.split("=")[1])
-
+        lines = fid.readlines()
         for idx, line in enumerate(lines):
-            if "-9999." in line:
-                return {
-                    "BAND-{}".format(nbands - _band): np.asarray(
-                        [float(val) for val in lines[_band + idx + 1].split()]
-                    )
-                    for _band in range(nbands)
-                }
+            if line.startswith("BAND-"):
+                psf_dict[line.strip()] = np.asarray([float(val) for val in lines[idx + 1].split()])
+
+    return psf_dict
 
 
 def compute_fwhm(psf_data: np.ndarray, prange: np.ndarray, hstep: float) -> float:
@@ -264,7 +257,6 @@ def compute_adjacency_filter(
     modtran54_exe: str,
     out_group: object,
     aerosol_type: str,
-    num_bands: Optional[int] = None,
 ) -> None:
     """Computes adjacency filter from a MODTRAN 5.4 output.
 
@@ -284,7 +276,6 @@ def compute_adjacency_filter(
     :param modtran54_exe: A  full path to a MODTRAN 5.4 executable.
     :param out_group: A `File` object from which to write the dataset to.
     :param aerosol_type: An 'instance' of AerosolModel to configure MODTRAN *.tp5 input.
-    :param num_bands: The total number of spectral bands in PSD data.
     """
 
     # get list of all the acquistions within a container
@@ -345,7 +336,7 @@ def compute_adjacency_filter(
 
         # read tp7 output file from MODTRAN 5.4
         tp7_file = list(work_path.glob("*.tp7"))[0]
-        psf_data = read_tp7(tp7_file, num_bands)
+        psf_data = read_tp7(tp7_file)
 
         # determine the output group/file
         if out_group is None:
@@ -369,6 +360,7 @@ def compute_adjacency_filter(
         attrs_filter = {
             "description": "Adjacency filter derived from Point Spread Function"
         }
+
         for band, _psf_data in psf_data.items():
             acq = [acq for acq in acqs if acq.band_name == band][0]
             xres, yres = acq.resolution
@@ -376,8 +368,10 @@ def compute_adjacency_filter(
                 _psf_data, xres, yres, _MAX_FILTER_SIZE, _HSTEP
             )
             # check if filter_matrix is symmetric
+            # found that kernel are not always symmetric, so turning off this flag
+            # till we get better explanation from David and Fuqin.
             if not np.array_equal(filter_matrix, filter_matrix.T):
-                raise ValueError(f"adjacency kernel is not symmetric for {band}")
+                _LOG.warning(f"adjacency kernel is not symmetric for {band}")
 
             attrs_filter["band_name"] = acq.band_name
             dname = ppjoin(
