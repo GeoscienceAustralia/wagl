@@ -53,7 +53,7 @@ class LandsatAcquisition(Acquisition):
         Retrieves data from source imagery or internal cache if tar
         """
         file_suffix = self.uri.split('!')[0].split('.', 1)
-        
+
         # Check if source imagery directly accessible
         if len(file_suffix) == 1 or 'tar' not in file_suffix[1]:
             return super().data(out, window, masked)
@@ -211,8 +211,7 @@ class Landsat7Acquisition(LandsatAcquisition):
         if window is None:
             idx = (slice(None, None), slice(None, None))
         else:
-            idx = (slice(window[0][0], window[0][1]),
-                   slice(window[1][0], window[1][1]))
+            idx = window
 
         data = self.data(window=window)
 
