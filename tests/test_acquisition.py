@@ -143,7 +143,7 @@ class Landsat5Scene1AcquisitionTest(unittest.TestCase):
                          'landsat5_thermal.flt')
 
     def test_temperature(self):
-        window = (slice(41, 42), slice(41, 42))
+        window = (slice(40, 41), slice(40, 41))
         result = temperature_at_sensor(self.acqs[5], window=window)
         self.assertAlmostEqual(result[0, 0], 293.76944042)
 
