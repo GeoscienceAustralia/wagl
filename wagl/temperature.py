@@ -264,19 +264,19 @@ def temperature_at_sensor(thermal_acquisition, window=None):
         An acquisition with a band_type of BandType.Thermal.
 
     :param window:
-        Defines a subset ((ystart, yend), (xstart, xend)) in array
-        co-ordinates. Default is None.
+        Defines a subset ((ystart, yend), (xstart, xend)) using
+        Python's slice syntax. Default is None.
 
     :return:
         A `NumPy` array of whose shape is given by:
         (thermal_acquisition.lines, thermal_acquisition.samples)
         or the dimensions given by the `window` parameter.
     """
-    k1 = thermal_acquisition.K1 # pylint: disable=unused-variable
-    k2 = thermal_acquisition.K2 # pylint: disable=unused-variable
+    k1 = thermal_acquisition.K1  # noqa # pylint: disable
+    k2 = thermal_acquisition.K2  # noqa # pylint: disable
 
     # pylint: disable=unused-variable
-    data = thermal_acquisition.radiance_data(window=window)
+    data = thermal_acquisition.radiance_data(window=window)  # noqa # pylint: disable
     result = numexpr.evaluate("k2 / (log(k1 / data + 1))")
 
     return result
