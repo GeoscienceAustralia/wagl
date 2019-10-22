@@ -290,7 +290,6 @@ def compute_adjacency_filter(
     center_point = int(np.floor(nvertices / 2))
 
     with tempfile.TemporaryDirectory() as tmp_dir:
-        tmp_dir = '/g/data/u46/users/pd1813/water_atcor/test_env/output'
         tmp_dir = Path(tmp_dir)
 
         # subset the json data to select only center point data
