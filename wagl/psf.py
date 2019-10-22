@@ -281,7 +281,7 @@ def compute_adjacency_filter(
     # get list of all the acquistions within a container
     acqs = sum(
         [
-            container.get_acquisitions(granule=granule, group=grp_name)
+            container.get_acquisitions(granule=granule, group=grp_name, only_supported_bands=False)
             for grp_name in container.supported_groups
         ],
         [],
@@ -290,6 +290,7 @@ def compute_adjacency_filter(
     center_point = int(np.floor(nvertices / 2))
 
     with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_dir = '/g/data/u46/users/pd1813/water_atcor/test_env/output'
         tmp_dir = Path(tmp_dir)
 
         # subset the json data to select only center point data
@@ -362,7 +363,7 @@ def compute_adjacency_filter(
         }
 
         for band, _psf_data in psf_data.items():
-            acq = [acq for acq in acqs if acq.band_name == band][0]
+            acq = [acq for acq in acqs if acq.supported_band & (acq.band_name == band)][0]
             xres, yres = acq.resolution
             filter_matrix = compute_filter_matrix(
                 _psf_data, xres, yres, _MAX_FILTER_SIZE, _HSTEP
@@ -370,7 +371,7 @@ def compute_adjacency_filter(
             # check if filter_matrix is symmetric
             # found that kernel are not always symmetric, so turning off this flag
             # till we get better explanation from David and Fuqin.
-            if not np.array_equal(filter_matrix, filter_matrix.T):
+            if not np.allclose(filter_matrix, filter_matrix[tuple([slice(None, None, -1)] * filter_matrix.ndim)]):
                 _LOG.warning(f"adjacency kernel is not symmetric for {band}")
 
             attrs_filter["band_name"] = acq.band_name
