@@ -657,6 +657,7 @@
                "10": {
                    "alias": "SWIR-1",
                    "c1": 0.0005,
+                   "band_type": "REFLECTIVE",
                    "radiance_scale_factor": null,
                    "supported_band": false
                },
