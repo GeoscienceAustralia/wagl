@@ -173,7 +173,7 @@ def compute_filter_matrix(
 
 
 def prepare_modtran54(
-    acquisitions: List[object],
+    acquisition: object,
     coordinate: int,
     albedo: enum,
     basedir: Path,
@@ -181,7 +181,7 @@ def prepare_modtran54(
 ) -> None:
     """Prepares the working directory for a MODTRAN 5.4 execution.
 
-    :param acquisitions: A list of 'acquisition' object.
+    :param acquisition: 'acquisition' object.
     :param coordinate: A point to execute MODTRAN run at.
     :param albedo: A 'instance' of enum 'Albedos'.
     :param basedir: A full path to a base directory to setup MODTRAN execution.
@@ -193,7 +193,6 @@ def prepare_modtran54(
         raise OSError("Cannot find MODTRAN 5.4")
 
     point_dir = basedir.joinpath(POINT_FMT.format(p=coordinate))
-    acq = [acq for acq in acquisitions if acq.band_type == BandType.REFLECTIVE][0]
     modtran_work = point_dir.joinpath(ALBEDO_FMT.format(a=albedo.value))
 
     if not modtran_work.exists():
@@ -209,8 +208,8 @@ def prepare_modtran54(
     symlink_dir.symlink_to(data_dir)
 
     shutil.copy(
-        str(acq.spectral_filter_filepath),
-        str(modtran_work.joinpath(acq.spectral_filter_name)),
+        str(acquisition.spectral_filter_filepath),
+        str(modtran_work.joinpath(acquisition.spectral_filter_name)),
     )
 
 
@@ -287,6 +286,9 @@ def compute_adjacency_filter(
         [],
     )
 
+    supported_band_acqs = [acq for acq in acqs if acq.supported_band]
+    reflective_acqs = [acq for acq in supported_band_acqs if acq.band_type == BandType.REFLECTIVE]
+
     center_point = int(np.floor(nvertices / 2))
 
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -313,13 +315,13 @@ def compute_adjacency_filter(
             out_group.create_group(GroupName.ATMOSPHERIC_INPUTS_GRP.value)
 
         group_name = out_group[GroupName.ATMOSPHERIC_INPUTS_GRP.value]
-        iso_time = acqs[0].acquisition_datetime.isoformat()
+        iso_time = supported_band_acqs[0].acquisition_datetime.isoformat()
         group_name.attrs["acquisition-datetime"]: iso_time
         write_scalar(np.string_(tp5_data), dname, group_name, input_data)
 
         # prepare directory and data symlinks for MODTRAN 5.4 execution
         prepare_modtran54(
-            acqs, center_point, Albedos.ALBEDO_0, tmp_dir, Path(modtran54_exe)
+            reflective_acqs[0], center_point, Albedos.ALBEDO_0, tmp_dir, Path(modtran54_exe)
         )
         tp5_fname = tmp_dir.joinpath(
             _TP5_FMT.format(p=center_point, a=Albedos.ALBEDO_0.value)
@@ -362,7 +364,9 @@ def compute_adjacency_filter(
         }
 
         for band, _psf_data in psf_data.items():
-            acq = [acq for acq in acqs if acq.supported_band & (acq.band_name == band)][0]
+            if band not in [acq.band_name for acq in supported_band_acqs]:
+                continue
+            acq = [acq for acq in supported_band_acqs if acq.band_name == band][0]
             xres, yres = acq.resolution
             filter_matrix = compute_filter_matrix(
                 _psf_data, xres, yres, _MAX_FILTER_SIZE, _HSTEP
