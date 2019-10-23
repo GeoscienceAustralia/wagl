@@ -757,28 +757,6 @@ def calculate_reflectance(acquisition, interpolation_group,
     dname = dname_fmt.format(product=AP.NBART.value, band_name=bn)
     nbart_dset = grp.create_dataset(dname, **kwargs)
 
-    # NOTES:
-    #    for the time being we're outputting float32 while water atcor details
-    #    are figured out on how sun and sky glint is to be applied.
-    #    it is unknown that if we truncate to int16 now, will this have an
-    #    impact applying glint correction later
-    kwargs['fillvalue'] = numpy.nan
-    kwargs['dtype'] = 'float32'
-
-    # *** lambertian with adjacency correction; may not be required later ***
-    # TODO:
-    #    confirm what is required and how to be delivered once production
-    #    details have been determined.
-    dname = dname_fmt.format(product=AP.ADJ.value, band_name=bn)
-    adj_dset = grp.create_dataset(dname, **kwargs)
-
-    # *** sky glint dataset; may not be required later ***
-    # TODO:
-    #    confirm what is required and how to be delivered once production
-    #    details have been determined.
-    dname = dname_fmt.format(product=AP.SKY.value, band_name=bn)
-    skyg_dset = grp.create_dataset(dname, **kwargs)
-
     # attach some attributes to the image datasets
     attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
              'geotransform': geobox.transform.to_gdal(),
@@ -794,21 +772,6 @@ def calculate_reflectance(acquisition, interpolation_group,
     desc = "Contains the lambertian reflectance data scaled by 10000."
     attrs['description'] = desc
     attach_image_attributes(lmbrt_dset, attrs)
-
-    # TODO:
-    #    change the description once final product details are defined
-    #    currently output unscaled float32 data
-    desc = "Contains the lambertian reflectace corrected for atmospheric adjacency."
-    attrs['description'] = desc
-    attach_image_attributes(adj_dset, attrs)
-
-    # *** sky glint dataset; may not be required later ***
-    # TODO:
-    #    confirm what is required and how to be delivered once production
-    #    details have been determined.
-    desc = "Contains the sky glint coefficient."
-    attrs['description'] = desc
-    attach_image_attributes(skyg_dset, attrs)
 
     # nbar
     desc = "Contains the brdf corrected reflectance data scaled by 10000."
@@ -829,12 +792,50 @@ def calculate_reflectance(acquisition, interpolation_group,
     #    sky_glint can be produced using a tiling routine, and output direct
     #    to a HDF5 dataset.
     if psf_kernel is not None:
+        # NOTES:
+        #    for the time being we're outputting float32 while water atcor details
+        #    are figured out on how sun and sky glint is to be applied.
+        #    it is unknown that if we truncate to int16 now, will this have an
+        #    impact applying glint correction later
+        kwargs['fillvalue'] = numpy.nan
+        kwargs['dtype'] = 'float32'
+
+        # update the attrs for the float32 datasets
+        attrs['no_data_value'] = numpy.nan
+
+        # *** lambertian with adjacency correction; may not be required later ***
+        # TODO:
+        #    confirm what is required and how to be delivered once production
+        #    details have been determined.
+        dname = dname_fmt.format(product=AP.ADJ.value, band_name=bn)
+        adj_dset = grp.create_dataset(dname, **kwargs)
+
+        # *** sky glint dataset; may not be required later ***
+        # TODO:
+        #    confirm what is required and how to be delivered once production
+        #    details have been determined.
+        dname = dname_fmt.format(product=AP.SKY.value, band_name=bn)
+        skyg_dset = grp.create_dataset(dname, **kwargs)
+
+        # TODO:
+        #    change the description once final product details are defined
+        #    currently output unscaled float32 data
+        desc = "Contains the lambertian reflectace corrected for atmospheric adjacency."
+        attrs['description'] = desc
+        attach_image_attributes(adj_dset, attrs)
+
+        # *** sky glint dataset; may not be required later ***
+        # TODO:
+        #    confirm what is required and how to be delivered once production
+        #    details have been determined.
+        desc = "Contains the sky glint coefficient."
+        attrs['description'] = desc
+        attach_image_attributes(skyg_dset, attrs)
+
+        # calculate
         lambertian_adjacency(acquisition, a_dataset, b_dataset, s_dataset,
                              fv_dataset, psf_kernel, esun, adj_dset)
         sky_glint(satellite_v_dset, outds=skyg_dset, tiles=acquisition.tiles())
-    # else:
-    #     lambertian_tiled(acquisition, a_dataset, b_dataset, s_dataset, esun,
-    #                      lmbrt_dset)
 
     # NOTES:
     #    for the time being, output the atmospheric adjacency corrected
@@ -843,22 +844,28 @@ def calculate_reflectance(acquisition, interpolation_group,
     #    in order for users to apply sun + sky glint correction, they'll also
     #    need the fs dataset (Direct fraction in the sun direction).
 
-    # TODO:
-    #    Uncomment and re-work once more details regarding production of
-    #    atmospheric correction over water have been fleshed out
-
     # process by tile
     for tile in acquisition.tiles():
         # define some static arguments
         acq_args = {'window': tile,
-                    'out_no_data': NO_DATA_VALUE,
+                    'out_no_data': NAN,
                     'esun': esun}
         f32_args = {'dtype': numpy.float32, 'transpose': True}
 
-        # Read the data corresponding to the current tile for all dataset
-        # Convert the datatype if required and transpose
-        band_data = as_array(acquisition.radiance_data(**acq_args), **f32_args)
-        
+        # nested function call ... not the most pretty way of doing something
+        # TODO
+        #    create a func that takes acq, window, a, b, s and calculates
+        #    lambertian; we need float32 and will save as int16
+        ref_lm = lambertian_block(
+            acquisition.radiance_data(**acq_args).astype('float32'),
+            a_dataset[tile],
+            b_dataset[tile],
+            s_dataset[tile])
+
+        # NOTES
+        #    for this prototype, use lambertian with adjacency correction
+        #    as input into nbar and nbart correction
+
         shadow = as_array(shadow_dataset[tile], numpy.int8, transpose=True)
         solar_zenith = as_array(solar_zenith_dset[tile], **f32_args)
         solar_azimuth = as_array(solar_azimuth_dset[tile], **f32_args)
@@ -869,8 +876,6 @@ def calculate_reflectance(acquisition, interpolation_group,
         incident_angle = as_array(incident_angle_dataset[tile], **f32_args)
         exiting_angle = as_array(exiting_angle_dataset[tile], **f32_args)
         relative_slope = as_array(relative_s_dset[tile], **f32_args)
-        a_mod = as_array(a_dataset[tile], **f32_args)
-        b_mod = as_array(b_dataset[tile], **f32_args)
         s_mod = as_array(s_dataset[tile], **f32_args)
         fs = as_array(fs_dataset[tile], **f32_args)
         fv = as_array(fv_dataset[tile], **f32_args)
@@ -878,31 +883,35 @@ def calculate_reflectance(acquisition, interpolation_group,
         direct = as_array(dir_dataset[tile], **f32_args)
         diffuse = as_array(dif_dataset[tile], **f32_args)
 
-        # Allocate the output arrays
-        xsize, ysize = band_data.shape # band_data has been transposed
-        ref_lm = numpy.zeros((ysize, xsize), dtype='int16')
-        ref_brdf = numpy.zeros((ysize, xsize), dtype='int16')
-        ref_terrain = numpy.zeros((ysize, xsize), dtype='int16')
+        # TODO
+        #    use a more elegant way so we don't have to do an
+        #    *if* check on every loop
+        if psf_kernel is not None:
+            input_lambertian = adj_dset[tile]
+        else:
+            input_lambertian = ref_lm
 
-        # Allocate the work arrays (single row of data)
-        ref_lm_work = numpy.zeros(xsize, dtype='float32')
-        ref_brdf_work = numpy.zeros(xsize, dtype='float32')
-        ref_terrain_work = numpy.zeros(xsize, dtype='float32')
+        # Allocate the output arrays
+        ysize, xsize = ref_lm.shape
+        ref_brdf = numpy.full((ysize, xsize), numpy.nan, dtype='float32')
+        ref_terrain = numpy.full((ysize, xsize), numpy.nan, dtype='float32')
 
         # Run terrain correction
         reflectance(xsize, ysize, rori, brdf_alpha1, brdf_alpha2,
-                    acquisition.reflectance_adjustment, kwargs['fillvalue'],
-                    band_data, shadow, solar_zenith, solar_azimuth,
-                    satellite_view, relative_angle, slope, aspect,
-                    incident_angle, exiting_angle, relative_slope, a_mod,
-                    b_mod, s_mod, fs, fv, ts, direct, diffuse, ref_lm_work,
-                    ref_brdf_work, ref_terrain_work, ref_lm.transpose(),
-                    ref_brdf.transpose(), ref_terrain.transpose(), normalized_solar_zenith)
+                    acquisition.reflectance_adjustment, numpy.float32(NAN),
+                    normalized_solar_zenith, shadow, solar_zenith,
+                    solar_azimuth, satellite_view, relative_angle,
+                    slope, aspect, incident_angle, exiting_angle,
+                    relative_slope, s_mod, fs, fv, ts, direct, diffuse,
+                    input_lambertian.transpose(),
+                    ref_brdf.transpose(), ref_terrain.transpose())
 
         # Write the current tile to disk
-        lmbrt_dset[tile] = ref_lm
-        nbar_dset[tile] = ref_brdf
-        nbart_dset[tile] = ref_terrain
+        # TODO
+        #    use h5_dataset.write_direct()
+        lmbrt_dset[tile] = scale_reflectance(ref_lm)
+        nbar_dset[tile] = scale_reflectance(ref_brdf)
+        nbart_dset[tile] = scale_reflectance(ref_terrain)
 
     # close any still opened files, arrays etc associated with the acquisition
     acquisition.close()
