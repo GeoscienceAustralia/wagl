@@ -164,9 +164,7 @@ class DatasetName(Enum):
 
     # wagl.psf
     PSF = 'POINT-SPREAD-FUNCTION'
-    PSF_DATA = 'PSF-DATA'
     ADJACENCY_FILTER = 'ADJACENCY-FILTER'
-    ADJACENCY_FILTER_BAND = '{band_name}-DATA'
 
     # wagl.pq
     PQ_FMT = 'PIXEL-QUALITY/{produt}/PIXEL-QUALITY'
