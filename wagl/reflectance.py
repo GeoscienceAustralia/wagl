@@ -12,11 +12,11 @@ from __future__ import absolute_import, print_function
 import numpy
 import numexpr
 import h5py
-from scipy import ndimage
 
 from wagl.constants import DatasetName, GroupName, BrdfDirectionalParameters
 from wagl.constants import AtmosphericCoefficients as AC
 from wagl.constants import ArdProducts as AP
+from wagl.convolution import convolve
 from wagl.data import as_array
 from wagl.hdf5 import H5CompressionFilter, attach_image_attributes
 from wagl.hdf5 import create_external_link, find
@@ -25,52 +25,6 @@ from wagl.__surface_reflectance import reflectance
 
 NO_DATA_VALUE = -999
 NAN = numpy.nan
-
-
-def _sequential_valid_rows(mask):
-    """
-    Check that the mask of null data contains sequential rows.
-    i.e. non-sequential means an invalid row is surrounded by valid
-    rows.
-    """
-    nrows = mask.shape[0]
-    row_ids = numpy.arange(nrows)
-
-    # identify any rows that are completely null
-    invalid_rows_mask = numpy.all(mask, axis=1)
-
-    valid_rows = row_ids[~invalid_rows_mask]
-    start_idx = valid_rows[0]
-    end_idx = valid_rows[-1] + 1
-
-    # this section is probably not required anymore
-    if (start_idx == 0) and (end_idx == nrows):
-        all_valid = True
-    else:
-        all_valid = False
-
-    # check that we are ascending by 1
-    # i.e. an invalid row has valid rows before and after
-    # TODO;
-    # don't raise, simply return and we use another method to fill nulls
-    sequential = numpy.all(numpy.diff(valid_rows) == 1)
-    if not sequential:
-        msg = "Rows with valid data are non-sequential."
-        raise Exception(msg)
-
-    return all_valid, start_idx, end_idx
-
-
-def _fill_nulls(data, mask):
-    """
-    Calculate run-length averages and insert (inplace) at null pixels.
-    In future this could also be an averaging kernel.
-    We are assuming 2D arrays only (y, x).
-    """
-    # TODO: how to account for a row of data that is all null?
-    # potentially use alternate methods if row length average doesn't satisfy
-    for row in range(data.shape[0]):
-        data[row][mask[row]] = numpy.mean(data[row][~mask[row]])
 
 
 def scale_reflectance(data, clip_range=(1, 10000), clip=True):
@@ -253,17 +207,8 @@ def average_lambertian(acquisition, a, b, s, psf_kernel, esun=None,
     data = lambertian_tiled(acquisition, a, b, s, esun)
     data_mask = ~numpy.isfinite(data)  # locate NaN's
 
-    # can we correctly apply row-length averages?
-    _, start_idx, end_idx = _sequential_valid_rows(data_mask)  # ignore all_valid for time being
-
-    # fill nulls with run-length averages
-    # _fill_nulls(data[start_idx:end_idx], null_mask[start_idx:end_idx])
-    _fill_nulls(data, data_mask)
-
     # apply convolution
-    result = numpy.full(data.shape, fill_value=numpy.nan, dtype='float32')
-    ndimage.convolve(data[start_idx:end_idx], psf_kernel,
-                     output=result[start_idx:end_idx])
+    result = convolve(data, psf_kernel, data_mask, True)
 
     # insert nulls back into the array
     result[data_mask] = NAN
