@@ -93,7 +93,7 @@ def convolve(data, kernel, data_mask, fourier=False):
 
         # pad/buffer and convolve
         buffered = numpy.pad(data[start_idx:end_idx], pad, mode='reflect')
-        convolved = convolve_fft(buffered, kernel)
+        convolved = convolve_fft(buffered, kernel, allow_huge=True)
 
         # copy convolved into result taking into account both
         # the potential row subset and pad subset
