@@ -16,7 +16,7 @@ for Geosciences Australia's Analysis Ready Data program.
 """
 
 from os.path import join as pjoin
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Tuple, Iterable, Dict
 from pathlib import Path
 import shutil
 import subprocess
@@ -25,7 +25,6 @@ import enum
 from posixpath import join as ppjoin
 import logging
 import numpy as np
-import pandas as pd
 import h5py
 from wagl.hdf5 import write_dataframe, write_scalar
 from wagl.constants import (
@@ -37,6 +36,8 @@ from wagl.constants import (
     POINT_ALBEDO_FMT,
     POINT_FMT,
 )
+from wagl.hdf5.compression import H5CompressionFilter
+from wagl.hdf5 import attach_attributes
 from wagl.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
 
 _MAX_FILTER_SIZE = 40
@@ -56,7 +57,9 @@ def read_tp7(tp7_file: Path) -> dict:
         lines = fid.readlines()
         for idx, line in enumerate(lines):
             if line.startswith("BAND-"):
-                psf_dict[line.strip()] = np.asarray([float(val) for val in lines[idx + 1].split()])
+                psf_dict[line.strip()] = np.asarray(
+                    [float(val) for val in lines[idx + 1].split()]
+                )
 
     return psf_dict
 
@@ -173,11 +176,7 @@ def compute_filter_matrix(
 
 
 def prepare_modtran54(
-    acquisition: object,
-    coordinate: int,
-    albedo: enum,
-    basedir: Path,
-    modtran_exe: Path,
+    acquisition: object, coordinate: int, albedo: enum, basedir: Path, modtran_exe: Path
 ) -> None:
     """Prepares the working directory for a MODTRAN 5.4 execution.
 
@@ -248,6 +247,33 @@ def format_tp5(json_data: dict) -> Tuple[dict, dict]:
     return data, kwargs
 
 
+def create_dataset(
+    group: h5py.Group,
+    band_name: str,
+    shape: Iterable[int],
+    attrs: Dict,
+    dtype=np.float32,
+    chunks: Tuple = (),
+    compression: H5CompressionFilter = H5CompressionFilter.LZF,
+    filter_opts: Optional[Dict] = None,
+):
+    """ creates dataset and attaches attributes for h5 object. """
+
+    if filter_opts is None:
+        filter_opts = {}
+    else:
+        filter_opts = filter_opts.copy()
+
+    if "chunks" not in filter_opts:
+        filter_opts["chunks"] = True if not chunks else chunks
+
+    kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
+    ds = group.create_dataset(band_name, shape=shape, dtype=dtype, **kwargs)
+    attach_attributes(ds, attrs)
+
+    return ds
+
+
 def compute_adjacency_filter(
     container: object,
     granule: str,
@@ -280,14 +306,18 @@ def compute_adjacency_filter(
     # get list of all the acquistions within a container
     acqs = sum(
         [
-            container.get_acquisitions(granule=granule, group=grp_name, only_supported_bands=False)
+            container.get_acquisitions(
+                granule=granule, group=grp_name, only_supported_bands=False
+            )
             for grp_name in container.supported_groups
         ],
         [],
     )
 
     supported_band_acqs = [acq for acq in acqs if acq.supported_band]
-    reflective_acqs = [acq for acq in supported_band_acqs if acq.band_type == BandType.REFLECTIVE]
+    reflective_acqs = [
+        acq for acq in supported_band_acqs if acq.band_type == BandType.REFLECTIVE
+    ]
 
     center_point = int(np.floor(nvertices / 2))
 
@@ -321,13 +351,18 @@ def compute_adjacency_filter(
 
         # prepare directory and data symlinks for MODTRAN 5.4 execution
         prepare_modtran54(
-            reflective_acqs[0], center_point, Albedos.ALBEDO_0, tmp_dir, Path(modtran54_exe)
+            reflective_acqs[0],
+            center_point,
+            Albedos.ALBEDO_0,
+            tmp_dir,
+            Path(modtran54_exe),
         )
         tp5_fname = tmp_dir.joinpath(
             _TP5_FMT.format(p=center_point, a=Albedos.ALBEDO_0.value)
         )
         with open(tp5_fname, "w") as src:
             src.writelines(tp5_data)
+
         work_path = tmp_dir.joinpath(
             POINT_FMT.format(p=center_point),
             ALBEDO_FMT.format(a=Albedos.ALBEDO_0.value),
@@ -349,42 +384,38 @@ def compute_adjacency_filter(
         if GroupName.ATMOSPHERIC_RESULTS_GRP.value not in out_group:
             out_group.create_group(GroupName.ATMOSPHERIC_RESULTS_GRP.value)
 
-        # write psf data into a h5 file object
         group_name = out_group[GroupName.ATMOSPHERIC_RESULTS_GRP.value]
-        attrs = {
-            "total_bands": len(psf_data),
-            "description": "Point Spread Function data from MODTRAN .tp7 output",
-        }
-        dname = ppjoin(DatasetName.PSF.value, DatasetName.PSF_DATA.value)
-        data = pd.DataFrame.from_dict(psf_data)
-        write_dataframe(data, dname, group_name, attrs=attrs)
-
-        attrs_filter = {
-            "description": "Adjacency filter derived from Point Spread Function"
-        }
 
         for band, _psf_data in psf_data.items():
+
+            # only process the support band acquisitions
             if band not in [acq.band_name for acq in supported_band_acqs]:
                 continue
+
+            # write psf data into the h5 object
+            attrs = {
+                "band_name": band,
+                "description": f"{band} Point Spread Function data from MODTRAN .tp7 output",
+            }
+
+            dname_psf = ppjoin(DatasetName.PSF.value, band)
+            psf_ds = create_dataset(group_name, dname_psf, _psf_data.shape, attrs)
+            psf_ds[:] = _psf_data.astype('float32')
+
             acq = [acq for acq in supported_band_acqs if acq.band_name == band][0]
             xres, yres = acq.resolution
             filter_matrix = compute_filter_matrix(
                 _psf_data, xres, yres, _MAX_FILTER_SIZE, _HSTEP
             )
             # check if filter_matrix is symmetric
-            # found that kernel are not always symmetric, so turning off this flag
-            # till we get better explanation from David and Fuqin.
-            if not np.allclose(filter_matrix, filter_matrix[tuple([slice(None, None, -1)] * filter_matrix.ndim)]):
-                _LOG.warning(f"adjacency kernel is not symmetric for {band}")
+            if not np.allclose(
+                filter_matrix,
+                filter_matrix[tuple([slice(None, None, -1)] * filter_matrix.ndim)],
+            ):
+                _LOG.warning(f"Adjacency kernel is not symmetric for {band}")
 
-            attrs_filter["band_name"] = acq.band_name
-            dname = ppjoin(
-                DatasetName.ADJACENCY_FILTER.value,
-                DatasetName.ADJACENCY_FILTER_BAND.value.format(band_name=acq.band_name),
-            )
-            data = pd.DataFrame(
-                data=filter_matrix[0:, 0:],
-                index=["row {}".format(i) for i in range(filter_matrix.shape[0])],
-                columns=["column {}".format(i) for i in range(filter_matrix.shape[1])],
-            )
-            write_dataframe(data, dname, group_name, attrs=attrs_filter)
+            attrs["description"] = f"{band} Adjacency filter derived from Point Spread Function"
+            dname_filter = ppjoin(DatasetName.ADJACENCY_FILTER.value, acq.band_name)
+
+            filter_ds = create_dataset(group_name, dname_filter, filter_matrix.shape, attrs, chunks=(5, 5))
+            filter_ds[:] = filter_matrix.astype('float32')
