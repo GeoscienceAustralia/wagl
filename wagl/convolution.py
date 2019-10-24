@@ -84,9 +84,14 @@ def convolve(data, kernel, data_mask, fourier=False):
 
     # apply convolution
     if fourier:
-        # buffering/padding
-        pad = [i // 2 + 1 for i in kernel]
+        # determine required buffering/padding
+        # half kernel size (+1 for good measure :) )
+        pad = [i // 2 + 1 for i in kernel.shape]
+
+        # index to unpad the array
         unpad_idx = (slice(pad[0], -pad[0]), slice(pad[1], -pad[1]))
+
+        # pad/buffer and convolve
         buffered = numpy.pad(data[start_idx:end_idx], pad, mode='reflect')
         convolved = convolve_fft(buffered, kernel)
 
