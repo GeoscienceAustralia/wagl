@@ -143,8 +143,8 @@ class Landsat5Scene1AcquisitionTest(unittest.TestCase):
                          'landsat5_thermal.flt')
 
     def test_temperature(self):
-        result = temperature_at_sensor(self.acqs[5],
-                                       window=((40, 41), (40, 41)))
+        window = (slice(40, 41), slice(40, 41))
+        result = temperature_at_sensor(self.acqs[5], window=window)
         self.assertAlmostEqual(result[0, 0], 293.76944042)
 
     def test_tzinfo(self):
@@ -226,13 +226,13 @@ class Landsat7Mtl1AcquisitionTest(unittest.TestCase):
                          'landsat7_thermal.flt')
 
     def test_temperature61(self):
-        result = temperature_at_sensor(self.acqs[5],
-                                       window=((41, 42), (41, 42)))
+        window = (slice(41, 42), slice(41, 42))
+        result = temperature_at_sensor(self.acqs[5], window=window)
         self.assertAlmostEqual(result[0, 0], 293.93158705)
 
     def test_temperature62(self):
-        result = temperature_at_sensor(self.acqs[6],
-                                       window=((41, 42), (41, 42)))
+        window = (slice(41, 42), slice(41, 42))
+        result = temperature_at_sensor(self.acqs[6], window=window)
         self.assertAlmostEqual(result[0, 0], 293.990413299)
 
     def test_tzinfo(self):
@@ -333,13 +333,13 @@ class Landsat8Mtl1AcquisitionTest(unittest.TestCase):
                          'landsat8_thermal.flt')
 
     def test_temperature10(self):
-        result = temperature_at_sensor(self.acqs[1],
-                                       window=((41, 42), (41, 42)))
+        window = (slice(41, 42), slice(41, 42))
+        result = temperature_at_sensor(self.acqs[1], window=window)
         self.assertAlmostEqual(result[0, 0], 299.91454310)
 
     def test_temperature11(self):
-        result = temperature_at_sensor(self.acqs[2],
-                                       window=((41, 42), (41, 42)))
+        window = (slice(41, 42), slice(41, 42))
+        result = temperature_at_sensor(self.acqs[2], window=window)
         self.assertAlmostEqual(result[0, 0], 298.049253923)
 
     def test_tzinfo(self):

@@ -241,6 +241,8 @@ class ArdProducts(Enum):
     NBART = 'NBART'
     LAMBERTIAN = 'LAMBERTIAN'
     SBT = 'SBT'
+    ADJ = 'LMBADJ'
+    SKY = 'SKYG'
 
 
 class Albedos(Enum):
