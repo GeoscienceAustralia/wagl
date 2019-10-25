@@ -779,7 +779,7 @@ def calculate_reflectance(acquisition, interpolation_group,
 
         # calculate
         lambertian_adjacency(acquisition, a_dataset, b_dataset, s_dataset,
-                             fv_dataset, psf_kernel, esun, adj_dset)
+                             fv_dataset, psf_kernel, esun, True, adj_dset)
         sky_glint(satellite_v_dset, outds=skyg_dset, tiles=acquisition.tiles())
 
     # NOTES:
