@@ -130,7 +130,7 @@ def compute_filter_matrix(
         ) / hstep
 
     # compute max filter size
-    max_filter_size = min(_max_filter_size(xres, yres, nlarge), MAX_FILTER_SIZE)
+    max_filter_size = _max_filter_size(xres, yres, nlarge)
 
     # compute fwhm for spectral psf data
     fwhm = compute_fwhm(psf_data, prange, hstep)
