@@ -18,8 +18,10 @@ filenames will replace {wagl} with the base group name the datasets come from.
 """
 
 import argparse
+from functools import partial
 import subprocess
 from pathlib import Path
+from posixpath import basename
 import h5py
 import rasterio
 
@@ -101,6 +103,21 @@ def _construct_out_filename(fname, group_name):
     return out_fname
 
 
+def _append_info(ds_paths, bnames, no_data, geoboxes, parent, name, obj):
+    """
+    Append the required info for the target dataset.
+    """
+    if obj.attrs.get('CLASS') == 'IMAGE':
+        no_data.append(obj.attrs.get('no_data_value'))
+        vrt_path = PATH_FMT.format(basename(obj.file.filename), obj.name)
+        ds_paths.append(vrt_path)
+        geoboxes.append(GriddedGeoBox.from_dataset(obj))
+        if parent:
+            bnames.append(FMT.format(basename(obj.parent.name), name))
+        else:
+            bnames.append(name)
+
+
 def run(fname, verbose):
     fname = Path(fname)
     with h5py.File(str(fname), 'r') as fid:
@@ -117,26 +134,25 @@ def run(fname, verbose):
                         dataset_paths = []
                         band_names = []
                         nodata = []
-                        for gname, group in res_group[img_grp.value].items():
-                            for dname, dataset in group.items():
-                                vrt_path = PATH_FMT.format(
-                                    fname.name,
-                                    dataset.name
-                                )
-                                bname = FMT.format(gname, dname)
-                                dataset_paths.append(vrt_path)
-                                band_names.append(bname)
-                                nodata.append(dataset.attrs.get('no_data_value'))
+                        geoboxes = []
+
+                        interp_group = res_group[img_grp.value]
+                        interp_group.visititems(
+                            partial(
+                                _append_info,
+                                dataset_paths,
+                                band_names,
+                                nodata,
+                                geoboxes,
+                                True
+                            )
+                        )
 
                         # output filename
                         out_fname = _construct_out_filename(
-                            fname, 
+                            fname,
                             FMT.format(rg_name, GroupName.INTERP_GROUP.value)
                         )
-
-                        # all datasets from the interp group should have the
-                        # same extent and crs
-                        geobox = GriddedGeoBox.from_dataset(dataset)
 
                         # build/create vrt
                         _buildvrt(
@@ -144,37 +160,37 @@ def run(fname, verbose):
                             dataset_paths,
                             band_names,
                             nodata,
-                            geobox.crs.ExportToWkt(),
-                            geobox.transform,
+                            geoboxes[0].crs.ExportToWkt(),
+                            geoboxes[0].transform,
                             verbose
                         )
                     elif img_grp == GroupName.STANDARD_GROUP:
+                        stnd_group = res_group[img_grp.value]
                         # reflectance, thermal ...
-                        for _, grp1 in res_group[img_grp.value].items():
+                        for type_name, type_group in stnd_group.items():
                             # lambertian, nbar, nbart
-                            for gname, group in grp1.items():
+                            for prod_name, prod_group in type_group.items():
                                 dataset_paths = []
                                 band_names = []
                                 nodata = []
-                                for dname, dataset in group.items():
-                                    vrt_path = PATH_FMT.format(
-                                        fname.name,
-                                        dataset.name
+                                geoboxes = []
+
+                                prod_group.visititems(
+                                    partial(
+                                        _append_info,
+                                        dataset_paths,
+                                        band_names,
+                                        nodata,
+                                        geoboxes,
+                                        True
                                     )
-                                    bname = FMT.format(gname, dname)
-                                    dataset_paths.append(vrt_path)
-                                    band_names.append(bname)
-                                    nodata.append(dataset.attrs.get('no_data_value'))
+                                )
 
                                 # output product group
                                 out_fname = _construct_out_filename(
                                     fname,
-                                    FMT.format(rg_name, gname)
+                                    FMT.format(rg_name, prod_name)
                                 )
-
-                                # all datasets in this res-group and product
-                                # group will have the same extent and crs
-                                geobox = GriddedGeoBox.from_dataset(dataset)
 
                                 # build/create vrt
                                 _buildvrt(
@@ -182,8 +198,8 @@ def run(fname, verbose):
                                     dataset_paths,
                                     band_names,
                                     nodata,
-                                    geobox.crs.ExportToWkt(),
-                                    geobox.transform,
+                                    geoboxes[0].crs.ExportToWkt(),
+                                    geoboxes[0].transform,
                                     verbose
                                 )
                     else:
@@ -191,20 +207,19 @@ def run(fname, verbose):
                         dataset_paths = []
                         band_names = []
                         nodata = []
-                        for name, obj in res_group[img_grp.value].items():
-                            if not obj.attrs.get('CLASS') == 'IMAGE':
-                                continue
-                            vrt_path = PATH_FMT.format(
-                                fname.name,
-                                obj.name
-                            )
-                            band_names.append(name)
-                            dataset_paths.append(vrt_path)
-                            nodata.append(obj.attrs.get('no_data_value'))
+                        geoboxes = []
 
-                            # within a group, each IMAGE dataset will have the
-                            # extent and crs
-                            geobox = GriddedGeoBox.from_dataset(obj)
+                        prod_group = res_group[img_grp.value]
+                        prod_group.visititems(
+                            partial(
+                                _append_info,
+                                dataset_paths,
+                                band_names,
+                                nodata,
+                                geoboxes,
+                                False,
+                            )
+                        )
 
                         # output data group
                         out_fname = _construct_out_filename(
@@ -218,8 +233,8 @@ def run(fname, verbose):
                             dataset_paths,
                             band_names,
                             nodata,
-                            geobox.crs.ExportToWkt(),
-                            geobox.transform,
+                            geoboxes[0].crs.ExportToWkt(),
+                            geoboxes[0].transform,
                             verbose
                         )
 
