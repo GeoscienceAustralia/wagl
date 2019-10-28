@@ -84,7 +84,7 @@ class TestPointSpreadFunction(unittest.TestCase):
                 prepare_modtran54(acqs, 4, Albedos.ALBEDO_0, tmp_dir, modtran_exe)
 
             modtran_exe.parent.joinpath("DATA").mkdir(parents=True)
-            prepare_modtran54(acqs, 4, Albedos.ALBEDO_0, tmp_dir, modtran_exe)
+            prepare_modtran54(acqs[0], 4, Albedos.ALBEDO_0, tmp_dir, modtran_exe)
             modtran_work = tmp_dir.joinpath("POINT-4", "ALBEDO-0")
 
             self.assertTrue(modtran_work.joinpath("DATA").exists())
