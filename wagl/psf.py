@@ -40,7 +40,8 @@ from wagl.hdf5.compression import H5CompressionFilter
 from wagl.hdf5 import attach_attributes
 from wagl.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
 
-_MAX_FILTER_SIZE = 40
+MAX_FILTER_SIZE = 101
+_LARGE_FILTER_SIZE = 40
 _HSTEP = 10.0
 _TP5_FMT = pjoin(POINT_FMT, ALBEDO_FMT, "".join([POINT_ALBEDO_FMT, ".tp5"]))
 
@@ -405,7 +406,7 @@ def compute_adjacency_filter(
             acq = [acq for acq in supported_band_acqs if acq.band_name == band][0]
             xres, yres = acq.resolution
             filter_matrix = compute_filter_matrix(
-                _psf_data, xres, yres, _MAX_FILTER_SIZE, _HSTEP
+                _psf_data, xres, yres, _LARGE_FILTER_SIZE, _HSTEP
             )
             # check if filter_matrix is symmetric
             if not np.allclose(
@@ -417,5 +418,5 @@ def compute_adjacency_filter(
             attrs["description"] = f"{band} Adjacency filter derived from Point Spread Function"
             dname_filter = ppjoin(DatasetName.ADJACENCY_FILTER.value, acq.band_name)
 
-            filter_ds = create_dataset(group_name, dname_filter, filter_matrix.shape, attrs, chunks=(5, 5))
+            filter_ds = create_dataset(group_name, dname_filter, filter_matrix.shape, attrs)
             filter_ds[:] = filter_matrix.astype('float32')

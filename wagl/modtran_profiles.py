@@ -7,6 +7,7 @@ Parameters to be inserted are:
     * water vapour; units: g/cm^2
     * ozone; units: ATM-cm
     * filter function (spectral response of sensor)
+    * aerosol_type
     * aerosol visibility; optical depth at 550 nm (negative); units: km
     * elevation (sourced from a DSM); units: km above sea level
     * satellite height; units: km
@@ -42,6 +43,6 @@ TTT  8   0   375.000  g{water:7.5f}    a{ozone:5.3f} 1   T f f -0.988000t      1
 {sat_height:10.3f}{elevation:10.3f}{sat_view:10.3f}     0.000     0.000     0.000    0          0.000
     1    2{doy:5d}    0
 {lat:10.3f}{lon:10.3f}     0.000     0.000{time:10.3f}{sat_azimuth:10.3f}     0.000     0.667
-     350.0    2600.0       1.0       1.0RN#       NT    T
+     350.0    2600.0       1.0       1.0RN#       NT       1
     0
 """)
