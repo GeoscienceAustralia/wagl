@@ -378,7 +378,7 @@ def lambertian_corrections(lambertian, fs, fv, s, satellite_view, psf_kernel,
 
     # create a temp workspace for datasets that we don't need to keep
     with tempfile.TemporaryDirectory('.tmp', 'corrections-') as tmpd:
-        with h5py.File(pjoin(tmpd.name, 'lambertian-corrections'), 'w') as fid:
+        with h5py.File(pjoin(tmpd, 'lambertian-corrections'), 'w') as fid:
             # temp file
             avg_ds = fid.create_dataset('lambertian-average', shape=dims,
                                         compression='lzf', shuffle=True,
