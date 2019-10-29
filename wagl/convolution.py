@@ -90,7 +90,7 @@ def convolve(data, kernel, data_mask, fourier=False):
     start_idx, end_idx = _sequential_valid_rows(data_mask)
 
     with tempfile.TemporaryDirectory(suffix='.tmp', prefix='convol-') as tmpd:
-        with h5py.File(pjoin(tmpd, 'replace-nulls.h5', 'w')) as fid:
+        with h5py.File(pjoin(tmpd, 'replace-nulls.h5'), 'w') as fid:
 
             # chunksize doesn't matter as we simply load all chunks
             outds = fid.create_dataset('fill-null', shape=data.shape,
