@@ -12,8 +12,11 @@ data, and padding, in order to avoid the extreme biased behaviour
 that can occur during convolution.
 """
 
+from os.path import join as pjoin
+import tempfile
 import numpy
 from scipy import ndimage
+import h5py
 from astropy.convolution import convolve_fft
 
 
@@ -33,12 +36,6 @@ def _sequential_valid_rows(mask):
     start_idx = valid_rows[0]
     end_idx = valid_rows[-1] + 1
 
-    # this section is probably not required anymore
-    if (start_idx == 0) and (end_idx == nrows):
-        all_valid = True
-    else:
-        all_valid = False
-
     # check that we are ascending by 1
     # i.e. an invalid row has valid rows before and after
     # TODO;
@@ -48,10 +45,10 @@ def _sequential_valid_rows(mask):
         msg = "Rows with valid data are non-sequential."
         raise Exception(msg)
 
-    return all_valid, start_idx, end_idx
+    return start_idx, end_idx
 
 
-def _fill_nulls(data, mask):
+def _fill_nulls(data, mask, outds):
     """
     Calculate run-length averages and insert (inplace) at null pixels.
     In future this could also be an averaging kernel.
@@ -62,43 +59,70 @@ def _fill_nulls(data, mask):
     for row in range(data.shape[0]):
         data[row][mask[row]] = numpy.mean(data[row][~mask[row]])
 
+    outds.write_direct(data)
+
 
 def convolve(data, kernel, data_mask, fourier=False):
     """
     Apply convolution.
+    Internally uses temp files to store intermediates in order to conserve
+    memory.
+
+    :param data:
+        A 2D numpy.array or h5py.Dataset containing the data that is
+        to be convolved.
+
+    :param kernel:
+        The kernel to be used in convolving over the data array.
+
+    :param fourier:
+        A bool indicating whether to undertake convolution via fourier.
+        Useful when dealing with large kernels.
+
+    :return:
+        A 2D numpy.array of type float32.
+
+    :notes:
+        The data input fills null pixels with an average value
+        calculated by a row/run length average.
     """
     # can we correctly apply row-length averages?
-    _, start_idx, end_idx = _sequential_valid_rows(data_mask)  # ignore all_valid for time being
+    start_idx, end_idx = _sequential_valid_rows(data_mask)
 
-    # fill nulls with run-length averages
-    _fill_nulls(data, data_mask)
+    with tempfile.TemporaryDirectory(suffix='.tmp', prefix='convol-') as tmpd:
+        with h5py.File(pjoin(tmpd.name, 'replace-nulls.h5', 'w')) as fid:
 
-    # there may be cases at the top and bottom of an array containing NaN's
-    subset = data[start_idx:end_idx]
+            # chunksize doesn't matter as we simply load all chunks
+            outds = fid.create_dataset('fill-null', shape=data.shape,
+                                       dtype=data.dtype, compression='lzf',
+                                       shuffle=True)
 
-    # allocate the output
-    # NOTES:
-    #     the result from fourier will copy into it, and the result from
-    #     standard convolution will use it directly
-    result = numpy.full(data.shape, fill_value=numpy.nan, dtype='float32')
+            # fill nulls with run-length averages
+            _fill_nulls(data[:], data_mask, outds)
 
-    # apply convolution
-    if fourier:
-        # determine required buffering/padding
-        # half kernel size (+1 for good measure :) )
-        pad = [i // 2 + 1 for i in kernel.shape]
+            # apply convolution
+            if fourier:
+                # determine required buffering/padding
+                # half kernel size (+1 for good measure :) )
+                pad = [i // 2 + 1 for i in kernel.shape]
 
-        # index to unpad the array
-        unpad_idx = (slice(pad[0], -pad[0]), slice(pad[1], -pad[1]))
+                # index to unpad the array
+                unpad_idx = (slice(pad[0], -pad[0]), slice(pad[1], -pad[1]))
 
-        # pad/buffer and convolve
-        buffered = numpy.pad(data[start_idx:end_idx], pad, mode='reflect')
-        convolved = convolve_fft(buffered, kernel, allow_huge=True)
+                # pad/buffer and convolve
+                buffered = numpy.pad(outds[start_idx:end_idx], pad,
+                                     mode='reflect')
+                convolved = convolve_fft(buffered, kernel, allow_huge=True)
 
-        # copy convolved into result taking into account both
-        # the potential row subset and pad subset
-        result[start_idx:end_idx] = convolved[unpad_idx]
-    else:
-        ndimage.convolve(subset, kernel, output=result[start_idx:end_idx])
+                # copy convolved into result taking into account both
+                # the potential row subset and pad subset
+                result = numpy.full(data.shape, fill_value=numpy.nan,
+                                    dtype='float32')
+                result[start_idx:end_idx] = convolved[unpad_idx]
+            else:
+                result = numpy.full(data.shape, fill_value=numpy.nan,
+                                    dtype='float32')
+                ndimage.convolve(outds[start_idx:end_idx], kernel,
+                                 output=result[start_idx:end_idx])
 
     return result
