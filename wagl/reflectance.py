@@ -683,7 +683,7 @@ def calculate_reflectance(acquisition, interpolation_group,
 
     # temporary file to hole float32 lambertian
     lamb_f32 = tmp_fid.create_dataset('lambertian', **kwargs)
-    lambertian_tiled(acquisition, a_dataset, b_dataset. s_dataset, esun,
+    lambertian_tiled(acquisition, a_dataset, b_dataset, s_dataset, esun,
                      lamb_f32)
 
     # lambertian with atmospheric adjacency correction
