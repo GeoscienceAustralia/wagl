@@ -264,7 +264,7 @@ def sky_glint(satellite_view, refractive_index=1.34):
     # value used for pixels that are flagged by the tolerence test
     value = numpy.abs((rw - 1) / (rw + 1))**2
 
-    theta = numpy.deg2rad(satellite_view[tile], dtype='float32')  # noqa # pylint: disable
+    theta = numpy.deg2rad(satellite_view, dtype='float32')  # noqa # pylint: disable
 
     expr = "arcsin(sin(theta) / rw)"
     theta_prime = numexpr.evaluate(expr)  # noqa # pylint: disable
@@ -309,6 +309,32 @@ def scattering(mean_lambertian, s):
     result = numexpr.evaluate(expr)
 
     return result
+
+
+def sky_glint_correction(adjacency_corrected, fs, scattering, sky_glint):
+    """
+    Apply skyglint correction.
+
+    :param adjacency_corrected:
+        Lambertian reflectance corrected for atmospheric adjacency.
+
+    :param fs:
+        Direct fraction in the sun direction.
+
+    :param scattering:
+        TODO; Document. Was not detailed in the paper, but is defined
+        in the sample code that was provided.
+
+    :param sky_glint:
+        Fresnel reflectance of a flat water body.
+
+    :return:
+        A 2D numpy.ndarray of type float32.
+    """
+    expr = "adjacency_corrected - ((1 - fs) + scattering) * sky_glint"
+    sky_glint_corrected = numexpr.evaluate(expr)
+
+    return sky_glint_corrected
 
 
 def lambertian_corrections(lambertian, fs, fv, s, satellite_view, psf_kernel,
@@ -401,8 +427,7 @@ def lambertian_corrections(lambertian, fs, fv, s, satellite_view, psf_kernel,
                 sky_g = sky_glint(satellite_view[tile], refractive_index)  # noqa # pylint: disable
 
                 # sky glint correction
-                expr = "adj_cor - ((1 - fs) + scat) * sky_g"
-                skyg_c = numexpr.evaluate(expr)
+                skyg_c = sky_glint_correction(adj_cor, fs[tile], scat, sky_g)
                 skyg_c[data_mask] = NAN
 
                 # output
