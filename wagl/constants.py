@@ -242,7 +242,7 @@ class ArdProducts(Enum):
     LAMBERTIAN = 'LAMBERTIAN'
     SBT = 'SBT'
     ADJ = 'LMBADJ'
-    SKY = 'SKYG'
+    SKY = 'LMBSKYG'
 
 
 class Albedos(Enum):
