@@ -20,6 +20,7 @@ from scipy import ndimage
 import h5py
 from astropy.convolution import convolve_fft
 import pyfftw
+import numexpr
 
 from wagl.tiling import generate_tiles
 
@@ -168,6 +169,9 @@ def _pad(data, pad, mode, out_group, dname):
         A h5py.Dataset containing the padded array.
     """
     dtype = 'complex'
+
+    # create compressed, chunk shape doesn't matter too much at this point
+    # as when we need the data, the whole lot is read at once
     ds = out_group.create_dataset(dname, shape=pad.dims, compression='lzf',
                                   shuffle=True, dtype=dtype)
     chunks = ds.chunks
@@ -175,9 +179,62 @@ def _pad(data, pad, mode, out_group, dname):
     buffered = numpy.pad(data, pad.width, mode=mode)
 
     for tile in generate_tiles(pad.dims[1], pad.dims[0], chunks[1], chunks[0]):
-        ds[tile] = buffered.astype(dtype)
+        ds[tile] = buffered[tile].astype(dtype)
 
     return ds
+
+
+def conv_fft(data, kernel, out_group):
+    """
+    Convolve an array with a kernel via fourier.
+    We are using are own version here as we can minimise the
+    memory use as best we can. The version from astropy while
+    convienient, was very memory hungry.
+    In this function, we reuse arrays and storing temporary results
+    on disk as much as possible.
+    """
+    dims = data.shape
+    indata = pyfftw.empty_aligned(dims, dtype='complex')
+    outdata = pyfftw.empty_aligned(dims, dtype='complex')
+
+    # define forward and reverse transforms
+    fft_object = pyfftw.FFTW(indata, outdata, axes=(0, 1), flags=['FFTW_DESTROY_INPUT', 'FFTW_MEASURE'])
+    ifft_object = pyfftw.FFTW(indata, outdata, axes=(0, 1), direction='FFTW_BACKWARD', flags=['FFTW_DESTROY_INPUT', 'FFTW_MEASURE'])
+
+    # read data into the input
+    indata[:] = data[:]
+
+    # forward transform
+    result = fft_object()
+
+    # temporary storage to hold the result
+    ft_data_ds = out_group.create_dataset('data-ft', data=result, shuffle=True,
+                                          compression='lzf')
+    chunks = ft_data_ds.chunks
+
+    # resuse existing input and output arrays for the kernel
+    indata[:] = numpy.fft.ifftshift(kernel[:])
+    result = fft_object()
+
+    # temporary storage to hold the result
+    ft_kern_ds = out_group.create_dataset('kern-ft', data=result, shuffle=True,
+                                          compression='lzf', chunks=chunks)
+
+    # apply convolution; resusing the input array to store the result
+    for tile in generate_tiles(dims[1], dims[0], chunks[1], chunks[0]):
+        numexpr.evaluate(
+            "a * b",
+            local_dict={
+                'a': ft_data_ds[tile],
+                'b': ft_kern_ds[tile]
+            },
+            out=indata[tile]
+        )
+
+    # now for the inverse
+    result = ifft_object()
+
+    return result.real
 
 
 def convolve(data, kernel, data_mask, fourier=False):
@@ -243,11 +300,12 @@ def convolve(data, kernel, data_mask, fourier=False):
                                      'buffered-kernel')
 
                 # convolve
-                convolved = convolve_fft(buffered_data, buffered_kern,
-                                         allow_huge=True, fft_pad=False,
-                                         psf_pad=False, normalize_kernel=False,
-                                         normalization_zero_tol=2,
-                                         nan_treatment='fill')
+                convolved = conv_fft(buffered_data, buffered_kern, fid)
+                # convolved = convolve_fft(buffered_data, buffered_kern,
+                #                          allow_huge=True, fft_pad=False,
+                #                          psf_pad=False, normalize_kernel=False,
+                #                          normalization_zero_tol=2,
+                #                          nan_treatment='fill')
 
                 # copy convolved into result taking into account both
                 # the potential row subset and pad subset
