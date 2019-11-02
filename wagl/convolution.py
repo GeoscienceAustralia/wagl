@@ -191,14 +191,32 @@ def conv_fft(data, kernel, out_group):
     convienient, was very memory hungry.
     In this function, we reuse arrays and storing temporary results
     on disk as much as possible.
+
+    :param data:
+        A 2D numpy.ndarray or h5py.Dataset that will be convolved with
+        the kernel.
+
+    :param kernel:
+        A 2D numpy.ndarray or h5py.Dataset of the same shape/dimensions
+        as data.
+
+    :param out_group:
+        A h5py.Group object to be used for storing intermediate results
+        on disk.
+
+    :return:
+        A 2D numpy.ndarray of type float64 containin the result of the
+        convolution process.
     """
     dims = data.shape
     indata = pyfftw.empty_aligned(dims, dtype='complex')
     outdata = pyfftw.empty_aligned(dims, dtype='complex')
 
     # define forward and reverse transforms
-    fft_object = pyfftw.FFTW(indata, outdata, axes=(0, 1), flags=['FFTW_DESTROY_INPUT', 'FFTW_MEASURE'])
-    ifft_object = pyfftw.FFTW(indata, outdata, axes=(0, 1), direction='FFTW_BACKWARD', flags=['FFTW_DESTROY_INPUT', 'FFTW_MEASURE'])
+    flags = ['FFTW_DESTROY_INPUT', 'FFTW_MEASURE']
+    fft_object = pyfftw.FFTW(indata, outdata, axes=(0, 1), flags=flags)
+    ifft_object = pyfftw.FFTW(indata, outdata, axes=(0, 1),
+                              direction='FFTW_BACKWARD', flags=flags)
 
     # read data into the input
     indata[:] = data[:]
@@ -308,6 +326,8 @@ def convolve(data, kernel, data_mask, fourier=False):
                                     dtype='float32')
                 result[row_idx] = convolved[data_pad.idx]
             else:
+                # we could allocate the output array once, but we can conserve
+                # memory by allocating right at the end where we need it
                 result = numpy.full(data.shape, fill_value=numpy.nan,
                                     dtype='float32')
                 ndimage.convolve(outds[row_idx], kernel,
