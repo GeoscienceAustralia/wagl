@@ -18,7 +18,6 @@ import tempfile
 import numpy
 from scipy import ndimage
 import h5py
-from astropy.convolution import convolve_fft
 import pyfftw
 import numexpr
 
@@ -264,14 +263,15 @@ def convolve(data, kernel, data_mask, fourier=False):
         astropy.
         A temporary HDF5 file will be created to store intermediates
         in order to conserve memory.
-        As we're expecting a normalised kernel, we set astropy's
-        normalization_zero_tol equal to 2 and set nan_treatment to fill,
-        in order to for astropy not to do any normalisation.
-        One would think setting to False would mean it wouldn't do any
-        normalisation.
         The data will be padded using the 'reflect' method, whereas
         the kernel will be padded using the 'constant' method which
         uses a constant value of 0.
+        The astropy library whilst convienient, proved very memory
+        hungry. For example Landsat 8's panchromtatic band of
+        dimensions (15461, 15241) would be killed on a laptop running
+        8GB of memory when trying to convolve with a kernel of
+        dimensions (77, 77). As such, a more memory efficient version
+        has been implemented here.
     """
     # can we correctly apply row-length averages?
     start_idx, end_idx = _sequential_valid_rows(data_mask)
@@ -301,11 +301,6 @@ def convolve(data, kernel, data_mask, fourier=False):
 
                 # convolve
                 convolved = conv_fft(buffered_data, buffered_kern, fid)
-                # convolved = convolve_fft(buffered_data, buffered_kern,
-                #                          allow_huge=True, fft_pad=False,
-                #                          psf_pad=False, normalize_kernel=False,
-                #                          normalization_zero_tol=2,
-                #                          nan_treatment='fill')
 
                 # copy convolved into result taking into account both
                 # the potential row subset and pad subset
