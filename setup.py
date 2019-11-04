@@ -35,6 +35,7 @@ install_requires = [
     'structlog>=16.1.0',
     'idl-functions>=0.5.2', # custom package
     'attrs>=17.4.0',
+    'pyfftw>=0.11.1'
 ]
 
 dependency_links = [
