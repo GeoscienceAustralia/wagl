@@ -35,6 +35,7 @@ install_requires = [
     'structlog>=16.1.0',
     'idl-functions>=0.5.2', # custom package
     'attrs>=17.4.0',
+    'pyfftw>=0.11.1'
 ]
 
 dependency_links = [
@@ -77,7 +78,8 @@ setup(
              'utils/wagl_convert',
              'utils/wagl_ls',
              'utils/wagl_residuals',
-             'utils/wagl_pbs'],
+             'utils/wagl_pbs',
+             'utils/wagl_buildvrt'],
     setup_requires=['pytest-runner'],
     tests_require=tests_require,
     install_requires=install_requires,
