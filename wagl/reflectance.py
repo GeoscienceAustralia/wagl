@@ -399,8 +399,8 @@ def lambertian_corrections(lambertian, fs, fv, s, satellite_view, psf_kernel,
         tiles = [(slice(None, None, None), slice(None, None, None))]
 
     if out_adjacency is None or out_skyglint is None:
-        out_adjacency = numpy.fill(dims, fill_value=numpy.nan, dtype='float32')
-        out_skyglint = numpy.fill(dims, fill_value=numpy.nan, dtype='float32')
+        out_adjacency = numpy.full(dims, fill_value=numpy.nan, dtype='float32')
+        out_skyglint = numpy.full(dims, fill_value=numpy.nan, dtype='float32')
 
     # create a temp workspace for datasets that we don't need to keep
     with tempfile.TemporaryDirectory('.tmp', 'corrections-') as tmpd:
