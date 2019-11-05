@@ -7,7 +7,7 @@ Test the various utilites contained in the wagl.reflectance module.
 import unittest
 import numpy
 
-from wagl.reflectance import _sequential_valid_rows, _fill_nulls
+from wagl.convolution import _sequential_valid_rows, _fill_nulls
 
 
 class SequentialRowsTest(unittest.TestCase):

@@ -40,6 +40,7 @@ The luigi task workflow for producing NBAR for a Landsat 5TM scene is given belo
 * [geopandas](https://github.com/geopandas/geopandas)
 * [pyyaml](https://github.com/yaml/pyyaml)
 * [attrs](https://github.com/python-attrs/attrs)
+* [pyfftw](https://github.com/pyFFTW/pyFFTW)
 
 ## Installation
 ---------------
