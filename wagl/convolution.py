@@ -63,7 +63,8 @@ def _fill_nulls(data, mask, outds):
     for row in range(data.shape[0]):
         data[row][mask[row]] = numpy.mean(data[row][~mask[row]])
 
-    outds.write_direct(data)
+    if outds is not None:
+        outds.write_direct(data)
 
 
 def _determine_pad(data, kernel):
