@@ -53,7 +53,7 @@ def scale_reflectance(data, clip_range=(1, 10000), clip=True):
     data_mask = ~numpy.isfinite(data)
 
     # evaluate
-    result = numexpr.evaluate(expr).astype('int16')
+    result = numexpr.evaluate(expr).astype("int16")
 
     # clip the data range, if desired
     if clip:
@@ -140,14 +140,15 @@ def lambertian_tiled(acquisition, a, b, s, esun=None, outds=None):
     # as such, if None received we'll be allocating additional memory for
     # the data subsets which then get copied onto the full dimensional array
     if outds is None:
-        outds = numpy.zeros(dims, dtype='float32')
+        outds = numpy.zeros(dims, dtype="float32")
 
     # process by tile
     for tile in acquisition.tiles():
         # read the data corresponding to the current tile for all dataset
         # the original f90 routine specified single precision
-        rad = acquisition.radiance_data(window=tile, out_no_data=NAN,
-                                        esun=esun).astype('float32')
+        rad = acquisition.radiance_data(window=tile, out_no_data=NAN, esun=esun).astype(
+            "float32"
+        )
 
         # define the data mask (identify NaN pixels)
         data_mask = ~numpy.isfinite(rad)
@@ -196,6 +197,7 @@ def average_lambertian(lambertian, psf_kernel, outds=None):
         A 2D NumPy array of type float32, with NaN's populating
         invalid elements.
     """
+
     # normalise the kernel
     psf_kernel = psf_kernel / psf_kernel.sum()
 
@@ -262,9 +264,9 @@ def sky_glint(satellite_view, refractive_index=1.34):
     p5 = numpy.float32(0.5)  # noqa # pylint: disable
 
     # value used for pixels that are flagged by the tolerence test
-    value = numpy.abs((rw - 1) / (rw + 1))**2
+    value = numpy.abs((rw - 1) / (rw + 1)) ** 2
 
-    theta = numpy.deg2rad(satellite_view, dtype='float32')  # noqa # pylint: disable
+    theta = numpy.deg2rad(satellite_view, dtype="float32")  # noqa # pylint: disable
 
     expr = "arcsin(sin(theta) / rw)"
     theta_prime = numexpr.evaluate(expr)  # noqa # pylint: disable
@@ -273,8 +275,10 @@ def sky_glint(satellite_view, refractive_index=1.34):
     expr = "abs(theta + theta_prime) < 1.0e-5"
     tolerance_mask = numexpr.evaluate(expr)
 
-    expr = ("p5 * ((sin(theta-theta_prime) / sin(theta+theta_prime))**2 "
-            "+ (tan(theta-theta_prime) / tan(theta+theta_prime))**2)")
+    expr = (
+        "p5 * ((sin(theta-theta_prime) / sin(theta+theta_prime))**2 "
+        "+ (tan(theta-theta_prime) / tan(theta+theta_prime))**2)"
+    )
 
     # sky glint (taken as fresnel reflectance at theta)
     # this part is now less optimal if dealing with no tiles
@@ -337,9 +341,18 @@ def sky_glint_correction(adjacency_corrected, fs, scattering, sky_glint):
     return sky_glint_corrected
 
 
-def lambertian_corrections(lambertian, fs, fv, s, satellite_view, psf_kernel,
-                           refractive_index=1.34, tiles=None,
-                           out_adjacency=None, out_skyglint=None):
+def lambertian_corrections(
+    lambertian,
+    fs,
+    fv,
+    s,
+    satellite_view,
+    psf_kernel,
+    refractive_index=1.34,
+    tiles=None,
+    out_adjacency=None,
+    out_skyglint=None,
+):
     """
     Workflow to apply atmospheric adjacency and skyglint correction
     to the lambertian reflectance.
@@ -399,16 +412,21 @@ def lambertian_corrections(lambertian, fs, fv, s, satellite_view, psf_kernel,
         tiles = [(slice(None, None, None), slice(None, None, None))]
 
     if out_adjacency is None or out_skyglint is None:
-        out_adjacency = numpy.full(dims, fill_value=numpy.nan, dtype='float32')
-        out_skyglint = numpy.full(dims, fill_value=numpy.nan, dtype='float32')
+        out_adjacency = numpy.full(dims, fill_value=numpy.nan, dtype="float32")
+        out_skyglint = numpy.full(dims, fill_value=numpy.nan, dtype="float32")
 
     # create a temp workspace for datasets that we don't need to keep
-    with tempfile.TemporaryDirectory('.tmp', 'corrections-') as tmpd:
-        with h5py.File(pjoin(tmpd, 'lambertian-corrections'), 'w') as fid:
+    with tempfile.TemporaryDirectory(".tmp", "corrections-") as tmpd:
+        with h5py.File(pjoin(tmpd, "lambertian-corrections"), "w") as fid:
             # temp file
-            avg_ds = fid.create_dataset('lambertian-average', shape=dims,
-                                        compression='lzf', shuffle=True,
-                                        dtype=lambertian.dtype, chunks=chunks)
+            avg_ds = fid.create_dataset(
+                "lambertian-average",
+                shape=dims,
+                compression="lzf",
+                shuffle=True,
+                dtype=lambertian.dtype,
+                chunks=chunks,
+            )
 
             # average lambertian of surrounding pixels via the psf
             average_lambertian(lambertian, psf_kernel, avg_ds)
@@ -424,7 +442,9 @@ def lambertian_corrections(lambertian, fs, fv, s, satellite_view, psf_kernel,
 
                 scat = scattering(avg_ds[tile], s[tile])  # noqa # pylint: disable
 
-                sky_g = sky_glint(satellite_view[tile], refractive_index)  # noqa # pylint: disable
+                sky_g = sky_glint(
+                    satellite_view[tile], refractive_index
+                )  # noqa # pylint: disable
 
                 # sky glint correction
                 skyg_c = sky_glint_correction(adj_cor, fs[tile], scat, sky_g)
@@ -438,25 +458,42 @@ def lambertian_corrections(lambertian, fs, fv, s, satellite_view, psf_kernel,
         return out_adjacency, out_skyglint
 
 
-def _calculate_reflectance(acquisition, acquisitions, interpolation_fname,
-                           satellite_solar_angles_fname, slope_aspect_fname,
-                           relative_slope_fname, incident_angles_fname,
-                           exiting_angles_fname, shadow_masks_fname,
-                           ancillary_fname, rori, out_fname, compression,
-                           filter_opts, normalized_solar_zenith):
+def _calculate_reflectance(
+    acquisition,
+    acquisitions,
+    interpolation_fname,
+    satellite_solar_angles_fname,
+    slope_aspect_fname,
+    relative_slope_fname,
+    incident_angles_fname,
+    exiting_angles_fname,
+    shadow_masks_fname,
+    ancillary_fname,
+    rori,
+    out_fname,
+    compression,
+    filter_opts,
+    normalized_solar_zenith,
+):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    with h5py.File(interpolation_fname, 'r') as fid_interp,\
-        h5py.File(satellite_solar_angles_fname, 'r') as fid_sat_sol,\
-        h5py.File(slope_aspect_fname, 'r') as fid_slp_asp,\
-        h5py.File(relative_slope_fname, 'r') as fid_rel_slp,\
-        h5py.File(incident_angles_fname, 'r') as fid_inc,\
-        h5py.File(exiting_angles_fname, 'r') as fid_exi,\
-        h5py.File(shadow_masks_fname, 'r') as fid_shadow,\
-        h5py.File(ancillary_fname, 'r') as fid_anc,\
-        h5py.File(out_fname, 'w') as fid:
+    with h5py.File(interpolation_fname, "r") as fid_interp, h5py.File(
+        satellite_solar_angles_fname, "r"
+    ) as fid_sat_sol, h5py.File(slope_aspect_fname, "r") as fid_slp_asp, h5py.File(
+        relative_slope_fname, "r"
+    ) as fid_rel_slp, h5py.File(
+        incident_angles_fname, "r"
+    ) as fid_inc, h5py.File(
+        exiting_angles_fname, "r"
+    ) as fid_exi, h5py.File(
+        shadow_masks_fname, "r"
+    ) as fid_shadow, h5py.File(
+        ancillary_fname, "r"
+    ) as fid_anc, h5py.File(
+        out_fname, "w"
+    ) as fid:
 
         grp1 = fid_interp[GroupName.INTERP_GROUP.value]
         grp2 = fid_sat_sol[GroupName.SAT_SOL_GROUP.value]
@@ -466,21 +503,44 @@ def _calculate_reflectance(acquisition, acquisitions, interpolation_fname,
         grp6 = fid_exi[GroupName.EXITING_GROUP.value]
         grp7 = fid_shadow[GroupName.SHADOW_GROUP.value]
         grp8 = fid_anc[GroupName.ANCILLARY_GROUP.value]
-        calculate_reflectance(acquisition, grp1, grp2, grp3, grp4, grp5, grp6,
-                              grp7, grp8, rori, fid, compression, filter_opts,
-                              normalized_solar_zenith)
+        calculate_reflectance(
+            acquisition,
+            grp1,
+            grp2,
+            grp3,
+            grp4,
+            grp5,
+            grp6,
+            grp7,
+            grp8,
+            rori,
+            fid,
+            compression,
+            filter_opts,
+            normalized_solar_zenith,
+        )
 
         create_ard_yaml(acquisitions, grp8, fid, normalized_solar_zenith)
 
 
-def calculate_reflectance(acquisition, interpolation_group,
-                          satellite_solar_group, slope_aspect_group,
-                          relative_slope_group, incident_angles_group,
-                          exiting_angles_group, shadow_masks_group,
-                          ancillary_group, rori, out_group=None,
-                          compression=H5CompressionFilter.LZF,
-                          filter_opts=None, normalized_solar_zenith=45.0,
-                          esun=None, psf_kernel=None):
+def calculate_reflectance(
+    acquisition,
+    interpolation_group,
+    satellite_solar_group,
+    slope_aspect_group,
+    relative_slope_group,
+    incident_angles_group,
+    exiting_angles_group,
+    shadow_masks_group,
+    ancillary_group,
+    rori,
+    out_group=None,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+    normalized_solar_zenith=45.0,
+    esun=None,
+    psf_kernel=None,
+):
     """
     Calculates Lambertian, BRDF corrected and BRDF + terrain
     illumination corrected surface reflectance.
@@ -602,22 +662,30 @@ def calculate_reflectance(acquisition, interpolation_group,
     #    we only need to get functionality enabled for processing
     #    atmospheric correction over water
     dname_fmt = DatasetName.INTERPOLATION_FMT.value
-    fv_dataset = interpolation_group[dname_fmt.format(coefficient=AC.FV.value,
-                                                      band_name=bn)]
-    fs_dataset = interpolation_group[dname_fmt.format(coefficient=AC.FS.value,
-                                                      band_name=bn)]
-    b_dataset = interpolation_group[dname_fmt.format(coefficient=AC.B.value,
-                                                     band_name=bn)]
-    s_dataset = interpolation_group[dname_fmt.format(coefficient=AC.S.value,
-                                                     band_name=bn)]
-    a_dataset = interpolation_group[dname_fmt.format(coefficient=AC.A.value,
-                                                     band_name=bn)]
-    dir_dataset = interpolation_group[dname_fmt.format(coefficient=AC.DIR.value,
-                                                       band_name=bn)]
-    dif_dataset = interpolation_group[dname_fmt.format(coefficient=AC.DIF.value,
-                                                       band_name=bn)]
-    ts_dataset = interpolation_group[dname_fmt.format(coefficient=AC.TS.value,
-                                                      band_name=bn)]
+    fv_dataset = interpolation_group[
+        dname_fmt.format(coefficient=AC.FV.value, band_name=bn)
+    ]
+    fs_dataset = interpolation_group[
+        dname_fmt.format(coefficient=AC.FS.value, band_name=bn)
+    ]
+    b_dataset = interpolation_group[
+        dname_fmt.format(coefficient=AC.B.value, band_name=bn)
+    ]
+    s_dataset = interpolation_group[
+        dname_fmt.format(coefficient=AC.S.value, band_name=bn)
+    ]
+    a_dataset = interpolation_group[
+        dname_fmt.format(coefficient=AC.A.value, band_name=bn)
+    ]
+    dir_dataset = interpolation_group[
+        dname_fmt.format(coefficient=AC.DIR.value, band_name=bn)
+    ]
+    dif_dataset = interpolation_group[
+        dname_fmt.format(coefficient=AC.DIF.value, band_name=bn)
+    ]
+    ts_dataset = interpolation_group[
+        dname_fmt.format(coefficient=AC.TS.value, band_name=bn)
+    ]
     solar_zenith_dset = satellite_solar_group[DatasetName.SOLAR_ZENITH.value]
     solar_azimuth_dset = satellite_solar_group[DatasetName.SOLAR_AZIMUTH.value]
     satellite_v_dset = satellite_solar_group[DatasetName.SATELLITE_VIEW.value]
@@ -630,16 +698,19 @@ def calculate_reflectance(acquisition, interpolation_group,
     shadow_dataset = shadow_masks_group[DatasetName.COMBINED_SHADOW.value]
 
     dname_fmt = DatasetName.BRDF_FMT.value
-    dname = dname_fmt.format(band_name=bn, parameter=BrdfDirectionalParameters.ALPHA_1.value)
+    dname = dname_fmt.format(
+        band_name=bn, parameter=BrdfDirectionalParameters.ALPHA_1.value
+    )
     brdf_alpha1 = ancillary_group[dname][()]
 
-    dname = dname_fmt.format(band_name=bn, parameter=BrdfDirectionalParameters.ALPHA_2.value)
+    dname = dname_fmt.format(
+        band_name=bn, parameter=BrdfDirectionalParameters.ALPHA_2.value
+    )
     brdf_alpha2 = ancillary_group[dname][()]
 
     # Initialise the output file
     if out_group is None:
-        fid = h5py.File('surface-reflectance.h5', driver='core',
-                        backing_store=False)
+        fid = h5py.File("surface-reflectance.h5", driver="core", backing_store=False)
     else:
         fid = out_group
 
@@ -650,13 +721,13 @@ def calculate_reflectance(acquisition, interpolation_group,
         filter_opts = {}
     else:
         filter_opts = filter_opts.copy()
-    filter_opts['chunks'] = acquisition.tile_size
+    filter_opts["chunks"] = acquisition.tile_size
 
     kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
     grp = fid[GroupName.STANDARD_GROUP.value]
-    kwargs['shape'] = (acquisition.lines, acquisition.samples)
-    kwargs['fillvalue'] = NO_DATA_VALUE
-    kwargs['dtype'] = 'int16'
+    kwargs["shape"] = (acquisition.lines, acquisition.samples)
+    kwargs["fillvalue"] = NO_DATA_VALUE
+    kwargs["dtype"] = "int16"
 
     # create the integer datasets
     # lambertian
@@ -673,43 +744,45 @@ def calculate_reflectance(acquisition, interpolation_group,
     nbart_dset = grp.create_dataset(dname, **kwargs)
 
     # attach some attributes to the image datasets
-    attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
-             'geotransform': geobox.transform.to_gdal(),
-             'no_data_value': kwargs['fillvalue'],
-             'rori_threshold_setting': rori,
-             'platform_id': acquisition.platform_id,
-             'sensor_id': acquisition.sensor_id,
-             'band_id': acquisition.band_id,
-             'band_name': bn,
-             'alias': acquisition.alias}
+    attrs = {
+        "crs_wkt": geobox.crs.ExportToWkt(),
+        "geotransform": geobox.transform.to_gdal(),
+        "no_data_value": kwargs["fillvalue"],
+        "rori_threshold_setting": rori,
+        "platform_id": acquisition.platform_id,
+        "sensor_id": acquisition.sensor_id,
+        "band_id": acquisition.band_id,
+        "band_name": bn,
+        "alias": acquisition.alias,
+    }
 
     # lambertian with no additional corrections applied
     desc = "Contains the lambertian reflectance data scaled by 10000."
-    attrs['description'] = desc
+    attrs["description"] = desc
     attach_image_attributes(lmbrt_dset, attrs)
 
     # nbar
     desc = "Contains the brdf corrected reflectance data scaled by 10000."
-    attrs['description'] = desc
+    attrs["description"] = desc
     attach_image_attributes(nbar_dset, attrs)
 
     # nbart
-    desc = ("Contains the brdf and terrain corrected reflectance data scaled "
-            "by 10000.")
-    attrs['description'] = desc
+    desc = (
+        "Contains the brdf and terrain corrected reflectance data scaled " "by 10000."
+    )
+    attrs["description"] = desc
     attach_image_attributes(nbart_dset, attrs)
 
     # a HDF5 workspace for holding various temp datasets
-    tmpdir = tempfile.TemporaryDirectory(suffix='.tmp', prefix='lambertian-')
-    tmp_fid = h5py.File(pjoin(tmpdir.name, 'lambertian-workspace.h5'), 'w')
+    tmpdir = tempfile.TemporaryDirectory(suffix=".tmp", prefix="lambertian-")
+    tmp_fid = h5py.File(pjoin(tmpdir.name, "lambertian-workspace.h5"), "w")
 
-    kwargs['fillvalue'] = numpy.nan
-    kwargs['dtype'] = 'float32'
+    kwargs["fillvalue"] = numpy.nan
+    kwargs["dtype"] = "float32"
 
     # temporary file to hole float32 lambertian
-    lamb_f32 = tmp_fid.create_dataset('lambertian', **kwargs)
-    lambertian_tiled(acquisition, a_dataset, b_dataset, s_dataset, esun,
-                     lamb_f32)
+    lamb_f32 = tmp_fid.create_dataset("lambertian", **kwargs)
+    lambertian_tiled(acquisition, a_dataset, b_dataset, s_dataset, esun, lamb_f32)
 
     # lambertian with atmospheric adjacency correction
     if psf_kernel is not None:
@@ -718,11 +791,11 @@ def calculate_reflectance(acquisition, interpolation_group,
         #    are figured out on how sun and sky glint is to be applied.
         #    it is unknown that if we truncate to int16 now, will this have an
         #    impact applying glint correction later
-        kwargs['fillvalue'] = numpy.nan
-        kwargs['dtype'] = 'float32'
+        kwargs["fillvalue"] = numpy.nan
+        kwargs["dtype"] = "float32"
 
         # update the attrs for the float32 datasets
-        attrs['no_data_value'] = numpy.nan
+        attrs["no_data_value"] = numpy.nan
 
         # *** lambertian with adjacency correction; may not be required later ***
         # TODO:
@@ -741,9 +814,11 @@ def calculate_reflectance(acquisition, interpolation_group,
         # TODO:
         #    change the description once final product details are defined
         #    currently output unscaled float32 data
-        desc = ("Contains the lambertian reflectace corrected for "
-                "atmospheric adjacency.")
-        attrs['description'] = desc
+
+        desc = (
+            "Contains the lambertian reflectace corrected for " "atmospheric adjacency."
+        )
+        attrs["description"] = desc
         attach_image_attributes(adj_dset, attrs)
 
         # *** sky glint dataset; may not be required later ***
@@ -751,13 +826,23 @@ def calculate_reflectance(acquisition, interpolation_group,
         #    confirm what is required and how to be delivered once production
         #    details have been determined.
         desc = "Contains the sky glint coefficient."
-        attrs['description'] = desc
+        attrs["description"] = desc
+
         attach_image_attributes(skygc_dset, attrs)
 
         # calculate
-        lambertian_corrections(lamb_f32, fs_dataset, fv_dataset, s_dataset,
-                               satellite_v_dset, psf_kernel, 1.34,
-                               acquisition.tiles(), adj_dset, skygc_dset)
+        lambertian_corrections(
+            lamb_f32,
+            fs_dataset,
+            fv_dataset,
+            s_dataset,
+            satellite_v_dset,
+            psf_kernel,
+            1.34,
+            acquisition.tiles(),
+            adj_dset,
+            skygc_dset,
+        )
 
     # NOTES:
     #    for the time being, output the atmospheric adjacency corrected
@@ -769,7 +854,8 @@ def calculate_reflectance(acquisition, interpolation_group,
     # process by tile
     for tile in acquisition.tiles():
         # define some static arguments
-        f32_args = {'dtype': numpy.float32, 'transpose': True}
+
+        f32_args = {"dtype": numpy.float32, "transpose": True}
 
         # load standard lambertian
         ref_lm = lamb_f32[tile]
@@ -805,18 +891,39 @@ def calculate_reflectance(acquisition, interpolation_group,
 
         # Allocate the output arrays
         ysize, xsize = ref_lm.shape
-        ref_brdf = numpy.full((ysize, xsize), numpy.nan, dtype='float32')
-        ref_terrain = numpy.full((ysize, xsize), numpy.nan, dtype='float32')
+        ref_brdf = numpy.full((ysize, xsize), numpy.nan, dtype="float32")
+        ref_terrain = numpy.full((ysize, xsize), numpy.nan, dtype="float32")
 
         # Run terrain correction
-        reflectance(xsize, ysize, rori, brdf_alpha1, brdf_alpha2,
-                    acquisition.reflectance_adjustment, numpy.float32(NAN),
-                    normalized_solar_zenith, shadow, solar_zenith,
-                    solar_azimuth, satellite_view, relative_angle,
-                    slope, aspect, incident_angle, exiting_angle,
-                    relative_slope, s_mod, fs, fv, ts, direct, diffuse,
-                    input_lambertian.transpose(),
-                    ref_brdf.transpose(), ref_terrain.transpose())
+        reflectance(
+            xsize,
+            ysize,
+            rori,
+            brdf_alpha1,
+            brdf_alpha2,
+            acquisition.reflectance_adjustment,
+            numpy.float32(NAN),
+            normalized_solar_zenith,
+            shadow,
+            solar_zenith,
+            solar_azimuth,
+            satellite_view,
+            relative_angle,
+            slope,
+            aspect,
+            incident_angle,
+            exiting_angle,
+            relative_slope,
+            s_mod,
+            fs,
+            fv,
+            ts,
+            direct,
+            diffuse,
+            input_lambertian.transpose(),
+            ref_brdf.transpose(),
+            ref_terrain.transpose(),
+        )
 
         # Write the current tile to disk
         lmbrt_dset.write_direct(scale_reflectance(ref_lm), dest_sel=tile)
@@ -840,14 +947,14 @@ def link_standard_data(input_fnames, out_fname):
     results into a single file for easier access.
     """
     for fname in input_fnames:
-        with h5py.File(fname, 'r') as fid:
-            dataset_names = find(fid, dataset_class='IMAGE')
+        with h5py.File(fname, "r") as fid:
+            dataset_names = find(fid, dataset_class="IMAGE")
 
         for dname in dataset_names:
             create_external_link(fname, dname, out_fname, dname)
 
         # metadata
-        with h5py.File(fname, 'r') as fid:
+        with h5py.File(fname, "r") as fid:
             with h5py.File(out_fname) as out_fid:
                 yaml_dname = DatasetName.NBAR_YAML.value
                 if yaml_dname in fid and yaml_dname not in out_fid:

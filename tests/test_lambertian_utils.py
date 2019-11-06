@@ -24,12 +24,12 @@ class SequentialRowsTest(unittest.TestCase):
         self.non_sequential[5] = True   # set middle row
 
     def test_sequential_start(self):
-        _, start_row, end_row = _sequential_valid_rows(self.sequential)
+        start_row, end_row = _sequential_valid_rows(self.sequential)
 
         self.assertTrue(start_row, 1)
 
     def test_sequential_end(self):
-        _, start_row, end_row = _sequential_valid_rows(self.sequential)
+        start_row, end_row = _sequential_valid_rows(self.sequential)
 
         self.assertTrue(end_row, 8)
 
@@ -55,28 +55,28 @@ class FillNullsTest(unittest.TestCase):
         # take a copy as the array is modified in-place
         copy = self.data.copy()
         xbar = numpy.nanmean(copy[0])
-        _fill_nulls(copy, self.data_mask)
+        _fill_nulls(copy, self.data_mask, None)
         self.assertTrue(xbar, copy[0, 0])
 
     def test_row_four(self):
         # take a copy as the array is modified in-place
         copy = self.data.copy()
         xbar = numpy.nanmean(copy[3])
-        _fill_nulls(copy, self.data_mask)
+        _fill_nulls(copy, self.data_mask, None)
         self.assertTrue(xbar, copy[3, 3])
 
     def test_row_six(self):
         # take a copy as the array is modified in-place
         copy = self.data.copy()
         xbar = numpy.nanmean(copy[5])
-        _fill_nulls(copy, self.data_mask)
+        _fill_nulls(copy, self.data_mask, None)
         self.assertTrue(xbar, copy[5, 5])
 
     def test_row_eight(self):
         # take a copy as the array is modified in-place
         copy = self.data.copy()
         xbar = numpy.nanmean(copy[7])
-        _fill_nulls(copy, self.data_mask)
+        _fill_nulls(copy, self.data_mask, None)
         self.assertTrue(xbar, copy[7, 7])
 
 
