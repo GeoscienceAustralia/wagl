@@ -296,7 +296,7 @@ def scattering(mean_lambertian, s):
     Needs documentation;
     This function is not detailed in the paper, but is defined in the
     sample code that was provided.
-    
+
     :param mean_lambertian:
         Average lambertian reflectance of the surrounding pixels.
         Lambertian reflectance convolved with the point spread
