@@ -14,6 +14,7 @@ import tempfile
 import numpy
 import numexpr
 import h5py
+from scipy import ndimage
 
 from wagl.constants import DatasetName, GroupName, BrdfDirectionalParameters
 from wagl.constants import AtmosphericCoefficients as AC
@@ -196,6 +197,7 @@ def average_lambertian(lambertian, psf_kernel, outds=None):
         A 2D NumPy array of type float32, with NaN's populating
         invalid elements.
     """
+
     # normalise the kernel
     psf_kernel = psf_kernel / psf_kernel.sum()
 
@@ -210,7 +212,7 @@ def average_lambertian(lambertian, psf_kernel, outds=None):
     if outds is not None:
         outds.write_direct(result)
         return
-
+      
     return result
 
 
@@ -292,7 +294,7 @@ def scattering(mean_lambertian, s):
     Needs documentation;
     This function is not detailed in the paper, but is defined in the
     sample code that was provided.
-
+    
     :param mean_lambertian:
         Average lambertian reflectance of the surrounding pixels.
         Lambertian reflectance convolved with the point spread
@@ -741,6 +743,7 @@ def calculate_reflectance(acquisition, interpolation_group,
         # TODO:
         #    change the description once final product details are defined
         #    currently output unscaled float32 data
+
         desc = ("Contains the lambertian reflectace corrected for "
                 "atmospheric adjacency.")
         attrs['description'] = desc
@@ -752,6 +755,7 @@ def calculate_reflectance(acquisition, interpolation_group,
         #    details have been determined.
         desc = "Contains the sky glint coefficient."
         attrs['description'] = desc
+
         attach_image_attributes(skygc_dset, attrs)
 
         # calculate
@@ -769,6 +773,7 @@ def calculate_reflectance(acquisition, interpolation_group,
     # process by tile
     for tile in acquisition.tiles():
         # define some static arguments
+
         f32_args = {'dtype': numpy.float32, 'transpose': True}
 
         # load standard lambertian
@@ -803,6 +808,7 @@ def calculate_reflectance(acquisition, interpolation_group,
         else:
             input_lambertian = lamb_f32[tile]
 
+
         # Allocate the output arrays
         ysize, xsize = ref_lm.shape
         ref_brdf = numpy.full((ysize, xsize), numpy.nan, dtype='float32')
@@ -822,7 +828,7 @@ def calculate_reflectance(acquisition, interpolation_group,
         lmbrt_dset.write_direct(scale_reflectance(ref_lm), dest_sel=tile)
         nbar_dset.write_direct(scale_reflectance(ref_brdf), dest_sel=tile)
         nbart_dset.write_direct(scale_reflectance(ref_terrain), dest_sel=tile)
-
+        
     # close any still opened files, arrays etc associated with the acquisition
     acquisition.close()
     tmpdir.cleanup()

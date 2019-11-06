@@ -124,7 +124,7 @@ class ARD(luigi.WrapperTask):
 
         with open(self.level1_list) as src:
             level1_list = [level1.strip() for level1 in src.readlines()]
-
+            
         for level1 in level1_list:
             container = acquisitions(level1)
             outdir = pjoin(self.outdir, '{}.wagl'.format(container.label))
