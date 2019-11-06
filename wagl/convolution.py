@@ -313,7 +313,7 @@ def convolve(data, kernel, data_mask, fourier=False):
                 data_pad, kern_pad = _determine_pad(data[row_idx], kernel)
 
                 # pad/buffer
-                buffered_data = _pad(outds, data_pad, 'reflect', fid,
+                buffered_data = _pad(outds, data_pad, 'symmetric', fid,
                                      'buffered-data')
                 buffered_kern = _pad(kernel, kern_pad, 'constant', fid,
                                      'buffered-kernel')
