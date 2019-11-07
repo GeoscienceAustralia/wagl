@@ -306,7 +306,7 @@ def convolve(data, kernel, data_mask, fourier=False):
                                        compression='lzf', shuffle=True)
 
             # fill nulls with run-length averages
-            _fill_nulls(data[row_idx], data_mask, outds)
+            _fill_nulls(data[row_idx], data_mask[row_idx], outds)
 
             # apply convolution
             if fourier:
