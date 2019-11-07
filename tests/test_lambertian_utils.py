@@ -24,14 +24,14 @@ class SequentialRowsTest(unittest.TestCase):
         self.non_sequential[5] = True   # set middle row
 
     def test_sequential_start(self):
-        start_row, end_row = _sequential_valid_rows(self.sequential)
+        row_idx = _sequential_valid_rows(self.sequential)
 
-        self.assertTrue(start_row, 1)
+        self.assertTrue(row_idx.start, 1)
 
     def test_sequential_end(self):
-        start_row, end_row = _sequential_valid_rows(self.sequential)
+        row_idx = _sequential_valid_rows(self.sequential)
 
-        self.assertTrue(end_row, 8)
+        self.assertTrue(row_idx.stop, 8)
 
     def test_non_sequential(self):
         with self.assertRaises(Exception):
