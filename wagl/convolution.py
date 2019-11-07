@@ -49,7 +49,7 @@ def _sequential_valid_rows(mask):
         msg = "Rows with valid data are non-sequential."
         raise Exception(msg)
 
-    return start_idx, end_idx
+    return slice(start_idx, end_idx)
 
 
 def _fill_nulls(data, mask, outds):
@@ -293,24 +293,25 @@ def convolve(data, kernel, data_mask, fourier=False):
         has been implemented here.
     """
     # can we correctly apply row-length averages?
-    start_idx, end_idx = _sequential_valid_rows(data_mask)
-    row_idx = slice(start_idx, end_idx)
+    row_idx = _sequential_valid_rows(data_mask)
+    dims = (row_idx.stop - row_idx.start, data.shape[1])
+    dtype = data.dtype
+    fill = numpy.nan
 
     with tempfile.TemporaryDirectory(suffix='.tmp', prefix='convol-') as tmpd:
         with h5py.File(pjoin(tmpd, 'replace-nulls.h5'), 'w') as fid:
 
             # chunksize doesn't matter as we simply load all chunks
-            outds = fid.create_dataset('fill-null', shape=data.shape,
-                                       dtype=data.dtype, compression='lzf',
-                                       shuffle=True)
+            outds = fid.create_dataset('fill-null', shape=dims, dtype=dtype,
+                                       compression='lzf', shuffle=True)
 
             # fill nulls with run-length averages
-            _fill_nulls(data[:], data_mask, outds)
+            _fill_nulls(data[row_idx], data_mask, outds)
 
             # apply convolution
             if fourier:
                 # determine required buffering/padding
-                data_pad, kern_pad = _determine_pad(data[row_idx], kernel)
+                data_pad, kern_pad = _determine_pad(outds, kernel)
 
                 # pad/buffer
                 buffered_data = _pad(outds, data_pad, 'symmetric', fid,
@@ -323,15 +324,12 @@ def convolve(data, kernel, data_mask, fourier=False):
 
                 # copy convolved into result taking into account both
                 # the potential row subset and pad subset
-                result = numpy.full(data.shape, fill_value=numpy.nan,
-                                    dtype='float32')
+                result = numpy.full(data.shape, fill_value=fill, dtype=dtype)
                 result[row_idx] = convolved[data_pad.idx]
             else:
                 # we could allocate the output array once, but we can conserve
                 # memory by allocating right at the end where we need it
-                result = numpy.full(data.shape, fill_value=numpy.nan,
-                                    dtype='float32')
-                ndimage.convolve(outds[row_idx], kernel,
-                                 output=result[row_idx])
+                result = numpy.full(data.shape, fill_value=fill, dtype=dtype)
+                ndimage.convolve(outds, kernel, output=result[row_idx])
 
     return result
