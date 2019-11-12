@@ -81,7 +81,7 @@ class DataStandardisation(luigi.Task):
     buffer_distance = luigi.FloatParameter(default=8000, significant=False)
     h5_driver = luigi.OptionalParameter(default="", significant=False)
     normalized_solar_zenith = luigi.FloatParameter(default=45.0)
-    water_atcor = luigi.BoolParameter(default=False)
+    aerosol_model = luigi.EnumParameter(enum=AerosolModel, default=AerosolModel.AER_MARITIME_NAVY)
     refractive_index = luigi.Parameter(default=1.34)
 
     def output(self):
@@ -95,11 +95,6 @@ class DataStandardisation(luigi.Task):
             ecmwf_path = self.ecmwf_path
         else:
             ecmwf_path = None
-
-        if self.water_atcor:
-            aerosol_model = AerosolModel.AER_MARITIME_NAVY
-        else:
-            aerosol_model = None
 
         with self.output().temporary_path() as out_fname:
             card4l(
@@ -122,6 +117,7 @@ class DataStandardisation(luigi.Task):
                 self.modtran_exe,
                 self.modtran54_exe,
                 out_fname,
+                self.aerosol_model,
                 ecmwf_path,
                 self.rori,
                 self.buffer_distance,
@@ -130,7 +126,6 @@ class DataStandardisation(luigi.Task):
                 self.h5_driver,
                 self.acq_parser_hint,
                 self.normalized_solar_zenith,
-                aerosol_model,
             )
 
 
@@ -177,7 +172,6 @@ class ARD(luigi.WrapperTask):
                     "filter_opts": self.filter_opts,
                     "buffer_distance": self.buffer_distance,
                     "h5_driver": self.h5_driver,
-                    "water_atcor": self.water_atcor,
                     "refractive_index": self.refractive_index,
                 }
                 yield DataStandardisation(**kwargs)
