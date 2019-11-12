@@ -27,6 +27,7 @@ from wagl.__surface_reflectance import reflectance
 
 NO_DATA_VALUE = -999
 NAN = numpy.nan
+PI = numpy.pi
 
 
 def scale_reflectance(data, clip_range=(1, 10000), clip=True):
@@ -291,6 +292,95 @@ def sky_glint(satellite_view, refractive_index=1.34):
     return sky_g
 
 
+def sun_glint(satellite_view, solar_zenith, relative_azimuth, wind_speed, refractive_index=1.34):
+    """
+    Calculate sun glint based on the Cox and Munk (1954) model.
+    Calculations are done in single precision (same as the original
+    FORTRAN code that this was derived from).
+
+    :param satellite_view:
+        The satellite zenith view angle in degrees.
+
+    :param solar_zenith:
+        The solar zenith angle in degrees.
+
+    :param relative_azimuth:
+        The relative azimuth angle between sun and view direction.
+
+    :param wind_speed:
+        The wind speed in m/s.
+
+    :param refractive_index:
+        The refractive index of water. Default is 1.34 and internally
+        recast as a float32.
+
+    :return:
+        A 2D NumPy array of type float32.
+    """
+    # force constants to float32 (reduce memory for array computations)
+    rw = numpy.float32(refractive_index)  # noqa # pylint: disable
+    p5 = numpy.float32(0.5)  # noqa # pylint: disable
+
+    theta_view = numpy.deg2rad(satellite_view, dtype="float32")  # noqa # pylint: disable
+    theta_sun = numpy.deg2rad(solar_zenith, dtype="float32")  # noqa # pylint: disable
+    theta_phi = numpy.deg2rad(relative_azimuth, dtype="float32")  # noqa # pylint: disable
+
+    expr = "cos(theta_sun) * cos(theta_view) + sin(theta_view) * sin(theta_sun) * cos(theta_phi)"
+    cos_psi = numexpr.evaluate(expr)  # noqa # pylint: disable
+
+    expr = "sqrt((1.0 + cos_psi) / 2.0)"
+    cos_omega = numexpr.evaluate(expr)
+
+    expr = "(cos(theta_view) + cos(theta_sun)) / (2.0 * cos_omega)"
+    cos_beta = numexpr.evaluate(expr)
+
+    expr = "0.003 + 0.00512 * wind_speed"
+    sigma2 = numexpr.evaluate(expr)
+
+    expr = "((1.0 / cos_beta**2) - 1.0) / sigma2"
+    fac = numexpr.evaluate(expr)
+
+    expr = "exp(-fac) / (sigma2 * PI)"
+    pval = numexpr.evaluate(expr)
+
+    # tolerance mask
+    expr = "fac > -log(1.0e-5)"
+    tolerance_mask = numexpr.evaluate(expr)
+
+    # insert 0.0 for any pixels that are flagged by the tolerance test
+    pval[tolerance_mask] = 0.0
+
+    expr = "pval * cos_omega / (4.0 * cos_beta**3)"
+    gval = numexpr.evaluate(expr)
+
+    # value used for pixels that are flagged by the tolerance test
+    value = numpy.abs((rw - 1) / (rw + 1)) ** 2
+
+    expr = "arccos(cos_omega)"
+    omega = numexpr.evaluate(expr)
+
+    expr = "arcsin(sin(omega) / rw)"
+    omega_prime = numexpr.evaluate(expr)  # noqa # pylint: disable
+
+    # tolerance mask
+    expr = "abs(omega + omega_prime) < 1.0e-5"
+    tolerance_mask = numexpr.evaluate(expr)
+    expr = (
+        "p5 * ((sin(omega-omega_prime) / sin(omega+omega_prime))**2 "
+        "+ (tan(omega-omega_prime) / tan(omega+omega_prime))**2)"
+    )
+
+    pf_omega = numexpr.evaluate(expr)
+
+    # insert value for any pixels that are flagged by the tolerance test
+    pf_omega[tolerance_mask] = value
+
+    expr = "pf_omega * gval * PI"
+    frsun = numexpr.evaluate(expr)
+
+    return frsun
+
+
 def scattering(mean_lambertian, s):
     """
     Needs documentation;
@@ -339,6 +429,28 @@ def sky_glint_correction(adjacency_corrected, fs, scattering, sky_glint):
     sky_glint_corrected = numexpr.evaluate(expr)
 
     return sky_glint_corrected
+
+
+def sun_glint_correction(sky_glint_corrected, fs, sun_glint):
+    """
+    Apply sun glint correction.
+
+    :param sky_glint_corrected:
+       surface reflectance corrected for sky glint.
+
+    :param fs:
+        Direct fraction in the sun direction.
+
+    :param sun_glint:
+        sun glint.
+
+    :return:
+        A 2D numpy.ndarray of type float32.
+    """
+    expr = "sky_glint_corrected - fs * sun_glint"
+    sun_glint_corrected = numexpr.evaluate(expr)
+
+    return sun_glint_corrected
 
 
 def lambertian_corrections(
@@ -450,7 +562,11 @@ def lambertian_corrections(
                 skyg_c = sky_glint_correction(adj_cor, fs[tile], scat, sky_g)
                 skyg_c[data_mask] = NAN
 
-                # output
+                # scale to int16 if written direct to h5 dataset
+                if not isinstance(out_adjacency, numpy.ndarray):
+                    adj_cor = scale_reflectance(adj_cor)
+                    skyg_c = scale_reflectance(skyg_c)
+
                 out_adjacency[tile] = adj_cor
                 out_skyglint[tile] = skyg_c
 
@@ -786,16 +902,11 @@ def calculate_reflectance(
 
     # lambertian with atmospheric adjacency correction
     if psf_kernel is not None:
-        # NOTES:
-        #    for the time being we're outputting float32 while water atcor details
-        #    are figured out on how sun and sky glint is to be applied.
-        #    it is unknown that if we truncate to int16 now, will this have an
-        #    impact applying glint correction later
-        kwargs["fillvalue"] = numpy.nan
-        kwargs["dtype"] = "float32"
 
-        # update the attrs for the float32 datasets
-        attrs["no_data_value"] = numpy.nan
+        # update values to reflect int16
+
+        kwargs["fillvalue"] = NO_DATA_VALUE
+        kwargs["dtype"] = "int16"
 
         # *** lambertian with adjacency correction; may not be required later ***
         # TODO:
