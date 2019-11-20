@@ -37,7 +37,7 @@ def scale_reflectance(data, clip_range=(1, 10000), clip=True):
     Scaling follows the formulae used in the original f90 code:
 
         'data * 10000 + 0.5'
-    
+
     The data is also clipped to the range [1, 10000].
 
     :param data:
@@ -292,9 +292,12 @@ def sky_glint(satellite_view, refractive_index=1.34):
     return sky_g
 
 
-def sun_glint(satellite_view, solar_zenith, relative_azimuth, wind_speed, refractive_index=1.34):
+def sun_glint(
+    satellite_view, solar_zenith, relative_azimuth, wind_speed, refractive_index=1.34
+):
     """
     Calculate sun glint based on the Cox and Munk (1954) model.
+
     Calculations are done in single precision (same as the original
     FORTRAN code that this was derived from).
 
@@ -317,13 +320,22 @@ def sun_glint(satellite_view, solar_zenith, relative_azimuth, wind_speed, refrac
     :return:
         A 2D NumPy array of type float32.
     """
+
+    expr = "relative_azimuth > 180.0"
+    angle_mask = numexpr.evaluate(expr)
+    relative_azimuth[angle_mask] = relative_azimuth[angle_mask] - 360.0
+
     # force constants to float32 (reduce memory for array computations)
     rw = numpy.float32(refractive_index)  # noqa # pylint: disable
     p5 = numpy.float32(0.5)  # noqa # pylint: disable
 
-    theta_view = numpy.deg2rad(satellite_view, dtype="float32")  # noqa # pylint: disable
+    theta_view = numpy.deg2rad(
+        satellite_view, dtype="float32"
+    )  # noqa # pylint: disable
     theta_sun = numpy.deg2rad(solar_zenith, dtype="float32")  # noqa # pylint: disable
-    theta_phi = numpy.deg2rad(relative_azimuth, dtype="float32")  # noqa # pylint: disable
+    theta_phi = numpy.deg2rad(
+        relative_azimuth, dtype="float32"
+    )  # noqa # pylint: disable
 
     expr = "cos(theta_sun) * cos(theta_view) + sin(theta_view) * sin(theta_sun) * cos(theta_phi)"
     cos_psi = numexpr.evaluate(expr)  # noqa # pylint: disable
@@ -365,6 +377,7 @@ def sun_glint(satellite_view, solar_zenith, relative_azimuth, wind_speed, refrac
     # tolerance mask
     expr = "abs(omega + omega_prime) < 1.0e-5"
     tolerance_mask = numexpr.evaluate(expr)
+
     expr = (
         "p5 * ((sin(omega-omega_prime) / sin(omega+omega_prime))**2 "
         "+ (tan(omega-omega_prime) / tan(omega+omega_prime))**2)"
@@ -562,10 +575,10 @@ def lambertian_corrections(
                 skyg_c = sky_glint_correction(adj_cor, fs[tile], scat, sky_g)
                 skyg_c[data_mask] = NAN
 
-                # scale to int16 if written direct to h5 dataset
+                # scale to skyg_c to int16 if written direct to h5 dataset
+                # retain adj_cor still in float32 to use in brdf correction
                 if not isinstance(out_adjacency, numpy.ndarray):
-                    adj_cor = scale_reflectance(adj_cor)
-                    skyg_c = scale_reflectance(skyg_c)
+                    skyg_c = scale_reflectance(skyg_c, clip=False)
 
                 out_adjacency[tile] = adj_cor
                 out_skyglint[tile] = skyg_c
@@ -680,7 +693,7 @@ def calculate_reflectance(
         * DatasetName.SATELLITE_VIEW
         * DatasetName.SATELLITE_AZIMUTH
         * DatasetName.RELATIVE_AZIMUTH
-        
+
     :param slope_aspect_group:
         The root HDF5 `Group` that contains the slope and aspect
         datasets specified by the pathnames given by:
@@ -742,7 +755,7 @@ def calculate_reflectance(
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :param filter_opts:
         A dict of key value pairs available to the given configuration
@@ -896,15 +909,16 @@ def calculate_reflectance(
     kwargs["fillvalue"] = numpy.nan
     kwargs["dtype"] = "float32"
 
-    # temporary file to hole float32 lambertian
+    # temporary file to hold float32 lambertian
     lamb_f32 = tmp_fid.create_dataset("lambertian", **kwargs)
     lambertian_tiled(acquisition, a_dataset, b_dataset, s_dataset, esun, lamb_f32)
 
     # lambertian with atmospheric adjacency correction
     if psf_kernel is not None:
+        # temporary file to hold float32 lambertian adjacent corrected reflectance
+        adj_dset_f32 = tmp_fid.create_dataset("lmbadj_corrected", **kwargs)
 
         # update values to reflect int16
-
         kwargs["fillvalue"] = NO_DATA_VALUE
         kwargs["dtype"] = "int16"
 
@@ -951,7 +965,7 @@ def calculate_reflectance(
             psf_kernel,
             1.34,
             acquisition.tiles(),
-            adj_dset,
+            adj_dset_f32,
             skygc_dset,
         )
 
@@ -996,7 +1010,7 @@ def calculate_reflectance(
         #    use a more elegant way so we don't have to do an
         #    *if* check on every loop
         if psf_kernel is not None:
-            input_lambertian = adj_dset[tile]
+            input_lambertian = adj_dset_f32[tile]
         else:
             input_lambertian = lamb_f32[tile]
 
@@ -1037,9 +1051,13 @@ def calculate_reflectance(
         )
 
         # Write the current tile to disk
-        lmbrt_dset.write_direct(scale_reflectance(ref_lm), dest_sel=tile)
-        nbar_dset.write_direct(scale_reflectance(ref_brdf), dest_sel=tile)
-        nbart_dset.write_direct(scale_reflectance(ref_terrain), dest_sel=tile)
+        # we will not clip data to for testing phase
+        if psf_kernel is not None:
+            adj_data = adj_dset_f32[tile]
+            adj_dset.write_direct(scale_reflectance(adj_data, clip=False), dest_sel=tile)
+        lmbrt_dset.write_direct(scale_reflectance(ref_lm, clip=False), dest_sel=tile)
+        nbar_dset.write_direct(scale_reflectance(ref_brdf, clip=False), dest_sel=tile)
+        nbart_dset.write_direct(scale_reflectance(ref_terrain, clip=False), dest_sel=tile)
 
     # close any still opened files, arrays etc associated with the acquisition
     acquisition.close()
