@@ -1054,10 +1054,14 @@ def calculate_reflectance(
         # we will not clip data to for testing phase
         if psf_kernel is not None:
             adj_data = adj_dset_f32[tile]
-            adj_dset.write_direct(scale_reflectance(adj_data, clip=False), dest_sel=tile)
+            adj_dset.write_direct(
+                scale_reflectance(adj_data, clip=False), dest_sel=tile
+            )
         lmbrt_dset.write_direct(scale_reflectance(ref_lm, clip=False), dest_sel=tile)
         nbar_dset.write_direct(scale_reflectance(ref_brdf, clip=False), dest_sel=tile)
-        nbart_dset.write_direct(scale_reflectance(ref_terrain, clip=False), dest_sel=tile)
+        nbart_dset.write_direct(
+            scale_reflectance(ref_terrain, clip=False), dest_sel=tile
+        )
 
     # close any still opened files, arrays etc associated with the acquisition
     acquisition.close()
