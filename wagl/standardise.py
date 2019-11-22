@@ -38,10 +38,9 @@ from wagl.logs import STATUS_LOGGER
 def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
            tle_path, aerosol, refractive_index, brdf, ozone_path,
            water_vapour, dem_path, dsm_fname, invariant_fname, modtran_exe, modtran54_exe,
-           out_fname, ecmwf_path=None, rori=0.52, buffer_distance=8000,
+           out_fname, aerosol_model, ecmwf_path=None, rori=0.52, buffer_distance=8000,
            compression=H5CompressionFilter.LZF, filter_opts=None,
-           h5_driver=None, acq_parser_hint=None, normalized_solar_zenith=45.,
-           aerosol_model=None):
+           h5_driver=None, acq_parser_hint=None, normalized_solar_zenith=45.):
     """
     CEOS Analysis Ready Data for Land.
     A workflow for producing standardised products that meet the
@@ -127,6 +126,10 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
         the output data from the data standardisation process.
         executable.
 
+    :param aerosol_model:
+        An enum from wagl.constants.AerosolModel representing the
+        aerosol model to use during the MODTRAN runs.
+
     :param ecmwf_path:
         A string containing the full file pathname to the directory
         containing the data from the European Centre for Medium Weather
@@ -169,11 +172,6 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
 
     :param normalized_solar_zenith:
         Solar zenith angle to normalize for (in degrees). Default is 45 degrees.
-
-    :param aerosol_model:
-        aerosol model to use for MODTRAN RUN, default is None, which results in
-        "AER_RURAL" type in MODTRAN 6.0 Runs.
-
     """
     json_fmt = pjoin(POINT_FMT, ALBEDO_FMT, ''.join([POINT_ALBEDO_FMT, '.json']))
     nvertices = vertices[0] * vertices[1]
@@ -301,7 +299,9 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
         json_data, _ = format_json(acqs, ancillary_group, sat_sol_grp,
                                    lon_lat_grp, workflow, root, aerosol_model=aerosol_model)
 
-        #  compute adjacency filter using MODTRAN 5.4 PSF data
+        # TODO needs logic here to run compute adjacency only if workflow requires it
+        #   after we decide on the marine-atcor workflow?
+        # compute adjacency filter using MODTRAN 5.4 PSF data
         log.info('Compute-Adjacency-Filter')
         compute_adjacency_filter(container, granule, json_data, nvertices, modtran54_exe, root, aerosol_model)
 
