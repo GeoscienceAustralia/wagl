@@ -53,17 +53,27 @@ from wagl.interpolation import _interpolate, link_interpolated_data
 from wagl.temperature import _surface_brightness_temperature
 from wagl.pq import can_pq, _run_pq
 from wagl.hdf5 import create_external_link, H5CompressionFilter
-from wagl.logs import ERROR_LOGGER
+from wagl.logs import TASK_LOGGER
 
 
 @luigi.Task.event_handler(luigi.Event.FAILURE)
 def on_failure(task, exception):
     """Capture any Task Failure here."""
-    ERROR_LOGGER.error(task=task.get_task_family(),
-                       params=task.to_str_params(),
-                       level1=getattr(task, 'level1', ''),
-                       exception=exception.__str__(),
-                       traceback=traceback.format_exc().splitlines())
+    TASK_LOGGER.exception(task=task.get_task_family(),
+                          params=task.to_str_params(),
+                          level1=getattr(task, 'level1', ''),
+                          status='failure',
+                          exception=exception.__str__(),
+                          traceback=traceback.format_exc().splitlines())
+
+
+@luigi.Task.event_handler(luigi.Event.SUCCESS)
+def on_success(task):
+    """Capture any Task Success here."""
+    TASK_LOGGER.info(task=task.get_task_family(),
+                     params=task.to_str_params(),
+                     level1=getattr(task, 'level1', ''),
+                     status='success')
 
 
 class WorkRoot(luigi.Task):
