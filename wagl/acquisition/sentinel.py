@@ -189,12 +189,11 @@ class Sentinel2Acquisition(Acquisition):
         if self._solar_zenith is None:
             self._retrieve_solar_zenith()
 
-        # Python style index
+        # check for a non slice in which case create one
         if window is None:
             idx = (slice(None, None), slice(None, None))
         else:
-            idx = (slice(window[0][0], window[0][1]),
-                   slice(window[1][0], window[1][1]))
+            idx = window
 
         # coefficients
         # pylint: disable=unused-argument,unused-variable

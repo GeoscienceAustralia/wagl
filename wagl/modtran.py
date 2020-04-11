@@ -91,7 +91,7 @@ def _format_json(acquisitions, satellite_solar_angles_fname,
 
 
 def format_json(acquisitions, ancillary_group, satellite_solar_group,
-                lon_lat_group, workflow, out_group):
+                lon_lat_group, workflow, out_group, aerosol_model=None):
     """
     Creates json files for the albedo (0) and thermal
     """
@@ -189,6 +189,11 @@ def format_json(acquisitions, ancillary_group, satellite_solar_group,
                 input_data['description'] = 'Input file for MODTRAN'
                 input_data['file_format'] = 'json'
                 input_data.pop('binary')
+
+                # replace the aerosol model from default "AER_RURAL" with aerosol_model
+                # to be used in MODTRAN 6.0 RUN
+                if aerosol_model is not None:
+                    data["MODTRAN"][0]["MODTRANINPUT"]["AEROSOLS"]["IHAZE"] = aerosol_model.name
 
                 json_data[(p, alb)] = data
 

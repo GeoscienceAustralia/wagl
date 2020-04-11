@@ -138,26 +138,19 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
 
     # process by tile
     for tile in generate_tiles(cols, rows, tile_size[1], tile_size[0]):
-        # Row and column start and end locations
-        ystart = tile[0][0]
-        xstart = tile[1][0]
-        yend = tile[0][1]
-        xend = tile[1][1]
-        idx = (slice(ystart, yend), slice(xstart, xend))
-
         # Tile size
-        ysize = yend - ystart
-        xsize = xend - xstart
+        ysize = tile[0].stop - tile[0].start
+        xsize = tile[1].stop - tile[1].start
 
         # Read the data for the current tile
         # Convert to required datatype and transpose
-        sol_zen = as_array(solar_zenith_dataset[idx],
+        sol_zen = as_array(solar_zenith_dataset[tile],
                            dtype=numpy.float32, transpose=True)
-        sol_azi = as_array(solar_azimuth_dataset[idx],
+        sol_azi = as_array(solar_azimuth_dataset[tile],
                            dtype=numpy.float32, transpose=True)
-        slope = as_array(slope_dataset[idx],
+        slope = as_array(slope_dataset[tile],
                          dtype=numpy.float32, transpose=True)
-        aspect = as_array(aspect_dataset[idx],
+        aspect = as_array(aspect_dataset[tile],
                           dtype=numpy.float32, transpose=True)
 
         # Initialise the work arrays
@@ -169,8 +162,8 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
                        incident.transpose(), azi_incident.transpose())
 
         # Write the current tile to disk
-        incident_dset[idx] = incident
-        azi_inc_dset[idx] = azi_incident
+        incident_dset[tile] = incident
+        azi_inc_dset[tile] = azi_incident
 
     if out_group is None:
         return fid
@@ -278,26 +271,19 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
 
     # process by tile
     for tile in generate_tiles(cols, rows, tile_size[1], tile_size[0]):
-        # Row and column start and end locations
-        ystart = tile[0][0]
-        xstart = tile[1][0]
-        yend = tile[0][1]
-        xend = tile[1][1]
-        idx = (slice(ystart, yend), slice(xstart, xend))
-
         # Tile size
-        ysize = yend - ystart
-        xsize = xend - xstart
+        ysize = tile[0].stop - tile[0].start
+        xsize = tile[1].stop - tile[1].start
 
         # Read the data for the current tile
         # Convert to required datatype and transpose
-        sat_view = as_array(satellite_view_dataset[idx],
+        sat_view = as_array(satellite_view_dataset[tile],
                             dtype=numpy.float32, transpose=True)
-        sat_azi = as_array(satellite_azimuth_dataset[idx],
+        sat_azi = as_array(satellite_azimuth_dataset[tile],
                            dtype=numpy.float32, transpose=True)
-        slope = as_array(slope_dataset[idx],
+        slope = as_array(slope_dataset[tile],
                          dtype=numpy.float32, transpose=True)
-        aspect = as_array(aspect_dataset[idx],
+        aspect = as_array(aspect_dataset[tile],
                           dtype=numpy.float32, transpose=True)
 
         # Initialise the work arrays
@@ -309,8 +295,8 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
                       exiting.transpose(), azi_exiting.transpose())
 
         # Write the current to disk
-        exiting_dset[idx] = exiting
-        azi_exit_dset[idx] = azi_exiting
+        exiting_dset[tile] = exiting
+        azi_exit_dset[tile] = azi_exiting
 
     if out_group is None:
         return fid
@@ -423,14 +409,9 @@ def relative_azimuth_slope(incident_angles_group, exiting_angles_group,
 
     # process by tile
     for tile in generate_tiles(cols, rows, tile_size[1], tile_size[0]):
-        # Row and column start and end locations
-        ystart, yend = tile[0]
-        xstart, xend = tile[1]
-        idx = (slice(ystart, yend), slice(xstart, xend))
-
         # Read the data for the current tile
-        azi_inc = azimuth_incident_dataset[idx]
-        azi_exi = azimuth_exiting_dataset[idx]
+        azi_inc = azimuth_incident_dataset[tile]
+        azi_exi = azimuth_exiting_dataset[tile]
 
         # Process the tile
         rel_azi = azi_inc - azi_exi
@@ -438,7 +419,7 @@ def relative_azimuth_slope(incident_angles_group, exiting_angles_group,
         rel_azi[rel_azi > 180.0] -= 360.0
 
         # Write the current tile to disk
-        out_dset[idx] = rel_azi
+        out_dset[tile] = rel_azi
 
     if out_group is None:
         return fid
