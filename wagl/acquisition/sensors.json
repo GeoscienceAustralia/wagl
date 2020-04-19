@@ -534,7 +534,7 @@
                    "reflectance_adjustment": 0.0365,
                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
                    "c1": 0.001,
-                   "radiance_scale_factor": 0.01,
+                   "radiance_scale_factor": 0.001,
                    "supported_band": true
                },
                "2": {
@@ -547,7 +547,7 @@
                    "reflectance_adjustment": 0.0365,
                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
                    "c1": 0.001,
-                   "radiance_scale_factor": 0.01,
+                   "radiance_scale_factor": 0.001,
                    "supported_band": true
                },
                "3": {
@@ -560,7 +560,7 @@
                    "reflectance_adjustment": 0.0365,
                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band4"],
                    "c1": 0.001,
-                   "radiance_scale_factor": 0.01,
+                   "radiance_scale_factor": 0.001,
                    "supported_band": true
                },
                "4": {
@@ -573,7 +573,7 @@
                    "reflectance_adjustment": 0.088,
                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
                    "c1": 0.001,
-                   "radiance_scale_factor": 0.01,
+                   "radiance_scale_factor": 0.001,
                    "supported_band": true
                },
                "5": {
@@ -586,7 +586,7 @@
                    "reflectance_adjustment": 0.088,
                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
                    "c1": 0.001,
-                   "radiance_scale_factor": 0.01,
+                   "radiance_scale_factor": 0.001,
                    "supported_band": true
                },
                "6": {
@@ -599,7 +599,7 @@
                    "reflectance_adjustment": 0.088,
                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
                    "c1": 0.001,
-                   "radiance_scale_factor": 0.01,
+                   "radiance_scale_factor": 0.001,
                    "supported_band": true
                },
                "7": {
@@ -612,7 +612,7 @@
                    "reflectance_adjustment": 0.2231,
                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
                    "c1": 0.001,
-                   "radiance_scale_factor": 0.01,
+                   "radiance_scale_factor": 0.001,
                    "supported_band": true
                },
                "8": {
@@ -625,7 +625,7 @@
                    "reflectance_adjustment": 0.2231,
                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
                    "c1": 0.001,
-                   "radiance_scale_factor": 0.01,
+                   "radiance_scale_factor": 0.001,
                    "supported_band": true
                },
                "8A": {
@@ -638,7 +638,7 @@
                    "reflectance_adjustment": 0.2231,
                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
                    "c1": 0.001,
-                   "radiance_scale_factor": 0.01,
+                   "radiance_scale_factor": 0.001,
                    "supported_band": true
                },
                "9": {
@@ -651,7 +651,7 @@
                    "reflectance_adjustment": 0.2231,
                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
                    "c1": 0.001,
-                   "radiance_scale_factor": 0.01,
+                   "radiance_scale_factor": 0.001,
                    "supported_band": false
                },
                "10": {
@@ -670,7 +670,7 @@
                    "reflectance_adjustment": 0.2512,
                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band6"],
                    "c1": 0.0002,
-                   "radiance_scale_factor": 0.002,
+                   "radiance_scale_factor": 0.0002,
                    "supported_band": true
                },
                "12": {
@@ -683,7 +683,7 @@
                    "reflectance_adjustment": 0.1648,
                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band7"],
                    "c1": 0.00005,
-                   "radiance_scale_factor": 0.0005,
+                   "radiance_scale_factor": 0.00005,
                    "supported_band": true
                },
                "TCI": {
@@ -705,7 +705,7 @@
                     "reflectance_adjustment": 0.0365,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
                     "c1": 0.001,
-                    "radiance_scale_factor": 0.01,
+                    "radiance_scale_factor": 0.001,
                     "supported_band": true
                 },
                 "2": {
@@ -718,7 +718,7 @@
                     "reflectance_adjustment": 0.0365,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
                     "c1": 0.001,
-                    "radiance_scale_factor": 0.01,
+                    "radiance_scale_factor": 0.001,
                     "supported_band": true
                 },
                 "3": {
@@ -731,7 +731,7 @@
                     "reflectance_adjustment": 0.0365,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band4"],
                     "c1": 0.001,
-                    "radiance_scale_factor": 0.01,
+                    "radiance_scale_factor": 0.001,
                     "supported_band": true
                 },
                 "4": {
@@ -744,7 +744,7 @@
                     "reflectance_adjustment": 0.088,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
                     "c1": 0.001,
-                    "radiance_scale_factor": 0.01,
+                    "radiance_scale_factor": 0.001,
                     "supported_band": true
                 },
                 "5": {
@@ -757,7 +757,7 @@
                     "reflectance_adjustment": 0.088,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
                     "c1": 0.001,
-                    "radiance_scale_factor": 0.01,
+                    "radiance_scale_factor": 0.001,
                     "supported_band": true
                 },
                 "6": {
@@ -770,7 +770,7 @@
                     "reflectance_adjustment": 0.088,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
                     "c1": 0.001,
-                    "radiance_scale_factor": 0.01,
+                    "radiance_scale_factor": 0.001,
                     "supported_band": true
                 },
                 "7": {
@@ -783,7 +783,7 @@
                     "reflectance_adjustment": 0.2231,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
                     "c1": 0.001,
-                    "radiance_scale_factor": 0.01,
+                    "radiance_scale_factor": 0.001,
                     "supported_band": true
                 },
                 "8": {
@@ -796,7 +796,7 @@
                     "reflectance_adjustment": 0.2231,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
                     "c1": 0.001,
-                    "radiance_scale_factor": 0.01,
+                    "radiance_scale_factor": 0.001,
                     "supported_band": true
                 },
                 "8A": {
@@ -809,7 +809,7 @@
                     "reflectance_adjustment": 0.2231,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
                     "c1": 0.001,
-                    "radiance_scale_factor": 0.01,
+                    "radiance_scale_factor": 0.001,
                     "supported_band": true
                 },
                 "9": {
@@ -822,7 +822,7 @@
                     "reflectance_adjustment": 0.2231,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
                     "c1": 0.001,
-                    "radiance_scale_factor": 0.01,
+                    "radiance_scale_factor": 0.001,
                     "supported_band": false
                 },
                 "10": {
@@ -842,7 +842,7 @@
                     "reflectance_adjustment": 0.2512,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band6"],
                     "c1": 0.0002,
-                    "radiance_scale_factor": 0.002,
+                    "radiance_scale_factor": 0.0002,
                     "supported_band": true
                 },
                 "12": {
@@ -855,7 +855,7 @@
                     "reflectance_adjustment": 0.1648,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band7"],
                     "c1": 0.00005,
-                    "radiance_scale_factor": 0.0005,
+                    "radiance_scale_factor": 0.00005,
                     "supported_band": true
                 },
                 "TCI": {
