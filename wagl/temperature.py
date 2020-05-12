@@ -162,11 +162,9 @@ def surface_brightness_temperature(acquisition, interpolation_group,
 
     # process each tile
     for tile in acq.tiles():
-        idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
-
         radiance = acq.radiance_data(window=tile, out_no_data=NO_DATA_VALUE)
-        path_up = upwelling_radiation[idx]
-        trans = transmittance[idx]
+        path_up = upwelling_radiation[tile]
+        trans = transmittance[tile]
         mask = ~numpy.isfinite(trans)
         expr = "(radiance - path_up) / trans"
         corrected_radiance = numexpr.evaluate(expr)
@@ -175,7 +173,7 @@ def surface_brightness_temperature(acquisition, interpolation_group,
         brightness_temp = numexpr.evaluate(expr)
         brightness_temp[mask] = kwargs['fillvalue']
 
-        out_dset[idx] = brightness_temp
+        out_dset[tile] = brightness_temp
     acq.close()  # If dataset is cached; clear it
 
     if out_group is None:
@@ -266,19 +264,19 @@ def temperature_at_sensor(thermal_acquisition, window=None):
         An acquisition with a band_type of BandType.Thermal.
 
     :param window:
-        Defines a subset ((ystart, yend), (xstart, xend)) in array
-        co-ordinates. Default is None.
+        Defines a subset ((ystart, yend), (xstart, xend)) using
+        Python's slice syntax. Default is None.
 
     :return:
         A `NumPy` array of whose shape is given by:
         (thermal_acquisition.lines, thermal_acquisition.samples)
         or the dimensions given by the `window` parameter.
     """
-    k1 = thermal_acquisition.K1 # pylint: disable=unused-variable
-    k2 = thermal_acquisition.K2 # pylint: disable=unused-variable
+    k1 = thermal_acquisition.K1  # noqa # pylint: disable
+    k2 = thermal_acquisition.K2  # noqa # pylint: disable
 
     # pylint: disable=unused-variable
-    data = thermal_acquisition.radiance_data(window=window)
+    data = thermal_acquisition.radiance_data(window=window)  # noqa # pylint: disable
     result = numexpr.evaluate("k2 / (log(k1 / data + 1))")
 
     return result

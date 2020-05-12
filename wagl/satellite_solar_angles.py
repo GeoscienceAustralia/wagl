@@ -1002,15 +1002,13 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
     n_cent = np.zeros((acquisition.lines), dtype=out_dtype)
 
     for tile in acquisition.tiles():
-        idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
-
         # read the lon and lat tile
-        lon_data = longitude[idx]
-        lat_data = latitude[idx]
+        lon_data = longitude[tile]
+        lat_data = latitude[tile]
 
         # may not be processing full row wise (all columns)
         dims = lon_data.shape
-        col_offset = idx[1].start
+        col_offset = tile[1].start
 
         view = np.full(dims, no_data, dtype=out_dtype)
         azi = np.full(dims, no_data, dtype=out_dtype)
@@ -1020,7 +1018,7 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
         time = np.full(dims, no_data, dtype=out_dtype)
         # loop each row within each tile (which itself could be a single row)
         for i in range(lon_data.shape[0]):
-            row_id = idx[0].start + i + 1 # FORTRAN 1 based index
+            row_id = tile[0].start + i + 1 # FORTRAN 1 based index
 
             stat = angle(dims[1], acquisition.lines, row_id, col_offset, lat_data[i],
                          lon_data[i], spheroid[0], orbital_elements[0],
@@ -1035,12 +1033,12 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
                 raise RuntimeError(msg.format(row_id - 1))
 
         # output to disk
-        sat_v_ds[idx] = view
-        sat_az_ds[idx] = azi
-        sol_z_ds[idx] = asol
-        sol_az_ds[idx] = soazi
-        rel_az_ds[idx] = rela_angle
-        time_ds[idx] = time
+        sat_v_ds[tile] = view
+        sat_az_ds[tile] = azi
+        sol_z_ds[tile] = asol
+        sol_az_ds[tile] = soazi
+        rel_az_ds[tile] = rela_angle
+        time_ds[tile] = time
 
     # outputs
     # TODO: rework create_boxline so that it reads tiled data effectively

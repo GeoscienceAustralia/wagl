@@ -202,8 +202,7 @@ class Sentinel2Acquisition(Acquisition):
         if window is None:
             idx = (slice(None, None), slice(None, None))
         else:
-            idx = (slice(window[0][0], window[0][1]),
-                   slice(window[1][0], window[1][1]))
+            idx = window
 
         # coefficients
         # pylint: disable=unused-argument,unused-variable

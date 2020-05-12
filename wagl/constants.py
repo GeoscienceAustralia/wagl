@@ -160,6 +160,11 @@ class DatasetName(Enum):
     CHANNEL = 'CHANNEL'
     NBAR_COEFFICIENTS = 'NBAR-COEFFICIENTS'
     SBT_COEFFICIENTS = 'SBT-COEFFICIENTS'
+    TP5 = 'TP5-DATA'
+
+    # wagl.psf
+    PSF = 'POINT-SPREAD-FUNCTION'
+    ADJACENCY_FILTER = 'ADJACENCY-FILTER'
 
     # wagl.pq
     PQ_FMT = 'PIXEL-QUALITY/{produt}/PIXEL-QUALITY'
@@ -236,6 +241,8 @@ class ArdProducts(Enum):
     NBART = 'NBART'
     LAMBERTIAN = 'LAMBERTIAN'
     SBT = 'SBT'
+    ADJ = 'LMBADJ'
+    SKY = 'LMBSKYG'
 
 
 class Albedos(Enum):
@@ -275,6 +282,19 @@ class TrackIntersection(Enum):
     FULL = 0
     PARTIAL = 1
     EMPTY = 2
+
+
+class AerosolModel(Enum):
+    """
+    Defines the aerosol model to be used in MODTRAN 5.4
+    """
+    AER_RURAL = 1
+    AER_RURAL_DENSE = 2
+    AER_MARITIME_NAVY = 3
+    AER_MARITIME = 4
+    AER_URBAN = 5
+    AER_TROPOSHERIC = 6
+    AER_DESERT = 10
 
 
 class WaterVapourTier(Enum):
@@ -534,6 +554,7 @@ class PQAConstants:
             'ETM+': '61',
             'OLI_TIRS': '10'
         }.get(self.sensor, 'Error! No Thermal Band Found.')
+
 
 def combine_satellite_sensor(satellite, sensor):
     """

@@ -46,9 +46,9 @@ def calc_contiguity_mask(acquisitions, platform_id):
     mask = numpy.zeros((rows, cols), dtype='bool')
 
     for tile in tiles:
-        idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
+        tile = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
         stack, _ = stack_data(acquisitions, window=tile)
-        mask[idx] = stack.all(0)
+        mask[tile] = stack.all(0)
 
     # The following is only valid for Landsat 5 images
     _LOG.debug('calc_contiguity_mask: platform_id={}'.format(platform_id))

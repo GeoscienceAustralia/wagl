@@ -120,14 +120,9 @@ def self_shadow(incident_angles_group, exiting_angles_group, out_group=None,
 
     # process by tile
     for tile in generate_tiles(cols, rows, tile_size[1], tile_size[0]):
-        # Row and column start locations
-        ystart, yend = tile[0]
-        xstart, xend = tile[1]
-        idx = (slice(ystart, yend), slice(xstart, xend))
-
         # Read the data for the current tile
-        inc = numpy.radians(incident_angle[idx])
-        exi = numpy.radians(exiting_angle[idx])
+        inc = numpy.radians(incident_angle[tile])
+        exi = numpy.radians(exiting_angle[tile])
 
         # Process the tile
         mask = numpy.ones(inc.shape, dtype='uint8')
@@ -135,7 +130,7 @@ def self_shadow(incident_angles_group, exiting_angles_group, out_group=None,
         mask[numpy.cos(exi) <= 0.0] = 0
 
         # Write the current tile to disk
-        out_dset[idx] = mask
+        out_dset[tile] = mask
 
     if out_group is None:
         return fid
@@ -591,12 +586,7 @@ def combine_shadow_masks(self_shadow_group, cast_shadow_sun_group,
 
     # process by tile
     for tile in generate_tiles(cols, rows, tile_size[1], tile_size[0]):
-        # Row and column start locations
-        ystart, yend = tile[0]
-        xstart, xend = tile[1]
-        idx = (slice(ystart, yend), slice(xstart, xend))
-
-        out_dset[idx] = (self_shad[idx] & cast_sun[idx] & cast_sat[idx])
+        out_dset[tile] = (self_shad[tile] & cast_sun[tile] & cast_sat[tile])
 
     if out_group is None:
         return fid
