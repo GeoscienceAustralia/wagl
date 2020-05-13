@@ -15,6 +15,8 @@ import pandas
 from scipy import interpolate
 
 from .base import Acquisition
+from wagl.logs import STATUS_LOGGER as LOG
+
 
 def find_all_in(path, s):
     """
@@ -189,7 +191,14 @@ class Sentinel2Acquisition(Acquisition):
         if self._solar_zenith is None:
             self._retrieve_solar_zenith()
 
-        # check for a non slice in which case create one
+        if esun is None:
+            LOG.warning(
+                "Using solar irradiance provided by ESA",
+                esun=self.solar_irradiance,
+            )
+            esun = numpy.float32(self.solar_irradiance)
+
+        # Python style index
         if window is None:
             idx = (slice(None, None), slice(None, None))
         else:
@@ -197,11 +206,10 @@ class Sentinel2Acquisition(Acquisition):
 
         # coefficients
         # pylint: disable=unused-argument,unused-variable
-        sf = numpy.float32(1 / (self.c1 * self.qv))
-        pi_d2 = numpy.float32(numpy.pi * self.d2)
-        esun = numpy.float32(self.solar_irradiance / 10)
-        solar_zenith = self._solar_zenith[idx]
-        rsf = numpy.float32(self.radiance_scale_factor)
+        sf = numpy.float32(1 / (self.c1 * self.qv))  # noqa: F841
+        pi = numpy.float32(numpy.pi)  # noqa: F841
+        solar_zenith = self._solar_zenith[idx]  # noqa: F841
+        rsf = numpy.float32(self.radiance_scale_factor)  # noqa: F841
 
         # toa reflectance
         data = self.data(window=window)
@@ -211,7 +219,7 @@ class Sentinel2Acquisition(Acquisition):
         nulls = data == no_data
 
         # inversion
-        expr = "((data * esun * cos(solar_zenith) * sf) / pi_d2) * rsf"
+        expr = "(data * cos(solar_zenith) * sf * rsf) * esun / pi"
         radiance = numexpr.evaluate(expr)
         radiance[nulls] = out_no_data
 
