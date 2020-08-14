@@ -335,7 +335,7 @@ class GriddedGeoBox:
         if to_map:
             if centre:
                 xy = tuple(v + 0.5 for v in xy)
-            x, y = xy * self.transform
+            x, y = self.transform * xy
         else:
             inv = ~self.transform
             x, y = [int(v) for v in inv * xy]
@@ -450,10 +450,10 @@ class GriddedGeoBox:
         left = (numpy.array([0] * row_ll_idx), row_ids[::-1])
 
         # convert to indices to geobox native map units
-        top_map = top * self.transform
-        right_map = right * self.transform
-        bottom_map = bottom * self.transform
-        left_map = left * self.transform
+        top_map = self.transform * top
+        right_map = self.transform * right
+        bottom_map = self.transform * bottom
+        left_map = self.transform * left
 
         # form a polygon
         coords = []
