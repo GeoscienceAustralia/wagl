@@ -273,7 +273,7 @@ def run_modtran(acquisitions, atmospherics_group, workflow, npoints, point,
 
     # determine the output group/file
     if out_group is None:
-        fid = h5py.File('atmospheric-results.h5', driver='core',
+        fid = h5py.File('atmospheric-results.h5', 'w', driver='core',
                         backing_store=False)
     else:
         fid = out_group
@@ -428,7 +428,7 @@ def calculate_coefficients(atmospheric_results_group, out_group,
 
     # Initialise the output group/file
     if out_group is None:
-        fid = h5py.File('atmospheric-coefficients.h5', driver='core',
+        fid = h5py.File('atmospheric-coefficients.h5', 'w', driver='core',
                         backing_store=False)
     else:
         fid = out_group
@@ -835,7 +835,7 @@ def link_atmospheric_results(input_targets, out_fname, npoints, workflow):
                     dname = ppjoin(grp_path, dset)
                     create_external_link(fname.path, dname, out_fname, dname)
 
-    with h5py.File(out_fname) as fid:
+    with h5py.File(out_fname, 'a') as fid:
         group = fid[GroupName.ATMOSPHERIC_RESULTS_GRP.value]
         group.attrs['npoints'] = npoints
         group.attrs['nbar_atmospherics'] = nbar_atmospherics

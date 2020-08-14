@@ -96,7 +96,7 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
 
     # Initialise the output files
     if out_group is None:
-        fid = h5py.File('incident-angles.h5', driver='core',
+        fid = h5py.File('incident-angles.h5', 'w', driver='core',
                         backing_store=False)
     else:
         fid = out_group
@@ -236,7 +236,7 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
 
     # Initialise the output files
     if out_group is None:
-        fid = h5py.File('exiting-angles.h5', driver='core',
+        fid = h5py.File('exiting-angles.h5', 'w', driver='core',
                         backing_store=False)
     else:
         fid = out_group
@@ -388,7 +388,7 @@ def relative_azimuth_slope(incident_angles_group, exiting_angles_group,
 
     # Initialise the output files
     if out_group is None:
-        fid = h5py.File('relative-azimuth-angles.h5', driver='core',
+        fid = h5py.File('relative-azimuth-angles.h5', 'w', driver='core',
                         backing_store=False)
     else:
         fid = out_group

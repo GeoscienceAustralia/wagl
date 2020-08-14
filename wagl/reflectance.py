@@ -212,7 +212,7 @@ def calculate_reflectance(acquisition, interpolation_group,
 
     # Initialise the output file
     if out_group is None:
-        fid = h5py.File('surface-reflectance.h5', driver='core',
+        fid = h5py.File('surface-reflectance.h5', 'w', driver='core',
                         backing_store=False)
     else:
         fid = out_group
@@ -351,7 +351,7 @@ def link_standard_data(input_fnames, out_fname):
 
         # metadata
         with h5py.File(fname, 'r') as fid:
-            with h5py.File(out_fname) as out_fid:
+            with h5py.File(out_fname, 'a') as out_fid:
                 yaml_dname = DatasetName.NBAR_YAML.value
                 if yaml_dname in fid and yaml_dname not in out_fid:
                     fid.copy(yaml_dname, out_fid, name=yaml_dname)

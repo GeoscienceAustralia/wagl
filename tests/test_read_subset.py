@@ -19,7 +19,7 @@ class TestReadSubset(unittest.TestCase):
     img, geobox = ut.create_test_image((1200, 1500))
     img[:] = 1
 
-    fid = h5py.File('test-subset.h5', backing_store=False, driver='core')
+    fid = h5py.File('test-subset.h5', 'w', backing_store=False, driver='core')
     ds = fid.create_dataset('data', data=img)
     ds.attrs['geotransform'] = geobox.transform.to_gdal()
     ds.attrs['crs_wkt'] = geobox.crs.ExportToWkt()

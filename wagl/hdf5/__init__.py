@@ -477,7 +477,7 @@ def create_external_link(fname, dataset_path, out_fname, new_dataset_path):
         A `str` containing the dataset path within `out_fname` that will
         link to `fname:dataset_path`.
     """
-    with h5py.File(out_fname) as fid:
+    with h5py.File(out_fname, 'a') as fid:
         fid[new_dataset_path] = h5py.ExternalLink(fname, dataset_path)
 
 
