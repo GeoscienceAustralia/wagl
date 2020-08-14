@@ -251,7 +251,7 @@ class TestGriddedGeoBox(unittest.TestCase):
 
     def test_ggb_transform_from_h5_dataset(self):
         img, geobox = ut.create_test_image()
-        with h5py.File('tmp.h5', driver='core', backing_store=False) as fid:
+        with h5py.File('tmp.h5', 'w', driver='core', backing_store=False) as fid:
             ds = fid.create_dataset('test', data=img)
             ds.attrs['geotransform'] = geobox.transform.to_gdal()
             ds.attrs['crs_wkt'] = geobox.crs.ExportToWkt()
@@ -261,7 +261,7 @@ class TestGriddedGeoBox(unittest.TestCase):
 
     def test_ggb_crs_from_h5_dataset(self):
         img, geobox = ut.create_test_image()
-        with h5py.File('tmp.h5', driver='core', backing_store=False) as fid:
+        with h5py.File('tmp.h5', 'w', driver='core', backing_store=False) as fid:
             ds = fid.create_dataset('test', data=img)
             ds.attrs['geotransform'] = geobox.transform.to_gdal()
             ds.attrs['crs_wkt'] = geobox.crs.ExportToWkt()
@@ -272,7 +272,7 @@ class TestGriddedGeoBox(unittest.TestCase):
 
     def test_ggb_shape_from_h5_dataset(self):
         img, geobox = ut.create_test_image()
-        with h5py.File('tmp.h5', driver='core', backing_store=False) as fid:
+        with h5py.File('tmp.h5', 'w', driver='core', backing_store=False) as fid:
             ds = fid.create_dataset('test', data=img)
             ds.attrs['geotransform'] = geobox.transform.to_gdal()
             ds.attrs['crs_wkt'] = geobox.crs.ExportToWkt()
