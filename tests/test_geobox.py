@@ -338,6 +338,56 @@ class TestGriddedGeoBox(unittest.TestCase):
 
         self.assertIsNone(npt.assert_almost_equal(truth, exts, decimal=7))
 
+    def test_lonlat_to_utm(self):
+        """
+        Test that coordinates in one CRS are correctly transformed
+        from lonlat into utm
+        This came about with GDAL3 and Proj6, where the native axis
+        mapping of a CRS is respected, meaning that an x,y input and
+        output is dependent on the CRS axis.
+        We'll instead enforce the x,y axis mapping strategy.
+        """
+        shape = (3, 2)
+        origin = (150.0, -34.0)
+        ggb = GriddedGeoBox(shape, origin)
+
+        lon = 148.862561
+        lat = -35.123064
+
+        to_crs = osr.SpatialReference()
+        to_crs.ImportFromEPSG(32755)
+
+        easting, northing = ggb.transform_coordinates((lon, lat), to_crs)
+
+        self.assertAlmostEqual(easting, 669717.105361586)
+        self.assertAlmostEqual(northing, 6111722.038508673)
+
+    def test_utm_to_lonlat(self):
+        """
+        Test that coordinates in one CRS are correctly transformed
+        from utm into lonlat
+        This came about with GDAL3 and Proj6, where the native axis
+        mapping of a CRS is respected, meaning that an x,y input and
+        output is dependent on the CRS axis.
+        We'll instead enforce the x,y axis mapping strategy.
+        """
+        shape = (3, 2)
+        origin = (669700, 6111700)
+        ggb = GriddedGeoBox(shape, origin, crs='EPSG:32755')
+
+        lon = 148.862561
+        lat = -35.123064
+        easting = 669717.105361586
+        northing = 6111722.038508673
+
+        to_crs = osr.SpatialReference()
+        to_crs.ImportFromEPSG(4326)
+
+        lon, lat = ggb.transform_coordinates((easting, northing), to_crs)
+
+        self.assertAlmostEqual(lon, 148.862561)
+        self.assertAlmostEqual(lat, -35.123064)
+
     # def test_pixelscale_metres(self):
     #     scale = 0.00025
     #     shape = (4000, 4000)
