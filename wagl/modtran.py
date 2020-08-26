@@ -661,7 +661,7 @@ def read_spectral_response(fname, spectral_range=None):
                                 'band_name': band},
                                index=wavelengths)
         df = response[band]
-        base_df.ix[df['wavelength'], 'response'] = df['response'].values
+        base_df.loc[df['wavelength'], 'response'] = df['response'].values
 
         response[band] = base_df
 
