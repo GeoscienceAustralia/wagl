@@ -158,7 +158,7 @@ def create_lon_lat_grids(acquisition, out_group=None,
 
     # Initialise the output files
     if out_group is None:
-        fid = h5py.File('longitude-latitude.h5', driver='core',
+        fid = h5py.File('longitude-latitude.h5', 'w', driver='core',
                         backing_store=False)
     else:
         fid = out_group
@@ -255,7 +255,7 @@ def create_lon_grid(acquisition, out_fname=None,
     """
     # Initialise the output files
     if out_fname is None:
-        fid = h5py.File('longitude.h5', driver='core',
+        fid = h5py.File('longitude.h5', 'w', driver='core',
                         backing_store=False)
     else:
         fid = h5py.File(out_fname, 'w')
@@ -319,7 +319,7 @@ def create_lat_grid(acquisition, out_fname=None,
     """
     # Initialise the output files
     if out_fname is None:
-        fid = h5py.File('latitude.h5', driver='core',
+        fid = h5py.File('latitude.h5', 'w', driver='core',
                         backing_store=False)
     else:
         fid = h5py.File(out_fname, 'w')

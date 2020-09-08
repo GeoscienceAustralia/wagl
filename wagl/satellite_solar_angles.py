@@ -894,7 +894,7 @@ def calculate_angles(acquisition, lon_lat_group, out_group=None,
 
     # Initialise the output files
     if out_group is None:
-        fid = h5py.File('satellite-solar-angles.h5', driver='core',
+        fid = h5py.File('satellite-solar-angles.h5', 'w', driver='core',
                         backing_store=False)
     else:
         fid = out_group

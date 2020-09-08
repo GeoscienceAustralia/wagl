@@ -321,7 +321,7 @@ def write_dataframe(df, dset_name, group, compression=H5CompressionFilter.LZF,
         _dtype_name = idx_data.dtype.name
         if 'datetime64' in _dtype_name:
             # Pandas supports timezones but numpy does not; remove timezone
-            _dtype_name = re.sub('\[ns(?:,[^\]]+)?\]', '[ns]', _dtype_name)
+            _dtype_name = re.sub(r'\[ns(?:,[^\]]+)?\]', '[ns]', _dtype_name)
         dtype_metadata['{}_dtype'.format(idx_name)] = _dtype_name
         if _dtype_name == 'object':
             dtype.append((idx_name, VLEN_STRING))
@@ -336,7 +336,7 @@ def write_dataframe(df, dset_name, group, compression=H5CompressionFilter.LZF,
         _dtype_name = val.name
         if 'datetime64' in _dtype_name:
             # Pandas supports timezones but numpy does not; remove timezone
-            _dtype_name = re.sub('\[ns(?:,[^\]]+)?\]', '[ns]', _dtype_name)
+            _dtype_name = re.sub(r'\[ns(?:,[^\]]+)?\]', '[ns]', _dtype_name)
         dtype_metadata['{}_dtype'.format(col_name)] = _dtype_name
         if _dtype_name == 'object':
             dtype.append((col_name, VLEN_STRING))
@@ -477,7 +477,7 @@ def create_external_link(fname, dataset_path, out_fname, new_dataset_path):
         A `str` containing the dataset path within `out_fname` that will
         link to `fname:dataset_path`.
     """
-    with h5py.File(out_fname) as fid:
+    with h5py.File(out_fname, 'a') as fid:
         fid[new_dataset_path] = h5py.ExternalLink(fname, dataset_path)
 
 
