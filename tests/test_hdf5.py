@@ -188,7 +188,7 @@ class HDF5Test(unittest.TestCase):
         """
         data = self.scalar_data
         fname = 'test_write_scalar.h5'
-        with h5py.File(fname, **self.memory_kwargs) as fid:
+        with h5py.File(fname, 'w', **self.memory_kwargs) as fid:
             self.assertIsNone(hdf5.write_scalar(data, 'scalar', fid))
 
     def test_scalar_attributes(self):
@@ -205,7 +205,7 @@ class HDF5Test(unittest.TestCase):
             data[k] = v
 
         fname = 'test_scalar_dataset.h5'
-        with h5py.File(fname, **self.memory_kwargs) as fid:
+        with h5py.File(fname, 'w', **self.memory_kwargs) as fid:
             hdf5.write_scalar(data['value'], 'test-scalar', fid, attrs=attrs)
 
             self.assertDictEqual(hdf5.read_scalar(fid, 'test-scalar'), data)
@@ -218,7 +218,7 @@ class HDF5Test(unittest.TestCase):
         attrs = {'timestamp': datetime.datetime.now()}
 
         fname = 'test_datetime_attrs.h5'
-        with h5py.File(fname, **self.memory_kwargs) as fid:
+        with h5py.File(fname, 'w', **self.memory_kwargs) as fid:
             hdf5.write_scalar(self.scalar_data, 'scalar', fid, attrs=attrs)
 
             data = hdf5.read_scalar(fid, 'scalar')
@@ -231,7 +231,7 @@ class HDF5Test(unittest.TestCase):
         attrs = {'alpha': 1, 'beta': 2}
 
         fname = 'test_attach_attributes.h5'
-        with h5py.File(fname, **self.memory_kwargs) as fid:
+        with h5py.File(fname, 'w', **self.memory_kwargs) as fid:
             dset = fid.create_dataset('data', data=self.image_data)
             hdf5.attach_attributes(dset, attrs)
             test = {k: v for k, v in dset.attrs.items()}
@@ -243,7 +243,7 @@ class HDF5Test(unittest.TestCase):
         """
         data = self.image_data
         fname = 'test_write_h5_image.h5'
-        with h5py.File(fname, **self.memory_kwargs) as fid:
+        with h5py.File(fname, 'w', **self.memory_kwargs) as fid:
             self.assertIsNone(hdf5.write_h5_image(data, 'image', fid))
 
     def test_write_h5_table(self):
@@ -252,7 +252,7 @@ class HDF5Test(unittest.TestCase):
         """
         data = self.table_data
         fname = 'test_write_h5_table.h5'
-        with h5py.File(fname, **self.memory_kwargs) as fid:
+        with h5py.File(fname, 'w', **self.memory_kwargs) as fid:
             self.assertIsNone(hdf5.write_h5_table(data, 'table', fid))
 
     def test_attach_image_attributes(self):
@@ -264,7 +264,7 @@ class HDF5Test(unittest.TestCase):
                  'DISPLAY_ORIGIN': 'UL'}
 
         fname = 'test_attach_image_attributes.h5'
-        with h5py.File(fname, **self.memory_kwargs) as fid:
+        with h5py.File(fname, 'w', **self.memory_kwargs) as fid:
             dset = fid.create_dataset('data', data=self.image_data)
             hdf5.attach_image_attributes(dset, attrs)
             test = {k: v for k, v in dset.attrs.items()}
@@ -279,7 +279,7 @@ class HDF5Test(unittest.TestCase):
                  'DISPLAY_ORIGIN': 'UL'}
 
         fname = 'test_write_h5_image_attributes.h5'
-        with h5py.File(fname, **self.memory_kwargs) as fid:
+        with h5py.File(fname, 'w', **self.memory_kwargs) as fid:
             hdf5.write_h5_image(self.image_data, 'image', fid)
             test = {k: v for k, v in fid['image'].attrs.items()}
 
@@ -295,7 +295,7 @@ class HDF5Test(unittest.TestCase):
         minmax = numpy.array([self.image_data.min(), self.image_data.max()])
 
         fname = 'test_write_h5_image_minmax.h5'
-        with h5py.File(fname, **self.memory_kwargs) as fid:
+        with h5py.File(fname, 'w', **self.memory_kwargs) as fid:
             hdf5.write_h5_image(self.image_data, 'image', fid)
 
             test = fid['image'].attrs['IMAGE_MINMAXRANGE']
@@ -315,7 +315,7 @@ class HDF5Test(unittest.TestCase):
         minmax = numpy.array([self.image_data.min(), self.image_data.max()])
 
         fname = 'test_write_h5_multi.h5'
-        with h5py.File(fname, **self.memory_kwargs) as fid:
+        with h5py.File(fname, 'w', **self.memory_kwargs) as fid:
             hdf5.write_h5_image(dataset, 'image', fid)
 
             self.assertFalse('IMAGE_MINMAXRANGE' in fid['image'].attrs)
@@ -337,7 +337,7 @@ class HDF5Test(unittest.TestCase):
                  'FIELD_1_NAME': 'integer_data'}
 
         fname = 'test_attach_table_attributes.h5'
-        with h5py.File(fname, **self.memory_kwargs) as fid:
+        with h5py.File(fname, 'w', **self.memory_kwargs) as fid:
             dset = fid.create_dataset('data', data=self.table_data)
             hdf5.attach_table_attributes(dset, attrs=attrs)
             test = {k: v for k, v in dset.attrs.items()}
@@ -349,7 +349,7 @@ class HDF5Test(unittest.TestCase):
         """
         df = pandas.DataFrame(self.table_data)
         fname = 'test_write_dataframe.h5'
-        with h5py.File(fname, **self.memory_kwargs) as fid:
+        with h5py.File(fname, 'w', **self.memory_kwargs) as fid:
             self.assertIsNone(hdf5.write_dataframe(df, 'dataframe', fid))
 
     def test_dataframe_attributes(self):
@@ -373,7 +373,7 @@ class HDF5Test(unittest.TestCase):
         df = pandas.DataFrame(self.table_data)
 
         fname = 'test_dataframe_attributes.h5'
-        with h5py.File(fname, **self.memory_kwargs) as fid:
+        with h5py.File(fname, 'w', **self.memory_kwargs) as fid:
             hdf5.write_dataframe(df, 'dataframe', fid)
 
             test = {k: v for k, v in fid['dataframe'].attrs.items()}
@@ -391,7 +391,7 @@ class HDF5Test(unittest.TestCase):
         df['string_data'] = ['period {}'.format(i) for i in range(10)]
 
         fname = 'test_dataframe_roundtrip.h5'
-        with h5py.File(fname, **self.memory_kwargs) as fid:
+        with h5py.File(fname, 'w', **self.memory_kwargs) as fid:
             hdf5.write_dataframe(df, 'dataframe', fid)
             # Apply conversion to no timezone that occurs in serialisation to hdf5
             # Numpy is timezone naive; pandas has timezone support

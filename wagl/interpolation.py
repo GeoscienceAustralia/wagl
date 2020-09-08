@@ -482,7 +482,7 @@ def interpolate(acq, coefficient, ancillary_group, satellite_solar_group,
 
     # setup the output file/group as needed
     if out_group is None:
-        fid = h5py.File('interpolated-coefficients.h5', driver='core',
+        fid = h5py.File('interpolated-coefficients.h5', 'w', driver='core',
                         backing_store=False)
     else:
         fid = out_group

@@ -425,4 +425,4 @@ def current_h5_metadata(fid: h5py.Group, dataset_path: str = ""):
                     fid.filename,
                     dataset_path))
 
-    return yaml.load(metadata[()].item())
+    return yaml.load(metadata[()].item(), Loader=yaml.FullLoader)

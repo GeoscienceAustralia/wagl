@@ -85,7 +85,7 @@ def self_shadow(incident_angles_group, exiting_angles_group, out_group=None,
 
     # Initialise the output file
     if out_group is None:
-        fid = h5py.File('self-shadow.h5', driver='core', backing_store=False)
+        fid = h5py.File('self-shadow.h5', 'w', driver='core', backing_store=False)
     else:
         fid = out_group
 
@@ -428,7 +428,7 @@ def calculate_cast_shadow(acquisition, dsm_group, satellite_solar_group,
 
     # Initialise the output file
     if out_group is None:
-        fid = h5py.File('cast-shadow-{}.h5'.format(source_dir), driver='core',
+        fid = h5py.File('cast-shadow-{}.h5'.format(source_dir), 'w', driver='core',
                         backing_store=False)
     else:
         fid = out_group
@@ -549,7 +549,7 @@ def combine_shadow_masks(self_shadow_group, cast_shadow_sun_group,
 
     # Initialise the output files
     if out_group is None:
-        fid = h5py.File('combined-shadow.h5', driver='core',
+        fid = h5py.File('combined-shadow.h5', 'w', driver='core',
                         backing_store=False)
     else:
         fid = out_group
