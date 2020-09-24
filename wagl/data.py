@@ -492,8 +492,14 @@ def reproject_file_to_array(src_filename, src_band=1, dst_geobox=None,
     return dst_arr
 
 
-def reproject_array_to_array(src_img, src_geobox, dst_geobox,
-                             resampling=Resampling.nearest):
+def reproject_array_to_array(
+    src_img,
+    src_geobox,
+    dst_geobox,
+    src_nodata=None,
+    dst_nodata=None,
+    resampling=Resampling.nearest
+):
     """
     Reprojects an image/array to the desired co-ordinate reference system.
 
@@ -508,6 +514,12 @@ def reproject_array_to_array(src_img, src_geobox, dst_geobox,
         An instance of a GriddedGeoBox object containing the
         destination parameters such as origin, affine, projection,
         and array dimensions.
+
+    :param src_nodata:
+        The nodata value in the source image
+
+    :param dst_nodata:
+        The nodata value in the destination image
 
     :param resampling:
         An integer representing the resampling method to be used.
@@ -539,9 +551,17 @@ def reproject_array_to_array(src_img, src_geobox, dst_geobox,
     # Define the output NumPy array
     dst_arr = np.zeros(dst_geobox.shape, dtype=src_img.dtype)
 
-    reproject(src_img, dst_arr, src_transform=src_trans,
-              src_crs=src_prj, dst_transform=dst_trans, dst_crs=dst_prj,
-              resampling=resampling)
+    reproject(
+        src_img,
+        dst_arr,
+        src_transform=src_trans,
+        src_crs=src_prj,
+        src_nodata=src_nodata,
+        dst_transform=dst_trans,
+        dst_crs=dst_prj,
+        dst_nodata=dst_nodata,
+        resampling=resampling
+    )
 
     return dst_arr
 
