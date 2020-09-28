@@ -22,7 +22,7 @@ Parameters to be inserted are:
 from __future__ import absolute_import, print_function
 
 
-MIDLAT_SUMMER_ALBEDO = ("""\
+MIDLAT_SUMMER_ALBEDO = """\
 TM{binary} 2    2    2    1    2    2    2    2    2    2    1    1    0  10.000{albedo:7.2f}
 TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0.3         0      0.70         0         0
 {filter_function:<75}
@@ -32,9 +32,9 @@ TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0
 {lat:10.3f}{lon:10.3f}     0.000     0.000{time:10.3f}{sat_azimuth:10.3f}     0.000     0.667
      350.0    2600.0       1.0       1.0RN#       NT    T                                                     
     0                                                                                                         
-""")
+"""
 
-TROPICAL_ALBEDO = ("""\
+TROPICAL_ALBEDO = """\
 TM{binary} 1    2    2    1    1    1    1    1    1    1    1    1    0  10.000{albedo:7.2f}
 TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0.3         0      0.70         0         0
 {filter_function:<75}
@@ -44,9 +44,9 @@ TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0
 {lat:10.3f}{lon:10.3f}     0.000     0.000{time:10.3f}{sat_azimuth:10.3f}     0.000     0.667
      350.0    2600.0       1.0       1.0RN#       NT    T                                                     
     0                                                                                                         
-""")
+"""
 
-MIDLAT_SUMMER_TRANSMITTANCE = ("""\
+MIDLAT_SUMMER_TRANSMITTANCE = """\
 TM{binary} 2    2    2    1    2    2    2    2    2    2    1    1    0  10.000{albedo:7.2f}
 TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0.3         0      0.70         0         0
 {filter_function:<75}
@@ -56,9 +56,9 @@ TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0
      0.000{sat_view_offset:10.3f}                                                       0.667
      350.0    2600.0       1.0       1.0RN#       NT    T                                                     
     0                                                                                                         
-""")
+"""
 
-TROPICAL_TRANSMITTANCE = ("""\
+TROPICAL_TRANSMITTANCE = """\
 TM{binary} 1    2    2    1    1    1    1    1    1    1    1    1    0  10.000{albedo:7.2f}
 TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0.3         0      0.70         0         0
 {filter_function:<75}
@@ -68,9 +68,9 @@ TFF  8   0   375.000  g{water:7.5f}    a{ozone:5.3f}     T f f          t      0
      0.000{sat_view_offset:10.3f}                                                       0.667
      350.0    2600.0       1.0       1.0RN#       NT    T                                                     
     0                                                                                                         
-""")
+"""
 
-THERMAL_TRANSMITTANCE = ("""\
+THERMAL_TRANSMITTANCE = """\
 T {binary} 7    2    1    0    2    2    2    2    2    2    1    1    0  10.000   0.00
 F   0F   0   375.000       1.0    a{ozone:5.3f} 4   T                       
 {filter_function:<75}
@@ -87,6 +87,6 @@ F   0F   0   375.000       1.0    a{ozone:5.3f} 4   T
     3                                                                          
 {gpheight:10.3f}{sat_height:10.3f}    55.770                                   
     0                                                                          
-""")
+"""
 
-SBT_FORMAT = '\n{gpheight:10.3f}{pressure:10.3E}{airtemp:10.3E}{humidity:10.3E}{zero:10.3E}{zero:10.3E}ABH'
+SBT_FORMAT = "\n{gpheight:10.3f}{pressure:10.3E}{airtemp:10.3E}{humidity:10.3E}{zero:10.3E}{zero:10.3E}ABH"

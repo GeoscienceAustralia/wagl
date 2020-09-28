@@ -1,5 +1,3 @@
-
-
 # ===============================================================================
 # Copyright 2015 Geoscience Australia
 #
@@ -64,6 +62,7 @@ def generate_tiles(samples, lines, xtile=None, ytile=None):
         >>>     subset = array[ystart:yend,xstart:xend] # 2D
         >>>     subset = array[:,ystart:yend,xstart:xend] # 3D
     """
+
     def create_tiles(samples, lines, xstart, ystart):
         """
         Creates a generator object for the tiles.
@@ -95,9 +94,17 @@ def generate_tiles(samples, lines, xtile=None, ytile=None):
 
 
 class TiledOutput:
-
-    def __init__(self, out_fname, samples=None, lines=None, bands=1,
-                 geobox=None, fmt="ENVI", nodata=None, dtype=gdal.GDT_Byte):
+    def __init__(
+        self,
+        out_fname,
+        samples=None,
+        lines=None,
+        bands=1,
+        geobox=None,
+        fmt="ENVI",
+        nodata=None,
+        dtype=gdal.GDT_Byte,
+    ):
         """
         A class to aid in data processing using a tiling scheme.
         The `TiledOutput` class takes care of writing each tile/chunk
@@ -192,8 +199,9 @@ class TiledOutput:
 
         # Check we have the correct dimensions to create the file
         if samples is None or lines is None:
-            msg = ("Samples and lines are required inputs! Samples: {ns} "
-                   "Lines: {nl}").format(ns=samples, nl=lines)
+            msg = (
+                "Samples and lines are required inputs! Samples: {ns} " "Lines: {nl}"
+            ).format(ns=samples, nl=lines)
             raise TypeError(msg)
 
         driver = gdal.GetDriverByName(fmt)
@@ -258,8 +266,9 @@ class TiledOutput:
 
         dims = array.ndim
         if array.ndim not in [2, 3]:
-            msg = ("Input array is not 2 or 3 dimensions. "
-                   "Array dimensions: {dims}").format(dims=dims)
+            msg = (
+                "Input array is not 2 or 3 dimensions. " "Array dimensions: {dims}"
+            ).format(dims=dims)
             raise TypeError(msg)
 
         ystart = tile[0][0]
@@ -305,6 +314,5 @@ def scatter(iterable, n):
     """
 
     q, r = len(iterable) // n, len(iterable) % n
-    res = (iterable[i * q + min(i, r):(i + 1) * q + min(i + 1, r)]
-           for i in range(n))
+    res = (iterable[i * q + min(i, r) : (i + 1) * q + min(i + 1, r)] for i in range(n))
     return list(res)

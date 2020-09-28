@@ -11,9 +11,10 @@ from wagl.geobox import GriddedGeoBox
 # GDA94/ MGA Zone 55
 CRS = "EPSG:28355"
 
+
 class ParameterisedTestCase(unittest.TestCase):
 
-    """ 
+    """
     TestCase classes that want to be parameterised should
     inherit from this class.
 
@@ -23,9 +24,15 @@ class ParameterisedTestCase(unittest.TestCase):
     Modified to suit our given parameters.
     """
 
-    def __init__(self, method_name='runTest', reference_fname=None,
-                 test_fname=None, tolerance=3, decimal_precision=4,
-                 integer_precision=1):
+    def __init__(
+        self,
+        method_name="runTest",
+        reference_fname=None,
+        test_fname=None,
+        tolerance=3,
+        decimal_precision=4,
+        integer_precision=1,
+    ):
         super(ParameterisedTestCase, self).__init__(method_name)
 
         # Reference and Testing directories
@@ -40,8 +47,14 @@ class ParameterisedTestCase(unittest.TestCase):
         self.integer_precision = integer_precision
 
     @staticmethod
-    def parameterise(testcase_klass, reference_fname=None, test_fname=None,
-                     tolerance=3, decimal_precision=4, integer_precision=1):
+    def parameterise(
+        testcase_klass,
+        reference_fname=None,
+        test_fname=None,
+        tolerance=3,
+        decimal_precision=4,
+        integer_precision=1,
+    ):
         """
         Create a suite containing all tests taken from the given
         subclass, passing them the parameters 'reference_fname,
@@ -76,16 +89,26 @@ class ParameterisedTestCase(unittest.TestCase):
         testnames = testloader.getTestCaseNames(testcase_klass)
         suite = unittest.TestSuite()
         for name in testnames:
-            suite.addTest(testcase_klass(name, reference_fname=reference_fname,
-                                         test_fname=test_fname,
-                                         tolerance=tolerance,
-                                         decimal_precision=decimal_precision,
-                                         integer_precision=integer_precision))
+            suite.addTest(
+                testcase_klass(
+                    name,
+                    reference_fname=reference_fname,
+                    test_fname=test_fname,
+                    tolerance=tolerance,
+                    decimal_precision=decimal_precision,
+                    integer_precision=integer_precision,
+                )
+            )
         return suite
 
 
-def create_test_image(dimensions=(1000, 1000), geotransform=None,
-                      projection=None, resolution=(25.0, 25.0), dtype='uint8'):
+def create_test_image(
+    dimensions=(1000, 1000),
+    geotransform=None,
+    projection=None,
+    resolution=(25.0, 25.0),
+    dtype="uint8",
+):
     """
     Creates an image with geo-location information.
 
@@ -140,10 +163,12 @@ def create_test_image(dimensions=(1000, 1000), geotransform=None,
 
     UL = (geotransform[0], geotransform[3])
 
-    geobox = GriddedGeoBox(shape=dimensions, origin=UL, pixelsize=resolution,
-                           crs=projection)
+    geobox = GriddedGeoBox(
+        shape=dimensions, origin=UL, pixelsize=resolution, crs=projection
+    )
 
     return (img, geobox)
+
 
 def random_pixel_locations(dimensions, npixels=100):
     """
@@ -165,7 +190,7 @@ def random_pixel_locations(dimensions, npixels=100):
         A tuple of (y, x) where both y & x are 1D NumPy arrays.
     """
     if len(dimensions) != 2:
-        raise TypeError('2 Dimensions must be specified.')
+        raise TypeError("2 Dimensions must be specified.")
 
     cols = dimensions[1]
     rows = dimensions[0]

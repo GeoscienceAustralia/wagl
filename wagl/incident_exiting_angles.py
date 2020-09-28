@@ -17,16 +17,21 @@ from wagl.__exiting_angle import exiting_angle
 from wagl.__incident_angle import incident_angle
 
 
-def _incident_exiting_angles(satellite_solar_fname, slope_aspect_fname,
-                             out_fname, compression=H5CompressionFilter.LZF,
-                             filter_opts=None, incident=True):
+def _incident_exiting_angles(
+    satellite_solar_fname,
+    slope_aspect_fname,
+    out_fname,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+    incident=True,
+):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    with h5py.File(satellite_solar_fname, 'r') as sat_sol,\
-        h5py.File(slope_aspect_fname, 'r') as slp_asp,\
-        h5py.File(out_fname, 'w') as out_fid:
+    with h5py.File(satellite_solar_fname, "r") as sat_sol, h5py.File(
+        slope_aspect_fname, "r"
+    ) as slp_asp, h5py.File(out_fname, "w") as out_fid:
 
         grp1 = sat_sol[GroupName.SAT_SOL_GROUP.value]
         grp2 = slp_asp[GroupName.SLP_ASP_GROUP.value]
@@ -36,8 +41,13 @@ def _incident_exiting_angles(satellite_solar_fname, slope_aspect_fname,
             exiting_angles(grp1, grp2, out_fid, compression, filter_opts)
 
 
-def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
-                    compression=H5CompressionFilter.LZF, filter_opts=None):
+def incident_angles(
+    satellite_solar_group,
+    slope_aspect_group,
+    out_group=None,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+):
     """
     Calculates the incident angle and the azimuthal incident angle.
 
@@ -47,7 +57,7 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
 
         * DatasetName.SOLAR_ZENITH
         * DatasetName.SOLAR_AZIMUTH
-        
+
     :param slope_aspect_group:
         The root HDF5 `Group` that contains the slope and aspect
         datasets specified by the pathnames given by:
@@ -67,7 +77,7 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :filter_opts:
         A dict of key value pairs available to the given configuration
@@ -96,8 +106,7 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
 
     # Initialise the output files
     if out_group is None:
-        fid = h5py.File('incident-angles.h5', 'w', driver='core',
-                        backing_store=False)
+        fid = h5py.File("incident-angles.h5", "w", driver="core", backing_store=False)
     else:
         fid = out_group
 
@@ -109,12 +118,12 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
 
     grp = fid[GroupName.INCIDENT_GROUP.value]
     tile_size = solar_zenith_dataset.chunks
-    filter_opts['chunks'] = tile_size
+    filter_opts["chunks"] = tile_size
     kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
     no_data = numpy.nan
-    kwargs['shape'] = shape
-    kwargs['fillvalue'] = no_data
-    kwargs['dtype'] = 'float32'
+    kwargs["shape"] = shape
+    kwargs["fillvalue"] = no_data
+    kwargs["dtype"] = "float32"
 
     # output datasets
     dataset_name = DatasetName.INCIDENT.value
@@ -123,17 +132,19 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
     azi_inc_dset = grp.create_dataset(dataset_name, **kwargs)
 
     # attach some attributes to the image datasets
-    attrs = {'crs_wkt': crs,
-             'geotransform': geobox.transform.to_gdal(),
-             'no_data_value': no_data}
+    attrs = {
+        "crs_wkt": crs,
+        "geotransform": geobox.transform.to_gdal(),
+        "no_data_value": no_data,
+    }
     desc = "Contains the incident angles in degrees."
-    attrs['description'] = desc
-    attrs['alias'] = 'incident'
+    attrs["description"] = desc
+    attrs["alias"] = "incident"
     attach_image_attributes(incident_dset, attrs)
 
     desc = "Contains the azimuthal incident angles in degrees."
-    attrs['description'] = desc
-    attrs['alias'] = 'azimuthal-incident'
+    attrs["description"] = desc
+    attrs["alias"] = "azimuthal-incident"
     attach_image_attributes(azi_inc_dset, attrs)
 
     # process by tile
@@ -151,22 +162,28 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
 
         # Read the data for the current tile
         # Convert to required datatype and transpose
-        sol_zen = as_array(solar_zenith_dataset[idx],
-                           dtype=numpy.float32, transpose=True)
-        sol_azi = as_array(solar_azimuth_dataset[idx],
-                           dtype=numpy.float32, transpose=True)
-        slope = as_array(slope_dataset[idx],
-                         dtype=numpy.float32, transpose=True)
-        aspect = as_array(aspect_dataset[idx],
-                          dtype=numpy.float32, transpose=True)
+        sol_zen = as_array(solar_zenith_dataset[idx], dtype=numpy.float32, transpose=True)
+        sol_azi = as_array(
+            solar_azimuth_dataset[idx], dtype=numpy.float32, transpose=True
+        )
+        slope = as_array(slope_dataset[idx], dtype=numpy.float32, transpose=True)
+        aspect = as_array(aspect_dataset[idx], dtype=numpy.float32, transpose=True)
 
         # Initialise the work arrays
-        incident = numpy.zeros((ysize, xsize), dtype='float32')
-        azi_incident = numpy.zeros((ysize, xsize), dtype='float32')
+        incident = numpy.zeros((ysize, xsize), dtype="float32")
+        azi_incident = numpy.zeros((ysize, xsize), dtype="float32")
 
         # Process the current tile
-        incident_angle(xsize, ysize, sol_zen, sol_azi, slope, aspect,
-                       incident.transpose(), azi_incident.transpose())
+        incident_angle(
+            xsize,
+            ysize,
+            sol_zen,
+            sol_azi,
+            slope,
+            aspect,
+            incident.transpose(),
+            azi_incident.transpose(),
+        )
 
         # Write the current tile to disk
         incident_dset[idx] = incident
@@ -176,8 +193,13 @@ def incident_angles(satellite_solar_group, slope_aspect_group, out_group=None,
         return fid
 
 
-def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
-                   compression=H5CompressionFilter.LZF, filter_opts=None):
+def exiting_angles(
+    satellite_solar_group,
+    slope_aspect_group,
+    out_group=None,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+):
     """
     Calculates the exiting angle and the azimuthal exiting angle.
 
@@ -187,7 +209,7 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
 
         * DatasetName.SATELLITE_VIEW
         * DatasetName.SATELLITE_AZIMUTH
-        
+
     :param slope_aspect_group:
         The root HDF5 `Group` that contains the slope and aspect
         datasets specified by the pathnames given by:
@@ -207,7 +229,7 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :filter_opts:
         A dict of key value pairs available to the given configuration
@@ -236,8 +258,7 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
 
     # Initialise the output files
     if out_group is None:
-        fid = h5py.File('exiting-angles.h5', 'w', driver='core',
-                        backing_store=False)
+        fid = h5py.File("exiting-angles.h5", "w", driver="core", backing_store=False)
     else:
         fid = out_group
 
@@ -249,12 +270,12 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
 
     grp = fid[GroupName.EXITING_GROUP.value]
     tile_size = satellite_view_dataset.chunks
-    filter_opts['chunks'] = tile_size
+    filter_opts["chunks"] = tile_size
     kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
     no_data = numpy.nan
-    kwargs['shape'] = shape
-    kwargs['fillvalue'] = no_data
-    kwargs['dtype'] = 'float32'
+    kwargs["shape"] = shape
+    kwargs["fillvalue"] = no_data
+    kwargs["dtype"] = "float32"
 
     # output datasets
     dataset_name = DatasetName.EXITING.value
@@ -263,17 +284,19 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
     azi_exit_dset = grp.create_dataset(dataset_name, **kwargs)
 
     # attach some attributes to the image datasets
-    attrs = {'crs_wkt': crs,
-             'geotransform': geobox.transform.to_gdal(),
-             'no_data_value': no_data}
+    attrs = {
+        "crs_wkt": crs,
+        "geotransform": geobox.transform.to_gdal(),
+        "no_data_value": no_data,
+    }
     desc = "Contains the exiting angles in degrees."
-    attrs['description'] = desc
-    attrs['alias'] = 'exiting'
+    attrs["description"] = desc
+    attrs["alias"] = "exiting"
     attach_image_attributes(exiting_dset, attrs)
 
     desc = "Contains the azimuthal exiting angles in degrees."
-    attrs['description'] = desc
-    attrs['alias'] = 'azimuthal-exiting'
+    attrs["description"] = desc
+    attrs["alias"] = "azimuthal-exiting"
     attach_image_attributes(azi_exit_dset, attrs)
 
     # process by tile
@@ -291,22 +314,30 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
 
         # Read the data for the current tile
         # Convert to required datatype and transpose
-        sat_view = as_array(satellite_view_dataset[idx],
-                            dtype=numpy.float32, transpose=True)
-        sat_azi = as_array(satellite_azimuth_dataset[idx],
-                           dtype=numpy.float32, transpose=True)
-        slope = as_array(slope_dataset[idx],
-                         dtype=numpy.float32, transpose=True)
-        aspect = as_array(aspect_dataset[idx],
-                          dtype=numpy.float32, transpose=True)
+        sat_view = as_array(
+            satellite_view_dataset[idx], dtype=numpy.float32, transpose=True
+        )
+        sat_azi = as_array(
+            satellite_azimuth_dataset[idx], dtype=numpy.float32, transpose=True
+        )
+        slope = as_array(slope_dataset[idx], dtype=numpy.float32, transpose=True)
+        aspect = as_array(aspect_dataset[idx], dtype=numpy.float32, transpose=True)
 
         # Initialise the work arrays
-        exiting = numpy.zeros((ysize, xsize), dtype='float32')
-        azi_exiting = numpy.zeros((ysize, xsize), dtype='float32')
+        exiting = numpy.zeros((ysize, xsize), dtype="float32")
+        azi_exiting = numpy.zeros((ysize, xsize), dtype="float32")
 
         # Process the current tile
-        exiting_angle(xsize, ysize, sat_view, sat_azi, slope, aspect,
-                      exiting.transpose(), azi_exiting.transpose())
+        exiting_angle(
+            xsize,
+            ysize,
+            sat_view,
+            sat_azi,
+            slope,
+            aspect,
+            exiting.transpose(),
+            azi_exiting.transpose(),
+        )
 
         # Write the current to disk
         exiting_dset[idx] = exiting
@@ -316,25 +347,33 @@ def exiting_angles(satellite_solar_group, slope_aspect_group, out_group=None,
         return fid
 
 
-def _relative_azimuth_slope(incident_angles_fname, exiting_angles_fname,
-                            out_fname, compression=H5CompressionFilter.LZF,
-                            filter_opts=None):
+def _relative_azimuth_slope(
+    incident_angles_fname,
+    exiting_angles_fname,
+    out_fname,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    with h5py.File(incident_angles_fname, 'r') as inci_fid,\
-        h5py.File(exiting_angles_fname, 'r') as exit_fid,\
-        h5py.File(out_fname, 'w') as out_fid:
+    with h5py.File(incident_angles_fname, "r") as inci_fid, h5py.File(
+        exiting_angles_fname, "r"
+    ) as exit_fid, h5py.File(out_fname, "w") as out_fid:
 
         grp1 = inci_fid[GroupName.INCIDENT_GROUP.value]
         grp2 = exit_fid[GroupName.EXITING_GROUP.value]
         relative_azimuth_slope(grp1, grp2, out_fid, compression, filter_opts)
 
 
-def relative_azimuth_slope(incident_angles_group, exiting_angles_group,
-                           out_group=None, compression=H5CompressionFilter.LZF,
-                           filter_opts=None):
+def relative_azimuth_slope(
+    incident_angles_group,
+    exiting_angles_group,
+    out_group=None,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+):
     """
     Calculates the relative azimuth angle on the slope surface.
 
@@ -361,7 +400,7 @@ def relative_azimuth_slope(incident_angles_group, exiting_angles_group,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :filter_opts:
         A dict of key value pairs available to the given configuration
@@ -388,8 +427,9 @@ def relative_azimuth_slope(incident_angles_group, exiting_angles_group,
 
     # Initialise the output files
     if out_group is None:
-        fid = h5py.File('relative-azimuth-angles.h5', 'w', driver='core',
-                        backing_store=False)
+        fid = h5py.File(
+            "relative-azimuth-angles.h5", "w", driver="core", backing_store=False
+        )
     else:
         fid = out_group
 
@@ -401,24 +441,25 @@ def relative_azimuth_slope(incident_angles_group, exiting_angles_group,
 
     grp = fid[GroupName.REL_SLP_GROUP.value]
     tile_size = azimuth_incident_dataset.chunks
-    filter_opts['chunks'] = tile_size
+    filter_opts["chunks"] = tile_size
     kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
     no_data = numpy.nan
-    kwargs['shape'] = shape
-    kwargs['fillvalue'] = no_data
-    kwargs['dtype'] = 'float32'
+    kwargs["shape"] = shape
+    kwargs["fillvalue"] = no_data
+    kwargs["dtype"] = "float32"
 
     # output datasets
     out_dset = grp.create_dataset(DatasetName.RELATIVE_SLOPE.value, **kwargs)
 
     # attach some attributes to the image datasets
-    attrs = {'crs_wkt': crs,
-             'geotransform': geobox.transform.to_gdal(),
-             'no_data_value': no_data}
-    desc = ("Contains the relative azimuth angles on the slope surface in "
-            "degrees.")
-    attrs['description'] = desc
-    attrs['alias'] = 'relative-slope'
+    attrs = {
+        "crs_wkt": crs,
+        "geotransform": geobox.transform.to_gdal(),
+        "no_data_value": no_data,
+    }
+    desc = "Contains the relative azimuth angles on the slope surface in " "degrees."
+    attrs["description"] = desc
+    attrs["alias"] = "relative-slope"
     attach_image_attributes(out_dset, attrs)
 
     # process by tile

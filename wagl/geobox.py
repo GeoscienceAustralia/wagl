@@ -72,9 +72,10 @@ class GriddedGeoBox:
         elif isinstance(dataset, h5py.Dataset):
             return GriddedGeoBox.from_h5_dataset(dataset)
         else:
-            raise ValueError("GriddedGeoBox.from_dataset() expects"
-                             " GDAL or rasterio dataset, not %s" %
-                             type(dataset))
+            raise ValueError(
+                "GriddedGeoBox.from_dataset() expects"
+                " GDAL or rasterio dataset, not %s" % type(dataset)
+            )
 
     @staticmethod
     def from_rio_dataset(dataset):
@@ -131,16 +132,15 @@ class GriddedGeoBox:
             the supplied dataset.
         """
         bbshape = dataset.shape
-        transform = dataset.attrs['geotransform']
+        transform = dataset.attrs["geotransform"]
         origin = (transform[0], transform[3])
-        crs_wkt = dataset.attrs['crs_wkt']
+        crs_wkt = dataset.attrs["crs_wkt"]
         pixelsize = (abs(transform[1]), abs(transform[5]))
 
         return GriddedGeoBox(bbshape, origin, pixelsize, crs_wkt)
 
     @staticmethod
-    def from_corners(origin, corner, pixelsize=(0.00025, 0.00025),
-                     crs='EPSG:4326'):
+    def from_corners(origin, corner, pixelsize=(0.00025, 0.00025), crs="EPSG:4326"):
         """
         Return a GriddedGeoBox defined by the the two supplied
         corners.
@@ -188,9 +188,13 @@ class GriddedGeoBox:
 
         return True
 
-
-    def __init__(self, shape=(1, 1), origin=(0.0, 0.0),
-                 pixelsize=(0.00025, 0.00025), crs='EPSG:4326'):
+    def __init__(
+        self,
+        shape=(1, 1),
+        origin=(0.0, 0.0),
+        pixelsize=(0.00025, 0.00025),
+        crs="EPSG:4326",
+    ):
         """
         Create a new GriddedGeoBox.
 
@@ -217,13 +221,14 @@ class GriddedGeoBox:
         else:
             self.crs = osr.SpatialReference()
             if self.crs == self.crs.SetFromUserInput(crs):
-                raise ValueError("Invalid crs: %s" % (crs, ))
+                raise ValueError("Invalid crs: %s" % (crs,))
 
         # enforce x,y axis ordering
         self.crs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
 
-        self.transform = Affine(self.pixelsize[0], 0, self.origin[0], 0,
-                                -self.pixelsize[1], self.origin[1])
+        self.transform = Affine(
+            self.pixelsize[0], 0, self.origin[0], 0, -self.pixelsize[1], self.origin[1]
+        )
         self.corner = self.transform * self.get_shape_xy()
 
     def get_shape_xy(self):
@@ -239,7 +244,7 @@ class GriddedGeoBox:
         (x, y, _) = transformation.TransformPoint(point[0], point[1])
         return (x, y)
 
-    def copy(self, crs='EPSG:4326'):
+    def copy(self, crs="EPSG:4326"):
         """
         Create a copy of this GriddedGeoBox transformed to the supplied
         Coordinate Reference System. The new GGB will have idential shape
@@ -251,19 +256,26 @@ class GriddedGeoBox:
         old2New = osr.CoordinateTransformation(self.crs, newCrs)
         newOrigin = self.transform_point(old2New, self.origin)
         newCorner = self.transform_point(old2New, self.corner)
-        newPixelSize = tuple([
-            abs((newOrigin[0] - newCorner[0]) / self.get_shape_xy()[0]),
-            abs((newOrigin[1] - newCorner[1]) / self.get_shape_xy()[1])
-        ])
+        newPixelSize = tuple(
+            [
+                abs((newOrigin[0] - newCorner[0]) / self.get_shape_xy()[0]),
+                abs((newOrigin[1] - newCorner[1]) / self.get_shape_xy()[1]),
+            ]
+        )
 
         return GriddedGeoBox(self.shape, newOrigin, newPixelSize, crs=crs)
 
     def __repr__(self):
-        fmt = ("GriddedGeoBox:\n*\torigin: {origin}\n*\tshape: {shape}\n*\t"
-               "pixelsize: {pxsz}\n*\tcrs: {crs}")
-        return fmt.format(origin=self.origin, shape=self.shape,
-                          pxsz=self.pixelsize,
-                          crs=self.crs.ExportToPrettyWkt())
+        fmt = (
+            "GriddedGeoBox:\n*\torigin: {origin}\n*\tshape: {shape}\n*\t"
+            "pixelsize: {pxsz}\n*\tcrs: {crs}"
+        )
+        return fmt.format(
+            origin=self.origin,
+            shape=self.shape,
+            pxsz=self.pixelsize,
+            crs=self.crs.ExportToPrettyWkt(),
+        )
 
     def window(self, enclosedGGB):
         """
@@ -280,11 +292,9 @@ class GriddedGeoBox:
             ((row_start, row_stop), (col_start, col_stop)).
         """
         # transform to map enclosedGGB coords to self.crs coordinates
-        enclosed2self = osr.CoordinateTransformation(enclosedGGB.crs,
-                                                     self.crs)
+        enclosed2self = osr.CoordinateTransformation(enclosedGGB.crs, self.crs)
 
-        pos = enclosed2self.TransformPoint(enclosedGGB.origin[0],
-                                           enclosedGGB.origin[1])
+        pos = enclosed2self.TransformPoint(enclosedGGB.origin[0], enclosedGGB.origin[1])
         originT = (pos[0], pos[1])
 
         areaCorner = enclosedGGB.corner
@@ -294,8 +304,7 @@ class GriddedGeoBox:
         areaOriginXY = [int(math.floor(v)) for v in ~self.transform * originT]
         areaCornerXY = [int(math.ceil(v)) for v in ~self.transform * areaCornerT]
 
-        return ((areaOriginXY[1], areaCornerXY[1]),
-                (areaOriginXY[0], areaCornerXY[0]))
+        return ((areaOriginXY[1], areaCornerXY[1]), (areaOriginXY[0], areaCornerXY[0]))
 
     def x_size(self):
         """The x-axis size."""
@@ -358,7 +367,7 @@ class GriddedGeoBox:
             A tuple (x, y) floating point co-ordinate pair.
         """
         if not isinstance(to_crs, osr.SpatialReference):
-            err = 'Err: to_crs is not an instance of osr.SpatialReference: {}'
+            err = "Err: to_crs is not an instance of osr.SpatialReference: {}"
             err = err.format(type(to_crs))
             raise TypeError(err)
 
@@ -385,23 +394,33 @@ class GriddedGeoBox:
             A tuple (x_size, y_size) gives the size of the pixel in metres
         """
         if xy is None:
-            xy = (self.shape[1]/2, self.shape[0]/2)
+            xy = (self.shape[1] / 2, self.shape[0] / 2)
 
         (x, y) = xy
 
         spheroid, _ = setup_spheroid(self.crs.ExportToWkt())
 
-        (lon1, lat1) = self.transform * (x, y+0.5)
-        (lon2, lat2) = self.transform * (x+1, y+0.5)
-        x_size, _, _ = vinc_dist(spheroid[1], spheroid[0],
-                                 radians(lat1), radians(lon1),
-                                 radians(lat2), radians(lon2))
+        (lon1, lat1) = self.transform * (x, y + 0.5)
+        (lon2, lat2) = self.transform * (x + 1, y + 0.5)
+        x_size, _, _ = vinc_dist(
+            spheroid[1],
+            spheroid[0],
+            radians(lat1),
+            radians(lon1),
+            radians(lat2),
+            radians(lon2),
+        )
 
-        (lon1, lat1) = self.transform * (x+0.5, y)
-        (lon2, lat2) = self.transform * (x+0.5, y+1)
-        y_size, _, _ = vinc_dist(spheroid[1], spheroid[0],
-                                 radians(lat1), radians(lon1),
-                                 radians(lat2), radians(lon2))
+        (lon1, lat1) = self.transform * (x + 0.5, y)
+        (lon2, lat2) = self.transform * (x + 0.5, y + 1)
+        y_size, _, _ = vinc_dist(
+            spheroid[1],
+            spheroid[0],
+            radians(lat1),
+            radians(lon1),
+            radians(lat2),
+            radians(lon2),
+        )
 
         return (x_size, y_size)
 
@@ -464,8 +483,7 @@ class GriddedGeoBox:
         poly = Polygon(coords)
 
         # project/transform to the 'to_crs'
-        gdf = geopandas.GeoDataFrame({'geometry': [poly]},
-                                     crs=self.crs.ExportToProj4())
+        gdf = geopandas.GeoDataFrame({"geometry": [poly]}, crs=self.crs.ExportToProj4())
         prj_gdf = gdf.to_crs(to_crs.ExportToProj4())
 
         return prj_gdf.total_bounds

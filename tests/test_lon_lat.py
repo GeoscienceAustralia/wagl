@@ -17,11 +17,11 @@ from wagl import unittesting_tools as ut
 # WGS84
 CRS = "EPSG:4326"
 
-DATA_DIR = pjoin(dirname(abspath(__file__)), 'data')
-LS5_SCENE1 = pjoin(DATA_DIR, 'LANDSAT5', 'LS5_TM_OTH_P51_GALPGS01-002_090_081_20090407')
+DATA_DIR = pjoin(dirname(abspath(__file__)), "data")
+LS5_SCENE1 = pjoin(DATA_DIR, "LANDSAT5", "LS5_TM_OTH_P51_GALPGS01-002_090_081_20090407")
+
 
 class TestLonLatArrays(unittest.TestCase):
-
     def test_lon_array(self):
         """
         Test that the interpolated longitude array has sensible
@@ -37,8 +37,7 @@ class TestLonLatArrays(unittest.TestCase):
         acq = acquisitions(LS5_SCENE1).get_acquisitions()[0]
         geobox = acq.gridded_geo_box()
         fid = create_lon_lat_grids(acq, depth=5)
-        dataset_name = ppjoin(GroupName.LON_LAT_GROUP.value,
-                              DatasetName.LON.value)
+        dataset_name = ppjoin(GroupName.LON_LAT_GROUP.value, DatasetName.LON.value)
         lon = fid[dataset_name][:]
         ids = ut.random_pixel_locations(lon.shape)
 
@@ -64,8 +63,7 @@ class TestLonLatArrays(unittest.TestCase):
         lon_values = lon[ids]
 
         # A decimal degree co-ordinate should be correct up to the 6th dp
-        self.assertIsNone(npt.assert_almost_equal(lon_values, reprj,
-                                                  decimal=5))
+        self.assertIsNone(npt.assert_almost_equal(lon_values, reprj, decimal=5))
 
     def test_lat_array(self):
         """
@@ -82,8 +80,7 @@ class TestLonLatArrays(unittest.TestCase):
         acq = acquisitions(LS5_SCENE1).get_acquisitions()[0]
         geobox = acq.gridded_geo_box()
         fid = create_lon_lat_grids(acq, depth=5)
-        dataset_name = ppjoin(GroupName.LON_LAT_GROUP.value,
-                              DatasetName.LAT.value)
+        dataset_name = ppjoin(GroupName.LON_LAT_GROUP.value, DatasetName.LAT.value)
         lat = fid[dataset_name][:]
         ids = ut.random_pixel_locations(lat.shape)
 
@@ -107,8 +104,8 @@ class TestLonLatArrays(unittest.TestCase):
         lat_values = lat[ids]
 
         # A decimal degree co-ordinate should be correct up to the 6th dp
-        self.assertIsNone(npt.assert_almost_equal(lat_values, reprj,
-                                                  decimal=5))
+        self.assertIsNone(npt.assert_almost_equal(lat_values, reprj, decimal=5))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

@@ -61,20 +61,22 @@ class H5CompressionFilter(IntEnum):
         Return the appropriate compression filter configuration
         class.
         """
-        switch = {H5CompressionFilter.LZF: H5lzf,
-                  H5CompressionFilter.GZIP: H5gzip,
-                  H5CompressionFilter.BITSHUFFLE: H5bitshuffle,
-                  H5CompressionFilter.MAFISC: H5mafisc,
-                  H5CompressionFilter.ZSTANDARD: H5zstandard,
-                  H5CompressionFilter.BLOSC_LZ: H5blosc,
-                  H5CompressionFilter.BLOSC_LZ4: H5blosc,
-                  H5CompressionFilter.BLOSC_LZ4HC: H5blosc,
-                  H5CompressionFilter.BLOSC_SNAPPY: H5blosc,
-                  H5CompressionFilter.BLOSC_ZLIB: H5blosc,
-                  H5CompressionFilter.BLOSC_ZSTANDARD: H5blosc}
+        switch = {
+            H5CompressionFilter.LZF: H5lzf,
+            H5CompressionFilter.GZIP: H5gzip,
+            H5CompressionFilter.BITSHUFFLE: H5bitshuffle,
+            H5CompressionFilter.MAFISC: H5mafisc,
+            H5CompressionFilter.ZSTANDARD: H5zstandard,
+            H5CompressionFilter.BLOSC_LZ: H5blosc,
+            H5CompressionFilter.BLOSC_LZ4: H5blosc,
+            H5CompressionFilter.BLOSC_LZ4HC: H5blosc,
+            H5CompressionFilter.BLOSC_SNAPPY: H5blosc,
+            H5CompressionFilter.BLOSC_ZLIB: H5blosc,
+            H5CompressionFilter.BLOSC_ZSTANDARD: H5blosc,
+        }
 
         return switch.get(self)(compression_filter=self, **kwargs)
-    
+
 
 class BloscCompression(IntEnum):
 
@@ -124,12 +126,15 @@ class H5CompressionConfig:
         Return a dict with the required keywords for h5py's
         create_dataset() function.
         """
-        include = (attr.fields(self.__class__).compression,
-                   attr.fields(self.__class__).compression_opts,
-                   attr.fields(self.__class__).chunks,
-                   attr.fields(self.__class__).shuffle)
-        kwargs = attr.asdict(self, filter=attr.filters.include(*include),
-                             retain_collection_types=True)
+        include = (
+            attr.fields(self.__class__).compression,
+            attr.fields(self.__class__).compression_opts,
+            attr.fields(self.__class__).chunks,
+            attr.fields(self.__class__).shuffle,
+        )
+        kwargs = attr.asdict(
+            self, filter=attr.filters.include(*include), retain_collection_types=True
+        )
         return kwargs
 
 
@@ -143,7 +148,7 @@ class H5lzf(H5CompressionConfig):
     """
 
     compression_filter = attr.ib(default=H5CompressionFilter.LZF)
-    compression = attr.ib(default='lzf')
+    compression = attr.ib(default="lzf")
     compression_opts = attr.ib(default=None)
 
     @compression_opts.validator
@@ -163,7 +168,7 @@ class H5gzip(H5CompressionConfig):
     """
 
     compression_filter = attr.ib(default=H5CompressionFilter.GZIP)
-    compression: str = attr.ib(default='gzip')
+    compression: str = attr.ib(default="gzip")
     aggression: int = attr.ib(default=4)
     compression_opts: int = attr.ib()
 
@@ -275,8 +280,9 @@ class H5blosc(H5bitshuffle):
     """
 
     compression_filter = attr.ib(default=H5CompressionFilter.BLOSC_LZ)
-    shuffle_id = attr.ib(default=BloscShuffle.SHUFFLE,
-                         validator=attr.validators.in_(BloscShuffle))
+    shuffle_id = attr.ib(
+        default=BloscShuffle.SHUFFLE, validator=attr.validators.in_(BloscShuffle)
+    )
     compression: int = attr.ib(default=32001)
     aggression: int = attr.ib(default=4)
     compression_opts = attr.ib()

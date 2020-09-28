@@ -5,14 +5,14 @@ import unittest
 
 from wagl import unittesting_tools as ut
 
-class TestRandomPixelLocations(unittest.TestCase):
 
+class TestRandomPixelLocations(unittest.TestCase):
     def test_non_2D(self):
         """
         Test that specifying a non 2D tuple raises a TypeEror.
         """
 
-        dims = (3,100,100)
+        dims = (3, 100, 100)
         self.assertRaises(TypeError, ut.random_pixel_locations, dims)
 
     def test_n_pixels(self):
@@ -21,10 +21,11 @@ class TestRandomPixelLocations(unittest.TestCase):
         The default return value is 100 pixels.
         """
 
-        dims = (100,100)
+        dims = (100, 100)
         idx = ut.random_pixel_locations(dims)
         n = idx[0].shape[0]
         self.assertTrue(n == 100)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

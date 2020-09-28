@@ -10,9 +10,9 @@ import re
 from enum import Enum
 
 
-POINT_FMT = 'POINT-{p}'
-ALBEDO_FMT = 'ALBEDO-{a}'
-POINT_ALBEDO_FMT = ''.join([POINT_FMT, '-', ALBEDO_FMT])
+POINT_FMT = "POINT-{p}"
+ALBEDO_FMT = "ALBEDO-{a}"
+POINT_ALBEDO_FMT = "".join([POINT_FMT, "-", ALBEDO_FMT])
 
 
 class Workflow(Enum):
@@ -35,9 +35,11 @@ class Workflow(Enum):
         for a given Workflow.<option>.
         """
         atmos_var = list(AtmosphericCoefficients)
-        fmap = {Workflow.STANDARD: atmos_var,
-                Workflow.NBAR: atmos_var[0:8],
-                Workflow.SBT: atmos_var[8:]}
+        fmap = {
+            Workflow.STANDARD: atmos_var,
+            Workflow.NBAR: atmos_var[0:8],
+            Workflow.SBT: atmos_var[8:],
+        }
         return fmap.get(self)
 
     @property
@@ -47,9 +49,11 @@ class Workflow(Enum):
         evaluations for a given Workflow.<option>.
         """
         albs = list(Albedos)
-        amap = {Workflow.STANDARD: albs,
-                Workflow.NBAR: albs[0:-1],
-                Workflow.SBT: [albs[-1]]}
+        amap = {
+            Workflow.STANDARD: albs,
+            Workflow.NBAR: albs[0:-1],
+            Workflow.SBT: [albs[-1]],
+        }
         return amap.get(self)
 
     @property
@@ -59,9 +63,11 @@ class Workflow(Enum):
         Workflow.<option>.
         """
         products = list(ArdProducts)
-        amap = {Workflow.STANDARD: products,
-                Workflow.NBAR: products[0:-1],
-                Workflow.SBT: [products[-1]]}
+        amap = {
+            Workflow.STANDARD: products,
+            Workflow.NBAR: products[0:-1],
+            Workflow.SBT: [products[-1]],
+        }
         return amap.get(self)
 
 
@@ -84,92 +90,92 @@ class DatasetName(Enum):
     """
 
     # wagl.ancillary
-    COORDINATOR = 'COORDINATOR'
-    DEWPOINT_TEMPERATURE = 'DEWPOINT-TEMPERATURE'
-    TEMPERATURE_2M = 'TEMPERATURE-2METRE'
-    SURFACE_PRESSURE = 'SURFACE-PRESSURE'
-    SURFACE_GEOPOTENTIAL = 'SURFACE-GEOPOTENTIAL-HEIGHT'
-    SURFACE_RELATIVE_HUMIDITY = 'SURFACE-RELATIVE-HUMIDITY'
-    GEOPOTENTIAL = 'GEO-POTENTIAL'
-    TEMPERATURE = 'TEMPERATURE'
-    RELATIVE_HUMIDITY = 'RELATIVE-HUMIDITY'
-    ATMOSPHERIC_PROFILE = 'ATMOSPHERIC-PROFILE'
-    AEROSOL = 'AEROSOL'
-    WATER_VAPOUR = 'WATER-VAPOUR'
-    OZONE = 'OZONE'
-    ELEVATION = 'ELEVATION'
+    COORDINATOR = "COORDINATOR"
+    DEWPOINT_TEMPERATURE = "DEWPOINT-TEMPERATURE"
+    TEMPERATURE_2M = "TEMPERATURE-2METRE"
+    SURFACE_PRESSURE = "SURFACE-PRESSURE"
+    SURFACE_GEOPOTENTIAL = "SURFACE-GEOPOTENTIAL-HEIGHT"
+    SURFACE_RELATIVE_HUMIDITY = "SURFACE-RELATIVE-HUMIDITY"
+    GEOPOTENTIAL = "GEO-POTENTIAL"
+    TEMPERATURE = "TEMPERATURE"
+    RELATIVE_HUMIDITY = "RELATIVE-HUMIDITY"
+    ATMOSPHERIC_PROFILE = "ATMOSPHERIC-PROFILE"
+    AEROSOL = "AEROSOL"
+    WATER_VAPOUR = "WATER-VAPOUR"
+    OZONE = "OZONE"
+    ELEVATION = "ELEVATION"
     BRDF_FMT = "BRDF-{parameter}-{band_name}"
-    ECMWF_PATH_FMT = pjoin('{product}', '{year}', 'tif', '{product}_*.tif')
+    ECMWF_PATH_FMT = pjoin("{product}", "{year}", "tif", "{product}_*.tif")
 
     # wagl.longitude_latitude_arrays
-    LON = 'LONGITUDE'
-    LAT = 'LATITUDE'
+    LON = "LONGITUDE"
+    LAT = "LATITUDE"
 
     # wagl.satellite_solar_angles
-    SATELLITE_VIEW = 'SATELLITE-VIEW'
-    SATELLITE_AZIMUTH = 'SATELLITE-AZIMUTH'
-    SOLAR_ZENITH = 'SOLAR-ZENITH'
-    SOLAR_ZENITH_CHANNEL = 'SOLAR-ZENITH-CHANNEL'
-    SOLAR_AZIMUTH = 'SOLAR-AZIMUTH'
-    RELATIVE_AZIMUTH = 'RELATIVE-AZIMUTH'
-    TIME = 'TIME-DELTA'
-    CENTRELINE = 'CENTRELINE'
-    BOXLINE = 'BOXLINE'
-    SPHEROID = 'SPHEROID'
-    ORBITAL_ELEMENTS = 'ORBITAL-ELEMENTS'
-    SATELLITE_MODEL = 'SATELLITE-MODEL'
-    SATELLITE_TRACK = 'SATELLITE-TRACK'
-    GENERIC = 'GENERIC'
+    SATELLITE_VIEW = "SATELLITE-VIEW"
+    SATELLITE_AZIMUTH = "SATELLITE-AZIMUTH"
+    SOLAR_ZENITH = "SOLAR-ZENITH"
+    SOLAR_ZENITH_CHANNEL = "SOLAR-ZENITH-CHANNEL"
+    SOLAR_AZIMUTH = "SOLAR-AZIMUTH"
+    RELATIVE_AZIMUTH = "RELATIVE-AZIMUTH"
+    TIME = "TIME-DELTA"
+    CENTRELINE = "CENTRELINE"
+    BOXLINE = "BOXLINE"
+    SPHEROID = "SPHEROID"
+    ORBITAL_ELEMENTS = "ORBITAL-ELEMENTS"
+    SATELLITE_MODEL = "SATELLITE-MODEL"
+    SATELLITE_TRACK = "SATELLITE-TRACK"
+    GENERIC = "GENERIC"
 
     # wagl.incident_exiting_angles
-    INCIDENT = 'INCIDENT-ANGLE'
-    AZIMUTHAL_INCIDENT = 'AZIMUTHAL-INCIDENT'
-    EXITING = 'EXITING-ANGLE'
-    AZIMUTHAL_EXITING = 'AZIMUTHAL-EXITING'
-    RELATIVE_SLOPE = 'RELATIVE-SLOPE'
+    INCIDENT = "INCIDENT-ANGLE"
+    AZIMUTHAL_INCIDENT = "AZIMUTHAL-INCIDENT"
+    EXITING = "EXITING-ANGLE"
+    AZIMUTHAL_EXITING = "AZIMUTHAL-EXITING"
+    RELATIVE_SLOPE = "RELATIVE-SLOPE"
 
     # wagl.reflectance
-    REFLECTANCE_FMT = 'REFLECTANCE/{product}/{band_name}'
+    REFLECTANCE_FMT = "REFLECTANCE/{product}/{band_name}"
 
     # wagl.temperature
-    TEMPERATURE_FMT = 'THERMAL/{product}/{band_name}'
+    TEMPERATURE_FMT = "THERMAL/{product}/{band_name}"
 
     # wagl.terrain_shadow_masks
-    SELF_SHADOW = 'SELF-SHADOW'
-    CAST_SHADOW_FMT = 'CAST-SHADOW-{source}'
-    COMBINED_SHADOW = 'COMBINED-TERRAIN-SHADOW'
+    SELF_SHADOW = "SELF-SHADOW"
+    CAST_SHADOW_FMT = "CAST-SHADOW-{source}"
+    COMBINED_SHADOW = "COMBINED-TERRAIN-SHADOW"
 
     # wagl.slope_aspect
-    SLOPE = 'SLOPE'
-    ASPECT = 'ASPECT'
+    SLOPE = "SLOPE"
+    ASPECT = "ASPECT"
 
     # wagl.dsm
-    DSM = 'DSM'
-    DSM_SMOOTHED = 'DSM-SMOOTHED'
+    DSM = "DSM"
+    DSM_SMOOTHED = "DSM-SMOOTHED"
 
     # wagl.interpolation
-    INTERPOLATION_FMT = '{coefficient}/{band_name}'
+    INTERPOLATION_FMT = "{coefficient}/{band_name}"
 
     # wagl.modtran
-    MODTRAN_INPUT = 'MODTRAN-INPUT-DATA'
-    FLUX = 'FLUX'
-    ALTITUDES = 'ALTITUDES'
-    SOLAR_IRRADIANCE = 'SOLAR-IRRADIANCE'
-    UPWARD_RADIATION_CHANNEL = 'UPWARD-RADIATION-CHANNEL'
-    DOWNWARD_RADIATION_CHANNEL = 'DOWNWARD-RADIATION-CHANNEL'
-    CHANNEL = 'CHANNEL'
-    NBAR_COEFFICIENTS = 'NBAR-COEFFICIENTS'
-    SBT_COEFFICIENTS = 'SBT-COEFFICIENTS'
+    MODTRAN_INPUT = "MODTRAN-INPUT-DATA"
+    FLUX = "FLUX"
+    ALTITUDES = "ALTITUDES"
+    SOLAR_IRRADIANCE = "SOLAR-IRRADIANCE"
+    UPWARD_RADIATION_CHANNEL = "UPWARD-RADIATION-CHANNEL"
+    DOWNWARD_RADIATION_CHANNEL = "DOWNWARD-RADIATION-CHANNEL"
+    CHANNEL = "CHANNEL"
+    NBAR_COEFFICIENTS = "NBAR-COEFFICIENTS"
+    SBT_COEFFICIENTS = "SBT-COEFFICIENTS"
 
     # wagl.pq
-    PQ_FMT = 'PIXEL-QUALITY/{produt}/PIXEL-QUALITY'
+    PQ_FMT = "PIXEL-QUALITY/{produt}/PIXEL-QUALITY"
 
     # metadata
-    METADATA = 'METADATA'
-    CURRENT_METADATA = 'CURRENT'
-    NBAR_YAML = 'METADATA/NBAR-METADATA'
-    PQ_YAML = 'METADATA/PQ-METADATA'
-    SBT_YAML = 'METADATA/SBT-METADATA'
+    METADATA = "METADATA"
+    CURRENT_METADATA = "CURRENT"
+    NBAR_YAML = "METADATA/NBAR-METADATA"
+    PQ_YAML = "METADATA/PQ-METADATA"
+    SBT_YAML = "METADATA/SBT-METADATA"
 
 
 class GroupName(Enum):
@@ -178,21 +184,21 @@ class GroupName(Enum):
     for creating and accessing throughout the code base.
     """
 
-    LON_LAT_GROUP = 'LONGITUDE-LATITUDE'
-    SAT_SOL_GROUP = 'SATELLITE-SOLAR'
-    ANCILLARY_GROUP = 'ANCILLARY'
-    ANCILLARY_AVG_GROUP = 'AVERAGED-ANCILLARY'
-    ATMOSPHERIC_INPUTS_GRP = 'ATMOSPHERIC-INPUTS'
-    ATMOSPHERIC_RESULTS_GRP = 'ATMOSPHERIC-RESULTS'
-    COEFFICIENTS_GROUP = 'ATMOSPHERIC-COEFFICIENTS'
-    INTERP_GROUP = 'INTERPOLATED-ATMOSPHERIC-COEFFICIENTS'
-    ELEVATION_GROUP = 'ELEVATION'
-    SLP_ASP_GROUP = 'SLOPE-ASPECT'
-    INCIDENT_GROUP = 'INCIDENT-ANGLES'
-    EXITING_GROUP = 'EXITING-ANGLES'
-    REL_SLP_GROUP = 'RELATIVE-SLOPE'
-    SHADOW_GROUP = 'SHADOW-MASKS'
-    STANDARD_GROUP = 'STANDARDISED-PRODUCTS'
+    LON_LAT_GROUP = "LONGITUDE-LATITUDE"
+    SAT_SOL_GROUP = "SATELLITE-SOLAR"
+    ANCILLARY_GROUP = "ANCILLARY"
+    ANCILLARY_AVG_GROUP = "AVERAGED-ANCILLARY"
+    ATMOSPHERIC_INPUTS_GRP = "ATMOSPHERIC-INPUTS"
+    ATMOSPHERIC_RESULTS_GRP = "ATMOSPHERIC-RESULTS"
+    COEFFICIENTS_GROUP = "ATMOSPHERIC-COEFFICIENTS"
+    INTERP_GROUP = "INTERPOLATED-ATMOSPHERIC-COEFFICIENTS"
+    ELEVATION_GROUP = "ELEVATION"
+    SLP_ASP_GROUP = "SLOPE-ASPECT"
+    INCIDENT_GROUP = "INCIDENT-ANGLES"
+    EXITING_GROUP = "EXITING-ANGLES"
+    REL_SLP_GROUP = "RELATIVE-SLOPE"
+    SHADOW_GROUP = "SHADOW-MASKS"
+    STANDARD_GROUP = "STANDARDISED-PRODUCTS"
 
 
 class Method(Enum):
@@ -213,9 +219,9 @@ class BrdfModelParameters(Enum):
     Defines the BRDF Parameters used in BRDF correction.
     """
 
-    ISO = 'ISO'
-    VOL = 'VOL'
-    GEO = 'GEO'
+    ISO = "ISO"
+    VOL = "VOL"
+    GEO = "GEO"
 
 
 class BrdfDirectionalParameters(Enum):
@@ -223,8 +229,8 @@ class BrdfDirectionalParameters(Enum):
     Defines the BRDF Parameters used in BRDF correction.
     """
 
-    ALPHA_1 = 'ALPHA-1'
-    ALPHA_2 = 'ALPHA-2'
+    ALPHA_1 = "ALPHA-1"
+    ALPHA_2 = "ALPHA-2"
 
 
 class ArdProducts(Enum):
@@ -232,10 +238,10 @@ class ArdProducts(Enum):
     Defines the output ARD products that wagl produces.
     """
 
-    NBAR = 'NBAR'
-    NBART = 'NBART'
-    LAMBERTIAN = 'LAMBERTIAN'
-    SBT = 'SBT'
+    NBAR = "NBAR"
+    NBART = "NBART"
+    LAMBERTIAN = "LAMBERTIAN"
+    SBT = "SBT"
 
 
 class Albedos(Enum):
@@ -243,8 +249,8 @@ class Albedos(Enum):
     Defines the albedo labels that wagl uses.
     """
 
-    ALBEDO_0 = '0'
-    ALBEDO_TH = 'TH'
+    ALBEDO_0 = "0"
+    ALBEDO_TH = "TH"
 
 
 class AtmosphericCoefficients(Enum):  # param, coeff, vari... what to use
@@ -252,18 +258,18 @@ class AtmosphericCoefficients(Enum):  # param, coeff, vari... what to use
     Defines the atmospheric coefficient names that wagl uses.
     """
 
-    FS = 'FS'
-    FV = 'FV'
-    A = 'A'
-    B = 'B'
-    S = 'S'
-    DIR = 'DIR'
-    DIF = 'DIF'
-    TS = 'TS'
-    PATH_UP = 'PATH-UP'
-    PATH_DOWN = 'PATH-DOWN'
-    TRANSMITTANCE_UP = 'TRANSMITTANCE-UP'
-    ESUN = 'ESUN'
+    FS = "FS"
+    FV = "FV"
+    A = "A"
+    B = "B"
+    S = "S"
+    DIR = "DIR"
+    DIF = "DIF"
+    TS = "TS"
+    PATH_UP = "PATH-UP"
+    PATH_DOWN = "PATH-DOWN"
+    TRANSMITTANCE_UP = "TRANSMITTANCE-UP"
+    ESUN = "ESUN"
 
 
 class TrackIntersection(Enum):
@@ -285,8 +291,8 @@ class WaterVapourTier(Enum):
 
     FALLBACK_DEFAULT = 0  # default value if everything fails
     FALLBACK_DATASET = 1  # averages for each hourly period in the archive
-    DEFINITIVE = 2        # value taken from date of acquisition
-    USER = 3              # user specified
+    DEFINITIVE = 2  # value taken from date of acquisition
+    USER = 3  # user specified
 
 
 class BrdfTier(Enum):
@@ -297,8 +303,8 @@ class BrdfTier(Enum):
 
     FALLBACK_DEFAULT = 0  # default value if everything fails
     FALLBACK_DATASET = 1  # averages for each day of year over the entire archive
-    DEFINITIVE = 2        # value taken from date of acquisition
-    USER = 3              # user specified
+    DEFINITIVE = 2  # value taken from date of acquisition
+    USER = 3  # user specified
 
 
 class AerosolTier(Enum):
@@ -307,11 +313,11 @@ class AerosolTier(Enum):
     The higher the value, the higher the precedence.
     """
 
-    FALLBACK_DEFAULT = 0      # default value is everything fails
-    AATSR_CMP_MONTH = 1       # monthly composites for all years i.e. jun 2002, jun 2003
+    FALLBACK_DEFAULT = 0  # default value is everything fails
+    AATSR_CMP_MONTH = 1  # monthly composites for all years i.e. jun 2002, jun 2003
     AATSR_CMP_YEAR_MONTH = 2  # composite for all data within a given month and year
-    AATSR_PIX = 3             # value taken from date of acquisition
-    USER = 4                  # user specified
+    AATSR_PIX = 3  # value taken from date of acquisition
+    USER = 4  # user specified
 
 
 class OzoneTier(Enum):
@@ -321,7 +327,7 @@ class OzoneTier(Enum):
     """
 
     DEFINITIVE = 0  # value taken from dataset
-    USER = 1        # user specified
+    USER = 1  # user specified
 
 
 class PQbits(Enum):
@@ -372,11 +378,11 @@ class PQAConstants:
         may change to be an ordered list, ie 1-n_bands.
         """
         saturation = {
-            'TM': ['1', '2', '3', '4', '5', '6', '7'],
-            'ETM+': ['1', '2', '3', '4', '5', '61', '62', '7'],
-            'OLI_TIRS': ['2', '3', '4', '5', '6', '7', '10', '11'],
-            'OLI': ['2', '3', '4', '5', '6', '7'],
-            'TIRS': ['10', '11']
+            "TM": ["1", "2", "3", "4", "5", "6", "7"],
+            "ETM+": ["1", "2", "3", "4", "5", "61", "62", "7"],
+            "OLI_TIRS": ["2", "3", "4", "5", "6", "7", "10", "11"],
+            "OLI": ["2", "3", "4", "5", "6", "7"],
+            "TIRS": ["10", "11"],
         }
 
         self.saturation_bands = saturation[self.sensor]
@@ -388,11 +394,11 @@ class PQAConstants:
         set_saturation_bands() function.
         """
         bits = {
-            'TM': [0, 1, 2, 3, 4, 5, 7],
-            'ETM+': [0, 1, 2, 3, 4, 5, 6, 7],
-            'OLI_TIRS': [0, 1, 2, 3, 4, 7, 5, 6],
-            'OLI': [0, 1, 2, 3, 4, 7],
-            'TIRS': [5, 6]
+            "TM": [0, 1, 2, 3, 4, 5, 7],
+            "ETM+": [0, 1, 2, 3, 4, 5, 6, 7],
+            "OLI_TIRS": [0, 1, 2, 3, 4, 7, 5, 6],
+            "OLI": [0, 1, 2, 3, 4, 7],
+            "TIRS": [5, 6],
         }
 
         self.saturation_bits = bits[self.sensor]
@@ -475,11 +481,11 @@ class PQAConstants:
         Set the availble bands for a given sensor.
         """
         band_numbers = {
-            'TM': ['1', '2', '3', '4', '5', '6', '7'],
-            'ETM+': ['1', '2', '3', '4', '5', '61', '62', '7'],
-            'OLI_TIRS': ['1', '2', '3', '4', '5', '6', '7', '9', '10', '11'],
-            'OLI': ['1', '2', '3', '4', '5', '6', '7', '9'],
-            'TIRS': ['10', '11']
+            "TM": ["1", "2", "3", "4", "5", "6", "7"],
+            "ETM+": ["1", "2", "3", "4", "5", "61", "62", "7"],
+            "OLI_TIRS": ["1", "2", "3", "4", "5", "6", "7", "9", "10", "11"],
+            "OLI": ["1", "2", "3", "4", "5", "6", "7", "9"],
+            "TIRS": ["10", "11"],
         }
 
         self.available_bands = band_numbers[self.sensor]
@@ -500,7 +506,7 @@ class PQAConstants:
         algorithm will be run. This is so due to the algorithm needing both
         spectral and temperature arrays.
         """
-        sensor_list = ['TM', 'ETM+', 'OLI_TIRS']
+        sensor_list = ["TM", "ETM+", "OLI_TIRS"]
         self.run_cloud_shadow = bool(self.sensor in sensor_list)
 
     def set_run_cloud(self):
@@ -509,7 +515,7 @@ class PQAConstants:
         algorithm will be run. This is so due to the algorithm needing
         both spectral and temperature arrays.
         """
-        sensor_list = ['TM', 'ETM+', 'OLI_TIRS']
+        sensor_list = ["TM", "ETM+", "OLI_TIRS"]
         self.run_cloud = bool(self.sensor in sensor_list)
 
     def set_olitirs(self):
@@ -520,7 +526,7 @@ class PQAConstants:
         the coastal aerosol band, but is automatcally read by the
         ReadAsArray() method.
         """
-        self.oli_tirs = bool(self.sensor == 'OLI_TIRS')
+        self.oli_tirs = bool(self.sensor == "OLI_TIRS")
 
     def set_thermal_band(self):
         """
@@ -529,11 +535,10 @@ class PQAConstants:
         corresponding to the band number for a given sensors thermal band.
         If no band is found, then a string is returned.
         """
-        self.thermal_band = {
-            'TM': '6',
-            'ETM+': '61',
-            'OLI_TIRS': '10'
-        }.get(self.sensor, 'Error! No Thermal Band Found.')
+        self.thermal_band = {"TM": "6", "ETM+": "61", "OLI_TIRS": "10"}.get(
+            self.sensor, "Error! No Thermal Band Found."
+        )
+
 
 def combine_satellite_sensor(satellite, sensor):
     """
@@ -543,9 +548,9 @@ def combine_satellite_sensor(satellite, sensor):
     """
     # NOTE: GA Landsat products use both '-' and '_' as a seperator
     # Remove any occurences of - and _ then convert to lowercase
-    satellite_name = re.sub('[-_]', '', satellite).lower()
-    sensor_name = re.sub('[-_]', '', sensor).lower()
-    return ''.join((satellite_name, sensor_name))
+    satellite_name = re.sub("[-_]", "", satellite).lower()
+    sensor_name = re.sub("[-_]", "", sensor).lower()
+    return "".join((satellite_name, sensor_name))
 
 
 def sbt_bands(satellite, sensor):
@@ -555,8 +560,10 @@ def sbt_bands(satellite, sensor):
     """
     combined = combine_satellite_sensor(satellite, sensor)
 
-    lookup = {'landsat5tm': ['6'],
-              'landsat7etm+': ['61', '62'],
-              'landsat8olitirs': ['10']} # band 11 is not stable
+    lookup = {
+        "landsat5tm": ["6"],
+        "landsat7etm+": ["61", "62"],
+        "landsat8olitirs": ["10"],
+    }  # band 11 is not stable
 
     return lookup.get(combined, [])
