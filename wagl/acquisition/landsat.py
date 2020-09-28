@@ -16,22 +16,33 @@ class LandsatAcquisition(Acquisition):
 
     """A Landsat acquisition."""
 
-    def __init__(self, pathname, uri, acquisition_datetime, band_name='BAND 1',
-                 band_id='1', metadata=None):
+    def __init__(
+        self,
+        pathname,
+        uri,
+        acquisition_datetime,
+        band_name="BAND 1",
+        band_id="1",
+        metadata=None,
+    ):
         self.min_radiance = 0
         self.max_radiance = 1
         self.min_quantize = 0
         self.max_quantize = 1
         self.__data = {}  # Imagery data cache
 
-        super(LandsatAcquisition, self).__init__(pathname, uri,
-                                                 acquisition_datetime,
-                                                 band_name=band_name,
-                                                 band_id=band_id,
-                                                 metadata=metadata)
+        super(LandsatAcquisition, self).__init__(
+            pathname,
+            uri,
+            acquisition_datetime,
+            band_name=band_name,
+            band_id=band_id,
+            metadata=metadata,
+        )
 
-        self._gain = ((self.max_radiance - self.min_radiance) /
-                      (self.max_quantize - self.min_quantize))
+        self._gain = (self.max_radiance - self.min_radiance) / (
+            self.max_quantize - self.min_quantize
+        )
         self._bias = self.max_radiance - (self.gain * self.max_quantize)
 
     @property
@@ -52,22 +63,23 @@ class LandsatAcquisition(Acquisition):
         """
         Retrieves data from source imagery or internal cache if tar
         """
-        file_suffix = self.uri.split('!')[0].split('.', 1)
-        
+        file_suffix = self.uri.split("!")[0].split(".", 1)
+
         # Check if source imagery directly accessible
-        if len(file_suffix) == 1 or 'tar' not in file_suffix[1]:
+        if len(file_suffix) == 1 or "tar" not in file_suffix[1]:
             return super().data(out, window, masked)
 
         # Check if source imagery is cached
-        if self.__data.get((masked, )) is None:
-            self.__data[(masked, )] = super().data(masked=masked)
+        if self.__data.get((masked,)) is None:
+            self.__data[(masked,)] = super().data(masked=masked)
 
         # Retrieve data from cache
         if window:
-            out = self.__data[(masked, )][
-                window[0][0]:window[0][1], window[1][0]:window[1][1]].copy()
+            out = self.__data[(masked,)][
+                window[0][0] : window[0][1], window[1][0] : window[1][1]
+            ].copy()
         else:
-            out = self.__data[(masked, )].copy()
+            out = self.__data[(masked,)].copy()
 
         return out
 
@@ -99,18 +111,28 @@ class Landsat5Acquisition(LandsatAcquisition):
 
     """ Landsat 5 acquisition. """
 
-    def __init__(self, pathname, uri, acquisition_datetime, band_name='BAND 1',
-                 band_id='1', metadata=None):
-        super(Landsat5Acquisition, self).__init__(pathname, uri,
-                                                  acquisition_datetime,
-                                                  band_name=band_name,
-                                                  band_id=band_id,
-                                                  metadata=metadata)
+    def __init__(
+        self,
+        pathname,
+        uri,
+        acquisition_datetime,
+        band_name="BAND 1",
+        band_id="1",
+        metadata=None,
+    ):
+        super(Landsat5Acquisition, self).__init__(
+            pathname,
+            uri,
+            acquisition_datetime,
+            band_name=band_name,
+            band_id=band_id,
+            metadata=metadata,
+        )
 
-        self.platform_id = 'LANDSAT_5'
-        self.sensor_id = 'TM'
-        self.tle_format = 'l5_%4d%s_norad.txt'
-        self.tag = 'LS5'
+        self.platform_id = "LANDSAT_5"
+        self.sensor_id = "TM"
+        self.tle_format = "l5_%4d%s_norad.txt"
+        self.tag = "LS5"
         self.altitude = 705000.0
         self.inclination = 1.7139133254584316445390643346558
         self.omega = 0.001059
@@ -119,26 +141,36 @@ class Landsat5Acquisition(LandsatAcquisition):
         self.maximum_view_angle = 9.0
 
         self._norad_id = 14780
-        self._classification_type = 'U'
-        self._international_designator = '84021A'
+        self._classification_type = "U"
+        self._international_designator = "84021A"
 
 
 class Landsat7Acquisition(LandsatAcquisition):
 
     """ Landsat 7 acquisition. """
 
-    def __init__(self, pathname, uri, acquisition_datetime, band_name='BAND 1',
-                 band_id='1', metadata=None):
-        super(Landsat7Acquisition, self).__init__(pathname, uri,
-                                                  acquisition_datetime,
-                                                  band_name=band_name,
-                                                  band_id=band_id,
-                                                  metadata=metadata)
+    def __init__(
+        self,
+        pathname,
+        uri,
+        acquisition_datetime,
+        band_name="BAND 1",
+        band_id="1",
+        metadata=None,
+    ):
+        super(Landsat7Acquisition, self).__init__(
+            pathname,
+            uri,
+            acquisition_datetime,
+            band_name=band_name,
+            band_id=band_id,
+            metadata=metadata,
+        )
 
-        self.platform_id = 'LANDSAT_7'
-        self.sensor_id = 'ETM+'
-        self.tle_format = 'L7%4d%sASNNOR.S00'
-        self.tag = 'LS7'
+        self.platform_id = "LANDSAT_7"
+        self.sensor_id = "ETM+"
+        self.tle_format = "L7%4d%sASNNOR.S00"
+        self.tag = "LS7"
         self.altitude = 705000.0
         self.inclination = 1.7139133254584316445390643346558
         self.omega = 0.001059
@@ -147,8 +179,8 @@ class Landsat7Acquisition(LandsatAcquisition):
         self.maximum_view_angle = 9.0
 
         self._norad_id = 25682
-        self._classification_type = 'U'
-        self._international_designator = '99020A'
+        self._classification_type = "U"
+        self._international_designator = "99020A"
 
         self._gap_mask = None
 
@@ -161,8 +193,8 @@ class Landsat7Acquisition(LandsatAcquisition):
         can read it.
         """
         # mask files are contained in a sub-directory named 'gap-mask'
-        path = Path(self.uri.replace('!', '')[6:])
-        parts = path.name.split('_')
+        path = Path(self.uri.replace("!", "")[6:])
+        parts = path.name.split("_")
 
         # non-thermal bands are named
         # LE07_L1TP_092084_20110809_20161206_01_T1_B4.TIF
@@ -170,17 +202,17 @@ class Landsat7Acquisition(LandsatAcquisition):
         # LE07_L1TP_092084_20110809_20161206_01_T1_B6_VCID_1.TIF
         # so insert before index 7
         # (not ideal, but USGS could change the whole convention anyway
-        parts.insert(7, 'GM')
-        mask_name = Path('gap_mask', '{}.gz'.format('_'.join(parts)))
+        parts.insert(7, "GM")
+        mask_name = Path("gap_mask", "{}.gz".format("_".join(parts)))
 
         # open tarfile
         with tarfile.open(str(path.parent)) as tf:
             mem = tf.getmember(str(mask_name))
             fobj = tf.extractfile(mem)
             with gzip.open(fobj) as gz:
-                with tempfile.TemporaryDirectory(suffix='.gap-mask') as tmpd:
-                    out_fname = Path(tmpd, 'gap-mask.tif')
-                    with open(out_fname, 'wb') as src:
+                with tempfile.TemporaryDirectory(suffix=".gap-mask") as tmpd:
+                    out_fname = Path(tmpd, "gap-mask.tif")
+                    with open(out_fname, "wb") as src:
                         src.write(gz.read())
 
                     # read gap mask into memory
@@ -205,15 +237,13 @@ class Landsat7Acquisition(LandsatAcquisition):
             except (FileNotFoundError, KeyError):
                 # we might be dealing with an acquisition that is not
                 # a tarfile (legacy), or an acquisition with no gap masks
-                self._gap_mask = numpy.zeros((self.lines, self.samples),
-                                             dtype='bool')
+                self._gap_mask = numpy.zeros((self.lines, self.samples), dtype="bool")
 
         # Python style index
         if window is None:
             idx = (slice(None, None), slice(None, None))
         else:
-            idx = (slice(window[0][0], window[0][1]),
-                   slice(window[1][0], window[1][1]))
+            idx = (slice(window[0][0], window[0][1]), slice(window[1][0], window[1][1]))
 
         data = self.data(window=window)
 
@@ -244,18 +274,28 @@ class Landsat8Acquisition(LandsatAcquisition):
 
     """ Landsat 8 acquisition. """
 
-    def __init__(self, pathname, uri, acquisition_datetime, band_name='BAND 1',
-                 band_id='1', metadata=None):
-        super(Landsat8Acquisition, self).__init__(pathname, uri,
-                                                  acquisition_datetime,
-                                                  band_name=band_name,
-                                                  band_id=band_id,
-                                                  metadata=metadata)
+    def __init__(
+        self,
+        pathname,
+        uri,
+        acquisition_datetime,
+        band_name="BAND 1",
+        band_id="1",
+        metadata=None,
+    ):
+        super(Landsat8Acquisition, self).__init__(
+            pathname,
+            uri,
+            acquisition_datetime,
+            band_name=band_name,
+            band_id=band_id,
+            metadata=metadata,
+        )
 
-        self.platform_id = 'LANDSAT_8'
-        self.sensor_id = 'OLI'
-        self.tle_format = 'L8%4d%sASNNOR.S00'
-        self.tag = 'LS8'
+        self.platform_id = "LANDSAT_8"
+        self.sensor_id = "OLI"
+        self.tle_format = "L8%4d%sASNNOR.S00"
+        self.tag = "LS8"
         self.altitude = 705000.0
         self.inclination = 1.7139133254584316445390643346558
         self.omega = 0.001059
@@ -264,8 +304,8 @@ class Landsat8Acquisition(LandsatAcquisition):
         self.maximum_view_angle = 9.0
 
         self._norad_id = 39084
-        self._classification_type = 'U'
-        self._international_designator = '13008A'
+        self._classification_type = "U"
+        self._international_designator = "13008A"
 
     def radiance_data(self, window=None, out_no_data=-999, esun=None):
         """
@@ -279,7 +319,9 @@ class Landsat8Acquisition(LandsatAcquisition):
         """
 
         if not esun:
-            return super(Landsat8Acquisition, self).radiance_data(window, out_no_data, esun)
+            return super(Landsat8Acquisition, self).radiance_data(
+                window, out_no_data, esun
+            )
 
         data = self.data(window=window)
 
@@ -301,10 +343,10 @@ class Landsat8Acquisition(LandsatAcquisition):
 
 
 ACQUISITION_TYPE = {
-    'Landsat5_TM': Landsat5Acquisition,
-    'Landsat7_ETM+': Landsat7Acquisition,
-    'LANDSAT_5_TM': Landsat5Acquisition,
-    'LANDSAT_7_ETM+': Landsat7Acquisition,
-    'LANDSAT_8_OLI': Landsat8Acquisition,
-    'LANDSAT_8_OLI_TIRS': Landsat8Acquisition
+    "Landsat5_TM": Landsat5Acquisition,
+    "Landsat7_ETM+": Landsat7Acquisition,
+    "LANDSAT_5_TM": Landsat5Acquisition,
+    "LANDSAT_7_ETM+": Landsat7Acquisition,
+    "LANDSAT_8_OLI": Landsat8Acquisition,
+    "LANDSAT_8_OLI_TIRS": Landsat8Acquisition,
 }

@@ -22,21 +22,36 @@ class TestGetTile3(unittest.TestCase):
     # Input data for tests. These are tuples (samples, lines, xtile, ytile)
     # used as arguments to the generate_tiles function during testing.
 
-    normal_input = [(4000, 4000, 100, 100), (4001, 4001, 100, 100),
-                    (4001, 4003, 97, 101)]
+    normal_input = [(4000, 4000, 100, 100), (4001, 4001, 100, 100), (4001, 4003, 97, 101)]
 
-    boundary_input1 = [(4000, 1, 97, 101), (4000, 2, 101, 97),
-                       (1, 4000, 100, 100), (2, 4000, 100, 100),
-                       (1, 1, 97, 100), (2, 2, 100, 100),
-                       (1, 2, 100, 100), (2, 1, 100, 100)]
+    boundary_input1 = [
+        (4000, 1, 97, 101),
+        (4000, 2, 101, 97),
+        (1, 4000, 100, 100),
+        (2, 4000, 100, 100),
+        (1, 1, 97, 100),
+        (2, 2, 100, 100),
+        (1, 2, 100, 100),
+        (2, 1, 100, 100),
+    ]
 
-    boundary_input2 = [(37, 41, 10, 1), (37, 41, 10, 2),
-                       (40, 40, 1, 10), (40, 40, 2, 10),
-                       (40, 40, 1, 1), (40, 40, 2, 2),
-                       (40, 40, 1, 2), (40, 40, 1, 2)]
+    boundary_input2 = [
+        (37, 41, 10, 1),
+        (37, 41, 10, 2),
+        (40, 40, 1, 10),
+        (40, 40, 2, 10),
+        (40, 40, 1, 1),
+        (40, 40, 2, 2),
+        (40, 40, 1, 2),
+        (40, 40, 1, 2),
+    ]
 
-    exception_input1 = [(0, 4000, 97, 101), (4000, 0, 101, 97),
-                        (-1, 4001, 100, 100), (4001, -1, 101, 97)]
+    exception_input1 = [
+        (0, 4000, 97, 101),
+        (4000, 0, 101, 97),
+        (-1, 4001, 100, 100),
+        (4001, -1, 101, 97),
+    ]
 
     exception_input2 = [(4001, 4003, 0, 100), (4003, 4001, 100, 0)]
     # TODO have a test for negative tile sizes
@@ -59,13 +74,14 @@ class TestGetTile3(unittest.TestCase):
         """Test empty image:"""
         for (samples, lines, xtile, ytile) in self.exception_input1:
             tiles_list = list(generate_tiles(samples, lines, xtile, ytile))
-            self.assertEqual(tiles_list, [], 'Expected an empty tile list.')
+            self.assertEqual(tiles_list, [], "Expected an empty tile list.")
 
     def test_exception_2(self):
         """Test empty tiles:"""
         for (samples, lines, xtile, ytile) in self.exception_input2:
-            self.assertRaises(ZeroDivisionError, generate_tiles,
-                              samples, lines, xtile, ytile)
+            self.assertRaises(
+                ZeroDivisionError, generate_tiles, samples, lines, xtile, ytile
+            )
 
     def do_test(self, test_input):
         """Check sizes and coverage for a list of test input."""
@@ -81,14 +97,14 @@ class TestGetTile3(unittest.TestCase):
             yse, xse = tile
             ystart, yend = yse
             xstart, xend = xse
-            self.assertTrue(0 <= xstart < xend,
-                            'Tile empty - xcoord: ' + repr(tile))
-            self.assertTrue(0 <= ystart < yend,
-                            'Tile empty - y coord: ' + repr(tile))
-            self.assertLessEqual(xend - xstart, xtile,
-                                 'Tile too big - x coord: ' + repr(tile))
-            self.assertLessEqual(yend - ystart, ytile,
-                                 'Tile too big - y coord: ' + repr(tile))
+            self.assertTrue(0 <= xstart < xend, "Tile empty - xcoord: " + repr(tile))
+            self.assertTrue(0 <= ystart < yend, "Tile empty - y coord: " + repr(tile))
+            self.assertLessEqual(
+                xend - xstart, xtile, "Tile too big - x coord: " + repr(tile)
+            )
+            self.assertLessEqual(
+                yend - ystart, ytile, "Tile too big - y coord: " + repr(tile)
+            )
 
     def check_tiling(self, samples, lines, tiles_list):
         """Check the tiles in tiles_list for covarge and overlap."""
@@ -112,10 +128,8 @@ class TestGetTile3(unittest.TestCase):
 
         for (tag, flat_index) in zip(unique, unique_indices):
             index = numpy.unravel_index(flat_index, (lines, samples))
-            self.assertGreater(tag, 0,
-                               'Hole in coverage detected at ' + repr(index))
-            self.assertIn(tag, tag_dict,
-                          'Tile overlap detected at ' + repr(index))
+            self.assertGreater(tag, 0, "Hole in coverage detected at " + repr(index))
+            self.assertIn(tag, tag_dict, "Tile overlap detected at " + repr(index))
 
 
 def generate_tile_tags(tiles_list):
@@ -124,7 +138,7 @@ def generate_tile_tags(tiles_list):
     Returns a numpy array of the tags an a dictonary of tag->tile.
 
     """
-    max_tag = 2**31 - 1
+    max_tag = 2 ** 31 - 1
     tag_list = []
     tag_dict = {}
     for tile in tiles_list:
@@ -165,5 +179,6 @@ def run_the_tests():
     """Runs the tests defined in this module"""
     unittest.TextTestRunner(verbosity=2).run(the_suite())
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     run_the_tests()

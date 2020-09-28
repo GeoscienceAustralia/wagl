@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# flake8: noqa
+
 """
 Contains various HDF5/h5py wrapped utilities for writing various datasets
 such as images and tables, as well as attaching metadata.
@@ -19,18 +21,15 @@ from .compression import H5CompressionFilter, BloscCompression, BloscShuffle
 from .compression import H5CompressionConfig, H5lzf, H5gzip, H5zstandard
 from .compression import H5bitshuffle, H5mafisc, H5blosc
 
-DEFAULT_IMAGE_CLASS = {'CLASS': 'IMAGE',
-                       'IMAGE_VERSION': '1.2',
-                       'DISPLAY_ORIGIN': 'UL'}
+DEFAULT_IMAGE_CLASS = {"CLASS": "IMAGE", "IMAGE_VERSION": "1.2", "DISPLAY_ORIGIN": "UL"}
 
-DEFAULT_TABLE_CLASS = {'CLASS': 'TABLE',
-                       'VERSION': '0.2'}
+DEFAULT_TABLE_CLASS = {"CLASS": "TABLE", "VERSION": "0.2"}
 
-DEFAULT_SCALAR_CLASS = {'CLASS': 'SCALAR',
-                        'VERSION': '0.1'}
+DEFAULT_SCALAR_CLASS = {"CLASS": "SCALAR", "VERSION": "0.1"}
 
 
 VLEN_STRING = h5py.special_dtype(vlen=str)
+
 
 def _fixed_str_size(data):
     """
@@ -42,7 +41,7 @@ def _fixed_str_size(data):
     unsupported by HDF5.
     """
     str_sz = data.str.len().max()
-    return '|S{}'.format(str_sz)
+    return "|S{}".format(str_sz)
 
 
 def safeguard_dtype(datatype):
@@ -77,7 +76,7 @@ def attach_image_attributes(dataset, attrs=None):
     attach_attributes(dataset, attrs)
 
 
-def attach_table_attributes(dataset, title='Table', attrs=None):
+def attach_table_attributes(dataset, title="Table", attrs=None):
     """
     Attaches attributes to an HDF5 `TABLE` Class dataset.
 
@@ -95,10 +94,10 @@ def attach_table_attributes(dataset, title='Table', attrs=None):
     for key in DEFAULT_TABLE_CLASS:
         dataset.attrs[key] = DEFAULT_TABLE_CLASS[key]
 
-    dataset.attrs['TITLE'] = title
+    dataset.attrs["TITLE"] = title
 
     # column names
-    col_fmt = 'FIELD_{}_NAME'
+    col_fmt = "FIELD_{}_NAME"
     columns = dataset.dtype.names
     for i, col in enumerate(columns):
         dataset.attrs[col_fmt.format(i)] = col
@@ -106,9 +105,15 @@ def attach_table_attributes(dataset, title='Table', attrs=None):
     attach_attributes(dataset, attrs)
 
 
-def create_image_dataset(fid, dataset_name, shape, dtype,
-                         compression=H5CompressionFilter.LZF, attrs=None,
-                         filter_opts=None):
+def create_image_dataset(
+    fid,
+    dataset_name,
+    shape,
+    dtype,
+    compression=H5CompressionFilter.LZF,
+    attrs=None,
+    filter_opts=None,
+):
     """
     Initialises a HDF5 dataset populated with some basic attributes
     that detail the Image specification.
@@ -156,8 +161,14 @@ def create_image_dataset(fid, dataset_name, shape, dtype,
     return dset
 
 
-def write_h5_image(data, dset_name, group, compression=H5CompressionFilter.LZF,
-                   attrs=None, filter_opts=None):
+def write_h5_image(
+    data,
+    dset_name,
+    group,
+    compression=H5CompressionFilter.LZF,
+    attrs=None,
+    filter_opts=None,
+):
     """
     Writes a `NumPy` array direct to a `h5py.Dataset` to the
     HDF5 IMAGE CLASS standard.
@@ -204,21 +215,25 @@ def write_h5_image(data, dset_name, group, compression=H5CompressionFilter.LZF,
 
     if data.dtype.names:
         for band_name in data.dtype.names:
-            attributes['{}_MINMAXRANGE'.format(band_name)] = [
+            attributes["{}_MINMAXRANGE".format(band_name)] = [
                 numpy.nanmin(data[band_name]),
-                numpy.nanmax(data[band_name])
+                numpy.nanmax(data[band_name]),
             ]
     else:
-        attributes['IMAGE_MINMAXRANGE'] = [
-            numpy.nanmin(data),
-            numpy.nanmax(data)
-        ]
+        attributes["IMAGE_MINMAXRANGE"] = [numpy.nanmin(data), numpy.nanmax(data)]
 
     attach_image_attributes(dset, attributes)
 
 
-def write_h5_table(data, dset_name, group, compression=H5CompressionFilter.LZF,
-                   title='Table', attrs=None, filter_opts=None):
+def write_h5_table(
+    data,
+    dset_name,
+    group,
+    compression=H5CompressionFilter.LZF,
+    title="Table",
+    attrs=None,
+    filter_opts=None,
+):
     """
     Writes a `NumPy` structured array to a HDF5 `compound` type
     dataset.
@@ -263,8 +278,15 @@ def write_h5_table(data, dset_name, group, compression=H5CompressionFilter.LZF,
     attach_table_attributes(dset, title, attrs)
 
 
-def write_dataframe(df, dset_name, group, compression=H5CompressionFilter.LZF,
-                    title='Table', attrs=None, filter_opts=None):
+def write_dataframe(
+    df,
+    dset_name,
+    group,
+    compression=H5CompressionFilter.LZF,
+    title="Table",
+    attrs=None,
+    filter_opts=None,
+):
     """
     Converts a `pandas.DataFrame` to a HDF5 `Table`, stored
     internall as a compound datatype.
@@ -307,26 +329,26 @@ def write_dataframe(df, dset_name, group, compression=H5CompressionFilter.LZF,
     # Ensure that any numeric name is converted to bytes
     dtype = []
     idx_names = []
-    default_label = 'level_{}'
+    default_label = "level_{}"
     dtype_metadata = {}
 
     # index datatypes
     for i, idx_name in enumerate(df.index.names):
         idx_data = df.index.get_level_values(i)
         if idx_name is None and len(df.index.names) == 1:
-            idx_name = 'index'
+            idx_name = "index"
         elif idx_name is None:
             idx_name = default_label.format(i)
         idx_names.append(idx_name)
         _dtype_name = idx_data.dtype.name
-        if 'datetime64' in _dtype_name:
+        if "datetime64" in _dtype_name:
             # Pandas supports timezones but numpy does not; remove timezone
-            _dtype_name = re.sub(r'\[ns(?:,[^\]]+)?\]', '[ns]', _dtype_name)
-        dtype_metadata['{}_dtype'.format(idx_name)] = _dtype_name
-        if _dtype_name == 'object':
+            _dtype_name = re.sub(r"\[ns(?:,[^\]]+)?\]", "[ns]", _dtype_name)
+        dtype_metadata["{}_dtype".format(idx_name)] = _dtype_name
+        if _dtype_name == "object":
             dtype.append((idx_name, VLEN_STRING))
-        elif 'datetime64' in _dtype_name:
-            dtype.append((idx_name, 'int64'))
+        elif "datetime64" in _dtype_name:
+            dtype.append((idx_name, "int64"))
         else:
             dtype.append((idx_name, idx_data.dtype))
 
@@ -334,14 +356,14 @@ def write_dataframe(df, dset_name, group, compression=H5CompressionFilter.LZF,
     for i, val in enumerate(df.dtypes):
         col_name = df.columns[i]
         _dtype_name = val.name
-        if 'datetime64' in _dtype_name:
+        if "datetime64" in _dtype_name:
             # Pandas supports timezones but numpy does not; remove timezone
-            _dtype_name = re.sub(r'\[ns(?:,[^\]]+)?\]', '[ns]', _dtype_name)
-        dtype_metadata['{}_dtype'.format(col_name)] = _dtype_name
-        if _dtype_name == 'object':
+            _dtype_name = re.sub(r"\[ns(?:,[^\]]+)?\]", "[ns]", _dtype_name)
+        dtype_metadata["{}_dtype".format(col_name)] = _dtype_name
+        if _dtype_name == "object":
             dtype.append((col_name, VLEN_STRING))
-        elif ('datetime64' in _dtype_name) or ('timedelta64' in _dtype_name):
-            dtype.append((col_name, 'int64'))
+        elif ("datetime64" in _dtype_name) or ("timedelta64" in _dtype_name):
+            dtype.append((col_name, "int64"))
         else:
             dtype.append((col_name, val))
 
@@ -351,8 +373,8 @@ def write_dataframe(df, dset_name, group, compression=H5CompressionFilter.LZF,
         filter_opts = {}
 
     kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
-    kwargs['shape'] = (df.shape[0],)
-    kwargs['dtype'] = dtype
+    kwargs["shape"] = (df.shape[0],)
+    kwargs["dtype"] = dtype
     dset = group.create_dataset(dset_name, **kwargs)
 
     # write the data
@@ -364,7 +386,7 @@ def write_dataframe(df, dset_name, group, compression=H5CompressionFilter.LZF,
             dset[idx_name] = data
         except (ValueError, TypeError):
             # forced to make a copies
-            dset[idx_name] = data.astype('S').astype([(idx_name, VLEN_STRING)])
+            dset[idx_name] = data.astype("S").astype([(idx_name, VLEN_STRING)])
 
     # column data
     for col in df.columns:
@@ -374,17 +396,16 @@ def write_dataframe(df, dset_name, group, compression=H5CompressionFilter.LZF,
             dset[col] = data
         except (ValueError, TypeError):
             # forced to make a copies
-            dset[col] = data.astype('S').astype([(col, VLEN_STRING)])
+            dset[col] = data.astype("S").astype([(col, VLEN_STRING)])
 
     # make a copy so as not to modify the users data
     attributes = {} if attrs is None else attrs.copy()
 
     # insert some basic metadata
-    attributes['index_names'] = numpy.array(idx_names, VLEN_STRING)
-    attributes['metadata'] = ('`Pandas.DataFrame` converted to HDF5 compound '
-                              'datatype.')
-    attributes['nrows'] = df.shape[0]
-    attributes['python_type'] = '`Pandas.DataFrame`'
+    attributes["index_names"] = numpy.array(idx_names, VLEN_STRING)
+    attributes["metadata"] = "`Pandas.DataFrame` converted to HDF5 compound " "datatype."
+    attributes["nrows"] = df.shape[0]
+    attributes["python_type"] = "`Pandas.DataFrame`"
     for key in dtype_metadata:
         attributes[key] = dtype_metadata[key]
     attach_table_attributes(dset, title=title, attrs=attributes)
@@ -415,16 +436,14 @@ def read_h5_table(fid, dataset_name, dataframe=True):
     idx_names = None
 
     # grab the index names if we have them
-    idx_names = dset.attrs.get('index_names')
+    idx_names = dset.attrs.get("index_names")
 
     if dataframe:
-        if dset.attrs.get('python_type') == '`Pandas.DataFrame`':
+        if dset.attrs.get("python_type") == "`Pandas.DataFrame`":
             col_names = dset.dtype.names
-            dtypes = [dset.attrs['{}_dtype'.format(name)] for name in
-                      col_names]
+            dtypes = [dset.attrs["{}_dtype".format(name)] for name in col_names]
             dtype = numpy.dtype(list(zip(col_names, dtypes)))
-            data = pandas.DataFrame.from_records(dset[:].astype(dtype),
-                                                 index=idx_names)
+            data = pandas.DataFrame.from_records(dset[:].astype(dtype), index=idx_names)
         else:
             data = pandas.DataFrame.from_records(dset[:], index=idx_names)
     else:
@@ -477,7 +496,7 @@ def create_external_link(fname, dataset_path, out_fname, new_dataset_path):
         A `str` containing the dataset path within `out_fname` that will
         link to `fname:dataset_path`.
     """
-    with h5py.File(out_fname, 'a') as fid:
+    with h5py.File(out_fname, "a") as fid:
         fid[new_dataset_path] = h5py.ExternalLink(fname, dataset_path)
 
 
@@ -522,38 +541,39 @@ def h5ls(h5_obj, verbose=False):
         If set to True, then print the attributes of each Group and
         Dataset. Default is False.
     """
+
     def custom_print(path):
         """
         A custom print function for dealing with HDF5 object
         types, and print formatting.
         """
         try:
-            pathname = normpath(ppjoin('/', path.decode('utf-8')))
+            pathname = normpath(ppjoin("/", path.decode("utf-8")))
         except AttributeError:
-            pathname = normpath(ppjoin('/', path))
+            pathname = normpath(ppjoin("/", path))
 
         obj = h5_obj[path]
         attrs = {k: v for k, v in obj.attrs.items()}
         if isinstance(obj, h5py.Group):
-            h5_type = '`Group`'
+            h5_type = "`Group`"
         elif isinstance(obj, h5py.Dataset):
-            class_name = obj.attrs.get('CLASS')
-            h5_class = '' if class_name is None else class_name
-            fmt = '`{}Dataset`' if class_name is None else '`{} Dataset`'
+            class_name = obj.attrs.get("CLASS")
+            h5_class = "" if class_name is None else class_name
+            fmt = "`{}Dataset`" if class_name is None else "`{} Dataset`"
             h5_type = fmt.format(h5_class)
         else:
-            h5_type = '`Other`' # we'll deal with links and references later
+            h5_type = "`Other`"  # we'll deal with links and references later
 
-        print('{path}\t{h5_type}'.format(path=pathname, h5_type=h5_type))
+        print("{path}\t{h5_type}".format(path=pathname, h5_type=h5_type))
         if verbose:
-            print('Attributes:')
+            print("Attributes:")
             pprint(attrs, width=100)
-            print('*'*80)
+            print("*" * 80)
 
     if isinstance(h5_obj, h5py.Dataset):
         custom_print(h5_obj.name)
     else:
-        root = h5py.h5g.open(h5_obj.id, b'.')
+        root = h5py.h5g.open(h5_obj.id, b".")
         root.links.visit(custom_print)
 
 
@@ -576,11 +596,11 @@ def read_scalar(group, dataset_name):
     """
     dataset = group[dataset_name]
     data = {k: v for k, v in dataset.attrs.items()}
-    data['value'] = dataset[()]
+    data["value"] = dataset[()]
     return data
 
 
-def find(h5_obj, dataset_class=''):
+def find(h5_obj, dataset_class=""):
     """
     Given an h5py `Group`, `File` (opened file id; fid),
     recursively list all objects or optionally only list
@@ -606,11 +626,12 @@ def find(h5_obj, dataset_class=''):
     :return:
         A `list` containing the pathname to all matching objects.
     """
+
     def _find(items, dataset_class, name, obj):
         """
         An internal utility to find objects matching `dataset_class`.
         """
-        if obj.attrs.get('CLASS') == dataset_class:
+        if obj.attrs.get("CLASS") == dataset_class:
             items.append(name)
 
     items = []

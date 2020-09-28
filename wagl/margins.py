@@ -31,8 +31,7 @@ class ImageMargins:
             assert top is None and bottom is None, msg
             self.left = self.right = self.top = self.bottom = left
         else:
-            msg = ("if right is not None then top and bottom must "
-                   "also not be None")
+            msg = "if right is not None then top and bottom must " "also not be None"
             assert top is not None and bottom is not None, msg
             self.left = left
             self.right = right
@@ -41,8 +40,9 @@ class ImageMargins:
 
     def __str__(self):
         msg = "ImageMargins({left}, {right}, {top}, {bottom})"
-        msg = msg.format(left=self.left, right=self.right, top=self.top,
-                         bottom=self.bottom)
+        msg = msg.format(
+            left=self.left, right=self.right, top=self.top, bottom=self.bottom
+        )
         return msg
 
 
@@ -55,7 +55,7 @@ def pixel_buffer(acquisition, distance=8000):
     The result of the number of pixels to buffer is rounded up to
     the next whole integer.
     For determining the approproate distance to use as a buffer
-    within your region of interest. You need to take into account 
+    within your region of interest. You need to take into account
     not just the highest elevation, but also steepest solar angle.
     For Australia, this was roughly 6.25km, and in order to be
     extra conservative, a default value of 8km was selected.

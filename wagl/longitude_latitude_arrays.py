@@ -97,20 +97,28 @@ def get_lat_coordinate(y, x, geobox, geo_crs=None, centre=False):
     return y
 
 
-def _create_lon_lat_grids(acquisition, out_fname=None,
-                          compression=H5CompressionFilter.LZF,
-                          filter_opts=None, depth=7):
+def _create_lon_lat_grids(
+    acquisition,
+    out_fname=None,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+    depth=7,
+):
     """
     A private wrapper for dealing with the internal custom workings of the
     multifile workflow.
     """
-    with h5py.File(out_fname, 'w') as fid:
+    with h5py.File(out_fname, "w") as fid:
         create_lon_lat_grids(acquisition, fid, compression, filter_opts, depth)
 
 
-def create_lon_lat_grids(acquisition, out_group=None,
-                         compression=H5CompressionFilter.LZF,
-                         filter_opts=None, depth=7):
+def create_lon_lat_grids(
+    acquisition,
+    out_group=None,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+    depth=7,
+):
     """
     Creates 2 by 2D NumPy arrays containing longitude and latitude
     co-ordinates for each array element.
@@ -130,7 +138,7 @@ def create_lon_lat_grids(acquisition, out_group=None,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :filter_opts:
         A dict of key value pairs available to the given configuration
@@ -153,13 +161,12 @@ def create_lon_lat_grids(acquisition, out_group=None,
     shape = geobox.get_shape_yx()
 
     # Initialise the array to contain the result
-    result = numpy.zeros(shape, dtype='float64')
+    result = numpy.zeros(shape, dtype="float64")
     interpolate_grid(result, lon_func, depth=depth, origin=(0, 0), shape=shape)
 
     # Initialise the output files
     if out_group is None:
-        fid = h5py.File('longitude-latitude.h5', 'w', driver='core',
-                        backing_store=False)
+        fid = h5py.File("longitude-latitude.h5", "w", driver="core", backing_store=False)
     else:
         fid = out_group
 
@@ -169,22 +176,24 @@ def create_lon_lat_grids(acquisition, out_group=None,
     grp = fid[GroupName.LON_LAT_GROUP.value]
 
     # define some base attributes for the image datasets
-    attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
-             'geotransform': geobox.transform.to_gdal(),
-             'description': LON_DESC}
+    attrs = {
+        "crs_wkt": geobox.crs.ExportToWkt(),
+        "geotransform": geobox.transform.to_gdal(),
+        "description": LON_DESC,
+    }
 
     if filter_opts is None:
         filter_opts = {}
 
-    filter_opts['chunks'] = acquisition.tile_size
+    filter_opts["chunks"] = acquisition.tile_size
     kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
     lon_dset = grp.create_dataset(DatasetName.LON.value, data=result, **kwargs)
     attach_image_attributes(lon_dset, attrs)
 
-    result = numpy.zeros(shape, dtype='float64')
+    result = numpy.zeros(shape, dtype="float64")
     interpolate_grid(result, lat_func, depth=depth, origin=(0, 0), shape=shape)
 
-    attrs['description'] = LAT_DESC
+    attrs["description"] = LAT_DESC
     lat_dset = grp.create_dataset(DatasetName.LAT.value, data=result, **kwargs)
     attach_image_attributes(lat_dset, attrs)
 
@@ -212,15 +221,19 @@ def create_grid(geobox, coord_fn, depth=7):
     shape = geobox.get_shape_yx()
 
     # Initialise the array to contain the result
-    arr = numpy.zeros(shape, dtype='float64')
+    arr = numpy.zeros(shape, dtype="float64")
     interpolate_grid(arr, func, depth=depth, origin=(0, 0), shape=shape)
 
     return arr
 
 
-def create_lon_grid(acquisition, out_fname=None,
-                    compression=H5CompressionFilter.LZF, filter_opts=None,
-                    depth=7):
+def create_lon_grid(
+    acquisition,
+    out_fname=None,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+    depth=7,
+):
     """Create longitude grid.
 
     :param acquisition:
@@ -239,7 +252,7 @@ def create_lon_grid(acquisition, out_fname=None,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :filter_opts:
         A dict of key value pairs available to the given configuration
@@ -255,22 +268,23 @@ def create_lon_grid(acquisition, out_fname=None,
     """
     # Initialise the output files
     if out_fname is None:
-        fid = h5py.File('longitude.h5', 'w', driver='core',
-                        backing_store=False)
+        fid = h5py.File("longitude.h5", "w", driver="core", backing_store=False)
     else:
-        fid = h5py.File(out_fname, 'w')
+        fid = h5py.File(out_fname, "w")
 
     geobox = acquisition.gridded_geo_box()
 
     # define some base attributes for the image datasets
-    attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
-             'geotransform': geobox.transform.to_gdal(),
-             'description': LON_DESC}
+    attrs = {
+        "crs_wkt": geobox.crs.ExportToWkt(),
+        "geotransform": geobox.transform.to_gdal(),
+        "description": LON_DESC,
+    }
 
     if filter_opts is None:
         filter_opts = {}
 
-    filter_opts['chunks'] = acquisition.tile_size
+    filter_opts["chunks"] = acquisition.tile_size
     kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
 
     lon_grid = create_grid(geobox, get_lon_coordinate, depth)
@@ -282,9 +296,13 @@ def create_lon_grid(acquisition, out_fname=None,
     return fid
 
 
-def create_lat_grid(acquisition, out_fname=None,
-                    compression=H5CompressionFilter.LZF, filter_opts=None,
-                    depth=7):
+def create_lat_grid(
+    acquisition,
+    out_fname=None,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+    depth=7,
+):
     """Create latitude grid.
 
     :param acquisition:
@@ -303,7 +321,7 @@ def create_lat_grid(acquisition, out_fname=None,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :filter_opts:
         A dict of key value pairs available to the given configuration
@@ -319,22 +337,23 @@ def create_lat_grid(acquisition, out_fname=None,
     """
     # Initialise the output files
     if out_fname is None:
-        fid = h5py.File('latitude.h5', 'w', driver='core',
-                        backing_store=False)
+        fid = h5py.File("latitude.h5", "w", driver="core", backing_store=False)
     else:
-        fid = h5py.File(out_fname, 'w')
+        fid = h5py.File(out_fname, "w")
 
     geobox = acquisition.gridded_geo_box()
 
     # define some base attributes for the image datasets
-    attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
-             'geotransform': geobox.transform.to_gdal(),
-             'description': LAT_DESC}
+    attrs = {
+        "crs_wkt": geobox.crs.ExportToWkt(),
+        "geotransform": geobox.transform.to_gdal(),
+        "description": LAT_DESC,
+    }
 
     if filter_opts is None:
         filter_opts = {}
 
-    filter_opts['chunks'] = acquisition.tile_size
+    filter_opts["chunks"] = acquisition.tile_size
     kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
 
     lat_grid = create_grid(geobox, get_lat_coordinate, depth)

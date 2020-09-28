@@ -1,7 +1,7 @@
 #!/bin/env python
 #
 # get Land/Sea mask from UTM dataset
-#-----------------------------------
+# -----------------------------------
 from __future__ import absolute_import, print_function
 import rasterio as rio
 import osr
@@ -25,14 +25,15 @@ def get_utm_zone(pos_longlat):
     """
 
     lon, lat = pos_longlat
-    z = int(lon/6) + 31
+    z = int(lon / 6) + 31
     if lat < 0:
         z = -z
     return z
 
 
-def get_land_sea_mask(gridded_geo_box, \
-        ancillary_path='/g/data/v10/eoancillarydata/Land_Sea_Rasters'):
+def get_land_sea_mask(
+    gridded_geo_box, ancillary_path="/g/data/v10/eoancillarydata/Land_Sea_Rasters"
+):
     """
     Return a land/sea 2D numpy boolean array in which Land = True, Sea = False
     for the supplied GriddedGeoBox and using the UTM projected data in the
@@ -46,12 +47,12 @@ def get_land_sea_mask(gridded_geo_box, \
     # get lat/long of geo_box origin
 
     to_crs = osr.SpatialReference()
-    to_crs.SetFromUserInput('EPSG:4326')
+    to_crs.SetFromUserInput("EPSG:4326")
     origin_longlat = gridded_geo_box.transform_coordinates(gridded_geo_box.origin, to_crs)
 
     # get Land/Sea data file for this bounding box
     utmZone = abs(get_utm_zone(origin_longlat))
-    utmDataPath = '%s/WORLDzone%d.tif' % (ancillary_path, utmZone)
+    utmDataPath = "%s/WORLDzone%d.tif" % (ancillary_path, utmZone)
 
     # read the land/sea data
     with rio.open(utmDataPath) as ds:
@@ -71,6 +72,7 @@ if __name__ == "__main__":
     # need this hack until set_epsilon patch v1.0.5
     # affine.set_epsilon(1e-9)
     import affine
+
     affine.EPSILON = 1e-9
     affine.EPSILON2 = 1e-18
 
@@ -90,7 +92,7 @@ if __name__ == "__main__":
     shape = (4000, 4000)
     origin = (130.0, -12.0)
 
-    corner = (shape[1]*scale+origin[0], origin[1]-shape[0]*scale)
+    corner = (shape[1] * scale + origin[0], origin[1] - shape[0] * scale)
     ggb = GriddedGeoBox(shape, origin, pixelsize=(scale, scale))
     print(ggb)
 
@@ -99,13 +101,12 @@ if __name__ == "__main__":
     geo_box = ggb.copy(crs="EPSG:32752")
     print(geo_box)
 
-
     # and get the mask
 
     mask = get_land_sea_mask(geo_box)
 
-    total_pixels = geo_box.shape[1]*geo_box.shape[0]
-    land_pixels = sum(sum(mask.astype('uint32')))
+    total_pixels = geo_box.shape[1] * geo_box.shape[0]
+    land_pixels = sum(sum(mask.astype("uint32")))
     sea_pixels = total_pixels - land_pixels
     sea_pct = 100.0 * sea_pixels / total_pixels
     land_pct = 100.0 * land_pixels / total_pixels
@@ -121,4 +122,4 @@ if __name__ == "__main__":
     # self.assertEqual(total_pixels, 16000000)
 
     print("land=%f%%, sea=%f%%" % (land_pct, sea_pct))
-    write_img(mask, 'mask.tif', driver="GTiff", geobox=ggb)
+    write_img(mask, "mask.tif", driver="GTiff", geobox=ggb)

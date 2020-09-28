@@ -49,8 +49,9 @@ class AcquisitionsContainer:
         self._label = label
 
     def __repr__(self):
-        fmt = ("****Granule ID's****:\n{granules}\n"
-               "\n****Resolution Groups****:\n{groups}")
+        fmt = (
+            "****Granule ID's****:\n{granules}\n" "\n****Resolution Groups****:\n{groups}"
+        )
         granules = "\n".join(self.granules)
         groups = "\n".join(self.groups)
         return fmt.format(granules=granules, groups=groups)
@@ -108,8 +109,7 @@ class AcquisitionsContainer:
 
         if only_supported_bands:
             return list(
-                filter(lambda acq: getattr(acq, 'supported_band', False) is True,
-                       acqs)
+                filter(lambda acq: getattr(acq, "supported_band", False) is True, acqs)
             )
         else:
             return acqs
@@ -143,7 +143,7 @@ class AcquisitionsContainer:
 
         return self._granules[granule]
 
-    def get_root(self, path='/', group=None, granule=None):
+    def get_root(self, path="/", group=None, granule=None):
         """
         Get the root level file system path for a granule and/or group
         within the `AcquisitionsContainer` object.
@@ -196,12 +196,12 @@ class AcquisitionsContainer:
             acqs = self.get_acquisitions(group, granule)
             if acqs:
                 return acqs, group
-        raise ValueError('no supported acquisition found')
+        raise ValueError("no supported acquisition found")
 
     def get_mode_resolution(self, granule=None):
         """
         Retrieve the resolution group name that contains the mode
-        resolution. 
+        resolution.
 
         :return:
             A `tuple` of (`list`, group_name) where the `list`
@@ -209,16 +209,15 @@ class AcquisitionsContainer:
             the mode resolution group, and group_name is the name
             of the group that the acquisitions came from.
         """
-        dtype = numpy.dtype([('group', 'O'), ('frequency', 'int64')])
+        dtype = numpy.dtype([("group", "O"), ("frequency", "int64")])
         data = numpy.zeros(len(self.groups), dtype=dtype)
 
         # insert data
-        data['group'] = self.groups
-        counts = [len(self.get_acquisitions(grp, None, False)) for grp in
-                  self.groups]
-        data['frequency'] = counts
+        data["group"] = self.groups
+        counts = [len(self.get_acquisitions(grp, None, False)) for grp in self.groups]
+        data["frequency"] = counts
 
-        mode_grp = data['group'][data['frequency'].argmax()]
+        mode_grp = data["group"][data["frequency"].argmax()]
         acqs = self.get_acquisitions(mode_grp, granule)
 
         return acqs, mode_grp
@@ -258,8 +257,15 @@ class Acquisition:
 
     """Acquisition metadata."""
 
-    def __init__(self, pathname, uri, acquisition_datetime, band_name='BAND 1',
-                 band_id='1', metadata=None):
+    def __init__(
+        self,
+        pathname,
+        uri,
+        acquisition_datetime,
+        band_name="BAND 1",
+        band_id="1",
+        metadata=None,
+    ):
         self._pathname = pathname
         self._uri = uri
 
@@ -277,7 +283,7 @@ class Acquisition:
 
         if metadata is not None:
             for key, value in metadata.items():
-                if key == 'band_type':
+                if key == "band_type":
                     value = BandType[value]
                 setattr(self, key, value)
 
@@ -394,7 +400,7 @@ class Acquisition:
         return self.sortkey() < other.sortkey()
 
     def __repr__(self):
-        return 'Acquisition(band_name=' + self.band_name + ')'
+        return "Acquisition(band_name=" + self.band_name + ")"
 
     def sortkey(self):
         """Representation used for sorting objects."""
@@ -436,8 +442,9 @@ class Acquisition:
 
                 # Get the new UL co-ordinates of the array
                 ul_x, ul_y = ds.transform * (window[1][0], window[0][0])
-                box = GriddedGeoBox(shape=(rows, cols), origin=(ul_x, ul_y),
-                                    pixelsize=res, crs=prj)
+                box = GriddedGeoBox(
+                    shape=(rows, cols), origin=(ul_x, ul_y), pixelsize=res, crs=prj
+                )
             return (ds.read(1, out=out, window=window, masked=masked), box)
 
     def gridded_geo_box(self):
@@ -447,30 +454,31 @@ class Acquisition:
     def decimal_hour(self):
         """The time in decimal."""
         time = self.acquisition_datetime
-        dec_hour = (time.hour + (time.minute + (time.second
-                                                + time.microsecond / 1000000.0)
-                                 / 60.0) / 60.0)
+        dec_hour = (
+            time.hour
+            + (time.minute + (time.second + time.microsecond / 1000000.0) / 60.0) / 60.0
+        )
         return dec_hour
 
     def julian_day(self):
         """
         Return the Juilan Day of the acquisition_datetime.
         """
-        return int(self.acquisition_datetime.strftime('%j'))
+        return int(self.acquisition_datetime.strftime("%j"))
 
     @property
     def spectral_filter_filepath(self):
         """
         Returns the filepath to the spectral filter file
         """
-        return resource_filename('wagl', 'spectral_response/' + self.spectral_filter_name)
+        return resource_filename("wagl", "spectral_response/" + self.spectral_filter_name)
 
     def spectral_response(self, as_list=False):
         """
         Reads the spectral response for the sensor.
         """
         spectral_range = range(*self.spectral_range)
-        with open(self.spectral_filter_filepath, 'r') as fd:
+        with open(self.spectral_filter_filepath, "r") as fd:
             return read_spectral_response(fd, spectral_range)
 
     def close(self):

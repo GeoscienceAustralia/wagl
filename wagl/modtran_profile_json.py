@@ -23,8 +23,23 @@ Parameters to be inserted are:
 from __future__ import absolute_import, print_function
 
 
-def midlat_summer_albedo(name, water, ozone, visibility, doy, lat, lon, time, sat_azimuth,
-                         elevation, sat_height, sat_view, albedo, filter_function, binary):
+def midlat_summer_albedo(
+    name,
+    water,
+    ozone,
+    visibility,
+    doy,
+    lat,
+    lon,
+    time,
+    sat_azimuth,
+    elevation,
+    sat_height,
+    sat_view,
+    albedo,
+    filter_function,
+    binary,
+):
 
     """
     MODTRAN 6.0.1 input: 'json' format template for mid latitude summer albedo
@@ -45,7 +60,7 @@ def midlat_summer_albedo(name, water, ozone, visibility, doy, lat, lon, time, sa
                         "IMULT": "RT_DISORT",
                         "DISALB": True,
                         "NSTR": 8,
-                        "SOLCON": -0.98799997568
+                        "SOLCON": -0.98799997568,
                     },
                     "ATMOSPHERE": {
                         "MODEL": "ATM_MIDLAT_SUMMER",
@@ -62,7 +77,7 @@ def midlat_summer_albedo(name, water, ozone, visibility, doy, lat, lon, time, sa
                         "O3STR": ozone,
                         "O3UNIT": "A",
                         "C_PROF": 0,
-                        "AERRH": 0.0
+                        "AERRH": 0.0,
                     },
                     "AEROSOLS": {
                         "H2OAER": False,
@@ -84,7 +99,7 @@ def midlat_summer_albedo(name, water, ozone, visibility, doy, lat, lon, time, sa
                         "WHH": 0.0,
                         "RAINRT": 0.0,
                         "IPH": 2,
-                        "HGPF": 0.66699999571
+                        "HGPF": 0.66699999571,
                     },
                     "GEOMETRY": {
                         "ITYPE": 2,
@@ -105,13 +120,13 @@ def midlat_summer_albedo(name, water, ozone, visibility, doy, lat, lon, time, sa
                         "RAD_E": 0.0,
                         "LENN": 0,
                         "BCKZEN": 0.0,
-                        "CKRANG": 0.0
+                        "CKRANG": 0.0,
                     },
                     "SURFACE": {
                         "SURFTYPE": "REFL_CONSTANT",
                         "TPTEMP": 10.0,
                         "SURREF": albedo,
-                        "GNDALT": elevation
+                        "GNDALT": elevation,
                     },
                     "SPECTRAL": {
                         "V1": 350.0,
@@ -127,13 +142,9 @@ def midlat_summer_albedo(name, water, ozone, visibility, doy, lat, lon, time, sa
                         "SFWHM": 0.0,
                         "LSUNFL": "1",
                         "LBMNAM": " ",
-                        "FILTNM": filter_function
+                        "FILTNM": filter_function,
                     },
-                    "FILEOPTIONS": {
-                        "BINARY": binary,
-                        "CKPRNT": False,
-                        "NOPRNT": 0
-                    }
+                    "FILEOPTIONS": {"BINARY": binary, "CKPRNT": False, "NOPRNT": 0},
                 }
             }
         ]
@@ -141,8 +152,23 @@ def midlat_summer_albedo(name, water, ozone, visibility, doy, lat, lon, time, sa
     return _midlat_summer_albedo
 
 
-def tropical_albedo(name, water, ozone, visibility, doy, lat, lon, time, sat_azimuth,
-                    sat_height, elevation, sat_view, albedo, filter_function, binary):
+def tropical_albedo(
+    name,
+    water,
+    ozone,
+    visibility,
+    doy,
+    lat,
+    lon,
+    time,
+    sat_azimuth,
+    sat_height,
+    elevation,
+    sat_view,
+    albedo,
+    filter_function,
+    binary,
+):
 
     """
     MODTRAN 6.0.1 input: 'json' format template for tropical albedo
@@ -163,7 +189,7 @@ def tropical_albedo(name, water, ozone, visibility, doy, lat, lon, time, sat_azi
                         "IMULT": "RT_DISORT",
                         "DISALB": True,
                         "NSTR": 8,
-                        "SOLCON": -0.98799997568
+                        "SOLCON": -0.98799997568,
                     },
                     "ATMOSPHERE": {
                         "MODEL": "ATM_TROPICAL",
@@ -180,7 +206,7 @@ def tropical_albedo(name, water, ozone, visibility, doy, lat, lon, time, sat_azi
                         "O3STR": ozone,
                         "O3UNIT": "A",
                         "C_PROF": 0,
-                        "AERRH": 0.0
+                        "AERRH": 0.0,
                     },
                     "AEROSOLS": {
                         "H2OAER": False,
@@ -202,7 +228,7 @@ def tropical_albedo(name, water, ozone, visibility, doy, lat, lon, time, sat_azi
                         "WHH": 0.0,
                         "RAINRT": 0.0,
                         "IPH": 2,
-                        "HGPF": 0.66699999571
+                        "HGPF": 0.66699999571,
                     },
                     "GEOMETRY": {
                         "ITYPE": 2,
@@ -223,13 +249,13 @@ def tropical_albedo(name, water, ozone, visibility, doy, lat, lon, time, sat_azi
                         "RAD_E": 0.0,
                         "LENN": 0,
                         "BCKZEN": 0.0,
-                        "CKRANG": 0.0
+                        "CKRANG": 0.0,
                     },
                     "SURFACE": {
                         "SURFTYPE": "REFL_CONSTANT",
                         "TPTEMP": 10.0,
                         "SURREF": albedo,
-                        "GNDALT": elevation
+                        "GNDALT": elevation,
                     },
                     "SPECTRAL": {
                         "V1": 350.0,
@@ -245,13 +271,9 @@ def tropical_albedo(name, water, ozone, visibility, doy, lat, lon, time, sat_azi
                         "SFWHM": 0.0,
                         "LSUNFL": "1",
                         "LBMNAM": " ",
-                        "FILTNM": filter_function
+                        "FILTNM": filter_function,
                     },
-                    "FILEOPTIONS": {
-                        "BINARY": binary,
-                        "CKPRNT": False,
-                        "NOPRNT": 0
-                    }
+                    "FILEOPTIONS": {"BINARY": binary, "CKPRNT": False, "NOPRNT": 0},
                 }
             }
         ]
@@ -260,23 +282,60 @@ def tropical_albedo(name, water, ozone, visibility, doy, lat, lon, time, sat_azi
     return _tropical_albedo
 
 
-def thermal_transmittance(name, ozone, n, prof_alt, prof_pres, prof_temp, prof_water, visibility, sat_height, gpheight,
-                          sat_view, filter_function, binary):
+def thermal_transmittance(
+    name,
+    ozone,
+    n,
+    prof_alt,
+    prof_pres,
+    prof_temp,
+    prof_water,
+    visibility,
+    sat_height,
+    gpheight,
+    sat_view,
+    filter_function,
+    binary,
+):
     """
     MODTRAN 6.0.1 input: 'json' format template for thermal transmittance
     """
 
-    prof_altitude = prof_alt + [5.0000000000e+01, 5.5000000000e+01, 6.0000000000e+01,
-                                7.0000000000e+01, 8.0000000000e+01, 1.0000000000e+02]
+    prof_altitude = prof_alt + [
+        5.0000000000e01,
+        5.5000000000e01,
+        6.0000000000e01,
+        7.0000000000e01,
+        8.0000000000e01,
+        1.0000000000e02,
+    ]
 
-    prof_pressure = prof_pres + [9.5099997520e-01, 5.1499998569e-01, 2.7200001478e-01,
-                                 6.7000001669e-02, 1.2000000104e-02, 9.9999997474e-05]
+    prof_pressure = prof_pres + [
+        9.5099997520e-01,
+        5.1499998569e-01,
+        2.7200001478e-01,
+        6.7000001669e-02,
+        1.2000000104e-02,
+        9.9999997474e-05,
+    ]
 
-    prof_temperature = prof_temp + [2.5499999523e+00, -3.8499999046e+00, -1.6049999237e+01,
-                                    -5.5049999237e+01, -9.9050003052e+01, -8.2650001526e+01]
+    prof_temperature = prof_temp + [
+        2.5499999523e00,
+        -3.8499999046e00,
+        -1.6049999237e01,
+        -5.5049999237e01,
+        -9.9050003052e01,
+        -8.2650001526e01,
+    ]
 
-    prof_h20 = prof_water + [7.1269998443e-05, 5.9909998527e-05, 7.7529999544e-05,
-                             7.0829998003e-04, 7.2370000184e-02, 1.4610000107e-05]
+    prof_h20 = prof_water + [
+        7.1269998443e-05,
+        5.9909998527e-05,
+        7.7529999544e-05,
+        7.0829998003e-04,
+        7.2370000184e-02,
+        1.4610000107e-05,
+    ]
 
     _thermal_transmittance = {
         "MODTRAN": [
@@ -292,7 +351,7 @@ def thermal_transmittance(name, ozone, n, prof_alt, prof_pres, prof_temp, prof_w
                         "IMULT": "RT_NO_MULTIPLE_SCATTER",
                         "DISALB": False,
                         "NSTR": 0,
-                        "SOLCON": -0.98799997568
+                        "SOLCON": -0.98799997568,
                     },
                     "ATMOSPHERE": {
                         "MODEL": "ATM_USER_ALT_PROFILE",
@@ -318,24 +377,24 @@ def thermal_transmittance(name, ozone, n, prof_alt, prof_pres, prof_temp, prof_w
                             {
                                 "TYPE": "PROF_ALTITUDE",
                                 "UNITS": "UNT_KILOMETERS",
-                                "PROFILE": prof_altitude
+                                "PROFILE": prof_altitude,
                             },
                             {
                                 "TYPE": "PROF_PRESSURE",
                                 "UNITS": "UNT_PMILLIBAR",
-                                "PROFILE": prof_pressure
+                                "PROFILE": prof_pressure,
                             },
                             {
                                 "TYPE": "PROF_TEMPERATURE",
                                 "UNITS": "UNT_TCELSIUS",
-                                "PROFILE": prof_temperature
+                                "PROFILE": prof_temperature,
                             },
                             {
                                 "TYPE": "PROF_H2O",
                                 "UNITS": "UNT_REL_HUMIDITY",
-                                "PROFILE": prof_h20
-                            }
-                        ]
+                                "PROFILE": prof_h20,
+                            },
+                        ],
                     },
                     "AEROSOLS": {
                         "H2OAER": False,
@@ -355,7 +414,7 @@ def thermal_transmittance(name, ozone, n, prof_alt, prof_pres, prof_temp, prof_w
                         "VIS": visibility,
                         "WSS": 0.0,
                         "WHH": 0.0,
-                        "RAINRT": 0.0
+                        "RAINRT": 0.0,
                     },
                     "GEOMETRY": {
                         "ITYPE": 2,
@@ -367,13 +426,13 @@ def thermal_transmittance(name, ozone, n, prof_alt, prof_pres, prof_temp, prof_w
                         "RAD_E": 0.0,
                         "LENN": 0,
                         "BCKZEN": 0.0,
-                        "CKRANG": 0.0
+                        "CKRANG": 0.0,
                     },
                     "SURFACE": {
                         "SURFTYPE": "REFL_CONSTANT",
                         "TPTEMP": 10.0,
                         "SURREF": 0.0,
-                        "GNDALT": gpheight
+                        "GNDALT": gpheight,
                     },
                     "SPECTRAL": {
                         "V1": 7000.0,
@@ -388,13 +447,9 @@ def thermal_transmittance(name, ozone, n, prof_alt, prof_pres, prof_temp, prof_w
                         "SFWHM": 0.0,
                         "LSUNFL": "1",
                         "LBMNAM": " ",
-                        "FILTNM": filter_function
+                        "FILTNM": filter_function,
                     },
-                    "FILEOPTIONS": {
-                        "BINARY": binary,
-                        "CKPRNT": False,
-                        "NOPRNT": 0
-                    }
+                    "FILEOPTIONS": {"BINARY": binary, "CKPRNT": False, "NOPRNT": 0},
                 }
             },
             {
@@ -409,7 +464,7 @@ def thermal_transmittance(name, ozone, n, prof_alt, prof_pres, prof_temp, prof_w
                         "IMULT": "RT_NO_MULTIPLE_SCATTER",
                         "DISALB": False,
                         "NSTR": 0,
-                        "SOLCON": -0.98799997568
+                        "SOLCON": -0.98799997568,
                     },
                     "ATMOSPHERE": {
                         "MODEL": "ATM_USER_ALT_PROFILE",
@@ -435,24 +490,24 @@ def thermal_transmittance(name, ozone, n, prof_alt, prof_pres, prof_temp, prof_w
                             {
                                 "TYPE": "PROF_ALTITUDE",
                                 "UNITS": "UNT_KILOMETERS",
-                                "PROFILE": prof_altitude
+                                "PROFILE": prof_altitude,
                             },
                             {
                                 "TYPE": "PROF_PRESSURE",
                                 "UNITS": "UNT_PMILLIBAR",
-                                "PROFILE": prof_pressure
+                                "PROFILE": prof_pressure,
                             },
                             {
                                 "TYPE": "PROF_TEMPERATURE",
                                 "UNITS": "UNT_TCELSIUS",
-                                "PROFILE": prof_temperature
+                                "PROFILE": prof_temperature,
                             },
                             {
                                 "TYPE": "PROF_H2O",
                                 "UNITS": "UNT_REL_HUMIDITY",
-                                "PROFILE": prof_h20
-                            }
-                        ]
+                                "PROFILE": prof_h20,
+                            },
+                        ],
                     },
                     "AEROSOLS": {
                         "H2OAER": False,
@@ -472,7 +527,7 @@ def thermal_transmittance(name, ozone, n, prof_alt, prof_pres, prof_temp, prof_w
                         "VIS": visibility,
                         "WSS": 0.0,
                         "WHH": 0.0,
-                        "RAINRT": 0.0
+                        "RAINRT": 0.0,
                     },
                     "GEOMETRY": {
                         "ITYPE": 2,
@@ -484,13 +539,13 @@ def thermal_transmittance(name, ozone, n, prof_alt, prof_pres, prof_temp, prof_w
                         "RAD_E": 0.0,
                         "LENN": 0,
                         "BCKZEN": 0.0,
-                        "CKRANG": 0.0
+                        "CKRANG": 0.0,
                     },
                     "SURFACE": {
                         "SURFTYPE": "REFL_CONSTANT",
                         "TPTEMP": 10.0,
                         "SURREF": 0.0,
-                        "GNDALT": gpheight
+                        "GNDALT": gpheight,
                     },
                     "SPECTRAL": {
                         "V1": 7000.0,
@@ -505,15 +560,11 @@ def thermal_transmittance(name, ozone, n, prof_alt, prof_pres, prof_temp, prof_w
                         "SFWHM": 0.0,
                         "LSUNFL": "1",
                         "LBMNAM": " ",
-                        "FILTNM": filter_function
+                        "FILTNM": filter_function,
                     },
-                    "FILEOPTIONS": {
-                        "BINARY": binary,
-                        "CKPRNT": False,
-                        "NOPRNT": 0
-                    }
+                    "FILEOPTIONS": {"BINARY": binary, "CKPRNT": False, "NOPRNT": 0},
                 }
-            }
+            },
         ]
     }
 

@@ -19,11 +19,11 @@ class TestReadSubset(unittest.TestCase):
     img, geobox = ut.create_test_image((1200, 1500))
     img[:] = 1
 
-    fid = h5py.File('test-subset.h5', 'w', backing_store=False, driver='core')
-    ds = fid.create_dataset('data', data=img)
-    ds.attrs['geotransform'] = geobox.transform.to_gdal()
-    ds.attrs['crs_wkt'] = geobox.crs.ExportToWkt()
-    ds.attrs['fillvalue'] = 0
+    fid = h5py.File("test-subset.h5", "w", backing_store=False, driver="core")
+    ds = fid.create_dataset("data", data=img)
+    ds.attrs["geotransform"] = geobox.transform.to_gdal()
+    ds.attrs["crs_wkt"] = geobox.crs.ExportToWkt()
+    ds.attrs["fillvalue"] = 0
 
     subs_shape = (200, 300)
 
@@ -37,30 +37,25 @@ class TestReadSubset(unittest.TestCase):
         bounds.
         """
         img, geobox = ut.create_test_image()
-    
+
         # Temporarily write the image to disk
         temp_dir = tempfile.mkdtemp()
-        fname = os.path.join(temp_dir, 'testWestBounds')
+        fname = os.path.join(temp_dir, "testWestBounds")
         write_img(img, fname, geobox=geobox)
-    
+
         # Create box to read 10 pixels left of the image bounds
         UL = geobox.convert_coordinates((-9, 0))
         UR = geobox.convert_coordinates((9, 0))
         LR = geobox.convert_coordinates((9, 10))
         LL = geobox.convert_coordinates((-9, 10))
-    
-        kwds = {'fname': fname,
-                 'ul_xy': UL,
-                 'ur_xy': UR,
-                 'lr_xy': LR,
-                 'll_xy': LL}
+
+        kwds = {"fname": fname, "ul_xy": UL, "ur_xy": UR, "lr_xy": LR, "ll_xy": LL}
 
         self.assertRaises(IndexError, read_subset, **kwds)
-    
+
         # Cleanup
         shutil.rmtree(temp_dir)
 
-    
     @unittest.skip("Refactor DSM subsetting logic; TODO update test")
     def testEastBounds(self):
         """
@@ -70,31 +65,26 @@ class TestReadSubset(unittest.TestCase):
         within the image bounds and half contained outside the image
         """
         img, geobox = ut.create_test_image()
-    
+
         cols, rows = geobox.get_shape_xy()
-    
+
         # Temporarily write the image to disk
         temp_dir = tempfile.mkdtemp()
-        fname = os.path.join(temp_dir, 'testEastBounds')
+        fname = os.path.join(temp_dir, "testEastBounds")
         write_img(img, fname, geobox=geobox)
-    
+
         # Create box to read 10 pixels right of the image bounds
-        UL = geobox.convert_coordinates((cols-9, 0))
-        UR = geobox.convert_coordinates((cols+10, 0))
-        LR = geobox.convert_coordinates((cols+10, 10))
-        LL = geobox.convert_coordinates((cols-9, 10))
-    
-        kwds = {'fname': fname,
-                 'ul_xy': UL,
-                 'ur_xy': UR,
-                 'lr_xy': LR,
-                 'll_xy': LL}
+        UL = geobox.convert_coordinates((cols - 9, 0))
+        UR = geobox.convert_coordinates((cols + 10, 0))
+        LR = geobox.convert_coordinates((cols + 10, 10))
+        LL = geobox.convert_coordinates((cols - 9, 10))
+
+        kwds = {"fname": fname, "ul_xy": UL, "ur_xy": UR, "lr_xy": LR, "ll_xy": LL}
 
         self.assertRaises(IndexError, read_subset, **kwds)
-    
+
         # Cleanup
         shutil.rmtree(temp_dir)
-
 
     @unittest.skip("Refactor DSM subsetting logic; TODO update test")
     def testNorthBounds(self):
@@ -105,29 +95,24 @@ class TestReadSubset(unittest.TestCase):
         within the image bounds and half contained outside the image
         """
         img, geobox = ut.create_test_image()
-    
+
         # Temporarily write the image to disk
         temp_dir = tempfile.mkdtemp()
-        fname = os.path.join(temp_dir, 'testNorthBounds')
+        fname = os.path.join(temp_dir, "testNorthBounds")
         write_img(img, fname, geobox=geobox)
-    
+
         # Create box to read 10 pixels above the image bounds
         UL = geobox.convert_coordinates((0, -9))
         UR = geobox.convert_coordinates((10, -9))
         LR = geobox.convert_coordinates((10, 10))
         LL = geobox.convert_coordinates((0, 10))
-    
-        kwds = {'fname': fname,
-                 'ul_xy': UL,
-                 'ur_xy': UR,
-                 'lr_xy': LR,
-                 'll_xy': LL}
+
+        kwds = {"fname": fname, "ul_xy": UL, "ur_xy": UR, "lr_xy": LR, "ll_xy": LL}
 
         self.assertRaises(IndexError, read_subset, **kwds)
-    
+
         # Cleanup
         shutil.rmtree(temp_dir)
-
 
     @unittest.skip("Refactor DSM subsetting logic; TODO update test")
     def testSouthBounds(self):
@@ -138,45 +123,40 @@ class TestReadSubset(unittest.TestCase):
         within the image bounds and half contained outside the image
         """
         img, geobox = ut.create_test_image()
-    
+
         cols, rows = geobox.get_shape_xy()
-    
+
         # Temporarily write the image to disk
         temp_dir = tempfile.mkdtemp()
-        fname = os.path.join(temp_dir, 'testSouthBounds')
+        fname = os.path.join(temp_dir, "testSouthBounds")
         write_img(img, fname, geobox=geobox)
-    
+
         # Create box to read 10 pixels below the image bounds
-        UL = geobox.convert_coordinates((0, rows-9))
-        UR = geobox.convert_coordinates((10, rows-9))
-        LR = geobox.convert_coordinates((10, rows+10))
-        LL = geobox.convert_coordinates((0, rows+10))
-    
-        kwds = {'fname': fname,
-                 'ul_xy': UL,
-                 'ur_xy': UR,
-                 'lr_xy': LR,
-                 'll_xy': LL}
+        UL = geobox.convert_coordinates((0, rows - 9))
+        UR = geobox.convert_coordinates((10, rows - 9))
+        LR = geobox.convert_coordinates((10, rows + 10))
+        LL = geobox.convert_coordinates((0, rows + 10))
+
+        kwds = {"fname": fname, "ul_xy": UL, "ur_xy": UR, "lr_xy": LR, "ll_xy": LL}
 
         self.assertRaises(IndexError, read_subset, **kwds)
-    
+
         # Cleanup
         shutil.rmtree(temp_dir)
 
-
-    @unittest.skip('Requires refactoring')
+    @unittest.skip("Requires refactoring")
     def test_correct_subset(self):
         """
         Test that the subset is what we expect.
         Read a 10 by 10 starting at the UL corner.
         """
         img, geobox = ut.create_test_image()
-    
+
         cols, rows = geobox.get_shape_xy()
-    
+
         # Temporarily write the image to disk
         temp_dir = tempfile.mkdtemp()
-        fname = os.path.join(temp_dir, 'test_image')
+        fname = os.path.join(temp_dir, "test_image")
         write_img(img, fname, geobox=geobox)
 
         # Create box to read 10 pixels below the image bounds
@@ -184,21 +164,17 @@ class TestReadSubset(unittest.TestCase):
         UR = geobox.convert_coordinates((9, 0))
         LR = geobox.convert_coordinates((9, 9))
         LL = geobox.convert_coordinates((0, 9))
-    
-        kwds = {'fname': fname,
-                 'ul_xy': UL,
-                 'ur_xy': UR,
-                 'lr_xy': LR,
-                 'll_xy': LL}
+
+        kwds = {"fname": fname, "ul_xy": UL, "ur_xy": UR, "lr_xy": LR, "ll_xy": LL}
 
         subs, geobox = read_subset(**kwds)
 
-        base = img[0:10,0:10]
+        base = img[0:10, 0:10]
 
         result = numpy.sum(base - subs)
 
         self.assertTrue(result == 0)
-    
+
         # Cleanup
         shutil.rmtree(temp_dir)
 
@@ -524,5 +500,6 @@ class TestReadSubset(unittest.TestCase):
         with self.assertRaises(IndexError):
             read_subset(self.ds, ul_xy_map, ur_xy_map, lr_xy_map, ll_xy_map)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

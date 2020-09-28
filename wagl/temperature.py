@@ -19,30 +19,38 @@ from wagl.metadata import create_ard_yaml
 NO_DATA_VALUE = -999
 
 
-def _surface_brightness_temperature(acquisition, acquisitions, bilinear_fname,
-                                    ancillary_fname, out_fname, normalized_solar_zenith,
-                                    compression=H5CompressionFilter.LZF,
-                                    filter_opts=None):
+def _surface_brightness_temperature(
+    acquisition,
+    acquisitions,
+    bilinear_fname,
+    ancillary_fname,
+    out_fname,
+    normalized_solar_zenith,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    with h5py.File(bilinear_fname, 'r') as interp_fid,\
-        h5py.File(ancillary_fname, 'r') as fid_anc,\
-        h5py.File(out_fname, 'w') as fid:
+    with h5py.File(bilinear_fname, "r") as interp_fid, h5py.File(
+        ancillary_fname, "r"
+    ) as fid_anc, h5py.File(out_fname, "w") as fid:
 
         grp1 = interp_fid[GroupName.INTERP_GROUP.value]
-        surface_brightness_temperature(acquisition, grp1, fid, compression,
-                                       filter_opts)
+        surface_brightness_temperature(acquisition, grp1, fid, compression, filter_opts)
 
         grp2 = fid_anc[GroupName.ANCILLARY_GROUP.value]
         create_ard_yaml(acquisitions, grp2, fid, normalized_solar_zenith, True)
 
 
-def surface_brightness_temperature(acquisition, interpolation_group,
-                                   out_group=None,
-                                   compression=H5CompressionFilter.LZF,
-                                   filter_opts=None):
+def surface_brightness_temperature(
+    acquisition,
+    interpolation_group,
+    out_group=None,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+):
     """
     Convert Thermal acquisition to Surface Brightness Temperature.
 
@@ -81,7 +89,7 @@ def surface_brightness_temperature(acquisition, interpolation_group,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :filter_opts:
         A dict of key value pairs available to the given configuration
@@ -116,8 +124,7 @@ def surface_brightness_temperature(acquisition, interpolation_group,
 
     # Initialise the output file
     if out_group is None:
-        fid = h5py.File('surface-temperature.h5', 'w', driver='core',
-                        backing_store=False)
+        fid = h5py.File("surface-temperature.h5", "w", driver="core", backing_store=False)
     else:
         fid = out_group
 
@@ -128,44 +135,45 @@ def surface_brightness_temperature(acquisition, interpolation_group,
         filter_opts = {}
     else:
         filter_opts = filter_opts.copy()
-    filter_opts['chunks'] = acq.tile_size
+    filter_opts["chunks"] = acq.tile_size
 
     group = fid[GroupName.STANDARD_GROUP.value]
     kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
-    kwargs['shape'] = (acq.lines, acq.samples)
-    kwargs['fillvalue'] = NO_DATA_VALUE
-    kwargs['dtype'] = 'float32'
+    kwargs["shape"] = (acq.lines, acq.samples)
+    kwargs["fillvalue"] = NO_DATA_VALUE
+    kwargs["dtype"] = "float32"
 
     # attach some attributes to the image datasets
-    attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
-             'geotransform': geobox.transform.to_gdal(),
-             'no_data_value': kwargs['fillvalue'],
-             'platform_id': acq.platform_id,
-             'sensor_id': acq.sensor_id,
-             'band_id': acq.band_id,
-             'band_name': bn,
-             'alias': acq.alias}
+    attrs = {
+        "crs_wkt": geobox.crs.ExportToWkt(),
+        "geotransform": geobox.transform.to_gdal(),
+        "no_data_value": kwargs["fillvalue"],
+        "platform_id": acq.platform_id,
+        "sensor_id": acq.sensor_id,
+        "band_id": acq.band_id,
+        "band_name": bn,
+        "alias": acq.alias,
+    }
 
     name_fmt = DatasetName.TEMPERATURE_FMT.value
-    dataset_name = name_fmt.format(product=ArdProducts.SBT.value,
-                                   band_name=acq.band_name)
+    dataset_name = name_fmt.format(product=ArdProducts.SBT.value, band_name=acq.band_name)
     out_dset = group.create_dataset(dataset_name, **kwargs)
 
     desc = "Surface Brightness Temperature in Kelvin."
-    attrs['description'] = desc
+    attrs["description"] = desc
     attach_image_attributes(out_dset, attrs)
 
     # pylint: disable=unused-variable
     # constants
-    k1 = acq.K1
-    k2 = acq.K2
+    k1 = acq.K1  # noqa: F841
+    k2 = acq.K2  # noqa: F841
 
     # process each tile
     for tile in acq.tiles():
         idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
 
-        radiance = acq.radiance_data(window=tile, out_no_data=NO_DATA_VALUE)
-        path_up = upwelling_radiation[idx]
+        radiance = acq.radiance_data(window=tile, out_no_data=NO_DATA_VALUE)  # noqa: F841
+        path_up = upwelling_radiation[idx]  # noqa: F841
         trans = transmittance[idx]
         mask = ~numpy.isfinite(trans)
         expr = "(radiance - path_up) / trans"
@@ -173,7 +181,7 @@ def surface_brightness_temperature(acquisition, interpolation_group,
         mask |= corrected_radiance <= 0
         expr = "k2 / log(k1 / corrected_radiance + 1)"
         brightness_temp = numexpr.evaluate(expr)
-        brightness_temp[mask] = kwargs['fillvalue']
+        brightness_temp[mask] = kwargs["fillvalue"]
 
         out_dset[idx] = brightness_temp
     acq.close()  # If dataset is cached; clear it
@@ -202,9 +210,9 @@ def radiance_conversion(band_array, gain, bias):
         watts/(meter squared * ster * um) as a 2D Numpy array.
     """
 
-    logging.debug('gain = %f, bias = %f', gain, bias)
+    logging.debug("gain = %f, bias = %f", gain, bias)
 
-    return numexpr.evaluate('gain * band_array + bias')
+    return numexpr.evaluate("gain * band_array + bias")
 
 
 def temperature_conversion(band_array, k1, k2):
@@ -226,7 +234,7 @@ def temperature_conversion(band_array, k1, k2):
         degrees Kelvin.
     """
 
-    logging.debug('k1 = %f, k2 = %f', k1, k2)
+    logging.debug("k1 = %f, k2 = %f", k1, k2)
 
     return k2 / (numpy.log(k1 / band_array + 1))
 
@@ -254,7 +262,7 @@ def get_landsat_temperature(acquisitions, pq_const):
 
     kelvin_array = temperature_conversion(radiance, acq.K1, acq.K2)
 
-    return kelvin_array.astype('float32')
+    return kelvin_array.astype("float32")
 
 
 def temperature_at_sensor(thermal_acquisition, window=None):
@@ -274,11 +282,11 @@ def temperature_at_sensor(thermal_acquisition, window=None):
         (thermal_acquisition.lines, thermal_acquisition.samples)
         or the dimensions given by the `window` parameter.
     """
-    k1 = thermal_acquisition.K1 # pylint: disable=unused-variable
-    k2 = thermal_acquisition.K2 # pylint: disable=unused-variable
+    k1 = thermal_acquisition.K1  # pylint: disable=unused-variable # noqa: F841
+    k2 = thermal_acquisition.K2  # pylint: disable=unused-variable # noqa: F841
 
     # pylint: disable=unused-variable
-    data = thermal_acquisition.radiance_data(window=window)
+    data = thermal_acquisition.radiance_data(window=window)  # noqa: F841
     result = numexpr.evaluate("k2 / (log(k1 / data + 1))")
 
     return result

@@ -36,11 +36,12 @@ class TestShadowMasks(ParameterisedTestCase):
         """
         Test the self shadow mask.
         """
-        with h5py.File(self.reference_fname, 'r') as reference_fid,\
-            h5py.File(self.test_fname, 'r') as test_fid:
+        with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
+            self.test_fname, "r"
+        ) as test_fid:
 
-            ref_dset = reference_fid['self-shadow']
-            test_dset = test_fid['self-shadow']
+            ref_dset = reference_fid["self-shadow"]
+            test_dset = test_fid["self-shadow"]
 
             self.assertTrue(numpy.array_equal(ref_dset, test_dset))
 
@@ -48,11 +49,12 @@ class TestShadowMasks(ParameterisedTestCase):
         """
         Test the cast shadow mask (sun direction).
         """
-        with h5py.File(self.reference_fname, 'r') as reference_fid,\
-            h5py.File(self.test_fname, 'r') as test_fid:
+        with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
+            self.test_fname, "r"
+        ) as test_fid:
 
-            ref_dset = reference_fid['cast-shadow-sun']
-            test_dset = test_fid['cast-shadow-sun']
+            ref_dset = reference_fid["cast-shadow-sun"]
+            test_dset = test_fid["cast-shadow-sun"]
 
             self.assertTrue(numpy.array_equal(ref_dset, test_dset))
 
@@ -60,11 +62,12 @@ class TestShadowMasks(ParameterisedTestCase):
         """
         Test the cast shadow mask (satellite direction).
         """
-        with h5py.File(self.reference_fname, 'r') as reference_fid,\
-            h5py.File(self.test_fname, 'r') as test_fid:
+        with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
+            self.test_fname, "r"
+        ) as test_fid:
 
-            ref_dset = reference_fid['cast-shadow-satellite']
-            test_dset = test_fid['cast-shadow-satellite']
+            ref_dset = reference_fid["cast-shadow-satellite"]
+            test_dset = test_fid["cast-shadow-satellite"]
 
             self.assertTrue(numpy.array_equal(ref_dset, test_dset))
 
@@ -72,34 +75,47 @@ class TestShadowMasks(ParameterisedTestCase):
         """
         Test the combined shadow mask.
         """
-        with h5py.File(self.reference_fname, 'r') as reference_fid,\
-            h5py.File(self.test_fname, 'r') as test_fid:
+        with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
+            self.test_fname, "r"
+        ) as test_fid:
 
-            ref_dset = reference_fid['combined-shadow']
-            test_dset = test_fid['combined-shadow']
+            ref_dset = reference_fid["combined-shadow"]
+            test_dset = test_fid["combined-shadow"]
 
             self.assertTrue(numpy.array_equal(ref_dset, test_dset))
 
 
 def _parser():
     """ Argument parser. """
-    description = ("Unittests for `wagl.terrain_shadow_masks` module.\n"
-                   "Comparisons tests will occur for the following "
-                   "datasets: \n"
-                   "\t* self-shadow\n"
-                   "\t* cast-shadow-sun\n"
-                   "\t* cast-shadow-satellite\n"
-                   "\t* combined-shadow\n")
-                   
-    parser = argparse.ArgumentParser(description=description,
-                                     formatter_class=RawTextHelpFormatter)
-    parser.add_argument('--reference_fname', required=True,
-                        help=('The filename containing the reference datasets '
-                              'to be used as a baseline.'))
-    parser.add_argument('--test_fname', required=True,
-                        help=('The filename containing the test datasets '
-                              'to be used in comparing against the '
-                              'base/reference datasets.'))
+    description = (
+        "Unittests for `wagl.terrain_shadow_masks` module.\n"
+        "Comparisons tests will occur for the following "
+        "datasets: \n"
+        "\t* self-shadow\n"
+        "\t* cast-shadow-sun\n"
+        "\t* cast-shadow-satellite\n"
+        "\t* combined-shadow\n"
+    )
+
+    parser = argparse.ArgumentParser(
+        description=description, formatter_class=RawTextHelpFormatter
+    )
+    parser.add_argument(
+        "--reference_fname",
+        required=True,
+        help=(
+            "The filename containing the reference datasets " "to be used as a baseline."
+        ),
+    )
+    parser.add_argument(
+        "--test_fname",
+        required=True,
+        help=(
+            "The filename containing the test datasets "
+            "to be used in comparing against the "
+            "base/reference datasets."
+        ),
+    )
 
     return parser
 
@@ -114,7 +130,9 @@ def main():
 
     suite = unittest.TestSuite()
     test_case = ParameterisedTestCase()
-    suite.addTest(test_case.parameterise(TestShadowMasks,
-                                         reference_fname=reference_fname,
-                                         test_fname=test_fname))
+    suite.addTest(
+        test_case.parameterise(
+            TestShadowMasks, reference_fname=reference_fname, test_fname=test_fname
+        )
+    )
     unittest.TextTestRunner(verbosity=2).run(suite)

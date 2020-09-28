@@ -7,6 +7,7 @@ Ancillary dataset retrieval and storage
 from __future__ import absolute_import, print_function
 from os.path import join as pjoin
 import datetime
+
 # import glob
 # from urllib.parse import urlparse
 
@@ -29,9 +30,45 @@ from wagl.constants import AerosolTier, WaterVapourTier, OzoneTier
 from wagl.satellite_solar_angles import create_vertices
 
 
-ECWMF_LEVELS = [1, 2, 3, 5, 7, 10, 20, 30, 50, 70, 100, 125, 150, 175, 200,
-                225, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750,
-                775, 800, 825, 850, 875, 900, 925, 950, 975, 1000]
+ECWMF_LEVELS = [
+    1,
+    2,
+    3,
+    5,
+    7,
+    10,
+    20,
+    30,
+    50,
+    70,
+    100,
+    125,
+    150,
+    175,
+    200,
+    225,
+    250,
+    300,
+    350,
+    400,
+    450,
+    500,
+    550,
+    600,
+    650,
+    700,
+    750,
+    775,
+    800,
+    825,
+    850,
+    875,
+    900,
+    925,
+    950,
+    975,
+    1000,
+]
 
 
 class AncillaryError(Exception):
@@ -78,26 +115,49 @@ def relative_humdity(surface_temp, dewpoint_temp, kelvin=True):
     return rh
 
 
-def _collect_ancillary(container, satellite_solar_fname, nbar_paths,
-                       sbt_path=None, invariant_fname=None, vertices=(3, 3),
-                       out_fname=None, compression=H5CompressionFilter.LZF,
-                       filter_opts=None):
+def _collect_ancillary(
+    container,
+    satellite_solar_fname,
+    nbar_paths,
+    sbt_path=None,
+    invariant_fname=None,
+    vertices=(3, 3),
+    out_fname=None,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    with h5py.File(satellite_solar_fname, 'r') as fid,\
-        h5py.File(out_fname, 'w') as out_fid:
+    with h5py.File(satellite_solar_fname, "r") as fid, h5py.File(
+        out_fname, "w"
+    ) as out_fid:
 
         sat_sol_grp = fid[GroupName.SAT_SOL_GROUP.value]
-        collect_ancillary(container, sat_sol_grp, nbar_paths, sbt_path,
-                          invariant_fname, vertices, out_fid, compression)
+        collect_ancillary(
+            container,
+            sat_sol_grp,
+            nbar_paths,
+            sbt_path,
+            invariant_fname,
+            vertices,
+            out_fid,
+            compression,
+        )
 
 
-def collect_ancillary(container, satellite_solar_group, nbar_paths,
-                      sbt_path=None, invariant_fname=None, vertices=(3, 3),
-                      out_group=None, compression=H5CompressionFilter.LZF,
-                      filter_opts=None):
+def collect_ancillary(
+    container,
+    satellite_solar_group,
+    nbar_paths,
+    sbt_path=None,
+    invariant_fname=None,
+    vertices=(3, 3),
+    out_group=None,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+):
     """
     Collects the ancillary required for NBAR and optionally SBT.
     This could be better handled if using the `opendatacube` project
@@ -163,7 +223,7 @@ def collect_ancillary(container, satellite_solar_group, nbar_paths,
     """
     # Initialise the output files
     if out_group is None:
-        fid = h5py.File('ancillary.h5', 'w', driver='core', backing_store=False)
+        fid = h5py.File("ancillary.h5", "w", driver="core", backing_store=False)
     else:
         fid = out_group
 
@@ -177,33 +237,50 @@ def collect_ancillary(container, satellite_solar_group, nbar_paths,
 
     boxline_dataset = satellite_solar_group[DatasetName.BOXLINE.value][:]
     coordinator = create_vertices(acquisition, boxline_dataset, vertices)
-    lonlats = zip(coordinator['longitude'], coordinator['latitude'])
+    lonlats = zip(coordinator["longitude"], coordinator["latitude"])
 
-    desc = ("Contains the row and column array coordinates used for the "
-            "atmospheric calculations.")
-    attrs = {'description': desc, 'array_coordinate_offset': 0}
+    desc = (
+        "Contains the row and column array coordinates used for the "
+        "atmospheric calculations."
+    )
+    attrs = {"description": desc, "array_coordinate_offset": 0}
     kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
     dset_name = DatasetName.COORDINATOR.value
     coord_dset = group.create_dataset(dset_name, data=coordinator, **kwargs)
-    attach_table_attributes(coord_dset, title='Coordinator', attrs=attrs)
+    attach_table_attributes(coord_dset, title="Coordinator", attrs=attrs)
 
     if sbt_path:
-        collect_sbt_ancillary(acquisition, lonlats, sbt_path, invariant_fname,
-                              out_group=group, compression=compression,
-                              filter_opts=filter_opts)
+        collect_sbt_ancillary(
+            acquisition,
+            lonlats,
+            sbt_path,
+            invariant_fname,
+            out_group=group,
+            compression=compression,
+            filter_opts=filter_opts,
+        )
 
-    collect_nbar_ancillary(container, out_group=group,
-                           compression=compression, filter_opts=filter_opts,
-                           **nbar_paths)
+    collect_nbar_ancillary(
+        container,
+        out_group=group,
+        compression=compression,
+        filter_opts=filter_opts,
+        **nbar_paths,
+    )
 
     if out_group is None:
         return fid
 
 
-def collect_sbt_ancillary(acquisition, lonlats, ancillary_path,
-                          invariant_fname=None, out_group=None,
-                          compression=H5CompressionFilter.LZF,
-                          filter_opts=None):
+def collect_sbt_ancillary(
+    acquisition,
+    lonlats,
+    ancillary_path,
+    invariant_fname=None,
+    out_group=None,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+):
     """
     Collects the ancillary data required for surface brightness
     temperature.
@@ -245,18 +322,18 @@ def collect_sbt_ancillary(acquisition, lonlats, ancillary_path,
     """
     # Initialise the output files
     if out_group is None:
-        fid = h5py.File('sbt-ancillary.h5', 'w', driver='core', backing_store=False)
+        fid = h5py.File("sbt-ancillary.h5", "w", driver="core", backing_store=False)
     else:
         fid = out_group
 
-    fid.attrs['sbt-ancillary'] = True
+    fid.attrs["sbt-ancillary"] = True
 
     dt = acquisition.acquisition_datetime
 
-    description = ('Combined Surface and Pressure Layer data retrieved from '
-                   'the ECWMF catalogue.')
-    attrs = {'description': description,
-             'Date used for querying ECWMF': dt}
+    description = (
+        "Combined Surface and Pressure Layer data retrieved from " "the ECWMF catalogue."
+    )
+    attrs = {"description": description, "Date used for querying ECWMF": dt}
 
     for i, lonlat in enumerate(lonlats):
         pnt = POINT_FMT.format(p=i)
@@ -281,7 +358,7 @@ def collect_sbt_ancillary(acquisition, lonlats, ancillary_path,
         write_scalar(sfc_hgt[0], dname, fid, sfc_hgt[1])
 
         dname = ppjoin(pnt, DatasetName.SURFACE_RELATIVE_HUMIDITY.value)
-        attrs = {'description': 'Relative Humidity calculated at the surface'}
+        attrs = {"description": "Relative Humidity calculated at the surface"}
         write_scalar(sfc_rh, dname, fid, attrs)
 
         # get the data from each of the pressure levels (1 -> 1000 ISBL)
@@ -290,57 +367,70 @@ def collect_sbt_ancillary(acquisition, lonlats, ancillary_path,
         rh = ecwmf_relative_humidity(ancillary_path, lonlat, dt)
 
         dname = ppjoin(pnt, DatasetName.GEOPOTENTIAL.value)
-        write_dataframe(gph[0], dname, fid, compression, attrs=gph[1],
-                        filter_opts=filter_opts)
+        write_dataframe(
+            gph[0], dname, fid, compression, attrs=gph[1], filter_opts=filter_opts
+        )
 
         dname = ppjoin(pnt, DatasetName.TEMPERATURE.value)
-        write_dataframe(tmp[0], dname, fid, compression, attrs=tmp[1],
-                        filter_opts=filter_opts)
+        write_dataframe(
+            tmp[0], dname, fid, compression, attrs=tmp[1], filter_opts=filter_opts
+        )
 
         dname = ppjoin(pnt, DatasetName.RELATIVE_HUMIDITY.value)
-        write_dataframe(rh[0], dname, fid, compression, attrs=rh[1],
-                        filter_opts=filter_opts)
+        write_dataframe(
+            rh[0], dname, fid, compression, attrs=rh[1], filter_opts=filter_opts
+        )
 
         # combine the surface and higher pressure layers into a single array
-        cols = ['GeoPotential_Height', 'Pressure', 'Temperature',
-                'Relative_Humidity']
-        layers = pandas.DataFrame(columns=cols, index=range(rh[0].shape[0]),
-                                  dtype='float64')
+        cols = ["GeoPotential_Height", "Pressure", "Temperature", "Relative_Humidity"]
+        layers = pandas.DataFrame(
+            columns=cols, index=range(rh[0].shape[0]), dtype="float64"
+        )
 
-        layers['GeoPotential_Height'] = gph[0]['GeoPotential_Height'].values
-        layers['Pressure'] = ECWMF_LEVELS[::-1]
-        layers['Temperature'] = tmp[0]['Temperature'].values
-        layers['Relative_Humidity'] = rh[0]['Relative_Humidity'].values
+        layers["GeoPotential_Height"] = gph[0]["GeoPotential_Height"].values
+        layers["Pressure"] = ECWMF_LEVELS[::-1]
+        layers["Temperature"] = tmp[0]["Temperature"].values
+        layers["Relative_Humidity"] = rh[0]["Relative_Humidity"].values
 
         # define the surface level
-        df = pandas.DataFrame({'GeoPotential_Height': sfc_hgt[0],
-                               'Pressure': sfc_prs[0],
-                               'Temperature': kelvin_2_celcius(t2m[0]),
-                               'Relative_Humidity': sfc_rh}, index=[0])
+        df = pandas.DataFrame(
+            {
+                "GeoPotential_Height": sfc_hgt[0],
+                "Pressure": sfc_prs[0],
+                "Temperature": kelvin_2_celcius(t2m[0]),
+                "Relative_Humidity": sfc_rh,
+            },
+            index=[0],
+        )
 
         # MODTRAN requires the height to be ascending
         # and the pressure to be descending
-        wh = ((layers['GeoPotential_Height'] > sfc_hgt[0]) &
-              (layers['Pressure'] < sfc_prs[0].round()))
+        wh = (layers["GeoPotential_Height"] > sfc_hgt[0]) & (
+            layers["Pressure"] < sfc_prs[0].round()
+        )
         df = df.append(layers[wh])
         df.reset_index(drop=True, inplace=True)
 
         dname = ppjoin(pnt, DatasetName.ATMOSPHERIC_PROFILE.value)
-        write_dataframe(df, dname, fid, compression, attrs=attrs,
-                        filter_opts=filter_opts)
+        write_dataframe(df, dname, fid, compression, attrs=attrs, filter_opts=filter_opts)
 
-        fid[pnt].attrs['lonlat'] = lonlat
+        fid[pnt].attrs["lonlat"] = lonlat
 
     if out_group is None:
         return fid
 
 
-def collect_nbar_ancillary(container, aerosol_dict=None,
-                           water_vapour_dict=None, ozone_path=None,
-                           dem_path=None, brdf_dict=None,
-                           out_group=None,
-                           compression=H5CompressionFilter.LZF,
-                           filter_opts=None):
+def collect_nbar_ancillary(
+    container,
+    aerosol_dict=None,
+    water_vapour_dict=None,
+    ozone_path=None,
+    dem_path=None,
+    brdf_dict=None,
+    out_group=None,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+):
     """
     Collects the ancillary information required to create NBAR.
 
@@ -402,8 +492,7 @@ def collect_nbar_ancillary(container, aerosol_dict=None,
     """
     # Initialise the output files
     if out_group is None:
-        fid = h5py.File('nbar-ancillary.h5', 'w', driver='core',
-                        backing_store=False)
+        fid = h5py.File("nbar-ancillary.h5", "w", driver="core", backing_store=False)
     else:
         fid = out_group
 
@@ -429,14 +518,14 @@ def collect_nbar_ancillary(container, aerosol_dict=None,
         for acq in container.get_acquisitions(group=group):
             if acq.band_type is not BandType.REFLECTIVE:
                 continue
-            data = get_brdf_data(acq, brdf_dict,
-                                 compression)
+            data = get_brdf_data(acq, brdf_dict, compression)
 
             # output
             for param in data:
-                dname = dname_format.format(parameter=param.value,
-                                            band_name=acq.band_name)
-                brdf_value = data[param].pop('value')
+                dname = dname_format.format(
+                    parameter=param.value, band_name=acq.band_name
+                )
+                brdf_value = data[param].pop("value")
                 write_scalar(brdf_value, dname, fid, data[param])
 
     if out_group is None:
@@ -453,8 +542,8 @@ def _aggregate_ancillary(ancillary_fnames, write_access):
     fnames.pop(fnames.index(write_access))
 
     # get file ids
-    fids = [h5py.File(fname, 'r') for fname in fnames]
-    fids.append(h5py.File(write_access, 'a'))
+    fids = [h5py.File(fname, "r") for fname in fnames]
+    fids.append(h5py.File(write_access, "a"))
     aggregate_ancillary(fids)
 
     # close
@@ -488,13 +577,15 @@ def aggregate_ancillary(granule_groups):
     aerosol /= n_tiles
     elevation /= n_tiles
 
-    description = ("The {} value is an average from all the {} values "
-                   "retreived for each Granule.")
-    attrs = {'data_source': 'granule_average'}
+    description = (
+        "The {} value is an average from all the {} values " "retreived for each Granule."
+    )
+    attrs = {"data_source": "granule_average"}
 
     # output each average value back into the same granule ancillary group
-    group_name = ppjoin(GroupName.ANCILLARY_GROUP.value,
-                        GroupName.ANCILLARY_AVG_GROUP.value)
+    group_name = ppjoin(
+        GroupName.ANCILLARY_GROUP.value, GroupName.ANCILLARY_AVG_GROUP.value
+    )
     for granule in granule_groups:
         # for the multifile workflow, we only want to write to one granule
         try:
@@ -503,19 +594,19 @@ def aggregate_ancillary(granule_groups):
             continue
 
         dset = group.create_dataset(DatasetName.OZONE.value, data=ozone)
-        attrs['description'] = description.format(*(2*['Ozone']))
+        attrs["description"] = description.format(*(2 * ["Ozone"]))
         attach_attributes(dset, attrs)
 
         dset = group.create_dataset(DatasetName.WATER_VAPOUR.value, data=vapour)
-        attrs['description'] = description.format(*(2*['Water Vapour']))
+        attrs["description"] = description.format(*(2 * ["Water Vapour"]))
         attach_attributes(dset, attrs)
 
         dset = group.create_dataset(DatasetName.AEROSOL.value, data=aerosol)
-        attrs['description'] = description.format(*(2*['Aerosol']))
+        attrs["description"] = description.format(*(2 * ["Aerosol"]))
         attach_attributes(dset, attrs)
 
         dset = group.create_dataset(DatasetName.ELEVATION.value, data=elevation)
-        attrs['description'] = description.format(*(2*['Elevation']))
+        attrs["description"] = description.format(*(2 * ["Elevation"]))
         attach_attributes(dset, attrs)
 
 
@@ -529,40 +620,37 @@ def get_aerosol_data(acquisition, aerosol_dict):
 
     dt = acquisition.acquisition_datetime
     geobox = acquisition.gridded_geo_box()
-    roi_poly = Polygon([geobox.ul_lonlat, geobox.ur_lonlat,
-                        geobox.lr_lonlat, geobox.ll_lonlat])
+    roi_poly = Polygon(
+        [geobox.ul_lonlat, geobox.ur_lonlat, geobox.lr_lonlat, geobox.ll_lonlat]
+    )
 
-    descr = ['AATSR_PIX', 'AATSR_CMP_YEAR_MONTH', 'AATSR_CMP_MONTH']
-    names = ['ATSR_LF_%Y%m', 'aot_mean_%b_%Y_All_Aerosols',
-             'aot_mean_%b_All_Aerosols']
-    exts = ['/pix', '/cmp', '/cmp']
+    descr = ["AATSR_PIX", "AATSR_CMP_YEAR_MONTH", "AATSR_CMP_MONTH"]
+    names = ["ATSR_LF_%Y%m", "aot_mean_%b_%Y_All_Aerosols", "aot_mean_%b_All_Aerosols"]
+    exts = ["/pix", "/cmp", "/cmp"]
     pathnames = [ppjoin(ext, dt.strftime(n)) for ext, n in zip(exts, names)]
 
     # temporary until we sort out a better default mechanism
     # how do we want to support default values, whilst still support provenance
-    if 'user' in aerosol_dict:
+    if "user" in aerosol_dict:
         tier = AerosolTier.USER
-        metadata = {
-            'id': numpy.array([], VLEN_STRING),
-            'tier': tier.name
-        }
+        metadata = {"id": numpy.array([], VLEN_STRING), "tier": tier.name}
 
-        return aerosol_dict['user'], metadata
+        return aerosol_dict["user"], metadata
 
-    aerosol_fname = aerosol_dict['pathname']
+    aerosol_fname = aerosol_dict["pathname"]
 
     data = None
     delta_tolerance = datetime.timedelta(days=0.5)
-    with h5py.File(aerosol_fname, 'r') as fid:
+    with h5py.File(aerosol_fname, "r") as fid:
         for pathname, description in zip(pathnames, descr):
             tier = AerosolTier[description]
             if pathname in fid:
                 df = read_h5_table(fid, pathname)
-                aerosol_poly = wkt.loads(fid[pathname].attrs['extents'])
+                aerosol_poly = wkt.loads(fid[pathname].attrs["extents"])
 
                 if aerosol_poly.intersects(roi_poly):
-                    if description == 'AATSR_PIX':
-                        abs_diff = (df['timestamp'] - dt).abs()
+                    if description == "AATSR_PIX":
+                        abs_diff = (df["timestamp"] - dt).abs()
                         df = df[abs_diff < delta_tolerance]
                         df.reset_index(inplace=True, drop=True)
 
@@ -570,17 +658,16 @@ def get_aerosol_data(acquisition, aerosol_dict):
                         continue
 
                     intersection = aerosol_poly.intersection(roi_poly)
-                    pts = GeoSeries([Point(x, y) for x, y in
-                                     zip(df['lon'], df['lat'])])
+                    pts = GeoSeries([Point(x, y) for x, y in zip(df["lon"], df["lat"])])
                     idx = pts.within(intersection)
-                    data = df[idx]['aerosol'].mean()
+                    data = df[idx]["aerosol"].mean()
 
                     if numpy.isfinite(data):
                         # ancillary metadata tracking
                         md = current_h5_metadata(fid, dataset_path=pathname)
                         metadata = {
-                            'id': numpy.array([md['id']], VLEN_STRING),
-                            'tier': tier.name
+                            "id": numpy.array([md["id"]], VLEN_STRING),
+                            "tier": tier.name,
                         }
 
                         return data, metadata
@@ -588,8 +675,8 @@ def get_aerosol_data(acquisition, aerosol_dict):
     # default aerosol value
     data = 0.06
     metadata = {
-        'id': numpy.array([], VLEN_STRING),
-        'tier': AerosolTier.FALLBACK_DEFAULT.name
+        "id": numpy.array([], VLEN_STRING),
+        "tier": AerosolTier.FALLBACK_DEFAULT.name,
     }
 
     return data, metadata
@@ -610,7 +697,7 @@ def get_elevation_data(lonlat, pathname):
     :type dem_dir:
         str
     """
-    fname, dname = pathname.split(':')
+    fname, dname = pathname.split(":")
 
     try:
         data, md_uuid = get_pixel(fname, dname, lonlat)
@@ -619,7 +706,7 @@ def get_elevation_data(lonlat, pathname):
         raise AncillaryError("No Elevation data")
 
     metadata = {
-        'id': numpy.array([md_uuid], VLEN_STRING),
+        "id": numpy.array([md_uuid], VLEN_STRING),
     }
 
     return data, metadata
@@ -630,7 +717,7 @@ def get_ozone_data(ozone_fname, lonlat, time):
     Get ozone data for a scene. `lonlat` should be the (x,y) for the centre
     the scene.
     """
-    dname = time.strftime('%b').lower()
+    dname = time.strftime("%b").lower()
 
     try:
         data, md_uuid = get_pixel(ozone_fname, dname, lonlat)
@@ -638,15 +725,14 @@ def get_ozone_data(ozone_fname, lonlat, time):
         raise AncillaryError("No Ozone data")
 
     metadata = {
-        'id': numpy.array([md_uuid], VLEN_STRING),
-        'tier': OzoneTier.DEFINITIVE.name
+        "id": numpy.array([md_uuid], VLEN_STRING),
+        "tier": OzoneTier.DEFINITIVE.name,
     }
 
     return data, metadata
 
 
-def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1,
-                     tolerance=1):
+def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1, tolerance=1):
     """
     Retrieve the water vapour value for an `acquisition` and the
     path for the water vapour ancillary data.
@@ -654,44 +740,43 @@ def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1,
     dt = acquisition.acquisition_datetime
     geobox = acquisition.gridded_geo_box()
 
-    year = dt.strftime('%Y')
+    year = dt.strftime("%Y")
     hour = dt.timetuple().tm_hour
     filename = "pr_wtr.eatm.{year}.h5".format(year=year)
 
-    if 'user' in water_vapour_dict:
-        metadata = {
-            'id': numpy.array([], VLEN_STRING),
-            'tier': WaterVapourTier.USER.name
-        }
-        return water_vapour_dict['user'], metadata
+    if "user" in water_vapour_dict:
+        metadata = {"id": numpy.array([], VLEN_STRING), "tier": WaterVapourTier.USER.name}
+        return water_vapour_dict["user"], metadata
 
-    water_vapour_path = water_vapour_dict['pathname']
+    water_vapour_path = water_vapour_dict["pathname"]
 
     datafile = pjoin(water_vapour_path, filename)
 
-    with h5py.File(datafile, 'r') as fid:
-        index = read_h5_table(fid, 'INDEX')
+    with h5py.File(datafile, "r") as fid:
+        index = read_h5_table(fid, "INDEX")
 
     # set the tolerance in days to search back in time
-    max_tolerance = (- datetime.timedelta(days=tolerance))
+    max_tolerance = -datetime.timedelta(days=tolerance)
 
     # only look for observations that have occured in the past
     time_delta = index.timestamp - dt
-    result = time_delta[(time_delta < datetime.timedelta()) & (time_delta > max_tolerance)]
+    result = time_delta[
+        (time_delta < datetime.timedelta()) & (time_delta > max_tolerance)
+    ]
     if result.shape[0] == 0:
-        if 'fallback_dataset' not in water_vapour_dict:
+        if "fallback_dataset" not in water_vapour_dict:
             raise AncillaryError("No actual or fallback water vapour data.")
 
         tier = WaterVapourTier.FALLBACK_DATASET
-        month = dt.strftime('%B-%d').upper()
+        month = dt.strftime("%B-%d").upper()
 
         # closest previous observation
         # i.e. observations are at 0000, 0600, 1200, 1800
         # and an acquisition hour of 1700 will use the 1200 observation
         observations = numpy.array([0, 6, 12, 18])
         hr = observations[numpy.argmin(numpy.abs(hour - observations))]
-        dataset_name = 'AVERAGE/{}/{:02d}00'.format(month, hr)
-        datafile = water_vapour_dict['fallback_data']
+        dataset_name = "AVERAGE/{}/{:02d}00".format(month, hr)
+        datafile = water_vapour_dict["fallback_data"]
     else:
         tier = WaterVapourTier.DEFINITIVE
         # get the index of the closest water vapour observation
@@ -710,10 +795,7 @@ def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1,
     # the metadata from the original file says (Kg/m^2)
     # so multiply by 0.1 to get (g/cm^2)
     data = data * scale_factor
-    metadata = {
-        'id': numpy.array([md_uuid], VLEN_STRING),
-        'tier': tier.name
-    }
+    metadata = {"id": numpy.array([md_uuid], VLEN_STRING), "tier": tier.name}
 
     return data, metadata
 

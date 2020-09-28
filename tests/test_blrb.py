@@ -13,7 +13,6 @@ from wagl.interpolation import bilinear, subdivide, indices, interpolate_block
 
 
 class BLRBTest(unittest.TestCase):
-
     def setUp(self):
         self.origin = (0, 0)
         self.shape = (16, 32)  # (nrows, ncols)
@@ -26,11 +25,11 @@ class BLRBTest(unittest.TestCase):
 
     def test_subdivide(self):
         d = subdivide(self.origin, self.shape)
-        self.assertEqual(sorted(d.keys()), ['LL', 'LR', 'UL', 'UR'])
-        self.assertEqual(d['UL'], [(0, 0), (0, 16), (8, 0), (8, 16)])
-        self.assertEqual(d['UR'], [(0, 16), (0, 31), (8, 16), (8, 31)])
-        self.assertEqual(d['LL'], [(8, 0), (8, 16), (15, 0), (15, 16)])
-        self.assertEqual(d['LR'], [(8, 16), (8, 31), (15, 16), (15, 31)])
+        self.assertEqual(sorted(d.keys()), ["LL", "LR", "UL", "UR"])
+        self.assertEqual(d["UL"], [(0, 0), (0, 16), (8, 0), (8, 16)])
+        self.assertEqual(d["UR"], [(0, 16), (0, 31), (8, 16), (8, 31)])
+        self.assertEqual(d["LL"], [(8, 0), (8, 16), (15, 0), (15, 16)])
+        self.assertEqual(d["LR"], [(8, 16), (8, 31), (15, 16), (15, 31)])
 
     def test_bilinear_0(self):
         x = math.pi
@@ -60,7 +59,6 @@ class BLRBTest(unittest.TestCase):
         self.assertEqual(a[4, 4], 2.0)
 
     def test_interpolate_block_0(self):
-
         def f(i, j):
             return float(i * j)
 
@@ -74,7 +72,6 @@ class BLRBTest(unittest.TestCase):
         self.assertEqual(b[4, 4], 16.0)
 
     def test_interpolate_block_1(self):
-
         def f(i, j):
             return float(i * j)
 
@@ -89,17 +86,16 @@ class BLRBTest(unittest.TestCase):
         self.assertEqual(b[-1, -2], 36.0)
 
     def test_interpolate_block_2(self):
-
         def f(i, j):
             return float(i + j)
 
         origin = (0, 0)
         shape = (3, 5)  # nrows, ncols
 
-        fUL = f(0, 0)   # 0.0
-        fUR = f(0, 4)   # 4.0
-        fLL = f(2, 0)   # 2.0
-        fLR = f(2, 4)   # 6.0
+        fUL = f(0, 0)  # 0.0
+        fUR = f(0, 4)  # 4.0
+        fLL = f(2, 0)  # 2.0
+        fLR = f(2, 4)  # 6.0
 
         a = bilinear(shape, fUL, fUR, fLR, fLL)
         # print '\n', a
@@ -115,9 +111,8 @@ class BLRBTest(unittest.TestCase):
         self.assertTrue(numpy.max(b - a) < 0.000001)
 
     def test_interpolate_block_3(self):
-
         def f(i, j):
-            return float(i)**2 * math.sqrt(float(j))
+            return float(i) ** 2 * math.sqrt(float(j))
 
         origin = (0, 0)
         shape = (3, 5)  # nrows, ncols
@@ -144,20 +139,18 @@ class BLRBTest(unittest.TestCase):
 def the_suite():
     """Returns a test suite of all the tests in this module."""
 
-    test_classes = [
-        BLRBTest
-    ]
+    test_classes = [BLRBTest]
 
-    suite_list = map(unittest.defaultTestLoader.loadTestsFromTestCase,
-                     test_classes)
+    suite_list = map(unittest.defaultTestLoader.loadTestsFromTestCase, test_classes)
 
     suite = unittest.TestSuite(suite_list)
 
     return suite
 
+
 #
 # Run unit tests if in __main__
 #
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.TextTestRunner(verbosity=2).run(the_suite())

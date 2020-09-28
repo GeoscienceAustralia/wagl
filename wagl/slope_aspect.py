@@ -16,24 +16,32 @@ from wagl.hdf5 import H5CompressionFilter, attach_image_attributes
 from wagl.__slope_aspect import slope_aspect
 
 
-def _slope_aspect_arrays(acquisition, dsm_fname, buffer_distance, out_fname,
-                         compression=H5CompressionFilter.LZF,
-                         filter_opts=None):
+def _slope_aspect_arrays(
+    acquisition,
+    dsm_fname,
+    buffer_distance,
+    out_fname,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    with h5py.File(dsm_fname, 'r') as dsm_fid,\
-        h5py.File(out_fname, 'w') as fid:
+    with h5py.File(dsm_fname, "r") as dsm_fid, h5py.File(out_fname, "w") as fid:
 
         dsm_grp = dsm_fid[GroupName.ELEVATION_GROUP.value]
-        slope_aspect_arrays(acquisition, dsm_grp, buffer_distance, fid,
-                            compression)
+        slope_aspect_arrays(acquisition, dsm_grp, buffer_distance, fid, compression)
 
 
-def slope_aspect_arrays(acquisition, dsm_group, buffer_distance,
-                        out_group=None, compression=H5CompressionFilter.LZF,
-                        filter_opts=None):
+def slope_aspect_arrays(
+    acquisition,
+    dsm_group,
+    buffer_distance,
+    out_group=None,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+):
     """
     Calculates slope and aspect.
 
@@ -69,7 +77,7 @@ def slope_aspect_arrays(acquisition, dsm_group, buffer_distance,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :filter_opts:
         A dict of key value pairs available to the given configuration
@@ -120,14 +128,14 @@ def slope_aspect_arrays(acquisition, dsm_group, buffer_distance,
 
     # Define an array of latitudes
     # This will be ignored if is_utm == True
-    alat = numpy.array([y_origin - i * y_res for i in range(-1, nrow - 1)],
-                       dtype=numpy.float64)  # yes, I did mean float64.
+    alat = numpy.array(
+        [y_origin - i * y_res for i in range(-1, nrow - 1)], dtype=numpy.float64
+    )  # yes, I did mean float64.
 
     # Output the reprojected result
     # Initialise the output files
     if out_group is None:
-        fid = h5py.File('slope-aspect.h5', 'w', driver='core',
-                        backing_store=False)
+        fid = h5py.File("slope-aspect.h5", "w", driver="core", backing_store=False)
     else:
         fid = out_group
 
@@ -138,25 +146,37 @@ def slope_aspect_arrays(acquisition, dsm_group, buffer_distance,
         filter_opts = {}
     else:
         filter_opts = filter_opts.copy()
-    filter_opts['chunks'] = acquisition.tile_size
+    filter_opts["chunks"] = acquisition.tile_size
 
     group = fid[GroupName.SLP_ASP_GROUP.value]
 
     # metadata for calculation
-    param_group = group.create_group('PARAMETERS')
-    param_group.attrs['dsm_index'] = ((ystart, ystop), (xstart, xstop))
-    param_group.attrs['pixel_buffer'] = '1 pixel'
+    param_group = group.create_group("PARAMETERS")
+    param_group.attrs["dsm_index"] = ((ystart, ystop), (xstart, xstop))
+    param_group.attrs["pixel_buffer"] = "1 pixel"
 
     kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
     no_data = -999
-    kwargs['fillvalue'] = no_data
+    kwargs["fillvalue"] = no_data
 
     # Define the output arrays. These will be transposed upon input
-    slope = numpy.zeros((rows, cols), dtype='float32')
-    aspect = numpy.zeros((rows, cols), dtype='float32')
+    slope = numpy.zeros((rows, cols), dtype="float32")
+    aspect = numpy.zeros((rows, cols), dtype="float32")
 
-    slope_aspect(ncol, nrow, cols, rows, x_res, y_res, spheroid, alat, is_utm,
-                 subset, slope.transpose(), aspect.transpose())
+    slope_aspect(
+        ncol,
+        nrow,
+        cols,
+        rows,
+        x_res,
+        y_res,
+        spheroid,
+        alat,
+        is_utm,
+        subset,
+        slope.transpose(),
+        aspect.transpose(),
+    )
 
     # output datasets
     dname = DatasetName.SLOPE.value
@@ -165,15 +185,17 @@ def slope_aspect_arrays(acquisition, dsm_group, buffer_distance,
     aspect_dset = group.create_dataset(dname, data=aspect, **kwargs)
 
     # attach some attributes to the image datasets
-    attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
-             'geotransform': geobox.transform.to_gdal(),
-             'no_data_value': no_data}
+    attrs = {
+        "crs_wkt": geobox.crs.ExportToWkt(),
+        "geotransform": geobox.transform.to_gdal(),
+        "no_data_value": no_data,
+    }
     desc = "The slope derived from the input elevation model."
-    attrs['description'] = desc
+    attrs["description"] = desc
     attach_image_attributes(slope_dset, attrs)
 
     desc = "The aspect derived from the input elevation model."
-    attrs['description'] = desc
+    attrs["description"] = desc
     attach_image_attributes(aspect_dset, attrs)
 
     if out_group is None:
