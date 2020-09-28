@@ -53,7 +53,7 @@ def card4l(
     dsm_fname,
     invariant_fname,
     modtran_exe,
-    modtran54_exe
+    modtran54_exe,
     out_fname,
     aerosol_model,
     ecmwf_path=None,
@@ -375,14 +375,22 @@ def card4l(
 
         # TODO: supported acqs in different groups pointing to different response funcs
         json_data, _ = format_json(
-            acqs, ancillary_group, sat_sol_grp, lon_lat_grp, workflow, root, aerosol_model=aerosol_model
+            acqs,
+            ancillary_group,
+            sat_sol_grp,
+            lon_lat_grp,
+            workflow,
+            root,
+            aerosol_model=aerosol_model,
         )
 
         # TODO needs logic here to run compute adjacency only if workflow requires it
         #   after we decide on the marine-atcor workflow?
         # compute adjacency filter using MODTRAN 5.4 PSF data
-        log.info('Compute-Adjacency-Filter')
-        compute_adjacency_filter(container, granule, json_data, nvertices, modtran54_exe, root, aerosol_model)
+        log.info("Compute-Adjacency-Filter")
+        compute_adjacency_filter(
+            container, granule, json_data, nvertices, modtran54_exe, root, aerosol_model
+        )
 
         # atmospheric inputs group
         inputs_grp = root[GroupName.ATMOSPHERIC_INPUTS_GRP.value]
@@ -517,7 +525,9 @@ def card4l(
                             AtmosphericCoefficients.ESUN.value
                         ]
                     ).values[0]
-                    psf_dataset_name = ppjoin(DatasetName.ADJACENCY_FILTER.value, acq.band_name)
+                    psf_dataset_name = ppjoin(
+                        DatasetName.ADJACENCY_FILTER.value, acq.band_name
+                    )
                     psf_kernel = results_group[psf_dataset_name][:]
                     slp_asp_grp = res_group[GroupName.SLP_ASP_GROUP.value]
                     rel_slp_asp = res_group[GroupName.REL_SLP_GROUP.value]

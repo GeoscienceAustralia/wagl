@@ -94,7 +94,9 @@ class DataStandardisation(luigi.Task):
     buffer_distance = luigi.FloatParameter(default=8000, significant=False)
     h5_driver = luigi.OptionalParameter(default="", significant=False)
     normalized_solar_zenith = luigi.FloatParameter(default=45.0)
-    aerosol_model = luigi.EnumParameter(enum=AerosolModel, default=AerosolModel.AER_MARITIME_NAVY)
+    aerosol_model = luigi.EnumParameter(
+        enum=AerosolModel, default=AerosolModel.AER_MARITIME_NAVY
+    )
     refractive_index = luigi.Parameter(default=1.34)
 
     def output(self):

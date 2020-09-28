@@ -37,6 +37,7 @@ class TestInterpolateBlock(unittest.TestCase):
         """
         Simple test case for the interpolate block function
         """
+
         def test_fnc(y, x):
             return 8 * y + 2 * x
 
@@ -48,9 +49,7 @@ class TestInterpolateBlock(unittest.TestCase):
         in_arr[3, 0] = 12
         in_arr[3, 3] = 15
 
-        interpolate_block(
-            (0, 0), shape=in_arr.shape, eval_func=test_fnc, grid=in_arr
-        )
+        interpolate_block((0, 0), shape=in_arr.shape, eval_func=test_fnc, grid=in_arr)
 
         self.assertTrue(np.allclose(expected, in_arr))
 
@@ -60,6 +59,7 @@ class TestInterpolateGrid(unittest.TestCase):
         """
         Simple test case for interpolate grid
         """
+
         def eval_func(y, x):
             return 8 * y + x
 
@@ -73,6 +73,7 @@ class TestInterpolateGrid(unittest.TestCase):
         """
         Test grid too small to calculate bilinear interpolation
         """
+
         def eval_func(y, x):
             return y * 1 + x
 
@@ -85,6 +86,7 @@ class TestInterpolateGrid(unittest.TestCase):
         """
         Test that the wrapper defaults to max depth
         """
+
         def eval_func(y, x):
             return 8 * y + x
 

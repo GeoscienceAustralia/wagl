@@ -508,9 +508,7 @@ def get_brdf_data(
         param: dict(
             data_source="BRDF",
             id=np.array(
-                list(
-                    {ds_id for ds in brdf_datasets for ds_id in tally[ds][param]["id"]}
-                ),
+                list({ds_id for ds in brdf_datasets for ds_id in tally[ds][param]["id"]}),
                 dtype=VLEN_STRING,
             ),
             value=np.mean([tally[ds][param]["value"] for ds in brdf_datasets]).item(),

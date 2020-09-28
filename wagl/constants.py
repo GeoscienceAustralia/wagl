@@ -157,20 +157,20 @@ class DatasetName(Enum):
     INTERPOLATION_FMT = "{coefficient}/{band_name}"
 
     # wagl.modtran
-    MODTRAN_INPUT = 'MODTRAN-INPUT-DATA'
-    FLUX = 'FLUX'
-    ALTITUDES = 'ALTITUDES'
-    SOLAR_IRRADIANCE = 'SOLAR-IRRADIANCE'
-    UPWARD_RADIATION_CHANNEL = 'UPWARD-RADIATION-CHANNEL'
-    DOWNWARD_RADIATION_CHANNEL = 'DOWNWARD-RADIATION-CHANNEL'
-    CHANNEL = 'CHANNEL'
-    NBAR_COEFFICIENTS = 'NBAR-COEFFICIENTS'
-    SBT_COEFFICIENTS = 'SBT-COEFFICIENTS'
-    TP5 = 'TP5-DATA'
+    MODTRAN_INPUT = "MODTRAN-INPUT-DATA"
+    FLUX = "FLUX"
+    ALTITUDES = "ALTITUDES"
+    SOLAR_IRRADIANCE = "SOLAR-IRRADIANCE"
+    UPWARD_RADIATION_CHANNEL = "UPWARD-RADIATION-CHANNEL"
+    DOWNWARD_RADIATION_CHANNEL = "DOWNWARD-RADIATION-CHANNEL"
+    CHANNEL = "CHANNEL"
+    NBAR_COEFFICIENTS = "NBAR-COEFFICIENTS"
+    SBT_COEFFICIENTS = "SBT-COEFFICIENTS"
+    TP5 = "TP5-DATA"
 
     # wagl.psf
-    PSF = 'POINT-SPREAD-FUNCTION'
-    ADJACENCY_FILTER = 'ADJACENCY-FILTER'
+    PSF = "POINT-SPREAD-FUNCTION"
+    ADJACENCY_FILTER = "ADJACENCY-FILTER"
 
     # wagl.pq
     PQ_FMT = "PIXEL-QUALITY/{produt}/PIXEL-QUALITY"
@@ -243,12 +243,12 @@ class ArdProducts(Enum):
     Defines the output ARD products that wagl produces.
     """
 
-    NBAR = 'NBAR'
-    NBART = 'NBART'
-    LAMBERTIAN = 'LAMBERTIAN'
-    SBT = 'SBT'
-    ADJ = 'LMBADJ'
-    SKY = 'LMBSKYG'
+    NBAR = "NBAR"
+    NBART = "NBART"
+    LAMBERTIAN = "LAMBERTIAN"
+    SBT = "SBT"
+    ADJ = "LMBADJ"
+    SKY = "LMBSKYG"
 
 
 class Albedos(Enum):
@@ -294,6 +294,7 @@ class AerosolModel(Enum):
     """
     Defines the aerosol model to be used in MODTRAN 5.4
     """
+
     AER_RURAL = 1
     AER_RURAL_DENSE = 2
     AER_MARITIME_NAVY = 3
@@ -558,7 +559,6 @@ class PQAConstants:
         self.thermal_band = {"TM": "6", "ETM+": "61", "OLI_TIRS": "10"}.get(
             self.sensor, "Error! No Thermal Band Found."
         )
-
 
 
 def combine_satellite_sensor(satellite, sensor):

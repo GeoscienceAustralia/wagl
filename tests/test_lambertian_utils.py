@@ -11,17 +11,16 @@ from wagl.convolution import _sequential_valid_rows, _fill_nulls
 
 
 class SequentialRowsTest(unittest.TestCase):
-
     def setUp(self):
         # define a 'mask' where True are bad rows
-        self.sequential = numpy.zeros((10, 10), dtype='bool')
-        self.sequential[0] = True   # set first row
+        self.sequential = numpy.zeros((10, 10), dtype="bool")
+        self.sequential[0] = True  # set first row
         self.sequential[-1] = True  # set last row
 
-        self.non_sequential = numpy.zeros((10, 10), dtype='bool')
-        self.non_sequential[0] = True   # set first row
+        self.non_sequential = numpy.zeros((10, 10), dtype="bool")
+        self.non_sequential[0] = True  # set first row
         self.non_sequential[-1] = True  # set last row
-        self.non_sequential[5] = True   # set middle row
+        self.non_sequential[5] = True  # set middle row
 
     def test_sequential_start(self):
         row_idx = _sequential_valid_rows(self.sequential)
@@ -39,7 +38,6 @@ class SequentialRowsTest(unittest.TestCase):
 
 
 class FillNullsTest(unittest.TestCase):
-
     def setUp(self):
         # data array with some holes
         self.data = numpy.random.ranf((10, 10))
@@ -80,5 +78,5 @@ class FillNullsTest(unittest.TestCase):
         self.assertTrue(xbar, copy[7, 7])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

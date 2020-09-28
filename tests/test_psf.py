@@ -98,13 +98,13 @@ class TestPointSpreadFunction(unittest.TestCase):
             self.assertTrue(modtran_work.joinpath("mod5root.in").exists())
 
     def test_formattp5(self):
-        with open(DATA_DIR.joinpath("MODTRAN-INPUT-DATA.json"), 'r') as src:
+        with open(DATA_DIR.joinpath("MODTRAN-INPUT-DATA.json"), "r") as src:
             data = json.load(src)
             data["aerosol_type"] = 3
             data1_tp5, _ = format_tp5(data)
 
-        with open(DATA_DIR.joinpath("POINT-4-ALBEDO-0.tp5"), 'r') as src:
-            data2_tp5 = ''.join(src.readlines())
+        with open(DATA_DIR.joinpath("POINT-4-ALBEDO-0.tp5"), "r") as src:
+            data2_tp5 = "".join(src.readlines())
 
         self.assertEqual(data1_tp5, data2_tp5)
 

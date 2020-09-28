@@ -401,7 +401,7 @@ def compute_adjacency_filter(
 
             dname_psf = ppjoin(DatasetName.PSF.value, band)
             psf_ds = create_dataset(group_name, dname_psf, _psf_data.shape, attrs)
-            psf_ds[:] = _psf_data.astype('float32')
+            psf_ds[:] = _psf_data.astype("float32")
 
             acq = [acq for acq in supported_band_acqs if acq.band_name == band][0]
             xres, yres = acq.resolution
@@ -415,8 +415,12 @@ def compute_adjacency_filter(
             ):
                 _LOG.warning(f"Adjacency kernel is not symmetric for {band}")
 
-            attrs["description"] = f"{band} Adjacency filter derived from Point Spread Function"
+            attrs[
+                "description"
+            ] = f"{band} Adjacency filter derived from Point Spread Function"
             dname_filter = ppjoin(DatasetName.ADJACENCY_FILTER.value, acq.band_name)
 
-            filter_ds = create_dataset(group_name, dname_filter, filter_matrix.shape, attrs)
-            filter_ds[:] = filter_matrix.astype('float32')
+            filter_ds = create_dataset(
+                group_name, dname_filter, filter_matrix.shape, attrs
+            )
+            filter_ds[:] = filter_matrix.astype("float32")

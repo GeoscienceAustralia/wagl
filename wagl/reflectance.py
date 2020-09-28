@@ -329,13 +329,9 @@ def sun_glint(
     rw = numpy.float32(refractive_index)  # noqa # pylint: disable
     p5 = numpy.float32(0.5)  # noqa # pylint: disable
 
-    theta_view = numpy.deg2rad(
-        satellite_view, dtype="float32"
-    )  # noqa # pylint: disable
+    theta_view = numpy.deg2rad(satellite_view, dtype="float32")  # noqa # pylint: disable
     theta_sun = numpy.deg2rad(solar_zenith, dtype="float32")  # noqa # pylint: disable
-    theta_phi = numpy.deg2rad(
-        relative_azimuth, dtype="float32"
-    )  # noqa # pylint: disable
+    theta_phi = numpy.deg2rad(relative_azimuth, dtype="float32")  # noqa # pylint: disable
 
     expr = "cos(theta_sun) * cos(theta_view) + sin(theta_view) * sin(theta_sun) * cos(theta_phi)"
     cos_psi = numexpr.evaluate(expr)  # noqa # pylint: disable
@@ -896,9 +892,7 @@ def calculate_reflectance(
     attach_image_attributes(nbar_dset, attrs)
 
     # nbart
-    desc = (
-        "Contains the brdf and terrain corrected reflectance data scaled " "by 10000."
-    )
+    desc = "Contains the brdf and terrain corrected reflectance data scaled " "by 10000."
     attrs["description"] = desc
     attach_image_attributes(nbart_dset, attrs)
 
@@ -1054,14 +1048,10 @@ def calculate_reflectance(
         # we will not clip data to for testing phase
         if psf_kernel is not None:
             adj_data = adj_dset_f32[tile]
-            adj_dset.write_direct(
-                scale_reflectance(adj_data, clip=False), dest_sel=tile
-            )
+            adj_dset.write_direct(scale_reflectance(adj_data, clip=False), dest_sel=tile)
         lmbrt_dset.write_direct(scale_reflectance(ref_lm, clip=False), dest_sel=tile)
         nbar_dset.write_direct(scale_reflectance(ref_brdf, clip=False), dest_sel=tile)
-        nbart_dset.write_direct(
-            scale_reflectance(ref_terrain, clip=False), dest_sel=tile
-        )
+        nbart_dset.write_direct(scale_reflectance(ref_terrain, clip=False), dest_sel=tile)
 
     # close any still opened files, arrays etc associated with the acquisition
     acquisition.close()

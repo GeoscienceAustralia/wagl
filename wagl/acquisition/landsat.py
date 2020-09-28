@@ -75,7 +75,7 @@ class LandsatAcquisition(Acquisition):
 
         # Retrieve data from cache
         if window:
-            out = self.__data[(masked, )][window].copy()
+            out = self.__data[(masked,)][window].copy()
         else:
             out = self.__data[(masked,)].copy()
 
