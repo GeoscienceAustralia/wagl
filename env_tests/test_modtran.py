@@ -5,24 +5,20 @@ Test several different configurations of the json input file format.
 
 """
 import os
-import shutil
 import json
 from os.path import join as pjoin, abspath, dirname
 from posixpath import join as ppjoin
 import unittest
-import subprocess
 import tempfile
-import glob
 from datetime import datetime
+import mock
 import pkg_resources
-from functools import partial
 
 import pandas as pd
 
 
 from wagl.modtran import (
     coefficients,
-    _get_solar_angles,
     run_modtran,
     read_spectral_response,
 )
@@ -40,8 +36,6 @@ from wagl.constants import (
     POINT_ALBEDO_FMT,
 )
 
-import mock
-
 
 DATA_DIR = pjoin(dirname(abspath(__file__)), "data")
 INPUT_JSON = pjoin(DATA_DIR, "TL_alb_0.json")
@@ -54,10 +48,7 @@ SPECTRAL_RESPONSE_LS8 = pkg_resources.resource_filename(
 
 def mock_spectral_response():
     """ Quick callable to return the spectral response from the repository """
-    with pkg_resources.resource_stream(
-        "wagl", "spectral_response/landsat8_vsir.flt"
-    ) as rsc_stream:
-        return read_spectral_response(SPECTRAL_RESPONSE_LS8, False, range(2600, 349, -1))
+    return read_spectral_response(SPECTRAL_RESPONSE_LS8, range(2600, 349, -1))
 
 
 class ModtranTest(unittest.TestCase):
@@ -140,7 +131,6 @@ class ModtranTest(unittest.TestCase):
             assert fid[base_path].attrs["datetime"] == datetime(2001, 1, 1).isoformat()
             # test albedo headers?
             # Summarise modtran results to surface reflectance coefficients
-            test_grp = fid[base_path][ALBEDO_FMT.format(a=albedo.value)]
             nbar_coefficients, _ = coefficients(
                 read_h5_table(
                     fid,

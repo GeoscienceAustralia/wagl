@@ -37,7 +37,8 @@ class TestInterpolateBlock(unittest.TestCase):
         """
         Simple test case for the interpolate block function
         """
-        test_fnc = lambda y, x: 8 * y + x
+        def test_fnc(y, x):
+            return 8 * y + 2 * x
 
         expected = np.arange(0, 16).reshape(4, 4) * 2
 
@@ -47,9 +48,11 @@ class TestInterpolateBlock(unittest.TestCase):
         in_arr[3, 0] = 12
         in_arr[3, 3] = 15
 
-        result = interpolate_block(
+        interpolate_block(
             (0, 0), shape=in_arr.shape, eval_func=test_fnc, grid=in_arr
         )
+
+        self.assertTrue(np.allclose(expected, in_arr))
 
 
 class TestInterpolateGrid(unittest.TestCase):
@@ -57,9 +60,11 @@ class TestInterpolateGrid(unittest.TestCase):
         """
         Simple test case for interpolate grid
         """
+        def eval_func(y, x):
+            return 8 * y + x
+
         result = np.arange(64).reshape(8, 8)
         in_arr = result.copy()  # Interpolation is performed in place
-        eval_func = lambda y, x: 8 * y + x
         depth = 3
         interpolate_grid(result, eval_func, depth)
         self.assertTrue(np.allclose(result, in_arr))
@@ -68,9 +73,11 @@ class TestInterpolateGrid(unittest.TestCase):
         """
         Test grid too small to calculate bilinear interpolation
         """
+        def eval_func(y, x):
+            return y * 1 + x
+
         with self.assertRaises(ValueError):
             in_arr = np.zeros(1).reshape(1, 1)
-            eval_func = lambda y, x: y * 1 + x
             depth = 7
             interpolate_grid(in_arr, eval_func, depth)
 
@@ -78,9 +85,11 @@ class TestInterpolateGrid(unittest.TestCase):
         """
         Test that the wrapper defaults to max depth
         """
+        def eval_func(y, x):
+            return 8 * y + x
+
         result = np.arange(64).reshape(8, 8)
         in_arr = result.copy()  # Interpolation is performed in place
-        eval_func = lambda y, x: 8 * y + x
         depth = 10
         interpolate_grid(result, eval_func, depth)
         self.assertTrue(np.allclose(result, in_arr))

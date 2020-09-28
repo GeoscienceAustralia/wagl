@@ -138,7 +138,7 @@ class GreatCircle:
         # route is undefined.
         if self.antipodal:
             raise ValueError(
-                "cannot compute intermediate points on a great circle whose endpoints are antipodal"
+                "cannot compute intermediate points on a great circle whose endpoints are antipodal"  # noqa: E501
             )
         d = self.gcarclen
         delta = 1.0 / (npoints - 1)

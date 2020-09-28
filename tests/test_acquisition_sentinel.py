@@ -1,18 +1,14 @@
 from __future__ import absolute_import
 import unittest
 import datetime
-import rasterio
-from osgeo import osr
 from wagl.acquisition import acquisitions
 from wagl.acquisition.sentinel import (
-    Sentinel2Acquisition,
     Sentinel2aAcquisition,
     Sentinel2bAcquisition,
 )
 from wagl.constants import BandType
-from wagl.temperature import temperature_at_sensor
 
-from .data import DATA_DIR, S2A_SCENE1, S2B_SCENE1
+from .data import S2A_SCENE1, S2B_SCENE1
 
 
 class AcquisitionLoadZipTest(unittest.TestCase):

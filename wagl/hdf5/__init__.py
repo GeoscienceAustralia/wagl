@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# flake8: noqa
+
 """
 Contains various HDF5/h5py wrapped utilities for writing various datasets
 such as images and tables, as well as attaching metadata.

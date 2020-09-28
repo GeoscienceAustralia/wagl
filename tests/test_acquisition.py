@@ -1,14 +1,12 @@
 from __future__ import absolute_import
 import unittest
 import datetime
-import rasterio
-from osgeo import osr
 from wagl.acquisition import acquisitions
 from wagl.acquisition.landsat import Landsat8Acquisition, LandsatAcquisition
 from wagl.constants import BandType
 from wagl.temperature import temperature_at_sensor
 
-from .data import DATA_DIR, LS5_SCENE1, LS7_SCENE1, LS8_SCENE1
+from .data import LS5_SCENE1, LS7_SCENE1, LS8_SCENE1
 
 
 class AcquisitionLoadMtlTest(unittest.TestCase):

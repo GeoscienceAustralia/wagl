@@ -80,7 +80,12 @@ def _date_proximity(cmp_date, date_interpreter=lambda x: x):
 
     def _proximity_comparator(date):
         _date = date_interpreter(date)
-        return (abs(_date - cmp_date), -1 * _date.year, -1 * _date.month, -1 * _date.day)
+        return (
+            abs(_date - cmp_date),
+            -1 * _date.year,
+            -1 * _date.month,
+            -1 * _date.day,
+        )
 
     return _proximity_comparator
 
@@ -156,11 +161,14 @@ def get_brdf_dirs_fallback(brdf_root, scene_date):
     # Add boundary entry for next year accounting for inserted entry
     dir_dates.append((str(scene_date.year + 1), dir_dates[1][1]))
 
-    # Interpreter function
-    doy_intpr = lambda x: datetime.datetime.strptime(" ".join(x), "%Y %j").date()
-
     # return directory name without year
-    return min(dir_dates, key=_date_proximity(scene_date, doy_intpr))[1]
+    return min(
+        dir_dates,
+        key=_date_proximity(
+            scene_date,
+            lambda x: datetime.datetime.strptime(" ".join(x), "%Y %j").date(),
+        ),
+    )[1]
 
 
 def coord_transformer(src_crs, dst_crs):
@@ -500,7 +508,9 @@ def get_brdf_data(
         param: dict(
             data_source="BRDF",
             id=np.array(
-                list({ds_id for ds in brdf_datasets for ds_id in tally[ds][param]["id"]}),
+                list(
+                    {ds_id for ds in brdf_datasets for ds_id in tally[ds][param]["id"]}
+                ),
                 dtype=VLEN_STRING,
             ),
             value=np.mean([tally[ds][param]["value"] for ds in brdf_datasets]).item(),

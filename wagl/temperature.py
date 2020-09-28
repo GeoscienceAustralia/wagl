@@ -165,15 +165,15 @@ def surface_brightness_temperature(
 
     # pylint: disable=unused-variable
     # constants
-    k1 = acq.K1
-    k2 = acq.K2
+    k1 = acq.K1  # noqa: F841
+    k2 = acq.K2  # noqa: F841
 
     # process each tile
     for tile in acq.tiles():
         idx = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
 
-        radiance = acq.radiance_data(window=tile, out_no_data=NO_DATA_VALUE)
-        path_up = upwelling_radiation[idx]
+        radiance = acq.radiance_data(window=tile, out_no_data=NO_DATA_VALUE)  # noqa: F841
+        path_up = upwelling_radiation[idx]  # noqa: F841
         trans = transmittance[idx]
         mask = ~numpy.isfinite(trans)
         expr = "(radiance - path_up) / trans"
@@ -282,11 +282,11 @@ def temperature_at_sensor(thermal_acquisition, window=None):
         (thermal_acquisition.lines, thermal_acquisition.samples)
         or the dimensions given by the `window` parameter.
     """
-    k1 = thermal_acquisition.K1  # pylint: disable=unused-variable
-    k2 = thermal_acquisition.K2  # pylint: disable=unused-variable
+    k1 = thermal_acquisition.K1  # pylint: disable=unused-variable # noqa: F841
+    k2 = thermal_acquisition.K2  # pylint: disable=unused-variable # noqa: F841
 
     # pylint: disable=unused-variable
-    data = thermal_acquisition.radiance_data(window=window)
+    data = thermal_acquisition.radiance_data(window=window)  # noqa: F841
     result = numexpr.evaluate("k2 / (log(k1 / data + 1))")
 
     return result

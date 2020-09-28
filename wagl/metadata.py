@@ -333,7 +333,7 @@ def create_ard_yaml(res_group_bands, ancillary_group, out_group, parameters, wor
             },
             "modtran": {
                 "version": "6.0.1",
-                "repo_url": "http://www.ontar.com/software/productdetails.aspx?item=modtran",
+                "repo_url": "http://www.ontar.com/software/productdetails.aspx?item=modtran",  # noqa: E501
             },
         }
 

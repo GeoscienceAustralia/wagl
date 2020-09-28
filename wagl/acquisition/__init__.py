@@ -23,7 +23,7 @@ from dateutil import parser
 from nested_lookup import nested_lookup
 
 
-from .base import Acquisition, AcquisitionsContainer
+from .base import Acquisition, AcquisitionsContainer  # noqa: F401
 from .sentinel import Sentinel2aAcquisition, Sentinel2bAcquisition, s2_index_to_band_id
 from .sentinel import Sentinel2aSinergiseAcquisition, Sentinel2bSinergiseAcquisition
 from .landsat import ACQUISITION_TYPE, LandsatAcquisition

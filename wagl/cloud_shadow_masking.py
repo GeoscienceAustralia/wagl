@@ -2,6 +2,7 @@
 Cloud Shadow Masking
 --------------------
 """
+# flake8: noqa
 from __future__ import absolute_import, print_function
 import datetime
 import logging

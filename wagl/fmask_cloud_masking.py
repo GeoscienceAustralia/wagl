@@ -2,6 +2,7 @@
 
 # coding=utf-8
 # pylint: skip-file
+# flake8: noqa
 """
  A near literal port of the FMask matlab code to python using numpy/scipy and itk.
  - As a result of the literal port, original comments should still be intact - as is the original code structure.

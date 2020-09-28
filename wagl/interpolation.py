@@ -386,7 +386,7 @@ def sheared_bilinear_interpolate(
                 if not both_sides:
                     sheared = "x - row_start"
                 else:
-                    # if near-singular matrix warnings, multiply by a constant typical width-between-samples
+                    # if near-singular matrix warnings, multiply by a constant typical width-between-samples  # noqa: E501
                     sheared = "(x - left) / (right - left)"
 
                 # apply shear to interpolation
