@@ -333,20 +333,20 @@ def sun_glint(
     theta_sun = numpy.deg2rad(solar_zenith, dtype="float32")  # noqa # pylint: disable
     theta_phi = numpy.deg2rad(relative_azimuth, dtype="float32")  # noqa # pylint: disable
 
-    expr = "cos(theta_sun) * cos(theta_view) + sin(theta_view) * sin(theta_sun) * cos(theta_phi)"
+    expr = "cos(theta_sun) * cos(theta_view) + sin(theta_view) * sin(theta_sun) * cos(theta_phi)"  # noqa: E501
     cos_psi = numexpr.evaluate(expr)  # noqa # pylint: disable
 
     expr = "sqrt((1.0 + cos_psi) / 2.0)"
-    cos_omega = numexpr.evaluate(expr)
+    cos_omega = numexpr.evaluate(expr)  # noqa: F841
 
     expr = "(cos(theta_view) + cos(theta_sun)) / (2.0 * cos_omega)"
-    cos_beta = numexpr.evaluate(expr)
+    cos_beta = numexpr.evaluate(expr)  # noqa: F841
 
     expr = "0.003 + 0.00512 * wind_speed"
-    sigma2 = numexpr.evaluate(expr)
+    sigma2 = numexpr.evaluate(expr)  # noqa: F841
 
     expr = "((1.0 / cos_beta**2) - 1.0) / sigma2"
-    fac = numexpr.evaluate(expr)
+    fac = numexpr.evaluate(expr)  # noqa: F841
 
     expr = "exp(-fac) / (sigma2 * PI)"
     pval = numexpr.evaluate(expr)
@@ -359,13 +359,13 @@ def sun_glint(
     pval[tolerance_mask] = 0.0
 
     expr = "pval * cos_omega / (4.0 * cos_beta**3)"
-    gval = numexpr.evaluate(expr)
+    gval = numexpr.evaluate(expr)  # noqa: F841
 
     # value used for pixels that are flagged by the tolerance test
     value = numpy.abs((rw - 1) / (rw + 1)) ** 2
 
     expr = "arccos(cos_omega)"
-    omega = numexpr.evaluate(expr)
+    omega = numexpr.evaluate(expr)  # noqa: F841
 
     expr = "arcsin(sin(omega) / rw)"
     omega_prime = numexpr.evaluate(expr)  # noqa # pylint: disable

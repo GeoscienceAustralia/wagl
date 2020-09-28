@@ -170,8 +170,8 @@ def surface_brightness_temperature(
 
     # process each tile
     for tile in acq.tiles():
-        radiance = acq.radiance_data(window=tile, out_no_data=NO_DATA_VALUE)
-        path_up = upwelling_radiation[tile]
+        radiance = acq.radiance_data(window=tile, out_no_data=NO_DATA_VALUE)  # noqa: F841
+        path_up = upwelling_radiation[tile]  # noqa: F841
         trans = transmittance[tile]
         mask = ~numpy.isfinite(trans)
         expr = "(radiance - path_up) / trans"

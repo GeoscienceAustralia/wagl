@@ -16,6 +16,7 @@
 
 from __future__ import absolute_import, print_function
 import numpy
+import gdal
 
 
 def generate_tiles(samples, lines, xtile=None, ytile=None):
