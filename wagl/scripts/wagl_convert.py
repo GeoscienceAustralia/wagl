@@ -24,7 +24,7 @@ from wagl.geobox import GriddedGeoBox
 from wagl.hdf5 import read_h5_table
 from wagl.modtran import JsonEncoder
 
-IGNORE = ['crs_wkt', 'geotransform']
+IGNORE = ["crs_wkt", "geotransform"]
 
 yaml.add_representer(numpy.int8, Representer.represent_int)
 yaml.add_representer(numpy.uint8, Representer.represent_int)
@@ -62,34 +62,33 @@ def convert_image(dataset, output_directory):
     """
     geobox = GriddedGeoBox.from_dataset(dataset)
     tags = {k: v for k, v in dataset.attrs.items() if k not in IGNORE}
-    if 'no_data_value' in tags:
-        no_data = tags.pop('no_data_value')
+    if "no_data_value" in tags:
+        no_data = tags.pop("no_data_value")
     else:
         no_data = None
 
-    tags['history'] = "Converted from HDF5 IMAGE to GeoTiff."
+    tags["history"] = "Converted from HDF5 IMAGE to GeoTiff."
 
     # TODO: get x & y chunks from 3D images
-    kwargs = {'driver': 'GTiff',
-              'geobox': geobox,
-              'options': {
-                  'zlevel': 1,
-                  'compress': 'deflate'
-              },
-              'tags': tags,
-              'nodata': no_data}
+    kwargs = {
+        "driver": "GTiff",
+        "geobox": geobox,
+        "options": {"zlevel": 1, "compress": "deflate"},
+        "tags": tags,
+        "nodata": no_data,
+    }
 
-    base_fname = pjoin(output_directory, normpath(dataset.name.strip('/')))
-    out_fname = ''.join([base_fname, '.tif'])
+    base_fname = pjoin(output_directory, normpath(dataset.name.strip("/")))
+    out_fname = "".join([base_fname, ".tif"])
 
     if not exists(dirname(out_fname)):
         os.makedirs(dirname(out_fname))
 
     write_img(dataset, out_fname, **kwargs)
 
-    out_fname = ''.join([base_fname, '.yaml'])
+    out_fname = "".join([base_fname, ".yaml"])
     tags = {k: v for k, v in dataset.attrs.items()}
-    with open(out_fname, 'w') as src:
+    with open(out_fname, "w") as src:
         yaml.dump(tags, src, default_flow_style=False, indent=4)
 
 
@@ -113,17 +112,17 @@ def convert_table(group, dataset_name, output_directory):
     dataset = group[dataset_name]
     tags = {k: v for k, v in dataset.attrs.items()}
 
-    base_fname = pjoin(output_directory, normpath(dataset_name.strip('/')))
-    out_fname = ''.join([base_fname, '.csv'])
+    base_fname = pjoin(output_directory, normpath(dataset_name.strip("/")))
+    out_fname = "".join([base_fname, ".csv"])
 
     if not exists(dirname(out_fname)):
         os.makedirs(dirname(out_fname))
 
     df.to_csv(out_fname)
 
-    out_fname = ''.join([base_fname, '.yaml'])
+    out_fname = "".join([base_fname, ".yaml"])
 
-    with open(out_fname, 'w') as src:
+    with open(out_fname, "w") as src:
         yaml.dump(tags, src, default_flow_style=False, indent=4)
 
 
@@ -143,38 +142,38 @@ def convert_scalar(dataset, output_directory):
         None, outputs are written directly to disk.
     """
 
-    base_fname = pjoin(output_directory, normpath(dataset.name.strip('/')))
+    base_fname = pjoin(output_directory, normpath(dataset.name.strip("/")))
 
-    if dataset.attrs.get('file_format') == 'yaml':
+    if dataset.attrs.get("file_format") == "yaml":
         tags = yaml.load(dataset[()])
 
-    elif dataset.attrs.get('file_format') == 'json':
+    elif dataset.attrs.get("file_format") == "json":
         tags = {k: v for k, v in dataset.attrs.items()}
         data = dataset[()]
 
         if isinstance(data, numpy.bytes_):
-            data = data.decode('utf-8')
+            data = data.decode("utf-8")
 
-        out_fname_json = ''.join([base_fname, '.json'])
+        out_fname_json = "".join([base_fname, ".json"])
 
         if not exists(dirname(out_fname_json)):
             os.makedirs(dirname(out_fname_json))
 
-        with open(out_fname_json, 'w') as src:
+        with open(out_fname_json, "w") as src:
             json.dump(json.loads(data), src, cls=JsonEncoder, indent=4)
     else:
         tags = {k: v for k, v in dataset.attrs.items()}
         data = dataset[()]
         if isinstance(data, numpy.bytes_):
-            data = data.decode('utf-8')
+            data = data.decode("utf-8")
         tags[basename(dataset.name)] = data
 
-    out_fname_yaml = ''.join([base_fname, '.yaml'])
+    out_fname_yaml = "".join([base_fname, ".yaml"])
 
     if not exists(dirname(out_fname_yaml)):
         os.makedirs(dirname(out_fname_yaml))
 
-    with open(out_fname_yaml, 'w') as src:
+    with open(out_fname_yaml, "w") as src:
         yaml.dump(tags, src, default_flow_style=False, indent=4)
 
 
@@ -183,16 +182,16 @@ def extract(output_directory, group, name):
     A simple utility that sends an object to the appropriate
     extraction utility.
     """
-    dataset_name = ppjoin(group.name, name.decode('utf-8'))
+    dataset_name = ppjoin(group.name, name.decode("utf-8"))
 
     obj = group[dataset_name]
-    obj_class = obj.attrs.get('CLASS')
+    obj_class = obj.attrs.get("CLASS")
 
-    if obj_class == 'IMAGE':
+    if obj_class == "IMAGE":
         convert_image(obj, output_directory)
-    elif obj_class == 'TABLE':
+    elif obj_class == "TABLE":
         convert_table(group, dataset_name, output_directory)
-    elif obj_class == 'SCALAR':
+    elif obj_class == "SCALAR":
         convert_scalar(obj, output_directory)
 
     else:
@@ -202,14 +201,14 @@ def extract(output_directory, group, name):
 def run(fname, outdir, pathname):
     """ Run dataset conversion tree. """
     # note: lower level h5py access is required in order to visit links
-    with h5py.File(fname, 'r') as fid:
+    with h5py.File(fname, "r") as fid:
         if pathname in fid:
             obj = fid[pathname]
             if isinstance(obj, h5py.Group):
-                root = h5py.h5g.open(obj.id, b'.')
+                root = h5py.h5g.open(obj.id, b".")
                 root.links.visit(partial(extract, outdir, obj))
             elif isinstance(obj, h5py.Dataset):
-                name = pbasename(obj.name).encode('utf-8')
+                name = pbasename(obj.name).encode("utf-8")
                 extract(outdir, obj.parent, name)
             else:
                 return
@@ -223,14 +222,22 @@ def _parser():
     """ Argument parser. """
     description = "Extracts HDF5 datasets to either GeoTiff or CSV."
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument("--filename", required=True,
-                        help="The file from which to extract datasets from.")
-    parser.add_argument("--outdir", required=True,
-                        help=("The output directory that will contain the "
-                              "extracted datasets."))
-    parser.add_argument("--pathname", default="/",
-                        help=("The pathname to either a Dataset or a Group. "
-                              "Default is '/', which is root level."))
+    parser.add_argument(
+        "--filename", required=True, help="The file from which to extract datasets from."
+    )
+    parser.add_argument(
+        "--outdir",
+        required=True,
+        help=("The output directory that will contain the " "extracted datasets."),
+    )
+    parser.add_argument(
+        "--pathname",
+        default="/",
+        help=(
+            "The pathname to either a Dataset or a Group. "
+            "Default is '/', which is root level."
+        ),
+    )
 
     return parser
 

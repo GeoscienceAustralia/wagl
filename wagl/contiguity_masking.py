@@ -40,10 +40,10 @@ def calc_contiguity_mask(acquisitions, platform_id):
     rows = acquisitions[0].lines
     tiles = list(generate_tiles(cols, rows, cols))
 
-    _LOG.debug('Determining pixel contiguity')
+    _LOG.debug("Determining pixel contiguity")
     # Create mask array with True for all pixels which are non-zero in all
     # bands
-    mask = numpy.zeros((rows, cols), dtype='bool')
+    mask = numpy.zeros((rows, cols), dtype="bool")
 
     for tile in tiles:
         tile = (slice(tile[0][0], tile[0][1]), slice(tile[1][0], tile[1][1]))
@@ -51,15 +51,15 @@ def calc_contiguity_mask(acquisitions, platform_id):
         mask[tile] = stack.all(0)
 
     # The following is only valid for Landsat 5 images
-    _LOG.debug('calc_contiguity_mask: platform_id={}'.format(platform_id))
-    if platform_id == 'LANDSAT_5':
-        _LOG.debug('Finding thermal edge anomalies')
+    _LOG.debug("calc_contiguity_mask: platform_id={}".format(platform_id))
+    if platform_id == "LANDSAT_5":
+        _LOG.debug("Finding thermal edge anomalies")
         # Apply thermal edge anomalies
-        struct = numpy.ones((7, 7), dtype='bool')
+        struct = numpy.ones((7, 7), dtype="bool")
         erode = ndimage.binary_erosion(mask, structure=struct)
 
         dims = mask.shape
-        th_anom = numpy.zeros(dims, dtype='bool').flatten()
+        th_anom = numpy.zeros(dims, dtype="bool").flatten()
 
         pix_3buff_mask = mask - erode
         pix_3buff_mask[pix_3buff_mask > 0] = 1
@@ -76,14 +76,14 @@ def calc_contiguity_mask(acquisitions, platform_id):
 
         # Histogram method, a lot faster
         mx = numpy.max(ulabels)
-        h = histogram(low_sat, minv=0, maxv=mx, reverse_indices='ri')
-        hist = h['histogram']
-        ri = h['ri']
+        h = histogram(low_sat, minv=0, maxv=mx, reverse_indices="ri")
+        hist = h["histogram"]
+        ri = h["ri"]
 
         for i in numpy.arange(ulabels.shape[0]):
             if hist[ulabels[i]] == 0:
                 continue
-            th_anom[ri[ri[ulabels[i]]:ri[ulabels[i] + 1]]] = True
+            th_anom[ri[ri[ulabels[i]] : ri[ulabels[i] + 1]]] = True
 
         th_anom = ~(th_anom.reshape(dims))
         mask &= th_anom

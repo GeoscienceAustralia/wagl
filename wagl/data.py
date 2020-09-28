@@ -26,7 +26,7 @@ _LOG = logging.getLogger(__name__)
 def get_pixel(filename, dataset_name, lonlat):
     """Return a pixel from `filename` at the longitude and latitude given
     by the tuple `lonlat`. Optionally, the `band` can be specified."""
-    with h5py.File(filename, 'r') as fid:
+    with h5py.File(filename, "r") as fid:
         ds = fid[dataset_name]
         geobox = GriddedGeoBox.from_h5_dataset(ds)
         x, y = [int(v) for v in ~geobox.transform * lonlat]
@@ -40,12 +40,12 @@ def get_pixel(filename, dataset_name, lonlat):
         else:
             raise NotImplementedError("Only 2 and 3 dimensional data is supported")
         # else: TODO; cater for the 4D data we pulled from ECMWF
-            # for 4D [day, level, y, x] we need another input param `day`
-            # data = ds[day, :, y, x]
+        # for 4D [day, level, y, x] we need another input param `day`
+        # data = ds[day, :, y, x]
 
         metadata = current_h5_metadata(fid, dataset_path=dataset_name)
 
-    return data, metadata['id']
+    return data, metadata["id"]
 
 
 def select_acquisitions(acqs_list, fn=(lambda acq: True)):
@@ -62,7 +62,7 @@ def stack_data(acqs_list, fn=(lambda acq: True), window=None, masked=False):
     Given a list of acquisitions, return the data from each acquisition
     collected in a 3D numpy array (first index is the acquisition number).
     If window is defined, then the subset contained within the window is
-    returned along with a GriddedGeoBox instance detailing the 
+    returned along with a GriddedGeoBox instance detailing the
     spatial information associated with that subset.
 
     :param acqs_list:
@@ -106,9 +106,18 @@ def stack_data(acqs_list, fn=(lambda acq: True), window=None, masked=False):
     return stack, geo_box
 
 
-def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
-              tags=None, options=None, levels=None,
-              resampling=Resampling.nearest, config_options=None):
+def write_img(
+    array,
+    filename,
+    driver="GTiff",
+    geobox=None,
+    nodata=None,
+    tags=None,
+    options=None,
+    levels=None,
+    resampling=Resampling.nearest,
+    config_options=None,
+):
     """
     Writes a 2D/3D image to disk using rasterio.
 
@@ -157,15 +166,15 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
     dtype = array.dtype.name
 
     # Check for excluded datatypes
-    excluded_dtypes = ['int64', 'int8', 'uint64']
+    excluded_dtypes = ["int64", "int8", "uint64"]
     if dtype in excluded_dtypes:
         msg = "Datatype not supported: {dt}".format(dt=dtype)
         raise TypeError(msg)
 
     # convert any bools to uin8
-    if dtype == 'bool':
+    if dtype == "bool":
         array = np.uint8(array)
-        dtype = 'uint8'
+        dtype = "uint8"
 
     ndims = array.ndim
     dims = array.shape
@@ -180,8 +189,8 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
         lines = dims[1]
         bands = dims[0]
     else:
-        _LOG.error('Input array is not of 2 or 3 dimensions!!!')
-        err = 'Array dimensions: {dims}'.format(dims=ndims)
+        _LOG.error("Input array is not of 2 or 3 dimensions!!!")
+        err = "Array dimensions: {dims}".format(dims=ndims)
         raise IndexError(err)
 
     # If we have a geobox, then retrieve the geotransform and projection
@@ -193,26 +202,30 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
         projection = None
 
     # compression predictor choices
-    predictor = {'int8': 2,
-                 'uint8': 2,
-                 'int16': 2,
-                 'uint16': 2,
-                 'int32': 2,
-                 'uint32': 2,
-                 'int64': 2,
-                 'uint64': 2,
-                 'float32': 3,
-                 'float64': 3}
+    predictor = {
+        "int8": 2,
+        "uint8": 2,
+        "int16": 2,
+        "uint16": 2,
+        "int32": 2,
+        "uint32": 2,
+        "int64": 2,
+        "uint64": 2,
+        "float32": 3,
+        "float64": 3,
+    }
 
-    kwargs = {'count': bands,
-              'width': samples,
-              'height': lines,
-              'crs': projection,
-              'transform': transform,
-              'dtype': dtype,
-              'driver': driver,
-              'nodata': nodata,
-              'predictor': predictor[dtype]}
+    kwargs = {
+        "count": bands,
+        "width": samples,
+        "height": lines,
+        "crs": projection,
+        "transform": transform,
+        "dtype": dtype,
+        "driver": driver,
+        "nodata": nodata,
+        "predictor": predictor[dtype],
+    }
 
     if isinstance(array, h5py.Dataset):
         # TODO: if array is 3D get x & y chunks
@@ -224,9 +237,9 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
             y_tile, x_tile = array.chunks
             tiles = generate_tiles(samples, lines, x_tile, y_tile)
 
-            if 'tiled' in options:
-                kwargs['blockxsize'] = options.pop('blockxsize', x_tile)
-                kwargs['blockysize'] = options.pop('blockysize', y_tile)
+            if "tiled" in options:
+                kwargs["blockxsize"] = options.pop("blockxsize", x_tile)
+                kwargs["blockysize"] = options.pop("blockysize", y_tile)
 
     # the user can override any derived blocksizes by supplying `options`
     # handle case where no options are provided
@@ -240,7 +253,7 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
         enable writing to a temporary location before rearranging
         the overviews within the file by gdal when required
         """
-        with rasterio.open(filename, 'w', **kwargs) as outds:
+        with rasterio.open(filename, "w", **kwargs) as outds:
             if bands == 1:
                 if isinstance(array, h5py.Dataset):
                     for tile in tiles:
@@ -274,16 +287,14 @@ def write_img(array, filename, driver='GTiff', geobox=None, nodata=None,
             _rasterio_write_raster(out_fname)
             # Creates the file at filename with the configured options
             # Will also move the overviews to the start of the file
-            cmd = ['gdal_translate',
-                   '-co',
-                   '{}={}'.format('PREDICTOR', predictor[dtype])]
+            cmd = ["gdal_translate", "-co", "{}={}".format("PREDICTOR", predictor[dtype])]
 
             for key, value in options.items():
-                cmd.extend(['-co', '{}={}'.format(key, value)])
+                cmd.extend(["-co", "{}={}".format(key, value)])
 
             if config_options:
                 for key, value in config_options.items():
-                    cmd.extend(['--config', '{}'.format(key), '{}'.format(value)])
+                    cmd.extend(["--config", "{}".format(key), "{}".format(value)])
 
             cmd.extend([out_fname, filename])
             subprocess.check_call(cmd, cwd=dirname(filename))
@@ -350,9 +361,9 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=0, bands=1):
     """
     if isinstance(fname, h5py.Dataset):
         geobox = GriddedGeoBox.from_dataset(fname)
-        prj = fname.attrs['crs_wkt']
+        prj = fname.attrs["crs_wkt"]
         dtype = fname.dtype
-        fillv = fname.attrs.get('fillvalue')
+        fillv = fname.attrs.get("fillvalue")
 
     elif isinstance(fname, rasterio.io.DatasetReader):
         # Get the inverse transform of the affine co-ordinate reference
@@ -371,7 +382,7 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=0, bands=1):
             fillv = src.nodata
 
     else:
-        raise ValueError('Unexpected file description of type {}'.format(type(fname)))
+        raise ValueError("Unexpected file description of type {}".format(type(fname)))
 
     inv = ~geobox.transform
     rows, cols = geobox.shape
@@ -398,8 +409,9 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=0, bands=1):
     # Get the new UL co-ordinates of the array
     ul_x, ul_y = geobox.transform * (xstart, ystart)
 
-    geobox_subs = GriddedGeoBox(shape=subs.shape, origin=(ul_x, ul_y),
-                                pixelsize=geobox.pixelsize, crs=prj)
+    geobox_subs = GriddedGeoBox(
+        shape=subs.shape, origin=(ul_x, ul_y), pixelsize=geobox.pixelsize, crs=prj
+    )
 
     # test for intersection
     if not geobox_subs.intersects(geobox):
@@ -438,13 +450,14 @@ def read_subset(fname, ul_xy, ur_xy, lr_xy, ll_xy, edge_buffer=0, bands=1):
             src.read(bands, window=window, out=subs[dest_idx])
 
     else:
-        raise ValueError('Unexpected file description of type {}'.format(type(fname)))
+        raise ValueError("Unexpected file description of type {}".format(type(fname)))
 
     return (subs, geobox_subs)
 
 
-def reproject_file_to_array(src_filename, src_band=1, dst_geobox=None,
-                            resampling=Resampling.nearest):
+def reproject_file_to_array(
+    src_filename, src_band=1, dst_geobox=None, resampling=Resampling.nearest
+):
     """
     Given an image on file, reproject to the desired coordinate
     reference system.
@@ -472,7 +485,7 @@ def reproject_file_to_array(src_filename, src_band=1, dst_geobox=None,
     """
 
     if not isinstance(dst_geobox, GriddedGeoBox):
-        msg = 'dst_geobox must be an instance of a GriddedGeoBox! Type: {}'
+        msg = "dst_geobox must be an instance of a GriddedGeoBox! Type: {}"
         msg = msg.format(type(dst_geobox))
         raise TypeError(msg)
 
@@ -486,8 +499,13 @@ def reproject_file_to_array(src_filename, src_band=1, dst_geobox=None,
         # Get the rasterio proj4 styled dict
         prj = CRS.from_string(dst_geobox.crs.ExportToProj4())
 
-        reproject(rio_band, dst_arr, dst_transform=dst_geobox.transform,
-                  dst_crs=prj, resampling=resampling)
+        reproject(
+            rio_band,
+            dst_arr,
+            dst_transform=dst_geobox.transform,
+            dst_crs=prj,
+            resampling=resampling,
+        )
 
     return dst_arr
 
@@ -498,7 +516,7 @@ def reproject_array_to_array(
     dst_geobox,
     src_nodata=None,
     dst_nodata=None,
-    resampling=Resampling.nearest
+    resampling=Resampling.nearest,
 ):
     """
     Reprojects an image/array to the desired co-ordinate reference system.
@@ -531,12 +549,12 @@ def reproject_array_to_array(
     """
 
     if not isinstance(dst_geobox, GriddedGeoBox):
-        msg = 'dst_geobox must be an instance of a GriddedGeoBox! Type: {}'
+        msg = "dst_geobox must be an instance of a GriddedGeoBox! Type: {}"
         msg = msg.format(type(dst_geobox))
         raise TypeError(msg)
 
     if not isinstance(src_geobox, GriddedGeoBox):
-        msg = 'src_geobox must be an instance of a GriddedGeoBox! Type: {}'
+        msg = "src_geobox must be an instance of a GriddedGeoBox! Type: {}"
         msg = msg.format(type(src_geobox))
         raise TypeError(msg)
 
@@ -560,7 +578,7 @@ def reproject_array_to_array(
         dst_transform=dst_trans,
         dst_crs=dst_prj,
         dst_nodata=dst_nodata,
-        resampling=resampling
+        resampling=resampling,
     )
 
     return dst_arr

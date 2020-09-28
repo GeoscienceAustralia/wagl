@@ -2,6 +2,7 @@
 Cloud Shadow Masking
 --------------------
 """
+# flake8: noqa
 from __future__ import absolute_import, print_function
 import datetime
 import logging
@@ -15,11 +16,25 @@ from idl_functions import histogram
 from wagl.acca_cloud_masking import majority_filter
 
 
-def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
-                 swir1_dataset, swir2_dataset, kelvin_array, cloud_mask,
-                 geo_box, sun_az_deg, sun_elev_deg, pq_const,
-                 land_sea_mask=None, contiguity_mask=None,
-                 cloud_algorithm='ACCA', growregion=False, aux_data=None):
+def cloud_shadow(
+    blue_dataset,
+    green_dataset,
+    red_dataset,
+    nir_dataset,
+    swir1_dataset,
+    swir2_dataset,
+    kelvin_array,
+    cloud_mask,
+    geo_box,
+    sun_az_deg,
+    sun_elev_deg,
+    pq_const,
+    land_sea_mask=None,
+    contiguity_mask=None,
+    cloud_algorithm="ACCA",
+    growregion=False,
+    aux_data=None,
+):
     """
     Identifies cloud shadow and creates a mask.
 
@@ -153,15 +168,23 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
             for the x and y positions.
         """
 
-        omapx = numexpr.evaluate("a*b + c",
-                                 {'a': cindex[1],
-                                  'b': np.float32(geoTransform[1]),
-                                  'c': np.float32(geoTransform[0])})
+        omapx = numexpr.evaluate(
+            "a*b + c",
+            {
+                "a": cindex[1],
+                "b": np.float32(geoTransform[1]),
+                "c": np.float32(geoTransform[0]),
+            },
+        )
 
-        omapy = numexpr.evaluate("a - (b*abs(c))",
-                                 {'a': np.float32(geoTransform[3]),
-                                  'b': cindex[0],
-                                  'c': np.float32(geoTransform[5])})
+        omapy = numexpr.evaluate(
+            "a - (b*abs(c))",
+            {
+                "a": np.float32(geoTransform[3]),
+                "b": cindex[0],
+                "c": np.float32(geoTransform[5]),
+            },
+        )
         return omapx, omapy
 
     def cloud_height(ctherm, surface_temp, lapse_rate=np.float32(6.4)):
@@ -184,8 +207,11 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
             An array of cloud heights.
         """
 
-        result = numexpr.evaluate("((surface_temp - ctherm)/lapse_rate)*thou",
-                                  {'thou': np.float32(1000)}, locals())
+        result = numexpr.evaluate(
+            "((surface_temp - ctherm)/lapse_rate)*thou",
+            {"thou": np.float32(1000)},
+            locals(),
+        )
         return result
 
     def shadow_length(cheight, rad_elev):
@@ -220,7 +246,7 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
             A complex array containing the x and y distances from the
             originating cloud pixel.
         """
-        rectxy = np.empty(shad_length.shape, dtype='complex64')
+        rectxy = np.empty(shad_length.shape, dtype="complex64")
         rectxy.real = numexpr.evaluate("shad_length * cos(rad_cor_az)")
         rectxy.imag = numexpr.evaluate("shad_length * sin(rad_cor_az)")
 
@@ -244,8 +270,8 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
             y co-ordinate.
         """
 
-        new_mapx = numexpr.evaluate("omapx + real(rect_xy)").astype('float32')
-        new_mapy = numexpr.evaluate("omapy + imag(rect_xy)").astype('float32')
+        new_mapx = numexpr.evaluate("omapx + real(rect_xy)").astype("float32")
+        new_mapy = numexpr.evaluate("omapy + imag(rect_xy)").astype("float32")
         return new_mapx, new_mapy
 
     def map2img(new_mapx, new_mapy, geoTransform, dims):
@@ -266,20 +292,22 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
              A tuple containing the indices of the shadow locations.
         """
 
-        dct = {'a': np.float32(geoTransform[0]),
-               'b': np.float32(geoTransform[1])}
+        dct = {"a": np.float32(geoTransform[0]), "b": np.float32(geoTransform[1])}
 
-        imgx = np.round(numexpr.evaluate("(new_mapx - a)/b",
-                                         dct, locals())).astype('int32')
+        imgx = np.round(numexpr.evaluate("(new_mapx - a)/b", dct, locals())).astype(
+            "int32"
+        )
 
-        dct = {'a': np.float32(geoTransform[3]),
-               'b': np.float32(abs(geoTransform[5]))}
-        imgy = np.round(numexpr.evaluate("(a - new_mapy)/b",
-                                         dct, locals())).astype('int32')
+        dct = {"a": np.float32(geoTransform[3]), "b": np.float32(abs(geoTransform[5]))}
+        imgy = np.round(numexpr.evaluate("(a - new_mapy)/b", dct, locals())).astype(
+            "int32"
+        )
 
-        mask = numexpr.evaluate("(imgx>=0) & (imgy>=0) &"
-                                "(imgx<d1) & (imgy<d0)",
-                                {'d1': dims[1], 'd0': dims[0]}, locals())
+        mask = numexpr.evaluate(
+            "(imgx>=0) & (imgy>=0) &" "(imgx<d1) & (imgy<d0)",
+            {"d1": dims[1], "d0": dims[0]},
+            locals(),
+        )
 
         imgx = imgx[mask]
         imgy = imgy[mask]
@@ -319,10 +347,11 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
              An 2D array of type 'bool'.
         """
 
-        wt = numexpr.evaluate("((ndvi < wt_ndvi) &"
-                              "(band5 < wt_b5))",
-                              {'wt_b5': wt_b5,
-                               'wt_ndvi': wt_ndvi}, locals())
+        wt = numexpr.evaluate(
+            "((ndvi < wt_ndvi) &" "(band5 < wt_b5))",
+            {"wt_b5": wt_b5, "wt_ndvi": wt_ndvi},
+            locals(),
+        )
 
         return wt
 
@@ -342,9 +371,11 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
             An 2D array of type 'bool'.
         """
 
-        wt = numexpr.evaluate("((1 - (band5 / red)) / (1 + (band5 / red))) >"
-                              "mndwi_thresh",
-                              {'mndwi_thresh': mndwi_thresh}, locals())
+        wt = numexpr.evaluate(
+            "((1 - (band5 / red)) / (1 + (band5 / red))) >" "mndwi_thresh",
+            {"mndwi_thresh": mndwi_thresh},
+            locals(),
+        )
 
         return wt
 
@@ -377,12 +408,13 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
         """
 
         xbar = numexpr.evaluate("(b1 + b2 + b3 + b4 + b5 + b7) / 6")
-        stdv = numexpr.evaluate("(sqrt(((b1 - xbar)**2 + (b2 - xbar)**2 +"
-                                "(b3 - xbar)**2 + (b4 - xbar)**2 + "
-                                "(b5 - xbar)**2 + (b7 - xbar)**2) / 5))")
+        stdv = numexpr.evaluate(
+            "(sqrt(((b1 - xbar)**2 + (b2 - xbar)**2 +"
+            "(b3 - xbar)**2 + (b4 - xbar)**2 + "
+            "(b5 - xbar)**2 + (b7 - xbar)**2) / 5))"
+        )
 
         return stdv
-
 
     start_time = datetime.datetime.now()
 
@@ -392,12 +424,12 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
 
     # Return mask with all true there is no cloud
     if len(cindex[0]) == 0:
-        aux_data['%s_cloud_shadow_percent' % (cloud_algorithm, )] = 0.0
-        logging.info('Cloud Shadow Percent: 0.0')
-        cshadow = np.ones(cloud_mask.shape, dtype='bool')
+        aux_data["%s_cloud_shadow_percent" % (cloud_algorithm,)] = 0.0
+        logging.info("Cloud Shadow Percent: 0.0")
+        cshadow = np.ones(cloud_mask.shape, dtype="bool")
         end_time = datetime.datetime.now()
         time = (end_time - start_time).total_seconds()
-        aux_data['%s_cloud_shadow_runtime' % (cloud_algorithm, )] = time
+        aux_data["%s_cloud_shadow_runtime" % (cloud_algorithm,)] = time
         return cshadow
 
     # Create a spatial reference from the projection string
@@ -419,29 +451,28 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
 
     # Account for any cloud pixels that are non-contiguous
     if contiguity_mask is not None:
-        #cloud_mask[(cloud_mask == 0) & (contiguity_mask == 0)] = 1
-        _temp_array = numexpr.evaluate(
-            "(cloud_mask | contiguity_mask) == False")
+        # cloud_mask[(cloud_mask == 0) & (contiguity_mask == 0)] = 1
+        _temp_array = numexpr.evaluate("(cloud_mask | contiguity_mask) == False")
         cloud_mask[_temp_array] = False
         del _temp_array
         gc.collect()
 
     # Expecting surface reflectance with a scale factor of 10000
     dims = (6, cloud_mask.shape[0], cloud_mask.shape[1])
-    reflectance_stack = np.zeros(dims, dtype='float32')
-    variables = {'scaling_factor': np.float32(0.0001)}
+    reflectance_stack = np.zeros(dims, dtype="float32")
+    variables = {"scaling_factor": np.float32(0.0001)}
     expr = "array * scaling_factor"
-    variables['array'] = blue_dataset
+    variables["array"] = blue_dataset
     reflectance_stack[0] = numexpr.evaluate(expr, variables)
-    variables['array'] = green_dataset
+    variables["array"] = green_dataset
     reflectance_stack[1] = numexpr.evaluate(expr, variables)
-    variables['array'] = red_dataset
+    variables["array"] = red_dataset
     reflectance_stack[2] = numexpr.evaluate(expr, variables)
-    variables['array'] = nir_dataset
+    variables["array"] = nir_dataset
     reflectance_stack[3] = numexpr.evaluate(expr, variables)
-    variables['array'] = swir1_dataset
+    variables["array"] = swir1_dataset
     reflectance_stack[4] = numexpr.evaluate(expr, variables)
-    variables['array'] = swir2_dataset
+    variables["array"] = swir2_dataset
     reflectance_stack[5] = numexpr.evaluate(expr, variables)
 
     # Get the indices of cloud
@@ -474,17 +505,13 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
     del ni
     gc.collect()
 
-    surfaceTemp = np.mean(
-        kelvin_array[survivors], dtype='float64')  # What if too low?
-
+    surfaceTemp = np.mean(kelvin_array[survivors], dtype="float64")  # What if too low?
 
     del ndvi, non_cloud
 
-    cshadow = np.zeros(dims, dtype='byte')
+    cshadow = np.zeros(dims, dtype="byte")
     # wet, standard and dry
-    lapse_rates = np.array([lapse_wet,
-                            lapse_standard,
-                            lapse_dry], dtype='float32')
+    lapse_rates = np.array([lapse_wet, lapse_standard, lapse_dry], dtype="float32")
 
     if sr.IsGeographic() == 1:
         R = sr.GetSemiMajor()
@@ -496,24 +523,26 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
         i = 1
         for lr in lapse_rates:
 
-            cheight = cloud_height(
-                ctherm, surface_temp=surfaceTemp, lapse_rate=lr)
+            cheight = cloud_height(ctherm, surface_temp=surfaceTemp, lapse_rate=lr)
 
             d = shadow_length(cheight, rad_elev)
 
-            rlat2 = np.arcsin(np.sin(rlat) * np.cos(d / R) +
-                              np.cos(rlat) * np.sin(d / R) *
-                              np.cos(rad_cor_az))
+            rlat2 = np.arcsin(
+                np.sin(rlat) * np.cos(d / R)
+                + np.cos(rlat) * np.sin(d / R) * np.cos(rad_cor_az)
+            )
 
-            rlon2 = rlon + np.arctan2(np.sin(rad_cor_az) * np.sin(d / R)
-                                      * np.cos(rlat), np.cos(d / R) -
-                                      np.sin(rlat) * np.sin(rlat))
+            rlon2 = rlon + np.arctan2(
+                np.sin(rad_cor_az) * np.sin(d / R) * np.cos(rlat),
+                np.cos(d / R) - np.sin(rlat) * np.sin(rlat),
+            )
 
             rlat2 = np.rad2deg(rlat2)
             rlon2 = np.rad2deg(rlon2)
 
-            sindex = map2img(new_mapx=rlon2, new_mapy=rlat2,
-                             geoTransform=geoTransform, dims=dims)
+            sindex = map2img(
+                new_mapx=rlon2, new_mapy=rlat2, geoTransform=geoTransform, dims=dims
+            )
 
             cshadow[sindex] = i
             i += 1
@@ -528,8 +557,7 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
         i = 1
         for lr in lapse_rates:
 
-            cheight = cloud_height(
-                ctherm, surface_temp=surfaceTemp, lapse_rate=lr)
+            cheight = cloud_height(ctherm, surface_temp=surfaceTemp, lapse_rate=lr)
 
             shad_length = shadow_length(cheight, rad_elev)
             del cheight
@@ -582,28 +610,36 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
         # Will create weights based on the 'slope' of the spectral curve
         # occurring between bands.
         # Using a unit length of 1 for distance between bands
-        weights = np.ones(dims, dtype='int8')
+        weights = np.ones(dims, dtype="int8")
 
         # band 3 -> 4 slope
-        slope = numexpr.evaluate("(b4 - b3) >= slope_b34",
-                                 {'b4': reflectance_stack[3],
-                                  'b3': reflectance_stack[2]}, locals())
+        slope = numexpr.evaluate(
+            "(b4 - b3) >= slope_b34",
+            {"b4": reflectance_stack[3], "b3": reflectance_stack[2]},
+            locals(),
+        )
         weights[slope] += 1
 
         # band 4 -> 5 slope
-        slope = numexpr.evaluate("abs(b5 - b4) >= slope_b45",
-                                 {'b5': reflectance_stack[4],
-                                  'b4': reflectance_stack[3]}, locals())
+        slope = numexpr.evaluate(
+            "abs(b5 - b4) >= slope_b45",
+            {"b5": reflectance_stack[4], "b4": reflectance_stack[3]},
+            locals(),
+        )
         weights[slope] += 1
 
         # band 4 -> 7 slope
-        slope = numexpr.evaluate("((b7 - b4) / 2) > slope_b47a",
-                                 {'b7': reflectance_stack[5],
-                                  'b4': reflectance_stack[3]}, locals())
+        slope = numexpr.evaluate(
+            "((b7 - b4) / 2) > slope_b47a",
+            {"b7": reflectance_stack[5], "b4": reflectance_stack[3]},
+            locals(),
+        )
         weights[slope] += 1
-        slope = numexpr.evaluate("abs((b7 - b4) / 2) > slope_b47b",
-                                 {'b7': reflectance_stack[5],
-                                  'b4': reflectance_stack[3]}, locals())
+        slope = numexpr.evaluate(
+            "abs((b7 - b4) / 2) > slope_b47b",
+            {"b7": reflectance_stack[5], "b4": reflectance_stack[3]},
+            locals(),
+        )
         weights[slope] += 1
 
         # General water test (calculated earlier)
@@ -614,9 +650,14 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
         weights[wt] += 9
 
         # standard deviation thruogh spectral space
-        stdv = stdev(b1=reflectance_stack[0], b2=reflectance_stack[1],
-                     b3=reflectance_stack[2], b4=reflectance_stack[3],
-                     b5=reflectance_stack[4], b7=reflectance_stack[5])
+        stdv = stdev(
+            b1=reflectance_stack[0],
+            b2=reflectance_stack[1],
+            b3=reflectance_stack[2],
+            b4=reflectance_stack[3],
+            b5=reflectance_stack[4],
+            b7=reflectance_stack[5],
+        )
 
         # This is for water that is spectrally very flat and near zero
         above = numexpr.evaluate("stdv < stdv_wt")
@@ -638,28 +679,30 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
         b4 = reflectance_stack[3]
         b5 = reflectance_stack[4]
         b7 = reflectance_stack[5]
-        weight_sum = numexpr.evaluate("weights *(b1 + b2 + b3 + b4)"
-                                      "+ 2*(weights * (b5 + b7))")
+        weight_sum = numexpr.evaluate(
+            "weights *(b1 + b2 + b3 + b4)" "+ 2*(weights * (b5 + b7))"
+        )
 
         del weights
         gc.collect()
 
         flatwsum = weight_sum.ravel()
 
-        h = histogram(flatwsum, minv=0, maxv=1.0, binsize=0.1,
-                      reverse_indices='ri', locations='loc')
+        h = histogram(
+            flatwsum, minv=0, maxv=1.0, binsize=0.1, reverse_indices="ri", locations="loc"
+        )
 
         # This might be the only need for the bin locations i.e. loc
-        binmean = np.zeros(h['loc'].shape[0])
-        binstdv = np.zeros(h['loc'].shape[0])
+        binmean = np.zeros(h["loc"].shape[0])
+        binstdv = np.zeros(h["loc"].shape[0])
 
-        ri = h['ri']
-        hist = h['histogram']
+        ri = h["ri"]
+        hist = h["histogram"]
 
-        temp_array = None # quick fix for cases of removal before assignment
-        for i in np.arange(h['loc'].shape[0]):
+        temp_array = None  # quick fix for cases of removal before assignment
+        for i in np.arange(h["loc"].shape[0]):
             if ri[i + 1] > ri[i]:
-                temp_array = flatwsum[ri[ri[i]:ri[i + 1]]]
+                temp_array = flatwsum[ri[ri[i] : ri[i + 1]]]
                 binmean[i] = np.mean(temp_array)
                 binstdv[i] = np.std(temp_array)
 
@@ -671,7 +714,7 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
         del binmean, binstdv, flatwsum, temp_array
         gc.collect()
 
-        grown_regions = np.zeros(dims, dtype='bool').ravel()
+        grown_regions = np.zeros(dims, dtype="bool").ravel()
 
         # Global stats/masking method
         lmin = lower.min()
@@ -683,26 +726,25 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
 
         if ulabels.size > 0:  # only apply if labels are identified
             maxval = np.max(ulabels)  # this will fail if there are no labels
-            h = histogram(label_array, minv=0, maxv=maxval,
-                          reverse_indices='ri')
+            h = histogram(label_array, minv=0, maxv=maxval, reverse_indices="ri")
 
             # assign other variable names, makes it more readable
             # when indexing
-            hist = h['histogram']
-            ri = h['ri']
+            hist = h["histogram"]
+            ri = h["ri"]
 
             for i in np.arange(ulabels.shape[0]):
                 if hist[ulabels[i]] == 0:
                     continue
-                grown_regions[ri[ri[ulabels[i]]:ri[ulabels[i] + 1]]] = 1
+                grown_regions[ri[ri[ulabels[i]] : ri[ulabels[i] + 1]]] = 1
 
             cshadow = grown_regions.reshape(dims)
 
         else:  # if no labels then output no shadow
-            cshadow = np.zeros(dims, dtype='byte')
+            cshadow = np.zeros(dims, dtype="byte")
 
     else:
-        cshadow = np.zeros(dims, dtype='byte')
+        cshadow = np.zeros(dims, dtype="byte")
         cshadow[sindex] = 1
 
     cshadow = majority_filter(array=cshadow, iterations=2)
@@ -723,14 +765,13 @@ def cloud_shadow(blue_dataset, green_dataset, red_dataset, nir_dataset,
         del null
 
     shadow_percent = (float(cshadow.sum()) / cshadow.size) * 100
-    aux_data['%s_cloud_shadow_percent' % (cloud_algorithm, )] = shadow_percent
-    logging.info('%s_cloud_shadow_percent: %f',
-                 cloud_algorithm, shadow_percent)
+    aux_data["%s_cloud_shadow_percent" % (cloud_algorithm,)] = shadow_percent
+    logging.info("%s_cloud_shadow_percent: %f", cloud_algorithm, shadow_percent)
 
     end_time = datetime.datetime.now()
     time = (end_time - start_time).total_seconds()
 
-    aux_data['%s_cloud_shadow_runtime' % (cloud_algorithm, )] = time
+    aux_data["%s_cloud_shadow_runtime" % (cloud_algorithm,)] = time
 
     # Invert array from 1 == "Cloud" to True = "No Cloud"
     return (~cshadow).astype(np.bool)

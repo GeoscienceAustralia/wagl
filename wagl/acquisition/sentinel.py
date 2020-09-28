@@ -33,15 +33,26 @@ def find_all_in(path, s):
 
 
 def s2_index_to_band_id(band_index):
-    """s2_index_toBand_id returns the band_id from the band index 
+    """s2_index_toBand_id returns the band_id from the band index
 
     :param band_index: band index (0-12 inclusive) referencing sensors in ESA's metadata
     :return: band_id for the band_index
     """
 
     return {
-        0: '1', 1: '2', 2: '3', 3: '4', 4: '5', 5: '6', 6: '7',
-        7: '8', 8: '8A', 9: '9', 10: '10', 11: '11', 12: '12'
+        0: "1",
+        1: "2",
+        2: "3",
+        3: "4",
+        4: "5",
+        5: "6",
+        6: "7",
+        7: "8",
+        8: "8A",
+        9: "9",
+        10: "10",
+        11: "11",
+        12: "12",
     }[int(band_index)]
 
 
@@ -49,27 +60,36 @@ class Sentinel2Acquisition(Acquisition):
 
     """ Base class for a Sentinel-2 acquisition. """
 
-    def __init__(self, pathname, uri, acquisition_datetime, band_name='BAND 1',
-                 band_id='1', metadata=None):
+    def __init__(
+        self,
+        pathname,
+        uri,
+        acquisition_datetime,
+        band_name="BAND 1",
+        band_id="1",
+        metadata=None,
+    ):
 
-        super(Sentinel2Acquisition, self).__init__(pathname, uri,
-                                                   acquisition_datetime,
-                                                   band_name=band_name,
-                                                   band_id=band_id,
-                                                   metadata=metadata)
+        super(Sentinel2Acquisition, self).__init__(
+            pathname,
+            uri,
+            acquisition_datetime,
+            band_name=band_name,
+            band_id=band_id,
+            metadata=metadata,
+        )
 
     def _get_gps_xml(self):
         """Returns in memory XML tree for gps coordinates"""
         # open the zip archive and get the xml root
         archive = zipfile.ZipFile(self.pathname)
-        xml_files = [s for s in archive.namelist() if
-                     ("DATASTRIP" in s) & (".xml" in s)]
+        xml_files = [s for s in archive.namelist() if ("DATASTRIP" in s) & (".xml" in s)]
 
         # there could be several matches; loop till we find one with GPS data
         for xml_file in xml_files:
             xml_root = ElementTree.XML(archive.read(xml_file))
 
-            gps_list = xml_root.findall('./*/Ephemeris/GPS_Points_List')
+            gps_list = xml_root.findall("./*/Ephemeris/GPS_Points_List")
             if gps_list:
                 break
 
@@ -88,31 +108,27 @@ class Sentinel2Acquisition(Acquisition):
         Returns the recorded gps data as a `pandas.DataFrame`.
         """
         # coordinate transform
-        ecef = pyproj.Proj(proj='geocent', ellps='WGS84', datum='WGS84')
-        lla = pyproj.Proj(proj='latlong', ellps='WGS84', datum='WGS84')
+        ecef = pyproj.Proj(proj="geocent", ellps="WGS84", datum="WGS84")
+        lla = pyproj.Proj(proj="latlong", ellps="WGS84", datum="WGS84")
 
         # output container
-        data = {'longitude': [],
-                'latitude': [],
-                'altitude': [],
-                'timestamp': []}
+        data = {"longitude": [], "latitude": [], "altitude": [], "timestamp": []}
 
         gps = self._get_gps_xml()
         # there are a few columns of data that could be of use
         # but for now, just get the location and timestamp from the
         # gps points list
-        for point in gps.iter('GPS_Point'):
-            x, y, z = [float(i) / 1000 for i in
-                       point.findtext('POSITION_VALUES').split()]
-            gps_time = parser.parse(point.findtext('GPS_TIME'))
+        for point in gps.iter("GPS_Point"):
+            x, y, z = [float(i) / 1000 for i in point.findtext("POSITION_VALUES").split()]
+            gps_time = parser.parse(point.findtext("GPS_TIME"))
 
             # coordinate transformation
             lon, lat, alt = pyproj.transform(ecef, lla, x, y, z, radians=False)
 
-            data['longitude'].append(lon)
-            data['latitude'].append(lat)
-            data['altitude'].append(alt)
-            data['timestamp'].append(gps_time)
+            data["longitude"].append(lon)
+            data["latitude"].append(lat)
+            data["altitude"].append(alt)
+            data["timestamp"].append(gps_time)
 
         return pandas.DataFrame(data)
 
@@ -131,6 +147,7 @@ class Sentinel2Acquisition(Acquisition):
 
         Code adapted from https://github.com/umwilm/SEN2COR.
         """
+
         def rbspline(y_coords, x_coords, zdata):
             """
             A wrapper providing the call signiture for RectBivariateSpline.
@@ -145,22 +162,20 @@ class Sentinel2Acquisition(Acquisition):
         xml_root = self._get_solar_zenith_xml()
 
         # read the low res solar zenith data
-        search_term = './*/Tile_Angles/Sun_Angles_Grid/Zenith/Values_List'
+        search_term = "./*/Tile_Angles/Sun_Angles_Grid/Zenith/Values_List"
         values = xml_root.findall(search_term)[0]
 
         dims = (len(values), len(values[0].text.split()))
-        data = numpy.zeros(dims, dtype='float32')
-        for i, val in enumerate(values.iter('VALUES')):
+        data = numpy.zeros(dims, dtype="float32")
+        for i, val in enumerate(values.iter("VALUES")):
             data[i] = val.text.split()
 
         # correct solar_zenith dimensions
         if self.lines < self.samples:
-            last_row = int(data[0].size * float(self.lines) /
-                           float(self.samples) + 0.5)
+            last_row = int(data[0].size * float(self.lines) / float(self.samples) + 0.5)
             solar_zenith = data[0:last_row, :]
         elif self.samples < self.lines:
-            last_col = int(data[1].size * float(self.samples) /
-                           float(self.lines) + 0.5)
+            last_col = int(data[1].size * float(self.samples) / float(self.lines) + 0.5)
             solar_zenith = data[:, 0:last_col]
         else:
             solar_zenith = data
@@ -237,18 +252,28 @@ class Sentinel2aAcquisition(Sentinel2Acquisition):
 
     """ Sentinel-2a acquisition. """
 
-    def __init__(self, pathname, uri, acquisition_datetime, band_name='BAND 1',
-                 band_id='1', metadata=None):
-        super(Sentinel2aAcquisition, self).__init__(pathname, uri,
-                                                    acquisition_datetime,
-                                                    band_name=band_name,
-                                                    band_id=band_id,
-                                                    metadata=metadata)
+    def __init__(
+        self,
+        pathname,
+        uri,
+        acquisition_datetime,
+        band_name="BAND 1",
+        band_id="1",
+        metadata=None,
+    ):
+        super(Sentinel2aAcquisition, self).__init__(
+            pathname,
+            uri,
+            acquisition_datetime,
+            band_name=band_name,
+            band_id=band_id,
+            metadata=metadata,
+        )
 
-        self.platform_id = 'SENTINEL_2A'
-        self.sensor_id = 'MSI'
-        self.tle_format = 'S2A%4d%sASNNOR.S00'
-        self.tag = 'S2A'
+        self.platform_id = "SENTINEL_2A"
+        self.sensor_id = "MSI"
+        self.tle_format = "S2A%4d%sASNNOR.S00"
+        self.tag = "S2A"
         self.altitude = 786000.0
         self.inclination = 1.721243708316808
         self.omega = 0.001039918
@@ -256,8 +281,8 @@ class Sentinel2aAcquisition(Sentinel2Acquisition):
         self.maximum_view_angle = 20.0
 
         self._norad_id = 40697
-        self._classification_type = 'U'
-        self._international_designator = '15028A'
+        self._classification_type = "U"
+        self._international_designator = "15028A"
 
         self._gps_file = True
         self._solar_zenith = None
@@ -267,18 +292,28 @@ class Sentinel2bAcquisition(Sentinel2Acquisition):
 
     """ Sentinel-2b acquisition. """
 
-    def __init__(self, pathname, uri, acquisition_datetime, band_name='BAND 1',
-                 band_id='1', metadata=None):
-        super(Sentinel2bAcquisition, self).__init__(pathname, uri,
-                                                    acquisition_datetime,
-                                                    band_name=band_name,
-                                                    band_id=band_id,
-                                                    metadata=metadata)
+    def __init__(
+        self,
+        pathname,
+        uri,
+        acquisition_datetime,
+        band_name="BAND 1",
+        band_id="1",
+        metadata=None,
+    ):
+        super(Sentinel2bAcquisition, self).__init__(
+            pathname,
+            uri,
+            acquisition_datetime,
+            band_name=band_name,
+            band_id=band_id,
+            metadata=metadata,
+        )
 
-        self.platform_id = 'SENTINEL_2B'
-        self.sensor_id = 'MSI'
-        self.tle_format = 'S2B%4d%sASNNOR.S00'
-        self.tag = 'S2B'
+        self.platform_id = "SENTINEL_2B"
+        self.sensor_id = "MSI"
+        self.tle_format = "S2B%4d%sASNNOR.S00"
+        self.tag = "S2B"
         self.altitude = 786000.0
         self.inclination = 1.721243708316808
         self.omega = 0.001039918
@@ -286,8 +321,8 @@ class Sentinel2bAcquisition(Sentinel2Acquisition):
         self.maximum_view_angle = 20.0
 
         self._norad_id = 42063
-        self._classification_type = 'U'
-        self._international_designator = '17013A'
+        self._classification_type = "U"
+        self._international_designator = "17013A"
 
         self._gps_file = True
         self._solar_zenith = None
@@ -307,16 +342,17 @@ class _Sentinel2SinergiseAcquisition(Sentinel2Acquisition):
 
     def _get_gps_xml(self):
         """Returns in memory XML tree for gps coordinates"""
-        xml_files = [s for s in find_all_in(self.pathname, 'metadata.xml') if
-                     'datastrip' in s]
+        xml_files = [
+            s for s in find_all_in(self.pathname, "metadata.xml") if "datastrip" in s
+        ]
 
         # there could be several matches; loop till we find one with GPS data
         for xml_file in xml_files:
             xml_root = None
-            with open(xml_file, 'rb') as fd:
+            with open(xml_file, "rb") as fd:
                 xml_root = ElementTree.XML(fd.read())
 
-            gps_list = xml_root.findall('./*/Ephemeris/GPS_Points_List')
+            gps_list = xml_root.findall("./*/Ephemeris/GPS_Points_List")
             if gps_list:
                 break
 
@@ -333,14 +369,18 @@ class _Sentinel2SinergiseAcquisition(Sentinel2Acquisition):
     def _get_solar_zenith_xml(self):
         """Returns an in memory XML tree for the granule to retrieve solar zenith"""
         xml_root = None
-        with open(self.granule_xml, 'rb') as fd:
+        with open(self.granule_xml, "rb") as fd:
             xml_root = ElementTree.XML(fd.read())
         return xml_root
 
 
-class Sentinel2aSinergiseAcquisition(_Sentinel2SinergiseAcquisition, Sentinel2aAcquisition):
+class Sentinel2aSinergiseAcquisition(
+    _Sentinel2SinergiseAcquisition, Sentinel2aAcquisition
+):
     pass
 
 
-class Sentinel2bSinergiseAcquisition(_Sentinel2SinergiseAcquisition, Sentinel2bAcquisition):
+class Sentinel2bSinergiseAcquisition(
+    _Sentinel2SinergiseAcquisition, Sentinel2bAcquisition
+):
     pass

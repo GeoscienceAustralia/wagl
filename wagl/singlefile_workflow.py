@@ -38,22 +38,26 @@ from wagl.logs import TASK_LOGGER
 @luigi.Task.event_handler(luigi.Event.FAILURE)
 def on_failure(task, exception):
     """Capture any Task Failure here."""
-    TASK_LOGGER.exception(task=task.get_task_family(),
-                          params=task.to_str_params(),
-                          level1=getattr(task, 'level1', ''),
-                          stack_info=True,
-                          status='failure',
-                          exception=exception.__str__(),
-                          traceback=traceback.format_exc().splitlines())
+    TASK_LOGGER.exception(
+        task=task.get_task_family(),
+        params=task.to_str_params(),
+        level1=getattr(task, "level1", ""),
+        stack_info=True,
+        status="failure",
+        exception=exception.__str__(),
+        traceback=traceback.format_exc().splitlines(),
+    )
 
 
 @luigi.Task.event_handler(luigi.Event.SUCCESS)
 def on_success(task):
     """Capture any Task Success here."""
-    TASK_LOGGER.info(task=task.get_task_family(),
-                     params=task.to_str_params(),
-                     level1=getattr(task, 'level1', ''),
-                     status='success')
+    TASK_LOGGER.info(
+        task=task.get_task_family(),
+        params=task.to_str_params(),
+        level1=getattr(task, "level1", ""),
+        status="success",
+    )
 
 
 class DataStandardisation(luigi.Task):

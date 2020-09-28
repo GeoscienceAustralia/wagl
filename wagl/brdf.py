@@ -77,19 +77,20 @@ def _date_proximity(cmp_date, date_interpreter=lambda x: x):
     :param date_interprater: function applied to the list to
         transform items into dates
     """
+
     def _proximity_comparator(date):
         _date = date_interpreter(date)
         return (
             abs(_date - cmp_date),
             -1 * _date.year,
             -1 * _date.month,
-            -1 * _date.day
+            -1 * _date.day,
         )
 
     return _proximity_comparator
 
 
-def get_brdf_dirs_modis(brdf_root, scene_date, pattern='%Y.%m.%d'):
+def get_brdf_dirs_modis(brdf_root, scene_date, pattern="%Y.%m.%d"):
     """
     Get list of MODIS BRDF directories for the dataset.
 
@@ -160,11 +161,14 @@ def get_brdf_dirs_fallback(brdf_root, scene_date):
     # Add boundary entry for next year accounting for inserted entry
     dir_dates.append((str(scene_date.year + 1), dir_dates[1][1]))
 
-    # Interpreter function
-    doy_intpr = lambda x: datetime.datetime.strptime(' '.join(x), '%Y %j').date()
-
     # return directory name without year
-    return min(dir_dates, key=_date_proximity(scene_date, doy_intpr))[1]
+    return min(
+        dir_dates,
+        key=_date_proximity(
+            scene_date,
+            lambda x: datetime.datetime.strptime(" ".join(x), "%Y %j").date(),
+        ),
+    )[1]
 
 
 def coord_transformer(src_crs, dst_crs):
@@ -185,11 +189,14 @@ def coord_transformer(src_crs, dst_crs):
         A function that takes a point in the source CRS and returns the same
         point expressed in the destination CRS.
     """
+
     def crs_to_proj(crs):
         return pyproj.Proj(**crs.to_dict())
 
     def result(*args, **kwargs):
-        return pyproj.transform(crs_to_proj(src_crs), crs_to_proj(dst_crs), *args, **kwargs)
+        return pyproj.transform(
+            crs_to_proj(src_crs), crs_to_proj(dst_crs), *args, **kwargs
+        )
 
     return result
 
@@ -198,6 +205,7 @@ class BrdfTileSummary:
     """
     A lightweight class to represent the BRDF information gathered from a tile.
     """
+
     def __init__(self, brdf_summaries, source_files):
         self.brdf_summaries = brdf_summaries
         self.source_files = source_files
@@ -205,35 +213,53 @@ class BrdfTileSummary:
     @staticmethod
     def empty():
         """ When the tile is not inside the ROI. """
-        return BrdfTileSummary({key: {'sum': 0.0, 'count': 0} for key in BrdfModelParameters}, [])
+        return BrdfTileSummary(
+            {key: {"sum": 0.0, "count": 0} for key in BrdfModelParameters}, []
+        )
 
     def __add__(self, other):
         """ Accumulate information from different tiles. """
+
         def add(key):
             this = self.brdf_summaries[key]
             that = other.brdf_summaries[key]
-            return {'sum': this['sum'] + that['sum'], 'count': this['count'] + that['count']}
+            return {
+                "sum": this["sum"] + that["sum"],
+                "count": this["count"] + that["count"],
+            }
 
-        return BrdfTileSummary({key: add(key) for key in BrdfModelParameters},
-                               self.source_files + other.source_files)
+        return BrdfTileSummary(
+            {key: add(key) for key in BrdfModelParameters},
+            self.source_files + other.source_files,
+        )
 
     def mean(self):
         """ Calculate the mean BRDF parameters. """
-        if all(self.brdf_summaries[key]['count'] == 0 for key in BrdfModelParameters):
+        if all(self.brdf_summaries[key]["count"] == 0 for key in BrdfModelParameters):
             # possibly over the ocean, so lambertian
-            return {key: dict(id=self.source_files, value=0.0)
-                    for key in BrdfDirectionalParameters}
+            return {
+                key: dict(id=self.source_files, value=0.0)
+                for key in BrdfDirectionalParameters
+            }
 
         # ratio of spatial averages
-        averages = {key: self.brdf_summaries[key]['sum'] / self.brdf_summaries[key]['count']
-                    for key in BrdfModelParameters}
+        averages = {
+            key: self.brdf_summaries[key]["sum"] / self.brdf_summaries[key]["count"]
+            for key in BrdfModelParameters
+        }
 
-        bands = {BrdfDirectionalParameters.ALPHA_1: BrdfModelParameters.VOL,
-                 BrdfDirectionalParameters.ALPHA_2: BrdfModelParameters.GEO}
+        bands = {
+            BrdfDirectionalParameters.ALPHA_1: BrdfModelParameters.VOL,
+            BrdfDirectionalParameters.ALPHA_2: BrdfModelParameters.GEO,
+        }
 
-        return {key: dict(id=self.source_files,
-                          value=averages[bands[key]] / averages[BrdfModelParameters.ISO])
-                for key in BrdfDirectionalParameters}
+        return {
+            key: dict(
+                id=self.source_files,
+                value=averages[bands[key]] / averages[BrdfModelParameters.ISO],
+            )
+            for key in BrdfDirectionalParameters
+        }
 
 
 def valid_region(acquisition, mask_value=None):
@@ -253,8 +279,10 @@ def valid_region(acquisition, mask_value=None):
     else:
         mask = img != 0
 
-    shapes = rasterio.features.shapes(mask.astype('uint8'), mask=mask)
-    shape = ops.unary_union([shapely.geometry.shape(shape) for shape, val in shapes if val == 1])
+    shapes = rasterio.features.shapes(mask.astype("uint8"), mask=mask)
+    shape = ops.unary_union(
+        [shapely.geometry.shape(shape) for shape, val in shapes if val == 1]
+    )
 
     # convex hull
     geom = shape.convex_hull
@@ -270,8 +298,15 @@ def valid_region(acquisition, mask_value=None):
 
     # transform from pixel space into CRS space
     geom = shapely.affinity.affine_transform(
-        geom, (transform[1], transform[2], transform[4],
-               transform[5], transform[0], transform[3])
+        geom,
+        (
+            transform[1],
+            transform[2],
+            transform[4],
+            transform[5],
+            transform[0],
+            transform[3],
+        ),
     )
 
     return geom, crs
@@ -290,18 +325,26 @@ def load_brdf_tile(src_poly, src_crs, fid, dataset_name, fid_mask):
 
     ds_height, ds_width = ds.shape
 
-    dst_geotransform = rasterio.transform.Affine.from_gdal(*ds.attrs['geotransform'])
-    dst_crs = CRS.from_wkt(ds.attrs['crs_wkt'])
+    dst_geotransform = rasterio.transform.Affine.from_gdal(*ds.attrs["geotransform"])
+    dst_crs = CRS.from_wkt(ds.attrs["crs_wkt"])
 
     # assumes the length scales are the same (m)
-    dst_poly = ops.transform(coord_transformer(src_crs, dst_crs),
-                             segmentize_src_poly(np.sqrt(np.abs(dst_geotransform.determinant))))
+    dst_poly = ops.transform(
+        coord_transformer(src_crs, dst_crs),
+        segmentize_src_poly(np.sqrt(np.abs(dst_geotransform.determinant))),
+    )
 
-    bound_poly = ops.transform(lambda x, y: dst_geotransform * (x, y), box(0., 0., ds_width, ds_height, ccw=False))
+    bound_poly = ops.transform(
+        lambda x, y: dst_geotransform * (x, y),
+        box(0.0, 0.0, ds_width, ds_height, ccw=False),
+    )
     if not bound_poly.intersects(dst_poly):
         return BrdfTileSummary.empty()
 
-    ocean_poly = ops.transform(lambda x, y: fid_mask.transform * (x, y), box(0., 0., fid_mask.width, fid_mask.height))
+    ocean_poly = ops.transform(
+        lambda x, y: fid_mask.transform * (x, y),
+        box(0.0, 0.0, fid_mask.width, fid_mask.height),
+    )
     if not ocean_poly.intersects(dst_poly):
         return BrdfTileSummary.empty()
 
@@ -312,31 +355,39 @@ def load_brdf_tile(src_poly, src_crs, fid, dataset_name, fid_mask):
     ocean_mask = ocean_mask.astype(bool)
 
     # inside=1, outside=0
-    roi_mask = rasterize([(dst_poly, 1)], fill=0, out_shape=(ds_height, ds_width), transform=dst_geotransform)
+    roi_mask = rasterize(
+        [(dst_poly, 1)],
+        fill=0,
+        out_shape=(ds_height, ds_width),
+        transform=dst_geotransform,
+    )
     roi_mask = roi_mask.astype(bool)
 
     # both ocean_mask and mask shape should be same
     if ocean_mask.shape != roi_mask.shape:
-        raise ValueError('ocean mask and ROI mask do not have the same shape')
+        raise ValueError("ocean mask and ROI mask do not have the same shape")
     if roi_mask.shape != ds.shape:
-        raise ValueError('BRDF dataset and ROI mask do not have the same shape')
+        raise ValueError("BRDF dataset and ROI mask do not have the same shape")
 
     roi_mask = roi_mask & ocean_mask
 
     def layer_sum(param):
         layer = ds[param][:, :]
-        common_mask = roi_mask & (layer != ds.attrs['_FillValue'])
-        layer = layer.astype('float32')
+        common_mask = roi_mask & (layer != ds.attrs["_FillValue"])
+        layer = layer.astype("float32")
         layer[~common_mask] = np.nan
-        layer = ds.attrs['scale_factor'] * (layer - ds.attrs['add_offset'])
-        return {'sum': np.nansum(layer), 'count': np.sum(common_mask)}
+        layer = ds.attrs["scale_factor"] * (layer - ds.attrs["add_offset"])
+        return {"sum": np.nansum(layer), "count": np.sum(common_mask)}
 
-    return BrdfTileSummary({param: layer_sum(param.value) for param in BrdfModelParameters},
-                           [current_h5_metadata(fid)['id']])
+    return BrdfTileSummary(
+        {param: layer_sum(param.value) for param in BrdfModelParameters},
+        [current_h5_metadata(fid)["id"]],
+    )
 
 
-def get_brdf_data(acquisition, brdf,
-                  compression=H5CompressionFilter.LZF, filter_opts=None):
+def get_brdf_data(
+    acquisition, brdf, compression=H5CompressionFilter.LZF, filter_opts=None
+):
     """
     Calculates the mean BRDF value for the given acquisition,
     for each BRDF parameter ['geo', 'iso', 'vol'] that covers
@@ -391,15 +442,20 @@ def get_brdf_data(acquisition, brdf,
         for sure they'll never be used.
     """
 
-    if 'user' in brdf:
+    if "user" in brdf:
         # user-specified override
-        return {param: dict(data_source='BRDF', tier=BrdfTier.USER.name,
-                            value=brdf['user'][acquisition.alias][param.value.lower()])
-                for param in BrdfDirectionalParameters}
+        return {
+            param: dict(
+                data_source="BRDF",
+                tier=BrdfTier.USER.name,
+                value=brdf["user"][acquisition.alias][param.value.lower()],
+            )
+            for param in BrdfDirectionalParameters
+        }
 
-    brdf_primary_path = brdf['brdf_path']
-    brdf_secondary_path = brdf['brdf_fallback_path']
-    brdf_ocean_mask_path = brdf['ocean_mask_path']
+    brdf_primary_path = brdf["brdf_path"]
+    brdf_secondary_path = brdf["brdf_fallback_path"]
+    brdf_ocean_mask_path = brdf["ocean_mask_path"]
 
     # Get the date of acquisition
     dt = acquisition.acquisition_datetime.date()
@@ -411,10 +467,11 @@ def get_brdf_data(acquisition, brdf,
 
     try:
         brdf_dir_range = [brdf_dir_list[0], brdf_dir_list[-1]]
-        brdf_range = [datetime.date(*[int(x) for x in y.split('.')])
-                      for y in brdf_dir_range]
+        brdf_range = [
+            datetime.date(*[int(x) for x in y.split(".")]) for y in brdf_dir_range
+        ]
 
-        fallback_brdf = (dt < DEFINITIVE_START_DATE or dt > brdf_range[1])
+        fallback_brdf = dt < DEFINITIVE_START_DATE or dt > brdf_range[1]
     except IndexError:
         fallback_brdf = True  # use fallback data if all goes wrong
 
@@ -427,27 +484,41 @@ def get_brdf_data(acquisition, brdf,
 
     # get all HDF files in the input dir
     dbDir = pjoin(brdf_base_dir, brdf_dirs)
-    tile_list = [pjoin(folder, f)
-                 for (folder, _, filelist) in os.walk(dbDir) for f in filelist if f.endswith(".h5")]
+    tile_list = [
+        pjoin(folder, f)
+        for (folder, _, filelist) in os.walk(dbDir)
+        for f in filelist
+        if f.endswith(".h5")
+    ]
 
     src_poly, src_crs = valid_region(acquisition)
     src_crs = rasterio.crs.CRS(**src_crs)
 
     brdf_datasets = acquisition.brdf_datasets
     tally = {}
-    with rasterio.open(brdf_ocean_mask_path, 'r') as fid_mask:
+    with rasterio.open(brdf_ocean_mask_path, "r") as fid_mask:
         for ds in brdf_datasets:
             tally[ds] = BrdfTileSummary.empty()
             for tile in tile_list:
-                with h5py.File(tile, 'r') as fid:
+                with h5py.File(tile, "r") as fid:
                     tally[ds] += load_brdf_tile(src_poly, src_crs, fid, ds, fid_mask)
             tally[ds] = tally[ds].mean()
 
-    results = {param: dict(data_source='BRDF',
-                           id=np.array(list({ds_id for ds in brdf_datasets for ds_id in tally[ds][param]['id']}),
-                                       dtype=VLEN_STRING),
-                           value=np.mean([tally[ds][param]['value'] for ds in brdf_datasets]).item(),
-                           tier=BrdfTier.FALLBACK_DATASET.name if fallback_brdf else BrdfTier.DEFINITIVE.name)
-               for param in BrdfDirectionalParameters}
+    results = {
+        param: dict(
+            data_source="BRDF",
+            id=np.array(
+                list(
+                    {ds_id for ds in brdf_datasets for ds_id in tally[ds][param]["id"]}
+                ),
+                dtype=VLEN_STRING,
+            ),
+            value=np.mean([tally[ds][param]["value"] for ds in brdf_datasets]).item(),
+            tier=BrdfTier.FALLBACK_DATASET.name
+            if fallback_brdf
+            else BrdfTier.DEFINITIVE.name,
+        )
+        for param in BrdfDirectionalParameters
+    }
 
     return results

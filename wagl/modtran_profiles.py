@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # pragma pylint: disable=line-too-long
+# flake8: noqa
 """
 These are the templates for the inputs into MODTRAN.
 Parameters to be inserted are:

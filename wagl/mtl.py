@@ -15,26 +15,28 @@ def parse_type(s):
     def yesno(s):
         """Parse Y/N"""
         if len(s) == 1:
-            if s == 'Y':
+            if s == "Y":
                 return True
-            if s == 'N':
+            if s == "N":
                 return False
         raise ValueError
 
     def none(s):
         """Parse a NONE"""
-        if len(s) == 4 and s == 'NONE':
+        if len(s) == 4 and s == "NONE":
             return None
         raise ValueError
 
-    parsers = [int,
-               float,
-               lambda x: strptime(x.strip('"'), '%Y-%m-%dT%H:%M:%SZ'),
-               lambda x: strptime(x.strip('"'), '%Y-%m-%d').date(),
-               lambda x: strptime(x.strip('"')[0:15], '%H:%M:%S.%f').time(),
-               lambda x: yesno(x.strip('"')),
-               lambda x: none(x.strip('"')),
-               lambda x: str(x.strip('"'))]
+    parsers = [
+        int,
+        float,
+        lambda x: strptime(x.strip('"'), "%Y-%m-%dT%H:%M:%SZ"),
+        lambda x: strptime(x.strip('"'), "%Y-%m-%d").date(),
+        lambda x: strptime(x.strip('"')[0:15], "%H:%M:%S.%f").time(),
+        lambda x: yesno(x.strip('"')),
+        lambda x: none(x.strip('"')),
+        lambda x: str(x.strip('"')),
+    ]
 
     for parser in parsers:
         try:
@@ -44,7 +46,7 @@ def parse_type(s):
     raise ValueError
 
 
-def load_mtl(filename, root='L1_METADATA_FILE', pairs=r'(\w+)\s=\s(.*)'):
+def load_mtl(filename, root="L1_METADATA_FILE", pairs=r"(\w+)\s=\s(.*)"):
     """Parse an MTL file and return dict-of-dict's containing the metadata."""
 
     def parse(lines, tree, level=0):
@@ -54,21 +56,21 @@ def load_mtl(filename, root='L1_METADATA_FILE', pairs=r'(\w+)\s=\s(.*)'):
             match = re.findall(pairs, line)
             if match:
                 key, value = match[0]
-                if key == 'GROUP':
+                if key == "GROUP":
                     tree[value] = {}
                     parse(lines, tree[value], level + 1)
-                elif key == 'END_GROUP':
+                elif key == "END_GROUP":
                     break
                 else:
                     tree[key.lower()] = parse_type(value)
 
     tree = {}
     if isinstance(filename, str):
-        with open(filename, 'r') as fo:
+        with open(filename, "r") as fo:
             data = fo.readlines()
     else:
         # individual member within a tar opened for extraction
-        data = [l.strip().decode() for l in filename.readlines()]
+        data = [line.strip().decode() for line in filename.readlines()]
 
     parse(data, tree)
 

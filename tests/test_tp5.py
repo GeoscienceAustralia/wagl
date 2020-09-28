@@ -4,7 +4,6 @@
 Test configurations of the tp5 file format for MODTRAN 5.4.
 """
 
-from os.path import join as pjoin, abspath, dirname
 from pathlib import Path
 import unittest
 from wagl import modtran_profiles as mp
@@ -28,7 +27,7 @@ class Tp5Test(unittest.TestCase):
             albedo=0.0,
             water=1.07000122070313,
             ozone=0.28499999642372,
-            filter_function='landsat7_vsir.flt',
+            filter_function="landsat7_vsir.flt",
             visibility=-0.02264800000000,
             elevation=0.70900000000000,
             sat_height=705.0,
@@ -37,10 +36,11 @@ class Tp5Test(unittest.TestCase):
             lat=-29.33856209871443,
             lon=209.88857485506449,
             time=23.73920805027778,
-            sat_azimuth=279.408417)
+            sat_azimuth=279.408417,
+        )
 
-        with open(FNAME1, 'r') as src:
-            data = ''.join(src.readlines())
+        with open(FNAME1, "r") as src:
+            data = "".join(src.readlines())
 
         self.assertTrue(test == data)
 
@@ -53,7 +53,7 @@ class Tp5Test(unittest.TestCase):
             albedo=0.0,
             water=1.3500000000000001,
             ozone=0.25600001,
-            filter_function='landsat8_vsir.flt',
+            filter_function="landsat8_vsir.flt",
             visibility=-0.043157435953617096,
             elevation=0.378,
             sat_height=705.0,
@@ -62,13 +62,14 @@ class Tp5Test(unittest.TestCase):
             lat=-20.247597626228778,
             lon=229.23617402910139,
             time=1.2133087877777777,
-            sat_azimuth=278.77069)
+            sat_azimuth=278.77069,
+        )
 
-        with open(FNAME2, 'r') as src:
-            data = ''.join(src.readlines())
+        with open(FNAME2, "r") as src:
+            data = "".join(src.readlines())
 
         self.assertTrue(test == data)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
