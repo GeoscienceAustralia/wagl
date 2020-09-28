@@ -26,7 +26,7 @@ from posixpath import join as ppjoin
 import logging
 import numpy as np
 import h5py
-from wagl.hdf5 import write_dataframe, write_scalar
+from wagl.hdf5 import write_scalar
 from wagl.constants import (
     ALBEDO_FMT,
     Albedos,
@@ -103,8 +103,8 @@ def compute_filter_matrix(
 
     compute the adjacency 2D filter matrix based on the 1D FWHM of the PSF as the radius
     of the matrix. If the pixel size is [xres, yres] for the x and y direction, then the
-    number of pixels in the matrix away from the center is computed (refer to ATBD for water
-    atmospheric correction by David and Fuqin.
+    number of pixels in the matrix away from the center is computed (refer to ATBD for
+    water atmospheric correction by David and Fuqin.
 
     :param psf_data: Point Spread Function data for a spectral band.
     :param xres: Pixel size in x-direction.
@@ -139,8 +139,8 @@ def compute_filter_matrix(
     num_pixel_x = np.int(fwhm / xres)
     num_pixel_y = np.int(fwhm / yres)
 
-    # check if number of pixels in a filter is greater than maximum pixel allowed in a filter
-    # and reset to a maximum allowed
+    # check if number of pixels in a filter is greater than maximum pixel allowed
+    # in a filter and reset to a maximum allowed
     if 2 * num_pixel_x + 1 > max_filter_size:
         num_pixel_x = np.int((max_filter_size - 1) / 2)
     if 2 * num_pixel_y + 1 > max_filter_size:
@@ -396,12 +396,12 @@ def compute_adjacency_filter(
             # write psf data into the h5 object
             attrs = {
                 "band_name": band,
-                "description": f"{band} Point Spread Function data from MODTRAN .tp7 output",
+                "description": f"{band} Point Spread Function data from MODTRAN .tp7 output",  # noqa: E501
             }
 
             dname_psf = ppjoin(DatasetName.PSF.value, band)
             psf_ds = create_dataset(group_name, dname_psf, _psf_data.shape, attrs)
-            psf_ds[:] = _psf_data.astype('float32')
+            psf_ds[:] = _psf_data.astype("float32")
 
             acq = [acq for acq in supported_band_acqs if acq.band_name == band][0]
             xres, yres = acq.resolution
@@ -415,8 +415,12 @@ def compute_adjacency_filter(
             ):
                 _LOG.warning(f"Adjacency kernel is not symmetric for {band}")
 
-            attrs["description"] = f"{band} Adjacency filter derived from Point Spread Function"
+            attrs[
+                "description"
+            ] = f"{band} Adjacency filter derived from Point Spread Function"
             dname_filter = ppjoin(DatasetName.ADJACENCY_FILTER.value, acq.band_name)
 
-            filter_ds = create_dataset(group_name, dname_filter, filter_matrix.shape, attrs)
-            filter_ds[:] = filter_matrix.astype('float32')
+            filter_ds = create_dataset(
+                group_name, dname_filter, filter_matrix.shape, attrs
+            )
+            filter_ds[:] = filter_matrix.astype("float32")

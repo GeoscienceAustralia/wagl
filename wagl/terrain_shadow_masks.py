@@ -23,23 +23,33 @@ from wagl.tiling import generate_tiles
 from wagl.__cast_shadow_mask import cast_shadow_main
 
 
-def _self_shadow(incident_angles_fname, exiting_angles_fname, out_fname,
-                 compression=H5CompressionFilter.LZF, filter_opts=None):
+def _self_shadow(
+    incident_angles_fname,
+    exiting_angles_fname,
+    out_fname,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    with h5py.File(incident_angles_fname, 'r') as fid_incident,\
-        h5py.File(exiting_angles_fname, 'r') as fid_exiting,\
-        h5py.File(out_fname, 'w') as fid:
+    with h5py.File(incident_angles_fname, "r") as fid_incident, h5py.File(
+        exiting_angles_fname, "r"
+    ) as fid_exiting, h5py.File(out_fname, "w") as fid:
 
         grp1 = fid_incident[GroupName.INCIDENT_GROUP.value]
         grp2 = fid_exiting[GroupName.EXITING_GROUP.value]
         self_shadow(grp1, grp2, fid, compression, filter_opts)
 
 
-def self_shadow(incident_angles_group, exiting_angles_group, out_group=None,
-                compression=H5CompressionFilter.LZF, filter_opts=None):
+def self_shadow(
+    incident_angles_group,
+    exiting_angles_group,
+    out_group=None,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+):
     """
     Computes the self shadow mask.
 
@@ -65,7 +75,7 @@ def self_shadow(incident_angles_group, exiting_angles_group, out_group=None,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :filter_opts:
         A dict of key value pairs available to the given configuration
@@ -85,7 +95,7 @@ def self_shadow(incident_angles_group, exiting_angles_group, out_group=None,
 
     # Initialise the output file
     if out_group is None:
-        fid = h5py.File('self-shadow.h5', 'w', driver='core', backing_store=False)
+        fid = h5py.File("self-shadow.h5", "w", driver="core", backing_store=False)
     else:
         fid = out_group
 
@@ -100,22 +110,24 @@ def self_shadow(incident_angles_group, exiting_angles_group, out_group=None,
     grp = fid[GroupName.SHADOW_GROUP.value]
 
     tile_size = exiting_angle.chunks
-    filter_opts['chunks'] = tile_size
+    filter_opts["chunks"] = tile_size
     kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
     cols, rows = geobox.get_shape_xy()
-    kwargs['shape'] = (rows, cols)
-    kwargs['dtype'] = 'bool'
+    kwargs["shape"] = (rows, cols)
+    kwargs["dtype"] = "bool"
 
     # output dataset
     dataset_name = DatasetName.SELF_SHADOW.value
     out_dset = grp.create_dataset(dataset_name, **kwargs)
 
     # attach some attributes to the image datasets
-    attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
-             'geotransform': geobox.transform.to_gdal()}
+    attrs = {
+        "crs_wkt": geobox.crs.ExportToWkt(),
+        "geotransform": geobox.transform.to_gdal(),
+    }
     desc = "Self shadow mask derived using the incident and exiting angles."
-    attrs['description'] = desc
-    attrs['alias'] = 'self-shadow'
+    attrs["description"] = desc
+    attrs["alias"] = "self-shadow"
     attach_image_attributes(out_dset, attrs)
 
     # process by tile
@@ -125,7 +137,7 @@ def self_shadow(incident_angles_group, exiting_angles_group, out_group=None,
         exi = numpy.radians(exiting_angle[tile])
 
         # Process the tile
-        mask = numpy.ones(inc.shape, dtype='uint8')
+        mask = numpy.ones(inc.shape, dtype="uint8")
         mask[numpy.cos(inc) <= 0.0] = 0
         mask[numpy.cos(exi) <= 0.0] = 0
 
@@ -163,10 +175,9 @@ class CastShadowError(FortranError):
     """
 
     def __init__(self, code):
-        super(CastShadowError,
-              self).__init__("cast_shadow_main",
-                             code,
-                             CastShadowError.get_error_message(code))
+        super(CastShadowError, self).__init__(
+            "cast_shadow_main", code, CastShadowError.get_error_message(code)
+        )
 
     @staticmethod
     def get_error_message(code):
@@ -175,83 +186,84 @@ class CastShadowError(FortranError):
         non-returning control paths, as this will results in ``None``, which
         is handled in the super class.
         """
+
         def tmpt(d, n):
             """Generate message."""
             err = "attempt to access invalid {0} of {1}".format(d, n)
             return err
 
         if code == 20:
-            return tmpt('x', 'dem')
+            return tmpt("x", "dem")
         if code == 21:
-            return tmpt('x', 'dem_data')
+            return tmpt("x", "dem_data")
         if code == 22:
-            return tmpt('x', 'solar and sazi')
+            return tmpt("x", "solar and sazi")
         if code == 23:
-            return tmpt('x', 'solar_data')
+            return tmpt("x", "solar_data")
         if code == 24:
-            return tmpt('x', 'a')
+            return tmpt("x", "a")
         if code == 25:
-            return tmpt('y', 'dem_data')
+            return tmpt("y", "dem_data")
         if code == 26:
-            return tmpt('y', 'a')
+            return tmpt("y", "a")
         if code == 27:
-            return tmpt('x', 'mask_all')
+            return tmpt("x", "mask_all")
         if code == 28:
-            return tmpt('y', 'mask_all')
+            return tmpt("y", "mask_all")
         if code == 29:
-            return tmpt('x', 'mask')
+            return tmpt("x", "mask")
         if code == 30:
-            return tmpt('y', 'mask')
+            return tmpt("y", "mask")
         if code == 31:
-            return tmpt('X', 'dem and a')
+            return tmpt("X", "dem and a")
         if code == 32:
-            return tmpt('y', 'a')
+            return tmpt("y", "a")
         if code == 33:
-            return tmpt('y', 'dem')
+            return tmpt("y", "dem")
         if code == 34:
-            return tmpt('x', 'mask_all')
+            return tmpt("x", "mask_all")
         if code == 35:
-            return tmpt('x', 'mask')
+            return tmpt("x", "mask")
         if code == 36:
-            return tmpt('y', 'mask_all')
+            return tmpt("y", "mask_all")
         if code == 37:
-            return tmpt('y', 'mask')
+            return tmpt("y", "mask")
         if code == 38:
-            return tmpt('x', 'dem')
+            return tmpt("x", "dem")
         if code == 39:
-            return tmpt('x', 'dem_data')
+            return tmpt("x", "dem_data")
         if code == 40:
-            return tmpt('x', 'solar')
+            return tmpt("x", "solar")
         if code == 41:
-            return tmpt('x', 'solar_data')
+            return tmpt("x", "solar_data")
         if code == 42:
-            return tmpt('x', 'a and dem')
+            return tmpt("x", "a and dem")
         if code == 43:
-            return tmpt('y', 'a')
+            return tmpt("y", "a")
         if code == 44:
-            return tmpt('y', 'dem')
+            return tmpt("y", "dem")
         if code == 45:
-            return tmpt('x', 'mask_all')
+            return tmpt("x", "mask_all")
         if code == 46:
-            return tmpt('x', 'mask')
+            return tmpt("x", "mask")
         if code == 47:
-            return tmpt('y', 'mask_alll')
+            return tmpt("y", "mask_alll")
         if code == 48:
-            return tmpt('y', 'mask')
+            return tmpt("y", "mask")
         if code == 49:
-            return tmpt('x', 'a and dem')
+            return tmpt("x", "a and dem")
         if code == 50:
-            return tmpt('y', 'a')
+            return tmpt("y", "a")
         if code == 51:
-            return tmpt('y', 'dem')
+            return tmpt("y", "dem")
         if code == 52:
-            return tmpt('x', 'mask_all')
+            return tmpt("x", "mask_all")
         if code == 53:
-            return tmpt('x', 'mask')
+            return tmpt("x", "mask")
         if code == 54:
-            return tmpt('y', 'mask_all')
+            return tmpt("y", "mask_all")
         if code == 55:
-            return tmpt('y', 'mask')
+            return tmpt("y", "mask")
         if code == 61:
             return "azimuth case not possible - phi_sun must be in 0 to 360 deg"
         if code == 62:
@@ -268,28 +280,48 @@ class CastShadowError(FortranError):
             return "matrix A does not have sufficient x margin"
 
 
-def _calculate_cast_shadow(acquisition, dsm_fname, buffer_distance,
-                           satellite_solar_angles_fname, out_fname,
-                           compression=H5CompressionFilter.LZF,
-                           filter_opts=None, solar_source=True):
+def _calculate_cast_shadow(
+    acquisition,
+    dsm_fname,
+    buffer_distance,
+    satellite_solar_angles_fname,
+    out_fname,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+    solar_source=True,
+):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    with h5py.File(dsm_fname, 'r') as dsm_fid,\
-        h5py.File(satellite_solar_angles_fname, 'r') as fid_sat_sol,\
-        h5py.File(out_fname, 'w') as fid:
+    with h5py.File(dsm_fname, "r") as dsm_fid, h5py.File(
+        satellite_solar_angles_fname, "r"
+    ) as fid_sat_sol, h5py.File(out_fname, "w") as fid:
 
         grp1 = dsm_fid[GroupName.ELEVATION_GROUP.value]
         grp2 = fid_sat_sol[GroupName.SAT_SOL_GROUP.value]
-        calculate_cast_shadow(acquisition, grp1, grp2, buffer_distance, fid,
-                              compression, filter_opts, solar_source)
+        calculate_cast_shadow(
+            acquisition,
+            grp1,
+            grp2,
+            buffer_distance,
+            fid,
+            compression,
+            filter_opts,
+            solar_source,
+        )
 
 
-def calculate_cast_shadow(acquisition, dsm_group, satellite_solar_group,
-                          buffer_distance, out_group=None,
-                          compression=H5CompressionFilter.LZF,
-                          filter_opts=None, solar_source=True):
+def calculate_cast_shadow(
+    acquisition,
+    dsm_group,
+    satellite_solar_group,
+    buffer_distance,
+    out_group=None,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+    solar_source=True,
+):
     """
     This code is an interface to the fortran code
     cast_shadow_main.f90 written by Fuqin (and modified to
@@ -360,7 +392,7 @@ def calculate_cast_shadow(acquisition, dsm_group, satellite_solar_group,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :filter_opts:
         A dict of key value pairs available to the given configuration
@@ -415,21 +447,37 @@ def calculate_cast_shadow(acquisition, dsm_group, satellite_solar_group,
     block_height = margins.top + margins.bottom
 
     # Compute the cast shadow mask
-    ierr, mask = cast_shadow_main(elevation, zenith_angle, azimuth_angle,
-                                  x_res, y_res, spheroid, y_origin, x_origin,
-                                  margins.left, margins.right, margins.top,
-                                  margins.bottom, block_height, block_width,
-                                  is_utm)
+    ierr, mask = cast_shadow_main(
+        elevation,
+        zenith_angle,
+        azimuth_angle,
+        x_res,
+        y_res,
+        spheroid,
+        y_origin,
+        x_origin,
+        margins.left,
+        margins.right,
+        margins.top,
+        margins.bottom,
+        block_height,
+        block_width,
+        is_utm,
+    )
 
     if ierr:
         raise CastShadowError(ierr)
 
-    source_dir = 'SUN' if solar_source else 'SATELLITE'
+    source_dir = "SUN" if solar_source else "SATELLITE"
 
     # Initialise the output file
     if out_group is None:
-        fid = h5py.File('cast-shadow-{}.h5'.format(source_dir), 'w', driver='core',
-                        backing_store=False)
+        fid = h5py.File(
+            "cast-shadow-{}.h5".format(source_dir),
+            "w",
+            driver="core",
+            backing_store=False,
+        )
     else:
         fid = out_group
 
@@ -443,52 +491,67 @@ def calculate_cast_shadow(acquisition, dsm_group, satellite_solar_group,
 
     grp = fid[GroupName.SHADOW_GROUP.value]
     tile_size = satellite_solar_group[zenith_name].chunks
-    filter_opts['chunks'] = tile_size
+    filter_opts["chunks"] = tile_size
     kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
-    kwargs['dtype'] = 'bool'
+    kwargs["dtype"] = "bool"
 
     dname_fmt = DatasetName.CAST_SHADOW_FMT.value
-    out_dset = grp.create_dataset(dname_fmt.format(source=source_dir),
-                                  data=mask, **kwargs)
+    out_dset = grp.create_dataset(
+        dname_fmt.format(source=source_dir), data=mask, **kwargs
+    )
 
     # attach some attributes to the image datasets
-    attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
-             'geotransform': geobox.transform.to_gdal()}
-    desc = ("The cast shadow mask determined using the {} "
-            "as the source direction.").format(source_dir)
-    attrs['description'] = desc
-    attrs['alias'] = 'cast-shadow-{}'.format(source_dir).lower()
+    attrs = {
+        "crs_wkt": geobox.crs.ExportToWkt(),
+        "geotransform": geobox.transform.to_gdal(),
+    }
+    desc = (
+        "The cast shadow mask determined using the {} " "as the source direction."
+    ).format(source_dir)
+    attrs["description"] = desc
+    attrs["alias"] = "cast-shadow-{}".format(source_dir).lower()
     attach_image_attributes(out_dset, attrs)
 
     if out_group is None:
         return fid
 
 
-def _combine_shadow(self_shadow_fname, cast_shadow_sun_fname,
-                    cast_shadow_satellite_fname, out_fname,
-                    compression=H5CompressionFilter.LZF, filter_opts=None):
+def _combine_shadow(
+    self_shadow_fname,
+    cast_shadow_sun_fname,
+    cast_shadow_satellite_fname,
+    out_fname,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+):
     """
     A private wrapper for dealing with the internal custom workings of the
     NBAR workflow.
     """
-    with h5py.File(self_shadow_fname, 'r') as fid_self,\
-        h5py.File(cast_shadow_sun_fname, 'r') as fid_sun,\
-        h5py.File(cast_shadow_satellite_fname, 'r') as fid_sat,\
-        h5py.File(out_fname, 'w') as fid:
+    with h5py.File(self_shadow_fname, "r") as fid_self, h5py.File(
+        cast_shadow_sun_fname, "r"
+    ) as fid_sun, h5py.File(cast_shadow_satellite_fname, "r") as fid_sat, h5py.File(
+        out_fname, "w"
+    ) as fid:
 
         grp1 = fid_self[GroupName.SHADOW_GROUP.value]
         grp2 = fid_sun[GroupName.SHADOW_GROUP.value]
         grp3 = fid_sat[GroupName.SHADOW_GROUP.value]
         combine_shadow_masks(grp1, grp2, grp3, fid, compression, filter_opts)
 
-    link_shadow_datasets(self_shadow_fname, cast_shadow_sun_fname,
-                         cast_shadow_satellite_fname, out_fname)
+    link_shadow_datasets(
+        self_shadow_fname, cast_shadow_sun_fname, cast_shadow_satellite_fname, out_fname
+    )
 
 
-def combine_shadow_masks(self_shadow_group, cast_shadow_sun_group,
-                         cast_shadow_satellite_group, out_group=None,
-                         compression=H5CompressionFilter.LZF,
-                         filter_opts=None):
+def combine_shadow_masks(
+    self_shadow_group,
+    cast_shadow_sun_group,
+    cast_shadow_satellite_group,
+    out_group=None,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+):
     """
     A convienice function for combining the shadow masks into a single
     boolean array.
@@ -525,7 +588,7 @@ def combine_shadow_masks(self_shadow_group, cast_shadow_sun_group,
 
     :param compression:
         The compression filter to use.
-        Default is H5CompressionFilter.LZF 
+        Default is H5CompressionFilter.LZF
 
     :filter_opts:
         A dict of key value pairs available to the given configuration
@@ -542,15 +605,14 @@ def combine_shadow_masks(self_shadow_group, cast_shadow_sun_group,
     # access the datasets
     dname_fmt = DatasetName.CAST_SHADOW_FMT.value
     self_shad = self_shadow_group[DatasetName.SELF_SHADOW.value]
-    cast_sun = cast_shadow_sun_group[dname_fmt.format(source='SUN')]
-    dname = dname_fmt.format(source='SATELLITE')
+    cast_sun = cast_shadow_sun_group[dname_fmt.format(source="SUN")]
+    dname = dname_fmt.format(source="SATELLITE")
     cast_sat = cast_shadow_satellite_group[dname]
     geobox = GriddedGeoBox.from_dataset(self_shad)
 
     # Initialise the output files
     if out_group is None:
-        fid = h5py.File('combined-shadow.h5', 'w', driver='core',
-                        backing_store=False)
+        fid = h5py.File("combined-shadow.h5", "w", driver="core", backing_store=False)
     else:
         fid = out_group
 
@@ -564,36 +626,41 @@ def combine_shadow_masks(self_shadow_group, cast_shadow_sun_group,
 
     grp = fid[GroupName.SHADOW_GROUP.value]
     tile_size = cast_sun.chunks
-    filter_opts['chunks'] = tile_size
+    filter_opts["chunks"] = tile_size
     kwargs = compression.config(**filter_opts).dataset_compression_kwargs()
     cols, rows = geobox.get_shape_xy()
-    kwargs['shape'] = (rows, cols)
-    kwargs['dtype'] = 'bool'
+    kwargs["shape"] = (rows, cols)
+    kwargs["dtype"] = "bool"
 
     # output dataset
     out_dset = grp.create_dataset(DatasetName.COMBINED_SHADOW.value, **kwargs)
 
     # attach some attributes to the image datasets
-    attrs = {'crs_wkt': geobox.crs.ExportToWkt(),
-             'geotransform': geobox.transform.to_gdal()}
-    desc = ("Combined shadow masks: 1. self shadow, "
-            "2. cast shadow (solar direction), "
-            "3. cast shadow (satellite direction).")
-    attrs['description'] = desc
-    attrs['mask_values'] = "False = Shadow; True = Non Shadow"
-    attrs['alias'] = 'terrain-shadow'
+    attrs = {
+        "crs_wkt": geobox.crs.ExportToWkt(),
+        "geotransform": geobox.transform.to_gdal(),
+    }
+    desc = (
+        "Combined shadow masks: 1. self shadow, "
+        "2. cast shadow (solar direction), "
+        "3. cast shadow (satellite direction)."
+    )
+    attrs["description"] = desc
+    attrs["mask_values"] = "False = Shadow; True = Non Shadow"
+    attrs["alias"] = "terrain-shadow"
     attach_image_attributes(out_dset, attrs)
 
     # process by tile
     for tile in generate_tiles(cols, rows, tile_size[1], tile_size[0]):
-        out_dset[tile] = (self_shad[tile] & cast_sun[tile] & cast_sat[tile])
+        out_dset[tile] = self_shad[tile] & cast_sun[tile] & cast_sat[tile]
 
     if out_group is None:
         return fid
 
 
-def link_shadow_datasets(self_shadow_fname, cast_shadow_sun_fname,
-                         cast_shadow_satellite_fname, out_fname):
+def link_shadow_datasets(
+    self_shadow_fname, cast_shadow_sun_fname, cast_shadow_satellite_fname, out_fname
+):
     """
     Link the self shadow mask, and the two cast shadow masks into a
     single file for easier access.
@@ -603,8 +670,8 @@ def link_shadow_datasets(self_shadow_fname, cast_shadow_sun_fname,
     dname = ppjoin(group_path, DatasetName.SELF_SHADOW.value)
     create_external_link(self_shadow_fname, dname, out_fname, dname)
 
-    dname = ppjoin(group_path, dname_fmt.format(source='SUN'))
+    dname = ppjoin(group_path, dname_fmt.format(source="SUN"))
     create_external_link(cast_shadow_sun_fname, dname, out_fname, dname)
 
-    dname = ppjoin(group_path, dname_fmt.format(source='SATELLITE'))
+    dname = ppjoin(group_path, dname_fmt.format(source="SATELLITE"))
     create_external_link(cast_shadow_satellite_fname, dname, out_fname, dname)

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # pragma pylint: disable=line-too-long
+# flake8: noqa
 """
 These are the templates for the inputs into MODTRAN.
 Parameters to be inserted are:
@@ -23,7 +24,7 @@ Parameters to be inserted are:
 from __future__ import absolute_import, print_function
 
 
-MIDLAT_SUMMER_ALBEDO = ("""\
+MIDLAT_SUMMER_ALBEDO = """\
 TM  2    2    2   -1    2    2    2    2    2    2    1    1    0  10.000{albedo:7.2f}     1
 TTT  8   0   375.000  g{water:7.5f}    a{ozone:5.3f} 1   T f f -0.988000t      1.0         0      0.00         0         0
  {filter_function:<75}
@@ -33,9 +34,9 @@ TTT  8   0   375.000  g{water:7.5f}    a{ozone:5.3f} 1   T f f -0.988000t      1
 {lat:10.5f}{lon:10.5f}   0.00000   0.00000{time:10.5f}{sat_azimuth:10.5f}   0.00000   0.66700
      350.0    2600.0       1.0       1.0RN#       NT       1
     0
-""")
+"""
 
-TROPICAL_ALBEDO = ("""\
+TROPICAL_ALBEDO = """\
 TM  1    2    2   -1    1    1    1    1    1    1    1    1    0  10.000{albedo:7.2f}     1
 TTT  8   0   375.000  g{water:7.5f}    a{ozone:5.3f} 1   T f f -0.988000t      1.0         0      0.00         0         0
  {filter_function:<75}
@@ -45,4 +46,4 @@ TTT  8   0   375.000  g{water:7.5f}    a{ozone:5.3f} 1   T f f -0.988000t      1
 {lat:10.3f}{lon:10.3f}     0.000     0.000{time:10.3f}{sat_azimuth:10.3f}     0.000     0.667
      350.0    2600.0       1.0       1.0RN#       NT       1
     0
-""")
+"""

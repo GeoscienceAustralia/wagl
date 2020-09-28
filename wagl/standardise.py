@@ -35,12 +35,36 @@ from wagl.logs import STATUS_LOGGER
 
 
 # pylint disable=too-many-arguments
-def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
-           tle_path, aerosol, refractive_index, brdf, ozone_path,
-           water_vapour, dem_path, dsm_fname, invariant_fname, modtran_exe, modtran54_exe,
-           out_fname, aerosol_model, ecmwf_path=None, rori=0.52, buffer_distance=8000,
-           compression=H5CompressionFilter.LZF, filter_opts=None,
-           h5_driver=None, acq_parser_hint=None, normalized_solar_zenith=45.):
+def card4l(
+    level1,
+    granule,
+    workflow,
+    vertices,
+    method,
+    pixel_quality,
+    landsea,
+    tle_path,
+    aerosol,
+    refractive_index,
+    brdf,
+    ozone_path,
+    water_vapour,
+    dem_path,
+    dsm_fname,
+    invariant_fname,
+    modtran_exe,
+    modtran54_exe,
+    out_fname,
+    aerosol_model,
+    ecmwf_path=None,
+    rori=0.52,
+    buffer_distance=8000,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
+    h5_driver=None,
+    acq_parser_hint=None,
+    normalized_solar_zenith=45.0,
+):
     """
     CEOS Analysis Ready Data for Land.
     A workflow for producing standardised products that meet the
@@ -173,99 +197,143 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
     :param normalized_solar_zenith:
         Solar zenith angle to normalize for (in degrees). Default is 45 degrees.
     """
-    json_fmt = pjoin(POINT_FMT, ALBEDO_FMT, ''.join([POINT_ALBEDO_FMT, '.json']))
+    json_fmt = pjoin(POINT_FMT, ALBEDO_FMT, "".join([POINT_ALBEDO_FMT, ".json"]))
     nvertices = vertices[0] * vertices[1]
     container = acquisitions(level1, hint=acq_parser_hint)
 
     # TODO: pass through an acquisitions container rather than pathname
-    with h5py.File(out_fname, 'w', driver=h5_driver) as fid:
-        fid.attrs['level1_uri'] = level1
+    with h5py.File(out_fname, "w", driver=h5_driver) as fid:
+        fid.attrs["level1_uri"] = level1
 
         for grp_name in container.supported_groups:
-            log = STATUS_LOGGER.bind(level1=container.label, granule=granule,
-                                     granule_group=grp_name)
+            log = STATUS_LOGGER.bind(
+                level1=container.label, granule=granule, granule_group=grp_name
+            )
 
             # root group for a given granule and resolution group
             root = fid.create_group(ppjoin(granule, grp_name))
             acqs = container.get_acquisitions(granule=granule, group=grp_name)
 
             # include the resolution as a group attribute
-            root.attrs['resolution'] = acqs[0].resolution
+            root.attrs["resolution"] = acqs[0].resolution
 
             # longitude and latitude
-            log.info('Latitude-Longitude')
+            log.info("Latitude-Longitude")
             create_lon_lat_grids(acqs[0], root, compression, filter_opts)
 
             # satellite and solar angles
-            log.info('Satellite-Solar-Angles')
-            calculate_angles(acqs[0], root[GroupName.LON_LAT_GROUP.value],
-                             root, compression, filter_opts, tle_path)
+            log.info("Satellite-Solar-Angles")
+            calculate_angles(
+                acqs[0],
+                root[GroupName.LON_LAT_GROUP.value],
+                root,
+                compression,
+                filter_opts,
+                tle_path,
+            )
 
             if workflow in (Workflow.STANDARD, Workflow.NBAR):
 
                 # DEM
-                log.info('DEM-retriveal')
-                get_dsm(acqs[0], dsm_fname, buffer_distance, root, compression,
-                        filter_opts)
+                log.info("DEM-retriveal")
+                get_dsm(
+                    acqs[0], dsm_fname, buffer_distance, root, compression, filter_opts
+                )
 
                 # slope & aspect
-                log.info('Slope-Aspect')
-                slope_aspect_arrays(acqs[0],
-                                    root[GroupName.ELEVATION_GROUP.value],
-                                    buffer_distance, root, compression,
-                                    filter_opts)
+                log.info("Slope-Aspect")
+                slope_aspect_arrays(
+                    acqs[0],
+                    root[GroupName.ELEVATION_GROUP.value],
+                    buffer_distance,
+                    root,
+                    compression,
+                    filter_opts,
+                )
 
                 # incident angles
-                log.info('Incident-Angles')
-                incident_angles(root[GroupName.SAT_SOL_GROUP.value],
-                                root[GroupName.SLP_ASP_GROUP.value],
-                                root, compression, filter_opts)
+                log.info("Incident-Angles")
+                incident_angles(
+                    root[GroupName.SAT_SOL_GROUP.value],
+                    root[GroupName.SLP_ASP_GROUP.value],
+                    root,
+                    compression,
+                    filter_opts,
+                )
 
                 # exiting angles
-                log.info('Exiting-Angles')
-                exiting_angles(root[GroupName.SAT_SOL_GROUP.value],
-                               root[GroupName.SLP_ASP_GROUP.value],
-                               root, compression, filter_opts)
+                log.info("Exiting-Angles")
+                exiting_angles(
+                    root[GroupName.SAT_SOL_GROUP.value],
+                    root[GroupName.SLP_ASP_GROUP.value],
+                    root,
+                    compression,
+                    filter_opts,
+                )
 
                 # relative azimuth slope
-                log.info('Relative-Azimuth-Angles')
+                log.info("Relative-Azimuth-Angles")
                 incident_group_name = GroupName.INCIDENT_GROUP.value
                 exiting_group_name = GroupName.EXITING_GROUP.value
-                relative_azimuth_slope(root[incident_group_name],
-                                       root[exiting_group_name],
-                                       root, compression, filter_opts)
+                relative_azimuth_slope(
+                    root[incident_group_name],
+                    root[exiting_group_name],
+                    root,
+                    compression,
+                    filter_opts,
+                )
 
                 # self shadow
-                log.info('Self-Shadow')
-                self_shadow(root[incident_group_name],
-                            root[exiting_group_name], root, compression,
-                            filter_opts)
+                log.info("Self-Shadow")
+                self_shadow(
+                    root[incident_group_name],
+                    root[exiting_group_name],
+                    root,
+                    compression,
+                    filter_opts,
+                )
 
                 # cast shadow solar source direction
-                log.info('Cast-Shadow-Solar-Direction')
+                log.info("Cast-Shadow-Solar-Direction")
                 dsm_group_name = GroupName.ELEVATION_GROUP.value
-                calculate_cast_shadow(acqs[0], root[dsm_group_name],
-                                      root[GroupName.SAT_SOL_GROUP.value],
-                                      buffer_distance, root, compression,
-                                      filter_opts)
+                calculate_cast_shadow(
+                    acqs[0],
+                    root[dsm_group_name],
+                    root[GroupName.SAT_SOL_GROUP.value],
+                    buffer_distance,
+                    root,
+                    compression,
+                    filter_opts,
+                )
 
                 # cast shadow satellite source direction
-                log.info('Cast-Shadow-Satellite-Direction')
-                calculate_cast_shadow(acqs[0], root[dsm_group_name],
-                                      root[GroupName.SAT_SOL_GROUP.value],
-                                      buffer_distance, root, compression,
-                                      filter_opts, False)
+                log.info("Cast-Shadow-Satellite-Direction")
+                calculate_cast_shadow(
+                    acqs[0],
+                    root[dsm_group_name],
+                    root[GroupName.SAT_SOL_GROUP.value],
+                    buffer_distance,
+                    root,
+                    compression,
+                    filter_opts,
+                    False,
+                )
 
                 # combined shadow masks
-                log.info('Combined-Shadow')
-                combine_shadow_masks(root[GroupName.SHADOW_GROUP.value],
-                                     root[GroupName.SHADOW_GROUP.value],
-                                     root[GroupName.SHADOW_GROUP.value],
-                                     root, compression, filter_opts)
+                log.info("Combined-Shadow")
+                combine_shadow_masks(
+                    root[GroupName.SHADOW_GROUP.value],
+                    root[GroupName.SHADOW_GROUP.value],
+                    root[GroupName.SHADOW_GROUP.value],
+                    root,
+                    compression,
+                    filter_opts,
+                )
 
         # nbar and sbt ancillary
-        log = STATUS_LOGGER.bind(level1=container.label, granule=granule,
-                                 granule_group=None)
+        log = STATUS_LOGGER.bind(
+            level1=container.label, granule=granule, granule_group=None
+        )
 
         # granule root group
         root = fid[granule]
@@ -276,18 +344,28 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
         grn_con = container.get_granule(granule=granule, container=True)
         res_group = root[grp_name]
 
-        log.info('Ancillary-Retrieval')
-        nbar_paths = {'aerosol_dict': aerosol,
-                      'water_vapour_dict': water_vapour,
-                      'ozone_path': ozone_path,
-                      'dem_path': dem_path,
-                      'brdf_dict': brdf}
-        collect_ancillary(grn_con, res_group[GroupName.SAT_SOL_GROUP.value],
-                          nbar_paths, ecmwf_path, invariant_fname,
-                          vertices, root, compression, filter_opts)
+        log.info("Ancillary-Retrieval")
+        nbar_paths = {
+            "aerosol_dict": aerosol,
+            "water_vapour_dict": water_vapour,
+            "ozone_path": ozone_path,
+            "dem_path": dem_path,
+            "brdf_dict": brdf,
+        }
+        collect_ancillary(
+            grn_con,
+            res_group[GroupName.SAT_SOL_GROUP.value],
+            nbar_paths,
+            ecmwf_path,
+            invariant_fname,
+            vertices,
+            root,
+            compression,
+            filter_opts,
+        )
 
         # atmospherics
-        log.info('Atmospherics')
+        log.info("Atmospherics")
 
         ancillary_group = root[GroupName.ANCILLARY_GROUP.value]
 
@@ -296,14 +374,23 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
         lon_lat_grp = res_group[GroupName.LON_LAT_GROUP.value]
 
         # TODO: supported acqs in different groups pointing to different response funcs
-        json_data, _ = format_json(acqs, ancillary_group, sat_sol_grp,
-                                   lon_lat_grp, workflow, root, aerosol_model=aerosol_model)
+        json_data, _ = format_json(
+            acqs,
+            ancillary_group,
+            sat_sol_grp,
+            lon_lat_grp,
+            workflow,
+            root,
+            aerosol_model=aerosol_model,
+        )
 
         # TODO needs logic here to run compute adjacency only if workflow requires it
         #   after we decide on the marine-atcor workflow?
         # compute adjacency filter using MODTRAN 5.4 PSF data
-        log.info('Compute-Adjacency-Filter')
-        compute_adjacency_filter(container, granule, json_data, nvertices, modtran54_exe, root, aerosol_model)
+        log.info("Compute-Adjacency-Filter")
+        compute_adjacency_filter(
+            container, granule, json_data, nvertices, modtran54_exe, root, aerosol_model
+        )
 
         # atmospheric inputs group
         inputs_grp = root[GroupName.ATMOSPHERIC_INPUTS_GRP.value]
@@ -312,7 +399,7 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
         for key in json_data:
             point, albedo = key
 
-            log.info('Radiative-Transfer', point=point, albedo=albedo.value)
+            log.info("Radiative-Transfer", point=point, albedo=albedo.value)
 
             with tempfile.TemporaryDirectory() as tmpdir:
 
@@ -323,44 +410,66 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
 
                 json_mod_infile = pjoin(tmpdir, json_fmt.format(p=point, a=albedo.value))
 
-                with open(json_mod_infile, 'w') as src:
+                with open(json_mod_infile, "w") as src:
                     json_dict = json_data[key]
 
                     if albedo == Albedos.ALBEDO_TH:
 
-                        json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = \
-                            "%s/%s" % (workdir, json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
-                        json_dict["MODTRAN"][1]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = \
-                            "%s/%s" % (workdir, json_dict["MODTRAN"][1]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
+                        json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"][
+                            "FILTNM"
+                        ] = "%s/%s" % (
+                            workdir,
+                            json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"],
+                        )
+                        json_dict["MODTRAN"][1]["MODTRANINPUT"]["SPECTRAL"][
+                            "FILTNM"
+                        ] = "%s/%s" % (
+                            workdir,
+                            json_dict["MODTRAN"][1]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"],
+                        )
 
                     else:
 
-                        json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = \
-                            "%s/%s" % (workdir, json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"])
+                        json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"][
+                            "FILTNM"
+                        ] = "%s/%s" % (
+                            workdir,
+                            json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"]["FILTNM"],
+                        )
 
                     json.dump(json_dict, src, cls=JsonEncoder, indent=4)
 
-                run_modtran(acqs, inputs_grp, workflow, nvertices, point, [albedo],
-                            modtran_exe, tmpdir, root, compression, filter_opts)
+                run_modtran(
+                    acqs,
+                    inputs_grp,
+                    workflow,
+                    nvertices,
+                    point,
+                    [albedo],
+                    modtran_exe,
+                    tmpdir,
+                    root,
+                    compression,
+                    filter_opts,
+                )
 
         # atmospheric coefficients
-        log.info('Coefficients')
+        log.info("Coefficients")
         results_group = root[GroupName.ATMOSPHERIC_RESULTS_GRP.value]
 
         calculate_coefficients(results_group, root, compression, filter_opts)
         esun_values = {}
         # interpolate coefficients
         for grp_name in container.supported_groups:
-            log = STATUS_LOGGER.bind(level1=container.label, granule=granule,
-                                     granule_group=grp_name)
-            log.info('Interpolation')
+            log = STATUS_LOGGER.bind(
+                level1=container.label, granule=granule, granule_group=grp_name
+            )
+            log.info("Interpolation")
 
             # acquisitions and available bands for the current group level
             acqs = container.get_acquisitions(granule=granule, group=grp_name)
-            nbar_acqs = [acq for acq in acqs if
-                         acq.band_type == BandType.REFLECTIVE]
-            sbt_acqs = [acq for acq in acqs if
-                        acq.band_type == BandType.THERMAL]
+            nbar_acqs = [acq for acq in acqs if acq.band_type == BandType.REFLECTIVE]
+            sbt_acqs = [acq for acq in acqs if acq.band_type == BandType.THERMAL]
 
             res_group = root[grp_name]
             sat_sol_grp = res_group[GroupName.SAT_SOL_GROUP.value]
@@ -375,11 +484,20 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
                     band_acqs = sbt_acqs
 
                 for acq in band_acqs:
-                    log.info('Interpolate', band_id=acq.band_id,
-                             coefficient=coefficient.value)
-                    interpolate(acq, coefficient, ancillary_group, sat_sol_grp,
-                                comp_grp, res_group, compression, filter_opts,
-                                method)
+                    log.info(
+                        "Interpolate", band_id=acq.band_id, coefficient=coefficient.value
+                    )
+                    interpolate(
+                        acq,
+                        coefficient,
+                        ancillary_group,
+                        sat_sol_grp,
+                        comp_grp,
+                        res_group,
+                        compression,
+                        filter_opts,
+                        method,
+                    )
 
             # standardised products
             band_acqs = []
@@ -394,17 +512,22 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
                 interp_grp = res_group[GroupName.INTERP_GROUP.value]
 
                 if acq.band_type == BandType.THERMAL:
-                    log.info('SBT', band_id=acq.band_id)
-                    surface_brightness_temperature(acq, interp_grp, res_group,
-                                                   compression, filter_opts)
+                    log.info("SBT", band_id=acq.band_id)
+                    surface_brightness_temperature(
+                        acq, interp_grp, res_group, compression, filter_opts
+                    )
                 else:
-                    atmos_coefs = read_h5_table(comp_grp, DatasetName.NBAR_COEFFICIENTS.value)
+                    atmos_coefs = read_h5_table(
+                        comp_grp, DatasetName.NBAR_COEFFICIENTS.value
+                    )
                     esun_values[acq.band_name] = (
-                        atmos_coefs
-                        [atmos_coefs.band_name == acq.band_name]
-                        [AtmosphericCoefficients.ESUN.value]
+                        atmos_coefs[atmos_coefs.band_name == acq.band_name][
+                            AtmosphericCoefficients.ESUN.value
+                        ]
                     ).values[0]
-                    psf_dataset_name = ppjoin(DatasetName.ADJACENCY_FILTER.value, acq.band_name)
+                    psf_dataset_name = ppjoin(
+                        DatasetName.ADJACENCY_FILTER.value, acq.band_name
+                    )
                     psf_kernel = results_group[psf_dataset_name][:]
                     slp_asp_grp = res_group[GroupName.SLP_ASP_GROUP.value]
                     rel_slp_asp = res_group[GroupName.REL_SLP_GROUP.value]
@@ -412,20 +535,49 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
                     exiting_grp = res_group[GroupName.EXITING_GROUP.value]
                     shadow_grp = res_group[GroupName.SHADOW_GROUP.value]
 
-                    log.info('Surface-Reflectance', band_id=acq.band_id)
-                    calculate_reflectance(acq, interp_grp, sat_sol_grp,
-                                          slp_asp_grp, rel_slp_asp,
-                                          incident_grp, exiting_grp,
-                                          shadow_grp, ancillary_group,
-                                          rori, res_group, compression,
-                                          filter_opts, normalized_solar_zenith,
-                                          esun_values[acq.band_name], psf_kernel)
+                    log.info("Surface-Reflectance", band_id=acq.band_id)
+                    calculate_reflectance(
+                        acq,
+                        interp_grp,
+                        sat_sol_grp,
+                        slp_asp_grp,
+                        rel_slp_asp,
+                        incident_grp,
+                        exiting_grp,
+                        shadow_grp,
+                        ancillary_group,
+                        rori,
+                        res_group,
+                        compression,
+                        filter_opts,
+                        normalized_solar_zenith,
+                        esun_values[acq.band_name],
+                        psf_kernel,
+                    )
 
             # pixel quality
             sbt_only = workflow == Workflow.SBT
             if pixel_quality and can_pq(level1, acq_parser_hint) and not sbt_only:
-                run_pq(level1, res_group, landsea, res_group, compression, filter_opts, AP.NBAR, acq_parser_hint)
-                run_pq(level1, res_group, landsea, res_group, compression, filter_opts, AP.NBART, acq_parser_hint)
+                run_pq(
+                    level1,
+                    res_group,
+                    landsea,
+                    res_group,
+                    compression,
+                    filter_opts,
+                    AP.NBAR,
+                    acq_parser_hint,
+                )
+                run_pq(
+                    level1,
+                    res_group,
+                    landsea,
+                    res_group,
+                    compression,
+                    filter_opts,
+                    AP.NBART,
+                    acq_parser_hint,
+                )
 
         def get_band_acqs(grp_name):
             acqs = container.get_acquisitions(granule=granule, group=grp_name)
@@ -442,15 +594,25 @@ def card4l(level1, granule, workflow, vertices, method, pixel_quality, landsea,
             return band_acqs
 
         # wagl parameters
-        parameters = {'vertices': list(vertices),
-                      'method': method.value,
-                      'rori': rori,
-                      'buffer_distance': buffer_distance,
-                      'normalized_solar_zenith': normalized_solar_zenith,
-                      'esun': esun_values,
-                      'refractive_index': refractive_index}
+        parameters = {
+            "vertices": list(vertices),
+            "method": method.value,
+            "rori": rori,
+            "buffer_distance": buffer_distance,
+            "normalized_solar_zenith": normalized_solar_zenith,
+            "esun": esun_values,
+            "refractive_index": refractive_index,
+        }
 
         # metadata yaml's
         metadata = root.create_group(DatasetName.METADATA.value)
-        create_ard_yaml({grp_name: get_band_acqs(grp_name) for grp_name in container.supported_groups},
-                        ancillary_group, metadata, parameters, workflow)
+        create_ard_yaml(
+            {
+                grp_name: get_band_acqs(grp_name)
+                for grp_name in container.supported_groups
+            },
+            ancillary_group,
+            metadata,
+            parameters,
+            workflow,
+        )

@@ -329,28 +329,24 @@ def sun_glint(
     rw = numpy.float32(refractive_index)  # noqa # pylint: disable
     p5 = numpy.float32(0.5)  # noqa # pylint: disable
 
-    theta_view = numpy.deg2rad(
-        satellite_view, dtype="float32"
-    )  # noqa # pylint: disable
+    theta_view = numpy.deg2rad(satellite_view, dtype="float32")  # noqa # pylint: disable
     theta_sun = numpy.deg2rad(solar_zenith, dtype="float32")  # noqa # pylint: disable
-    theta_phi = numpy.deg2rad(
-        relative_azimuth, dtype="float32"
-    )  # noqa # pylint: disable
+    theta_phi = numpy.deg2rad(relative_azimuth, dtype="float32")  # noqa # pylint: disable
 
-    expr = "cos(theta_sun) * cos(theta_view) + sin(theta_view) * sin(theta_sun) * cos(theta_phi)"
+    expr = "cos(theta_sun) * cos(theta_view) + sin(theta_view) * sin(theta_sun) * cos(theta_phi)"  # noqa: E501
     cos_psi = numexpr.evaluate(expr)  # noqa # pylint: disable
 
     expr = "sqrt((1.0 + cos_psi) / 2.0)"
-    cos_omega = numexpr.evaluate(expr)
+    cos_omega = numexpr.evaluate(expr)  # noqa: F841
 
     expr = "(cos(theta_view) + cos(theta_sun)) / (2.0 * cos_omega)"
-    cos_beta = numexpr.evaluate(expr)
+    cos_beta = numexpr.evaluate(expr)  # noqa: F841
 
     expr = "0.003 + 0.00512 * wind_speed"
-    sigma2 = numexpr.evaluate(expr)
+    sigma2 = numexpr.evaluate(expr)  # noqa: F841
 
     expr = "((1.0 / cos_beta**2) - 1.0) / sigma2"
-    fac = numexpr.evaluate(expr)
+    fac = numexpr.evaluate(expr)  # noqa: F841
 
     expr = "exp(-fac) / (sigma2 * PI)"
     pval = numexpr.evaluate(expr)
@@ -363,13 +359,13 @@ def sun_glint(
     pval[tolerance_mask] = 0.0
 
     expr = "pval * cos_omega / (4.0 * cos_beta**3)"
-    gval = numexpr.evaluate(expr)
+    gval = numexpr.evaluate(expr)  # noqa: F841
 
     # value used for pixels that are flagged by the tolerance test
     value = numpy.abs((rw - 1) / (rw + 1)) ** 2
 
     expr = "arccos(cos_omega)"
-    omega = numexpr.evaluate(expr)
+    omega = numexpr.evaluate(expr)  # noqa: F841
 
     expr = "arcsin(sin(omega) / rw)"
     omega_prime = numexpr.evaluate(expr)  # noqa # pylint: disable
@@ -839,8 +835,7 @@ def calculate_reflectance(
 
     # Initialise the output file
     if out_group is None:
-        fid = h5py.File('surface-reflectance.h5', 'w', driver='core',
-                        backing_store=False)
+        fid = h5py.File("surface-reflectance.h5", "w", driver="core", backing_store=False)
     else:
         fid = out_group
 
@@ -897,9 +892,7 @@ def calculate_reflectance(
     attach_image_attributes(nbar_dset, attrs)
 
     # nbart
-    desc = (
-        "Contains the brdf and terrain corrected reflectance data scaled " "by 10000."
-    )
+    desc = "Contains the brdf and terrain corrected reflectance data scaled " "by 10000."
     attrs["description"] = desc
     attach_image_attributes(nbart_dset, attrs)
 
@@ -979,8 +972,8 @@ def calculate_reflectance(
 
     # process by tile
     for tile in acquisition.tiles():
-        # define some static arguments
 
+        # define some static arguments
         f32_args = {"dtype": numpy.float32, "transpose": True}
 
         # load standard lambertian
@@ -1055,14 +1048,10 @@ def calculate_reflectance(
         # we will not clip data to for testing phase
         if psf_kernel is not None:
             adj_data = adj_dset_f32[tile]
-            adj_dset.write_direct(
-                scale_reflectance(adj_data, clip=False), dest_sel=tile
-            )
+            adj_dset.write_direct(scale_reflectance(adj_data, clip=False), dest_sel=tile)
         lmbrt_dset.write_direct(scale_reflectance(ref_lm, clip=False), dest_sel=tile)
         nbar_dset.write_direct(scale_reflectance(ref_brdf, clip=False), dest_sel=tile)
-        nbart_dset.write_direct(
-            scale_reflectance(ref_terrain, clip=False), dest_sel=tile
-        )
+        nbart_dset.write_direct(scale_reflectance(ref_terrain, clip=False), dest_sel=tile)
 
     # close any still opened files, arrays etc associated with the acquisition
     acquisition.close()
@@ -1088,8 +1077,8 @@ def link_standard_data(input_fnames, out_fname):
             create_external_link(fname, dname, out_fname, dname)
 
         # metadata
-        with h5py.File(fname, 'r') as fid:
-            with h5py.File(out_fname, 'a') as out_fid:
+        with h5py.File(fname, "r") as fid:
+            with h5py.File(out_fname, "a") as out_fid:
                 yaml_dname = DatasetName.NBAR_YAML.value
                 if yaml_dname in fid and yaml_dname not in out_fid:
                     fid.copy(yaml_dname, out_fid, name=yaml_dname)

@@ -92,7 +92,7 @@ def _determine_pad(data, kernel):
         idx -> index location of the original array
     """
     # define a container to hold specific return info
-    Pad = namedtuple('Pad', 'dims width idx')
+    Pad = namedtuple("Pad", "dims width idx")
 
     # data and kernel y & x dimensions (shape)
     data_dims = data.shape
@@ -102,39 +102,33 @@ def _determine_pad(data, kernel):
     min_pad = [i // 2 + 1 for i in kern_dims]
 
     # additional pad to enable FFT (power of 2)
-    out_dims = tuple([
-        pyfftw.next_fast_len(data_dims[0] + min_pad[0]*2),
-        pyfftw.next_fast_len(data_dims[1] + min_pad[1]*2)
-    ])
+    out_dims = tuple(
+        [
+            pyfftw.next_fast_len(data_dims[0] + min_pad[0] * 2),
+            pyfftw.next_fast_len(data_dims[1] + min_pad[1] * 2),
+        ]
+    )
 
-    data_offset = (
-        out_dims[0] - data_dims[0],
-        out_dims[1] - data_dims[1]
-    )
-    kern_offset = (
-        out_dims[0] - kern_dims[0],
-        out_dims[1] - kern_dims[0]
-    )
+    data_offset = (out_dims[0] - data_dims[0], out_dims[1] - data_dims[1])
+    kern_offset = (out_dims[0] - kern_dims[0], out_dims[1] - kern_dims[0])
 
     # additional padding on each 2D edge
-    d_pad = tuple([
-        ((data_offset[0] + 1) // 2, data_offset[0] // 2),
-        ((data_offset[1] + 1) // 2, data_offset[1] // 2),
-    ])
-    k_pad = tuple([
-        ((kern_offset[0] + 1) // 2, kern_offset[0] // 2),
-        ((kern_offset[1] + 1) // 2, kern_offset[1] // 2),
-    ])
+    d_pad = tuple(
+        [
+            ((data_offset[0] + 1) // 2, data_offset[0] // 2),
+            ((data_offset[1] + 1) // 2, data_offset[1] // 2),
+        ]
+    )
+    k_pad = tuple(
+        [
+            ((kern_offset[0] + 1) // 2, kern_offset[0] // 2),
+            ((kern_offset[1] + 1) // 2, kern_offset[1] // 2),
+        ]
+    )
 
     # indices for original locations of data and kernel
-    d_unpad_idx = (
-        slice(d_pad[0][0], -d_pad[0][1]),
-        slice(d_pad[1][0], -d_pad[1][1])
-    )
-    k_unpad_idx = (
-        slice(k_pad[0][0], -k_pad[0][1]),
-        slice(k_pad[1][0], -k_pad[1][1])
-    )
+    d_unpad_idx = (slice(d_pad[0][0], -d_pad[0][1]), slice(d_pad[1][0], -d_pad[1][1]))
+    k_unpad_idx = (slice(k_pad[0][0], -k_pad[0][1]), slice(k_pad[1][0], -k_pad[1][1]))
 
     data_pad = Pad(dims=out_dims, width=d_pad, idx=d_unpad_idx)
     kern_pad = Pad(dims=out_dims, width=k_pad, idx=k_unpad_idx)
@@ -168,12 +162,13 @@ def _pad(data, pad, mode, out_group, dname):
     :return:
         A h5py.Dataset containing the padded array.
     """
-    dtype = 'complex'
+    dtype = "complex"
 
     # create compressed, chunk shape doesn't matter too much at this point
     # as when we need the data, the whole lot is read at once
-    ds = out_group.create_dataset(dname, shape=pad.dims, compression='lzf',
-                                  shuffle=True, dtype=dtype)
+    ds = out_group.create_dataset(
+        dname, shape=pad.dims, compression="lzf", shuffle=True, dtype=dtype
+    )
     chunks = ds.chunks
 
     buffered = numpy.pad(data, pad.width, mode=mode)
@@ -210,14 +205,15 @@ def conv_fft(data, kernel, out_group):
         convolution process.
     """
     dims = data.shape
-    indata = pyfftw.empty_aligned(dims, dtype='complex')
-    outdata = pyfftw.empty_aligned(dims, dtype='complex')
+    indata = pyfftw.empty_aligned(dims, dtype="complex")
+    outdata = pyfftw.empty_aligned(dims, dtype="complex")
 
     # define forward and reverse transforms
-    flags = ['FFTW_DESTROY_INPUT', 'FFTW_MEASURE']
+    flags = ["FFTW_DESTROY_INPUT", "FFTW_MEASURE"]
     fft_object = pyfftw.FFTW(indata, outdata, axes=(0, 1), flags=flags)
-    ifft_object = pyfftw.FFTW(indata, outdata, axes=(0, 1),
-                              direction='FFTW_BACKWARD', flags=flags)
+    ifft_object = pyfftw.FFTW(
+        indata, outdata, axes=(0, 1), direction="FFTW_BACKWARD", flags=flags
+    )
 
     # read data into the input
     indata[:] = data[:]
@@ -226,8 +222,9 @@ def conv_fft(data, kernel, out_group):
     result = fft_object()
 
     # temporary storage to hold the result
-    ft_data_ds = out_group.create_dataset('data-ft', data=result, shuffle=True,
-                                          compression='lzf')
+    ft_data_ds = out_group.create_dataset(
+        "data-ft", data=result, shuffle=True, compression="lzf"
+    )
     chunks = ft_data_ds.chunks
 
     # resuse existing input and output arrays for the kernel
@@ -235,18 +232,16 @@ def conv_fft(data, kernel, out_group):
     result = fft_object()
 
     # temporary storage to hold the result
-    ft_kern_ds = out_group.create_dataset('kern-ft', data=result, shuffle=True,
-                                          compression='lzf', chunks=chunks)
+    ft_kern_ds = out_group.create_dataset(
+        "kern-ft", data=result, shuffle=True, compression="lzf", chunks=chunks
+    )
 
     # apply convolution; resusing the input array to store the result
     for tile in generate_tiles(dims[1], dims[0], chunks[1], chunks[0]):
         numexpr.evaluate(
             "a * b",
-            local_dict={
-                'a': ft_data_ds[tile],
-                'b': ft_kern_ds[tile]
-            },
-            out=indata[tile]
+            local_dict={"a": ft_data_ds[tile], "b": ft_kern_ds[tile]},
+            out=indata[tile],
         )
 
     # now for the inverse
@@ -298,12 +293,13 @@ def convolve(data, kernel, data_mask, fourier=False):
     dtype = data.dtype
     fill = numpy.nan
 
-    with tempfile.TemporaryDirectory(suffix='.tmp', prefix='convol-') as tmpd:
-        with h5py.File(pjoin(tmpd, 'replace-nulls.h5'), 'w') as fid:
+    with tempfile.TemporaryDirectory(suffix=".tmp", prefix="convol-") as tmpd:
+        with h5py.File(pjoin(tmpd, "replace-nulls.h5"), "w") as fid:
 
             # chunksize doesn't matter as we simply load all chunks
-            outds = fid.create_dataset('fill-null', shape=dims, dtype=dtype,
-                                       compression='lzf', shuffle=True)
+            outds = fid.create_dataset(
+                "fill-null", shape=dims, dtype=dtype, compression="lzf", shuffle=True
+            )
 
             # fill nulls with run-length averages
             _fill_nulls(data[row_idx], data_mask[row_idx], outds)
@@ -314,10 +310,8 @@ def convolve(data, kernel, data_mask, fourier=False):
                 data_pad, kern_pad = _determine_pad(outds, kernel)
 
                 # pad/buffer
-                buffered_data = _pad(outds, data_pad, 'symmetric', fid,
-                                     'buffered-data')
-                buffered_kern = _pad(kernel, kern_pad, 'constant', fid,
-                                     'buffered-kernel')
+                buffered_data = _pad(outds, data_pad, "symmetric", fid, "buffered-data")
+                buffered_kern = _pad(kernel, kern_pad, "constant", fid, "buffered-kernel")
 
                 # convolve
                 convolved = conv_fft(buffered_data, buffered_kern, fid)
