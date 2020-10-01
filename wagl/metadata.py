@@ -18,7 +18,6 @@ import rasterio
 import yaml
 from yaml.representer import Representer
 import h5py
-import wagl
 from wagl.constants import (
     BrdfDirectionalParameters,
     DatasetName,
