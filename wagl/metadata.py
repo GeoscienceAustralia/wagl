@@ -6,7 +6,13 @@ Various metadata extraction and creation, and writing tools.
 
 from __future__ import absolute_import, print_function
 from datetime import datetime as dtime, timezone as dtz
-from importlib.metadata import distribution
+
+try:
+    from importlib.metadata import distribution
+except ImportError:
+    # Running on pre-3.8 Python; use importlib-metadata package
+    from importlib_metadata import distribution
+
 import os
 from os.path import dirname
 from posixpath import join as ppjoin
