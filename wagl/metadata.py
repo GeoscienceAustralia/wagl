@@ -6,6 +6,7 @@ Various metadata extraction and creation, and writing tools.
 
 from __future__ import absolute_import, print_function
 from datetime import datetime as dtime, timezone as dtz
+from importlib.metadata import distribution
 import os
 from os.path import dirname
 from posixpath import join as ppjoin
@@ -17,7 +18,6 @@ import rasterio
 import yaml
 from yaml.representer import Representer
 import h5py
-import wagl
 from wagl.constants import (
     BrdfDirectionalParameters,
     DatasetName,
@@ -326,10 +326,11 @@ def create_ard_yaml(res_group_bands, ancillary_group, out_group, parameters, wor
         return result
 
     def software_versions():
+        dist = distribution("wagl")
         return {
             "wagl": {
-                "version": wagl.__version__,
-                "repo_url": "https://github.com/GeoscienceAustralia/wagl.git",
+                "version": dist.version,
+                "repo_url": dist.metadata.get("Home-page"),
             },
             "modtran": {
                 "version": "6.0.1",
@@ -392,14 +393,15 @@ def create_pq_yaml(acquisition, ancillary, tests_run, out_group):
         None; The yaml document is written to the HDF5 file.
     """
 
+    dist = distribution("wagl")
     source_info = {
         "source_l1t": dirname(acquisition.dir_name),
         "source_reflectance": "NBAR",
     }
 
     algorithm = {
-        "software_version": wagl.__version__,
-        "software_repository": "https://github.com/GeoscienceAustralia/wagl.git",
+        "software_version": dist.version,
+        "software_repository": dist.metadata.get("Home-page"),
         "pq_doi": "http://dx.doi.org/10.1109/IGARSS.2013.6723746",
     }
 
