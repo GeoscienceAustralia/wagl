@@ -34,6 +34,7 @@ install_requires = [
     "structlog>=16.1.0",
     "idl-functions>=0.5.2",  # custom package
     "attrs>=17.4.0",
+    "importlib-metadata;python_version<'3.8'",
 ]
 
 dependency_links = [
