@@ -5,7 +5,6 @@ from __future__ import absolute_import
 
 import setuptools
 
-import versioneer
 from numpy.distutils.core import setup
 
 
@@ -36,6 +35,7 @@ install_requires = [
     "idl-functions>=0.5.2",  # custom package
     "attrs>=17.4.0",
     "pyfftw>=0.11.1",
+    "importlib-metadata;python_version<'3.8'",
 ]
 
 dependency_links = [
@@ -60,8 +60,7 @@ def configuration(parent_package="", top_path=None):
 setup(
     name="wagl",
     configuration=configuration,
-    version=versioneer.get_version(),
-    cmdclass=versioneer.get_cmdclass(),
+    use_scm_version=True,
     url="https://github.com/GeoscienceAustralia/wagl",
     license="CC0 1.0 Universal",
     author="The wagl authors",
@@ -83,7 +82,7 @@ setup(
         "utils/wagl_pbs",
         "utils/wagl_buildvrt",
     ],
-    setup_requires=["pytest-runner"],
+    setup_requires=["pytest-runner", "setuptools_scm"],
     tests_require=tests_require,
     install_requires=install_requires,
     dependency_links=dependency_links,
