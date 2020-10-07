@@ -1092,7 +1092,7 @@ def calculate_angles(
         time = np.full(dims, no_data, dtype=out_dtype)
         # loop each row within each tile (which itself could be a single row)
         for i in range(lon_data.shape[0]):
-            row_id = idx[0].start + i + 1  # FORTRAN 1 based index
+            row_id = tile[0].start + i + 1  # FORTRAN 1 based index
 
             stat = angle(
                 dims[1],
