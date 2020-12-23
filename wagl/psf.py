@@ -42,6 +42,7 @@ from wagl.modtran_profiles import MIDLAT_SUMMER_ALBEDO, TROPICAL_ALBEDO
 
 MAX_FILTER_SIZE = 101
 _LARGE_FILTER_SIZE = 40
+DISTANCE = 1000  # distance in metres
 _HSTEP = 10.0
 _TP5_FMT = pjoin(POINT_FMT, ALBEDO_FMT, "".join([POINT_ALBEDO_FMT, ".tp5"]))
 
@@ -93,7 +94,7 @@ def _max_filter_size(xres: float, yres: float, nlarge: int) -> int:
     :param nlarge: maximum allowed filter size.
     """
 
-    return 2 * np.int(nlarge * 25.0 / max(xres, yres)) + 1
+    return 2 * np.int(DISTANCE / max(xres, yres)) + 1
 
 
 def compute_filter_matrix(
