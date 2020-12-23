@@ -39,7 +39,7 @@ install_requires = [
 ]
 
 dependency_links = [
-    "git+git://github.com/sixy6e/idl-functions.git@master#egg=idl-functions-0.5.2",
+    "git+git://github.com/sixy6e/idl-functions.git@master#egg=idl-functions",
 ]
 
 
