@@ -12,6 +12,7 @@ L7_MTL1 = pjoin(DATA_DIR, "LANDSAT7", "L71090081_08120090415_MTL.txt")
 L7_MTL2 = pjoin(DATA_DIR, "LANDSAT7", "LE07_L1TP_112066_20020218_20170221_01_T1_MTL.txt")
 L8_MTL1 = pjoin(DATA_DIR, "LANDSAT8", "LO80900842013284ASA00_MTL.txt")
 L8_MTL2 = pjoin(DATA_DIR, "LANDSAT8", "LO80900842013284ASA00_MTL.txt")
+L8_MTL1C2 = pjoin(DATA_DIR, "LANDSAT8", "LC08_L1TP_092084_20201029_20201106_02_T1_MTL.txt")
 
 
 class TypeParserTest(unittest.TestCase):
@@ -138,6 +139,20 @@ class Landsat8MTL1ParserTest(unittest.TestCase):
         self.assertTrue("PROJECTION_PARAMETERS" in tree)
 
 
+class Landsat8MTL1C2ParserTest(unittest.TestCase):
+    def test_load(self):
+        tree = load_mtl(L8_MTL1C2)
+        self.assertEqual(len(tree), 10)
+        self.assertTrue("PRODUCT_CONTENTS" in tree) # was METADATA_FILE_INFO
+        #self.assertTrue("PRODUCT_METADATA" in tree)
+        self.assertTrue("IMAGE_ATTRIBUTES" in tree) # PRODUCT_METADATA info added here
+        self.assertTrue("MIN_MAX_RADIANCE" in tree)
+        self.assertTrue("MIN_MAX_REFLECTANCE" in tree)
+        self.assertTrue("MIN_MAX_PIXEL_VALUE" in tree)
+        self.assertTrue("RADIOMETRIC_RESCALING" in tree)
+        self.assertTrue("TIRS_THERMAL_CONSTANTS" in tree)
+        self.assertTrue("PROJECTION_PARAMETERS" in tree)
+        
 class Landsat8MTL2ParserTest(unittest.TestCase):
     def test_load(self):
         tree = load_mtl(L8_MTL2)
