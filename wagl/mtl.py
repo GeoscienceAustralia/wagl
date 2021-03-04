@@ -45,7 +45,8 @@ def parse_type(s):
             pass
     raise ValueError
 
-# root="L1_METADATA_FILE" 
+
+# root="L1_METADATA_FILE"
 def load_mtl(filename, root=None, pairs=r"(\w+)\s=\s(.*)"):
     """Parse an MTL file and return dict-of-dict's containing the metadata."""
 
@@ -80,5 +81,5 @@ def load_mtl(filename, root=None, pairs=r"(\w+)\s=\s(.*)"):
         keys = list(tree.keys())
         if len(keys) == 1:
             root = keys[0]
-        
+
     return tree[root]
