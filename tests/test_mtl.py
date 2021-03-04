@@ -148,12 +148,12 @@ class Landsat8MTL1C2ParserTest(unittest.TestCase):
         self.assertTrue("PRODUCT_CONTENTS" in tree)  # was METADATA_FILE_INFO
         # self.assertTrue("PRODUCT_METADATA" in tree)
         self.assertTrue("IMAGE_ATTRIBUTES" in tree)  # PRODUCT_METADATA info added here
-        self.assertTrue("MIN_MAX_RADIANCE" in tree)
-        self.assertTrue("MIN_MAX_REFLECTANCE" in tree)
-        self.assertTrue("MIN_MAX_PIXEL_VALUE" in tree)
-        self.assertTrue("RADIOMETRIC_RESCALING" in tree)
-        self.assertTrue("TIRS_THERMAL_CONSTANTS" in tree)
-        self.assertTrue("PROJECTION_PARAMETERS" in tree)
+        self.assertTrue("LEVEL1_MIN_MAX_RADIANCE" in tree)
+        self.assertTrue("LEVEL1_MIN_MAX_REFLECTANCE" in tree)
+        self.assertTrue("LEVEL1_MIN_MAX_PIXEL_VALUE" in tree)
+        self.assertTrue("LEVEL1_RADIOMETRIC_RESCALING" in tree)
+        self.assertTrue("LEVEL1_THERMAL_CONSTANTS" in tree)
+        self.assertTrue("LEVEL1_PROJECTION_PARAMETERS" in tree)
 
 
 class Landsat8MTL2ParserTest(unittest.TestCase):
