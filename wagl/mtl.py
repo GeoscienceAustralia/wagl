@@ -75,8 +75,6 @@ def load_mtl(filename, root=None, pairs=r"(\w+)\s=\s(.*)"):
 
     parse(data, tree)
 
-    for key in tree:
-        print(key)
     if root is None:
         keys = list(tree.keys())
         if len(keys) == 1:
