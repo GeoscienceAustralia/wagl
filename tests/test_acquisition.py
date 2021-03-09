@@ -54,6 +54,7 @@ class AcquisitionLoadMtlTest(unittest.TestCase):
         # This is used to keep the file size small
         self.assertEqual(len(acq_cont.get_acquisitions(group="RES-GROUP-1")), 9)
 
+
 class AcquisitionsContainerTest(unittest.TestCase):
     def test_groups_ls5_scene1(self):
         scene = acquisitions(LS5_SCENE1)

@@ -35,16 +35,22 @@ from ..mtl import load_mtl
 # resolution group format
 RESG_FMT = "RES-GROUP-{}"
 
-LANDSATMTLMAP = {"C1":{"PRODUCT_CONTENTS":"PRODUCT_METADATA",
-                       "PRODUCT_METADATA":"PRODUCT_METADATA",
-                       "MIN_MAX_RADIANCE":"MIN_MAX_RADIANCE",
-                       "MIN_MAX_PIXEL_VALUE":"MIN_MAX_PIXEL_VALUE",
-                       "RADIOMETRIC_RESCALING":"RADIOMETRIC_RESCALING",},
-                 "C2":{"PRODUCT_CONTENTS":"PRODUCT_CONTENTS",
-                       "PRODUCT_METADATA":"IMAGE_ATTRIBUTES",
-                       "MIN_MAX_RADIANCE":"LEVEL1_MIN_MAX_RADIANCE",
-                       "MIN_MAX_PIXEL_VALUE":"LEVEL1_MIN_MAX_PIXEL_VALUE",
-                       "RADIOMETRIC_RESCALING":"LEVEL1_RADIOMETRIC_RESCALING",}}
+LANDSATMTLMAP = {
+    "C1": {
+        "PRODUCT_CONTENTS": "PRODUCT_METADATA",
+        "PRODUCT_METADATA": "PRODUCT_METADATA",
+        "MIN_MAX_RADIANCE": "MIN_MAX_RADIANCE",
+        "MIN_MAX_PIXEL_VALUE": "MIN_MAX_PIXEL_VALUE",
+        "RADIOMETRIC_RESCALING": "RADIOMETRIC_RESCALING",
+    },
+    "C2": {
+        "PRODUCT_CONTENTS": "PRODUCT_CONTENTS",
+        "PRODUCT_METADATA": "IMAGE_ATTRIBUTES",
+        "MIN_MAX_RADIANCE": "LEVEL1_MIN_MAX_RADIANCE",
+        "MIN_MAX_PIXEL_VALUE": "LEVEL1_MIN_MAX_PIXEL_VALUE",
+        "RADIOMETRIC_RESCALING": "LEVEL1_RADIOMETRIC_RESCALING",
+    },
+}
 
 with open(pjoin(dirname(__file__), "sensors.json")) as fo:
     SENSORS = json.load(fo)
@@ -195,7 +201,7 @@ def preliminary_acquisitions_data_via_mtl(pathname):
 
 def get_acquisition_datetime_via_mtl(data):
     coll_map = get_collection_map(data.keys())
-    
+
     prod_md = data[coll_map["PRODUCT_METADATA"]]
 
     acq_date = prod_md.get("acquisition_date", prod_md["date_acquired"])
@@ -299,7 +305,7 @@ def acquisitions_via_mtl(pathname):
     """
     prefix_name, data = preliminary_acquisitions_data_via_mtl(pathname)
     coll_map = get_collection_map(data.keys())
-    
+
     # shortcuts to the required levels
     prod_md = data[coll_map["PRODUCT_METADATA"]]
     cont_md = data[coll_map["PRODUCT_CONTENTS"]]
@@ -307,14 +313,11 @@ def acquisitions_via_mtl(pathname):
     quant_md = data[coll_map["MIN_MAX_PIXEL_VALUE"]]
     rescaling_md = data[coll_map["RADIOMETRIC_RESCALING"]]
 
-    bandfiles = [
-        k for k in cont_md.keys() if "file_name_band" in k
-    ]
+    bandfiles = [k for k in cont_md.keys() if "file_name_band" in k]
     bands_ = [b.replace("file_name", "").strip("_") for b in bandfiles]
-    
+
     # create an acquisition object for each band and attach
     # some appropriate metadata/attributes
-
 
     # acquisition datetime
     acq_datetime = get_acquisition_datetime_via_mtl(data)
