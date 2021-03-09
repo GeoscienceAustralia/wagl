@@ -48,9 +48,10 @@ class AcquisitionLoadMtlTest(unittest.TestCase):
         self.assertEqual(len(acq_cont.get_highest_resolution()[0]), 1)
 
     def test_res_group_1_ls8_scene1c2(self):
-        #DSG
-        print(LS8_SCENE1C2)
         acq_cont = acquisitions(LS8_SCENE1C2)
+        # The data for this test is bad though
+        # it is a copy of the C1 test data
+        # This is used to keep the file size small
         self.assertEqual(len(acq_cont.get_acquisitions(group="RES-GROUP-1")), 9)
 
 class AcquisitionsContainerTest(unittest.TestCase):

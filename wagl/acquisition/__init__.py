@@ -397,8 +397,6 @@ def acquisitions_via_mtl(pathname):
         band_name = attrs.pop("band_name", band_id)
 
         acqs.append(acqtype(pathname, fname, acq_datetime, band_name, band_id, attrs))
-    #DSG
-    print(acqs)
     # resolution groups dict
     res_groups = create_resolution_groups(acqs)
 
