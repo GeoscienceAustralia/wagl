@@ -162,7 +162,7 @@ class Landsat8MTL1C2ParserTest(unittest.TestCase):
         self.assertTrue("LEVEL1_PROJECTION_PARAMETERS" in tree)
 
 
-class Landsat8MTL1C2ParserTest(unittest.TestCase):
+class Landsat8MTRTC2ParserTest(unittest.TestCase):
     def test_load(self):
         tree = load_mtl(L8_MTRTC2)
         self.assertEqual(len(tree), 10)
