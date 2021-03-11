@@ -6,7 +6,7 @@ from wagl.acquisition.landsat import Landsat8Acquisition, LandsatAcquisition
 from wagl.constants import BandType
 from wagl.temperature import temperature_at_sensor
 
-from .data import LS5_SCENE1, LS7_SCENE1, LS8_SCENE1, LS8_SCENE1C2
+from .data import LS5_SCENE1, LS7_SCENE1, LS8_SCENE1, LS8_SCENE1C2, LS8_SCENERTC2
 
 
 class AcquisitionLoadMtlTest(unittest.TestCase):
@@ -53,6 +53,14 @@ class AcquisitionLoadMtlTest(unittest.TestCase):
         # it is a copy of the C1 test data
         # This is used to keep the file size small
         self.assertEqual(len(acq_cont.get_acquisitions(group="RES-GROUP-1")), 9)
+
+    def test_load_acquisitions_ls8c2_RT(self):
+        acq_cont = acquisitions(LS8_SCENERTC2)
+        self.assertEqual(len(acq_cont.get_acquisitions()), 1)
+
+    def test_highest_resolution_ls8c2_RT(self):
+        acq_cont = acquisitions(LS8_SCENERTC2)
+        self.assertEqual(len(acq_cont.get_highest_resolution()[0]), 1)
 
 
 class AcquisitionsContainerTest(unittest.TestCase):
