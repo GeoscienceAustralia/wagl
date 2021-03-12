@@ -6,7 +6,7 @@ from wagl.acquisition.landsat import Landsat8Acquisition, LandsatAcquisition
 from wagl.constants import BandType
 from wagl.temperature import temperature_at_sensor
 
-from .data import LS5_SCENE1, LS7_SCENE1, LS8_SCENE1, LS8_SCENE1C2, LS8_SCENERTC2
+from .data import LS5_SCENE1, LS7_SCENE1, LS8_SCENE1, LS8_SCENE1C2, LS8_SCENERTC2, LS7_SCENERTC2
 
 
 class AcquisitionLoadMtlTest(unittest.TestCase):
@@ -23,10 +23,22 @@ class AcquisitionLoadMtlTest(unittest.TestCase):
         acq_cont = acquisitions(LS7_SCENE1)
         self.assertEqual(len(acq_cont.get_highest_resolution()[0]), 1)
 
+    def test_res_group_1_ls7RTC2_scene1(self):
+        acq_cont = acquisitions(LS7_SCENERTC2)
+        self.assertEqual(len(acq_cont.get_acquisitions(group="RES-GROUP-1")), 8)
+
+    def test_load_acquisitions_ls7RTC2_scene1(self):
+        acq_cont = acquisitions(LS7_SCENERTC2)
+        self.assertEqual(len(acq_cont.get_acquisitions()), 1)
+
+    def test_highest_resolution_ls7RTC2_scene1(self):
+        acq_cont = acquisitions(LS7_SCENERTC2)
+        self.assertEqual(len(acq_cont.get_highest_resolution()[0]), 1)
+
     def test_res_group_1_ls7_scene1(self):
         acq_cont = acquisitions(LS7_SCENE1)
         self.assertEqual(len(acq_cont.get_acquisitions(group="RES-GROUP-1")), 8)
-
+        
     def test_load_acquisitions_ls8_scene1(self):
         acq_cont = acquisitions(LS8_SCENE1)
         self.assertEqual(len(acq_cont.get_acquisitions()), 1)
@@ -92,6 +104,10 @@ class AcquisitionsContainerTest(unittest.TestCase):
         scene = acquisitions(LS7_SCENE1)
         self.assertEqual(scene.granules[0], "LE70900812009105ASA00")
 
+    def test_granules_ls7_scene1RTC2(self):
+        scene = acquisitions(LS7_SCENERTC2)
+        self.assertEqual(scene.granules[0], "LE71140812021051EDC00")
+        
     def test_granules_ls8_scene1(self):
         scene = acquisitions(LS8_SCENE1)
         self.assertEqual(scene.granules[0], "LC80900842013284LGN00")
@@ -284,7 +300,108 @@ class Landsat7PanAcquisitionTest(unittest.TestCase):
         for acq in self.acqs:
             self.assertTrue(acq.acquisition_datetime, None)
 
+            
+class Landsat7MtlRTC2AcquisitionTest(unittest.TestCase):
+    def setUp(self):
+        self.acqs = acquisitions(LS7_SCENERTC2).get_acquisitions(group="RES-GROUP-1")
 
+    def test_type(self):
+        for acq in self.acqs:
+            self.assertTrue(isinstance(acq, LandsatAcquisition))
+
+    def test_band_type(self):
+        self.assertEqual(self.acqs[0].band_type, BandType.REFLECTIVE)
+        self.assertEqual(self.acqs[1].band_type, BandType.REFLECTIVE)
+        self.assertEqual(self.acqs[2].band_type, BandType.REFLECTIVE)
+        self.assertEqual(self.acqs[3].band_type, BandType.REFLECTIVE)
+        self.assertEqual(self.acqs[4].band_type, BandType.REFLECTIVE)
+        self.assertEqual(self.acqs[5].band_type, BandType.THERMAL)
+        self.assertEqual(self.acqs[6].band_type, BandType.THERMAL)
+        self.assertEqual(self.acqs[7].band_type, BandType.REFLECTIVE)
+
+    def test_acquisition_datetime(self):
+        for acq in self.acqs:
+            self.assertEqual(
+                acq.acquisition_datetime,
+                datetime.datetime(2021, 2, 20, 1, 32, 16, 844238),
+            )
+
+    def test_min_radiance_band1(self):
+        self.assertEqual(self.acqs[0].min_radiance, -6.2)
+
+    def test_max_radiance_band1(self):
+        self.assertEqual(self.acqs[0].max_radiance, 191.6)
+
+    def test_min_quantize_band1(self):
+        self.assertEqual(self.acqs[0].min_quantize, 1.0)
+
+    def test_max_quantize_band1(self):
+        self.assertEqual(self.acqs[0].max_quantize, 255.0)
+
+    def test_solar_azimuth(self):
+        self.assertEqual(self.acqs[0].solar_azimuth, 75.86380542)
+
+    def test_solar_elevation(self):
+        self.assertEqual(self.acqs[0].solar_elevation, 42.86386904)
+
+    def test_gain(self):
+        self.assertAlmostEqual(self.acqs[0].gain, 0.77874, 4)
+
+    def test_bias(self):
+        self.assertAlmostEqual(self.acqs[0].bias, -6.97874, 4)
+
+    def test_sensor_id(self):
+        for acq in self.acqs:
+            self.assertEqual(acq.sensor_id, "ETM+")
+
+    def test_platform_id(self):
+        for acq in self.acqs:
+            self.assertEqual(acq.platform_id, "LANDSAT_7")
+    
+    def test_samples(self):
+        self.assertEqual(self.acqs[0].samples, 75)
+
+    def test_lines(self):
+        self.assertEqual(self.acqs[0].lines, 65)
+
+    def test_read(self):
+        self.assertEqual(self.acqs[0].data()[40, 30], 50)
+
+    def test_spectral_filter_cfg_vsir(self):
+        self.assertEqual(self.acqs[0].spectral_filter_name, "landsat7_vsir.flt")
+
+    def test_spectral_filter_cfg_thermal(self):
+        self.assertEqual(self.acqs[5].spectral_filter_name, "landsat7_thermal.flt")
+        
+    def test_temperature61(self):
+        result = temperature_at_sensor(self.acqs[5], window=((41, 42), (41, 42)))
+        self.assertAlmostEqual(result[0, 0], 293.93158705)
+
+    def test_temperature62(self):
+        result = temperature_at_sensor(self.acqs[6], window=((41, 42), (41, 42)))
+        self.assertAlmostEqual(result[0, 0], 293.990413299)
+
+    def test_tzinfo(self):
+        for acq in self.acqs:
+            self.assertTrue(acq.acquisition_datetime, None)
+
+
+class Landsat7rtc2PanAcquisitionTest(unittest.TestCase):
+    def setUp(self):
+        self.acqs = acquisitions(LS7_SCENERTC2).get_acquisitions(group="RES-GROUP-0")
+
+    def test_type(self):
+        for acq in self.acqs:
+            self.assertTrue(isinstance(acq, LandsatAcquisition))
+
+    def test_band_type(self):
+        self.assertEqual(self.acqs[0].band_type, BandType.REFLECTIVE)
+
+    def test_tzinfo(self):
+        for acq in self.acqs:
+            self.assertTrue(acq.acquisition_datetime, None)
+
+            
 class Landsat8Mtl1AcquisitionTest(unittest.TestCase):
     def setUp(self):
         self.acqs = acquisitions(LS8_SCENE1).get_acquisitions(group="RES-GROUP-1")
