@@ -6,7 +6,14 @@ from wagl.acquisition.landsat import Landsat8Acquisition, LandsatAcquisition
 from wagl.constants import BandType
 from wagl.temperature import temperature_at_sensor
 
-from .data import LS5_SCENE1, LS7_SCENE1, LS8_SCENE1, LS8_SCENE1C2, LS8_SCENERTC2, LS7_SCENERTC2
+from .data import (
+    LS5_SCENE1,
+    LS7_SCENE1,
+    LS8_SCENE1,
+    LS8_SCENE1C2,
+    LS8_SCENERTC2,
+    LS7_SCENERTC2,
+)
 
 
 class AcquisitionLoadMtlTest(unittest.TestCase):
@@ -38,7 +45,7 @@ class AcquisitionLoadMtlTest(unittest.TestCase):
     def test_res_group_1_ls7_scene1(self):
         acq_cont = acquisitions(LS7_SCENE1)
         self.assertEqual(len(acq_cont.get_acquisitions(group="RES-GROUP-1")), 8)
-        
+
     def test_load_acquisitions_ls8_scene1(self):
         acq_cont = acquisitions(LS8_SCENE1)
         self.assertEqual(len(acq_cont.get_acquisitions()), 1)
@@ -107,7 +114,7 @@ class AcquisitionsContainerTest(unittest.TestCase):
     def test_granules_ls7_scene1RTC2(self):
         scene = acquisitions(LS7_SCENERTC2)
         self.assertEqual(scene.granules[0], "LE71140812021051EDC00")
-        
+
     def test_granules_ls8_scene1(self):
         scene = acquisitions(LS8_SCENE1)
         self.assertEqual(scene.granules[0], "LC80900842013284LGN00")
@@ -300,7 +307,7 @@ class Landsat7PanAcquisitionTest(unittest.TestCase):
         for acq in self.acqs:
             self.assertTrue(acq.acquisition_datetime, None)
 
-            
+
 class Landsat7MtlRTC2AcquisitionTest(unittest.TestCase):
     def setUp(self):
         self.acqs = acquisitions(LS7_SCENERTC2).get_acquisitions(group="RES-GROUP-1")
@@ -357,7 +364,7 @@ class Landsat7MtlRTC2AcquisitionTest(unittest.TestCase):
     def test_platform_id(self):
         for acq in self.acqs:
             self.assertEqual(acq.platform_id, "LANDSAT_7")
-    
+
     def test_samples(self):
         self.assertEqual(self.acqs[0].samples, 75)
 
@@ -372,7 +379,7 @@ class Landsat7MtlRTC2AcquisitionTest(unittest.TestCase):
 
     def test_spectral_filter_cfg_thermal(self):
         self.assertEqual(self.acqs[5].spectral_filter_name, "landsat7_thermal.flt")
-        
+
     def test_temperature61(self):
         result = temperature_at_sensor(self.acqs[5], window=((41, 42), (41, 42)))
         self.assertAlmostEqual(result[0, 0], 293.93158705)
@@ -401,7 +408,7 @@ class Landsat7rtc2PanAcquisitionTest(unittest.TestCase):
         for acq in self.acqs:
             self.assertTrue(acq.acquisition_datetime, None)
 
-            
+
 class Landsat8Mtl1AcquisitionTest(unittest.TestCase):
     def setUp(self):
         self.acqs = acquisitions(LS8_SCENE1).get_acquisitions(group="RES-GROUP-1")
