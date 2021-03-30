@@ -264,10 +264,10 @@ class Landsat7Mtl1AcquisitionTest(unittest.TestCase):
         for acq in self.acqs:
             self.assertEqual(acq.platform_id, "LANDSAT_7")
 
-    def test_samples(self):
+    def test_width(self):
         self.assertEqual(self.acqs[0].samples, 75)
 
-    def test_lines(self):
+    def test_height(self):
         self.assertEqual(self.acqs[0].lines, 65)
 
     def test_read(self):

@@ -288,10 +288,7 @@ def worldview2_acquisitions_via_xml(pathname):
 
 
 def get_collection_map(data_keys):
-    if "PRODUCT_METADATA" in data_keys:
-        coll = "C1"
-    else:
-        coll = "C2"
+    coll = "C1" if "PRODUCT_METADATA" in data_keys else "C2"
     return LANDSATMTLMAP[coll]
 
 

@@ -46,7 +46,6 @@ def parse_type(s):
     raise ValueError
 
 
-# root="L1_METADATA_FILE"
 def load_mtl(filename, root=None, pairs=r"(\w+)\s=\s(.*)"):
     """Parse an MTL file and return dict-of-dict's containing the metadata."""
 

@@ -157,9 +157,10 @@ class Landsat8MTL1C2ParserTest(unittest.TestCase):
     def test_load(self):
         tree = load_mtl(L8_MTL1C2)
         self.assertEqual(len(tree), 10)
-        self.assertTrue("PRODUCT_CONTENTS" in tree)  # was METADATA_FILE_INFO
-        # self.assertTrue("PRODUCT_METADATA" in tree)
-        self.assertTrue("IMAGE_ATTRIBUTES" in tree)  # PRODUCT_METADATA info added here
+        self.assertTrue("PRODUCT_CONTENTS" in tree)  # was METADATA_FILE_INFO in C1
+        self.assertTrue(
+            "IMAGE_ATTRIBUTES" in tree
+        )  # C1 PRODUCT_METADATA info added here in C2
         self.assertTrue("LEVEL1_MIN_MAX_RADIANCE" in tree)
         self.assertTrue("LEVEL1_MIN_MAX_REFLECTANCE" in tree)
         self.assertTrue("LEVEL1_MIN_MAX_PIXEL_VALUE" in tree)
