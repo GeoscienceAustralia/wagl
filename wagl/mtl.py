@@ -46,7 +46,7 @@ def parse_type(s):
     raise ValueError
 
 
-def load_mtl(filename, root="L1_METADATA_FILE", pairs=r"(\w+)\s=\s(.*)"):
+def load_mtl(filename, root=None, pairs=r"(\w+)\s=\s(.*)"):
     """Parse an MTL file and return dict-of-dict's containing the metadata."""
 
     def parse(lines, tree, level=0):
@@ -73,5 +73,10 @@ def load_mtl(filename, root="L1_METADATA_FILE", pairs=r"(\w+)\s=\s(.*)"):
         data = [line.strip().decode() for line in filename.readlines()]
 
     parse(data, tree)
+
+    if root is None:
+        keys = list(tree.keys())
+        if len(keys) == 1:
+            root = keys[0]
 
     return tree[root]
