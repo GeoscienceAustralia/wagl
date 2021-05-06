@@ -1,0 +1,27 @@
+#%Module########################################################################
+##
+## ${package_name} modulefile
+##
+
+proc ModulesHelp { } {
+        global version
+
+        puts stderr "   ${package_description}"
+        puts stderr "   Version ${version}"
+}
+
+set version       ${version}
+set name          ${package_name}
+set base          ${module_dir}
+
+module-whatis   "${package_description} ${version}"
+
+if { ! [is-loaded ${dea_module}] } {
+    module load ${dea_module}
+}
+prepend-path PYTHONPATH ${python_dest}
+prepend-path PATH ${package_dest}/bin
+
+if { [ module-info mode remove ] } {
+    module unload ${dea_module}
+}
