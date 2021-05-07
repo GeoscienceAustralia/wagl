@@ -43,7 +43,7 @@ install_requires = []
 dependency_links = [
     'git+git://github.com/sixy6e/idl-functions.git@master#egg=idl-functions-0.5.2',
 ]
-
+dependency_links = []
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
 
