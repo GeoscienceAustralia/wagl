@@ -78,7 +78,7 @@ setup(
              'utils/wagl_ls',
              'utils/wagl_residuals',
              'utils/wagl_pbs'],
-    setup_requires=['pytest-runner'],
+    #setup_requires=['pytest-runner'],
     tests_require=tests_require,
     install_requires=install_requires,
     dependency_links=dependency_links,

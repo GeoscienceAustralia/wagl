@@ -17,6 +17,7 @@ instance=${dea_module_name##*-}
 echo "instance = ${instance}"
 echo
 echo "eodatasets_head = ${eodatasets_head:=s2_nci_prod_old}"
+echo "wagl_head = ${wagl_head:=s2_nci_prod_old}"
 echo
 echo "##########################"
 export module_dir dea_module
@@ -67,7 +68,7 @@ function installrepo() {
     popd
 }
 
-package_name=eodatasets-${subvariant}-${instance}
+package_name=wagl-hack-${subvariant}-${instance}
 package_description="Updated eodatasets to move into s2 processing"
 package_dest=${module_dir}/${package_name}/${version}
 python_dest=${package_dest}/lib/python${python_version}/site-packages
@@ -87,6 +88,7 @@ then
     echo
     echo "Installing dependencies"
     installrepo eodatasets   "${eodatasets_head}" git@github.com:GeoscienceAustralia/eo-datasets.git
+    installrepo wagl   "${wagl_head}" git@github.com:GeoscienceAustralia/wagl.git
 
     echo
     echo "Writing modulefile"
