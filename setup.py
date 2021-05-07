@@ -33,7 +33,7 @@ install_requires = [
     'nested_lookup>=0.1.3',
     'python-dateutil>=2.6.1',
     'structlog>=16.1.0',
-    'idl-functions>=0.5.2', # custom package
+#    'idl-functions>=0.5.2', # custom package
     'attrs>=17.4.0',
 ]
 
