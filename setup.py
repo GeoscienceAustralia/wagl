@@ -13,6 +13,8 @@ tests_require = [
     'pytest',
 ]
 
+"""
+
 install_requires = [
     'luigi>=2.7.3',
     'numpy>=1.8',
@@ -31,12 +33,13 @@ install_requires = [
     'geopandas>=0.1.1',
     'pyyaml>=3.11',
     'nested_lookup>=0.1.3',
-#    'python-dateutil>=2.6.1',
+    'python-dateutil>=2.6.1',
     'structlog>=16.1.0',
-#    'idl-functions>=0.5.2', # custom package
+    'idl-functions>=0.5.2', # custom package
     'attrs>=17.4.0',
 ]
-
+"""
+install_requires = []
 dependency_links = [
     'git+git://github.com/sixy6e/idl-functions.git@master#egg=idl-functions-0.5.2',
 ]
