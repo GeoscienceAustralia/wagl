@@ -753,7 +753,7 @@ def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1, tolerance
 
     datafile = pjoin(water_vapour_path, filename)
 
-    if !os.path.isfile(datafile):
+    if not os.path.isfile(datafile):
         datafile = water_vapour_dict["fallback_dataset"]
 
     with h5py.File(datafile, "r") as fid:
