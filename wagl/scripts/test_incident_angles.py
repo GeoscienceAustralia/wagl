@@ -57,7 +57,7 @@ class TestIncidentAngles(ParameterisedTestCase):
 
 
 def _parser():
-    """ Argument parser. """
+    """Argument parser."""
     description = (
         "Unittests for `wagl.incident_angles` function.\n"
         "Comparisons tests will occur for the following "
@@ -102,7 +102,7 @@ def _parser():
 
 
 def main():
-    """ Main execution. """
+    """Main execution."""
     parser = _parser()
     args = parser.parse_args()
 

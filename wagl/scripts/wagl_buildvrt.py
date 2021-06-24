@@ -233,7 +233,7 @@ def run(fname, verbose):
 
 
 def _parser():
-    """ Argument parser. """
+    """Argument parser."""
     description = "Build a VRT from a HDF5 file output by wagl."
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument(
@@ -247,7 +247,7 @@ def _parser():
 
 
 def main():
-    """ Main execution. """
+    """Main execution."""
     parser = _parser()
     args = parser.parse_args()
     run(args.filename, args.verbose)

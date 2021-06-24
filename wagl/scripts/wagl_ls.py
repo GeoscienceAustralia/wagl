@@ -13,7 +13,7 @@ from wagl.hdf5 import h5ls
 
 
 def run(fname, verbose, pathname):
-    """ List the contents of a HDF5 file. """
+    """List the contents of a HDF5 file."""
     # note: lower level h5py access is required in order to visit links
     with h5py.File(fname, "r") as fid:
         if pathname in fid:
@@ -25,7 +25,7 @@ def run(fname, verbose, pathname):
 
 
 def _parser():
-    """ Argument parser. """
+    """Argument parser."""
     description = "Lists the contents of a HDF5 file."
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument(
@@ -47,7 +47,7 @@ def _parser():
 
 
 def main():
-    """ Main execution. """
+    """Main execution."""
     parser = _parser()
     args = parser.parse_args()
     run(args.filename, args.verbose, args.pathname)

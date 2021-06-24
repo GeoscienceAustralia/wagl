@@ -587,7 +587,7 @@ def table_results(table_group, compression=H5CompressionFilter.LZF, filter_opts=
 
 
 def run(reference_fname, test_fname, out_fname, compression, save_inputs, filter_opts):
-    """ Run the residuals analysis. """
+    """Run the residuals analysis."""
     # note: lower level h5py access is required in order to visit links
     with h5py.File(reference_fname, "r") as ref_fid:
         with h5py.File(test_fname, "r") as test_fid:
@@ -630,7 +630,7 @@ def run(reference_fname, test_fname, out_fname, compression, save_inputs, filter
 
 
 def _parser():
-    """ Argument parser. """
+    """Argument parser."""
     description = "Undertake residual analysis between a reference file " "test file."
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument(
@@ -678,7 +678,7 @@ def _parser():
 
 
 def main():
-    """ Main execution. """
+    """Main execution."""
     parser = _parser()
     args = parser.parse_args()
     run(

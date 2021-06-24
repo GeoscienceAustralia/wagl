@@ -102,14 +102,14 @@ class LandsatAcquisition(Acquisition):
         return radiance
 
     def close(self):
-        """ Clears acquisition level cache """
+        """Clears acquisition level cache"""
         self.__data = {}
         super().close()
 
 
 class Landsat5Acquisition(LandsatAcquisition):
 
-    """ Landsat 5 acquisition. """
+    """Landsat 5 acquisition."""
 
     def __init__(
         self,
@@ -147,7 +147,7 @@ class Landsat5Acquisition(LandsatAcquisition):
 
 class Landsat7Acquisition(LandsatAcquisition):
 
-    """ Landsat 7 acquisition. """
+    """Landsat 7 acquisition."""
 
     def __init__(
         self,
@@ -264,7 +264,7 @@ class Landsat7Acquisition(LandsatAcquisition):
         return radiance
 
     def close(self):
-        """ Clears acquisition level cache """
+        """Clears acquisition level cache"""
         self._gap_mask = None
         self.__data = {}
         super().close()
@@ -272,7 +272,7 @@ class Landsat7Acquisition(LandsatAcquisition):
 
 class Landsat8Acquisition(LandsatAcquisition):
 
-    """ Landsat 8 acquisition. """
+    """Landsat 8 acquisition."""
 
     def __init__(
         self,

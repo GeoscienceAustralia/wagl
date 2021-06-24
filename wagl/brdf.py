@@ -212,13 +212,13 @@ class BrdfTileSummary:
 
     @staticmethod
     def empty():
-        """ When the tile is not inside the ROI. """
+        """When the tile is not inside the ROI."""
         return BrdfTileSummary(
             {key: {"sum": 0.0, "count": 0} for key in BrdfModelParameters}, []
         )
 
     def __add__(self, other):
-        """ Accumulate information from different tiles. """
+        """Accumulate information from different tiles."""
 
         def add(key):
             this = self.brdf_summaries[key]
@@ -234,7 +234,7 @@ class BrdfTileSummary:
         )
 
     def mean(self):
-        """ Calculate the mean BRDF parameters. """
+        """Calculate the mean BRDF parameters."""
         if all(self.brdf_summaries[key]["count"] == 0 for key in BrdfModelParameters):
             # possibly over the ocean, so lambertian
             return {

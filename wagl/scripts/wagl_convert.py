@@ -199,7 +199,7 @@ def extract(output_directory, group, name):
 
 
 def run(fname, outdir, pathname):
-    """ Run dataset conversion tree. """
+    """Run dataset conversion tree."""
     # note: lower level h5py access is required in order to visit links
     with h5py.File(fname, "r") as fid:
         if pathname in fid:
@@ -219,7 +219,7 @@ def run(fname, outdir, pathname):
 
 
 def _parser():
-    """ Argument parser. """
+    """Argument parser."""
     description = "Extracts HDF5 datasets to either GeoTiff or CSV."
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument(
@@ -243,7 +243,7 @@ def _parser():
 
 
 def main():
-    """ Main execution. """
+    """Main execution."""
     parser = _parser()
     args = parser.parse_args()
     run(args.filename, args.outdir, args.pathname)
