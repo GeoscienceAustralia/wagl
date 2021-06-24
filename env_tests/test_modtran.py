@@ -47,7 +47,7 @@ SPECTRAL_RESPONSE_LS8 = pkg_resources.resource_filename(
 
 
 def mock_spectral_response():
-    """ Quick callable to return the spectral response from the repository """
+    """Quick callable to return the spectral response from the repository"""
     return read_spectral_response(SPECTRAL_RESPONSE_LS8, range(2600, 349, -1))
 
 

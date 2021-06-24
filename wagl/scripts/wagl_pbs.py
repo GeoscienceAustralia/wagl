@@ -335,7 +335,7 @@ def run(
 
 
 def _parser():
-    """ Argument parser. """
+    """Argument parser."""
     description = (
         "Equally partition a list of scenes in n nodes and submit "
         "into the PBS queue. Optionally submit as multiple "
@@ -443,7 +443,7 @@ def _parser():
 
 
 def main():
-    """ Main execution. """
+    """Main execution."""
     parser = _parser()
     args = parser.parse_args()
     run(

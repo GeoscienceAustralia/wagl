@@ -8,7 +8,7 @@ from .base import Acquisition
 
 
 class WorldView2Acquisition(Acquisition):
-    """ A WorldView-2 acquisition. """
+    """A WorldView-2 acquisition."""
 
     platform_id = "WORLDVIEW_2"
 
@@ -47,7 +47,7 @@ class WorldView2Acquisition(Acquisition):
 
 
 class WorldView2MultiAcquisition(WorldView2Acquisition):
-    """ A multi-band WorldView-2 acquisition. """
+    """A multi-band WorldView-2 acquisition."""
 
     band_names = [
         "BAND-{}".format(name) for name in ["C", "B", "G", "Y", "R", "RE", "N", "N2"]

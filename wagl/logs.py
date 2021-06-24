@@ -23,17 +23,17 @@ COMMON_PROCESSORS = [
 
 
 def get_wrapped_logger(logger_name: str = "root", **kwargs):
-    """ Returns a struct log equivalent for the named logger """
+    """Returns a struct log equivalent for the named logger"""
     return structlog.wrap_logger(
         logging.getLogger(logger_name), COMMON_PROCESSORS, **kwargs
     )
 
 
 class FormatJSONL(logging.Formatter):
-    """ Prevents printing of the stack trace to enable JSON lines output """
+    """Prevents printing of the stack trace to enable JSON lines output"""
 
     def formatException(self, ei):
-        """ Disables printing separate stack traces """
+        """Disables printing separate stack traces"""
         return
 
 
