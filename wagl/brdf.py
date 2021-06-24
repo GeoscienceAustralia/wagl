@@ -460,20 +460,26 @@ def get_brdf_data(
     # Get the date of acquisition
     dt = acquisition.acquisition_datetime.date()
 
-    # Compare the scene date and MODIS BRDF start date to select the
-    # BRDF data root directory.
-    # Scene dates outside this range are to use the fallback data
-    brdf_dir_list = sorted(os.listdir(brdf_primary_path))
+    # Determine if we're being forced into fallback
+    if os.path.isdir(brdf_primary_path):
 
-    try:
-        brdf_dir_range = [brdf_dir_list[0], brdf_dir_list[-1]]
-        brdf_range = [
-            datetime.date(*[int(x) for x in y.split(".")]) for y in brdf_dir_range
-        ]
+        # Compare the scene date and MODIS BRDF start date to select the
+        # BRDF data root directory.
+        # Scene dates outside this range are to use the fallback data
+        brdf_dir_list = sorted(os.listdir(brdf_primary_path))
 
-        fallback_brdf = dt < DEFINITIVE_START_DATE or dt > brdf_range[1]
-    except IndexError:
-        fallback_brdf = True  # use fallback data if all goes wrong
+        try:
+            brdf_dir_range = [brdf_dir_list[0], brdf_dir_list[-1]]
+            brdf_range = [
+                datetime.date(*[int(x) for x in y.split(".")]) for y in brdf_dir_range
+            ]
+
+            fallback_brdf = dt < DEFINITIVE_START_DATE or dt > brdf_range[1]
+        except IndexError:
+            fallback_brdf = True  # use fallback data if all goes wrong
+
+    else:
+        fallback_brdf = True
 
     if fallback_brdf:
         brdf_base_dir = brdf_secondary_path
