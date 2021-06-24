@@ -753,21 +753,21 @@ def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1, tolerance
 
     datafile = pjoin(water_vapour_path, filename)
 
-    if not os.path.isfile(datafile):
-        datafile = water_vapour_dict["fallback_dataset"]
+    if os.path.isfile(datafile):
 
-    with h5py.File(datafile, "r") as fid:
-        index = read_h5_table(fid, "INDEX")
+        with h5py.File(datafile, "r") as fid:
+            index = read_h5_table(fid, "INDEX")
 
-    # set the tolerance in days to search back in time
-    max_tolerance = -datetime.timedelta(days=tolerance)
+        # set the tolerance in days to search back in time
+        max_tolerance = -datetime.timedelta(days=tolerance)
 
-    # only look for observations that have occured in the past
-    time_delta = index.timestamp - dt
-    result = time_delta[
-        (time_delta < datetime.timedelta()) & (time_delta > max_tolerance)
-    ]
-    if result.shape[0] == 0:
+        # only look for observations that have occured in the past
+        time_delta = index.timestamp - dt
+        result = time_delta[
+            (time_delta < datetime.timedelta()) & (time_delta > max_tolerance)
+        ]
+
+    if not os.path.isfile(datafile) or result.shape[0] == 0:
         if "fallback_dataset" not in water_vapour_dict:
             raise AncillaryError("No actual or fallback water vapour data.")
 
