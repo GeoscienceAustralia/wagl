@@ -460,7 +460,7 @@ def get_brdf_data(
     # Get the date of acquisition
     dt = acquisition.acquisition_datetime.date()
 
-    # Determine if we're being forced into fallback - not ideal, but /empty could suffice
+    # Determine if we're being forced into fallback
     if os.path.isdir(brdf_primary_path):
 
         # Compare the scene date and MODIS BRDF start date to select the
@@ -480,6 +480,14 @@ def get_brdf_data(
 
     else:
         fallback_brdf = True
+
+
+    if fallback_brdf:
+        brdf_base_dir = brdf_secondary_path
+        brdf_dirs = get_brdf_dirs_fallback(brdf_base_dir, dt)
+    else:
+        brdf_base_dir = brdf_primary_path
+        brdf_dirs = get_brdf_dirs_modis(brdf_base_dir, dt)
 
     # get all HDF files in the input dir
     dbDir = pjoin(brdf_base_dir, brdf_dirs)
