@@ -481,7 +481,6 @@ def get_brdf_data(
     else:
         fallback_brdf = True
 
-
     if fallback_brdf:
         brdf_base_dir = brdf_secondary_path
         brdf_dirs = get_brdf_dirs_fallback(brdf_base_dir, dt)
