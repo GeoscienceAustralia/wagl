@@ -766,7 +766,7 @@ def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1, tolerance
         result = time_delta[
             (time_delta < datetime.timedelta()) & (time_delta > max_tolerance)
         ]
-    
+
     if not os.path.isfile(datafile) or result.shape[0] == 0:
         if "fallback_dataset" not in water_vapour_dict:
             raise AncillaryError("No actual or fallback water vapour data.")
