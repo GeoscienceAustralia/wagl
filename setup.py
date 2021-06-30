@@ -24,7 +24,7 @@ install_requires = [
     "rasterio>1,!=1.0.3.post1,!=1.0.3",  # issue with /vsizip/ reader
     "fiona>=1.7.0",
     "shapely>=1.5.13",
-    "h5py>=2.5.0",
+    "h5py>=2.5.0,<3.0.0",
     "tables>=3.4.2",
     "pandas>=0.17.1",
     "geopandas>=0.1.1",
