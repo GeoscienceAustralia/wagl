@@ -353,7 +353,8 @@ def write_dataframe(
             # converting to a numpy array to get the fixed length unicode
             # and inserting the datatype as additional metadata for deserialisation
             dtype_metadata["{}_dtype".format(idx_name)] = str(
-                idx_data.values.astype("U").dtype)
+                idx_data.values.astype("U").dtype
+            )
         elif "datetime64" in _dtype_name:
             dtype.append((idx_name, "int64"))
         else:
@@ -372,7 +373,8 @@ def write_dataframe(
 
             # metadata injection to resolve deserialisation of strings post h5py-3.0.0
             dtype_metadata["{}_dtype".format(col_name)] = str(
-                df[col_name].values.astype("U").dtype)
+                df[col_name].values.astype("U").dtype
+            )
         elif ("datetime64" in _dtype_name) or ("timedelta64" in _dtype_name):
             dtype.append((col_name, "int64"))
         else:
