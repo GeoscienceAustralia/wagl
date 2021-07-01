@@ -346,7 +346,14 @@ def write_dataframe(
             _dtype_name = re.sub(r"\[ns(?:,[^\]]+)?\]", "[ns]", _dtype_name)
         dtype_metadata["{}_dtype".format(idx_name)] = _dtype_name
         if _dtype_name == "object":
+            # sixy6e; there is probably a better way to do this now
             dtype.append((idx_name, VLEN_STRING))
+
+            # fix for handling strings post h5py-3.0.0
+            # converting to a numpy array to get the fixed length unicode
+            # and inserting the datatype as additional metadata for deserialisation
+            dtype_metadata["{}_dtype".format(idx_name)] = str(
+                idx_data.values.astype("U").dtype)
         elif "datetime64" in _dtype_name:
             dtype.append((idx_name, "int64"))
         else:
@@ -362,6 +369,10 @@ def write_dataframe(
         dtype_metadata["{}_dtype".format(col_name)] = _dtype_name
         if _dtype_name == "object":
             dtype.append((col_name, VLEN_STRING))
+
+            # metadata injection to resolve deserialisation of strings post h5py-3.0.0
+            dtype_metadata["{}_dtype".format(col_name)] = str(
+                df[col_name].values.astype("U").dtype)
         elif ("datetime64" in _dtype_name) or ("timedelta64" in _dtype_name):
             dtype.append((col_name, "int64"))
         else:
