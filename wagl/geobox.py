@@ -5,7 +5,7 @@ from __future__ import absolute_import, print_function
 import math
 from math import radians
 import numpy
-import gdal
+from osgeo import gdal
 import h5py
 import rasterio as rio
 import osr
