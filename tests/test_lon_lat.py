@@ -7,7 +7,7 @@ from os.path import join as pjoin, dirname, abspath
 from posixpath import join as ppjoin
 import numpy
 import numpy.testing as npt
-import osr
+from osgeo import osr
 
 from wagl.acquisition import acquisitions
 from wagl.constants import DatasetName, GroupName

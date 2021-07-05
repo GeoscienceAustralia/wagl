@@ -7,7 +7,7 @@ Longitude and Latitude 2D grid creation.
 from __future__ import absolute_import, print_function
 from functools import partial
 import numpy
-import osr
+from osgeo import osr
 import h5py
 
 from wagl.constants import DatasetName, GroupName

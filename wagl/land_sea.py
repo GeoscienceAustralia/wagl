@@ -4,7 +4,7 @@
 # -----------------------------------
 from __future__ import absolute_import, print_function
 import rasterio as rio
-import osr
+from osgeo import osr
 import numpy
 
 from wagl.geobox import GriddedGeoBox

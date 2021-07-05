@@ -4,7 +4,7 @@ from __future__ import absolute_import, print_function
 import unittest
 
 import numpy
-import osr
+from osgeo import osr
 
 from wagl.geobox import GriddedGeoBox
 
