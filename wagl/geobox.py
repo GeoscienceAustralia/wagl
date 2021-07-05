@@ -8,7 +8,7 @@ import numpy
 from osgeo import gdal
 import h5py
 import rasterio as rio
-import osr
+from osgeo import osr
 import affine
 from affine import Affine
 from shapely.geometry import Polygon, box
