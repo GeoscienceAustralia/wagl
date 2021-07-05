@@ -6,7 +6,7 @@ import unittest
 import numpy
 import numpy.testing as npt
 import h5py
-import gdal
+from osgeo import gdal
 import affine
 import rasterio as rio
 from osgeo import osr
