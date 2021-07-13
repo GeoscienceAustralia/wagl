@@ -1,0 +1,28 @@
+name: Test
+
+on: [push, pull_request]
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - name: Run unit tests
+        run: |
+          sudo apt-get update \
+            && DEBIAN_FRONTEND=noninteractive sudo apt-get install -y --fix-missing --no-install-recommends \
+            git bzip2 ca-certificates gfortran-10 gcc-10 make software-properties-common libpq-dev
+
+          wget --no-verbose -O miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-py38_4.8.2-Linux-x86_64.sh
+
+          export CONDA_ROOT=${PWD}/conda
+          mkdir -p ${CONDA_ROOT}
+          chmod +x miniconda.sh && ./miniconda.sh -q -b -f -p ${CONDA_ROOT}
+          export PATH="${CONDA_ROOT}/bin:${PATH}"
+
+          conda install -y -c conda-forge click==7.1.2 gdal==3.1.4 numpy==1.21.0 blosc==1.21.0
+
+          pip install git+https://github.com/sixy6e/idl-functions.git
+          pip install .
+          python setup.py test
