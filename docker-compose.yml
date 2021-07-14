@@ -2,6 +2,6 @@ version: "3.9"
 
 services:
     wagl:
-        build: .docker/
+        build: .
         volumes:
             - ./:/build/wagl
