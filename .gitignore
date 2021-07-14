@@ -11,6 +11,7 @@ MANIFEST
 docs/build/
 docs/source/modules.rst
 wagl/build
+build/
 wagl/sys_variables.mod
 wagl/tests/data/L1T
 bin/
