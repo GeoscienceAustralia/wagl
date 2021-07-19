@@ -7,6 +7,7 @@ SHELL ["/bin/bash", "-c"]
 ENV BUILD_DIR=/build
 ENV PATH="${PATH}:${BUILD_DIR}/conda/bin"
 ENV PYTHONPATH=${BUILD_DIR}/conda/lib/python3.8/site-packages/
+ENV WAGL_DIR=${BUILD_DIR}/wagl
 
 USER root
 
@@ -24,11 +25,20 @@ WORKDIR ${BUILD_DIR}
 ADD https://repo.continuum.io/miniconda/Miniconda3-py38_4.8.2-Linux-x86_64.sh /root/miniconda.sh
 RUN chmod +x /root/miniconda.sh && /root/miniconda.sh -b -f -p conda
 
-RUN pip install numpy
-
 # GDAL 3.1 is being used because https://gdal.org/api/python.html#usage
 RUN conda install -c conda-forge \
         gdal==3.1.4 \
         python-fmask==0.5.5
 
+# Install dependencies required for unittests
+RUN pip install numpy python-dateutil nested_lookup rasterio click h5py shapely \
+                pandas geopandas pytz pyproj ephem numexpr structlog PyYAML
 RUN pip install git+https://github.com/sixy6e/idl-functions.git#egg=master
+RUN pip install pytest
+
+RUN git clone https://github.com/GeoscienceAustralia/wagl.git
+
+WORKDIR ${WAGL_DIR}
+
+RUN which python; python --version;
+RUN python setup.py test  # installs/compiles Fortran component & runs pytest
