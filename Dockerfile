@@ -30,14 +30,12 @@ RUN conda install -c conda-forge \
         gdal==3.1.4 \
         python-fmask==0.5.5
 
-# Install dependencies required for unittests
-RUN pip install numpy python-dateutil nested_lookup rasterio click h5py shapely \
-                pandas geopandas pytz pyproj ephem numexpr structlog PyYAML
-RUN pip install git+https://github.com/sixy6e/idl-functions.git#egg=master
-RUN pip install pytest
-
 WORKDIR ${WAGL_DIR}
 ADD . ./
+
+# Install dependencies required for unittests
+RUN pip install -r requirements.txt
+RUN pip install git+https://github.com/sixy6e/idl-functions.git#egg=master
 
 # include basic details for diagnostics
 RUN which python; python --version;
