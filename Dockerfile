@@ -38,6 +38,8 @@ RUN pip install pytest
 
 WORKDIR ${WAGL_DIR}
 ADD . ./
+
+# include basic details for diagnostics
 RUN which python; python --version;
 
 # Warning: "setup.py test" is deprecated:
@@ -45,4 +47,4 @@ RUN which python; python --version;
 # "setup.py test" creates a local build without installing it
 #
 # TODO: replace with a cleaner build system + pytest
-RUN python setup.py test
+RUN time python setup.py test
