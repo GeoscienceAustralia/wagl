@@ -36,9 +36,13 @@ RUN pip install numpy python-dateutil nested_lookup rasterio click h5py shapely 
 RUN pip install git+https://github.com/sixy6e/idl-functions.git#egg=master
 RUN pip install pytest
 
-RUN git clone https://github.com/GeoscienceAustralia/wagl.git
-
 WORKDIR ${WAGL_DIR}
-
+ADD . ./
 RUN which python; python --version;
-RUN python setup.py test  # installs/compiles Fortran component & runs pytest
+
+# Warning: "setup.py test" is deprecated:
+# https://setuptools.readthedocs.io/en/latest/userguide/commands.html#test-build-package-and-run-a-unittest-suite
+# "setup.py test" creates a local build without installing it
+#
+# TODO: replace with a cleaner build system + pytest
+RUN python setup.py test
