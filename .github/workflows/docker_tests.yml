@@ -1,0 +1,11 @@
+name: Docker-run-unitests
+on: [push, pull_request]
+
+jobs:
+  docker_test_runner:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Run docker to execute unittests
+        uses: ./
