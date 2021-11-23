@@ -180,7 +180,7 @@ def preliminary_acquisitions_data_via_mtl(pathname):
     if isfile(pathname) and tarfile.is_tarfile(pathname):
         with tarfile.open(pathname, "r") as tarball:
             try:
-                member = next(filter(lambda mm: "MTL" in mm.name, tarball.getmembers()))
+                member = next(filter(lambda mm: "MTL.txt" in mm.name, tarball.getmembers()))
                 with tarball.extractfile(member) as fmem:
                     data = load_mtl(fmem)
                 prefix_name = "tar://{}!".format(os.path.abspath(pathname))
