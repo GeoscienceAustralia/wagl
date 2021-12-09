@@ -428,6 +428,12 @@ def acquisitions_via_safe(pathname):
                     [imid.text for imid in granule.findall(search_term)]
                 for granule in grn_elements}
 
+    # ESA L1C upgrade introducing scaling/offset
+    search_term = './*/Product_Image_Characteristics/Radiometric_Offset_List/RADIO_ADD_OFFSET'
+
+    offsets = {x.attrib['band_id']: int(x.text)
+               for x in xml_root.findall(search_term)}
+
     # ESA image ids
     esa_ids = ['B02', 'B03', 'B04', 'B08', 'TCI', 'B05', 'B06', 'B07', 'B11',
                'B12', 'B8A', 'B01', 'B09', 'B10']
@@ -475,6 +481,8 @@ def acquisitions_via_safe(pathname):
                 attrs['solar_irradiance'] = solar_irradiance[band_id]
                 attrs['d2'] = 1 / u
                 attrs['qv'] = qv
+                if band_id in offsets:
+                    attrs['offset'] = offsets[band_id]
 
             # Required attribute for packaging
             attrs['granule_xml'] = granule_xmls[0]

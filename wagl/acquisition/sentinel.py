@@ -56,6 +56,25 @@ class Sentinel2Acquisition(Acquisition):
                                                    band_id=band_id,
                                                    metadata=metadata)
 
+    def data(self, out=None, window=None, masked=False):
+        """
+        Return `numpy.array` of the data for this acquisition.
+        If `out` is supplied, it must be a numpy.array into which
+        the Acquisition's data will be read.
+        """
+        result = super(Sentinel2Acquisition, self).data(out=out, window=window, masked=masked)
+        if not hasattr(self, 'offset'):
+            return result
+
+        # check for no data
+        no_data = self.no_data if self.no_data is not None else 0
+        nulls = result == no_data
+
+        result = result + self.offset
+        result[nulls] = no_data
+
+        return result
+
     def _get_gps_xml(self):
         """Returns in memory XML tree for gps coordinates"""
         # open the zip archive and get the xml root
