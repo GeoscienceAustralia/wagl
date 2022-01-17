@@ -300,8 +300,8 @@ def acquisitions_s2_sinergise(pathname):
             acquisition_data[term['key']] = term['parse'](xml_root.findall(term['search_path']))
 
     band_configurations = SENSORS[acquisition_data['platform_id']]['MSI']['band_ids']
-    esa_ids = ['B02', 'B03', 'B04', 'B08', 'B05', 'B06', 'B07', 'B11',
-               'B12', 'B8A', 'B01', 'B09', 'B10']
+    esa_ids = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A',
+               'B09', 'B10', 'B11', 'B12']
 
     if 'S2A' in acquisition_data['granule_id']:
         acqtype = Sentinel2aSinergiseAcquisition
@@ -428,15 +428,15 @@ def acquisitions_via_safe(pathname):
                     [imid.text for imid in granule.findall(search_term)]
                 for granule in grn_elements}
 
+    # ESA image ids
+    esa_ids = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A',
+               'B09', 'B10', 'B11', 'B12', 'TCI']
+
     # ESA L1C upgrade introducing scaling/offset
     search_term = './*/Product_Image_Characteristics/Radiometric_Offset_List/RADIO_ADD_OFFSET'
 
-    offsets = {x.attrib['band_id']: int(x.text)
+    offsets = {re.sub(r'B[0]?', '', esa_ids[int(x.attrib['band_id'])]): int(x.text)
                for x in xml_root.findall(search_term)}
-
-    # ESA image ids
-    esa_ids = ['B02', 'B03', 'B04', 'B08', 'TCI', 'B05', 'B06', 'B07', 'B11',
-               'B12', 'B8A', 'B01', 'B09', 'B10']
 
     granule_groups = {}
     for granule_id, images in granules.items():
