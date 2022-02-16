@@ -675,12 +675,6 @@ def acquisitions_via_safe(pathname):
 
     granules = get_granules_via_safe(archive, xml_root)
 
-    # ESA L1C upgrade introducing scaling/offset
-    search_term = './*/Product_Image_Characteristics/Radiometric_Offset_List/RADIO_ADD_OFFSET'
-
-    offsets = {re.sub(r'B[0]?', '', esa_ids[int(x.attrib['band_id'])]): int(x.text)
-               for x in xml_root.findall(search_term)}
-
     # ESA image ids
     esa_ids = [
         "B01",
@@ -698,6 +692,12 @@ def acquisitions_via_safe(pathname):
         "B12",
         "TCI",
     ]
+
+    # ESA L1C upgrade introducing scaling/offset
+    search_term = './*/Product_Image_Characteristics/Radiometric_Offset_List/RADIO_ADD_OFFSET'
+
+    offsets = {re.sub(r'B[0]?', '', esa_ids[int(x.attrib['band_id'])]): int(x.text)
+               for x in xml_root.findall(search_term)}
 
     granule_groups = {}
     for granule_id, granule_data in granules.items():
