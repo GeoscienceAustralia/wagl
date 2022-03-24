@@ -12,7 +12,7 @@ and of differing resolutions.
 from __future__ import absolute_import, print_function
 from collections import OrderedDict
 import os
-from os.path import isdir, join as pjoin, dirname, basename, splitext, isfile
+from os.path import isdir, join as pjoin, dirname, basename, splitext, isfile, commonpath
 import re
 import json
 import datetime
@@ -643,6 +643,10 @@ def acquisitions_via_safe(pathname):
                 return band_id
         return None
 
+    def find_image_path(namelist):
+        result = commonpath(namelist)
+        return result + ('/' if not result.endswith('/') else '')
+
     archive = zipfile.ZipFile(pathname)
     xml_root = xml_via_safe(archive, pathname)
 
@@ -708,7 +712,7 @@ def acquisitions_via_safe(pathname):
         # handling different metadata versions for image paths
         # files retrieved from archive.namelist are not prepended with a '/'
         # Rasterio 1.0b1 requires archive paths start with a /
-        img_data_path = "".join(["zip://", pathname, "!/", archive.namelist()[0]])
+        img_data_path = "".join(["zip://", pathname, "!/", find_image_path(archive.namelist())])
         if basename(images[0]) == images[0]:
             img_data_path = "".join(
                 [img_data_path, pjoin("GRANULE", granule_id, "IMG_DATA")]
