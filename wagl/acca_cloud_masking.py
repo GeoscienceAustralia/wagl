@@ -179,7 +179,7 @@ def skewness(cloud_thermal_array, mean_temp, stdv_temp, count):
 
     cubed_deviates = (cloud_thermal_array - mean_temp) ** 3
     sum_cubed_dv = numpy.sum(cubed_deviates, dtype="float64")
-    cubed_stdv = stdv_temp ** 3
+    cubed_stdv = stdv_temp**3
     return (sum_cubed_dv / cubed_stdv) / count
 
 

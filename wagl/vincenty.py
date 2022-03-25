@@ -155,7 +155,7 @@ class GreatCircle:
             x = A * math.cos(lat1) * math.cos(lon1) + B * math.cos(lat2) * math.cos(lon2)
             y = A * math.cos(lat1) * math.sin(lon1) + B * math.cos(lat2) * math.sin(lon2)
             z = A * math.sin(lat1) + B * math.sin(lat2)
-            lats = numpy.arctan2(z, numpy.sqrt(x ** 2 + y ** 2))
+            lats = numpy.arctan2(z, numpy.sqrt(x**2 + y**2))
             lons = numpy.arctan2(y, x)
             lons = map(math.degrees, lons.tolist())
             lats = map(math.degrees, lats.tolist())

@@ -645,7 +645,7 @@ def acquisitions_via_safe(pathname):
 
     def find_image_path(namelist):
         result = commonpath(namelist)
-        return result + ('/' if not result.endswith('/') else '')
+        return result + ("/" if not result.endswith("/") else "")
 
     archive = zipfile.ZipFile(pathname)
     xml_root = xml_via_safe(archive, pathname)
@@ -698,10 +698,14 @@ def acquisitions_via_safe(pathname):
     ]
 
     # ESA L1C upgrade introducing scaling/offset
-    search_term = './*/Product_Image_Characteristics/Radiometric_Offset_List/RADIO_ADD_OFFSET'
+    search_term = (
+        "./*/Product_Image_Characteristics/Radiometric_Offset_List/RADIO_ADD_OFFSET"
+    )
 
-    offsets = {re.sub(r'B[0]?', '', esa_ids[int(x.attrib['band_id'])]): int(x.text)
-               for x in xml_root.findall(search_term)}
+    offsets = {
+        re.sub(r"B[0]?", "", esa_ids[int(x.attrib["band_id"])]): int(x.text)
+        for x in xml_root.findall(search_term)
+    }
 
     granule_groups = {}
     for granule_id, granule_data in granules.items():
@@ -712,7 +716,10 @@ def acquisitions_via_safe(pathname):
         # handling different metadata versions for image paths
         # files retrieved from archive.namelist are not prepended with a '/'
         # Rasterio 1.0b1 requires archive paths start with a /
-        img_data_path = "".join(["zip://", pathname, "!/", find_image_path(archive.namelist())])
+        img_data_path = "".join(
+            ["zip://", pathname, "!/", find_image_path(archive.namelist())]
+        )
+
         if basename(images[0]) == images[0]:
             img_data_path = "".join(
                 [img_data_path, pjoin("GRANULE", granule_id, "IMG_DATA")]
@@ -739,7 +746,7 @@ def acquisitions_via_safe(pathname):
                 attrs["d2"] = 1 / u
                 attrs["qv"] = qv
                 if band_id in offsets:
-                    attrs['offset'] = offsets[band_id]
+                    attrs["offset"] = offsets[band_id]
 
             # Required attribute for packaging
             attrs["granule_xml"] = granule_xml

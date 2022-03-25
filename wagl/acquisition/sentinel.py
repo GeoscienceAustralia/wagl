@@ -85,8 +85,11 @@ class Sentinel2Acquisition(Acquisition):
         If `out` is supplied, it must be a numpy.array into which
         the Acquisition's data will be read.
         """
-        result = super(Sentinel2Acquisition, self).data(out=out, window=window, masked=masked)
-        if not hasattr(self, 'offset'):
+        result = super(Sentinel2Acquisition, self).data(
+            out=out, window=window, masked=masked
+        )
+
+        if not hasattr(self, "offset"):
             return result
 
         # check for no data

@@ -138,7 +138,7 @@ def generate_tile_tags(tiles_list):
     Returns a numpy array of the tags an a dictonary of tag->tile.
 
     """
-    max_tag = 2 ** 31 - 1
+    max_tag = 2**31 - 1
     tag_list = []
     tag_dict = {}
     for tile in tiles_list:
