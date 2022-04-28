@@ -325,9 +325,20 @@ def create_ard_yaml(res_group_bands, ancillary_group, out_group, parameters, wor
             result.update(load_sbt_ancillary(fid))
 
         if nbar:
+            result["brdf"] = {}
             for grp_name in res_group_bands:
                 grp_ancillary = load_nbar_ancillary(res_group_bands[grp_name], fid)
-                result["brdf"] = grp_ancillary
+                if result["brdf"] == {}:
+                    result["brdf"] = grp_ancillary
+                else:
+                    brdf = result["brdf"]
+                    brdf["id"] = list(set(brdf["id"]) | set(grp_ancillary["id"]))
+                    brdf["tier"] = BrdfTier(
+                        min(BrdfTier[brdf["tier"]].value, BrdfTier[grp_ancillary["tier"]].value)
+                    ).name
+                    brdf["alpha_1"].update(grp_ancillary["alpha_1"])
+                    brdf["alpha_2"].update(grp_ancillary["alpha_2"])
+
 
         return result
 
