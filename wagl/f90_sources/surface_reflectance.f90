@@ -176,13 +176,6 @@ SUBROUTINE reflectance( &
                         (lt - b_mod(i, j)))
             iref_lm(i, j) = ref_lm(i) * 10000 + 0.5
 
-!           this is to ensure that lambartian corrected reflectance to not
-!           exceed above limit of 1.0 
-            if (ref_lm(i) .ge. 1) then
-                ref_lm(i) = 1.0 
-                iref_lm(i, j) = ref_lm(i) * 10000
-            endif
-
 !           set as small number if atmospheric corrected reflectance
 !           below 0.0001
 
