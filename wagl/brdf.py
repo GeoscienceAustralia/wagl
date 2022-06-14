@@ -217,6 +217,9 @@ class BrdfTileSummary:
             {key: {"sum": 0.0, "count": 0} for key in BrdfModelParameters}, []
         )
 
+    def is_empty(self):
+        return all(self.brdf_summaries[key]["count"] == 0 for key in BrdfModelParameters)
+
     def __add__(self, other):
         """Accumulate information from different tiles."""
 
@@ -235,7 +238,7 @@ class BrdfTileSummary:
 
     def mean(self):
         """Calculate the mean BRDF parameters."""
-        if all(self.brdf_summaries[key]["count"] == 0 for key in BrdfModelParameters):
+        if self.is_empty():
             # possibly over the ocean, so lambertian
             return {
                 key: dict(id=self.source_files, value=0.0)
@@ -457,6 +460,10 @@ def get_brdf_data(
     brdf_secondary_path = brdf["brdf_fallback_path"]
     brdf_ocean_mask_path = brdf["ocean_mask_path"]
 
+    src_poly, src_crs = valid_region(acquisition)
+    src_crs = rasterio.crs.CRS(**src_crs)
+    brdf_datasets = acquisition.brdf_datasets
+
     # Get the date of acquisition
     dt = acquisition.acquisition_datetime.date()
 
@@ -481,34 +488,49 @@ def get_brdf_data(
     else:
         fallback_brdf = True
 
-    if fallback_brdf:
-        brdf_base_dir = brdf_secondary_path
-        brdf_dirs = get_brdf_dirs_fallback(brdf_base_dir, dt)
-    else:
-        brdf_base_dir = brdf_primary_path
-        brdf_dirs = get_brdf_dirs_modis(brdf_base_dir, dt)
 
-    # get all HDF files in the input dir
-    dbDir = pjoin(brdf_base_dir, brdf_dirs)
-    tile_list = [
-        pjoin(folder, f)
-        for (folder, _, filelist) in os.walk(dbDir)
-        for f in filelist
-        if f.endswith(".h5")
-    ]
+    def get_tally(fallback_brdf, dt):
+        # get all HDF files in the input dir
+        if fallback_brdf:
+            brdf_base_dir = brdf_secondary_path
+            brdf_dirs = get_brdf_dirs_fallback(brdf_base_dir, dt)
+        else:
+            brdf_base_dir = brdf_primary_path
+            brdf_dirs = get_brdf_dirs_modis(brdf_base_dir, dt)
 
-    src_poly, src_crs = valid_region(acquisition)
-    src_crs = rasterio.crs.CRS(**src_crs)
+        dbDir = pjoin(brdf_base_dir, brdf_dirs)
+        tile_list = [
+            pjoin(folder, f)
+            for (folder, _, filelist) in os.walk(dbDir)
+            for f in filelist
+            if f.endswith(".h5")
+        ]
 
-    brdf_datasets = acquisition.brdf_datasets
-    tally = {}
-    with rasterio.open(brdf_ocean_mask_path, "r") as fid_mask:
-        for ds in brdf_datasets:
-            tally[ds] = BrdfTileSummary.empty()
-            for tile in tile_list:
-                with h5py.File(tile, "r") as fid:
-                    tally[ds] += load_brdf_tile(src_poly, src_crs, fid, ds, fid_mask)
-            tally[ds] = tally[ds].mean()
+        tally = {}
+        with rasterio.open(brdf_ocean_mask_path, "r") as fid_mask:
+            for ds in brdf_datasets:
+                tally[ds] = BrdfTileSummary.empty()
+                for tile in tile_list:
+                    with h5py.File(tile, "r") as fid:
+                        tally[ds] += load_brdf_tile(src_poly, src_crs, fid, ds, fid_mask)
+        return tally
+
+    tally = get_tally(fallback_brdf, dt)
+
+    def is_empty(tally):
+        return any(tally[ds].is_empty() for ds in brdf_datasets)
+
+    days_back = 0
+    while not fallback_brdf and is_empty(tally):
+        if days_back > 30:
+            tally = get_tally(True, dt)
+            break
+
+        days_back += 1
+        tally = get_tally(fallback_brdf, dt + datetime.timedelta(days=days_back))
+
+    for ds in brdf_datasets:
+        tally[ds] = tally[ds].mean()
 
     results = {
         param: dict(
