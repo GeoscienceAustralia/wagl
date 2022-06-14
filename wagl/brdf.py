@@ -526,7 +526,7 @@ def get_brdf_data(
             break
 
         days_back += 1
-        tally = get_tally(fallback_brdf, dt + datetime.timedelta(days=days_back))
+        tally = get_tally(fallback_brdf, dt - datetime.timedelta(days=days_back))
 
     for ds in brdf_datasets:
         tally[ds] = tally[ds].mean()
