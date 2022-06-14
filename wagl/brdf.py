@@ -488,7 +488,6 @@ def get_brdf_data(
     else:
         fallback_brdf = True
 
-
     def get_tally(fallback_brdf, dt):
         # get all HDF files in the input dir
         if fallback_brdf:
