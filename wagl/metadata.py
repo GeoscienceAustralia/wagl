@@ -342,7 +342,6 @@ def create_ard_yaml(res_group_bands, ancillary_group, out_group, parameters, wor
                     brdf["alpha_1"].update(grp_ancillary["alpha_1"])
                     brdf["alpha_2"].update(grp_ancillary["alpha_2"])
 
-
         return result
 
     def software_versions():
