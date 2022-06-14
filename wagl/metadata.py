@@ -336,7 +336,7 @@ def create_ard_yaml(res_group_bands, ancillary_group, out_group, parameters, wor
                     brdf["tier"] = BrdfTier(
                         min(
                             BrdfTier[brdf["tier"]].value,
-                            BrdfTier[grp_ancillary["tier"]].value
+                            BrdfTier[grp_ancillary["tier"]].value,
                         )
                     ).name
                     brdf["alpha_1"].update(grp_ancillary["alpha_1"])
