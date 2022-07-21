@@ -28,8 +28,7 @@ from wagl.hdf5 import attach_table_attributes
 from wagl.metadata import current_h5_metadata
 from wagl.constants import DatasetName, POINT_FMT, GroupName, BandType
 from wagl.constants import AerosolTier, WaterVapourTier, OzoneTier
-from wagl.satellite_solar_angles import create_vertices
-
+from wagl.satellite_solar_angles import create_vertices, create_coordinator
 
 ECWMF_LEVELS = [
     1,
@@ -114,6 +113,40 @@ def relative_humdity(surface_temp, dewpoint_temp, kelvin=True):
     rh = 100 * ((112.0 - 0.1 * surf_t + dew_t) / (112.0 + 0.9 * surf_t)) ** 8
 
     return rh
+
+
+def check_interpolation_sample_geometry(container, group, grp_name):
+    acqs = container.get_acquisitions(group=grp_name)
+    acq = acqs[0]
+    geobox = acq.gridded_geo_box()
+    coord_read = read_h5_table(group, DatasetName.COORDINATOR.value)
+    coord = numpy.zeros((coord_read.shape[0], 2), dtype="int")
+    map_x = coord_read.map_x.values
+    map_y = coord_read.map_y.values
+    coord[:, 1], coord[:, 0] = (map_x, map_y) * ~geobox.transform
+
+    unique_coords = set((coord[i, 0], coord[i, 1]) for i in range(coord.shape[0]))
+
+    return coord.shape[0] == len(unique_coords)
+
+
+def default_interpolation_grid(acquisition, vertices, boxline_dataset):
+    geobox = acquisition.gridded_geo_box()
+    rows, cols = geobox.shape
+    istart = boxline_dataset["start_index"]
+    iend = boxline_dataset["end_index"]
+    nvertices = vertices[0] * vertices[1]
+    locations = numpy.empty((vertices[0], vertices[1], 2), dtype="int64")
+    grid_rows = list(
+        numpy.linspace(0, rows - 1, vertices[0], endpoint=True, dtype="int32")
+    )
+    for ig, ir in enumerate(grid_rows):  # row indices for sample-grid & raster
+        grid_line = numpy.linspace(istart[ir], iend[ir], vertices[1], endpoint=True)
+        locations[ig, :, 0] = ir
+        locations[ig, :, 1] = grid_line
+    locations = locations.reshape(nvertices, 2)
+    coordinator = create_coordinator(locations, geobox)
+    return coordinator
 
 
 def _collect_ancillary(
@@ -249,6 +282,15 @@ def collect_ancillary(
     dset_name = DatasetName.COORDINATOR.value
     coord_dset = group.create_dataset(dset_name, data=coordinator, **kwargs)
     attach_table_attributes(coord_dset, title="Coordinator", attrs=attrs)
+
+    # check if modtran interpolation points coincide
+    if not all(
+        check_interpolation_sample_geometry(container, group, grp_name)
+        for grp_name in container.supported_groups
+    ):
+
+        coord_dset[:] = default_interpolation_grid(acquisition, vertices, boxline_dataset)
+        attach_table_attributes(coord_dset, title="Coordinator", attrs=attrs)
 
     if sbt_path:
         collect_sbt_ancillary(

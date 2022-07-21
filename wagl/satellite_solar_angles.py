@@ -228,10 +228,18 @@ def track_bisection(acquisition, npoints, first_row, last_row):
     if -1 in track_end_rows:  # track doesn't intersect raster
         column_bisection = cols // 2
         intersection = TrackIntersection.EMPTY
+
     elif partial_track:  # track intersects only part of raster
-        column_bisection = ({first_row, last_row} - {0, cols - 1, -1}).pop()
-        row_bisection = partial_track.pop()
-        intersection = TrackIntersection.PARTIAL
+        try:
+            column_bisection = ({first_row, last_row} - {0, cols - 1, -1}).pop()
+            row_bisection = partial_track.pop()
+            intersection = TrackIntersection.PARTIAL
+        except KeyError:
+            # the intersection is too shallow, fall back to no intersection
+            row_bisection = rows // 2
+            column_bisection = cols // 2
+            intersection = TrackIntersection.EMPTY
+
     else:  # track fully available for deference
         column_bisection = None
         intersection = TrackIntersection.FULL
@@ -337,6 +345,45 @@ def create_boxline(
     attach_table_attributes(box_dset, title="Boxline", attrs=attrs)
 
 
+def create_coordinator(locations, geobox):
+    """
+    :return:
+        A `NumPy` dataset of the following datatype:
+
+        * np.dtype([('row_index', 'int64'),
+                    ('col_index', 'int64'),
+                    ('latitude', 'float64'),
+                    ('longitude', 'float64'),
+                    ('map_y', 'int64'),
+                    ('map_x', 'int64')])
+    """
+    # custom datatype for coordinator
+    coordinator_dtype = np.dtype(
+        [
+            ("row_index", "int64"),
+            ("col_index", "int64"),
+            ("latitude", "float64"),
+            ("longitude", "float64"),
+            ("map_y", "int64"),
+            ("map_x", "int64"),
+        ]
+    )
+    coordinator = np.empty(locations.shape[0], dtype=coordinator_dtype)
+    coordinator["row_index"] = locations[:, 0]
+    coordinator["col_index"] = locations[:, 1]
+
+    # adding half to get center-pixel-aligned coordinates
+    map_xy = (locations[:, 1] + 0.5, locations[:, 0] + 0.5) * geobox.transform
+    coordinator["map_y"] = map_xy[1]
+    coordinator["map_x"] = map_xy[0]
+
+    lon, lat = convert_to_lonlat(geobox, locations[:, 1], locations[:, 0])
+    coordinator["latitude"] = lat
+    coordinator["longitude"] = lon
+
+    return coordinator
+
+
 def create_vertices(acquisition, boxline_dataset, vertices=(3, 3)):
     """
     Defines the point locations, and the number of points, across a
@@ -392,6 +439,7 @@ def create_vertices(acquisition, boxline_dataset, vertices=(3, 3)):
 
     grid_rows = asymetric_linspace(0, rows - 1, vertices[0], midpoint=mid_row)
 
+    nvertices = vertices[0] * vertices[1]
     locations = np.empty((vertices[0], vertices[1], 2), dtype="int64")
     for ig, ir in enumerate(grid_rows):  # row indices for sample-grid & raster
         grid_line = asymetric_linspace(
@@ -399,33 +447,9 @@ def create_vertices(acquisition, boxline_dataset, vertices=(3, 3)):
         )
         locations[ig, :, 0] = ir
         locations[ig, :, 1] = grid_line
-    locations = locations.reshape(vertices[0] * vertices[1], 2)
+    locations = locations.reshape(nvertices, 2)
 
-    # custom datatype for coordinator
-    coordinator_dtype = np.dtype(
-        [
-            ("row_index", "int64"),
-            ("col_index", "int64"),
-            ("latitude", "float64"),
-            ("longitude", "float64"),
-            ("map_y", "int64"),
-            ("map_x", "int64"),
-        ]
-    )
-    coordinator = np.empty(locations.shape[0], dtype=coordinator_dtype)
-    coordinator["row_index"] = locations[:, 0]
-    coordinator["col_index"] = locations[:, 1]
-
-    # adding half to get center-pixel-aligned coordinates
-    map_xy = (locations[:, 1] + 0.5, locations[:, 0] + 0.5) * geobox.transform
-    coordinator["map_y"] = map_xy[1]
-    coordinator["map_x"] = map_xy[0]
-
-    lon, lat = convert_to_lonlat(geobox, locations[:, 1], locations[:, 0])
-    coordinator["latitude"] = lat
-    coordinator["longitude"] = lon
-
-    return coordinator
+    return create_coordinator(locations, geobox)
 
 
 def calculate_julian_century(datetime):
