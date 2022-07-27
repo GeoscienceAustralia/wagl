@@ -342,6 +342,92 @@ class Landsat8Acquisition(LandsatAcquisition):
         return radiance
 
 
+class Landsat9Acquisition(LandsatAcquisition):
+
+    """Landsat 9 acquisition."""
+
+    def __init__(
+        self,
+        pathname,
+        uri,
+        acquisition_datetime,
+        band_name="BAND 1",
+        band_id="1",
+        metadata=None,
+    ):
+        super(Landsat9Acquisition, self).__init__(
+            pathname,
+            uri,
+            acquisition_datetime,
+            band_name=band_name,
+            band_id=band_id,
+            metadata=metadata,
+        )
+
+        self.platform_id = "LANDSAT_9"
+
+        # TODO should it be OLI-2? maybe technically but would probably mess up naming
+        self.sensor_id = "OLI"
+
+        # TODO not sure about this, just copied from Landsat-8
+        # the downloaded TLE files are in /g/data/v10/eoancillarydata-2/sensor-specific
+        # they look pretty similar to Landsat-8 to me
+        self.tle_format = "L9%4d%sASNNOR.S00"
+
+        self.tag = "LS9"
+
+        # TODO I don't know what this means or how to get it
+        # the value is from Landsat-8
+        self.altitude = 705000.0
+        self.inclination = 1.714382819
+        self.omega = 0.0010596442
+
+        # TODO I don't know what this means or how to get it
+        # the value is from Landsat-8
+        self.radius = 7285600.0
+
+        self.semi_major_axis = 7080640.498
+        self.maximum_view_angle = 9.0
+
+        self._norad_id = 49260
+        self._classification_type = "U"
+        self._international_designator = "21088A"
+
+    def radiance_data(self, window=None, out_no_data=-999, esun=None):
+        """
+        This method overwrites the parent's method 'radiance_data' for Landsat9
+        acquistions to compute radiance by first calculating top of the
+        atmosphere reflectance and then converting to radiance using 'esun" value
+        if it is not None. If esun is None, parents (LandsatAcquisition)'s
+        radiance_data computation is used.
+
+        Return the data as radiance in watts/(m^2*micrometre).
+        """
+
+        if not esun:
+            return super(Landsat9Acquisition, self).radiance_data(
+                window, out_no_data, esun
+            )
+
+        data = self.data(window=window)
+
+        # check for no data
+        no_data = self.no_data if self.no_data is not None else 0
+        nulls = data == no_data
+
+        gain = self.reflectance_mult
+        bias = self.reflectance_add
+
+        toa_reflectance = gain * data + bias
+
+        radiance = toa_reflectance * esun / math.pi
+
+        # set the out_no_data value inplace of the input no data value
+        radiance[nulls] = out_no_data
+
+        return radiance
+
+
 ACQUISITION_TYPE = {
     "Landsat5_TM": Landsat5Acquisition,
     "Landsat7_ETM+": Landsat7Acquisition,
@@ -349,4 +435,6 @@ ACQUISITION_TYPE = {
     "LANDSAT_7_ETM+": Landsat7Acquisition,
     "LANDSAT_8_OLI": Landsat8Acquisition,
     "LANDSAT_8_OLI_TIRS": Landsat8Acquisition,
+    "LANDSAT_9_OLI": Landsat9Acquisition,
+    "LANDSAT_9_OLI_TIRS": Landsat9Acquisition,
 }
