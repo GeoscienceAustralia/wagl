@@ -366,26 +366,13 @@ class Landsat9Acquisition(LandsatAcquisition):
 
         self.platform_id = "LANDSAT_9"
 
-        # TODO should it be OLI-2? maybe technically but would probably mess up naming
         self.sensor_id = "OLI"
-
-        # TODO not sure about this, just copied from Landsat-8
-        # the downloaded TLE files are in /g/data/v10/eoancillarydata-2/sensor-specific
-        # they look pretty similar to Landsat-8 to me
         self.tle_format = "L9%4d%sASNNOR.S00"
-
         self.tag = "LS9"
-
-        # TODO I don't know what this means or how to get it
-        # the value is from Landsat-8
-        self.altitude = 705000.0
+        self.altitude = 709650.0
         self.inclination = 1.714382819
         self.omega = 0.0010596442
-
-        # TODO I don't know what this means or how to get it
-        # the value is from Landsat-8
         self.radius = 7285600.0
-
         self.semi_major_axis = 7080640.498
         self.maximum_view_angle = 9.0
 
