@@ -104,6 +104,9 @@ class DataStandardisation(luigi.Task):
         return luigi.LocalTarget(pjoin(self.outdir, out_fname))
 
     def run(self):
+        logging.getLogger("botocore").setLevel(logging.WARNING)
+        logging.getLogger("botocore.credentials").setLevel(logging.WARNING)
+
         if self.workflow == Workflow.STANDARD or self.workflow == Workflow.SBT:
             ecmwf_path = self.ecmwf_path
         else:
