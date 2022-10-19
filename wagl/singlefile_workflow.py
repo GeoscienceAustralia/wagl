@@ -26,6 +26,7 @@ from os.path import join as pjoin, basename
 import traceback
 import luigi
 from luigi.util import inherits
+import logging
 
 from wagl.acquisition import acquisitions
 from wagl.constants import Workflow, Method
