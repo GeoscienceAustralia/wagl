@@ -833,7 +833,7 @@ def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1, tolerance
         dataset_name = record.dataset_name
 
     if isinstance(dataset_name, bytes):
-        dataset_name = dataset_name.decode('utf-8')
+        dataset_name = dataset_name.decode("utf-8")
 
     try:
         data, md_uuid = get_pixel(datafile, dataset_name, geobox.centre_lonlat)
