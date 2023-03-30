@@ -38,6 +38,7 @@ import shapely.affinity
 import shapely.geometry
 from shapely.geometry import box
 from shapely import wkt, ops
+from skimage.transform import downscale_local_mean
 
 from wagl.constants import BrdfDirectionalParameters, BrdfModelParameters, BrdfTier
 from wagl.hdf5 import H5CompressionFilter, VLEN_STRING
@@ -90,6 +91,11 @@ def _date_proximity(cmp_date, date_interpreter=lambda x: x):
     return _proximity_comparator
 
 
+def get_brdf_dirs_viirs(brdf_root, scene_date, pattern="%Y.%m.%d"):
+    # our VIIRS collection follows the same folder structure as our MODIS collection
+    return get_brdf_dirs_modis(brdf_root, scene_date, pattern=pattern)
+
+
 def get_brdf_dirs_modis(brdf_root, scene_date, pattern="%Y.%m.%d"):
     """
     Get list of MODIS BRDF directories for the dataset.
@@ -121,6 +127,9 @@ def get_brdf_dirs_modis(brdf_root, scene_date, pattern="%Y.%m.%d"):
             dirs.append(datetime.datetime.strptime(dname, pattern).date())
         except ValueError:
             pass  # Ignore directories that don't match specified pattern
+
+    if dirs == []:
+        raise IndexError
 
     return min(dirs, key=_date_proximity(scene_date)).strftime(pattern)
 
@@ -160,6 +169,9 @@ def get_brdf_dirs_fallback(brdf_root, scene_date):
     dir_dates.insert(0, (str(scene_date.year - 1), dir_dates[-1][1]))
     # Add boundary entry for next year accounting for inserted entry
     dir_dates.append((str(scene_date.year + 1), dir_dates[1][1]))
+
+    if dir_dates == []:
+        raise IndexError
 
     # return directory name without year
     return min(
@@ -218,7 +230,9 @@ class BrdfTileSummary:
         )
 
     def is_empty(self):
-        return all(self.brdf_summaries[key]["count"] == 0 for key in BrdfModelParameters)
+        return all(
+            self.brdf_summaries[key]["count"] == 0 for key in BrdfModelParameters
+        )
 
     def __add__(self, other):
         """Accumulate information from different tiles."""
@@ -315,21 +329,75 @@ def valid_region(acquisition, mask_value=None):
     return geom, crs
 
 
-def load_brdf_tile(src_poly, src_crs, fid, dataset_name, fid_mask):
+def extract_VIIRS_geotransform(f):
+    """Takes in a VIIRS hdf5 file and returns its geotransform matrix"""
+
+    fileMetadata = f["HDFEOS INFORMATION"]["StructMetadata.0"][
+        ()
+    ].split()  # Split at newline
+    fileMetadata = [m.decode("utf-8") for m in fileMetadata]  # Convert bytes to strings
+
+    for md in fileMetadata:
+        if "UpperLeftPointMtrs=(" in md:
+            mtrs = md.split("=", 1)[1]
+            ulc = np.fromstring(mtrs[1:-1], dtype=float, sep=",")
+        elif "LowerRightMtrs=(" in md:
+            mtrs = md.split("=", 1)[1]
+            lrc = np.fromstring(mtrs[1:-1], dtype=float, sep=",")
+        elif "XDim=" in md:
+            mtrs = md.split("=", 1)[1]
+            width = float(mtrs)
+        elif "YDim=" in md:
+            mtrs = md.split("=", 1)[1]
+            height = float(mtrs)
+
+    xres, yres = np.divide(np.subtract(lrc, ulc), (width, height))
+
+    geoInfo = (ulc[0], xres, 0, ulc[1], 0, yres)
+    return geoInfo
+
+
+def VIIRS_crs():
+    """Return VIIRS projection - exact same as MODIS"""
+    prj = 'PROJCS["unnamed",\
+    GEOGCS["Unknown datum based upon the custom spheroid", \
+    DATUM["Not specified (based on custom spheroid)", \
+    SPHEROID["Custom spheroid",6371007.181,0]], \
+    PRIMEM["Greenwich",0],\
+    UNIT["degree",0.0174532925199433]],\
+    PROJECTION["Sinusoidal"], \
+    PARAMETER["longitude_of_center",0], \
+    PARAMETER["false_easting",0], \
+    PARAMETER["false_northing",0], \
+    UNIT["Meter",1]]'
+    return prj
+
+
+def load_brdf_tile(src_poly, src_crs, fid, dataset_name, fid_mask, satellite):
     """
     Summarize BRDF data from a single tile.
     """
-    ds = fid[dataset_name]
+    assert satellite in ["MODIS", "VIIRS"]
+
+    if satellite == "MODIS":
+        ds = fid[dataset_name]
+        ds_height, ds_width = ds.shape
+        dst_geotransform = rasterio.transform.Affine.from_gdal(
+            *ds.attrs["geotransform"]
+        )
+        dst_crs = CRS.from_wkt(ds.attrs["crs_wkt"])
+
+    else:
+        ds = fid["HDFEOS/GRIDS/VIIRS_Grid_BRDF/Data Fields/"][dataset_name]
+        ds_height, ds_width = ds.shape[:2]
+        gt = extract_VIIRS_geotransform(fid)
+        dst_geotransform = rasterio.transform.Affine.from_gdal(*gt)
+        dst_crs = CRS.from_wkt(VIIRS_crs())
 
     def segmentize_src_poly(length_scale):
         src_poly_geom = ogr.CreateGeometryFromWkt(src_poly.wkt)
         src_poly_geom.Segmentize(length_scale)
         return wkt.loads(src_poly_geom.ExportToWkt())
-
-    ds_height, ds_width = ds.shape
-
-    dst_geotransform = rasterio.transform.Affine.from_gdal(*ds.attrs["geotransform"])
-    dst_crs = CRS.from_wkt(ds.attrs["crs_wkt"])
 
     # assumes the length scales are the same (m)
     dst_poly = ops.transform(
@@ -366,30 +434,131 @@ def load_brdf_tile(src_poly, src_crs, fid, dataset_name, fid_mask):
     )
     roi_mask = roi_mask.astype(bool)
 
+    if roi_mask.shape != ocean_mask.shape:
+        assert len(roi_mask.shape) == 2 and len(ocean_mask.shape) == 2
+        x_ratio = ocean_mask.shape[0] / roi_mask.shape[0]
+        assert int(x_ratio) == x_ratio
+        y_ratio = ocean_mask.shape[1] / roi_mask.shape[1]
+        assert int(y_ratio) == y_ratio
+        ocean_mask = downscale_local_mean(ocean_mask, (int(x_ratio), int(y_ratio))) == 1
+
     # both ocean_mask and mask shape should be same
     if ocean_mask.shape != roi_mask.shape:
         raise ValueError("ocean mask and ROI mask do not have the same shape")
-    if roi_mask.shape != ds.shape:
+    if roi_mask.shape != (ds_height, ds_width):
         raise ValueError("BRDF dataset and ROI mask do not have the same shape")
 
     roi_mask = roi_mask & ocean_mask
 
     def layer_sum(param):
-        layer = ds[param][:, :]
+        if satellite == "MODIS":
+            layer = ds[param][:, :]
+        else:
+            map_dict = {
+                BrdfModelParameters.ISO: 0,
+                BrdfModelParameters.VOL: 1,
+                BrdfModelParameters.GEO: 2,
+            }
+            layer = ds[:, :, map_dict[param]]
         common_mask = roi_mask & (layer != ds.attrs["_FillValue"])
         layer = layer.astype("float32")
         layer[~common_mask] = np.nan
         layer = ds.attrs["scale_factor"] * (layer - ds.attrs["add_offset"])
         return {"sum": np.nansum(layer), "count": np.sum(common_mask)}
 
-    return BrdfTileSummary(
-        {param: layer_sum(param.value) for param in BrdfModelParameters},
-        [current_h5_metadata(fid)["id"]],
-    )
+    if satellite == "MODIS":
+        bts = BrdfTileSummary(
+            {param: layer_sum(param.value) for param in BrdfModelParameters},
+            [current_h5_metadata(fid)["id"]],
+        )
+    else:
+        bts = BrdfTileSummary(
+            {param: layer_sum(param) for param in BrdfModelParameters},
+            [fid.attrs["LocalGranuleID"].decode("UTF-8")],
+        )
+
+    return bts
+
+
+def get_tally(mode, brdf_config, brdf_datasets, viirs_datasets, dt, src_poly, src_crs):
+    """
+    Get all HDF files in the input dir.
+    `mode` can be one of `MODIS`, `VIIRS` or `fallback`
+
+    Raises `IndexError` if it can't find the required data.
+    """
+
+    def assert_exists(path):
+        if not os.path.isdir(path):
+            raise IndexError
+        return path
+
+    if mode == "fallback":
+        brdf_base_dir = assert_exists(brdf_config["brdf_fallback_path"])
+        brdf_dirs = get_brdf_dirs_fallback(brdf_base_dir, dt)
+        satellite = "MODIS"
+        datasets = brdf_datasets
+
+    elif mode == "MODIS":
+        brdf_base_dir = assert_exists(brdf_config["brdf_path"])
+        brdf_dirs = get_brdf_dirs_modis(brdf_base_dir, dt)
+        satellite = "MODIS"
+        datasets = brdf_datasets
+
+        # Compare the scene date and MODIS BRDF start date to select the
+        # BRDF data root directory.
+        # Scene dates outside this range are to use the fallback data
+        brdf_dir_list = sorted(os.listdir(brdf_base_dir))
+        brdf_dir_range = [brdf_dir_list[0], brdf_dir_list[-1]]
+        brdf_range = [
+            datetime.date(*[int(x) for x in y.split(".")]) for y in brdf_dir_range
+        ]
+        if dt < DEFINITIVE_START_DATE or dt > brdf_range[1]:
+            raise IndexError
+
+    elif mode == "VIIRS":
+        satellite = "VIIRS"
+        datasets = list(viirs_datasets.values())[0]
+
+        assert not ("I" in viirs_datasets and "M" in viirs_datasets)
+        if "I" in viirs_datasets.keys():
+            brdf_base_dir = assert_exists(brdf_config["viirs_i_path"])
+            brdf_dirs = get_brdf_dirs_viirs(brdf_base_dir, dt)
+        elif "M" in viirs_datasets.keys():
+            brdf_base_dir = assert_exists(brdf_config["viirs_m_path"])
+            brdf_dirs = get_brdf_dirs_viirs(brdf_base_dir, dt)
+        else:
+            raise ValueError("No I or M bands in VIIRS band for sensor")
+
+    else:
+        raise ValueError(f"Unknown mode {mode}")
+
+    dbDir = pjoin(brdf_base_dir, brdf_dirs)
+    tile_list = [
+        pjoin(folder, f)
+        for (folder, _, filelist) in os.walk(dbDir)
+        for f in filelist
+        if f.endswith(".h5")
+    ]
+
+    tally = {}
+    with rasterio.open(brdf_config["ocean_mask_path"], "r") as fid_mask:
+        for ds in datasets:
+            tally[ds] = BrdfTileSummary.empty()
+            for tile in tile_list:
+                with h5py.File(tile, "r") as fid:
+                    tally[ds] += load_brdf_tile(
+                        src_poly, src_crs, fid, ds, fid_mask, satellite
+                    )
+    return tally
 
 
 def get_brdf_data(
-    acquisition, brdf, compression=H5CompressionFilter.LZF, filter_opts=None
+    acquisition,
+    brdf_config,
+    mode=None,
+    compression=H5CompressionFilter.LZF,
+    filter_opts=None,
 ):
     """
     Calculates the mean BRDF value for the given acquisition,
@@ -399,7 +568,7 @@ def get_brdf_data(
     :param acquisition:
         An instance of an acquisitions object.
 
-    :param brdf:
+    :param brdf_config:
         A `dict` defined as either of the following:
         * {'user': {<band-alias>: {'iso': <value>, 'vol': <value>, 'geo': <value>}, ...}}
         * {'brdf_path': <path-to-BRDF>, 'brdf_fallback_path': <path-to-average-BRDF>,
@@ -445,100 +614,104 @@ def get_brdf_data(
         for sure they'll never be used.
     """
 
-    if "user" in brdf:
+    if "user" in brdf_config:
         # user-specified override
         return {
             param: dict(
                 data_source="BRDF",
                 tier=BrdfTier.USER.name,
-                value=brdf["user"][acquisition.alias][param.value.lower()],
+                value=brdf_config["user"][acquisition.alias][param.value.lower()],
             )
             for param in BrdfDirectionalParameters
         }
 
-    brdf_primary_path = brdf["brdf_path"]
-    brdf_secondary_path = brdf["brdf_fallback_path"]
-    brdf_ocean_mask_path = brdf["ocean_mask_path"]
-
     src_poly, src_crs = valid_region(acquisition)
     src_crs = rasterio.crs.CRS(**src_crs)
-    brdf_datasets = acquisition.brdf_datasets
 
     # Get the date of acquisition
     dt = acquisition.acquisition_datetime.date()
 
-    # Determine if we're being forced into fallback
-    if os.path.isdir(brdf_primary_path):
+    brdf_datasets = acquisition.brdf_datasets
+    viirs_datasets = {"I": ["BRDF_Albedo_Parameters_I1"]}
 
-        # Compare the scene date and MODIS BRDF start date to select the
-        # BRDF data root directory.
-        # Scene dates outside this range are to use the fallback data
-        brdf_dir_list = sorted(os.listdir(brdf_primary_path))
+    def get_tally2(mode, dt):
+        # brdf_config, brdf_datasets, and viirs datasets are "constants"
+        # for the purpose of choosing the data to use (MODIS vs VIIRS vs fallback)
+        result = get_tally(mode, brdf_config, brdf_datasets, viirs_datasets, dt, src_poly, src_crs)
+
+        if any(result[ds].is_empty() for ds in result):
+            raise IndexError
+        return result
+
+    def back_in_time(from_dt):
+        days_back = 1
+
+        while days_back <= 30:
+            dt = from_dt - datetime.timedelta(days=days_back)
+
+            try:
+                return get_tally2("MODIS", dt)
+            except IndexError:
+                try:
+                    return get_tally2("VIIRS", dt)
+                except IndexError:
+                    pass
+
+            days_back += 1
+
+        # if we are here, we failed, nothing was found
+        raise IndexError
+
+    def select_mode(dt):
+        # try MODIS first, then VIIRS, then 30 days back in time, then fallback
+        try:
+            return get_tally2("MODIS", dt), False
+        except IndexError:
+            pass
 
         try:
-            brdf_dir_range = [brdf_dir_list[0], brdf_dir_list[-1]]
-            brdf_range = [
-                datetime.date(*[int(x) for x in y.split(".")]) for y in brdf_dir_range
-            ]
-
-            fallback_brdf = dt < DEFINITIVE_START_DATE or dt > brdf_range[1]
+            return get_tally2("VIIRS", dt), False
         except IndexError:
-            fallback_brdf = True  # use fallback data if all goes wrong
+            pass
 
+        try:
+            return back_in_time(dt), False
+        except IndexError:
+            pass
+
+        try:
+            return get_tally2("fallback", dt), True
+        except IndexError:
+            pass
+
+        raise ValueError(f"No BRDF ancillary found for {dt}")
+
+    if mode is None:
+        tally, fallback_brdf = select_mode(dt)
     else:
-        fallback_brdf = True
+        tally = get_tally2(mode, dt)
+        fallback_brdf = True if mode == "fallback" else False
 
-    def get_tally(fallback_brdf, dt):
-        # get all HDF files in the input dir
-        if fallback_brdf:
-            brdf_base_dir = brdf_secondary_path
-            brdf_dirs = get_brdf_dirs_fallback(brdf_base_dir, dt)
-        else:
-            brdf_base_dir = brdf_primary_path
-            brdf_dirs = get_brdf_dirs_modis(brdf_base_dir, dt)
-
-        dbDir = pjoin(brdf_base_dir, brdf_dirs)
-        tile_list = [
-            pjoin(folder, f)
-            for (folder, _, filelist) in os.walk(dbDir)
-            for f in filelist
-            if f.endswith(".h5")
-        ]
-
-        tally = {}
-        with rasterio.open(brdf_ocean_mask_path, "r") as fid_mask:
-            for ds in brdf_datasets:
-                tally[ds] = BrdfTileSummary.empty()
-                for tile in tile_list:
-                    with h5py.File(tile, "r") as fid:
-                        tally[ds] += load_brdf_tile(src_poly, src_crs, fid, ds, fid_mask)
-        return tally
-
-    tally = get_tally(fallback_brdf, dt)
-
-    def is_empty(tally):
-        return any(tally[ds].is_empty() for ds in brdf_datasets)
-
-    days_back = 0
-    while not fallback_brdf and is_empty(tally):
-        if days_back > 30:
-            tally = get_tally(True, dt)
-            break
-
-        days_back += 1
-        tally = get_tally(fallback_brdf, dt - datetime.timedelta(days=days_back))
-
-    for ds in brdf_datasets:
-        tally[ds] = tally[ds].mean()
+    spatial_averages = {}
+    for ds in tally:
+        spatial_averages[ds] = tally[ds].mean()
 
     results = {
         param: dict(
             data_source="BRDF",
             id=np.array(
-                list({ds_id for ds in brdf_datasets for ds_id in tally[ds][param]["id"]}),
+                list(
+                    {
+                        ds_id
+                        for ds in spatial_averages
+                        for ds_id in spatial_averages[ds][param]["id"]
+                    }
+                ),
                 dtype=VLEN_STRING,
             ),
-            value=np.mean([tally[ds][param]["value"] for ds in brdf_datasets]).item(),
+            value=np.mean(
+                [spatial_averages[ds][param]["value"] for ds in spatial_averages]
+            ).item(),
             tier=BrdfTier.FALLBACK_DATASET.name
             if fallback_brdf
             else BrdfTier.DEFINITIVE.name,
