@@ -89,7 +89,6 @@ def _format_json(
     ) as lon_lat_fid, h5py.File(ancillary_fname, "r") as anc_fid, h5py.File(
         out_fname, "w"
     ) as fid:
-
         grp1 = anc_fid[GroupName.ANCILLARY_GROUP.value]
         grp2 = sat_sol_fid[GroupName.SAT_SOL_GROUP.value]
         grp3 = lon_lat_fid[GroupName.LON_LAT_GROUP.value]
@@ -175,9 +174,7 @@ def format_json(
         acqs = [a for a in acquisitions if a.band_type == BandType.REFLECTIVE]
 
         for p in range(npoints):
-
             for alb in Workflow.NBAR.albedos:
-
                 input_data = {
                     "name": POINT_ALBEDO_FMT.format(p=p, a=str(alb.value)),
                     "water": water_vapour,
@@ -222,7 +219,6 @@ def format_json(
         acqs = [a for a in acquisitions if a.band_type == BandType.THERMAL]
 
         for p in range(npoints):
-
             atmos_profile = read_h5_table(ancillary_group, dname.format(p=p))
 
             n_layers = atmos_profile.shape[0] + 6
@@ -288,7 +284,6 @@ def _run_modtran(
     with h5py.File(atmospheric_inputs_fname, "r") as atmos_fid, h5py.File(
         out_fname, "w"
     ) as fid:
-
         atmos_grp = atmos_fid[GroupName.ATMOSPHERIC_INPUTS_GRP.value]
         run_modtran(
             acquisitions,
@@ -454,7 +449,6 @@ def _calculate_coefficients(
     with h5py.File(atmosheric_results_fname, "r") as atmos_fid, h5py.File(
         out_fname, "w"
     ) as fid:
-
         results_group = atmos_fid[GroupName.ATMOSPHERIC_RESULTS_GRP.value]
         calculate_coefficients(results_group, fid, compression, filter_opts)
 
@@ -666,7 +660,6 @@ def coefficients(
     nbar = sbt = None
 
     if channel_data is not None:
-
         # calculate transmittance using channel data
         columns = [v.value for v in Workflow.NBAR.atmos_coefficients]
 
@@ -802,7 +795,6 @@ def _get_solar_angles(tp6_fname):
                 line,
                 "*SINGLE SCATTER SOLAR PATH GEOMETRY " "TABLE FOR MULTIPLE SCATTERING*",
             ):
-
                 break
         else:
             raise ValueError(
@@ -849,7 +841,6 @@ def read_modtran_channel(chn_fname, tp6_fname, acquisition, albedo):
     nbands = response.index.get_level_values("band_name").unique().shape[0]
 
     if albedo == Albedos.ALBEDO_TH:
-
         upward_radiation = pd.read_csv(
             chn_fname, skiprows=5, header=None, delim_whitespace=True, nrows=nbands
         )

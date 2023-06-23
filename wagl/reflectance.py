@@ -60,7 +60,6 @@ def _calculate_reflectance(
     ) as fid_anc, h5py.File(
         out_fname, "w"
     ) as fid:
-
         grp1 = fid_interp[GroupName.INTERP_GROUP.value]
         grp2 = fid_sat_sol[GroupName.SAT_SOL_GROUP.value]
         grp3 = fid_slp_asp[GroupName.SLP_ASP_GROUP.value]

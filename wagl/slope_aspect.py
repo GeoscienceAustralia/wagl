@@ -29,7 +29,6 @@ def _slope_aspect_arrays(
     NBAR workflow.
     """
     with h5py.File(dsm_fname, "r") as dsm_fid, h5py.File(out_fname, "w") as fid:
-
         dsm_grp = dsm_fid[GroupName.ELEVATION_GROUP.value]
         slope_aspect_arrays(acquisition, dsm_grp, buffer_distance, fid, compression)
 

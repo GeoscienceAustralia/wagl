@@ -15,7 +15,6 @@ from wagl import unittesting_tools as ut
 
 
 class TestReadSubset(unittest.TestCase):
-
     img, geobox = ut.create_test_image((1200, 1500))
     img[:] = 1
 
