@@ -39,7 +39,6 @@ class TestShadowMasks(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_dset = reference_fid["self-shadow"]
             test_dset = test_fid["self-shadow"]
 
@@ -52,7 +51,6 @@ class TestShadowMasks(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_dset = reference_fid["cast-shadow-sun"]
             test_dset = test_fid["cast-shadow-sun"]
 
@@ -65,7 +63,6 @@ class TestShadowMasks(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_dset = reference_fid["cast-shadow-satellite"]
             test_dset = test_fid["cast-shadow-satellite"]
 
@@ -78,7 +75,6 @@ class TestShadowMasks(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_dset = reference_fid["combined-shadow"]
             test_dset = test_fid["combined-shadow"]
 

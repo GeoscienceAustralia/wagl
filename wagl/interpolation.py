@@ -228,7 +228,7 @@ def __interpolate_grid_inner(grid, eval_func, depth, origin, shape):
         interpolate_block(origin, shape, eval_func, grid)
     else:
         blocks = subdivide(origin, shape)
-        for (kUL, _, _, kLR) in blocks.values():
+        for kUL, _, _, kLR in blocks.values():
             block_shape = (kLR[0] - kUL[0] + 1, kLR[1] - kUL[1] + 1)
             __interpolate_grid_inner(grid, eval_func, depth - 1, kUL, block_shape)
 
@@ -442,7 +442,6 @@ def _interpolate(
     ) as comp, h5py.File(ancillary_fname, "r") as anc, h5py.File(
         out_fname, "w"
     ) as out_fid:
-
         grp1 = anc[GroupName.ANCILLARY_GROUP.value]
         grp2 = sat_sol[GroupName.SAT_SOL_GROUP.value]
         grp3 = comp[GroupName.COEFFICIENTS_GROUP.value]

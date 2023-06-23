@@ -36,7 +36,6 @@ class TestIncidentAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_dset = reference_fid["incident"]
             test_dset = test_fid["incident"]
 
@@ -49,7 +48,6 @@ class TestIncidentAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_dset = reference_fid["azimuthal-incident"]
             test_dset = test_fid["azimuthal-incident"]
 

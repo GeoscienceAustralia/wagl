@@ -57,7 +57,6 @@ def s2_index_to_band_id(band_index):
 
 
 class Sentinel2Acquisition(Acquisition):
-
     """Base class for a Sentinel-2 acquisition."""
 
     def __init__(
@@ -69,7 +68,6 @@ class Sentinel2Acquisition(Acquisition):
         band_id="1",
         metadata=None,
     ):
-
         super(Sentinel2Acquisition, self).__init__(
             pathname,
             uri,
@@ -271,7 +269,6 @@ class Sentinel2Acquisition(Acquisition):
 
 
 class Sentinel2aAcquisition(Sentinel2Acquisition):
-
     """Sentinel-2a acquisition."""
 
     def __init__(
@@ -311,7 +308,6 @@ class Sentinel2aAcquisition(Sentinel2Acquisition):
 
 
 class Sentinel2bAcquisition(Sentinel2Acquisition):
-
     """Sentinel-2b acquisition."""
 
     def __init__(
@@ -351,7 +347,6 @@ class Sentinel2bAcquisition(Sentinel2Acquisition):
 
 
 class _Sentinel2SinergiseAcquisition(Sentinel2Acquisition):
-
     """
     _Sentinel2SinergiseAcquisition provides a customisation on retrieval
     for the ancillary information that is retrieved from AWS S3 Bucket

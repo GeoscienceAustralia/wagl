@@ -37,7 +37,6 @@ def _self_shadow(
     with h5py.File(incident_angles_fname, "r") as fid_incident, h5py.File(
         exiting_angles_fname, "r"
     ) as fid_exiting, h5py.File(out_fname, "w") as fid:
-
         grp1 = fid_incident[GroupName.INCIDENT_GROUP.value]
         grp2 = fid_exiting[GroupName.EXITING_GROUP.value]
         self_shadow(grp1, grp2, fid, compression, filter_opts)
@@ -302,7 +301,6 @@ def _calculate_cast_shadow(
     with h5py.File(dsm_fname, "r") as dsm_fid, h5py.File(
         satellite_solar_angles_fname, "r"
     ) as fid_sat_sol, h5py.File(out_fname, "w") as fid:
-
         grp1 = dsm_fid[GroupName.ELEVATION_GROUP.value]
         grp2 = fid_sat_sol[GroupName.SAT_SOL_GROUP.value]
         calculate_cast_shadow(
@@ -538,7 +536,6 @@ def _combine_shadow(
     ) as fid_sun, h5py.File(cast_shadow_satellite_fname, "r") as fid_sat, h5py.File(
         out_fname, "w"
     ) as fid:
-
         grp1 = fid_self[GroupName.SHADOW_GROUP.value]
         grp2 = fid_sun[GroupName.SHADOW_GROUP.value]
         grp3 = fid_sat[GroupName.SHADOW_GROUP.value]

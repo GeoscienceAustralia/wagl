@@ -36,7 +36,6 @@ def _surface_brightness_temperature(
     with h5py.File(bilinear_fname, "r") as interp_fid, h5py.File(
         ancillary_fname, "r"
     ) as fid_anc, h5py.File(out_fname, "w") as fid:
-
         grp1 = interp_fid[GroupName.INTERP_GROUP.value]
         surface_brightness_temperature(acquisition, grp1, fid, compression, filter_opts)
 

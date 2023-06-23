@@ -220,7 +220,6 @@ def card4l(
             )
 
             if workflow in (Workflow.STANDARD, Workflow.NBAR):
-
                 # DEM
                 log.info("DEM-retriveal")
                 get_dsm(
@@ -375,7 +374,6 @@ def card4l(
             log.info("Radiative-Transfer", point=point, albedo=albedo.value)
 
             with tempfile.TemporaryDirectory() as tmpdir:
-
                 prepare_modtran(acqs, point, [albedo], tmpdir)
 
                 point_dir = pjoin(tmpdir, POINT_FMT.format(p=point))
@@ -387,7 +385,6 @@ def card4l(
                     json_dict = json_data[key]
 
                     if albedo == Albedos.ALBEDO_TH:
-
                         json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"][
                             "FILTNM"
                         ] = "%s/%s" % (
@@ -402,7 +399,6 @@ def card4l(
                         )
 
                     else:
-
                         json_dict["MODTRAN"][0]["MODTRANINPUT"]["SPECTRAL"][
                             "FILTNM"
                         ] = "%s/%s" % (
