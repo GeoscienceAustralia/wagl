@@ -35,7 +35,6 @@ class TestRelativeSlope(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_dset = reference_fid["relative-slope"]
             test_dset = test_fid["relative-slope"]
 

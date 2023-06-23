@@ -230,9 +230,7 @@ class BrdfTileSummary:
         )
 
     def is_empty(self):
-        return all(
-            self.brdf_summaries[key]["count"] == 0 for key in BrdfModelParameters
-        )
+        return all(self.brdf_summaries[key]["count"] == 0 for key in BrdfModelParameters)
 
     def __add__(self, other):
         """Accumulate information from different tiles."""
@@ -382,9 +380,7 @@ def load_brdf_tile(src_poly, src_crs, fid, dataset_name, fid_mask, satellite):
     if satellite == "MODIS":
         ds = fid[dataset_name]
         ds_height, ds_width = ds.shape
-        dst_geotransform = rasterio.transform.Affine.from_gdal(
-            *ds.attrs["geotransform"]
-        )
+        dst_geotransform = rasterio.transform.Affine.from_gdal(*ds.attrs["geotransform"])
         dst_crs = CRS.from_wkt(ds.attrs["crs_wkt"])
 
     else:
@@ -637,7 +633,9 @@ def get_brdf_data(
     def get_tally2(mode, dt):
         # brdf_config, brdf_datasets, and viirs datasets are "constants"
         # for the purpose of choosing the data to use (MODIS vs VIIRS vs fallback)
-        result = get_tally(mode, brdf_config, brdf_datasets, viirs_datasets, dt, src_poly, src_crs)
+        result = get_tally(
+            mode, brdf_config, brdf_datasets, viirs_datasets, dt, src_poly, src_crs
+        )
 
         if any(result[ds].is_empty() for ds in result):
             raise IndexError

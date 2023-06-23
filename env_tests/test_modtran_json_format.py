@@ -26,7 +26,6 @@ class JsonTest(unittest.TestCase):
     """
 
     def test_midlat_summer_albedo(self):
-
         """
         Test the mid latitude summer albedo configuration.
         """
@@ -56,7 +55,6 @@ class JsonTest(unittest.TestCase):
         self.assertTrue(d == data)
 
     def test_tropical_albedo(self):
-
         """
         Test the tropical  albedo configuration.
         """
@@ -87,7 +85,6 @@ class JsonTest(unittest.TestCase):
         self.assertTrue(d == data)
 
     def test_thermal_channel(self):
-
         """
         Test surface brightness  configuration.
         """
@@ -95,5 +92,4 @@ class JsonTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-
     unittest.main()

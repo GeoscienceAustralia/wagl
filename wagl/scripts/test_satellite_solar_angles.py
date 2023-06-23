@@ -44,7 +44,6 @@ class TestCalculateAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_dset = reference_fid["satellite-view"]
             test_dset = test_fid["satellite-view"]
 
@@ -57,7 +56,6 @@ class TestCalculateAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_dset = reference_fid["satellite-azimuth"]
             test_dset = test_fid["satellite-azimuth"]
 
@@ -70,7 +68,6 @@ class TestCalculateAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_dset = reference_fid["solar-zenith"]
             test_dset = test_fid["solar-zenith"]
 
@@ -83,7 +80,6 @@ class TestCalculateAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_dset = reference_fid["solar-azimuth"]
             test_dset = test_fid["solar-azimuth"]
 
@@ -96,7 +92,6 @@ class TestCalculateAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_dset = reference_fid["relative-azimuth"]
             test_dset = test_fid["relative-azimuth"]
 
@@ -109,7 +104,6 @@ class TestCalculateAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_dset = reference_fid["acquisition-time"]
             test_dset = test_fid["acquisition-time"]
 
@@ -123,7 +117,6 @@ class TestCalculateAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_data = read_h5_table(reference_fid, "centreline")
             test_data = read_h5_table(test_fid, "centreline")
 
@@ -136,7 +129,6 @@ class TestCalculateAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_data = reference_fid["centreline"]["row_index"]
             test_data = test_fid["centreline"]["row_index"]
 
@@ -149,7 +141,6 @@ class TestCalculateAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_data = reference_fid["centreline"]["col_index"]
             test_data = test_fid["centreline"]["col_index"]
 
@@ -162,7 +153,6 @@ class TestCalculateAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_data = reference_fid["centreline"]["n_pixels"]
             test_data = test_fid["centreline"]["n_pixels"]
 
@@ -175,7 +165,6 @@ class TestCalculateAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_data = reference_fid["centreline"]["latitude"]
             test_data = test_fid["centreline"]["latitude"]
 
@@ -188,7 +177,6 @@ class TestCalculateAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_data = reference_fid["centreline"]["longitude"]
             test_data = test_fid["centreline"]["longitude"]
 
@@ -202,7 +190,6 @@ class TestCalculateAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_data = read_h5_table(reference_fid, "boxline")
             test_data = read_h5_table(test_fid, "boxline")
 
@@ -215,7 +202,6 @@ class TestCalculateAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_data = reference_fid["boxline"]["row_index"]
             test_data = test_fid["boxline"]["row_index"]
 
@@ -228,7 +214,6 @@ class TestCalculateAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_data = reference_fid["boxline"]["bisection_index"]
             test_data = test_fid["boxline"]["bisection_index"]
 
@@ -241,7 +226,6 @@ class TestCalculateAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_data = reference_fid["boxline"]["start_index"]
             test_data = test_fid["boxline"]["start_index"]
 
@@ -254,7 +238,6 @@ class TestCalculateAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_data = reference_fid["boxline"]["end_index"]
             test_data = test_fid["boxline"]["end_index"]
 
@@ -268,7 +251,6 @@ class TestCalculateAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_data = read_h5_table(reference_fid, "coordinator")
             test_data = read_h5_table(test_fid, "coordinator")
 
@@ -281,7 +263,6 @@ class TestCalculateAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_data = reference_fid["coordinator"]["row_index"]
             test_data = test_fid["coordinator"]["row_index"]
 
@@ -294,7 +275,6 @@ class TestCalculateAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_data = reference_fid["coordinator"]["col_index"]
             test_data = test_fid["coordinator"]["col_index"]
 

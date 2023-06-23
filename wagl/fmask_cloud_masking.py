@@ -413,7 +413,6 @@ sun_earth_distance = {
 
 
 def match_file(dir_path, pattern):
-
     # Ignore filenames starting with '.' character, e.g. rsync work files.
 
     for f in sorted([x for x in os.listdir(dir_path) if not x.startswith(".")]):
@@ -1020,7 +1019,6 @@ def nd2toarbt(filename, images=None):
     resolu = (reso_ref, reso_ref)
 
     if Lnum >= 4 and Lnum <= 7:
-
         # Band6
         if Lnum == 7:
             n_B6 = match_file(base, ".*B6_VCID_1.TIF")
@@ -2022,7 +2020,6 @@ def fcssm(
         # Newer method of looping through the cloud objects/segments JS
         # 16/12/2013
         for cloud_type in s:
-
             cld_area = cloud_type["Area"]
             cld_label = cloud_type["Label"]
 
@@ -2294,7 +2291,6 @@ def mat_truecloud(x, y, h, A, B, C, omiga_par, omiga_per):
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(
         description="Computes the Fmask algorithm. Cloud, cloud shadow and Fmask combined (contains thecloud, cloud shadow and snow masks in a single array) are output to disk."
     )

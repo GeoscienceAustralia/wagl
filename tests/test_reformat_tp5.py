@@ -13,7 +13,6 @@ DATA_DIR = pjoin(dirname(abspath(__file__)), "data")
 
 
 class Tp5ReformatTest(unittest.TestCase):
-
     """
     Test that the string formatting matches the old
     output method.
@@ -29,7 +28,6 @@ class Tp5ReformatTest(unittest.TestCase):
             ref_albedo = "".join(src.readlines())
 
         with tempfile.TemporaryDirectory() as tmpdir:
-
             out_fname = pjoin(tmpdir, "test-midlat-summer.tp5")
             with open(out_fname, "w") as src:
                 kwargs = {
@@ -66,7 +64,6 @@ class Tp5ReformatTest(unittest.TestCase):
             ref_trans = "".join(src.readlines())
 
         with tempfile.TemporaryDirectory() as tmpdir:
-
             out_fname = pjoin(tmpdir, "test-midlat-summer-trans.tp5")
             with open(out_fname, "w") as src:
                 kwargs = {

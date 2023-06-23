@@ -167,7 +167,6 @@ def _collect_ancillary(
     with h5py.File(satellite_solar_fname, "r") as fid, h5py.File(
         out_fname, "w"
     ) as out_fid:
-
         sat_sol_grp = fid[GroupName.SAT_SOL_GROUP.value]
         collect_ancillary(
             container,
@@ -288,7 +287,6 @@ def collect_ancillary(
         check_interpolation_sample_geometry(container, group, grp_name)
         for grp_name in container.supported_groups
     ):
-
         coord_dset[:] = default_interpolation_grid(acquisition, vertices, boxline_dataset)
         attach_table_attributes(coord_dset, title="Coordinator", attrs=attrs)
 
@@ -796,7 +794,6 @@ def get_water_vapour(acquisition, water_vapour_dict, scale_factor=0.1, tolerance
     datafile = pjoin(water_vapour_path, filename)
 
     if os.path.isfile(datafile):
-
         with h5py.File(datafile, "r") as fid:
             index = read_h5_table(fid, "INDEX")
 

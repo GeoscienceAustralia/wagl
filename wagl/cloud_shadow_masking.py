@@ -522,7 +522,6 @@ def cloud_shadow(
 
         i = 1
         for lr in lapse_rates:
-
             cheight = cloud_height(ctherm, surface_temp=surfaceTemp, lapse_rate=lr)
 
             d = shadow_length(cheight, rad_elev)
@@ -556,7 +555,6 @@ def cloud_shadow(
 
         i = 1
         for lr in lapse_rates:
-
             cheight = cloud_height(ctherm, surface_temp=surfaceTemp, lapse_rate=lr)
 
             shad_length = shadow_length(cheight, rad_elev)

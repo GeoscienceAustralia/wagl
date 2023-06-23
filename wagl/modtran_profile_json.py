@@ -40,10 +40,8 @@ def midlat_summer_albedo(
     filter_function,
     binary,
 ):
-
     """
     MODTRAN 6.0.1 input: 'json' format template for mid latitude summer albedo
-
     """
 
     _midlat_summer_albedo = {
@@ -169,10 +167,8 @@ def tropical_albedo(
     filter_function,
     binary,
 ):
-
     """
     MODTRAN 6.0.1 input: 'json' format template for tropical albedo
-
     """
 
     _tropical_albedo = {

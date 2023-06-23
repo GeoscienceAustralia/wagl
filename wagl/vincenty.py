@@ -268,7 +268,6 @@ def vinc_dist(f, a, phi1, lembda1, phi2, lembda2):
         or lembda != 0
         and abs((last_lembda - lembda) / lembda) > 1.0e-9
     ):
-
         sqr_sin_sigma = pow(math.cos(U2) * math.sin(lembda), 2) + pow(
             (
                 math.cos(U1) * math.sin(U2)
