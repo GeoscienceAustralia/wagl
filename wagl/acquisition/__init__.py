@@ -510,7 +510,6 @@ def acquisitions_s2_sinergise(pathname):
 
     acqs = []
     for band_id in band_configurations:
-
         # If it is a configured B-format transform it to the correct format
         if re.match("[0-9].?", band_id):
             band_name = "B{}".format(band_id.zfill(2))

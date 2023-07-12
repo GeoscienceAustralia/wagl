@@ -144,7 +144,8 @@ class TiledOutput:
             (a - img).sum() == 0
             >>> len(tiles)
             100
-            >>> outds = TiledOutput('test_tiled_output_2D', samples=a.shape[1], lines=a.shape[0])  # noqa: E501
+            >>> l, s = a.shape
+            >>> outds = TiledOutput('test_tiled_output_2D', samples=s, lines=l)
             >>> outds.closed
             False
             >>> for tile in tiles:
@@ -166,7 +167,8 @@ class TiledOutput:
             >>> a = numpy.random.randint(0, 256, (10, 100, 100)).astype('uint8')
             outds.closed
             >>> tiles = generate_tiles(a.shape[2], a.shape[1], 10, 10)
-            >>> outds = TiledOutput('test_tiled_output_3D', samples=a.shape[2], lines=a.shape[1], bands=a.shape[0])  # noqa: E501
+            >>> b, l, s = a.shape
+            >>> outds = TiledOutput('test_tiled_output_3D', samples=s, lines=l, bands=b)
             for tile in tiles:
                 ys, ye = tile[0]
                 xs, xe = tile[1]

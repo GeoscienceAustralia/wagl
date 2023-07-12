@@ -1,6 +1,19 @@
 [build-system]
 requires = ["setuptools>=42", "wheel", "numpy", "setuptools_scm[toml]>=3.4"]
 
+[tool.ruff]
+target-version = "py38"
+
+line-length = 90
+# Which checkers to enable?
+select = [
+  "E",   # pycodestyle
+  "F",   # pyflakes
+  # "UP",  # pyupgrade
+  # "N", # pep8-naming
+]
+
+
 [tool.black]
 line-length = 90
 target-version = ['py36', 'py37', 'py38']

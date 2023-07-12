@@ -469,7 +469,6 @@ def get_brdf_data(
 
     # Determine if we're being forced into fallback
     if os.path.isdir(brdf_primary_path):
-
         # Compare the scene date and MODIS BRDF start date to select the
         # BRDF data root directory.
         # Scene dates outside this range are to use the fallback data

@@ -69,7 +69,6 @@ class Sentinel2Acquisition(Acquisition):
         band_id="1",
         metadata=None,
     ):
-
         super(Sentinel2Acquisition, self).__init__(
             pathname,
             uri,

@@ -72,20 +72,20 @@ class TestGetTile3(unittest.TestCase):
 
     def test_exception_1(self):
         """Test empty image:"""
-        for (samples, lines, xtile, ytile) in self.exception_input1:
+        for samples, lines, xtile, ytile in self.exception_input1:
             tiles_list = list(generate_tiles(samples, lines, xtile, ytile))
             self.assertEqual(tiles_list, [], "Expected an empty tile list.")
 
     def test_exception_2(self):
         """Test empty tiles:"""
-        for (samples, lines, xtile, ytile) in self.exception_input2:
+        for samples, lines, xtile, ytile in self.exception_input2:
             self.assertRaises(
                 ZeroDivisionError, generate_tiles, samples, lines, xtile, ytile
             )
 
     def do_test(self, test_input):
         """Check sizes and coverage for a list of test input."""
-        for (samples, lines, xtile, ytile) in test_input:
+        for samples, lines, xtile, ytile in test_input:
             tiles_list = list(generate_tiles(samples, lines, xtile, ytile))
 
             self.check_sizes(xtile, ytile, tiles_list)
@@ -126,7 +126,7 @@ class TestGetTile3(unittest.TestCase):
         # keyword flags. This confuses pylint.
         # pylint: enable=unbalanced-tuple-unpacking
 
-        for (tag, flat_index) in zip(unique, unique_indices):
+        for tag, flat_index in zip(unique, unique_indices):
             index = numpy.unravel_index(flat_index, (lines, samples))
             self.assertGreater(tag, 0, "Hole in coverage detected at " + repr(index))
             self.assertIn(tag, tag_dict, "Tile overlap detected at " + repr(index))

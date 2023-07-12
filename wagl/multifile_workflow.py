@@ -312,7 +312,6 @@ class WriteJson(luigi.Task):
                 )
 
                 with luigi.LocalTarget(target).open("w") as src:
-
                     # Thermal processing has two input configurations
                     for modtran_input in json_data[key]["MODTRAN"]:
                         modtran_input["MODTRANINPUT"]["SPECTRAL"]["FILTNM"] = pjoin(
