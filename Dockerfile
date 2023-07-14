@@ -28,6 +28,7 @@ RUN chmod +x /root/miniconda.sh && /root/miniconda.sh -b -f -p conda
 # GDAL 3.1 is being used because https://gdal.org/api/python.html#usage
 RUN conda install -c conda-forge \
         gdal==3.1.4 \
+	scipy \
         python-fmask==0.5.5
 
 WORKDIR ${WAGL_DIR}
