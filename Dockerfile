@@ -35,8 +35,11 @@ WORKDIR ${WAGL_DIR}
 ADD . ./
 
 # Install dependencies required for unittests
-RUN pip install -r requirements.txt
+# RUN pip install -r requirements.txt
 RUN pip install git+https://github.com/sixy6e/idl-functions.git#egg=master
+RUN pip install -e .
+# Print the deps used.
+RUN pip freeze
 
 # include basic details for diagnostics
 RUN which python; python --version;
