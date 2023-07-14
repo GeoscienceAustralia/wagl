@@ -5,13 +5,40 @@ requires = ["setuptools>=42", "wheel", "numpy", "setuptools_scm[toml]>=3.4"]
 target-version = "py38"
 
 line-length = 90
+
 # Which checkers to enable?
 select = [
   "E",   # pycodestyle
   "F",   # pyflakes
   # "UP",  # pyupgrade
-  # "N", # pep8-naming
+  "N", # pep8-naming
 ]
+
+[tool.ruff.per-file-ignores]
+
+# These historically don't follow pep8 naming.
+"tests/test_acquisition.py" = ["N802", "N803", "N806", "N816", "N817"]
+"tests/test_blrb.py" = ["N802", "N803", "N806", "N816", "N817"]
+"tests/test_geobox.py" = ["N802", "N803", "N806", "N816", "N817"]
+"tests/test_lon_lat.py" = ["N802", "N803", "N806", "N816", "N817"]
+"tests/test_random_locations.py" = ["N802", "N803", "N806", "N816", "N817"]
+"tests/test_read_subset.py" = ["N802", "N803", "N806", "N816", "N817"]
+"tests/test_vincenty.py" = ["N802", "N803", "N806", "N816", "N817"]
+"wagl/acquisition/__init__.py" = ["N802", "N803", "N806", "N816", "N817"]
+"wagl/brdf.py" = ["N802", "N803", "N806", "N816", "N817"]
+"wagl/fmask_cloud_masking_wrapper.py" = ["N802", "N803", "N806", "N816", "N817"]
+"wagl/geobox.py" = ["N802", "N803", "N806", "N816", "N817"]
+"wagl/interpolation.py" = ["N802", "N803", "N806", "N816", "N817"]
+"wagl/land_sea_masking.py" = ["N802", "N803", "N806", "N816", "N817"]
+"wagl/land_sea.py" = ["N802", "N803", "N806", "N816", "N817"]
+"wagl/logs.py" = ["N802", "N803", "N806", "N816", "N817"]
+"wagl/modtran.py" = ["N802", "N803", "N806", "N816", "N817"]
+"wagl/pq.py" = ["N802", "N803", "N806", "N816", "N817"]
+"wagl/reflectance.py" = ["N802", "N803", "N806", "N816", "N817"]
+"wagl/standardise.py" = ["N802", "N803", "N806", "N816", "N817"]
+"wagl/temperature.py" = ["N802", "N803", "N806", "N816", "N817"]
+"wagl/unittesting_tools.py" = ["N802", "N803", "N806", "N816", "N817"]
+"wagl/vincenty.py" = ["N802", "N803", "N806", "N816", "N817"]
 
 
 [tool.black]
@@ -40,3 +67,4 @@ exclude = '''
 [tool.setuptools_scm]
 write_to = "wagl/version.py"
 version_scheme = "post-release"
+
