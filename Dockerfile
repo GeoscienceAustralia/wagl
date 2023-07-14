@@ -22,7 +22,7 @@ RUN ln -s $(which gfortran-10) $(which gfortran-10 | sed 's/\(.*\)\/\gfortran-10
 WORKDIR ${BUILD_DIR}
 
 # Bump this when newer versions of python are required
-ADD https://repo.continuum.io/miniconda/Miniconda3-py38_23.5.2-Linux-x86_64.sh /root/miniconda.sh
+ADD https://repo.anaconda.com/miniconda/Miniconda3-py38_23.5.2-0-Linux-x86_64.sh /root/miniconda.sh
 RUN chmod +x /root/miniconda.sh && /root/miniconda.sh -b -f -p conda
 
 # GDAL 3.1 is being used because https://gdal.org/api/python.html#usage
