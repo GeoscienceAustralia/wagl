@@ -32,7 +32,7 @@ jobs:
           paths:
             - /root/miniconda
           key: v1-dependencies-{{ checksum ".circleci/environment.yml" }}
-        
+
       # run tests!
       - run:
           name: run tests

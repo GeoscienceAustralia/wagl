@@ -28,14 +28,16 @@ RUN chmod +x /root/miniconda.sh && /root/miniconda.sh -b -f -p conda
 # GDAL 3.1 is being used because https://gdal.org/api/python.html#usage
 RUN conda install -c conda-forge \
         gdal==3.1.4 \
-        python-fmask==0.5.5
+        python-fmask==0.5.5 \
+	scipy pandas scikit-image
 
 WORKDIR ${WAGL_DIR}
 ADD . ./
 
 # Install dependencies required for unittests
-RUN pip install -r requirements.txt
 RUN pip install git+https://github.com/sixy6e/idl-functions.git#egg=master
+RUN pip install -e .
+RUN pip freeze
 
 # include basic details for diagnostics
 RUN which python; python --version;

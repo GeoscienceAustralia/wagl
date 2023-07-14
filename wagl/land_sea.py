@@ -56,7 +56,6 @@ def get_land_sea_mask(
 
     # read the land/sea data
     with rio.open(utmDataPath) as ds:
-
         # get the gridded box for the full dataset extent
         landSeaDataGGB = GriddedGeoBox.from_dataset(ds)
 

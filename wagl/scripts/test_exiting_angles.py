@@ -36,7 +36,6 @@ class TestExitingAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_dset = reference_fid["exiting"]
             test_dset = test_fid["exiting"]
 
@@ -49,7 +48,6 @@ class TestExitingAngles(ParameterisedTestCase):
         with h5py.File(self.reference_fname, "r") as reference_fid, h5py.File(
             self.test_fname, "r"
         ) as test_fid:
-
             ref_dset = reference_fid["azimuthal-exiting"]
             test_dset = test_fid["azimuthal-exiting"]
 
