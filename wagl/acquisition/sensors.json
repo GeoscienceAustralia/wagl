@@ -309,6 +309,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M2"]},
                     "supported_band": true
                 },
                 "2": {
@@ -320,6 +321,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M3"]},
                     "supported_band": true
                 },
                 "3": {
@@ -331,6 +333,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0667,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band4"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M4"]},
                     "supported_band": true
                 },
                 "4": {
@@ -342,6 +345,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0880,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
+                    "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I1"]},
                     "supported_band": true
                 },
                 "5": {
@@ -353,6 +357,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2231,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
+                    "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I2"]},
                     "supported_band": true
                 },
                 "6": {
@@ -364,6 +369,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2512,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band6"],
+                    "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I3"]},
                     "supported_band": true
                 },
                 "7": {
@@ -375,6 +381,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.1648,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band7"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M11"]},
                     "supported_band": true
                 },
                 "8": {
@@ -386,6 +393,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.088,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band4", "BRDF_Albedo_Parameters_Band1"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M4", "BRDF_Albedo_Parameters_M5"]},
                     "supported_band": true
                 },
                 "9": {
@@ -409,6 +417,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M2"]},
                     "supported_band": true
                 },
                 "10": {
@@ -442,6 +451,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M3"]},
                     "supported_band": true
                 },
                 "3": {
@@ -453,6 +463,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0667,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band4"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M4"]},
                     "supported_band": true
                 },
                 "4": {
@@ -464,6 +475,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0880,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
+                    "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I1"]},
                     "supported_band": true
                 },
                 "5": {
@@ -475,6 +487,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2231,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
+                    "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I2"]},
                     "supported_band": true
                 },
                 "6": {
@@ -486,6 +499,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2512,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band6"],
+                    "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I3"]},
                     "supported_band": true
                 },
                 "7": {
@@ -497,6 +511,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.1648,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band7"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M11"]},
                     "supported_band": true
                 },
                 "8": {
@@ -508,6 +523,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.088,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band4", "BRDF_Albedo_Parameters_Band1"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M4", "BRDF_Albedo_Parameters_M5"]},
                     "supported_band": true
                 },
                 "9": {
@@ -533,6 +549,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M2"]},
                     "supported_band": true
                 },
                 "2": {
@@ -544,6 +561,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M3"]},
                     "supported_band": true
                 },
                 "3": {
@@ -555,6 +573,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0667,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band4"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M4"]},
                     "supported_band": true
                 },
                 "4": {
@@ -566,6 +585,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0880,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
+                    "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I1"]},
                     "supported_band": true
                 },
                 "5": {
@@ -577,6 +597,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2231,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
+                    "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I2"]},
                     "supported_band": true
                 },
                 "6": {
@@ -588,6 +609,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2512,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band6"],
+                    "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I3"]},
                     "supported_band": true
                 },
                 "7": {
@@ -599,6 +621,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.1648,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band7"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M11"]},
                     "supported_band": true
                 },
                 "8": {
@@ -610,6 +633,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.088,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band4", "BRDF_Albedo_Parameters_Band1"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M4", "BRDF_Albedo_Parameters_M5"]},
                     "supported_band": true
                 },
                 "9": {
@@ -633,6 +657,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M2"]},
                     "supported_band": true
                 },
                 "10": {
@@ -666,6 +691,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M3"]},
                     "supported_band": true
                 },
                 "3": {
@@ -677,6 +703,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0667,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band4"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M4"]},
                     "supported_band": true
                 },
                 "4": {
@@ -688,6 +715,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0880,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
+                    "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I1"]},
                     "supported_band": true
                 },
                 "5": {
@@ -699,6 +727,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2231,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
+                    "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I2"]},
                     "supported_band": true
                 },
                 "6": {
@@ -710,6 +739,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2512,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band6"],
+                    "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I3"]},
                     "supported_band": true
                 },
                 "7": {
@@ -721,6 +751,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.1648,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band7"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M11"]},
                     "supported_band": true
                 },
                 "8": {
@@ -732,6 +763,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.088,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band4", "BRDF_Albedo_Parameters_Band1"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M4", "BRDF_Albedo_Parameters_M5"]},
                     "supported_band": true
                 },
                 "9": {
