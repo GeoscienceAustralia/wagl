@@ -555,9 +555,9 @@ def get_tally(mode, brdf_config, brdf_datasets, viirs_datasets, dt, src_poly, sr
 def get_brdf_data(
     acquisition,
     brdf_config,
-    mode=None,
     compression=H5CompressionFilter.LZF,
     filter_opts=None,
+    mode=None,
 ):
     """
     Calculates the mean BRDF value for the given acquisition,
