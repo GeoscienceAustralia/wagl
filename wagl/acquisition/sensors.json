@@ -789,6 +789,7 @@
                    "spectral_range": [2600, 349, -1],
                    "reflectance_adjustment": 0.0365,
                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
+                   "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M2"]},
                    "c1": 0.001,
                    "radiance_scale_factor": 0.001,
                    "supported_band": true
@@ -802,6 +803,7 @@
                    "spectral_range": [2600, 349, -1],
                    "reflectance_adjustment": 0.0365,
                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
+                   "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M3"]},
                    "c1": 0.001,
                    "radiance_scale_factor": 0.001,
                    "supported_band": true
@@ -815,6 +817,7 @@
                    "spectral_range": [2600, 349, -1],
                    "reflectance_adjustment": 0.0365,
                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band4"],
+                   "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M4"]},
                    "c1": 0.001,
                    "radiance_scale_factor": 0.001,
                    "supported_band": true
@@ -828,6 +831,7 @@
                    "spectral_range": [2600, 349, -1],
                    "reflectance_adjustment": 0.088,
                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
+                   "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I1"]},
                    "c1": 0.001,
                    "radiance_scale_factor": 0.001,
                    "supported_band": true
@@ -841,6 +845,7 @@
                    "spectral_range": [2600, 349, -1],
                    "reflectance_adjustment": 0.088,
                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
+                   "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I1"]},
                    "c1": 0.001,
                    "radiance_scale_factor": 0.001,
                    "supported_band": true
@@ -854,6 +859,7 @@
                    "spectral_range": [2600, 349, -1],
                    "reflectance_adjustment": 0.088,
                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
+                   "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I1"]},
                    "c1": 0.001,
                    "radiance_scale_factor": 0.001,
                    "supported_band": true
@@ -867,6 +873,7 @@
                    "spectral_range": [2600, 349, -1],
                    "reflectance_adjustment": 0.2231,
                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
+                   "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I2"]},
                    "c1": 0.001,
                    "radiance_scale_factor": 0.001,
                    "supported_band": true
@@ -880,6 +887,7 @@
                    "spectral_range": [2600, 349, -1],
                    "reflectance_adjustment": 0.2231,
                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
+                   "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I2"]},
                    "c1": 0.001,
                    "radiance_scale_factor": 0.001,
                    "supported_band": true
@@ -893,6 +901,7 @@
                    "spectral_range": [2600, 349, -1],
                    "reflectance_adjustment": 0.2231,
                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
+                   "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I2"]},
                    "c1": 0.001,
                    "radiance_scale_factor": 0.001,
                    "supported_band": true
@@ -925,6 +934,7 @@
                    "spectral_range": [2600, 349, -1],
                    "reflectance_adjustment": 0.2512,
                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band6"],
+                   "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I3"]},
                    "c1": 0.0002,
                    "radiance_scale_factor": 0.0002,
                    "supported_band": true
@@ -938,6 +948,7 @@
                    "spectral_range": [2600, 349, -1],
                    "reflectance_adjustment": 0.1648,
                    "brdf_datasets": ["BRDF_Albedo_Parameters_Band7"],
+                   "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M11"]},
                    "c1": 0.00005,
                    "radiance_scale_factor": 0.00005,
                    "supported_band": true
@@ -960,6 +971,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M2"]},
                     "c1": 0.001,
                     "radiance_scale_factor": 0.001,
                     "supported_band": true
@@ -973,6 +985,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band3"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M3"]},
                     "c1": 0.001,
                     "radiance_scale_factor": 0.001,
                     "supported_band": true
@@ -986,6 +999,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.0365,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band4"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M4"]},
                     "c1": 0.001,
                     "radiance_scale_factor": 0.001,
                     "supported_band": true
@@ -999,6 +1013,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.088,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
+                    "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I1"]},
                     "c1": 0.001,
                     "radiance_scale_factor": 0.001,
                     "supported_band": true
@@ -1012,6 +1027,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.088,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
+                    "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I1"]},
                     "c1": 0.001,
                     "radiance_scale_factor": 0.001,
                     "supported_band": true
@@ -1025,6 +1041,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.088,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band1"],
+                    "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I1"]},
                     "c1": 0.001,
                     "radiance_scale_factor": 0.001,
                     "supported_band": true
@@ -1038,6 +1055,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2231,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
+                    "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I2"]},
                     "c1": 0.001,
                     "radiance_scale_factor": 0.001,
                     "supported_band": true
@@ -1051,6 +1069,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2231,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
+                    "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I2"]},
                     "c1": 0.001,
                     "radiance_scale_factor": 0.001,
                     "supported_band": true
@@ -1064,6 +1083,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2231,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band2"],
+                    "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I2"]},
                     "c1": 0.001,
                     "radiance_scale_factor": 0.001,
                     "supported_band": true
@@ -1097,6 +1117,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.2512,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band6"],
+                    "brdf_viirs_datasets": {"I": ["BRDF_Albedo_Parameters_I3"]},
                     "c1": 0.0002,
                     "radiance_scale_factor": 0.0002,
                     "supported_band": true
@@ -1110,6 +1131,7 @@
                     "spectral_range": [2600, 349, -1],
                     "reflectance_adjustment": 0.1648,
                     "brdf_datasets": ["BRDF_Albedo_Parameters_Band7"],
+                    "brdf_viirs_datasets": {"M": ["BRDF_Albedo_Parameters_M11"]},
                     "c1": 0.00005,
                     "radiance_scale_factor": 0.00005,
                     "supported_band": true
