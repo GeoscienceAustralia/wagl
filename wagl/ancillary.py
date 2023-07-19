@@ -559,7 +559,7 @@ def collect_nbar_ancillary(
         for acq in container.get_acquisitions(group=group):
             if acq.band_type is not BandType.REFLECTIVE:
                 continue
-            data = get_brdf_data(acq, brdf_dict, compression)
+            data = get_brdf_data(acq, brdf_dict, compression=compression)
 
             # output
             for param in data:
