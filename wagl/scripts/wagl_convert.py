@@ -145,7 +145,7 @@ def convert_scalar(dataset, output_directory):
     base_fname = pjoin(output_directory, normpath(dataset.name.strip("/")))
 
     if dataset.attrs.get("file_format") == "yaml":
-        tags = yaml.load(dataset[()])
+        tags = yaml.load(dataset[()], Loader=yaml.FullLoader)
 
     elif dataset.attrs.get("file_format") == "json":
         tags = {k: v for k, v in dataset.attrs.items()}
