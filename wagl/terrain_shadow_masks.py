@@ -324,6 +324,7 @@ def calculate_cast_shadow(
     compression=H5CompressionFilter.LZF,
     filter_opts=None,
     solar_source=True,
+    num_compute_chunks=(2, 2),
 ):
     """
     This code is an interface to the fortran code
@@ -410,6 +411,10 @@ def calculate_cast_shadow(
         of sight comes from the sun (True; Default), or False
         indicating the satellite.
 
+    :param num_compute_chunks:
+        Number of chunks in (y, x) for compute to reduce memory usage.
+
+
     :return:
         An opened `h5py.File` object, that is either in-memory using the
         `core` driver, or on disk.
@@ -440,36 +445,58 @@ def calculate_cast_shadow(
         zenith_name = DatasetName.SATELLITE_VIEW.value
         azimuth_name = DatasetName.SATELLITE_AZIMUTH.value
 
-    zenith_angle = satellite_solar_group[zenith_name][:]
-    azimuth_angle = satellite_solar_group[azimuth_name][:]
-    elevation = dsm_group[DatasetName.DSM_SMOOTHED.value][:]
-
     # block height and width of the window/submatrix used in the cast
     # shadow algorithm
     block_width = margins.left + margins.right
     block_height = margins.top + margins.bottom
 
-    # Compute the cast shadow mask
-    ierr, mask = cast_shadow_main(
-        elevation,
-        zenith_angle,
-        azimuth_angle,
-        x_res,
-        y_res,
-        spheroid,
-        y_origin,
-        x_origin,
-        margins.left,
-        margins.right,
-        margins.top,
-        margins.bottom,
-        block_height,
-        block_width,
-        is_utm,
-    )
+    zenith_angle = satellite_solar_group[zenith_name]
+    azimuth_angle = satellite_solar_group[azimuth_name]
+    elevation = dsm_group[DatasetName.DSM_SMOOTHED.value]
 
-    if ierr:
-        raise CastShadowError(ierr)
+    # the DSM is padded by buffer_distance around the angle images
+    assert zenith_angle.shape == azimuth_angle.shape
+    assert elevation.shape[0] == margins.top + zenith_angle.shape[0] + margins.bottom
+    assert elevation.shape[1] == margins.left + zenith_angle.shape[1] + margins.right
+
+    mask = np.empty(zenith_angle.shape, dtype=np.bool)
+
+    for tile in generate_tiles(
+        zenith_angle.shape[1],
+        zenith_angle.shape[0],
+        int(np.ceil(zenith_angle.shape[1] / num_compute_chunks[1])),
+        int(np.ceil(zenith_angle.shape[0] / num_compute_chunks[0])),
+    ):
+        # Row and column start locations
+        ystart, yend = tile[0]
+        xstart, xend = tile[1]
+        idx = (slice(ystart, yend), slice(xstart, xend))
+        idx_dsm = (
+            slice(ystart, margins.top + yend + margins.bottom),
+            slice(xstart, margins.left + xend + margins.right),
+        )
+
+        # Compute the cast shadow mask
+        ierr, mask[idx] = cast_shadow_main(
+            elevation[idx_dsm],
+            zenith_angle[idx],
+            azimuth_angle[idx],
+            x_res,
+            y_res,
+            spheroid,
+            y_origin,
+            x_origin,
+            margins.left,
+            margins.right,
+            margins.top,
+            margins.bottom,
+            block_height,
+            block_width,
+            is_utm,
+        )
+
+        if ierr:
+            raise CastShadowError(ierr)
 
     source_dir = "SUN" if solar_source else "SATELLITE"
 
