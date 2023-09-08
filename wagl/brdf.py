@@ -54,25 +54,6 @@ _LOG = logging.getLogger(__name__)
 # date for using definitive data.
 DEFINITIVE_START_DATE = datetime.datetime(2002, 7, 1).date()
 
-# Due to MODIS satellites being retired soon, we are going to use VIIRS as
-# our BRDF source from this date forward.
-VIIRS_START_DATE = datetime.datetime(2023, 7, 1).date()
-
-VIIRS_CRS = """\
-PROJCS["unnamed",\
-GEOGCS["Unknown datum based upon the custom spheroid",\
-DATUM["Not specified (based on custom spheroid)",\
-SPHEROID["Custom spheroid",6371007.181,0]],\
-PRIMEM["Greenwich",0],\
-UNIT["degree",0.0174532925199433]],\
-PROJECTION["Sinusoidal"],\
-PARAMETER["longitude_of_center",0],\
-PARAMETER["false_easting",0],\
-PARAMETER["false_northing",0],\
-UNIT["Meter",1]]\
-"""
-
-
 
 class BRDFLoaderError(Exception):
     """
@@ -374,6 +355,22 @@ def extract_VIIRS_geotransform(f):
     return geoInfo
 
 
+def VIIRS_crs():
+    """Return VIIRS projection - exact same as MODIS"""
+    prj = 'PROJCS["unnamed",\
+    GEOGCS["Unknown datum based upon the custom spheroid", \
+    DATUM["Not specified (based on custom spheroid)", \
+    SPHEROID["Custom spheroid",6371007.181,0]], \
+    PRIMEM["Greenwich",0],\
+    UNIT["degree",0.0174532925199433]],\
+    PROJECTION["Sinusoidal"], \
+    PARAMETER["longitude_of_center",0], \
+    PARAMETER["false_easting",0], \
+    PARAMETER["false_northing",0], \
+    UNIT["Meter",1]]'
+    return prj
+
+
 def load_brdf_tile(src_poly, src_crs, fid, dataset_name, fid_mask, satellite):
     """
     Summarize BRDF data from a single tile.
@@ -391,7 +388,7 @@ def load_brdf_tile(src_poly, src_crs, fid, dataset_name, fid_mask, satellite):
         ds_height, ds_width = ds.shape[:2]
         gt = extract_VIIRS_geotransform(fid)
         dst_geotransform = rasterio.transform.Affine.from_gdal(*gt)
-        dst_crs = CRS.from_wkt(VIIRS_CRS)
+        dst_crs = CRS.from_wkt(VIIRS_crs())
 
     def segmentize_src_poly(length_scale):
         src_poly_geom = ogr.CreateGeometryFromWkt(src_poly.wkt)
@@ -492,13 +489,6 @@ def get_tally(mode, brdf_config, brdf_datasets, viirs_datasets, dt, src_poly, sr
             raise IndexError
         return path
 
-    def brdf_range(brdf_base_dir):
-        brdf_dir_list = sorted(os.listdir(brdf_base_dir))
-        brdf_dir_range = [brdf_dir_list[0], brdf_dir_list[-1]]
-        return [
-            datetime.date(*[int(x) for x in y.split(".")]) for y in brdf_dir_range
-        ]
-
     if mode == "fallback":
         brdf_base_dir = assert_exists(brdf_config["brdf_fallback_path"])
         brdf_dirs = get_brdf_dirs_fallback(brdf_base_dir, dt)
@@ -514,7 +504,12 @@ def get_tally(mode, brdf_config, brdf_datasets, viirs_datasets, dt, src_poly, sr
         # Compare the scene date and MODIS BRDF start date to select the
         # BRDF data root directory.
         # Scene dates outside this range are to use the fallback data
-        if dt < DEFINITIVE_START_DATE or dt > VIIRS_START_DATE:
+        brdf_dir_list = sorted(os.listdir(brdf_base_dir))
+        brdf_dir_range = [brdf_dir_list[0], brdf_dir_list[-1]]
+        brdf_range = [
+            datetime.date(*[int(x) for x in y.split(".")]) for y in brdf_dir_range
+        ]
+        if dt < DEFINITIVE_START_DATE or dt > brdf_range[1]:
             raise IndexError
 
     elif mode == "VIIRS":
@@ -533,9 +528,6 @@ def get_tally(mode, brdf_config, brdf_datasets, viirs_datasets, dt, src_poly, sr
             brdf_dirs = get_brdf_dirs_viirs(brdf_base_dir, dt)
         else:
             raise ValueError("No I or M bands in VIIRS band for sensor")
-
-        if dt < VIIRS_START_DATE or dt > brdf_range(brdf_base_dir)[1]:
-            raise IndexError
 
     else:
         raise ValueError(f"Unknown mode {mode}")
