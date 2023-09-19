@@ -643,8 +643,10 @@ def get_brdf_data(
             mode, brdf_config, brdf_datasets, viirs_datasets, dt, src_poly, src_crs
         )
 
-        if any(result[ds].is_empty() for ds in result):
+        # for fallback, it is OK to find no BRDF
+        if mode != "fallback" and any(result[ds].is_empty() for ds in result):
             raise IndexError
+
         return result
 
     def back_in_time(from_dt):
