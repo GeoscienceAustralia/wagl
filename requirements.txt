@@ -1,4 +1,4 @@
-numpy==1.21.0
+numpy==1.22.0
 python-dateutil==2.8.2
 nested-lookup==0.2.22
 rasterio==1.2.6
